@@ -1,6 +1,6 @@
 # Direction: Investigative AI Training Arena
 
-Research synthesis and recommendation. **Version 8, 2026-10-08**, revised after Codex critique rounds 1-6 (YELLOW each: 24, 12, 6, 5, 4, then 2 majors) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-6.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
+Research synthesis and recommendation. **Version 9, 2026-10-08**, revised after Codex critique rounds 1-7 (YELLOW each: 24, 12, 6, 5, 4, 2, then 1 major) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-7.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
 
 ## 0. TL;DR
 
@@ -9,7 +9,7 @@ Research synthesis and recommendation. **Version 8, 2026-10-08**, revised after 
 3. **Agents are stateless, schema-bound calls through a typed agent port lifted from TechnoMile.** The default coaching design is one complete card per turn (flags, follow-up, finding, confidence); the two-stage design competes as candidate A1, so the bake-off itself answers which is better. (M-H)
 4. **The official leaderboard runs only arena-hosted, frozen Gemini-on-Vertex candidates.** An A2A v1.0 exhibition track for external endpoints is an owner call (P2). (H)
 5. **Latency (KPI-4) is unmeasured and the top technical risk.** Gemini 2.5 retires on Vertex 2026-10-16 to 10-20; no remaining model fully disables thinking. KPI-4 is measured on the complete card at the client. A day-1 benchmark (~$1) sets the model. (H on risk, M on plan)
-6. **Budget (D-009): everything on GCP stays under $75, aiming for $50.** Plan: 26 hidden cases (13 matched families) x 1 repeat plus a 10-case dev pilot, Flash-Lite-class lineup, all online, no promotional pricing counted. Every liability is reserved before it can be incurred: each model call reserves its worst case; each voice session reserves its whole-session worst case before opening; non-model costs (Cloud Run, storage, logs, transfer) have a quantified $10.32 upper bound at gross rates, enforced by an instance-seconds ledger and size caps from the first probe to teardown. Simulated over the whole project: **~$43 expected and ~$72 conservative, complete in both.** Grow to 30-40 cases only if the dev pilot measures costs near the expected case. The sponsor's gate is a point estimate and applies at this size; precision is honestly limited (zero-false-positive one-sided bound 20.6% at 13 families vs 4.9% for the sponsor's 120 cases). (M; assumptions until the dev pilot measures them)
+6. **Budget (D-009): everything on GCP stays under $75, aiming for $50.** Plan: 26 hidden cases (13 matched families) x 1 repeat plus a 10-case dev pilot, Flash-Lite-class lineup, all online, no promotional pricing counted. Every liability is reserved before it can be incurred: each model call reserves its worst case; each voice session reserves its whole-session worst case before opening; non-model costs have a quantified $9.83 upper bound at gross rates under a deployment-level contract (static web on an unbilled Firebase Spark project; public Cloud Run services behind Identity-Aware Proxy; a watchdog that turns off public ingress when Cloud Run's own billable instance time reaches its allocation; size caps), from the first probe to teardown. Simulated over the whole project: **~$42 expected and ~$70 conservative, complete in both.** Grow to 30-40 cases only if the dev pilot measures costs near the expected case. The sponsor's gate is a point estimate and applies at this size; precision is honestly limited (zero-false-positive one-sided bound 20.6% at 13 families vs 4.9% for the sponsor's 120 cases). (M; assumptions until the dev pilot measures them)
 7. **Voice: Gemini Live on Vertex through gokbase's proxy, on development cases only, proven in the October 18 slice.** Browser audio goes to `arena-api`, which relays to the IAM-private `arena-subject`. Probe `gemini-3.8-live` and `gemini-live-2.5-flash-native-audio` on day 1; prebuilt Live Avatar talking heads are a stretch. Push-to-talk or the Developer API each need an owner exception. (M)
 8. **Fairness and isolation are headline features.** Style is independent of role; style-stratified false-positive audit; demeanor-based flags count as unsupported; demeanor-driven outputs are negative-control fixtures, never a ranked candidate. (H)
 9. **Owner decisions needed:** confirm the 26-case plan, GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
@@ -61,9 +61,9 @@ Cut first: A2A exhibition track, Live Avatar, extra domains, agents-at-work anim
 
 ```mermaid
 flowchart LR
-  W["Static web (Firebase Hosting)"]
+  W["Static web (Firebase Hosting, separate unbilled Spark project)"]
   subgraph CR["Cloud Run, min 0"]
-    API["arena-api (public ingress): credential arena_public. REST, ticketed SSE, voice WS relay, orchestration, assistant calls, harness"]
+    API["arena-api (public ingress behind IAP): credential arena_public. REST, ticketed SSE, voice WS relay, orchestration, assistant calls, harness"]
     SUBJ["arena-subject (IAM-private): credential arena_subject. Text subject runtime, voice Live sessions"]
     REF["arena-referee (IAM-private): credential arena_referee. Labels, judges, scoring, reveal"]
     JOB["arena-tournament (Job): credential arena_public. Frozen roster, block scheduling, reservations"]
@@ -128,12 +128,12 @@ Tests per function: forged turn, cross-trial call, duplicate and replayed work i
 
 | Surface | Caller | Credential | Can read | Can write |
 | --- | --- | --- | --- | --- |
-| Investigator REST, debrief, export | Browser with Supabase JWT | `arena_public` | Public projections; own sessions; hidden-case material never before reveal | Questions, session state |
+| Investigator REST, debrief, export (behind IAP) | Browser with an allowlisted Google account (IAP) and Supabase JWT | `arena_public` | Public projections; own sessions; hidden-case material never before reveal | Questions, session state |
 | Ticketed SSE | Browser | `arena_public` | Coaching and ledger events by sequence (projection) | None |
 | Voice WebSocket | Browser to `arena-api`, relayed with an IAM ID token to `arena-subject` | `arena_public` at the edge | Audio and transcript of a development-case session | Session ledger rows |
 | `answer()` | `arena-api`, `arena-tournament` (IAM) | `arena_subject` behind it | Private packet | Through `record_subject_turn()` only |
 | Scoring, adjudication, reveal, leaderboards | Admin through `arena-referee` (IAM) | `arena_referee` | All tiers | Scores, leaderboards, validity adjudications |
-| Phoenix UI | Judges with Phoenix accounts | Phoenix auth | Redacted spans for development and revealed work only; unrevealed hidden-tournament spans stay in the restricted `ops.trace_mirror` and are exported to the judge-visible Phoenix only after reveal | None |
+| Phoenix UI (behind IAP) | Judges with Phoenix accounts | IAP plus Phoenix auth | Redacted spans for development and revealed work only; unrevealed hidden-tournament spans stay in the restricted `ops.trace_mirror` and are exported to the judge-visible Phoenix only after reveal | None |
 
 Voice tickets are single-use and bound to user, trial, split (development only) and mode; resumes re-check all four, and `arena-subject` re-checks them on its side. Only a small application protocol crosses the relay: bounded audio frames and approved controls (start, stop, interrupt). Live setup, private prompts, tool calls and results, and provider resume handles stay server-owned inside `arena-subject` (R3-02).
 
@@ -176,7 +176,7 @@ Method: (1) a constraint gate removes options that break D-001, D-003, D-006 or 
 | DM-3 Coaching design | One complete call per turn (4.15-4.45) | Complete card plus deeper update (4.00-4.30); plus Priority tier (3.85-4.15); one Pro call (3.70) | Flips to two-stage if 10 points move to demo impact | Depends on unmeasured scores | Single call as the practice default; two-stage competes as A1; the benchmark and the bake-off decide |
 | DM-4 Voice engine (gate-passing options) | Vertex `gemini-3.8-live` (3.60-3.90) | Vertex `gemini-live-2.5-flash-native-audio` (3.45-3.75); plus prebuilt Live Avatar (2.85-3.15) | No flip | Depends on unmeasured scores | 3.8 Live primary, 2.5 native audio fallback, Live Avatar stretch; probe decides |
 | DM-5 Phoenix hosting (gate-passing options) | Local only (3.95) | Hosted, trace mirror as the store, request-based CPU (3.70) | Flips to hosted if 10 points move to demo impact | Robust at base weights | Local during the build; hosted for the judge link (CPU allocation optional, separately approved) |
-| DM-6 Frontend hosting | Static build on Firebase Hosting (4.30-4.45) | Next.js server on Cloud Run (3.70-4.00); Firebase App Hosting (3.40-3.70) | No flip | Robust | Static build (H) |
+| DM-6 Frontend hosting | Static build on Firebase Hosting, separate unbilled Spark project (4.30-4.45) | Next.js server on Cloud Run (3.70-4.00); Firebase App Hosting (3.40-3.70) | No flip | Robust | Static build (H) |
 
 Gate-failing options, listed for the owner: Developer API Live (needs a D-001 exception); push-to-talk STT-LLM-TTS (D-006 exception); Arize AX instead of Phoenix (substitution approval). CPU allocated for the Phoenix service's lifetime is an optional latency improvement needing its own sign-off.
 
@@ -264,22 +264,22 @@ Two layers, kept separate (F15):
 
 ### 8.2 Plans under D-009 (`simulate_d009`)
 
-Set aside first: the non-model bound ($10.32 at gross rates) and the demo allocation ($14.25: 40 judge and team text sessions, 8 voice sessions, 30 portraits at conservative usage, plus one in-flight voice reservation). Model work then runs call by call through the guard, in order: experiments including 30 metered Live probes, family generation, dev pilot, the whole replay corpus (produced and sealed first), replay scoring, interactive blocks. The demo bucket is treated as an aggregate allocation with per-call guards inside it, not simulated call by call.
+Set aside first: the non-model bound ($9.83 at gross rates) and the demo allocation ($12.43: 40 judge and team text sessions, 8 voice sessions, 30 portraits at conservative usage, plus one in-flight voice reservation). Model work then runs call by call through the guard, in order: experiments including 30 metered Live probes, family generation, dev pilot, the whole replay corpus (produced and sealed), replay scoring, interactive blocks. The demo bucket is an aggregate allocation with per-call guards inside it, not simulated call by call.
 
 | Sealed hidden cases (families) | Expected usage | Conservative usage | Zero-FP bound if all planned families complete | Achieved bound in the conservative case |
 | --- | --- | --- | --- | --- |
-| 20 (10) | $38; everything completes | $65; everything completes | 25.9% | 25.9% |
-| 24 (12) | $41; everything completes | $70; everything completes | 22.1% | 22.1% |
-| **26 (13), recommended** | **$43; everything completes** | **$72; everything completes** | **20.6%** | **20.6%** |
-| 30 (15) | $47; everything completes | $71; 11 of 15 interactive blocks | 18.1% | 23.8% (11 families) |
-| 40 (20) | $55; everything completes | $72; 9 of 20 interactive blocks | 13.9% | 28.3% (9 families) |
+| 20 (10) | $37; everything completes | $63; everything completes | 25.9% | 25.9% |
+| 24 (12) | $41; everything completes | $68; everything completes | 22.1% | 22.1% |
+| **26 (13), recommended** | **$42; everything completes** | **$70; everything completes** | **20.6%** | **20.6%** |
+| 30 (15) | $46; everything completes | $72; 13 of 15 interactive blocks | 18.1% | 20.6% (13 families) |
+| 40 (20) | $54; everything completes | $71; 10 of 20 interactive blocks | 13.9% | 25.9% (10 families) |
 
 **Recommendation:** 26 hidden cases is the largest plan that meets the $50 target in the expected case and completes under $75 in the conservative case. After the dev pilot measures real costs, extend to 30 or 40 cases only if they track the expected column. For reference, the sponsor's full workload (120 cases x 2 repeats) would cost $243-384 for the bake-off alone.
 
 ### 8.3 Spend guard (every liability is reserved before it can be incurred)
 - **Model calls:** each call reserves its own worst case in `ops.budget_reservations` inside a transaction before calling Vertex, at liability rates (undiscounted list prices), and settles from usage metadata; missing usage keeps the reservation. Worst case = per-call-type input and total output limits (`max_output_tokens` bounds thinking plus visible output) times four attempts. Reservations cover work in flight only.
-- **Voice sessions:** before a Live session opens, it reserves its whole-session worst case ($1.64), computed from the enforced session limits (12 exchanges, 480 s of audio, every turn rebilling the maximum possible context, Live rates x1.5 for the unconfirmed Vertex price, coaching and playback retranscription). The safety-loop meter closes the session at $1.09, two thirds of the reservation, so in-flight usage between checks stays inside it. The modeled reference session costs $0.45 expected and $0.92 conservative, so it finishes before the shutoff. Probe sessions reserve $0.13 each the same way.
-- **Non-model costs:** from the first probe (2026-10-09) to teardown (2026-11-09), priced at gross rates with no free tier assumed, each with an enforced cap: Cloud Run services through an instance-seconds ledger in the API middleware (every request, and every 5-minute lease of an SSE or WebSocket connection, reserves timeout x vCPU and GiB against global caps of 150,000 vCPU-seconds and 300,000 GiB-seconds); the tournament job by task count x timeout x resources; Artifact Registry, Cloud Storage and Secret Manager by cleanup policies and size limits; logging by exclusion filters, sampling and a volume cap; hosting transfer and egress by response-size and request caps. Upper bound $10.32, set aside before any model work; expected about $2.93.
+- **Voice sessions:** before a Live session opens, it reserves its whole-session worst case ($1.64), computed from the enforced session limits (12 exchanges, 480 s of audio, every turn rebilling the maximum possible context, Live rates x1.5 for the unconfirmed Vertex price, coaching and playback retranscription). The safety-loop meter closes the session at $1.09, two thirds of the reservation, so in-flight usage between checks stays inside it. The modeled reference session (12 exchanges, 12 s in, 14 s out) costs $0.34 expected and $0.69 conservative and uses at most 468 of the 480 allowed seconds, so it finishes before both limits. Probe sessions reserve $0.13 each the same way.
+- **Non-model costs (deployment-level liability contract):** from the first probe (2026-10-09) to teardown (2026-11-09), at gross rates with no free tier assumed. The static web runs on a separate, unbilled Firebase Spark project, which stops serving at quota and cannot bill overage. Public Cloud Run services (`arena-api`, Phoenix) sit behind Identity-Aware Proxy, so only allowlisted Google accounts ever reach or start a container; `arena-subject`, `arena-referee` and the job are IAM-private. A watchdog every 15 minutes reads Cloud Run's own billable instance time (which includes startup and shutdown) and sets a service's ingress to internal when its allocation (150,000 vCPU-seconds, 300,000 GiB-seconds across services) is used; the residual exposure between checks (2 public services x 2 instances x 15 minutes) is reserved. The tournament job is bounded by task count x timeout; Artifact Registry, Cloud Storage and Secret Manager by cleanup policies and size limits; logging by exclusion filters, sampling and a volume cap; egress by IAP-gated responses. Upper bound $9.83, set aside before any model work; expected about $3.04.
 - **Completeness (soft):** a unit starts only if 1.5 times its conservative cost remains; a unit the per-call guard still stops is recorded as `budget_truncated` and excluded.
 - **Secondary alarms:** GCP billing budget alerts at $25, $50 and $65; a kill switch read on every call that also turns off public ingress. GCP has no strict project-wide spend cap, which is why every liability above is reserved in our own ledger first.
 
@@ -288,7 +288,7 @@ Set aside first: the non-model bound ($10.32 at gross rates) and the demo alloca
 - **Lift from gokbase:** proxy, single-use tickets and resume tokens, 2-second safety loop with distinct close codes, per-fragment ledger, cost from usage metadata, salted data boundary, `voiceMachine.ts`, 16 kHz capture and 24 kHz playback worklets. Replace Redis primitives with Supabase transactions; rewrite prompts and tools; `vertexai=True`.
 - **Scope:** development cases only, because audio reaches the investigator before any text guard can act; leaked sessions are invalidated.
 - **Playback-grounded transcripts (F10):** live output transcription has no word-to-audio offsets and no guaranteed ordering, so an interrupted utterance cannot be cut at the word the investigator heard. Interrupted utterances are marked partial and excluded from scored citations; where a scored transcript is needed, the acknowledged played audio (the playback worklet reports played sample counts) is transcribed afterwards. Voice sessions stay outside scored training results until delayed-transcription, buffered-unplayed-audio, reconnect and mid-word-interruption tests pass.
-- **Cost:** Live rebills accumulated context every turn. The modeled reference session (12 exchanges, 15 s in, 20 s out, transcription, coaching, playback retranscription) costs ~$0.45 expected and ~$0.92 conservative at the Live family's rate card (Vertex 3.8 Live pricing to be confirmed). Each session reserves its $1.64 whole-session worst case before opening and is shut at $1.09; eight sessions are budgeted (four for development testing, four for judges and the demo). The slice measures a real session before any judge-facing use.
+- **Cost:** Live rebills accumulated context every turn. The modeled reference session (12 exchanges, 12 s in, 14 s out, transcription, coaching, playback retranscription) costs ~$0.34 expected and ~$0.69 conservative at the Live family's rate card (Vertex 3.8 Live pricing to be confirmed). Each session reserves its $1.64 whole-session worst case before opening and is shut at $1.09; eight sessions are budgeted (four for development testing, four for judges and the demo). The slice measures a real session before any judge-facing use.
 - **Fairness (N03):** the coach receives no acoustic features, but transcription errors and dialect wording can still shift what it sees. Matched-content fixtures (same content, different voices) test this before any voice fairness claim.
 
 ## 10. Observability plan
@@ -324,8 +324,8 @@ Set aside first: the non-model bound ($10.32 at gross rates) and the demo alloca
 | Risk | L | I | Mitigation | Trigger |
 | --- | --- | --- | --- | --- |
 | Complete-card coaching misses 3 s p95 on every 3.x model | M | H | Benchmark, compact prompts, Priority tier, disclosed definition | Day-1 benchmark, dev pilot |
-| D-009 limits precision (15 truthful families) | H | M | Point-estimate gate still applies; intervals and bounds disclosed; extend to 40 cases if pilot costs allow | Dev pilot |
-| Non-model usage hits its caps before the demo | L | M | Instance-seconds ledger and size caps refuse work rather than overspend; teardown on 2026-11-09; billing alerts | Ledger dashboard |
+| D-009 limits precision (13 truthful families) | H | M | Point-estimate gate still applies; intervals and bounds disclosed; extend to 40 cases if pilot costs allow | Dev pilot |
+| Non-model usage hits its caps before the demo | L | M | Watchdog turns public ingress off rather than overspend; IAP keeps traffic to invited accounts; teardown on 2026-11-09; billing alerts | Watchdog dashboard |
 | Real costs exceed the conservative model | L | H | Per-call reservations make overshoot impossible; units beyond the cap become `budget_skipped`; tighten limits from pilot maxima | Dev pilot, sealed run |
 | Vertex Live unusable or voice integration fails | M | M | Probe matrix; slice gate; predeclared owner branches | Oct 15, Oct 18 |
 | Deceptive variants too hard or too easy | M | H | Solvability gate, pilot calibration | Dev pilot |
@@ -340,7 +340,7 @@ Set aside first: the non-model bound ($10.32 at gross rates) and the demo alloca
 
 ## 13. Next steps
 
-### 13.1 Day-1 to day-3 experiments (~$4-6 including retries and the metered Live probe; inside the D-009 budget)
+### 13.1 Day-1 to day-3 experiments (~$4-7 including retries and the metered Live probe; inside the D-009 budget)
 1. **Latency benchmark (~$1):** the complete card in the lineup's configurations (`gemini-3.5-flash-lite` single call, `gemini-3.1-flash-lite` single call, `gemini-3.5-flash-lite` two-stage card; MINIMAL thinking); early and late-interview contexts; 100 calls per configuration (a screening estimate; the dev pilot adds the turns that make p95 credible); cold and warm Cloud Run; Priority tier on the best.
 2. **Vertex Live probe matrix:** model (`gemini-3.8-live`, `gemini-live-2.5-flash-native-audio`) x documented US regions and global x client (`aio.live.connect` with ADC, raw WebSocket) x config (audio-only base, transcription, tools), each failure classified as IAM, region, SDK, feature or allowlist; prebuilt Live Avatar access.
 3. **Case-generation pilot:** two families through every validator.
@@ -359,6 +359,6 @@ Set aside first: the non-model bound ($10.32 at gross rates) and the demo alloca
 9. Team roster; KPI-1 volunteers (6-10).
 
 ## 14. Sources and critique history
-- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md` to `critique-round-6.md`.
+- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md` to `critique-round-7.md`.
 - Tally: 143 Google web, 64 GDK, 34 Context7, 198 internal files (research-harness floors met), plus Codex verification searches (19 in round 1, 15 web plus GDK and Context7 checks in round 2).
-- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors), all applied; round 5 YELLOW on the D-009 re-plan (4 majors, 2 minors), all applied; round 6 YELLOW (2 majors, 2 minors; enforcement of D-009), all applied in this version.
+- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors), all applied; round 5 YELLOW on the D-009 re-plan (4 majors, 2 minors), all applied; round 6 YELLOW (2 majors, 2 minors), all applied; round 7 YELLOW (1 major on non-model billing paths, 3 minors), all applied in this version.

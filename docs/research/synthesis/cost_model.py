@@ -399,7 +399,7 @@ def experiment_calls(high: bool) -> list[Call]:
 # Live voice reference session (F25). Rates are the gokbase rate card for the Live model family
 # (audio $3/$12, text $0.75/$4.50 per 1M) because no Vertex 3.8 Live table was retrieved; the high case
 # multiplies durations and rates by 1.5. Accumulated context is rebilled every turn.
-VOICE = {"exchanges": 12, "in_s": 15, "out_s": 20, "tok_per_s": 32, "system_tokens": 2000,
+VOICE = {"exchanges": 12, "in_s": 12, "out_s": 14, "tok_per_s": 32, "system_tokens": 2000,
          "transcript_tokens_per_turn": 200, "audio_in": 3.0, "audio_out": 12.0, "text_in": 0.75, "text_out": 4.50,
          "retranscribe_per_min": 0.016}
 
@@ -443,16 +443,23 @@ VOICE_SESSIONS = 8                                                 # 4 for devel
 TEXT_SESSIONS = 40
 PORTRAITS = (30, 0.04, 0.08)   # count, expected $/image, high $/image (image pricing unverified; count-capped)
 
-# Non-model GCP liabilities from the first probe (2026-10-09) to teardown (2026-11-09), priced at GROSS rates
-# (no free tier assumed). Each line is quantity x rate, and each quantity has an enforced cap (R5-01):
-# - Cloud Run services: the API middleware keeps an instance-seconds ledger; every request (including SSE and
-#   WebSocket connections, admitted in 5-minute leases) reserves timeout x vCPU and GiB before it runs, against
-#   a global cap. Requests are rejected once the cap is reached.
-# - Cloud Run job: task count x task timeout x resources, fixed per execution and admitted by the same ledger.
-# - Stored bytes: cleanup policies and size limits; logs: exclusion filters plus sampling with a volume cap.
+# Non-model GCP liabilities from the first probe (2026-10-09) to teardown (2026-11-09), at GROSS rates (no free
+# tier assumed), under a deployment-level liability contract (round 7, R5-01):
+# - The static web runs on a separate, unbilled Firebase Spark project: it stops serving at quota and cannot
+#   bill overage, so it adds no liability to the GCP project.
+# - Public Cloud Run services (arena-api, Phoenix) sit behind Identity-Aware Proxy: only allowlisted Google
+#   accounts reach a container, so unauthenticated traffic never starts or occupies one. arena-subject,
+#   arena-referee and the job are IAM-private.
+# - A watchdog every 15 minutes reads Cloud Run's own billable instance time (which includes startup and
+#   shutdown) and, when a service's allocation is used, sets its ingress to internal. The residual exposure
+#   between checks (max instances x 15 minutes) is reserved below.
+# - Stored bytes have cleanup policies and size limits; logs have exclusion filters, sampling and a volume cap.
 NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fraction of the cap actually used)
-    "Cloud Run services vCPU-seconds": (150_000, "vCPU-s", 0.000024, 0.15),
-    "Cloud Run services GiB-seconds": (300_000, "GiB-s", 0.0000025, 0.15),
+    "Cloud Run services vCPU-seconds (watchdog-enforced on billable instance time)": (150_000, "vCPU-s", 0.000024, 0.15),
+    "Cloud Run services GiB-seconds (watchdog-enforced)": (300_000, "GiB-s", 0.0000025, 0.15),
+    "Watchdog residual: 2 public services x 2 instances x 15 min (1 vCPU, 2 GiB)": (4 * 900, "instance-s",
+                                                                                    0.000024 + 2 * 0.0000025, 1.0),
+    "Watchdog runs (Cloud Scheduler job + short Cloud Run job, every 15 min for 31 days)": (2976, "runs", 0.00005, 1.0),
     "Cloud Run job vCPU-seconds (tournament, 6 h x 2 vCPU)": (43_200, "vCPU-s", 0.000024, 0.5),
     "Cloud Run job GiB-seconds (6 h x 4 GiB)": (86_400, "GiB-s", 0.0000025, 0.5),
     "Cloud Run requests": (2_000_000, "requests", 0.0000004, 0.05),
@@ -460,8 +467,7 @@ NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fractio
     "Cloud Storage (<= 2 GB)": (2, "GB-month", 0.026, 0.5),
     "Secret Manager active versions (<= 12)": (12, "version-month", 0.06, 1.0),
     "Cloud Logging ingestion (exclusions + sampling, <= 3 GiB)": (3, "GiB", 0.50, 0.3),
-    "Firebase Hosting transfer (<= 5 GB)": (5, "GB", 0.15, 0.2),
-    "Internet egress (<= 5 GB)": (5, "GB", 0.12, 0.2),
+    "Internet egress from Cloud Run (<= 5 GB, IAP-gated responses)": (5, "GB", 0.12, 0.2),
 }
 NON_MODEL = {k: (q * r * f, q * r) for k, (q, _, r, f) in NON_MODEL_CAPS.items()}   # (expected, enforced bound)
 
@@ -525,12 +531,18 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
             break
         gens += 1
     counts["families_generated"] = gens
+    dev_done = 0
+    for _ in range(dev_cases // 2):                                     # dev pilot first (section 3.2)
+        if not (ok and run("dev_blocks", block_calls(lu, high), block_calls(lu, True))):
+            ok = False if report["truncated"] else ok
+            break
+        dev_done += 1
+    counts["dev_blocks"] = (dev_done, dev_cases // 2)
     corpus_all = [c for i in range(sealed_cases) for c in corpus_calls(lu, i)]
-    corpus_ok = ok and run("replay_corpus", corpus_all, corpus_all)     # whole corpus produced and sealed first
+    corpus_ok = ok and run("replay_corpus", corpus_all, corpus_all)     # whole corpus produced and sealed before scoring
     counts["replay_corpus"] = int(corpus_ok)
     ok = ok and corpus_ok
     for key, n, maker, maker_high in (
-            ("dev_blocks", dev_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True)),
             ("replay_transcripts", sealed_cases, lambda: replay_scoring_calls(lu, high),
              lambda: replay_scoring_calls(lu, True)),
             ("interactive_blocks", sealed_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True))):
@@ -558,6 +570,9 @@ if __name__ == "__main__":
     print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model envelope expected "
           f"${sum(e for e, _ in NON_MODEL.values()):.2f}, high ${sum(h for _, h in NON_MODEL.values()):.2f}")
     assert voice_session_cost(True) <= VOICE_SHUTOFF, "a conservative voice session must finish before the shutoff"
+    conservative_seconds = VOICE["exchanges"] * (VOICE["in_s"] + VOICE["out_s"]) * 1.5
+    assert conservative_seconds <= VOICE_LIMITS["audio_seconds"], "the conservative session must fit the audio limit"
+    print(f"  conservative reference session audio: {conservative_seconds:.0f} s of {VOICE_LIMITS['audio_seconds']} s allowed")
     for sealed in (20, 24, 26, 28, 30, 40):
         for high in (False, True):
             r = simulate_d009(sealed, 10, high)

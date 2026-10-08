@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- Codex round 7: YELLOW (1 major, 3 minors). Direction v9: deployment-level non-model contract (Spark static web, IAP, billable-instance-time watchdog), voice session fits 480 s; plan 26 hidden cases ~$42 expected / ~$70 conservative. $0 GCP spend so far.
 - Codex round 6: YELLOW (2 majors, 2 minors), both on D-009 enforcement. Direction v8: non-model upper bound $10.32 at gross rates with enforced caps; voice whole-session reservations; plan now 26 hidden cases + 10-case dev pilot (~$43 expected / ~$72 conservative, complete in both). Still $0 GCP spend.
 - Codex round 5: YELLOW (4 majors, 2 minors), all on D-009 accounting. Direction v7: call-level spend-guard simulation, non-model envelope over a finite window with teardown, Live context rebilling, undiscounted liability rates. Plan: 30 hidden cases + 10-case dev pilot, ~$44 expected / ~$72 conservative, complete in both. No GCP spend has occurred yet ($0).
 - Owner set D-009: total GCP spend hard cap $75, target $50 (supersedes D-007). Direction v6 re-plans: 30 hidden cases x 1 + 10-case dev pilot, lean-75 lineup, all online; whole-project simulation ~$49 expected / ~$73 conservative, complete in both; per-call reservations make overshoot impossible; extend to 40 cases only if dev-pilot costs track expected.
@@ -23,7 +24,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| bash `bc3pp456h` (codex exec) | Codex critique round 7 on direction v8; output to session scratchpad `codex/round7.json` | gpt-6-astra xhigh | 2026-10-08 ~20:15 EDT | ~20:30-20:40 EDT | `docs/research/synthesis/critique-round-7.md` (to write) |
+| (none) | | | | | |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
@@ -42,7 +43,7 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Codex adversarial critique round 7 on direction v8 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Codex adversarial critique round 8 on direction v9 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
 3. Present direction to the owner.
 
