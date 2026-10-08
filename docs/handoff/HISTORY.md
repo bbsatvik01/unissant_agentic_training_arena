@@ -16,3 +16,4 @@
 - Codex round 5 YELLOW (4 majors, 2 minors); direction v7: call-level guard simulation, voice rebilling, non-model envelope, liability rates; 30 cases ~$44/$72.
 - Codex round 6 YELLOW (2 majors, 2 minors); direction v8: enforceable non-model and voice reservations; plan 26 cases (~$43/$72).
 - Codex round 7 YELLOW (1 major, 3 minors); direction v9: deployment-level non-model liability contract; 26 cases ~$42/$70.
+- Codex round 8 YELLOW; direction v10 (honest non-model allowance, same-origin IAP web); plan 20 cases ~$37/$63.

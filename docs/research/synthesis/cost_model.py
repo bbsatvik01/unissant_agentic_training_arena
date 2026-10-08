@@ -443,23 +443,17 @@ VOICE_SESSIONS = 8                                                 # 4 for devel
 TEXT_SESSIONS = 40
 PORTRAITS = (30, 0.04, 0.08)   # count, expected $/image, high $/image (image pricing unverified; count-capped)
 
-# Non-model GCP liabilities from the first probe (2026-10-09) to teardown (2026-11-09), at GROSS rates (no free
-# tier assumed), under a deployment-level liability contract (round 7, R5-01):
-# - The static web runs on a separate, unbilled Firebase Spark project: it stops serving at quota and cannot
-#   bill overage, so it adds no liability to the GCP project.
-# - Public Cloud Run services (arena-api, Phoenix) sit behind Identity-Aware Proxy: only allowlisted Google
-#   accounts reach a container, so unauthenticated traffic never starts or occupies one. arena-subject,
-#   arena-referee and the job are IAM-private.
-# - A watchdog every 15 minutes reads Cloud Run's own billable instance time (which includes startup and
-#   shutdown) and, when a service's allocation is used, sets its ingress to internal. The residual exposure
-#   between checks (max instances x 15 minutes) is reserved below.
-# - Stored bytes have cleanup policies and size limits; logs have exclusion filters, sampling and a volume cap.
-NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fraction of the cap actually used)
-    "Cloud Run services vCPU-seconds (watchdog-enforced on billable instance time)": (150_000, "vCPU-s", 0.000024, 0.15),
-    "Cloud Run services GiB-seconds (watchdog-enforced)": (300_000, "GiB-s", 0.0000025, 0.15),
-    "Watchdog residual: 2 public services x 2 instances x 15 min (1 vCPU, 2 GiB)": (4 * 900, "instance-s",
-                                                                                    0.000024 + 2 * 0.0000025, 1.0),
-    "Watchdog runs (Cloud Scheduler job + short Cloud Run job, every 15 min for 31 days)": (2976, "runs", 0.00005, 1.0),
+# Non-model GCP costs from the first probe (2026-10-09) to teardown (2026-11-09), at gross rates.
+# Critique rounds 5-8 showed these cannot be hard-capped: GCP has no project-wide cap, usage metrics lag, and
+# Cloud Run can briefly exceed max-instances. So they are NOT claimed as a guaranteed bound. They are
+# minimized by design (min-instances 0, low max-instances, Identity-Aware Proxy in front of the only public
+# service, which also serves the static web same-origin; every other service IAM-private; size caps; log
+# exclusions; teardown on 2026-11-09), estimated below, and given an ALLOWANCE with margin that is set aside
+# before model work. Backstop: budget notifications at $25/$50/$65 and an automated billing-disable at $70
+# (notifications lag by hours, which is what the margin is for).
+NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fraction actually used)
+    "Cloud Run services vCPU-seconds": (150_000, "vCPU-s", 0.000024, 0.15),
+    "Cloud Run services GiB-seconds": (300_000, "GiB-s", 0.0000025, 0.15),
     "Cloud Run job vCPU-seconds (tournament, 6 h x 2 vCPU)": (43_200, "vCPU-s", 0.000024, 0.5),
     "Cloud Run job GiB-seconds (6 h x 4 GiB)": (86_400, "GiB-s", 0.0000025, 0.5),
     "Cloud Run requests": (2_000_000, "requests", 0.0000004, 0.05),
@@ -467,8 +461,10 @@ NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fractio
     "Cloud Storage (<= 2 GB)": (2, "GB-month", 0.026, 0.5),
     "Secret Manager active versions (<= 12)": (12, "version-month", 0.06, 1.0),
     "Cloud Logging ingestion (exclusions + sampling, <= 3 GiB)": (3, "GiB", 0.50, 0.3),
-    "Internet egress from Cloud Run (<= 5 GB, IAP-gated responses)": (5, "GB", 0.12, 0.2),
+    "Internet egress from Cloud Run (<= 5 GB)": (5, "GB", 0.12, 0.2),
+    "Billing-disable backstop (event-driven function, invoked only by budget notifications)": (1, "month", 0.10, 1.0),
 }
+NON_MODEL_ALLOWANCE = 15.0   # set aside; about 1.6x the itemized high estimate, to absorb lag and burst
 NON_MODEL = {k: (q * r * f, q * r) for k, (q, _, r, f) in NON_MODEL_CAPS.items()}   # (expected, enforced bound)
 
 
@@ -500,7 +496,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
     Each admitted call settles at its modeled cost x RETRY_FACTOR.
     """
     lu = LINEUPS["d009"]
-    avail = cap - sum(h for _, h in NON_MODEL.values()) - demo_ceiling()
+    avail = cap - NON_MODEL_ALLOWANCE - demo_ceiling()
     spent = 0.0
     report = {"truncated": None}
 
@@ -567,8 +563,9 @@ if __name__ == "__main__":
     print(f"  voice reference session: expected ${voice_session_cost(False):.2f}, high ${voice_session_cost(True):.2f}; "
           f"whole-session reservation ${VOICE_RESERVATION:.2f} (shutoff ${VOICE_SHUTOFF:.2f}) x {VOICE_SESSIONS} sessions; "
           f"probe reservation ${PROBE_RESERVATION:.2f} x {LIVE_PROBE[0]}")
-    print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model envelope expected "
-          f"${sum(e for e, _ in NON_MODEL.values()):.2f}, high ${sum(h for _, h in NON_MODEL.values()):.2f}")
+    print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model estimate expected "
+          f"${sum(e for e, _ in NON_MODEL.values()):.2f}, itemized high ${sum(h for _, h in NON_MODEL.values()):.2f}, "
+          f"allowance set aside ${NON_MODEL_ALLOWANCE:.2f}")
     assert voice_session_cost(True) <= VOICE_SHUTOFF, "a conservative voice session must finish before the shutoff"
     conservative_seconds = VOICE["exchanges"] * (VOICE["in_s"] + VOICE["out_s"]) * 1.5
     assert conservative_seconds <= VOICE_LIMITS["audio_seconds"], "the conservative session must fit the audio limit"

@@ -22,3 +22,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** patching by adding mechanism instead of asking whether the mechanism was needed; batch pricing saved little but brought turnaround, duplicate-billing and reservation problems.
 - **Fix:** v5 removed batch from the tournament path, removed assistant invalidation, sealed one inclusion manifest, and replaced asserted feasibility with a simulation of the spend guard.
 - **Prevention pattern:** when a finding class recurs, first try deleting the mechanism that produces it; prove feasibility claims with a simulation in the repo (PATTERNS: "Numbers come from scripts").
+
+### 2026-10-08 · Four critique rounds chased an impossible guarantee
+- **Symptom:** rounds 5-8 each rejected a new "hard bound" on non-model GCP costs (envelope, usage caps, middleware ledger, watchdog).
+- **Root cause:** GCP has no project-wide spend cap and billing metrics lag, so no in-app mechanism can hard-bound Cloud Run, logging or egress; each attempt overclaimed.
+- **Fix:** claim hard caps only where they are real (model and voice reservations); minimize non-model costs by design, give them an allowance with margin, and backstop with alerts and an automated billing-disable.
+- **Prevention pattern:** before engineering a guarantee, check whether the platform can provide it at all; when it cannot, state the residual risk and size a margin instead.

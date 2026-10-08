@@ -48,7 +48,7 @@ MATRICES: dict[str, dict[str, list]] = {
         "B local only": [4, 5, 2, 3, 5],
     },
     "DM-6 Frontend hosting": {
-        "A static build on Firebase Hosting": [4, 5, 4, (4, 5), 4],
+        "A static build served same-origin by arena-api behind IAP": [4, 5, 4, (4, 5), 4],
         "B Next.js server on Cloud Run": [4, 4, 4, (2, 4), 4],
         "C Firebase App Hosting": [4, 3, 4, (2, 4), 4],
     },
