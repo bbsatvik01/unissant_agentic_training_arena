@@ -8,3 +8,4 @@
 - Interim synthesis after batch 1 written; batch 2 dispatched (run wf_70bb0865-2f7, 7 routes).
 - Batch 2 research complete: 7 reports committed (44 web / 39 GDK / 16 Context7 / 71 files).
 - Direction v1 written (docs/research/synthesis/02-direction.md); Codex critique round 1 starting.
+- Codex round 1 YELLOW (24 majors); direction v2 + cost_model.py + decision_matrix.py written; lesson and pattern recorded.

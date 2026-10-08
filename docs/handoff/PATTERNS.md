@@ -26,6 +26,9 @@ The global hard gates in `~/.claude/CLAUDE.md` apply in full (handoff discipline
 - Cross-model (Codex) adversarial review before any push; green x green.
 - CI gates are never softened: fix the code, not the gate.
 
+## Numbers come from scripts
+- Every cost, statistic, matrix total or sensitivity claim in a design or research doc is produced by a script in the repo (`docs/research/synthesis/*.py` for research) and re-run when inputs change. Agent-reported arithmetic is recomputed, never copied.
+
 ## Product bar (from the sponsor brief)
 - Every assistant flag cites an exact transcript turn (AST-7). A flag that cites style or demeanor instead of content is unsupported (PRB-4).
 - Hidden data (evaluator packets, held-out families, role labels) is unreachable from assistant and investigator code paths by construction, and tests prove it (SCN-5, SCN-12, EVL-10).
