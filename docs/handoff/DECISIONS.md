@@ -70,3 +70,9 @@
 - **Alternatives considered + why rejected:** see the decision matrices in section 5 and `decision_matrix.py`.
 - **Files affected:** `docs/spec/**` (being written), the build.
 - **Reversibility:** cheap until the build starts; owner review is the final gate.
+
+## 2026-10-08 · D-011 Local-first: build and run everything locally; GCP hosting only if time permits
+- **Decision:** the arena runs locally (services as local processes or docker compose, local Phoenix, the owner's Supabase project, Vertex AI for models). Cloud Run, IAP and hosted judge links are deferred and revisited only if time permits.
+- **Reasoning:** owner directive this session ("do not worry about hosting on gcp, do it all locally only first").
+- **Effect:** under D-009 only Vertex model and voice calls bill GCP, all reserved by the guard; the non-model allowance drops to a $1 margin; the plan grows to 30 hidden cases (~$43 expected / ~$66 conservative, complete in both), 34 pilot-gated. Credential boundaries stay: subject and referee run as separate local processes with separate database roles.
+- **Reversibility:** cheap; the hosted design in direction sections 4, 5.6 and 8.3 remains the plan if hosting returns.

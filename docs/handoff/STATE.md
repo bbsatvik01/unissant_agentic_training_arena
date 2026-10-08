@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- D-011 local-first (owner): hosting deferred; plan now 30 hidden cases (~$43 / ~$66), 34 pilot-gated. Owner also asked for a research-harness pass on UI/UX (animations, speaking avatars, pets, Claude skills); launching now.
 - **Direction GREEN** (Codex round 9: 0 majors; orchestrator green). `docs/research/synthesis/02-direction.md` v10.1 awaits owner review. Plan: 20 hidden cases baseline (~$37 / ~$63), 26 pilot-gated. $0 GCP spend so far.
 - Codex round 8: YELLOW (2 majors, 1 minor), fourth round on the non-model bound; v10 resolves the class by not claiming a hard non-model bound ($15 allowance, alerts, billing-disable at $70) and serving the web same-origin behind IAP. Plan: 20 hidden cases (~$37 / ~$63, complete in both); 26 after the pilot. Owner asked to front-load token-heavy design work now.
 - Codex round 7: YELLOW (1 major, 3 minors). Direction v9: deployment-level non-model contract (Spark static web, IAP, billable-instance-time watchdog), voice session fits 480 s; plan 26 hidden cases ~$42 expected / ~$70 conservative. $0 GCP spend so far.

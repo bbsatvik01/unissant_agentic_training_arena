@@ -1,6 +1,6 @@
 # Direction: Investigative AI Training Arena
 
-Research synthesis and recommendation. **Version 10.1, 2026-10-08. Codex round 9: GREEN.** Revised after critique rounds 1-8 (YELLOW: 24, 12, 6, 5, 4, 2, 1, then 2 majors) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-9.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
+Research synthesis and recommendation. **Version 10.2, 2026-10-08. Codex round 9: GREEN. Local-first per D-011 (hosting deferred).** Revised after critique rounds 1-8 (YELLOW: 24, 12, 6, 5, 4, 2, 1, then 2 majors) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-9.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
 
 ## 0. TL;DR
 
@@ -9,10 +9,10 @@ Research synthesis and recommendation. **Version 10.1, 2026-10-08. Codex round 9
 3. **Agents are stateless, schema-bound calls through a typed agent port lifted from TechnoMile.** The default coaching design is one complete card per turn (flags, follow-up, finding, confidence); the two-stage design competes as candidate A1, so the bake-off itself answers which is better. (M-H)
 4. **The official leaderboard runs only arena-hosted, frozen Gemini-on-Vertex candidates.** An A2A v1.0 exhibition track for external endpoints is an owner call (P2). (H)
 5. **Latency (KPI-4) is unmeasured and the top technical risk.** Gemini 2.5 retires on Vertex 2026-10-16 to 10-20; no remaining model fully disables thinking. KPI-4 is measured on the complete card at the client. A day-1 benchmark (~$1) sets the model. (H on risk, M on plan)
-6. **Budget (D-009): everything on GCP stays under $75, aiming for $50.** Plan: 20 hidden cases (10 matched families) x 1 repeat plus a 10-case dev pilot, Flash-Lite-class lineup, all online, no promotional pricing counted. Model and voice spend (about 85% of the total) is hard-capped: each model call reserves its worst case and each voice session its whole-session worst case before running. Non-model costs (Cloud Run, storage, logs, egress) cannot be hard-capped on GCP (no project-wide cap; usage metrics lag), so they are minimized by design and given a $15 allowance, about 1.6x their itemized high estimate, with budget alerts and an automated billing-disable at $70 as the backstop. Simulated over the whole project: **~$37 expected and ~$63 conservative, complete in both.** 26 cases completes in the expected case (~$42) and is the target if the dev pilot's measured costs track the expected column. The sponsor's gate is a point estimate and applies at this size; precision is honestly limited (zero-false-positive one-sided bound 25.9% at 10 families, 20.6% at 13, vs 4.9% for the sponsor's 120 cases). (M; assumptions until the dev pilot measures them)
+6. **Budget (D-009) under local-first (D-011): everything on GCP stays under $75, aiming for $50.** Running locally removes hosting costs, so only Vertex model and voice calls bill GCP, and every one of them reserves its worst case before running (model calls per call, voice sessions per whole session). Plan: 30 hidden cases (15 matched families) x 1 repeat plus a 10-case dev pilot, Flash-Lite-class lineup, no promotional pricing counted. Simulated call by call: **~$43 expected and ~$66 conservative, complete in both.** 34 cases also completes (~$46 / ~$71) and is the target if the dev pilot's measured costs track the expected column. If GCP hosting returns, the hosted plan (non-model $15 allowance, 20 cases baseline) in section 8 applies. The sponsor's gate is a point estimate and applies at this size; precision is honestly limited (zero-false-positive one-sided bound 18.1% at 15 families, 16.2% at 17, vs 4.9% for the sponsor's 120 cases). (M; assumptions until the dev pilot measures them)
 7. **Voice: Gemini Live on Vertex through gokbase's proxy, on development cases only, proven in the October 18 slice.** Browser audio goes to `arena-api`, which relays to the IAM-private `arena-subject`. Probe `gemini-3.8-live` and `gemini-live-2.5-flash-native-audio` on day 1; prebuilt Live Avatar talking heads are a stretch. Push-to-talk or the Developer API each need an owner exception. (M)
 8. **Fairness and isolation are headline features.** Style is independent of role; style-stratified false-positive audit; demeanor-based flags count as unsupported; demeanor-driven outputs are negative-control fixtures, never a ranked candidate. (H)
-9. **Owner decisions needed:** confirm the 20-case plan (26 after the pilot), GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
+9. **Owner decisions needed:** confirm the 30-case local plan (34 after the pilot), GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
 
 ## 1. What the judges will score
 
@@ -98,6 +98,8 @@ flowchart LR
   REF -. OTLP .-> PX
   JOB -. OTLP .-> PX
 ```
+
+**Local-first (D-011):** the four deployables run as local processes (or docker compose) with the same separate database roles and service credentials; Cloud Run, IAP and the hosted judge link are deferred. Everything below about Cloud Run and IAP is the hosted plan if time permits.
 
 ### 4.1 Credentials and secrecy tiers
 
@@ -264,6 +266,10 @@ Two layers, kept separate (F15):
 
 ### 8.2 Plans under D-009 (`simulate_d009`)
 
+**Local-first (D-011, current):** non-model allowance $1; 20 cases ~$34 / ~$54; **30 cases ~$43 / ~$66 (recommended); 34 cases ~$46 / ~$71 (pilot-gated)**; 40 cases ~$51 expected, 16 of 20 interactive blocks conservative. All complete except 40 conservative. The hosted table below applies only if GCP hosting returns.
+
+**Hosted (deferred):**
+
 Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expected, $9.67 high) and the demo allocation ($12.43: 40 judge and team text sessions, 8 voice sessions, 30 portraits at conservative usage, plus one in-flight voice reservation). Model work then runs call by call through the guard: experiments including 30 metered Live probes, family generation, dev pilot, the whole replay corpus (produced and sealed), replay scoring, interactive blocks. The demo bucket is an aggregate allocation with per-call guards inside it.
 
 | Sealed hidden cases (families) | Expected usage | Conservative usage | Zero-FP bound if all planned families complete | Achieved bound in the conservative case |
@@ -349,7 +355,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 6. **IAP probe:** direct IAP on Cloud Run is documented as Preview, and Google's docs do not confirm SSE or WebSocket support through it (GDK, 2026-10-08). Deploy a minimal service behind IAP and test browser sign-in, REST, SSE and WebSocket from the same origin. Fallback if any fails: `arena-api` allows unauthenticated invocation and validates Supabase-auth sessions itself (invite-only accounts); the extra exposure to unauthenticated traffic is covered by the $15 non-model allowance and the billing-disable backstop.
 
 ### 13.2 Owner decisions
-1. Confirm the D-009 plan: 20 hidden cases as the baseline, 26 if the dev pilot's measured costs track the expected column; anything larger is a separate, re-simulated decision.
+1. Confirm the D-009 local plan: 30 hidden cases as the baseline, 34 if the dev pilot's measured costs track the expected column (hosted mode, if it returns: 20 baseline, 26 pilot-gated).
 2. Dedicated GCP project with billing and a budget alert (never `kbg-production`).
 3. Supabase project and plan (Pro, or free with a keep-alive job).
 4. DESIGN.md.

@@ -464,7 +464,12 @@ NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fractio
     "Internet egress from Cloud Run (<= 5 GB)": (5, "GB", 0.12, 0.2),
     "Billing-disable backstop (event-driven function, invoked only by budget notifications)": (1, "month", 0.10, 1.0),
 }
-NON_MODEL_ALLOWANCE = 15.0   # set aside; about 1.6x the itemized high estimate, to absorb lag and burst
+NON_MODEL_ALLOWANCE = 15.0   # hosted mode: about 1.6x the itemized high estimate, to absorb lag and burst
+# D-011 (owner, 2026-10-08): build and run locally first; GCP hosting only if time permits. In local mode the
+# only GCP charges are Vertex model calls (all reserved by the guard); Cloud Run, IAP, storage, logging and
+# egress are not used, so the non-model allowance drops to a $1 margin for stray console usage.
+HOSTING = "local"
+NON_MODEL_ALLOWANCE_LOCAL = 1.0
 NON_MODEL = {k: (q * r * f, q * r) for k, (q, _, r, f) in NON_MODEL_CAPS.items()}   # (expected, enforced bound)
 
 
@@ -496,7 +501,8 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
     Each admitted call settles at its modeled cost x RETRY_FACTOR.
     """
     lu = LINEUPS["d009"]
-    avail = cap - NON_MODEL_ALLOWANCE - demo_ceiling()
+    allowance = NON_MODEL_ALLOWANCE_LOCAL if HOSTING == "local" else NON_MODEL_ALLOWANCE
+    avail = cap - allowance - demo_ceiling()
     spent = 0.0
     report = {"truncated": None}
 
@@ -550,13 +556,14 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
             done += 1
         counts[key] = (done, n)
     demo = sum(demo_bucket(high).values())
-    non_model = sum((h if high else e) for e, h in NON_MODEL.values())
+    non_model = (0.0 if not high else NON_MODEL_ALLOWANCE_LOCAL) if HOSTING == "local" else \
+        sum((h if high else e) for e, h in NON_MODEL.values())
     return {**counts, "model_spend": spent, "demo": demo, "non_model": non_model,
             "total": spent + demo + non_model, "set_aside": cap - avail, **report}
 
 
 if __name__ == "__main__":
-    print("\nD-009 (total GCP hard cap $75, target $50), lineup d009, liability rates (3.8 Flash undiscounted):")
+    print(f"\nD-009 (total GCP hard cap $75, target $50), hosting={HOSTING}, lineup d009, liability rates:")
     exp_e = sum(liab_cost(c, False) for c in experiment_calls(False)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[1]
     exp_h = sum(liab_cost(c, True) for c in experiment_calls(True)) * RETRY_FACTOR + LIVE_PROBE[0] * PROBE_RESERVATION
     print(f"  day-1 experiments incl. Live probe: expected ${exp_e:.2f}, high ${exp_h:.2f}")
@@ -570,7 +577,7 @@ if __name__ == "__main__":
     conservative_seconds = VOICE["exchanges"] * (VOICE["in_s"] + VOICE["out_s"]) * 1.5
     assert conservative_seconds <= VOICE_LIMITS["audio_seconds"], "the conservative session must fit the audio limit"
     print(f"  conservative reference session audio: {conservative_seconds:.0f} s of {VOICE_LIMITS['audio_seconds']} s allowed")
-    for sealed in (20, 24, 26, 28, 30, 40):
+    for sealed in (20, 26, 30, 34, 40):
         for high in (False, True):
             r = simulate_d009(sealed, 10, high)
             tag = "high" if high else "expected"
