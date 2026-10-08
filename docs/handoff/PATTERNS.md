@@ -33,6 +33,7 @@ The global hard gates in `~/.claude/CLAUDE.md` apply in full (handoff discipline
 
 ## Permission walls (always ask)
 - Push to main, secret writes, destructive DB ops, API key issuance, infra config (workers, rate limits, health checks, min-instances).
+- GCP project: the workstation's default gcloud project is `kbg-production` (gokbase production). Never run arena commands against it. Every gcloud or Vertex call passes the arena project explicitly once the owner provides it.
 
 ## Design system
 - Pending the owner's DESIGN.md. Until it lands, no UI implementation.

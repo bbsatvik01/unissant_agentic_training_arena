@@ -11,21 +11,24 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| (none) | | | | | |
+| task `wsgmy0q7b` / run `wf_70bb0865-2f7` | Batch 2 research workflow, 7 routes (X7-X11 external, I6-I7 internal) | Sonnet | 2026-10-08 ~17:35 | ~17:50-18:05 | journal -> `docs/research/{internal,external}/` |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
 - $100 cap fits the full 2,160-trial protocol only on cheap tiers (X3 estimate: ~$42 all-Flash-Lite, ~$195 balanced).
 - Model Armor fails open and skips inputs under 3 words; cannot be the only injection defense.
 
+## Voice vs Vertex conflict (surfaced 2026-10-08)
+- gokbase and cloudforce both call `gemini-3.1-flash-live-preview` through an AI Studio key (`vertexai=False`), because Vertex Live rejected them (gokbase SPEC D2: "the live model is Gemini-API-only"). Conflicts with D-001. X7 is verifying current Vertex Live availability; the owner decides between a Vertex Live model, an exception for the voice leg, or allowlisting.
+
 ## Waiting for (owner input)
-- GCP project with Vertex AI enabled and billing (needed for latency and cost spikes).
+- A dedicated GCP project with Vertex AI and billing (needed for latency and cost spikes). The workstation default `kbg-production` must not be used.
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Orchestrator interim synthesis of batch 1 (`docs/research/synthesis/01-interim-after-batch1.md`).
-2. Batch 2: close gaps, including the gokbase live-mode lift map and Gemini Live on Vertex (D-006), latency and cost verification for KPI-4 and D-007.
-3. Synthesis report with decision matrix; Codex adversarial critique until green x green.
+1. Batch 2 running (see Active subagents). Interim synthesis written: `docs/research/synthesis/01-interim-after-batch1.md`.
+2. Synthesis report with decision matrix (`docs/research/synthesis/02-direction.md`).
+3. Codex adversarial critique (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 4. Present direction to the owner.
 
 ## Local commits ahead of origin
