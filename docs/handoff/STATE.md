@@ -5,6 +5,8 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- Codex critique round 2: YELLOW (0 blockers, 12 majors, 3 minors; 14 round-1 findings confirmed fixed). Five fixes recurred, so v3 applies deeper rules: privileged SQL functions deriving state from committed rows, lineup-as-data cost model with reservations, durable telemetry barrier. Direction v3 + `stats_contracts.py` written; dispositions in `critique-round-2.md`.
+- Budget (v3, full accounting): sponsor-sized 120 x 1 power-first ~$121 expected / ~$175 conservative all-in; all-in under $100 conservative = 40 hidden cases ($54 / $79, zero-FP bound 13.9%). 59 truthful families are the minimum for a 5% bound.
 - Codex critique round 1: YELLOW (0 blockers, 24 majors, 2 minors). All 26 findings real; grouped into 8 root-cause classes; applied in direction v2 (`docs/research/synthesis/02-direction.md`) with `cost_model.py` and `decision_matrix.py`. Dispositions: `docs/research/synthesis/critique-round-1.md`.
 - Budget finding: the sponsor's full workload (120 hidden x 2) costs ~$223-385; recommended 120 x 1 power-first lineup keeps the bake-off at ~$68-94 but needs ~$35-50 extra for generation and the dev pilot; all-in-$100 means 60 hidden cases (FPR bound 9.5% at zero false positives). Owner decision pending.
 - Batch 2 research complete (run `wf_70bb0865-2f7`, 7/7 routes, 0 errors). Reports: `docs/research/internal/I6-I7*.md`, `docs/research/external/X7-X11*.md`. Cumulative sources: 143 Google web (incl. 1 orchestrator fetch), 64 GDK, 34 Context7, 198 internal files.
@@ -14,7 +16,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| bash `bhxwc8jo5` (codex exec) | Codex critique round 2 on direction v2 (read-only, web search); output to session scratchpad `codex/round2.json` | gpt-6-astra xhigh | 2026-10-08 ~18:05 | ~18:20-18:35 | `docs/research/synthesis/critique-round-2.md` (to write) |
+| (none) | | | | | |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
@@ -33,7 +35,7 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Codex adversarial critique round 2 on direction v2 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Codex adversarial critique round 3 on direction v3 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
 3. Present direction to the owner.
 

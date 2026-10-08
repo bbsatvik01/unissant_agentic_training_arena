@@ -1,20 +1,23 @@
 """Reproducible cost model for the arena bake-off (research artifact, not product code).
 
-Every figure in docs/research/synthesis/02-direction.md section 8 comes from this file.
-Run: python3 docs/research/synthesis/cost_model.py
+Every dollar figure in docs/research/synthesis/02-direction.md section 8 comes from this file.
+Run: python3 -I -B docs/research/synthesis/cost_model.py
 
-Prices are Vertex AI (Agent Platform) global list prices per 1M tokens, captured 2026-10-08
-(X8, confirmed by Codex round 1 against cloud.google.com/gemini-enterprise-agent-platform/
-generative-ai/pricing). Thinking tokens bill at the output rate. Batch is 50% of list.
-Token counts are ASSUMPTIONS to be replaced by the dev-pilot measurements; the "high"
-scenario raises every uncertain quantity so the sealed run is sized against it.
-No context-cache discount is applied: the static prefix (case packet + policy) may sit
-below the 4,096-6,144 token implicit-cache minimum (X3 contradiction, unresolved).
+Design rule (critique rounds 1-2): each lineup is DATA (subjects, assistant stage schedules,
+final-finding model, referee calls) and every costing path (dev pilot, sealed interactive,
+replay) reads the same data. Estimates (expected/high) are kept separate from the worst-case
+RESERVATION the spend guard must hold before a block starts.
+
+Prices: Vertex AI (Agent Platform) global list prices per 1M tokens, captured 2026-10-08
+(X8; confirmed by Codex rounds 1-2 against the official pricing page). Thinking tokens bill at
+the output rate. Batch is 50% of list. No context-cache discount is assumed (the static prefix
+may sit below the 4,096-6,144 token implicit-cache minimum; X3, unresolved).
+Token counts are ASSUMPTIONS until the dev pilot measures them.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 PRICES = {  # model: (input $/1M, output $/1M)
     "3.1-flash-lite": (0.25, 1.50),
@@ -23,9 +26,12 @@ PRICES = {  # model: (input $/1M, output $/1M)
     "3.1-pro-preview": (2.00, 12.00),
 }
 BATCH = 0.5
-
-# Thinking tokens per call by thinking level (assumed ranges: expected, high).
-THINK = {"MINIMAL": (80, 200), "LOW": (400, 1000), "HIGH": (6000, 12000)}
+THINK = {"MINIMAL": (80, 200), "LOW": (400, 1000), "HIGH": (6000, 12000)}  # expected, high
+THINK_CAP = {"MINIMAL": 512, "LOW": 2048, "HIGH": 16384}  # manifest caps used for reservations
+EXCHANGES = 12          # sponsor cap (BKO-8); costed at the cap, not an average
+CONTEXT_LIMIT = 8000    # manifest max input tokens per call (BKO-5), used for reservations
+OUTPUT_CAP = 700        # manifest max output tokens per call, used for reservations
+RELEASES = (3, 6)       # evidence-release events per trial (expected, high); each triggers a deep stage
 
 
 @dataclass(frozen=True)
@@ -38,142 +44,166 @@ class Call:
 
     def cost(self, high: bool) -> float:
         p_in, p_out = PRICES[self.model]
+        scale = 1.25 if high else 1.0
         think = THINK[self.think][1 if high else 0]
-        scale = 1.25 if high else 1.0  # high scenario: prompts and outputs 25% longer
         c = (self.tokens_in * scale * p_in + (self.tokens_out * scale + think) * p_out) / 1e6
         return c * (BATCH if self.batch else 1.0)
 
+    def reservation(self) -> float:
+        p_in, p_out = PRICES[self.model]
+        c = (CONTEXT_LIMIT * p_in + (OUTPUT_CAP + THINK_CAP[self.think]) * p_out) / 1e6
+        return c * (BATCH if self.batch else 1.0)
 
-EXCHANGES = 12  # sponsor cap (BKO-8); sized at the cap, not an average
+    def batched(self) -> "Call":
+        return Call(self.model, self.tokens_in, self.tokens_out, self.think, batch=True)
 
-# Candidate lineups (section 8 of the direction). Subjects play both roles.
-# "full": S3 on 3.8-flash (no MINIMAL tier, so LOW thinking). "lean": S3 is a
-# skilled-deceiver policy on 3.5-flash-lite, so subjects differ by model and policy.
-SUBJECT_LINEUPS = {
-    "full": {
-        "S1": Call("3.1-flash-lite", 3500, 200, "MINIMAL"),
-        "S2": Call("3.5-flash-lite", 3500, 200, "MINIMAL"),
-        "S3": Call("3.8-flash", 3500, 200, "LOW"),
-    },
-    "lean": {
-        "S1": Call("3.1-flash-lite", 3500, 200, "MINIMAL"),
-        "S2": Call("3.5-flash-lite", 3500, 200, "MINIMAL"),
-        "S3": Call("3.5-flash-lite", 3800, 200, "MINIMAL"),
-    },
-}
-SUBJECTS = SUBJECT_LINEUPS["full"]
-STAGE2_EVERY = 3  # A1 runs its deep stage every 3rd exchange and on new evidence
-# Assistant per-exchange calls. A1 is two-stage; A2 and A3 are single-call designs.
-ASSISTANTS = {
-    "A1": [Call("3.5-flash-lite", 3000, 180, "MINIMAL"), Call("3.8-flash", 3500, 250, "LOW")],
-    "A2": [Call("3.5-flash-lite", 3200, 300, "MINIMAL")],
-    "A3": [Call("3.1-flash-lite", 3200, 300, "MINIMAL")],
-}
-FINAL_FINDING = {"A1": Call("3.8-flash", 4000, 250, "LOW"),
-                 "A2": Call("3.5-flash-lite", 4000, 250, "MINIMAL"),
-                 "A3": Call("3.1-flash-lite", 4000, 250, "MINIMAL")}
 
-# Power-first variant: every assistant stage, final finding and scorer call on Flash-Lite
-# tiers, two combined scoring calls, so 120 hidden cases fit the cap.
-POWER_FIRST_ASSISTANTS = {
-    "A1": [Call("3.5-flash-lite", 3000, 180, "MINIMAL"), Call("3.5-flash-lite", 3500, 250, "MINIMAL")],
-    "A2": [Call("3.5-flash-lite", 3200, 300, "MINIMAL")],
-    "A3": [Call("3.1-flash-lite", 3200, 300, "MINIMAL")],
-}
-POWER_FIRST_SCORING = [
-    Call("3.5-flash-lite", 8000, 1000, "MINIMAL", batch=True),  # evasion labels + fidelity
-    Call("3.5-flash-lite", 7000, 700, "MINIMAL", batch=True),   # flag support + questioning quality
+@dataclass(frozen=True)
+class Assistant:
+    every_turn: Call                 # complete card each exchange: flags, follow-up, finding, confidence (AST-3)
+    deep: Call | None = None         # optional deeper update
+    deep_every: int = 3              # cadence of the deep update, plus one per evidence release
+    final: Call | None = None        # committed final finding
+
+
+@dataclass(frozen=True)
+class Lineup:
+    name: str
+    subjects: dict[str, Call]
+    assistants: dict[str, Assistant]
+    referee: list[Call]              # per-trial offline calls (batch): independent labels, fidelity, flag support, questioning
+    replay_referee: list[Call]       # replay has no live subject: flag support + questioning quality
+    gen_hidden: Call = Call("3.1-pro-preview", 8000, 14000, "HIGH")
+    gen_dev: Call = Call("3.8-flash", 8000, 14000, "LOW")
+    gen_validate: list[Call] = field(default_factory=lambda: [Call("3.8-flash", 16000, 1200, "LOW")] * 3)
+
+
+CARD_FLASH_LITE_35 = Call("3.5-flash-lite", 3000, 260, "MINIMAL")
+CARD_SINGLE_35 = Call("3.5-flash-lite", 3200, 340, "MINIMAL")
+CARD_SINGLE_31 = Call("3.1-flash-lite", 3200, 340, "MINIMAL")
+
+REFEREE_38 = [  # different checkpoint from every power-first subject (F16)
+    Call("3.8-flash", 8000, 1000, "LOW", batch=True),  # independent evasion labels + fidelity, every subject turn
+    Call("3.8-flash", 7000, 700, "LOW", batch=True),   # flag support + questioning quality
 ]
 
-# Offline scoring per trial, batch-priced, independent of the subject (F16):
-# evasion-event labels for every subject turn, flag-support judge (F17),
-# subject fidelity judge, questioning-quality judge.
-SCORING = [
-    Call("3.8-flash", 7000, 600, "LOW", batch=True),  # independent evasion labels
-    Call("3.8-flash", 7000, 400, "LOW", batch=True),  # flag support
-    Call("3.8-flash", 7000, 500, "LOW", batch=True),  # subject fidelity
-    Call("3.8-flash", 5000, 300, "LOW", batch=True),  # questioning quality
-]
-REPLAY_SCORING = [SCORING[1], SCORING[3]]  # replay has no live subject: flag support + questioning quality
+LINEUPS = {
+    "full": Lineup(
+        name="full",
+        subjects={"S1": Call("3.1-flash-lite", 3500, 200, "MINIMAL"),
+                  "S2": Call("3.5-flash-lite", 3500, 200, "MINIMAL"),
+                  "S3": Call("3.8-flash", 3500, 200, "LOW")},
+        assistants={"A1": Assistant(CARD_FLASH_LITE_35, Call("3.8-flash", 3500, 250, "LOW"), 3,
+                                    Call("3.8-flash", 4000, 250, "LOW")),
+                    "A2": Assistant(CARD_SINGLE_35, final=Call("3.5-flash-lite", 4000, 250, "MINIMAL")),
+                    "A3": Assistant(CARD_SINGLE_31, final=Call("3.1-flash-lite", 4000, 250, "MINIMAL"))},
+        referee=REFEREE_38,
+        replay_referee=[REFEREE_38[1]],
+    ),
+    "power-first": Lineup(
+        name="power-first",
+        subjects={"S1": Call("3.1-flash-lite", 3500, 200, "MINIMAL"),
+                  "S2": Call("3.5-flash-lite", 3500, 200, "MINIMAL"),
+                  "S3": Call("3.5-flash-lite", 3800, 200, "MINIMAL")},  # skilled-deceiver policy
+        assistants={"A1": Assistant(CARD_FLASH_LITE_35, Call("3.5-flash-lite", 3500, 250, "MINIMAL"), 3,
+                                    Call("3.5-flash-lite", 4000, 250, "MINIMAL")),
+                    "A2": Assistant(CARD_SINGLE_35, final=Call("3.5-flash-lite", 4000, 250, "MINIMAL")),
+                    "A3": Assistant(CARD_SINGLE_31, final=Call("3.1-flash-lite", 4000, 250, "MINIMAL"))},
+        referee=REFEREE_38,
+        replay_referee=[REFEREE_38[1]],
+    ),
+}
+
+# Preparation experiments (section 13.1), costed explicitly (expected, high).
+EXPERIMENTS = {
+    "latency benchmark (complete card; 3 models x 2 context lengths x 200 calls)": (
+        lambda high: 1200 * (CARD_SINGLE_35.cost(high) + CARD_SINGLE_31.cost(high)
+                             + Call("3.8-flash", 3200, 340, "LOW").cost(high)) / 3),
+    "Live probe matrix (~30 short sessions, assumed $0.05 each)": (lambda high: 30 * (0.05 if not high else 0.10)),
+    "case-generation pilot (3 families)": (lambda high: 3 * (Call("3.1-pro-preview", 8000, 14000, "HIGH").cost(high)
+                                                             + 3 * Call("3.8-flash", 16000, 1200, "LOW").cost(high))),
+    "fidelity pilot (3 subjects x 2 roles x 3 cases x 12 turns)": (
+        lambda high: 18 * EXCHANGES * Call("3.8-flash", 3500, 200, "LOW").cost(high)),
+}
 
 
-def assistant_turns(a: str, high: bool) -> float:
-    calls = ASSISTANTS[a]
-    first = calls[0].cost(high) * EXCHANGES
-    deep = sum(c.cost(high) for c in calls[1:]) * -(-EXCHANGES // STAGE2_EVERY)
-    return first + deep
+def deep_calls_per_trial(a: Assistant, high: bool) -> int:
+    if a.deep is None:
+        return 0
+    return -(-EXCHANGES // a.deep_every) + RELEASES[1 if high else 0]
 
 
-def trial_cost(a: str, s: str, high: bool, lineup: str = "full") -> float:
-    subject = SUBJECT_LINEUPS[lineup][s].cost(high) * EXCHANGES
-    once = FINAL_FINDING[a].cost(high) + sum(c.cost(high) for c in SCORING)
-    return subject + assistant_turns(a, high) + once
-
-
-def interactive(cases: int, repeats: int, high: bool, lineup: str = "full") -> float:
-    return sum(trial_cost(a, s, high, lineup) for a in ASSISTANTS for s in SUBJECT_LINEUPS[lineup]) * cases * repeats
-
-
-def replay(transcripts: int, high: bool) -> float:
-    """Every assistant scores the same frozen transcripts (BKO-6); not latency-bound, so batch."""
-    total = 0.0
-    for a, calls in ASSISTANTS.items():
-        per_turn = sum(Call(c.model, c.tokens_in, c.tokens_out, c.think, batch=True).cost(high) for c in calls)
-        fin = FINAL_FINDING[a]
-        once = Call(fin.model, fin.tokens_in, fin.tokens_out, fin.think, batch=True).cost(high)
-        once += sum(c.cost(high) for c in REPLAY_SCORING)  # flag support + questioning quality
-        total += transcripts * (EXCHANGES * per_turn + once)
+def assistant_trial(a: Assistant, high: bool, batch: bool = False) -> float:
+    def c(call: Call) -> float:
+        return (call.batched() if batch else call).cost(high)
+    total = EXCHANGES * c(a.every_turn)
+    if a.deep is not None:
+        total += deep_calls_per_trial(a, high) * c(a.deep)
+    if a.final is not None:
+        total += c(a.final)
     return total
 
 
-def generation(dev_families: int, hidden_families: int, high: bool) -> float:
-    """Hidden families on Pro (HIGH thinking); dev families on 3.8-flash; three Flash validation passes each."""
-    validate = 3 * Call("3.8-flash", 16000, 1200, "LOW").cost(high)
-    hidden = Call("3.1-pro-preview", 8000, 14000, "HIGH").cost(high) + validate
-    dev = Call("3.8-flash", 8000, 14000, "LOW").cost(high) + validate
-    return hidden_families * hidden + dev_families * dev
+def trial_cost(lu: Lineup, a: str, s: str, high: bool) -> float:
+    return (EXCHANGES * lu.subjects[s].cost(high) + assistant_trial(lu.assistants[a], high)
+            + sum(r.cost(high) for r in lu.referee))
 
 
-def plan(sealed_cases: int, sealed_repeats: int, dev_cases: int, high: bool, lineup: str) -> dict[str, float]:
-    """Preparation (generation + dev pilot) and bake-off proper (sealed + replay), each with a 15% reserve."""
-    prep = generation(dev_cases // 2, sealed_cases // 2, high) + interactive(dev_cases, 1, high, lineup)
-    bake = interactive(sealed_cases, sealed_repeats, high, lineup) + replay(sealed_cases, high)
-    return {"preparation": prep * 1.15, "bake-off": bake * 1.15, "total": (prep + bake) * 1.15}
+def trial_reservation(lu: Lineup, a: str, s: str) -> float:
+    asst = lu.assistants[a]
+    deep = (-(-EXCHANGES // asst.deep_every) + RELEASES[1]) if asst.deep else 0
+    return (EXCHANGES * lu.subjects[s].reservation() + EXCHANGES * asst.every_turn.reservation()
+            + (deep * asst.deep.reservation() if asst.deep else 0.0)
+            + (asst.final.reservation() if asst.final else 0.0)
+            + sum(r.reservation() for r in lu.referee))
 
 
-def power_first(sealed_cases: int, dev_cases: int, high: bool) -> dict[str, float]:
-    """All Flash-Lite tiers; hidden families still generated on Pro; lean subject lineup."""
-    global ASSISTANTS, SCORING, REPLAY_SCORING
-    saved = (ASSISTANTS, SCORING, REPLAY_SCORING)
-    ASSISTANTS, SCORING, REPLAY_SCORING = POWER_FIRST_ASSISTANTS, POWER_FIRST_SCORING, [POWER_FIRST_SCORING[1]]
-    try:
-        return plan(sealed_cases, 1, dev_cases, high, "lean")
-    finally:
-        ASSISTANTS, SCORING, REPLAY_SCORING = saved
+def interactive(lu: Lineup, cases: int, repeats: int, high: bool) -> float:
+    return sum(trial_cost(lu, a, s, high) for a in lu.assistants for s in lu.subjects) * cases * repeats
+
+
+def replay(lu: Lineup, transcripts: int, high: bool) -> float:
+    """Every assistant re-scores the same frozen transcripts (BKO-6) with the same stage schedule, batch-priced."""
+    per = sum(assistant_trial(a, high, batch=True) + sum(r.cost(high) for r in lu.replay_referee)
+              for a in lu.assistants.values())
+    return per * transcripts
+
+
+def generation(lu: Lineup, dev_families: int, hidden_families: int, high: bool) -> float:
+    validate = sum(v.cost(high) for v in lu.gen_validate)
+    return hidden_families * (lu.gen_hidden.cost(high) + validate) + dev_families * (lu.gen_dev.cost(high) + validate)
+
+
+def experiments(high: bool) -> float:
+    return sum(f(high) for f in EXPERIMENTS.values())
+
+
+def plan(lu: Lineup, sealed_cases: int, repeats: int, dev_cases: int, high: bool) -> dict[str, float]:
+    """Preparation = experiments + generation + dev pilot; bake-off = sealed interactive + replay. 15% reserve each."""
+    prep = experiments(high) + generation(lu, dev_cases // 2, sealed_cases // 2, high) + interactive(lu, dev_cases, 1, high)
+    bake = interactive(lu, sealed_cases, repeats, high) + replay(lu, sealed_cases, high)
+    return {"prep": prep * 1.15, "bake": bake * 1.15, "total": (prep + bake) * 1.15}
+
+
+def block_reservation(lu: Lineup) -> float:
+    """Worst-case cost of one block (one family, both variants, all nine pairings, one repeat)."""
+    return 2 * sum(trial_reservation(lu, a, s) for a in lu.assistants for s in lu.subjects)
 
 
 if __name__ == "__main__":
-    for lineup in ("full", "lean"):
-        print(f"\nPer-trial cost, lineup={lineup} (12 exchanges incl. offline scoring), expected / high:")
-        for a in ASSISTANTS:
-            row = "  ".join(f"{s}: ${trial_cost(a, s, False, lineup):.4f} / ${trial_cost(a, s, True, lineup):.4f}"
-                            for s in SUBJECT_LINEUPS[lineup])
-            print(f"  {a}: {row}")
-    print("\nPlans (dollars, each part includes a 15% retry reserve); expected | high")
-    print(f"  {'plan':<34}{'lineup':<7}{'prep':>16}{'bake-off':>18}{'total':>18}")
-    for sealed, reps, dev in ((120, 1, 40), (120, 2, 40), (80, 1, 40), (60, 1, 20), (60, 2, 20), (40, 1, 20)):
-        for lineup in ("full", "lean"):
-            e = plan(sealed, reps, dev, False, lineup)
-            h = plan(sealed, reps, dev, True, lineup)
-            name = f"sealed 3x3x{sealed}x{reps}, dev {dev}"
-            print(f"  {name:<34}{lineup:<7}"
-                  f"{e['preparation']:>7.1f} | {h['preparation']:<6.1f}"
-                  f"{e['bake-off']:>9.1f} | {h['bake-off']:<6.1f}"
-                  f"{e['total']:>9.1f} | {h['total']:<6.1f}")
-    for sealed, dev in ((120, 20), (120, 40)):
-        e, h = power_first(sealed, dev, False), power_first(sealed, dev, True)
-        name = f"POWER-FIRST 3x3x{sealed}x1, dev {dev}"
-        print(f"  {name:<34}{'lean':<7}"
-              f"{e['preparation']:>7.1f} | {h['preparation']:<6.1f}"
-              f"{e['bake-off']:>9.1f} | {h['bake-off']:<6.1f}"
-              f"{e['total']:>9.1f} | {h['total']:<6.1f}")
+    for lu in LINEUPS.values():
+        print(f"\nLineup {lu.name}: per-trial expected / high (12 exchanges incl. referee)")
+        for a in lu.assistants:
+            print("  " + a + ": " + "  ".join(
+                f"{s} ${trial_cost(lu, a, s, False):.4f}/${trial_cost(lu, a, s, True):.4f}" for s in lu.subjects))
+        print(f"  worst-case reservation per block (18 trials): ${block_reservation(lu):.2f}")
+    print("\nPreparation experiments (expected / high):")
+    for k, f in EXPERIMENTS.items():
+        print(f"  {k:<70} ${f(False):6.2f} / ${f(True):6.2f}")
+    print("\nGrid (each part includes a 15% reserve). Columns: prep, bake-off, total as expected | high")
+    for lu in LINEUPS.values():
+        for sealed, reps, dev in ((40, 1, 20), (60, 1, 20), (80, 1, 20), (120, 1, 20), (120, 1, 40), (120, 2, 40)):
+            e, h = plan(lu, sealed, reps, dev, False), plan(lu, sealed, reps, dev, True)
+            label = f"{lu.name:<12} sealed 3x3x{sealed}x{reps}, dev {dev}"
+            print(f"  {label:<40} prep {e['prep']:6.1f} | {h['prep']:6.1f}   bake {e['bake']:6.1f} | {h['bake']:6.1f}"
+                  f"   total {e['total']:6.1f} | {h['total']:6.1f}")

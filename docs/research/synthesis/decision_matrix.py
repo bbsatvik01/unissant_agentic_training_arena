@@ -3,8 +3,12 @@
 Run: python3 docs/research/synthesis/decision_matrix.py
 Scores are 1-5 against the anchors in section 5; a (low, high) pair marks an unmeasured
 quantity. Options that fail the constraint gate are listed in the document, not scored here.
-Sensitivity: every pair of criteria trades 10 weight points; the script reports whether the
-top option (judged on the midpoint of each range) ever changes.
+Two sensitivity checks (critique round 2, F20):
+- weight sensitivity: every pair of criteria trades 10 weight points; winner judged at range MIDPOINTS;
+- score-range sensitivity: the leader is "robust" only if its lowest possible total beats every other
+  option's highest possible total; otherwise the comparison depends on unmeasured scores.
+Latency anchors: 5 needs a measurement; anything unmeasured is a range, and options that do not change
+coaching latency get identical latency scores.
 """
 
 from __future__ import annotations
@@ -24,29 +28,29 @@ MATRICES: dict[str, dict[str, list]] = {
         "D Pydantic AI + DBOS": [4, 2, 3, (3, 5), 4],
     },
     "DM-2 Candidate transport": {
-        "A in-process, official only": [4, 5, 2, 5, 5],
-        "B A + A2A exhibition track": [4, 4, 4, 5, 3],
+        "A in-process, official only": [4, 5, 2, (3, 5), 5],
+        "B A + A2A exhibition track": [4, 4, 4, (3, 5), 3],
         "C every candidate an A2A service": [4, 2, 4, (2, 4), 3],
     },
-    "DM-3 Coaching latency design": {
-        "A one call, Flash-Lite MINIMAL": [4, 5, 3, (2, 4), 4],
-        "B two stages in one request": [5, 4, 4, (2, 4), 4],
+    "DM-3 Coaching design (both A and B emit the complete AST-3 card every turn)": {
+        "A one complete call per turn, Flash-Lite MINIMAL": [5, 5, 3, (2, 4), 4],
+        "B complete card + deeper update in the same request": [5, 4, 4, (2, 4), 4],
         "C B + Priority tier": [5, 3, 4, (3, 5), 4],
-        "D one Pro call": [5, 4, 3, 1, 4],
+        "D one Pro call per turn": [5, 4, 3, 1, 4],
     },
     "DM-4 Voice engine (gate-passing)": {
         "A Vertex gemini-3.8-live": [3, 4, 5, (3, 5), 3],
         "B Vertex gemini-live-2.5-flash-native-audio": [3, 4, 4, (3, 5), 3],
         "C A + prebuilt Live Avatar": [3, 2, 5, (2, 4), 3],
     },
-    "DM-5 Phoenix hosting (gate-passing)": {
-        "A self-hosted on Cloud Run + read-back": [4, 3, 5, 5, 4],
-        "B local only": [4, 5, 2, 5, 5],
+    "DM-5 Phoenix hosting (gate-passing; neither changes coaching latency)": {
+        "A self-hosted on Cloud Run, durable ingestion (CPU sign-off)": [4, 3, 5, 3, 4],
+        "B local only": [4, 5, 2, 3, 5],
     },
     "DM-6 Frontend hosting": {
-        "A static build on Firebase Hosting": [4, 5, 4, 5, 4],
-        "B Next.js server on Cloud Run": [4, 4, 4, 3, 4],
-        "C Firebase App Hosting": [4, 3, 4, 3, 4],
+        "A static build on Firebase Hosting": [4, 5, 4, (4, 5), 4],
+        "B Next.js server on Cloud Run": [4, 4, 4, (2, 4), 4],
+        "C Firebase App Hosting": [4, 3, 4, (2, 4), 4],
     },
 }
 
@@ -84,5 +88,8 @@ if __name__ == "__main__":
         flips = sorted({f"{s}->{d}: {midpoint_winner(options, w)}"
                         for s, d in permutations(ORDER, 2)
                         if (w := shifted(s, d)) and midpoint_winner(options, w) != base})
-        print(f"  winner at base weights: {base}")
-        print("  flips under a 10-point shift: " + ("none" if not flips else "; ".join(flips)))
+        lead_lo = bounds(options[base], WEIGHTS)[0]
+        overlaps = [k for k in options if k != base and bounds(options[k], WEIGHTS)[1] > lead_lo]
+        print(f"  midpoint winner at base weights: {base}")
+        print("  midpoint flips under a 10-point weight shift: " + ("none" if not flips else "; ".join(flips)))
+        print("  score-range check: " + ("robust" if not overlaps else "depends on unmeasured scores vs " + ", ".join(overlaps)))

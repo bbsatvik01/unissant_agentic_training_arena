@@ -9,3 +9,4 @@
 - Batch 2 research complete: 7 reports committed (44 web / 39 GDK / 16 Context7 / 71 files).
 - Direction v1 written (docs/research/synthesis/02-direction.md); Codex critique round 1 starting.
 - Codex round 1 YELLOW (24 majors); direction v2 + cost_model.py + decision_matrix.py written; lesson and pattern recorded.
+- Codex round 2 YELLOW (12 majors, 3 minors); direction v3 + stats_contracts.py; cost model rebuilt (lineups as data).
