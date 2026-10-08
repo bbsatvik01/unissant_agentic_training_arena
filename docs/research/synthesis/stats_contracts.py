@@ -59,12 +59,42 @@ def unequal_size_counterexample() -> tuple[float, float]:
 
 
 def attrition_sensitivity(fp: int, valid_truthful: int, excluded_truthful: int, gate: float = 0.05) -> dict:
-    """Point FPR on own valid trials plus worst/best imputations of the excluded truthful trials."""
+    """Point FPR on own valid trials plus worst/best imputations of the excluded truthful trials.
+
+    With no included truthful trials, eligibility cannot be established (status 'insufficient').
+    """
+    if valid_truthful == 0:
+        return {"point": None, "worst": None, "best": None, "provisional": True,
+                "status": "insufficient: no included truthful trials"}
+    total = valid_truthful + excluded_truthful
     point = fp / valid_truthful
-    worst = (fp + excluded_truthful) / (valid_truthful + excluded_truthful)
-    best = fp / (valid_truthful + excluded_truthful)
+    worst = (fp + excluded_truthful) / total
+    best = fp / total
     decisions = {point <= gate, worst <= gate, best <= gate}
-    return {"point": point, "worst": worst, "best": best, "provisional": len(decisions) > 1}
+    return {"point": point, "worst": worst, "best": best, "provisional": len(decisions) > 1,
+            "status": "provisional" if len(decisions) > 1 else "definitive"}
+
+
+def rank_sensitivity(cands: dict[str, tuple[int, int, int]], min_coverage: float = 0.90) -> dict:
+    """Rank eligible candidates by own-trial deceptive-role recall with attrition bounds (round 4, F14).
+
+    cands: name -> (detected, included_deceptive, excluded_deceptive). Excluded deceptive trials are imputed as
+    misses (worst) and detections (best). A rank is provisional when a lower-ranked candidate's best case beats
+    a higher-ranked candidate's worst case, or when any candidate's own deceptive coverage is below min_coverage.
+    """
+    rows = {}
+    for name, (det, inc, exc) in cands.items():
+        total = inc + exc
+        if inc == 0:
+            rows[name] = {"point": None, "worst": 0.0, "best": 1.0, "coverage": 0.0}
+            continue
+        rows[name] = {"point": det / inc, "worst": det / total, "best": (det + exc) / total, "coverage": inc / total}
+    order = sorted(rows, key=lambda n: -1 if rows[n]["point"] is None else rows[n]["point"], reverse=True)
+    reversible = any(rows[low]["best"] > rows[high]["worst"]
+                     for i, high in enumerate(order) for low in order[i + 1:])
+    low_coverage = [n for n in rows if rows[n]["coverage"] < min_coverage]
+    return {"order": order, "rows": rows, "provisional": reversible or bool(low_coverage),
+            "low_coverage": low_coverage}
 
 
 if __name__ == "__main__":
@@ -89,3 +119,12 @@ if __name__ == "__main__":
     edge = attrition_sensitivity(fp=4, valid_truthful=100, excluded_truthful=9)
     assert edge["provisional"]
     print(f"4 FP / 100 valid with 9 excluded truthful trials -> provisional: {edge}")
+    empty = attrition_sensitivity(fp=0, valid_truthful=0, excluded_truthful=120)
+    assert empty["status"].startswith("insufficient")
+    print(f"All truthful trials excluded -> {empty['status']}")
+
+    # Round-4 counterexample: A keeps only 30 of 120 deceptive trials (all detected); B keeps all 120 (110 detected).
+    r = rank_sensitivity({"A": (30, 30, 90), "B": (110, 120, 0)})
+    assert r["order"][0] == "A" and r["provisional"] and r["low_coverage"] == ["A"]
+    print(f"Recall rank with deceptive attrition: order {r['order']}, provisional={r['provisional']}, "
+          f"low coverage {r['low_coverage']}, A worst {r['rows']['A']['worst']:.0%} vs B {r['rows']['B']['point']:.1%}")

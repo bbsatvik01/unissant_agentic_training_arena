@@ -11,3 +11,4 @@
 - Codex round 1 YELLOW (24 majors); direction v2 + cost_model.py + decision_matrix.py written; lesson and pattern recorded.
 - Codex round 2 YELLOW (12 majors, 3 minors); direction v3 + stats_contracts.py; cost model rebuilt (lineups as data).
 - Codex round 3 YELLOW (6 majors, 4 minors); direction v4 with enforceable reservations, attrition rule, validity layer, budget buckets.
+- Codex round 4 YELLOW (5 majors, 3 minors); direction v5 removes batch, assistant-invalid verdicts; adds admission simulation, rank sensitivity, sealed inclusion manifest.

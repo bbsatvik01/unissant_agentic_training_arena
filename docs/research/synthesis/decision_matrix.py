@@ -44,7 +44,7 @@ MATRICES: dict[str, dict[str, list]] = {
         "C A + prebuilt Live Avatar": [3, 2, 5, (2, 4), 3],
     },
     "DM-5 Phoenix hosting (gate-passing; neither changes coaching latency)": {
-        "A self-hosted on Cloud Run, durable ingestion (CPU sign-off)": [4, 3, 5, 3, 4],
+        "A hosted Phoenix, trace mirror as store, request-based CPU": [4, 3, 5, 3, 4],
         "B local only": [4, 5, 2, 3, 5],
     },
     "DM-6 Frontend hosting": {

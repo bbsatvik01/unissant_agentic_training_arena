@@ -16,3 +16,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** numbers copied from agent reports or added by hand, never recomputed from their stated assumptions for the lineup actually proposed.
 - **Fix:** `docs/research/synthesis/cost_model.py` and `decision_matrix.py` now produce every dollar figure, matrix total and sensitivity result in the direction; v2 tables are pasted from their output.
 - **Prevention pattern:** any number that drives a decision comes from a script in the repo, re-run after every change to its inputs (PATTERNS: "Numbers come from scripts").
+
+### 2026-10-08 · Critique rounds stalled because every fix added a mechanism
+- **Symptom:** Codex majors fell 24 -> 12 -> 6 -> 5; spend feasibility recurred in all four rounds, attrition and inclusion in three. Each fix (batch fallback, reservation layers, an assistant-invalid verdict) opened a new gap.
+- **Root cause:** patching by adding mechanism instead of asking whether the mechanism was needed; batch pricing saved little but brought turnaround, duplicate-billing and reservation problems.
+- **Fix:** v5 removed batch from the tournament path, removed assistant invalidation, sealed one inclusion manifest, and replaced asserted feasibility with a simulation of the spend guard.
+- **Prevention pattern:** when a finding class recurs, first try deleting the mechanism that produces it; prove feasibility claims with a simulation in the repo (PATTERNS: "Numbers come from scripts").

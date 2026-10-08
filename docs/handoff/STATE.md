@@ -5,6 +5,8 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- Codex critique round 4: YELLOW (5 majors, 3 minors). Non-convergence diagnosed as mechanism growth; v5 removes mechanisms (no batch, assistants never invalidated, sealed inclusion manifest) and proves spend feasibility with `simulate_admission()`. Dispositions: `critique-round-4.md`.
+- Budget (v5, all online): option B 80 cases in the $100 bake-off cap ($68 / $98; guard completes all at expected usage, replay + 34/40 blocks at conservative); option A 120 cases needs ~$145; preparation ~$37-55.
 - Codex critique round 3: YELLOW (6 majors, 4 minors; converging 24 -> 12 -> 6). Direction v4 applies enforceable spend reservations, own-valid eligibility with attrition sensitivity, execution vs validity layers, three budget buckets, batch cutoff and fallback. Dispositions: `critique-round-3.md`.
 - Budget (v4): option B, 80 hidden cases inside the $100 bake-off cap ($52 / $75 batch; $66 / $94 online fallback) plus preparation ~$35-52; option A, 120 cases, needs a ~$145 bake-off ceiling.
 - Codex critique round 2: YELLOW (0 blockers, 12 majors, 3 minors; 14 round-1 findings confirmed fixed). Five fixes recurred, so v3 applies deeper rules: privileged SQL functions deriving state from committed rows, lineup-as-data cost model with reservations, durable telemetry barrier. Direction v3 + `stats_contracts.py` written; dispositions in `critique-round-2.md`.
@@ -18,7 +20,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| bash `bu0xsedws` (codex exec) | Codex critique round 4 on direction v4 (read-only, web search); output to session scratchpad `codex/round4.json` | gpt-6-astra xhigh | 2026-10-08 ~19:20 | ~19:35-19:50 | `docs/research/synthesis/critique-round-4.md` (to write) |
+| (none) | | | | | |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
@@ -37,7 +39,7 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Codex adversarial critique round 4 on direction v4 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Codex adversarial critique round 5 on direction v5 (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
 3. Present direction to the owner.
 
