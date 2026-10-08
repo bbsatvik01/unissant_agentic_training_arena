@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- Owner set D-009: total GCP spend hard cap $75, target $50 (supersedes D-007). Codex round 5 (on v5's $100 budget) stopped before completion; direction v6 re-plans to the new cap, then round 5 re-runs.
 - Codex critique round 4: YELLOW (5 majors, 3 minors). Non-convergence diagnosed as mechanism growth; v5 removes mechanisms (no batch, assistants never invalidated, sealed inclusion manifest) and proves spend feasibility with `simulate_admission()`. Dispositions: `critique-round-4.md`.
 - Budget (v5, all online): option B 80 cases in the $100 bake-off cap ($68 / $98; guard completes all at expected usage, replay + 34/40 blocks at conservative); option A 120 cases needs ~$145; preparation ~$37-55.
 - Codex critique round 3: YELLOW (6 majors, 4 minors; converging 24 -> 12 -> 6). Direction v4 applies enforceable spend reservations, own-valid eligibility with attrition sensitivity, execution vs validity layers, three budget buckets, batch cutoff and fallback. Dispositions: `critique-round-3.md`.

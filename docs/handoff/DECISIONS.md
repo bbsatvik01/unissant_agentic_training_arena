@@ -42,7 +42,7 @@
 - **Files affected:** voice gateway, transcript pipeline, UI interrogation room (to come).
 - **Reversibility:** moderate.
 
-## 2026-10-08 · D-007 Model-spend ceiling: $100 for the bake-off
+## 2026-10-08 · D-007 Model-spend ceiling: $100 for the bake-off (SUPERSEDED by D-009)
 - **Decision:** the bake-off may spend at most $100 of Vertex AI usage. The runner enforces the cap in code (cost ledger with reservations and a hard stop) and the GCP project carries a billing budget alert.
 - **Reasoning:** owner answer this session. Batch 1 estimate (X3, low confidence): the full 2,160-trial protocol costs about $42 all-Flash-Lite, $195 for a balanced mix, $333 all-Pro, so the full protocol fits only with cheap tiers or a scaled-down run.
 - **Alternatives considered + why rejected:** larger budgets: not approved.
@@ -55,3 +55,11 @@
 - **Implications:** hosted deploy that scales to zero with auth, per-user rate limits and spend guards so judges cannot exhaust the $100 cap; demo-path polish; recorded walkthrough and deck; full CI gates, docs and tests in the repo.
 - **Files affected:** deploy, auth, guardrails, docs (to come).
 - **Reversibility:** locked-in (owner).
+
+## 2026-10-08 · D-009 Total GCP spend: hard cap $75, target $50 (supersedes D-007)
+- **Decision:** everything billed on GCP (Vertex model calls for experiments, case generation, dev pilot, bake-off, judge sessions and voice; Cloud Run; Phoenix hosting; storage) stays at or under $75 in total, aiming for $50. Never overshoot.
+- **Reasoning:** owner directive this session ("the cost on gcp should not exceed 50-75 dollars, do not over shoot it").
+- **Enforcement:** one global ceiling of $75 in the transactional reservation ledger, split into buckets with their own ceilings; every call reserves its worst case before running; a kill switch; GCP billing budget alerts at $25, $50 and $65 as a secondary alarm.
+- **Alternatives considered + why rejected:** the $100 bake-off cap (D-007) and the $145-175 options in direction v3-v5: over the new ceiling.
+- **Files affected:** `docs/research/synthesis/cost_model.py`, `02-direction.md` section 8, future spend-guard code.
+- **Reversibility:** owner can raise it.
