@@ -1,15 +1,15 @@
 # Direction: Investigative AI Training Arena
 
-Research synthesis and recommendation. **Version 3, 2026-10-08**, revised after Codex critique rounds 1 (YELLOW, 24 majors) and 2 (YELLOW, 12 majors, 3 minors). Dispositions: `critique-round-1.md`, `critique-round-2.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
+Research synthesis and recommendation. **Version 4, 2026-10-08**, revised after Codex critique rounds 1 (YELLOW, 24 majors), 2 (YELLOW, 12 majors) and 3 (YELLOW, 6 majors, 4 minors). Dispositions: `critique-round-1.md`, `critique-round-2.md`, `critique-round-3.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
 
 ## 0. TL;DR
 
 1. **Build the deck's protocol as a working instrument with real numbers, then the training experience on top.** We implement the protocol literally, publish every metric with its interval, and enforce its gates in code. (H)
-2. **Isolation by credential boundary and narrow privileged operations.** One image, four Cloud Run deployables, all scaling to zero: `arena-api` (public-only credential; investigator routes, orchestration, assistant calls, voice proxy), `arena-subject` (IAM-private; the only runtime reader of subject-private packets), `arena-referee` (IAM-private; evaluator data, labels, scoring), `arena-tournament` (Job, public-only). Every privileged step (evidence release, subject turn recording, trial finalization, reveal) is one transactional SQL function that derives its inputs from committed server state. Canaries are supplementary evidence only. (M-H)
+2. **Isolation by credential boundary and narrow privileged operations.** One image, four Cloud Run deployables, all scaling to zero: `arena-api` (public-only credential; investigator routes, orchestration, assistant calls, voice proxy), `arena-subject` (IAM-private; the only runtime reader of subject-private packets), `arena-referee` (IAM-private; evaluator data, labels, scoring), `arena-tournament` (Job, public-only). Every privileged step (evidence release, subject turn recording, trial finalization, referee validity adjudication, reveal) is one transactional SQL function that derives its inputs from committed server state. Canaries are supplementary evidence only. (M-H)
 3. **Agents are stateless, schema-bound calls through a typed agent port lifted from TechnoMile.** The default coaching design is one complete card per turn (flags, follow-up, finding, confidence); the two-stage design competes as candidate A1, so the bake-off itself answers which is better. (M-H)
 4. **The official leaderboard runs only arena-hosted, frozen Gemini-on-Vertex candidates.** An A2A v1.0 exhibition track for external endpoints is an owner call (P2). (H)
 5. **Latency (KPI-4) is unmeasured and the top technical risk.** Gemini 2.5 retires on Vertex 2026-10-16 to 10-20; no remaining model fully disables thinking. KPI-4 is measured on the complete card at the client. A day-1 benchmark (~$3-5) sets the model. (H on risk, M on plan)
-6. **Budget: the sponsor's 120-case hidden set is the statistical minimum, and it does not fit $100.** 59 truthful families are needed before zero false positives can support a 5% bound; the sponsor's plan has 60. Sponsor-sized run on a Flash-Lite-class lineup: ~$121 expected / ~$175 conservative, all in (bake-off alone $78 / $112). All-in under $100 conservative: 40 hidden cases ($54 / $79), whose false-positive bound is 13.9%. Owner decision. (M; assumptions until the dev pilot measures them)
+6. **Budget, in three buckets.** Bake-off (D-007: $100), preparation (experiments, case generation, dev pilot: ~$35-52, needs approval) and hosted demo (needs approval). Inside the $100 bake-off cap: 80 hidden cases x 1 on a Flash-Lite-class lineup ($52 expected / $75 conservative; $66 / $94 if batch work must run online). The sponsor-sized 120 cases need a ~$145 bake-off ceiling ($78 / $112 batch, $99 / $142 online). The sponsor's gate is a point estimate and applies at any size; more cases buy tighter uncertainty (zero-false-positive one-sided bound 7.2% at 80 cases, 4.9% at 120). Owner decision. (M; assumptions until the dev pilot measures them)
 7. **Voice: Gemini Live on Vertex through gokbase's proxy, on development cases only, proven in the October 18 slice.** Browser audio goes to `arena-api`, which relays to the IAM-private `arena-subject`. Probe `gemini-3.8-live` and `gemini-live-2.5-flash-native-audio` on day 1; prebuilt Live Avatar talking heads are a stretch. Push-to-talk or the Developer API each need an owner exception. (M)
 8. **Fairness and isolation are headline features.** Style is independent of role; style-stratified false-positive audit; demeanor-based flags count as unsupported; demeanor-driven outputs are negative-control fixtures, never a ranked candidate. (H)
 9. **Owner decisions needed:** budget, GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
@@ -46,9 +46,11 @@ One domain (facility access, the slide 8 case), four development families, end t
 | --- | --- | --- |
 | Oct 8-12 | Owner inputs; GCP project; day-1 probes (latency, Live matrix, Supabase isolation smoke); repo with lifted gates; schemas, privileged functions, pgTAP; agent port | Probe report; `make check` green |
 | Oct 13-18 | Vertical slice, including the minimal voice session | Slice passes; anchors calibrated on dev data; voice feasibility verdict |
-| Oct 19-24 | 3 assistants, 3 subjects; dev pilot (measures cost, latency, fidelity); freeze roster; generate and seal hidden families; interrogation room and debrief per DESIGN.md; mode projections | Dev pilot report; sealed split hash; frozen trial roster |
+| Oct 19-22 | 3 assistants, 3 subjects; dev pilot (measures cost, latency, fidelity, batch turnaround); freeze roster; generate and seal hidden families | Dev pilot report; sealed split hash; frozen trial roster |
+| Oct 22-25 | Sealed interactive run; seal replay corpus; submit replay and referee batch jobs by **Oct 25 (batch cutoff)**; meanwhile interrogation room, debrief and mode projections per DESIGN.md | One execution record per planned trial; batch jobs submitted |
 | Oct 22-29 | KPI-1 volunteer sessions (recruit now) | Counterbalanced sessions scored blind |
-| Oct 25-30 | Sealed interactive run; seal replay corpus; replay run; reveal; leaderboards; trust center; voice polish; pets, portraits, agents-at-work | One terminal record per planned trial; all commitments verified before reveal |
+| Oct 27 | **Batch fallback switch:** any batch job not finished runs online (costed in section 8.2) | All scoring inputs complete by Oct 28 |
+| Oct 28-30 | Validity adjudication; reveal; leaderboards; trust center; voice polish; pets, portraits, agents-at-work | Commitments verified before reveal |
 | Oct 31-Nov 2 | Hosted hardening, video, deck, rehearsal, Codex gates | Pre-push quality bar green |
 
 **Owner decision points:** (1) model-access failure (neither Vertex Live model usable by Oct 15); (2) voice integration failure at the Oct 18 gate. At either point the owner chooses: keep working voice in a parallel lane, downgrade to push-to-talk (D-006 exception), use the Developer API (D-001 exception), or drop voice.
@@ -108,17 +110,20 @@ flowchart LR
 
 `service_role` is never used at runtime (TechnoMile grants pattern). Hidden-case debriefs, exports and Phoenix spans stay locked until reveal.
 
-### 4.2 Privileged operations (each a SECURITY DEFINER function: EXECUTE revoked from PUBLIC and granted to exactly one role, `search_path=''`, trial row locked `FOR UPDATE`, idempotent, state derived from committed rows, never from caller-supplied turn numbers or hashes)
+### 4.2 Privileged operations (each a SECURITY DEFINER function: EXECUTE revoked from PUBLIC and granted to exactly one role, `search_path=''`, trial row locked `FOR UPDATE`, state derived from committed rows, never from caller-supplied turn numbers or hashes)
+
+Every write that changes trial state carries a server-created **work item ID** and the **expected transcript version** it was computed against (F07). A retry with the same work item returns the original result; a write against a stale version, or after finalization, is rejected. Work item IDs correlate work; they never let a caller advance a turn.
 
 | Function | Granted to | Caller supplies | Function derives and enforces | Returns |
 | --- | --- | --- | --- | --- |
-| `release_evidence(trial, requested_record_ids)` | `arena_public` | Trial ID; record IDs drawn from the public packet's list of requestable records | Current turn from the committed transcript; trial state `running`; predicates (scheduled turn, explicit request after a minimum turn); one release per record | Newly authorized public evidence only; appends a ledger event |
-| `record_subject_turn(trial, utterance, tag_proposal)` | `arena_subject` | Utterance and tag proposal | The open question it answers; trial `running`; guard outcome | Turn ID |
-| `finalize_trial(trial, final_finding)` | `arena_public` | Trial ID and the committed finding | Transcript and released-evidence hashes from stored rows; manifest hash; server-generated nonce stored in the sealed schema; terminal state; commitment written; trial frozen | Commitment hash |
-| `record_terminal(trial, state, reason)` | `arena_public` | Failure reason | One terminal record per planned trial; allowed transitions only | Terminal record ID |
-| `reveal(tournament)` | `arena_referee` | Tournament ID | Roster frozen; every planned trial has exactly one terminal record; replay corpus sealed; commitments verify | Unlocks scoring |
+| `release_evidence(trial, work_item, requested_record_ids)` | `arena_public` | Record IDs from the public list of requestable records | Current turn from the committed transcript; trial `running`; predicates (scheduled turn, request after a minimum turn); one release per record; at most `MAX_RELEASES` per case (generator-enforced) | Newly authorized public evidence only; appends a ledger event |
+| `record_subject_turn(trial, work_item, utterance, tag_proposal, guard_result)` | `arena_subject` | Utterance, tag proposal, guard result | The open question it answers; trial `running`; on a guard rejection, atomically stores the offending artifact in the sealed schema and sets the execution record to `subject_quarantined` | Turn ID or quarantine record |
+| `finalize_trial(trial, work_item, final_finding)` | `arena_public` | The committed finding | Transcript and released-evidence hashes from stored rows; manifest hash; server-generated nonce in the sealed schema; commitment; execution record `completed`; trial frozen | Commitment hash |
+| `record_execution_failure(trial, work_item, state, reason)` | `arena_public` | `assistant_failed`, `infra_failed` or `budget_skipped` with a reason | One execution record per planned trial; allowed transitions only | Execution record ID |
+| `adjudicate_validity(trial, verdict, reason, evidence_ref)` | `arena_referee` | Verdict (`valid`, `subject_invalid`, `assistant_invalid`) after blinded review | Append-only; never edits transcripts, findings or commitments; latest adjudication wins for inclusion, history kept | Adjudication ID |
+| `reveal(tournament)` | `arena_referee` | Tournament ID | Roster frozen; one execution record per planned trial; adjudication complete; replay corpus sealed; commitments verify | Unlocks scoring |
 
-Tests per function: forged turn, cross-trial call, duplicate call, concurrent calls, wrong role, wrong state.
+Tests per function: forged turn, cross-trial call, duplicate and replayed work items, stale transcript version, concurrent calls, wrong role, wrong state.
 
 ### 4.3 Capability matrix (becomes a test fixture)
 
@@ -128,10 +133,10 @@ Tests per function: forged turn, cross-trial call, duplicate call, concurrent ca
 | Ticketed SSE | Browser | `arena_public` | Coaching and ledger events by sequence (projection) | None |
 | Voice WebSocket | Browser to `arena-api`, relayed with an IAM ID token to `arena-subject` | `arena_public` at the edge | Audio and transcript of a development-case session | Session ledger rows |
 | `answer()` | `arena-api`, `arena-tournament` (IAM) | `arena_subject` behind it | Private packet | Through `record_subject_turn()` only |
-| Scoring, reveal, leaderboards | Admin through `arena-referee` (IAM) | `arena_referee` | All tiers | Scores, leaderboards |
-| Phoenix UI | Judges with Phoenix accounts | Phoenix auth | Redacted spans; hidden-case spans locked until reveal | None |
+| Scoring, adjudication, reveal, leaderboards | Admin through `arena-referee` (IAM) | `arena_referee` | All tiers | Scores, leaderboards, validity adjudications |
+| Phoenix UI | Judges with Phoenix accounts | Phoenix auth | Redacted spans for development and revealed work only; unrevealed hidden-tournament spans stay in the restricted `ops.trace_mirror` and are exported to the judge-visible Phoenix only after reveal | None |
 
-Voice tickets are single-use and bound to user, trial, split (development only) and mode; resumes re-check all four.
+Voice tickets are single-use and bound to user, trial, split (development only) and mode; resumes re-check all four, and `arena-subject` re-checks them on its side. Only a small application protocol crosses the relay: bounded audio frames and approved controls (start, stop, interrupt). Live setup, private prompts, tool calls and results, and provider resume handles stay server-owned inside `arena-subject` (R3-02).
 
 ### 4.4 Threat model (abridged)
 
@@ -146,9 +151,9 @@ Voice tickets are single-use and bound to user, trial, split (development only) 
 ### 4.5 One interactive turn
 1. Question Q(t) reaches `arena-api` (investigator, or the harness in the bake-off).
 2. `release_evidence()` may release evidence (SCN-4, SCN-10); clarifications, difficulty changes and predeclared context changes go through the same function and ledger.
-3. `arena-api` calls `arena-subject.answer()`; the subject service loads the private packet, makes one structured call, runs the guard, and calls `record_subject_turn()`. A guard hit records a `subject_invalid` terminal state.
-4. The coaching call runs in `arena-api` inside one open request: the complete card (section 6.1) is validated and sent; candidate A1's deeper update runs in the same request when due. No work outlives a request. Coaching events are written to Postgres; the browser's SSE stream reads them by sequence number, so no instance pinning is needed. In assessment mode nothing reaches the investigator until the assessment ends.
-5. At 12 exchanges or a committed finding, `finalize_trial()` runs.
+3. `arena-api` calls `arena-subject.answer()` with a work item; the subject service loads the private packet, makes one structured call, runs the guard, and calls `record_subject_turn()`, which records a quarantine atomically on a guard rejection.
+4. The coaching call runs in `arena-api` inside one open request, bound to a work item and the transcript version it read: the complete card (section 6.1) is validated and sent; candidate A1's deeper update runs in the same request when due; a result whose version is stale is discarded. No work outlives a request. Coaching events are written to Postgres; the browser's SSE stream reads them by sequence number, so no instance pinning is needed. In assessment mode nothing reaches the investigator until the assessment ends.
+5. At 12 exchanges or a committed finding, `finalize_trial()` runs. The referee's later blinded review may append a validity adjudication; it never changes the committed record.
 
 ### 4.6 Data model sketch
 `arena.case_families`, `arena.case_variants` (style, difficulty; no role), `arena.public_packets`, `arena.requestable_records`; `subject.private_packets`; `sealed.evaluator_packets`, `sealed.release_predicates`, `sealed.subject_tag_proposals`, `sealed.independent_labels`, `sealed.hidden_split_seals`, `sealed.commitment_nonces`; `arena.candidates` (manifest JSON, sha256, frozen_at); `arena.tournaments` (draft, frozen, running, sealed, scoring, revealed; seed; budget); `arena.planned_trials` (frozen roster), `arena.blocks`, `arena.trials`, `arena.turns`, `arena.coaching_events`; `ledger.events`, `ledger.finding_commitments`, `ledger.terminal_records`, `ledger.corpus_seals`; `arena.scores`, `arena.leaderboards`, `arena.isolation_checks`; `training.sessions`, `training.rubric_scores`, `training.progress`; `ops.model_calls`, `ops.budget_reservations`, `ops.trace_mirror`.
@@ -203,25 +208,28 @@ Fixed opening question; relays the assistant's follow-up only if it is one quest
 
 ## 7. Metric contracts (implemented in the scorer; written before data exists)
 
-### 7.1 Terminal states and inclusion
-Every planned trial ends in exactly one terminal record:
+### 7.1 Execution records, validity adjudications and inclusion
 
-| State | Meaning | Role metrics | Other reporting |
+Two layers, kept separate (F15):
+- **Execution record** (immutable, exactly one per planned trial): `completed` (committed finding), `subject_quarantined` (guard rejection, recorded atomically with the offending artifact), `assistant_failed` (no valid final finding after the allowed repair), `infra_failed` (retried twice with the same seed regardless of outcome, still failing), `budget_skipped` (block never started).
+- **Validity adjudication** (append-only, referee only, blinded): `valid`, `subject_invalid` (semantic fidelity failure or platform attack found on review), `assistant_invalid` (for example, a demeanor-only basis or an unsupported final finding the gate must not credit). It never edits a transcript, finding or commitment.
+
+| Combined status | Assistant role metrics | Subject metrics | Disclosure |
 | --- | --- | --- | --- |
-| `completed` | Committed final finding | Counted | |
-| `assistant_failed` | No valid final finding after the allowed repair | Counted as "insufficient evidence" in both denominators | Assistant failure rate |
-| `subject_invalid` | Subject quarantined (fidelity failure or platform attack) | Excluded from assistant metrics for that matched cell | Counts against the subject: fidelity, invalid-session rate |
-| `infra_failed` | Retried twice with the same seed regardless of outcome, still failing | Excluded from all, disclosed; a block with more than 5% infra failures is invalid | Infrastructure failure rate |
-| `budget_skipped` | Block never started | Excluded, disclosed | |
+| `completed` + `valid` | Counted | Counted | |
+| `assistant_failed`, or `completed` + `assistant_invalid` | Counted as "insufficient evidence" in both denominators | Counted | Assistant failure rate |
+| `subject_quarantined`, or `completed` + `subject_invalid` | Excluded for that candidate | Counts against the subject (all-turn fidelity, invalid-session rate) | Exclusions per candidate |
+| `infra_failed` | Excluded from all | Excluded | Rate; a block with more than 5% infra failures is invalid |
+| `budget_skipped` | Excluded | Excluded | Rate |
 
-Matched inclusion: a (family, subject) cell enters assistant comparisons only if all three assistant trials in it are `completed` or `assistant_failed`. Coverage and attrition are published by candidate and role; paired rankings and the FPR gate require at least 90% common coverage, otherwise the leaderboard shows "insufficient coverage".
+**Eligibility uses each candidate's own included trials (F14).** Another candidate's failures never remove a candidate's valid false positives. Common (family, subject) cells where all three assistants are included serve paired comparisons only. Attrition sensitivity (`stats_contracts.attrition_sensitivity`): FPR is recomputed with the candidate's excluded truthful trials imputed as false positives (worst case) and as clears (best case); if the eligibility decision differs between the two, the leaderboard marks it provisional. Coverage and attrition are published per candidate and role.
 
 ### 7.2 Metrics
 
 | Metric | Estimand | Unit | Interval | Notes |
 | --- | --- | --- | --- | --- |
 | Deceptive-role recall | Share of included deceptive trials whose committed finding is "deceptive" | Family | Family cluster bootstrap, two-sided 95% | Insufficient counts as a miss |
-| FPR (eligibility) | Share of included truthful trials whose committed finding is "deceptive" | Family | Family cluster bootstrap two-sided 95%; with zero events, the conservative family-level bound below | Insufficient stays in the denominator; sponsor's point-estimate gate (<= 5%) decides eligibility |
+| FPR (eligibility) | Share of the candidate's own included truthful trials whose committed finding is "deceptive" | Family | Family cluster bootstrap two-sided 95%; with zero events, the complete-family bound below | Insufficient stays in the denominator; sponsor's point-estimate gate (<= 5%) decides eligibility; attrition sensitivity can mark it provisional |
 | PPV, 2x3 matrix, unresolved by role | REQUIREMENTS section 11 | Family | Bootstrap | Raw counts published |
 | Evasion-event precision and recall | Event = a subject turn the referee labels evasive; an evasion flag matches at most one event; the first match is the true positive, duplicates are false positives | Family | Bootstrap | Zero denominators reported as undefined |
 | Unsupported flags | Flags failing citation existence (code) or claim support (semantic check) over all flags | Family | Bootstrap | Fixtures with real quotes and false claims must fail |
@@ -230,10 +238,10 @@ Matched inclusion: a (family, subject) cell enters assistant comparisons only if
 | KPI-4 coaching latency | Time from the subject's answer being committed to the complete card (6.1) validated and received by the client; timeouts and failed repairs count as misses | Session | Session-cluster bootstrap of p95 | Cold starts and late-interview contexts included |
 | Investigator score, KPI-1 | 5 x sum of five 0-4 dimensions; improvement = (post - pre) / pre per participant | Participant | Bootstrap over participants | Pre = 0 makes relative change undefined; absolute change always reported |
 
-- **Zero-event FPR bound (F13, `stats_contracts.py`):** a family "fails" when any of its included truthful trials is classified deceptive. With zero failing families out of n retained families, the exact one-sided 95% bound on the family failure probability is 1 - 0.05^(1/n): 13.9% (n=20), 9.5% (30), 7.2% (40), 4.9% (60). This is conservative for the trial-weighted FPR, not an exact interval for it. 59 families are needed for a bound at or below 5%.
-- **Ranking (EVL-10):** a function that requires `fpr_point <= 0.05`, `isolation_pass` and sufficient coverage as preconditions; rank intervals come from the bootstrap distribution of ranks; pairwise differences use a paired family bootstrap.
+- **Zero-event bound (F13, `stats_contracts.py`):** a family "fails" when any of its included truthful trials is classified deceptive. With zero failing families out of n, the exact one-sided 95% bound on the family failure probability is 1 - 0.05^(1/n): 13.9% (n=20), 9.5% (30), 7.2% (40), 4.9% (60). It bounds the trial-weighted FPR only when every counted family contributes the same number of trials, so it is computed on the complete-family subset (all cells included); over all retained families it is reported as a family-level statistic, not an FPR guarantee (the script includes the unequal-size counterexample: 4.87% family bound, 5.22% trial FPR). The sponsor's gate is a point estimate and applies at any size; the bound only describes precision. 59 equal-size families are needed for a zero-event bound at or below 5%.
+- **Ranking (EVL-10):** a function that requires `fpr_point <= 0.05` on the candidate's own included trials and `isolation_pass` as preconditions, and shows provisional status from the attrition rule; rank intervals come from the bootstrap distribution of ranks; pairwise differences use a paired family bootstrap.
 - **Scheduling (BKO-7, BKO-10):** the roster of planned trials is frozen before the run. A block is one family (both variants) x nine pairings x one repeat; order within a block comes from a recorded seed; a block starts only after its worst-case cost is reserved; extra repeats are drawn by seed before any outcome is seen.
-- **Commitment (BKO-9):** `finalize_trial()` (section 4.2). Reveal requires a frozen roster, one terminal record per planned trial, a sealed replay corpus and verified commitments. Hidden-case debriefs stay locked until reveal.
+- **Commitment (BKO-9):** `finalize_trial()` (section 4.2). Reveal requires a frozen roster, one execution record per planned trial, completed validity adjudication, a sealed replay corpus and verified commitments. Hidden-case debriefs and spans stay locked until reveal.
 - **Independent labels (F16):** the referee labels every subject turn (evasion, genuine uncertainty, legitimate non-disclosure, poorly framed question, responsive) with the private packet and canonical facts, in a separate blinded invocation with a frozen prompt. In the power-first lineup the referee checkpoint (`gemini-3.8-flash`) differs from every subject checkpoint; in the full lineup S3 shares it, which is disclosed. A blinded human sample calibrates labels and fidelity judgments.
 - **Judge calibration:** anchors for all five 0-4 dimensions authored and frozen on dev data; 2-3 blinded human raters on ~30 dev transcripts; predeclared thresholds per dimension (quadratic-weighted kappa >= 0.60 and Gwet's AC2 >= 0.70 against human consensus), otherwise revise on dev data only; sub-checks map to 0-4 as round(4 x pass fraction); 0 and 100 tested; same-family judging disclosed.
 - **Isolation gate (all must pass):** pgTAP privilege tests per role and per privileged function; capability-matrix route tests, including direct calls to IAM-private services; assistant-context type test; hidden-split seal and no hidden family in dev artifacts; commitment verification; supplementary canary audit with zero hits.
@@ -249,19 +257,21 @@ Matched inclusion: a (family, subject) cell enters assistant comparisons only if
 
 ### 8.2 Options (each part includes a 15% retry reserve; expected / conservative)
 
-| Option | Preparation (experiments, generation, dev pilot) | Bake-off (sealed + replay) | Total | Zero-FP bound |
-| --- | --- | --- | --- | --- |
-| Sponsor full workload: 120 x 2, full lineup, dev 40 | $64 / $99 | $202 / $323 | $266 / $422 | 4.9% |
-| 120 x 1, full lineup, dev 20 | $47 / $71 | $106 / $169 | $152 / $240 | 4.9% |
-| **Recommended: 120 x 1, power-first, dev 20** | **$42 / $62** | **$78 / $112** | **$121 / $175** | **4.9%** |
-| 80 x 1, power-first, dev 20 | $35 / $52 | $52 / $75 | $87 / $127 | 7.2% (40 truthful families) |
-| 60 x 1, power-first, dev 20 | $32 / $47 | $39 / $56 | $71 / $103 | 9.5% |
-| **All-in under $100 (conservative): 40 x 1, power-first, dev 20** | **$28 / $42** | **$26 / $37** | **$54 / $79** | **13.9%** |
+Three buckets: **bake-off** (sealed interactive run plus replay; D-007 caps it at $100), **preparation** (day-1 experiments, case generation, dev pilot; needs approval), **hosted demo** (judge sessions and voice; needs approval, small). "Online" prices the deadline fallback in which batch work (replay, referee) runs at list price because batch has no SLA.
 
-**Recommendation:** approve a $175 ceiling for the sponsor-sized run (120 hidden cases, one repeat), because 59 truthful families are the minimum for the 5% gate to mean anything. If $100 must cover everything, run 40 hidden cases and present the gate as a point estimate with its 13.9% bound. Either way the dev pilot's measured cost per trial replaces these assumptions before the first sealed block.
+| Option | Preparation | Bake-off (batch) | Bake-off (online fallback) | Zero-FP bound (equal-size families) |
+| --- | --- | --- | --- | --- |
+| Sponsor full workload: 120 x 2, full lineup, dev 40 | $64 / $99 | $202 / $323 | $237 / $375 | 4.9% |
+| 120 x 1, full lineup, dev 20 | $47 / $71 | $106 / $169 | $128 / $203 | 4.9% |
+| **A. Sponsor-sized: 120 x 1, power-first, dev 20** | **$42 / $62** | **$78 / $112** | **$99 / $142** | **4.9%** |
+| **B. Inside the $100 bake-off cap: 80 x 1, power-first, dev 20** | **$35 / $52** | **$52 / $75** | **$66 / $94** | **7.2%** |
+| 60 x 1, power-first, dev 20 | $32 / $47 | $39 / $56 | $49 / $71 | 9.5% |
+| 40 x 1, power-first, dev 20 | $28 / $42 | $26 / $37 | $33 / $47 | 13.9% |
+
+**Recommendation:** B keeps D-007 as locked and fits even if batch falls back online; approve preparation (~$35-52) separately. Choose A instead if the owner raises the bake-off ceiling to ~$145, which buys the sponsor's full 120-case sample and tighter uncertainty reporting. The dev pilot's measured cost per trial replaces these assumptions before the first sealed block.
 
 ### 8.3 Spend guard
-Every model call (hosted sessions, voice, tournament, generation, scoring) reserves its worst case in `ops.budget_reservations` inside a transaction before calling Vertex and settles from usage metadata; missing usage keeps the reservation. A tournament block starts only if its worst-case reservation fits (power-first $2.82 per 18-trial block, full $4.32). Separate ceilings per bucket (bake-off, preparation, hosted demo per day); aggregate concurrency caps; invite-only judge accounts; reconnect-safe voice caps in Postgres (replacing gokbase's Redis counter); a kill switch read on every call. Billing budget alerts are a secondary alarm.
+Every model call (hosted sessions, voice, tournament, generation, scoring) reserves its worst case in `ops.budget_reservations` inside a transaction before calling Vertex and settles from usage metadata; missing usage keeps the reservation. Reservations come from enforceable request limits: per-call-type input and total output limits (`max_output_tokens` bounds thinking plus visible output; thinking levels are qualitative), four attempts per call (first try, one repair, two transient retries) and the generator-enforced release maximum. A block starts only if its worst case fits the remaining bucket: $15.30 per 18-trial block on the power-first lineup, $18.47 on the full lineup, so running k blocks in parallel needs k times that headroom. Separate ceilings per bucket (bake-off, preparation, hosted demo per day); aggregate concurrency caps; invite-only judge accounts; reconnect-safe voice caps in Postgres (replacing gokbase's Redis counter); a kill switch read on every call. Billing budget alerts are a secondary alarm.
 
 ## 9. Voice plan
 - **Path:** browser to `arena-api` over a ticketed WebSocket; `arena-api` relays to the IAM-private `arena-subject` with an ID token; `arena-subject` holds the Live session on Vertex with ADC. The subject service never accepts browser traffic.
@@ -273,7 +283,8 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 
 ## 10. Observability plan
 - OpenInference for google-genai plus manual spans (session, trial, turn, agent, model call); one parent span per turn across retries (Pangea). Producers call `force_flush()` before each request or job task ends (request-based CPU).
-- Phoenix's ingestion queue lives in server memory, so a request-billed Phoenix can lose spans when an idle instance stops. Hosted Phoenix therefore runs with CPU allocated for the instance's lifetime and min-instances 0 (owner sign-off), and spans are also mirrored to `ops.trace_mirror` (TechnoMile pattern) for re-export. Read-back after a run verifies; it does not flush.
+- **Durability barrier (F11):** a span counts as durable when its row in `ops.trace_mirror` (TechnoMile pattern) is committed in Postgres before the request or job task ends; spans are ended before flushing, `force_flush()` results are checked, and Phoenix export is retried from the mirror. Phoenix's own ingestion queue lives in memory, so Phoenix is a viewer, not the store. CPU allocated for the Phoenix service's lifetime (min-instances 0) is optional and needs owner sign-off; it reduces delay, it does not provide durability. Read-back after a run verifies; it does not flush.
+- Unrevealed hidden-tournament spans stay in the restricted mirror and reach the judge-visible Phoenix only after reveal (R3-03).
 - `ops.model_calls` is the only cost source; Phoenix token-price attributes are renamed away; default-deny export policy and a redact-before-export processor keep private and evaluator data out of spans; role labels never appear on spans.
 - KPI-4, cost and every leaderboard number come from Postgres, so they hold even if Phoenix loses spans.
 
@@ -303,12 +314,13 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 | Risk | L | I | Mitigation | Trigger |
 | --- | --- | --- | --- | --- |
 | Complete-card coaching misses 3 s p95 on every 3.x model | M | H | Benchmark, compact prompts, Priority tier, disclosed definition | Day-1 benchmark, dev pilot |
-| Budget below the 120-case minimum | H | H | Owner decision; 40-case fallback with honest bound | Owner answer |
+| Bake-off cap below the sponsor-sized run | H | M | Option B (80 cases) inside $100; option A needs ~$145 | Owner answer |
+| Batch jobs miss the deadline (no SLA) | M | H | Oct 25 batch cutoff, Oct 27 online fallback, costed | Oct 27 |
 | Vertex Live unusable or voice integration fails | M | M | Probe matrix; slice gate; predeclared owner branches | Oct 15, Oct 18 |
 | Deceptive variants too hard or too easy | M | H | Solvability gate, pilot calibration | Dev pilot |
 | Subject drift below 95% fidelity (all-turn denominator) | M | H | Ledger, re-injection, disclosure gates, guard | Dev pilot |
 | Judge calibration fails thresholds | M | H | Revise anchors on dev data; report provisional | Calibration round |
-| Attrition breaks matched comparisons | M | M | Terminal states, outcome-independent retries, coverage rule | Sealed run |
+| Attrition distorts eligibility or comparisons | M | M | Own-valid eligibility, attrition sensitivity, execution and validity layers, outcome-independent retries | Sealed run |
 | Injection corrupts trials | M | M | Quarantine and exclusion; persistent-attack fixtures | Fixture suite |
 | Phoenix span loss | M | L | CPU sign-off for the Phoenix service, trace mirror, Postgres as truth | First hosted run |
 | Supabase pause near demo day | M | H | Pro plan or keep-alive job | Owner answer |
@@ -325,17 +337,17 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 5. **Isolation smoke:** four roles, sealed schema, the section 4.2 functions, pgTAP on the owner's Supabase project.
 
 ### 13.2 Owner decisions
-1. Budget: $175 ceiling for the sponsor-sized run, or $100 all-in with 40 hidden cases.
+1. Budget: keep the $100 bake-off cap (option B, 80 hidden cases) or raise it to ~$145 (option A, 120); approve preparation (~$35-52) and a small hosted-demo bucket.
 2. Dedicated GCP project with billing and a budget alert (never `kbg-production`).
 3. Supabase project and plan (Pro, or free with a keep-alive job).
 4. DESIGN.md.
 5. Repo destination (private GitHub).
-6. Phoenix: local only, or hosted with CPU allocated for the Phoenix service's instance lifetime (min-instances 0).
+6. Phoenix: local only during the build; hosted for judges with the trace mirror as the store (CPU allocation for the Phoenix service optional, needs sign-off).
 7. Voice exception rule for the Oct 15 and Oct 18 decision points.
 8. A2A exhibition track (P2) yes or no.
 9. Team roster; KPI-1 volunteers (6-10).
 
 ## 14. Sources and critique history
-- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md`, `critique-round-2.md`.
+- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md`, `critique-round-2.md`, `critique-round-3.md`.
 - Tally: 143 Google web, 64 GDK, 34 Context7, 198 internal files (research-harness floors met), plus Codex verification searches (19 in round 1, 15 web plus GDK and Context7 checks in round 2).
-- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (0 blockers, 12 majors, 3 minors; 14 round-1 findings confirmed fixed). All applied in this version.
+- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed). All applied in this version.
