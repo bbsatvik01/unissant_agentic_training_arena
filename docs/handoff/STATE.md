@@ -21,7 +21,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| (none) | | | | | |
+| bash `b9rqj4vml` (codex exec) | Codex critique round 5 on direction v6 (D-009 re-plan); output to session scratchpad `codex/round5.json` | gpt-6-astra xhigh | 2026-10-08 ~19:15 EDT | ~19:30-19:45 EDT | `docs/research/synthesis/critique-round-5.md` (to write) |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
