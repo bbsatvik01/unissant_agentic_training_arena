@@ -13,3 +13,4 @@
 - Codex round 3 YELLOW (6 majors, 4 minors); direction v4 with enforceable reservations, attrition rule, validity layer, budget buckets.
 - Codex round 4 YELLOW (5 majors, 3 minors); direction v5 removes batch, assistant-invalid verdicts; adds admission simulation, rank sensitivity, sealed inclusion manifest.
 - D-009 recorded ($75 hard / $50 target total GCP); direction v6 re-planned to 30 hidden cases (~$49 expected / ~$73 conservative).
+- Codex round 5 YELLOW (4 majors, 2 minors); direction v7: call-level guard simulation, voice rebilling, non-model envelope, liability rates; 30 cases ~$44/$72.

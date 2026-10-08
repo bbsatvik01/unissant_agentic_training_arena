@@ -134,36 +134,6 @@ LINEUPS = {
     ),
 }
 
-# D-009 lineup (total GCP hard cap $75, target $50): power-first models; the referee keeps an independent
-# checkpoint (3.8-flash) for the subject-facing call (labels + fidelity) and uses 3.5-flash-lite for
-# flag support + questioning quality, which do not judge the subject.
-REFEREE_LEAN = [
-    Call("3.8-flash", 8000, 1000, "LOW", kind="referee"),
-    Call("3.5-flash-lite", 7000, 700, "MINIMAL", kind="referee"),
-]
-LINEUPS["lean-75"] = Lineup(
-    name="lean-75",
-    subjects=LINEUPS["power-first"].subjects,
-    assistants=LINEUPS["power-first"].assistants,
-    referee=REFEREE_LEAN,
-    replay_referee=[REFEREE_LEAN[1]],
-)
-
-# Hosted demo and infrastructure bucket (expected, high). Its ceiling is set aside before any tournament
-# work and enforced by the same per-call reservations, so the bucket can never exceed DEMO_CEILING.
-DEMO_CEILING = 13.5
-DEMO_INFRA = {
-    "judge and team text sessions (40 sessions x 12 turns, card + subject)": (
-        lambda high: 40 * EXCHANGES * (CARD_SINGLE_35.cost(high) + Call("3.5-flash-lite", 3500, 200, "MINIMAL",
-                                                                           kind="subject").cost(high))),
-    "voice sessions (10 x $0.30 expected, $0.50 per-session cap)": (lambda high: 10 * (0.30 if not high else 0.50)),
-    "subject portraits (30 images; $0.04 expected, $0.06 high)": (lambda high: 30 * (0.04 if not high else 0.06)),
-    "Cloud Run, Phoenix, storage, registry, secrets for the month": (lambda high: 2.0 if not high else 4.0),
-}
-# The largest single call any path can make, with every allowed attempt: the most the guard can leave unspent.
-MAX_CALL_RESERVATION = max(c.reservation() for c in REFEREE_LEAN + [Call("3.1-pro-preview", 8000, 14000, "HIGH",
-                                                                         kind="generate")])
-
 # Preparation experiments (section 13.1), costed explicitly (expected, high).
 EXPERIMENTS = {
     "latency benchmark (complete card; 3 models x 2 context lengths x 200 calls)": (
@@ -299,49 +269,6 @@ def simulate_admission(lu: Lineup, sealed_cases: int, cap: float, high: bool, ch
             "chunk_reservation": chunk_res}
 
 
-def simulate_total(lu: Lineup, sealed_cases: int, dev_cases: int, cap: float, high: bool, chunk: int = 5,
-                   admit_factor: float = 1.5) -> dict:
-    """D-009: one global cap over everything billed on GCP.
-
-    Cap safety (hard): every model call reserves its own worst case (limits x attempts) before running and
-    settles after, so settled spend never exceeds the cap; at most one call's reservation is left unspent.
-    Completeness (soft): a dev block, replay chunk or interactive block starts only if the remaining budget
-    covers admit_factor x its HIGH-scenario cost; a unit cut off mid-way by the per-call guard is recorded as
-    truncated and excluded. The demo/infra ceiling is set aside first.
-    Order: experiments, generation, dev pilot, then the sponsor's order (replay first, then interactive).
-    """
-    avail = cap - DEMO_CEILING
-    spent = 0.0
-    spent += sum(f(high) for f in EXPERIMENTS_LEAN.values()) * 1.15
-    spent += generation(lu, dev_cases // 2, sealed_cases // 2, high) * 1.15
-    block_cost = 2 * sum(trial_cost(lu, a, s, high) for a in lu.assistants for s in lu.subjects) * 1.15
-    block_high = 2 * sum(trial_cost(lu, a, s, True) for a in lu.assistants for s in lu.subjects) * 1.15
-    dev_blocks = 0
-    for _ in range(dev_cases // 2):
-        if avail - spent < admit_factor * block_high:
-            break
-        spent += block_cost
-        dev_blocks += 1
-    chunk_cost = chunk * (replay_per_transcript(lu, high) + corpus_per_transcript(lu, high)) * 1.15
-    chunk_high = chunk * (replay_per_transcript(lu, True) + corpus_per_transcript(lu, True)) * 1.15
-    chunks_needed, chunks = -(-sealed_cases // chunk), 0
-    for _ in range(chunks_needed):
-        if avail - spent < admit_factor * chunk_high:
-            break
-        spent += chunk_cost
-        chunks += 1
-    blocks = 0
-    for _ in range(sealed_cases // 2):
-        if avail - spent < admit_factor * block_high:
-            break
-        spent += block_cost
-        blocks += 1
-    demo = sum(f(high) for f in DEMO_INFRA.values())
-    return {"dev_blocks": dev_blocks, "dev_needed": dev_cases // 2, "replay_chunks": chunks,
-            "replay_needed": chunks_needed, "blocks": blocks, "blocks_needed": sealed_cases // 2,
-            "tournament_and_prep": spent, "demo_infra": demo, "total": spent + demo}
-
-
 def block_reservation(lu: Lineup) -> float:
     """Worst-case cost of one block (one family, both variants, all nine pairings, one repeat)."""
     return 2 * sum(trial_reservation(lu, a, s) for a in lu.assistants for s in lu.subjects)
@@ -375,17 +302,224 @@ if __name__ == "__main__":
                   f"replay chunks {r['replay_chunks']}/{r['replay_chunks_needed']}, settled ${r['spent']:.2f} "
                   f"(block reservation ${r['block_reservation']:.2f}, chunk reservation ${r['chunk_reservation']:.2f})")
 
-    print("\nD-009 plans (total GCP hard cap $75, target $50), lineup lean-75, dev 10 cases:")
-    lu = LINEUPS["lean-75"]
-    print(f"  demo/infra: expected ${sum(f(False) for f in DEMO_INFRA.values()):.2f}, high "
-          f"${sum(f(True) for f in DEMO_INFRA.values()):.2f}, ceiling set aside ${DEMO_CEILING:.2f}; "
-          f"largest single-call reservation ${MAX_CALL_RESERVATION:.2f}")
-    assert sum(f(True) for f in DEMO_INFRA.values()) <= DEMO_CEILING, "demo/infra high estimate exceeds its ceiling"
-    for sealed in (30, 40, 50, 60):
+
+# ---------------------------------------------------------------------------------------------------
+# D-009: total GCP spend hard cap $75, target $50 (critique round 5 rebuilt this section).
+# ---------------------------------------------------------------------------------------------------
+# Liability rates: Google describes the 3.8 Flash promotion as credits back on net spend, so the hard
+# envelope uses the undiscounted list rate until the project's credit treatment is verified; promotional
+# savings are upside only (R5-02).
+LIABILITY_PRICES = dict(PRICES, **{"3.8-flash": (1.50, 7.50)})
+RETRY_FACTOR = 1.15        # average extra spend from repairs and transient retries
+ADMIT_FACTOR = 1.5         # soft completeness rule: start a unit only if 1.5 x its high cost remains
+
+
+def liab_cost(c: Call, high: bool) -> float:
+    p_in, p_out = LIABILITY_PRICES[c.model]
+    scale = 1.25 if high else 1.0
+    return (c.tokens_in * scale * p_in + (c.tokens_out * scale + THINK[c.think][1 if high else 0]) * p_out) / 1e6
+
+
+def liab_reservation(c: Call) -> float:
+    p_in, p_out = LIABILITY_PRICES[c.model]
+    lim_in, lim_out = LIMITS[c.kind]
+    return ATTEMPTS * (lim_in * p_in + lim_out * p_out) / 1e6
+
+
+# D-009 lineup: no promotional model on the bake-off path. Subjects keep two tiers; the referee's
+# subject-facing call runs on 3.1-flash-lite at LOW thinking (shares a checkpoint with S1 only, disclosed);
+# all families are generated on Pro and validated on 3.5-flash-lite.
+REFEREE_D009 = [Call("3.1-flash-lite", 8000, 1000, "LOW", kind="referee"),
+                Call("3.5-flash-lite", 7000, 700, "MINIMAL", kind="referee")]
+LINEUPS["d009"] = Lineup(
+    name="d009",
+    subjects=LINEUPS["power-first"].subjects,
+    assistants=LINEUPS["power-first"].assistants,
+    referee=REFEREE_D009,
+    replay_referee=[REFEREE_D009[1]],
+    gen_hidden=Call("3.1-pro-preview", 8000, 14000, "HIGH", kind="generate"),
+    gen_dev=Call("3.1-pro-preview", 8000, 14000, "HIGH", kind="generate"),
+    gen_validate=[Call("3.5-flash-lite", 16000, 1200, "LOW", kind="validate")] * 3,
+)
+
+
+def unit_trial_calls(lu: Lineup, a: str, s: str, high: bool) -> list[Call]:
+    """Ordered calls of one interactive trial (deep stages counted at the high or expected release count)."""
+    asst = lu.assistants[a]
+    calls: list[Call] = []
+    deep_total = deep_calls_per_trial(asst, high)
+    deep_done = 0
+    for t in range(EXCHANGES):
+        calls.append(lu.subjects[s])
+        calls.append(asst.every_turn)
+        if asst.deep is not None and deep_done < deep_total and (t % asst.deep_every == asst.deep_every - 1
+                                                                  or deep_total - deep_done >= EXCHANGES - t):
+            calls.append(asst.deep)
+            deep_done += 1
+    if asst.final is not None:
+        calls.append(asst.final)
+    calls.extend(lu.referee)
+    return calls
+
+
+def block_calls(lu: Lineup, high: bool) -> list[Call]:
+    return [c for _ in range(2) for a in lu.assistants for s in lu.subjects for c in unit_trial_calls(lu, a, s, high)]
+
+
+def replay_transcript_calls(lu: Lineup, high: bool) -> list[Call]:
+    subj = list(lu.subjects.values())
+    calls = [subj[i % len(subj)] for i in range(EXCHANGES)] + [lu.referee[0]]      # corpus + labels
+    for asst in lu.assistants.values():
+        calls += [asst.every_turn] * EXCHANGES
+        if asst.deep is not None:
+            calls += [asst.deep] * deep_calls_per_trial(asst, high)
+        if asst.final is not None:
+            calls.append(asst.final)
+        calls += lu.replay_referee
+    return calls
+
+
+def family_generation_calls(lu: Lineup, hidden: bool) -> list[Call]:
+    return [lu.gen_hidden if hidden else lu.gen_dev] + list(lu.gen_validate)
+
+
+def experiment_calls(high: bool) -> list[Call]:
+    calls = [CARD_SINGLE_35, CARD_SINGLE_31, CARD_FLASH_LITE_35] * 200            # lineup models x 2 contexts x 100
+    for _ in range(2):                                                          # case-generation pilot
+        calls += family_generation_calls(LINEUPS["d009"], hidden=True)
+    calls += [Call("3.5-flash-lite", 3500, 200, "MINIMAL", kind="subject")] * (2 * 3 * 2 * EXCHANGES)  # fidelity pilot
+    return calls
+
+
+# Live voice reference session (F25). Rates are the gokbase rate card for the Live model family
+# (audio $3/$12, text $0.75/$4.50 per 1M) because no Vertex 3.8 Live table was retrieved; the high case
+# multiplies durations and rates by 1.5. Accumulated context is rebilled every turn.
+VOICE = {"exchanges": 12, "in_s": 15, "out_s": 20, "tok_per_s": 32, "system_tokens": 2000,
+         "transcript_tokens_per_turn": 200, "audio_in": 3.0, "audio_out": 12.0, "text_in": 0.75, "text_out": 4.50,
+         "retranscribe_per_min": 0.016}
+
+
+def voice_session_cost(high: bool) -> float:
+    v, k = VOICE, (1.5 if high else 1.0)
+    turn_in, turn_out = v["in_s"] * k * v["tok_per_s"], v["out_s"] * k * v["tok_per_s"]
+    audio_ctx = sum((t * (turn_in + turn_out) + turn_in) for t in range(v["exchanges"]))
+    live = (audio_ctx * v["audio_in"] * k + v["exchanges"] * v["system_tokens"] * v["text_in"] * k
+            + v["exchanges"] * turn_out * v["audio_out"] * k
+            + v["exchanges"] * v["transcript_tokens_per_turn"] * v["text_out"] * k) / 1e6
+    coaching = v["exchanges"] * liab_cost(CARD_SINGLE_35, high)
+    retranscribe = (v["exchanges"] * v["out_s"] * k / 60) * v["retranscribe_per_min"]
+    return live + coaching + retranscribe
+
+
+VOICE_SESSION_CAP = 1.00   # enforced by the gokbase-style safety loop meter; the session closes at the cap
+LIVE_PROBE = (30, 0.05, 0.10)  # day-1 probe matrix: short sessions, expected $, metered cap $ each
+VOICE_SESSIONS = 6
+TEXT_SESSIONS = 40
+PORTRAITS = (30, 0.04, 0.08)   # count, expected $/image, high $/image (image pricing unverified; count-capped)
+
+# Non-model GCP liabilities over a finite window (build + judging: 2026-10-13 to 2026-11-09), then teardown.
+# Not enforceable by the model ledger (R5-01): bounded by configuration (min 0, max-instances, request
+# timeouts, invite-only auth, rate limits), free tiers, log exclusions, and teardown on 2026-11-09.
+NON_MODEL = {
+    "Cloud Run services and job (beyond free tier)": (0.50, 4.00),
+    "Artifact Registry images": (0.20, 0.60),
+    "Cloud Storage (portraits, audio, exports)": (0.10, 0.40),
+    "Cloud Logging (exclusions keep it inside the free allotment)": (0.00, 1.00),
+    "Firebase Hosting transfer": (0.00, 0.50),
+    "Secret Manager": (0.30, 0.50),
+    "Network egress": (0.10, 1.00),
+}
+
+
+def demo_bucket(high: bool) -> dict[str, float]:
+    text = TEXT_SESSIONS * EXCHANGES * (liab_cost(CARD_SINGLE_35, high) + liab_cost(LINEUPS["d009"].subjects["S2"], high))
+    voice = VOICE_SESSIONS * min(voice_session_cost(high), VOICE_SESSION_CAP)
+    portraits = PORTRAITS[0] * (PORTRAITS[2] if high else PORTRAITS[1])
+    return {"text": text * RETRY_FACTOR, "voice": voice, "portraits": portraits}
+
+
+def demo_ceiling() -> float:
+    """Set aside first: high text cost with retries, voice at the per-session cap, portraits at high price."""
+    d = demo_bucket(True)
+    return d["text"] + VOICE_SESSIONS * VOICE_SESSION_CAP + d["portraits"]
+
+
+def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75.0) -> dict:
+    """Call-level simulation of the spend guard (F01).
+
+    The non-model envelope (high) and the demo ceiling are set aside. Model work then runs in order:
+    experiments, family generation, dev blocks, replay transcripts, interactive blocks. Each unit is
+    admitted only if ADMIT_FACTOR x its high cost remains (soft); each call is admitted only if its full
+    worst-case reservation at liability rates remains (hard), else the unit is truncated and work stops.
+    Each admitted call settles at its modeled cost x RETRY_FACTOR.
+    """
+    lu = LINEUPS["d009"]
+    avail = cap - sum(h for _, h in NON_MODEL.values()) - demo_ceiling()
+    spent = 0.0
+    report = {"truncated": None}
+
+    def run(name: str, calls: list[Call], high_calls: list[Call]) -> bool:
+        nonlocal spent
+        if avail - spent < ADMIT_FACTOR * sum(liab_cost(c, True) for c in high_calls) * RETRY_FACTOR:
+            return False
+        for c in calls:
+            if avail - spent < liab_reservation(c):
+                report["truncated"] = name
+                return False
+            spent += liab_cost(c, high) * RETRY_FACTOR
+        return True
+
+    counts = {}
+    ok = run("experiments", experiment_calls(high), experiment_calls(True))
+    probe_cap = LIVE_PROBE[0] * LIVE_PROBE[2]
+    if ok and avail - spent >= probe_cap:      # metered Live probe sessions, each closed at its cap
+        spent += LIVE_PROBE[0] * (LIVE_PROBE[2] if high else LIVE_PROBE[1])
+    else:
+        ok = False
+    counts["experiments"] = int(ok)
+    gens = 0
+    for i in range(dev_cases // 2 + sealed_cases // 2):
+        fam = family_generation_calls(lu, hidden=i >= dev_cases // 2)
+        if not (ok and run("generation", fam, fam)):
+            ok = False
+            break
+        gens += 1
+    counts["families_generated"] = gens
+    for key, n, maker, maker_high in (
+            ("dev_blocks", dev_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True)),
+            ("replay_transcripts", sealed_cases, lambda: replay_transcript_calls(lu, high),
+             lambda: replay_transcript_calls(lu, True)),
+            ("interactive_blocks", sealed_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True))):
+        done = 0
+        for _ in range(n):
+            if not (ok and run(key, maker(), maker_high())):
+                ok = False if report["truncated"] else ok
+                break
+            done += 1
+        counts[key] = (done, n)
+    demo = sum(demo_bucket(high).values())
+    non_model = sum((h if high else e) for e, h in NON_MODEL.values())
+    return {**counts, "model_spend": spent, "demo": demo, "non_model": non_model,
+            "total": spent + demo + non_model, "set_aside": cap - avail, **report}
+
+
+if __name__ == "__main__":
+    print("\nD-009 (total GCP hard cap $75, target $50), lineup d009, liability rates (3.8 Flash undiscounted):")
+    exp_e = sum(liab_cost(c, False) for c in experiment_calls(False)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[1]
+    exp_h = sum(liab_cost(c, True) for c in experiment_calls(True)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[2]
+    print(f"  day-1 experiments incl. Live probe: expected ${exp_e:.2f}, high ${exp_h:.2f}")
+    print(f"  voice reference session: expected ${voice_session_cost(False):.2f}, high ${voice_session_cost(True):.2f}; "
+          f"cap ${VOICE_SESSION_CAP:.2f} x {VOICE_SESSIONS} sessions")
+    print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model envelope expected "
+          f"${sum(e for e, _ in NON_MODEL.values()):.2f}, high ${sum(h for _, h in NON_MODEL.values()):.2f}")
+    assert voice_session_cost(True) <= VOICE_SESSION_CAP, "high voice session must complete under its cap"
+    for sealed in (20, 30, 40):
         for high in (False, True):
-            r = simulate_total(lu, sealed, 10, 75.0, high)
+            r = simulate_d009(sealed, 10, high)
             tag = "high" if high else "expected"
-            print(f"  sealed {sealed} cases, {tag:<8}: dev {r['dev_blocks']}/{r['dev_needed']} blocks, replay "
-                  f"{r['replay_chunks']}/{r['replay_needed']} chunks, interactive {r['blocks']}/{r['blocks_needed']} blocks; "
-                  f"total ${r['total']:.2f} (tournament+prep ${r['tournament_and_prep']:.2f}, demo/infra ${r['demo_infra']:.2f})")
+            print(f"  sealed {sealed} cases, {tag:<8}: families {r['families_generated']}, dev {r['dev_blocks'][0]}/"
+                  f"{r['dev_blocks'][1]}, replay {r['replay_transcripts'][0]}/{r['replay_transcripts'][1]}, interactive "
+                  f"{r['interactive_blocks'][0]}/{r['interactive_blocks'][1]}; total ${r['total']:.2f} (model "
+                  f"${r['model_spend']:.2f}, demo ${r['demo']:.2f}, non-model ${r['non_model']:.2f})"
+                  + (f"; truncated in {r['truncated']}" if r["truncated"] else ""))
             assert r["total"] <= 75.0
