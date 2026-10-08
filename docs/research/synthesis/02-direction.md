@@ -332,6 +332,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 | Judge calibration fails thresholds | M | H | Revise anchors on dev data; report provisional | Calibration round |
 | Attrition distorts eligibility or comparisons | M | M | Own-valid eligibility, attrition sensitivity, execution and validity layers, outcome-independent retries | Sealed run |
 | Injection corrupts trials | M | M | Quarantine and exclusion; persistent-attack fixtures | Fixture suite |
+| Direct IAP on Cloud Run (Preview) does not carry SSE or WebSocket | M | M | Day-1 IAP probe; fallback to app-level Supabase-auth validation inside the non-model allowance | Day-1 probe |
 | Phoenix span loss | M | L | CPU sign-off for the Phoenix service, trace mirror, Postgres as truth | First hosted run |
 | Supabase pause near demo day | M | H | Pro plan or keep-alive job | Owner answer |
 | Model or price change before Nov 2 | M | M | Re-verify weekly; pin in manifests | Weekly |
@@ -345,6 +346,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 3. **Case-generation pilot:** two families through every validator.
 4. **Fidelity pilot:** 3 subjects x 2 roles x 2 cases x 12 turns.
 5. **Isolation smoke:** four roles, sealed schema, the section 4.2 functions, pgTAP on the owner's Supabase project.
+6. **IAP probe:** direct IAP on Cloud Run is documented as Preview, and Google's docs do not confirm SSE or WebSocket support through it (GDK, 2026-10-08). Deploy a minimal service behind IAP and test browser sign-in, REST, SSE and WebSocket from the same origin. Fallback if any fails: `arena-api` allows unauthenticated invocation and validates Supabase-auth sessions itself (invite-only accounts); the extra exposure to unauthenticated traffic is covered by the $15 non-model allowance and the billing-disable backstop.
 
 ### 13.2 Owner decisions
 1. Confirm the D-009 plan: 20 hidden cases as the baseline, 26 if the dev pilot's measured costs track the expected column; anything larger is a separate, re-simulated decision.
