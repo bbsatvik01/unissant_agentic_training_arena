@@ -1,6 +1,6 @@
 # Direction: Investigative AI Training Arena
 
-Research synthesis and recommendation. **Version 5, 2026-10-08**, revised after Codex critique rounds 1-4 (YELLOW each: 24, 12, 6, then 5 majors). Dispositions: `critique-round-1.md` to `critique-round-4.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
+Research synthesis and recommendation. **Version 6, 2026-10-08**, revised after Codex critique rounds 1-4 (YELLOW each: 24, 12, 6, then 5 majors) and re-planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-4.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
 
 ## 0. TL;DR
 
@@ -9,10 +9,10 @@ Research synthesis and recommendation. **Version 5, 2026-10-08**, revised after 
 3. **Agents are stateless, schema-bound calls through a typed agent port lifted from TechnoMile.** The default coaching design is one complete card per turn (flags, follow-up, finding, confidence); the two-stage design competes as candidate A1, so the bake-off itself answers which is better. (M-H)
 4. **The official leaderboard runs only arena-hosted, frozen Gemini-on-Vertex candidates.** An A2A v1.0 exhibition track for external endpoints is an owner call (P2). (H)
 5. **Latency (KPI-4) is unmeasured and the top technical risk.** Gemini 2.5 retires on Vertex 2026-10-16 to 10-20; no remaining model fully disables thinking. KPI-4 is measured on the complete card at the client. A day-1 benchmark (~$3-5) sets the model. (H on risk, M on plan)
-6. **Budget, in three buckets, all online (no batch).** Bake-off (D-007: $100), preparation (experiments, case generation, dev pilot: ~$37-55, needs approval) and hosted demo (needs approval). Inside the $100 bake-off cap: 80 hidden cases x 1 on a Flash-Lite-class lineup ($68 expected / $98 conservative). A simulation of the spend guard shows the expected case completes everything; the conservative case completes the whole replay track and 34 of 40 interactive blocks, with the rest reported as incomplete. The sponsor-sized 120 cases need a ~$145 bake-off ceiling ($103 / $148). The sponsor's gate is a point estimate and applies at any size; more cases buy tighter uncertainty (zero-false-positive one-sided bound 7.2% at 80 cases, 4.9% at 120). Owner decision. (M; assumptions until the dev pilot measures them)
+6. **Budget (D-009): everything on GCP stays under a hard $75, aiming for $50.** Plan: 30 hidden cases (15 matched families) x 1 repeat plus a 10-case dev pilot, on a Flash-Lite-class lineup, all online. Simulated over the whole project (experiments, case generation, dev pilot, replay, interactive run, judge sessions, voice, portraits, Cloud Run, Phoenix): ~$49 expected (meets the target) and ~$73 conservative (under the cap), complete in both. Per-call reservations make overshoot impossible. If the dev pilot measures costs near the expected case, the sealed run can grow to 40 cases (~$59 expected). The sponsor's gate is a point estimate and applies at this size; precision is honestly limited (zero-false-positive one-sided bound 18.1% at 15 families; the sponsor's 120 cases would give 4.9%). (M; assumptions until the dev pilot measures them)
 7. **Voice: Gemini Live on Vertex through gokbase's proxy, on development cases only, proven in the October 18 slice.** Browser audio goes to `arena-api`, which relays to the IAM-private `arena-subject`. Probe `gemini-3.8-live` and `gemini-live-2.5-flash-native-audio` on day 1; prebuilt Live Avatar talking heads are a stretch. Push-to-talk or the Developer API each need an owner exception. (M)
 8. **Fairness and isolation are headline features.** Style is independent of role; style-stratified false-positive audit; demeanor-based flags count as unsupported; demeanor-driven outputs are negative-control fixtures, never a ranked candidate. (H)
-9. **Owner decisions needed:** budget, GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
+9. **Owner decisions needed:** confirm the 30-case plan, GCP project (never `kbg-production`), Supabase plan, DESIGN.md, repo destination, Phoenix hosting (local only, or hosted with a CPU sign-off for the Phoenix service), voice exception rule, A2A exhibition track, team roster and KPI-1 volunteers.
 
 ## 1. What the judges will score
 
@@ -46,7 +46,7 @@ One domain (facility access, the slide 8 case), four development families, end t
 | --- | --- | --- |
 | Oct 8-12 | Owner inputs; GCP project; day-1 probes (latency, Live matrix, Supabase isolation smoke); repo with lifted gates; schemas, privileged functions, pgTAP; agent port | Probe report; `make check` green |
 | Oct 13-18 | Vertical slice, including the minimal voice session | Slice passes; anchors calibrated on dev data; voice feasibility verdict |
-| Oct 19-22 | 3 assistants, 3 subjects; dev pilot (measures cost, latency, fidelity, actual request maxima to tighten limits); freeze roster; generate and seal hidden families | Dev pilot report; sealed split hash; frozen trial roster |
+| Oct 19-22 | 3 assistants, 3 subjects; dev pilot on 10 cases (measures cost, latency, fidelity, actual request maxima to tighten limits); decide 30 or 40 sealed cases from measured cost; freeze roster; generate and seal hidden families | Dev pilot report; sealed split hash; frozen trial roster |
 | Oct 22-26 | Sealed run in the sponsor's order (BKO-2): produce and seal the replay corpus, replay scoring, then interactive blocks with the referee running online as each block finishes; meanwhile interrogation room, debrief and mode projections per DESIGN.md | One execution record per planned trial |
 | Oct 22-29 | KPI-1 volunteer sessions (recruit now) | Counterbalanced sessions scored blind |
 | Oct 27-30 | Subject validity adjudication; sealed inclusion snapshot; reveal; leaderboards; trust center; voice polish; pets, portraits, agents-at-work | Commitments and snapshot verified before reveal |
@@ -159,7 +159,7 @@ Voice tickets are single-use and bound to user, trial, split (development only) 
 
 ## 5. Decisions
 
-Method: (1) a constraint gate removes options that break D-001, D-003, D-006 or D-007 unless the owner grants an exception; (2) surviving options are scored 1-5 against anchors; unmeasured quantities are ranges, and options that do not change coaching latency get identical latency scores; (3) `decision_matrix.py` reports totals, a midpoint weight-shift check (10 points between any two criteria) and a score-range check (robust only if the leader's lowest total beats every other option's highest).
+Method: (1) a constraint gate removes options that break D-001, D-003, D-006 or D-009 unless the owner grants an exception; (2) surviving options are scored 1-5 against anchors; unmeasured quantities are ranges, and options that do not change coaching latency get identical latency scores; (3) `decision_matrix.py` reports totals, a midpoint weight-shift check (10 points between any two criteria) and a score-range check (robust only if the leader's lowest total beats every other option's highest).
 
 | Criterion | Weight | 5 means | 3 means | 1 means |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ Fixed opening question; relays the assistant's follow-up only if it is one quest
 ### 7.1 Execution records, validity adjudications and inclusion
 
 Two layers, kept separate (F15):
-- **Execution record** (immutable, exactly one per planned trial): `completed` (committed finding), `subject_quarantined` (guard rejection, recorded atomically with the offending artifact), `assistant_failed` (no valid final finding after the allowed repair), `infra_failed` (retried twice with the same seed regardless of outcome, still failing), `budget_skipped` (block never started).
+- **Execution record** (immutable, exactly one per planned trial): `completed` (committed finding), `subject_quarantined` (guard rejection, recorded atomically with the offending artifact), `assistant_failed` (no valid final finding after the allowed repair), `infra_failed` (retried twice with the same seed regardless of outcome, still failing), `budget_skipped` (block never started), `budget_truncated` (started, then stopped by the per-call spend guard).
 - **Subject validity adjudication** (append-only, referee only, blinded): `valid` or `subject_invalid` (semantic fidelity failure or platform attack found on review). Assistants are never invalidated (R4-01): every schema-valid committed classification counts in the role metrics as committed, including unsupported or demeanor-based accusations, which are additionally reported as unsupported-flag and fairness-audit violations.
 
 | Combined status | Assistant role metrics | Subject metrics | Disclosure |
@@ -221,7 +221,7 @@ Two layers, kept separate (F15):
 | `assistant_failed` | Counted as "insufficient evidence" in both denominators (the only synthetic outcome) | Counted | Assistant failure rate |
 | `subject_quarantined`, or `completed` with `subject_invalid` | Excluded for that candidate | Counts against the subject (all-turn fidelity, invalid-session rate) | Exclusions per candidate |
 | `infra_failed` | Excluded from all | Excluded | Rate; a block with more than 5% infra failures is invalid |
-| `budget_skipped` | Excluded | Excluded | Rate; incomplete blocks reported |
+| `budget_skipped`, `budget_truncated` | Excluded | Excluded | Rate; incomplete blocks reported |
 
 **Eligibility uses each candidate's own included trials (F14).** Another candidate's failures never remove a candidate's valid false positives. Common (family, subject) cells serve paired comparisons only.
 
@@ -243,7 +243,7 @@ Two layers, kept separate (F15):
 | KPI-4 coaching latency | Time from the subject's answer being committed to the complete card (6.1) validated and received by the client; timeouts and failed repairs count as misses | Session | Session-cluster bootstrap of p95 | Cold starts and late-interview contexts included |
 | Investigator score, KPI-1 | 5 x sum of five 0-4 dimensions; improvement = (post - pre) / pre per participant | Participant | Bootstrap over participants | Pre = 0 makes relative change undefined; absolute change always reported |
 
-- **Zero-event bound (F13, `stats_contracts.py`):** a family "fails" when any of its included truthful trials is classified deceptive. With zero failing families out of n, the exact one-sided 95% bound on the family failure probability is 1 - 0.05^(1/n): 13.9% (n=20), 9.5% (30), 7.2% (40), 4.9% (60). It bounds the trial-weighted FPR only when every counted family contributes the same number of trials, so it is computed on the complete-family subset (all cells included); over all retained families it is reported as a family-level statistic, not an FPR guarantee (the script includes the unequal-size counterexample: 4.87% family bound, 5.22% trial FPR). The sponsor's gate is a point estimate and applies at any size; the bound only describes precision. 59 equal-size families are needed for a zero-event bound at or below 5%.
+- **Zero-event bound (F13, `stats_contracts.py`):** a family "fails" when any of its included truthful trials is classified deceptive. With zero failing families out of n, the exact one-sided 95% bound on the family failure probability is 1 - 0.05^(1/n): 18.1% (n=15, the D-009 plan), 13.9% (20), 9.5% (30), 7.2% (40), 4.9% (60). It bounds the trial-weighted FPR only when every counted family contributes the same number of trials, so it is computed on the complete-family subset (all cells included); over all retained families it is reported as a family-level statistic, not an FPR guarantee (the script includes the unequal-size counterexample: 4.87% family bound, 5.22% trial FPR). The sponsor's gate is a point estimate and applies at any size; the bound only describes precision. 59 equal-size families are needed for a zero-event bound at or below 5%.
 - **Ranking (EVL-10):** a function that requires `fpr_point <= 0.05` on the candidate's own included trials and `isolation_pass` as preconditions, and shows provisional status from both attrition rules; rank intervals come from the bootstrap distribution of ranks; pairwise differences use a paired family bootstrap.
 - **Scheduling (BKO-7, BKO-10):** the roster of planned trials is frozen before the run. A block is one family (both variants) x nine pairings x one repeat; order within a block comes from a recorded seed; a block starts only after its worst-case cost is reserved; extra repeats are drawn by seed before any outcome is seen.
 - **Commitment (BKO-9):** `finalize_trial()` (section 4.2). Reveal requires a frozen roster, one execution record per planned trial, a sealed replay corpus and verified commitments, and seals the inclusion manifest. Hidden-case debriefs and spans stay locked until reveal.
@@ -255,37 +255,31 @@ Two layers, kept separate (F15):
 
 ## 8. Lineup and budget (`cost_model.py`; assumptions until the dev pilot measures them)
 
-### 8.1 Lineups
-- **Power-first (recommended):** A1 two-stage (`gemini-3.5-flash-lite` card every turn; deeper update every third exchange and on each release; final on `gemini-3.5-flash-lite`); A2 single call on `gemini-3.5-flash-lite`; A3 Conservative Corroborator, single call on `gemini-3.1-flash-lite`. Subjects S1 `gemini-3.1-flash-lite`, S2 `gemini-3.5-flash-lite`, S3 skilled-deceiver policy on `gemini-3.5-flash-lite`. Referee on `gemini-3.8-flash`, online, as each block finishes.
-- **Full:** as above, but A1's deeper update and final use `gemini-3.8-flash` (LOW) and S3 runs on `gemini-3.8-flash` (LOW).
-- Prices per 1M input/output tokens (verified 2026-10-08): 3.1-flash-lite $0.25/$1.50; 3.5-flash-lite $0.30/$2.50; 3.8-flash $0.75/$3.75 (promotional to 2026-12-31); 3.1-pro-preview $2.00/$12.00. Thinking bills as output. No cache discount assumed.
+### 8.1 Lineup (D-009: `lean-75` in `cost_model.py`)
+- **Assistants:** A1 Evidence Strategist, two-stage (`gemini-3.5-flash-lite` card every turn; deeper update every third exchange and on each release; final on `gemini-3.5-flash-lite`); A2 Cognitive-Load Prober, single call on `gemini-3.5-flash-lite`; A3 Conservative Corroborator, single call on `gemini-3.1-flash-lite`.
+- **Subjects (each plays both roles):** S1 `gemini-3.1-flash-lite`; S2 `gemini-3.5-flash-lite`; S3 skilled-deceiver policy on `gemini-3.5-flash-lite`.
+- **Referee, online after each trial:** the subject-facing call (independent evasion labels and fidelity) on `gemini-3.8-flash`, a checkpoint no subject uses; flag support and questioning quality on `gemini-3.5-flash-lite`.
+- **Generator:** hidden families on `gemini-3.1-pro-preview`, development families on `gemini-3.8-flash`.
+- Prices per 1M input/output tokens (verified 2026-10-08): 3.1-flash-lite $0.25/$1.50; 3.5-flash-lite $0.30/$2.50; 3.8-flash $0.75/$3.75 (promotional to 2026-12-31); 3.1-pro-preview $2.00/$12.00. Thinking bills as output. No batch, no cache discount assumed.
 
-### 8.2 Options (all online; each part includes a 15% retry reserve; expected / conservative)
+### 8.2 Plans under D-009 (`simulate_total`, whole project, one global cap of $75)
 
-Three buckets: **bake-off** (replay corpus and scoring, sealed interactive run, online referee; D-007 caps it at $100), **preparation** (day-1 experiments, case generation, dev pilot; needs approval), **hosted demo** (judge sessions and voice; needs approval, small). No batch pricing is used anywhere: batch has no SLA, finished batch work stays billable after cancellation, and queued work holds reservations.
+The simulation covers everything billed on GCP: day-1 experiments, case generation, the 10-case dev pilot, the replay track (corpus and scoring), the interactive run with its online referee, and a demo/infra bucket (judge and team text sessions, 10 voice sessions at a $0.50 cap each, 30 portraits, Cloud Run, Phoenix, storage) whose $13.50 ceiling is set aside first. Each part carries a 15% retry reserve.
 
-| Option | Preparation | Bake-off | Zero-FP bound (equal-size families) |
+| Sealed hidden cases (families) | Expected usage | Conservative usage | Zero-FP bound |
 | --- | --- | --- | --- |
-| Sponsor full workload: 120 x 2, full lineup, dev 40 | $68 / $105 | $243 / $384 | 4.9% |
-| 120 x 1, full lineup, dev 20 | $49 / $74 | $134 / $212 | 4.9% |
-| **A. Sponsor-sized: 120 x 1, power-first, dev 20** | **$45 / $66** | **$103 / $148** | **4.9%** |
-| **B. Inside the $100 bake-off cap: 80 x 1, power-first, dev 20** | **$37 / $55** | **$68 / $98** | **7.2%** |
-| 60 x 1, power-first, dev 20 | $34 / $50 | $51 / $74 | 9.5% |
-| 40 x 1, power-first, dev 20 | $30 / $45 | $34 / $49 | 13.9% |
+| **30 (15), recommended** | **$49 total; everything completes** | **$73 total; everything completes** | **18.1%** |
+| 40 (20) | $59; everything completes | $72; 12 of 20 interactive blocks | 13.9% |
+| 50 (25) | $67; 24 of 25 blocks | $73; 10 of 25 blocks | 11.3% |
+| 60 (30) | $68; 22 of 30 blocks | $73; 7 of 30 blocks | 9.5% |
 
-**Spend-guard simulation** (`simulate_admission`: replay first, then sequential blocks; each unit admitted only if the remaining cap covers its worst-case reservation):
-
-| Plan | Expected usage | Conservative usage |
-| --- | --- | --- |
-| B: 80 cases, $100 cap | Replay 16/16 chunks, interactive 40/40 blocks, $68 settled | Replay 16/16, interactive 34/40 blocks, $86 settled |
-| A: 120 cases, $145 cap | Replay 24/24, interactive 60/60, $103 settled | Replay 24/24, interactive 52/60, $132 settled |
-
-The conservative shortfall comes from holding a full worst-case block reservation ($15.30) as headroom. Tightening per-call limits to the maxima measured in the dev pilot shrinks that reservation and recovers blocks; any blocks still not admitted are reported as `budget_skipped` under the protocol.
-
-**Recommendation:** B keeps D-007 as locked; approve preparation (~$37-55) separately. Choose A if the owner raises the bake-off ceiling to ~$145 for the sponsor's full 120-case sample and tighter uncertainty reporting.
+**Recommendation:** 30 hidden cases is the only plan that meets the $50 target in the expected case and still finishes under $75 in the conservative case. After the dev pilot measures real cost per trial, extend to 40 cases only if the measured costs track the expected column. For reference, the sponsor's full workload (120 cases x 2 repeats) would cost $243-384 for the bake-off alone.
 
 ### 8.3 Spend guard
-Every model call (hosted sessions, voice, tournament, generation, scoring) reserves its worst case in `ops.budget_reservations` inside a transaction before calling Vertex and settles from usage metadata; missing usage keeps the reservation. Units of work run in the sponsor's order: replay first, then interactive blocks one at a time, with the referee online as each block finishes, so no reservation is outstanding when the next unit is admitted. Reservations come from enforceable request limits: per-call-type input and total output limits (`max_output_tokens` bounds thinking plus visible output; thinking levels are qualitative), four attempts per call (first try, one repair, two transient retries) and the generator-enforced release maximum. A block starts only if its worst case fits the remaining bucket: $15.30 per 18-trial block on the power-first lineup, $18.47 on the full lineup, so running k blocks in parallel needs k times that headroom. Separate ceilings per bucket (bake-off, preparation, hosted demo per day); aggregate concurrency caps; invite-only judge accounts; reconnect-safe voice caps in Postgres (replacing gokbase's Redis counter); a kill switch read on every call. Billing budget alerts are a secondary alarm.
+- **Hard guarantee (cap safety):** every model call, on every path (hosted sessions, voice, experiments, generation, tournament, referee), reserves its own worst case in `ops.budget_reservations` inside a transaction before calling Vertex and settles from usage metadata afterwards; missing usage keeps the reservation. Worst case = per-call-type input limit and total output limit (`max_output_tokens` bounds thinking plus visible output; thinking levels are qualitative) times four attempts (first try, one repair, two transient retries). Settled spend therefore never exceeds $75; at most one call's reservation (~$2, a Pro generation call) can be left unspent.
+- **Soft rule (completeness):** a dev block, replay chunk or interactive block starts only if the remaining budget covers 1.5 times its conservative cost. A unit the per-call guard still cuts off mid-way is recorded as `budget_truncated` and excluded.
+- **Buckets:** demo/infra ceiling ($13.50) set aside first; preparation and the bake-off share the rest in that order. Sequential units, no batch, so nothing is outstanding when the next unit is admitted.
+- **Secondary alarms:** GCP billing budget alerts at $25, $50 and $65 over Pub/Sub; a kill switch read on every call; invite-only judge accounts; aggregate concurrency caps; reconnect-safe voice caps in Postgres (replacing gokbase's Redis counter).
 
 ## 9. Voice plan
 - **Path:** browser to `arena-api` over a ticketed WebSocket; `arena-api` relays to the IAM-private `arena-subject` with an ID token; `arena-subject` holds the Live session on Vertex with ADC. The subject service never accepts browser traffic.
@@ -328,8 +322,8 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 | Risk | L | I | Mitigation | Trigger |
 | --- | --- | --- | --- | --- |
 | Complete-card coaching misses 3 s p95 on every 3.x model | M | H | Benchmark, compact prompts, Priority tier, disclosed definition | Day-1 benchmark, dev pilot |
-| Bake-off cap below the sponsor-sized run | H | M | Option B (80 cases) inside $100; option A needs ~$145 | Owner answer |
-| Conservative usage leaves interactive blocks unadmitted | M | M | Replay first; tighten request limits from pilot maxima; report `budget_skipped` blocks | Dev pilot, sealed run |
+| D-009 limits precision (15 truthful families) | H | M | Point-estimate gate still applies; intervals and bounds disclosed; extend to 40 cases if pilot costs allow | Dev pilot |
+| Real costs exceed the conservative model | L | H | Per-call reservations make overshoot impossible; units beyond the cap become `budget_skipped`; tighten limits from pilot maxima | Dev pilot, sealed run |
 | Vertex Live unusable or voice integration fails | M | M | Probe matrix; slice gate; predeclared owner branches | Oct 15, Oct 18 |
 | Deceptive variants too hard or too easy | M | H | Solvability gate, pilot calibration | Dev pilot |
 | Subject drift below 95% fidelity (all-turn denominator) | M | H | Ledger, re-injection, disclosure gates, guard | Dev pilot |
@@ -343,15 +337,15 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 
 ## 13. Next steps
 
-### 13.1 Day-1 to day-3 experiments (~$7-11 before the 15% reserve; inside the preparation budget)
-1. **Latency benchmark (~$3-5):** the complete card on `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` (MINIMAL) and `gemini-3.8-flash` (LOW); early and late-interview contexts; 200 calls per configuration; cold and warm Cloud Run; Priority tier on the best.
+### 13.1 Day-1 to day-3 experiments (~$4-6 before the 15% reserve; inside the D-009 budget)
+1. **Latency benchmark (~$2):** the complete card on `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` (MINIMAL) and `gemini-3.8-flash` (LOW); early and late-interview contexts; 100 calls per configuration (a screening estimate; the dev pilot adds the turns that make p95 credible); cold and warm Cloud Run; Priority tier on the best.
 2. **Vertex Live probe matrix:** model (`gemini-3.8-live`, `gemini-live-2.5-flash-native-audio`) x documented US regions and global x client (`aio.live.connect` with ADC, raw WebSocket) x config (audio-only base, transcription, tools), each failure classified as IAM, region, SDK, feature or allowlist; prebuilt Live Avatar access.
-3. **Case-generation pilot:** three families through every validator.
-4. **Fidelity pilot:** 3 subjects x 2 roles x 3 cases x 12 turns.
+3. **Case-generation pilot:** two families through every validator.
+4. **Fidelity pilot:** 3 subjects x 2 roles x 2 cases x 12 turns.
 5. **Isolation smoke:** four roles, sealed schema, the section 4.2 functions, pgTAP on the owner's Supabase project.
 
 ### 13.2 Owner decisions
-1. Budget: keep the $100 bake-off cap (option B, 80 hidden cases) or raise it to ~$145 (option A, 120); approve preparation (~$37-55) and a small hosted-demo bucket.
+1. Confirm the D-009 plan: 30 hidden cases, extendable to 40 after the dev pilot if measured costs allow.
 2. Dedicated GCP project with billing and a budget alert (never `kbg-production`).
 3. Supabase project and plan (Pro, or free with a keep-alive job).
 4. DESIGN.md.
@@ -364,4 +358,4 @@ Every model call (hosted sessions, voice, tournament, generation, scoring) reser
 ## 14. Sources and critique history
 - Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md` to `critique-round-4.md`.
 - Tally: 143 Google web, 64 GDK, 34 Context7, 198 internal files (research-harness floors met), plus Codex verification searches (19 in round 1, 15 web plus GDK and Context7 checks in round 2).
-- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors; 5 round-3 findings confirmed fixed). All applied in this version.
+- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors; 5 round-3 findings confirmed fixed), all applied. Round 5 was stopped when the owner set D-009; this version re-plans the budget and is the round-5 target.

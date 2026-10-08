@@ -134,6 +134,36 @@ LINEUPS = {
     ),
 }
 
+# D-009 lineup (total GCP hard cap $75, target $50): power-first models; the referee keeps an independent
+# checkpoint (3.8-flash) for the subject-facing call (labels + fidelity) and uses 3.5-flash-lite for
+# flag support + questioning quality, which do not judge the subject.
+REFEREE_LEAN = [
+    Call("3.8-flash", 8000, 1000, "LOW", kind="referee"),
+    Call("3.5-flash-lite", 7000, 700, "MINIMAL", kind="referee"),
+]
+LINEUPS["lean-75"] = Lineup(
+    name="lean-75",
+    subjects=LINEUPS["power-first"].subjects,
+    assistants=LINEUPS["power-first"].assistants,
+    referee=REFEREE_LEAN,
+    replay_referee=[REFEREE_LEAN[1]],
+)
+
+# Hosted demo and infrastructure bucket (expected, high). Its ceiling is set aside before any tournament
+# work and enforced by the same per-call reservations, so the bucket can never exceed DEMO_CEILING.
+DEMO_CEILING = 13.5
+DEMO_INFRA = {
+    "judge and team text sessions (40 sessions x 12 turns, card + subject)": (
+        lambda high: 40 * EXCHANGES * (CARD_SINGLE_35.cost(high) + Call("3.5-flash-lite", 3500, 200, "MINIMAL",
+                                                                           kind="subject").cost(high))),
+    "voice sessions (10 x $0.30 expected, $0.50 per-session cap)": (lambda high: 10 * (0.30 if not high else 0.50)),
+    "subject portraits (30 images; $0.04 expected, $0.06 high)": (lambda high: 30 * (0.04 if not high else 0.06)),
+    "Cloud Run, Phoenix, storage, registry, secrets for the month": (lambda high: 2.0 if not high else 4.0),
+}
+# The largest single call any path can make, with every allowed attempt: the most the guard can leave unspent.
+MAX_CALL_RESERVATION = max(c.reservation() for c in REFEREE_LEAN + [Call("3.1-pro-preview", 8000, 14000, "HIGH",
+                                                                         kind="generate")])
+
 # Preparation experiments (section 13.1), costed explicitly (expected, high).
 EXPERIMENTS = {
     "latency benchmark (complete card; 3 models x 2 context lengths x 200 calls)": (
@@ -145,6 +175,17 @@ EXPERIMENTS = {
                           + 3 * Call("3.8-flash", 16000, 1200, "LOW", kind="validate").cost(high))),
     "fidelity pilot (3 subjects x 2 roles x 3 cases x 12 turns)": (
         lambda high: 18 * EXCHANGES * Call("3.8-flash", 3500, 200, "LOW", kind="subject").cost(high)),
+}
+
+
+EXPERIMENTS_LEAN = {
+    "latency benchmark (complete card; 3 models x 2 context lengths x 100 calls)": (
+        lambda high: EXPERIMENTS["latency benchmark (complete card; 3 models x 2 context lengths x 200 calls)"](high) / 2),
+    "Live probe matrix (~30 short sessions)": EXPERIMENTS["Live probe matrix (~30 short sessions, assumed $0.05 each)"],
+    "case-generation pilot (2 families)": (
+        lambda high: EXPERIMENTS["case-generation pilot (3 families)"](high) * 2 / 3),
+    "fidelity pilot (3 subjects x 2 roles x 2 cases x 12 turns)": (
+        lambda high: EXPERIMENTS["fidelity pilot (3 subjects x 2 roles x 3 cases x 12 turns)"](high) * 2 / 3),
 }
 
 
@@ -258,6 +299,49 @@ def simulate_admission(lu: Lineup, sealed_cases: int, cap: float, high: bool, ch
             "chunk_reservation": chunk_res}
 
 
+def simulate_total(lu: Lineup, sealed_cases: int, dev_cases: int, cap: float, high: bool, chunk: int = 5,
+                   admit_factor: float = 1.5) -> dict:
+    """D-009: one global cap over everything billed on GCP.
+
+    Cap safety (hard): every model call reserves its own worst case (limits x attempts) before running and
+    settles after, so settled spend never exceeds the cap; at most one call's reservation is left unspent.
+    Completeness (soft): a dev block, replay chunk or interactive block starts only if the remaining budget
+    covers admit_factor x its HIGH-scenario cost; a unit cut off mid-way by the per-call guard is recorded as
+    truncated and excluded. The demo/infra ceiling is set aside first.
+    Order: experiments, generation, dev pilot, then the sponsor's order (replay first, then interactive).
+    """
+    avail = cap - DEMO_CEILING
+    spent = 0.0
+    spent += sum(f(high) for f in EXPERIMENTS_LEAN.values()) * 1.15
+    spent += generation(lu, dev_cases // 2, sealed_cases // 2, high) * 1.15
+    block_cost = 2 * sum(trial_cost(lu, a, s, high) for a in lu.assistants for s in lu.subjects) * 1.15
+    block_high = 2 * sum(trial_cost(lu, a, s, True) for a in lu.assistants for s in lu.subjects) * 1.15
+    dev_blocks = 0
+    for _ in range(dev_cases // 2):
+        if avail - spent < admit_factor * block_high:
+            break
+        spent += block_cost
+        dev_blocks += 1
+    chunk_cost = chunk * (replay_per_transcript(lu, high) + corpus_per_transcript(lu, high)) * 1.15
+    chunk_high = chunk * (replay_per_transcript(lu, True) + corpus_per_transcript(lu, True)) * 1.15
+    chunks_needed, chunks = -(-sealed_cases // chunk), 0
+    for _ in range(chunks_needed):
+        if avail - spent < admit_factor * chunk_high:
+            break
+        spent += chunk_cost
+        chunks += 1
+    blocks = 0
+    for _ in range(sealed_cases // 2):
+        if avail - spent < admit_factor * block_high:
+            break
+        spent += block_cost
+        blocks += 1
+    demo = sum(f(high) for f in DEMO_INFRA.values())
+    return {"dev_blocks": dev_blocks, "dev_needed": dev_cases // 2, "replay_chunks": chunks,
+            "replay_needed": chunks_needed, "blocks": blocks, "blocks_needed": sealed_cases // 2,
+            "tournament_and_prep": spent, "demo_infra": demo, "total": spent + demo}
+
+
 def block_reservation(lu: Lineup) -> float:
     """Worst-case cost of one block (one family, both variants, all nine pairings, one repeat)."""
     return 2 * sum(trial_reservation(lu, a, s) for a in lu.assistants for s in lu.subjects)
@@ -290,3 +374,18 @@ if __name__ == "__main__":
             print(f"  {lu_name:<12} {cases} cases, cap ${cap:.0f}, {tag:<8}: blocks {r['blocks']}/{r['blocks_needed']}, "
                   f"replay chunks {r['replay_chunks']}/{r['replay_chunks_needed']}, settled ${r['spent']:.2f} "
                   f"(block reservation ${r['block_reservation']:.2f}, chunk reservation ${r['chunk_reservation']:.2f})")
+
+    print("\nD-009 plans (total GCP hard cap $75, target $50), lineup lean-75, dev 10 cases:")
+    lu = LINEUPS["lean-75"]
+    print(f"  demo/infra: expected ${sum(f(False) for f in DEMO_INFRA.values()):.2f}, high "
+          f"${sum(f(True) for f in DEMO_INFRA.values()):.2f}, ceiling set aside ${DEMO_CEILING:.2f}; "
+          f"largest single-call reservation ${MAX_CALL_RESERVATION:.2f}")
+    assert sum(f(True) for f in DEMO_INFRA.values()) <= DEMO_CEILING, "demo/infra high estimate exceeds its ceiling"
+    for sealed in (30, 40, 50, 60):
+        for high in (False, True):
+            r = simulate_total(lu, sealed, 10, 75.0, high)
+            tag = "high" if high else "expected"
+            print(f"  sealed {sealed} cases, {tag:<8}: dev {r['dev_blocks']}/{r['dev_needed']} blocks, replay "
+                  f"{r['replay_chunks']}/{r['replay_needed']} chunks, interactive {r['blocks']}/{r['blocks_needed']} blocks; "
+                  f"total ${r['total']:.2f} (tournament+prep ${r['tournament_and_prep']:.2f}, demo/infra ${r['demo_infra']:.2f})")
+            assert r["total"] <= 75.0

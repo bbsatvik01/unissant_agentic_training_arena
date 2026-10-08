@@ -12,3 +12,4 @@
 - Codex round 2 YELLOW (12 majors, 3 minors); direction v3 + stats_contracts.py; cost model rebuilt (lineups as data).
 - Codex round 3 YELLOW (6 majors, 4 minors); direction v4 with enforceable reservations, attrition rule, validity layer, budget buckets.
 - Codex round 4 YELLOW (5 majors, 3 minors); direction v5 removes batch, assistant-invalid verdicts; adds admission simulation, rank sensitivity, sealed inclusion manifest.
+- D-009 recorded ($75 hard / $50 target total GCP); direction v6 re-planned to 30 hidden cases (~$49 expected / ~$73 conservative).

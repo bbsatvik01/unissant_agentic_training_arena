@@ -102,7 +102,7 @@ if __name__ == "__main__":
     assert abs(zero_event_upper_bound(30) - 0.095034) < 1e-5
     print("Zero-false-positive bounds on family failure probability (a trial-FPR bound only for equal-size families):")
     print(f"  {'truthful families':>18} {'one-sided 95%':>14} {'two-sided 95% upper':>20}")
-    for n in (20, 30, 40, 60, 80):
+    for n in (15, 20, 30, 40, 60, 80):
         print(f"  {n:>18} {zero_event_upper_bound(n):>13.1%} {two_sided_zero_event_upper(n):>19.1%}")
     print(f"  families needed for a one-sided bound <= 5%: {families_needed(0.05)}")
 
