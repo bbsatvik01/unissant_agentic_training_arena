@@ -366,9 +366,14 @@ def block_calls(lu: Lineup, high: bool) -> list[Call]:
     return [c for _ in range(2) for a in lu.assistants for s in lu.subjects for c in unit_trial_calls(lu, a, s, high)]
 
 
-def replay_transcript_calls(lu: Lineup, high: bool) -> list[Call]:
-    subj = list(lu.subjects.values())
-    calls = [subj[i % len(subj)] for i in range(EXCHANGES)] + [lu.referee[0]]      # corpus + labels
+def corpus_calls(lu: Lineup, case_index: int) -> list[Call]:
+    """One frozen transcript: the harness's neutral script against one subject (rotating by case) + labels."""
+    subj = list(lu.subjects.values())[case_index % len(lu.subjects)]
+    return [subj] * EXCHANGES + [lu.referee[0]]
+
+
+def replay_scoring_calls(lu: Lineup, high: bool) -> list[Call]:
+    calls: list[Call] = []
     for asst in lu.assistants.values():
         calls += [asst.every_turn] * EXCHANGES
         if asst.deep is not None:
@@ -411,37 +416,72 @@ def voice_session_cost(high: bool) -> float:
     return live + coaching + retranscribe
 
 
-VOICE_SESSION_CAP = 1.00   # enforced by the gokbase-style safety loop meter; the session closes at the cap
-LIVE_PROBE = (30, 0.05, 0.10)  # day-1 probe matrix: short sessions, expected $, metered cap $ each
-VOICE_SESSIONS = 6
+# Enforced per-session limits (the gokbase safety loop closes the socket at any of them): 12 exchanges, 480 s
+# of audio in total, no context compression. The whole-session liability below is computed from those
+# limits (every turn rebills the maximum possible accumulated context; rates x1.5 for the unconfirmed Vertex
+# price), reserved BEFORE the Live session opens, and released after settlement. The meter shuts the session
+# at two thirds of the reservation, so in-flight usage between 2-second checks stays inside it (R6-01).
+VOICE_LIMITS = {"exchanges": 12, "audio_seconds": 480}
+
+
+def voice_session_reservation(exchanges: int = VOICE_LIMITS["exchanges"],
+                              audio_seconds: int = VOICE_LIMITS["audio_seconds"]) -> float:
+    v, k = VOICE, 1.5
+    max_ctx = audio_seconds * v["tok_per_s"]                       # all audio ever spoken fits the session limit
+    live = (exchanges * (max_ctx * v["audio_in"] * k + v["system_tokens"] * v["text_in"] * k)
+            + max_ctx * v["audio_out"] * k + exchanges * 2 * v["transcript_tokens_per_turn"] * v["text_out"] * k) / 1e6
+    coaching = exchanges * CARD_SINGLE_35.reservation()
+    retranscribe = (audio_seconds / 60) * v["retranscribe_per_min"] * k
+    return live + coaching + retranscribe
+
+
+VOICE_RESERVATION = voice_session_reservation()
+VOICE_SHUTOFF = VOICE_RESERVATION * 2 / 3
+LIVE_PROBE = (30, 0.05)                                            # day-1 probe sessions, expected $ each
+PROBE_RESERVATION = voice_session_reservation(exchanges=2, audio_seconds=60)
+VOICE_SESSIONS = 8                                                 # 4 for development testing, 4 for judges and the demo
 TEXT_SESSIONS = 40
 PORTRAITS = (30, 0.04, 0.08)   # count, expected $/image, high $/image (image pricing unverified; count-capped)
 
-# Non-model GCP liabilities over a finite window (build + judging: 2026-10-13 to 2026-11-09), then teardown.
-# Not enforceable by the model ledger (R5-01): bounded by configuration (min 0, max-instances, request
-# timeouts, invite-only auth, rate limits), free tiers, log exclusions, and teardown on 2026-11-09.
-NON_MODEL = {
-    "Cloud Run services and job (beyond free tier)": (0.50, 4.00),
-    "Artifact Registry images": (0.20, 0.60),
-    "Cloud Storage (portraits, audio, exports)": (0.10, 0.40),
-    "Cloud Logging (exclusions keep it inside the free allotment)": (0.00, 1.00),
-    "Firebase Hosting transfer": (0.00, 0.50),
-    "Secret Manager": (0.30, 0.50),
-    "Network egress": (0.10, 1.00),
+# Non-model GCP liabilities from the first probe (2026-10-09) to teardown (2026-11-09), priced at GROSS rates
+# (no free tier assumed). Each line is quantity x rate, and each quantity has an enforced cap (R5-01):
+# - Cloud Run services: the API middleware keeps an instance-seconds ledger; every request (including SSE and
+#   WebSocket connections, admitted in 5-minute leases) reserves timeout x vCPU and GiB before it runs, against
+#   a global cap. Requests are rejected once the cap is reached.
+# - Cloud Run job: task count x task timeout x resources, fixed per execution and admitted by the same ledger.
+# - Stored bytes: cleanup policies and size limits; logs: exclusion filters plus sampling with a volume cap.
+NON_MODEL_CAPS = {   # name: (quantity, unit, gross $ per unit, expected fraction of the cap actually used)
+    "Cloud Run services vCPU-seconds": (150_000, "vCPU-s", 0.000024, 0.15),
+    "Cloud Run services GiB-seconds": (300_000, "GiB-s", 0.0000025, 0.15),
+    "Cloud Run job vCPU-seconds (tournament, 6 h x 2 vCPU)": (43_200, "vCPU-s", 0.000024, 0.5),
+    "Cloud Run job GiB-seconds (6 h x 4 GiB)": (86_400, "GiB-s", 0.0000025, 0.5),
+    "Cloud Run requests": (2_000_000, "requests", 0.0000004, 0.05),
+    "Artifact Registry storage (cleanup keeps <= 3 GB)": (3, "GB-month", 0.10, 0.5),
+    "Cloud Storage (<= 2 GB)": (2, "GB-month", 0.026, 0.5),
+    "Secret Manager active versions (<= 12)": (12, "version-month", 0.06, 1.0),
+    "Cloud Logging ingestion (exclusions + sampling, <= 3 GiB)": (3, "GiB", 0.50, 0.3),
+    "Firebase Hosting transfer (<= 5 GB)": (5, "GB", 0.15, 0.2),
+    "Internet egress (<= 5 GB)": (5, "GB", 0.12, 0.2),
 }
+NON_MODEL = {k: (q * r * f, q * r) for k, (q, _, r, f) in NON_MODEL_CAPS.items()}   # (expected, enforced bound)
 
 
 def demo_bucket(high: bool) -> dict[str, float]:
     text = TEXT_SESSIONS * EXCHANGES * (liab_cost(CARD_SINGLE_35, high) + liab_cost(LINEUPS["d009"].subjects["S2"], high))
-    voice = VOICE_SESSIONS * min(voice_session_cost(high), VOICE_SESSION_CAP)
+    voice = VOICE_SESSIONS * voice_session_cost(high)
     portraits = PORTRAITS[0] * (PORTRAITS[2] if high else PORTRAITS[1])
     return {"text": text * RETRY_FACTOR, "voice": voice, "portraits": portraits}
 
 
 def demo_ceiling() -> float:
-    """Set aside first: high text cost with retries, voice at the per-session cap, portraits at high price."""
-    d = demo_bucket(True)
-    return d["text"] + VOICE_SESSIONS * VOICE_SESSION_CAP + d["portraits"]
+    """Demo bucket allocation, set aside first and treated as an aggregate (not simulated call by call).
+
+    It equals the bucket's conservative usage plus one in-flight voice reservation. Inside the bucket every
+    call still reserves its own worst case at call time and each voice session reserves its whole-session
+    liability before opening, so when the allocation runs out new demo work is refused; the bucket cannot
+    overshoot. Reservations cover only work in flight, never all future calls at once.
+    """
+    return sum(demo_bucket(True).values()) + VOICE_RESERVATION
 
 
 def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75.0) -> dict:
@@ -471,11 +511,11 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
 
     counts = {}
     ok = run("experiments", experiment_calls(high), experiment_calls(True))
-    probe_cap = LIVE_PROBE[0] * LIVE_PROBE[2]
-    if ok and avail - spent >= probe_cap:      # metered Live probe sessions, each closed at its cap
-        spent += LIVE_PROBE[0] * (LIVE_PROBE[2] if high else LIVE_PROBE[1])
-    else:
-        ok = False
+    for _ in range(LIVE_PROBE[0]):             # each probe reserves its whole-session liability before opening
+        if not ok or avail - spent < PROBE_RESERVATION:
+            ok = False
+            break
+        spent += LIVE_PROBE[1] if not high else PROBE_RESERVATION
     counts["experiments"] = int(ok)
     gens = 0
     for i in range(dev_cases // 2 + sealed_cases // 2):
@@ -485,10 +525,14 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
             break
         gens += 1
     counts["families_generated"] = gens
+    corpus_all = [c for i in range(sealed_cases) for c in corpus_calls(lu, i)]
+    corpus_ok = ok and run("replay_corpus", corpus_all, corpus_all)     # whole corpus produced and sealed first
+    counts["replay_corpus"] = int(corpus_ok)
+    ok = ok and corpus_ok
     for key, n, maker, maker_high in (
             ("dev_blocks", dev_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True)),
-            ("replay_transcripts", sealed_cases, lambda: replay_transcript_calls(lu, high),
-             lambda: replay_transcript_calls(lu, True)),
+            ("replay_transcripts", sealed_cases, lambda: replay_scoring_calls(lu, high),
+             lambda: replay_scoring_calls(lu, True)),
             ("interactive_blocks", sealed_cases // 2, lambda: block_calls(lu, high), lambda: block_calls(lu, True))):
         done = 0
         for _ in range(n):
@@ -506,14 +550,15 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
 if __name__ == "__main__":
     print("\nD-009 (total GCP hard cap $75, target $50), lineup d009, liability rates (3.8 Flash undiscounted):")
     exp_e = sum(liab_cost(c, False) for c in experiment_calls(False)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[1]
-    exp_h = sum(liab_cost(c, True) for c in experiment_calls(True)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[2]
+    exp_h = sum(liab_cost(c, True) for c in experiment_calls(True)) * RETRY_FACTOR + LIVE_PROBE[0] * PROBE_RESERVATION
     print(f"  day-1 experiments incl. Live probe: expected ${exp_e:.2f}, high ${exp_h:.2f}")
     print(f"  voice reference session: expected ${voice_session_cost(False):.2f}, high ${voice_session_cost(True):.2f}; "
-          f"cap ${VOICE_SESSION_CAP:.2f} x {VOICE_SESSIONS} sessions")
+          f"whole-session reservation ${VOICE_RESERVATION:.2f} (shutoff ${VOICE_SHUTOFF:.2f}) x {VOICE_SESSIONS} sessions; "
+          f"probe reservation ${PROBE_RESERVATION:.2f} x {LIVE_PROBE[0]}")
     print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model envelope expected "
           f"${sum(e for e, _ in NON_MODEL.values()):.2f}, high ${sum(h for _, h in NON_MODEL.values()):.2f}")
-    assert voice_session_cost(True) <= VOICE_SESSION_CAP, "high voice session must complete under its cap"
-    for sealed in (20, 30, 40):
+    assert voice_session_cost(True) <= VOICE_SHUTOFF, "a conservative voice session must finish before the shutoff"
+    for sealed in (20, 24, 26, 28, 30, 40):
         for high in (False, True):
             r = simulate_d009(sealed, 10, high)
             tag = "high" if high else "expected"
