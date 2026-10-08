@@ -27,3 +27,31 @@
 - **Alternatives considered + why rejected:** full re-research of every route: duplicate cost for little new information.
 - **Files affected:** `docs/research/**`.
 - **Reversibility:** cheap.
+
+## 2026-10-08 · D-005 Deadline and scope: November 2, 2026, all in
+- **Decision:** submission/demo is 2026-11-02 (25 days out). Scope is the full brief, built with parallel Claude agents and Codex gates.
+- **Reasoning:** owner answer this session ("we have enough time ... go all in").
+- **Alternatives considered + why rejected:** a tight MVP: rejected by the owner.
+- **Files affected:** plan and roadmap (to come).
+- **Reversibility:** moderate (scope can be trimmed late, not grown).
+
+## 2026-10-08 · D-006 Real-time voice interrogation via Gemini Live, lifted from gokbase
+- **Decision:** the arena supports real-time spoken interviews on the Gemini Live API (owner named "Gemini 3.1 Live"; exact Vertex model ID to verify), lifting the gokbase live talk mode (`backend/app/rag/live/session.py`, voice WebSocket, cost ledger). Text stays the scored artifact: every spoken turn is transcribed and scored as text (SOL-1).
+- **Reasoning:** owner answer this session; gokbase already runs it in production, so the lift is low risk.
+- **Alternatives considered + why rejected:** text + TTS only, or text only: the owner chose real-time voice.
+- **Files affected:** voice gateway, transcript pipeline, UI interrogation room (to come).
+- **Reversibility:** moderate.
+
+## 2026-10-08 · D-007 Model-spend ceiling: $100 for the bake-off
+- **Decision:** the bake-off may spend at most $100 of Vertex AI usage. The runner enforces the cap in code (cost ledger with reservations and a hard stop) and the GCP project carries a billing budget alert.
+- **Reasoning:** owner answer this session. Batch 1 estimate (X3, low confidence): the full 2,160-trial protocol costs about $42 all-Flash-Lite, $195 for a balanced mix, $333 all-Pro, so the full protocol fits only with cheap tiers or a scaled-down run.
+- **Alternatives considered + why rejected:** larger budgets: not approved.
+- **Files affected:** tournament runner, cost ledger, GCP budget config (to come).
+- **Reversibility:** owner can raise it.
+
+## 2026-10-08 · D-008 Judging formats: all four
+- **Decision:** prepare for a live demo with Q&A, a hosted link judges use themselves, a video plus deck submission, and repo/code review.
+- **Reasoning:** owner answer this session.
+- **Implications:** hosted deploy that scales to zero with auth, per-user rate limits and spend guards so judges cannot exhaust the $100 cap; demo-path polish; recorded walkthrough and deck; full CI gates, docs and tests in the repo.
+- **Files affected:** deploy, auth, guardrails, docs (to come).
+- **Reversibility:** locked-in (owner).
