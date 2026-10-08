@@ -31,8 +31,8 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Synthesis report with decision matrix (`docs/research/synthesis/02-direction.md`).
-2. Codex adversarial critique (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Codex adversarial critique round 1 on `docs/research/synthesis/02-direction.md` (v1 committed) (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
 3. Present direction to the owner.
 
 ## Local commits ahead of origin
