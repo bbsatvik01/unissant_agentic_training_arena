@@ -1,0 +1,125 @@
+CHALLENGE X
+Project Title: Investigative AI Training Arena: Multi-Agent Interview Coaching and Evaluation
+Use Case Report
+
+Problem Overview
+Investigators need repeated practice adjusting their questions when answers are incomplete or conflicting.
+Today’s training scenarios are static. They offer little variety and make it hard to compare investigative AI assistants fairly.
+Training must reward catching deceptive subjects while protecting truthful people from false accusations.
+Truthful people can be confused, stressed, or unable to recall details. Those traits, like nervousness, demeanor, or accent, must never be shortcuts to a deception label.
+
+
+Build an AI training arena where investigators practice interviews with simulated subjects while competing AI assistants coach them. Your solution should:
+Help investigators ask better follow-up questions, using the evidence in each answer
+Detect evasive answers and identify which subjects were assigned a perpetrator role
+Compare competing AI assistants fairly against truthful and deceptive subject agents
+
+Goal:
+Improve investigators’ questioning and evidence-backed findings through repeatable AI agent competitions
+Challenge
+
+Proposed Solution
+Build a text-based training platform with two types of competing AI agents:
+Investigative assistants: Review each question and answer, flag gaps and contradictions with transcript evidence, and suggest a neutral follow-up
+Simulated subjects: Play a truthful or deceptive role from a private profile; deceptive subjects try to hide an assigned violation within the scenario rules
+Scenario engine: Locks case facts, releases new evidence on a script, sets interview limits, and hides role labels and scoring keys
+Independent scoring: Compares each final finding (deceptive, truthful, or not enough evidence) with the hidden case facts
+Two modes: Practice gives live coaching; assessment saves feedback for the debrief
+
+Agent Roles
+Investigative assistants
+Simulated subjects
+Assess each question against the answer received.
+Flag gaps and contradictions with transcript evidence.
+Suggest a neutral follow-up and a finding with confidence.
+Receive a private scenario profile and assigned role.
+Truthful roles answer from known facts and may be uncertain.
+Deceptive roles try to conceal the assigned violation within scenario rules.
+Goal: Supported findings with few false accusations
+Goal: Profile fidelity plus the assigned truthful or evasive objective
+Category 1: Investigative assistants
+Each candidate is a versioned combination of model, system prompt, retrieval/tool configuration and coaching policy. It evaluates the officer’s latest question in context. A flag must cite an exact transcript turn and name the relevant missing fact or conflicting statement. Responses distinguish non-responsive answers, contradictions, explicit uncertainty and possible evasion.
+Its objective is useful coaching and correct scenario-role identification under a false-positive constraint. A candidate earns no credit simply for producing more flags or making a confident accusation.
+Category 2: Simulated subjects
+Each candidate model may receive a truthful or deceptive role. A truthful subject answers from its permitted knowledge and says when it does not know. Its objective is accurate, consistent participation in the assigned profile.
+A deceptive subject tries to keep the assigned synthetic violation undiscovered while obeying the fixed case facts and permitted disclosure policy. The profile may permit high-level evasive behaviors such as omission or deflection. The subject must not rewrite the underlying event or attack the actual platform.
+Score truthful and deceptive subject runs separately. Invalid profile behavior is a fidelity failure, not successful evasion.
+Source: User-defined agent categories, with proposed operating and scoring contracts.
+
+Scenario Design
+Assign a role, event timeline, permitted knowledge and a private objective
+Mix deceptive and truthful cases across matched levels of difficulty
+Vary communication style independently of the assigned role
+Lock case facts for each trial. Release new evidence through scripted events
+Keep role labels and scoring keys hidden from investigators and assistants
+Dynamic behavior must remain consistent with the scenario’s ground truth
+Scenario schema
+Public case packet: case ID, investigation objective, known timeline, initial documents and interview context.
+Private subject packet: role, relevant actions, what the subject actually knows, what it may disclose, uncertainty limits, objective and permitted response behaviors.
+Evaluator-only packet: canonical event facts, assigned role, material contradictions, evidence release conditions, resolution criteria and an answer-scoring rubric.
+Dynamic elements: the controller can release a new record, introduce a permitted clarification, vary difficulty or apply a predeclared context change. Every change is versioned and timestamped. The underlying event does not change to accommodate a subject’s answer.
+Case families should contain matched truthful and deceptive variants, with communication style and scenario difficulty distributed independently of role. Include truthful uncertainty and misleading-looking circumstances so the system learns to request corroboration.
+Development and hidden evaluation sets must use disjoint case families. Keep held-out profiles out of prompts, retrieval indexes, tuning data and debrief access during a tournament. Tune between tournaments only on development cases.
+Source: Proposed scenario and evaluation design.
+
+Agent
+Bake-Off
+Matched cases
+Cross-pair assistant and subject candidates under equal budgets.
+Two test tracks
+Replay identical transcripts, then run interactive interviews.
+Blinded scoring
+Compare locked findings with case facts and trainer ratings.
+01
+02
+03
+Proposed MVP
+3 assistant and 3 subject candidates
+Bake-off protocol
+1. Freeze three investigative-assistant candidates and three subject candidates, each with recorded model and prompt versions. Each subject candidate plays both profile types across the case set. Use consistent public tools, context limits and response budgets.
+2. Replay track: give every assistant the same frozen transcripts and released evidence. Compare its response-level flags, questioning assessment and final scenario classification. This isolates evaluation quality from differences in interview paths.
+3. Interactive track: cross-pair each assistant with each subject candidate. A fixed interviewer harness asks a common initial question, then relays the assistant’s proposed follow-ups under a shared policy. Human training sessions form a separate study. Randomize candidate and case order.
+4. Planning workload: 40 development cases and 120 hidden evaluation cases, balanced across truthful and deceptive roles. Three assistants times three subject candidates times 120 cases times two repeats produces 2,160 interactive trials. A proposed cap of 12 question-answer exchanges per trial bounds effort. Final volume depends on the approved model-spend budget.
+5. Commit findings before exposing labels. Ground-truth scoring and blinded trainer review produce separate assistant and subject leaderboards. Disclose invalid runs, cost, latency and unresolved findings.
+6. Repeated runs of the same base case are correlated. Confidence intervals and comparisons must account for case-level clustering, and results must disclose role prevalence. Hidden test performance must not be used to tune candidates within the same tournament.
+Source: Proposed tournament protocol.
+
+Example
+Output
+Interview exchange
+The investigator asks, “Why did you enter?” The subject replies, “It was a busy shift.”
+Assistant flag
+The purpose of entry is unanswered. Suggested neutral follow-up: “What task required entry?”
+Evidence-based finding
+More evidence needed. Verify the work order and timeline before reaching a finding.
+01
+02
+03
+Challenge test bed: Run a bake-off on matched synthetic cases with 3 assistant and 3 subject candidates under equal budgets. Replay identical transcripts, then run live interviews.
+Ground rule: All cases are synthetic. Evasive wording alone does not prove a violation, and a simulated score is not a finding about a real person.
+
+
+Evaluation
+Separate scorecards for learning, detection and subject realism.
+Investigators: question quality, evidence coverage and improvement on unseen cases.
+Assistants: evasion-event precision/recall, role recall and false-positive rate.
+Subjects: consistency with assigned facts and success within scenario rules.
+All trials: unsupported flags, unresolved findings, latency and cost.
+Assistant ranking: pass false-positive and isolation gates, then compare recall and questioning quality.
+Proposed scoring rules
+Investigator rubric: five dimensions, each scored 0–4 by a blinded trainer: clarity and neutrality, response relevance, evidence-based follow-up, testing alternative explanations, and supported closure. Multiply the sum by five for a 0–100 score. This is a proposed local training rubric that trainers must calibrate before use.
+Assistant event score: precision is correctly flagged evasive events divided by all evasion flags. Recall is correctly flagged events divided by trainer-labeled evasive events. Annotators distinguish evasion from uncertainty, legitimate non-disclosure and a poorly framed question. Use transcript and scenario context, not style alone.
+Assistant role score: report deceptive-role recall, false-positive rate among all truthful cases, positive predictive value, and a two-by-three count matrix covering truthful/deceptive ground truth against truthful/deceptive/insufficient-evidence outputs. Unresolved deceptive cases do not count as detections. Keep unresolved truthful cases in the total truthful denominator and separately report unresolved rates by role so abstention cannot hide poor coverage.
+Eligibility and ranking: proposed eligibility requires a false-positive point estimate no greater than 5% and passing isolation/leakage tests. Rank eligible candidates by deceptive-role recall, then questioning quality. Publish precision, uncertainty, unresolved rates, cost and latency alongside rank. A tournament rank is not certification for real investigations.
+Subject score: fidelity = compliant turns divided by all turns. Separately report invalid sessions. A deceptive run succeeds only if the assigned violation remains undetected within the budget while the subject obeys the scenario. Report misleading clearance and unresolved cases separately. Truthful subjects earn credit for factual consistency and appropriate uncertainty, with correct recognition reported as an interaction outcome.
+Methodological reference: NIST’s AI RMF Playbook supports documented test methods, context-specific measurement and independent assessment. This proposal selects its own metrics and thresholds; NIST has not validated them. https://airc.nist.gov/airmf-resources/playbook/measure/ (accessed 10 September 2026).
+
+Impact & Goals
+Improve investigators’ questioning score by at least 20% over their own starting baseline
+Identify at least 80% of deceptive roles; misclassify no more than 5% of truthful roles
+Keep simulated subjects in character: at least 95% profile fidelity
+Deliver coaching within 3 seconds for 95% of interview turns
+Rank fairly: assistants must first pass the false-accusation and isolation (no access to hidden answers) checks, then compete on detection and questioning quality
+
+Prize
+Possibility for internship opportunities at Unissant

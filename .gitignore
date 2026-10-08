@@ -1,0 +1,26 @@
+# Original sponsor files as delivered (copies live in docs/challenge/)
+/Unissant Use Case_Investigative AI Training Arena (1).pptx
+/Unissant Use Case_Investigative AI Training Arena.pptx.pdf
+/Unissant Use Case_Investigative AI Training Arena.pptx.txt
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Node
+node_modules/
+.next/
+
+# OS / editor
+.DS_Store
