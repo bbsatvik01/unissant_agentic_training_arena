@@ -10,7 +10,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| (none yet) | Batch 1 research workflow about to dispatch | Sonnet | - | - | `docs/research/{internal,external}/` |
+| task `wggkvq9lx` / run `wf_d67bee29-e11` | Batch 1 research workflow, 12 routes (I1-I5 internal, X1-X6 external), max 7 concurrent | Sonnet | 2026-10-08 ~17:05 | ~17:40-17:55 | journal -> `docs/research/{internal,external}/` |
 
 ## Waiting for (owner input)
 - Answers on deadline, voice scope, model-spend ceiling, judging format.
