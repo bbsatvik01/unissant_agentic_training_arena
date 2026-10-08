@@ -18,3 +18,4 @@
 - Codex round 7 YELLOW (1 major, 3 minors); direction v9: deployment-level non-model liability contract; 26 cases ~$42/$70.
 - Codex round 8 YELLOW; direction v10 (honest non-model allowance, same-origin IAP web); plan 20 cases ~$37/$63.
 - Spec-package workflow dispatched (run wf_7986355a-2f8, S1-S8) and Codex round 9 started, per owner request to front-load token-heavy work.
+- Codex round 9 GREEN on direction v10; v10.1 wording fixes; D-010 recorded.

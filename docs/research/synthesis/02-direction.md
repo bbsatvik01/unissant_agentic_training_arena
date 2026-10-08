@@ -1,6 +1,6 @@
 # Direction: Investigative AI Training Arena
 
-Research synthesis and recommendation. **Version 10, 2026-10-08**, revised after Codex critique rounds 1-8 (YELLOW each: 24, 12, 6, 5, 4, 2, 1, then 2 majors on the non-model bound) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-8.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
+Research synthesis and recommendation. **Version 10.1, 2026-10-08. Codex round 9: GREEN.** Revised after critique rounds 1-8 (YELLOW: 24, 12, 6, 5, 4, 2, 1, then 2 majors) and planned for owner decision D-009 (total GCP spend hard cap $75, target $50). Dispositions: `critique-round-1.md` to `critique-round-9.md`. Every dollar figure comes from `cost_model.py`, every matrix total and sensitivity result from `decision_matrix.py`, every statistical bound from `stats_contracts.py`. Inputs: 18 route reports (`docs/research/internal/I1-I7`, `docs/research/external/X1-X11`) and the sponsor deck (`docs/challenge/REQUIREMENTS.md`). Confidence labels: H / M / L. Owner decisions D-001 to D-008 are hard constraints.
 
 ## 0. TL;DR
 
@@ -273,7 +273,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 | 26 (13), pilot-gated target | $42; everything completes | $67; 11 of 13 interactive blocks | 20.6% | 23.8% (11 families) |
 | 30 (15) | $46; everything completes | $67; 10 of 15 interactive blocks | 18.1% | 25.9% (10 families) |
 
-**Recommendation:** run 20 hidden cases, the largest plan that completes under $75 in the conservative case; move to 26 if the dev pilot's measured costs track the expected column. For reference, the sponsor's full workload (120 cases x 2 repeats) would cost $243-384 for the bake-off alone.
+**Recommendation:** run 20 hidden cases as the conservative baseline (it completes under $75 in the conservative case with margin; 22 also completes, with less margin); move to 26 if the dev pilot's measured costs track the expected column. For reference, the sponsor's full workload (120 cases x 2 repeats) would cost $243-384 for the bake-off alone.
 
 ### 8.3 Spend guard (model and voice liabilities reserved before they are incurred; non-model costs minimized and backstopped)
 - **Model calls:** each call reserves its own worst case in `ops.budget_reservations` inside a transaction before calling Vertex, at liability rates (undiscounted list prices), and settles from usage metadata; missing usage keeps the reservation. Worst case = per-call-type input and total output limits (`max_output_tokens` bounds thinking plus visible output) times four attempts. Reservations cover work in flight only.
@@ -323,7 +323,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 | Risk | L | I | Mitigation | Trigger |
 | --- | --- | --- | --- | --- |
 | Complete-card coaching misses 3 s p95 on every 3.x model | M | H | Benchmark, compact prompts, Priority tier, disclosed definition | Day-1 benchmark, dev pilot |
-| D-009 limits precision (10 truthful families) | H | M | Point-estimate gate still applies; intervals and bounds disclosed; extend to 40 cases if pilot costs allow | Dev pilot |
+| D-009 limits precision (10 truthful families) | H | M | Point-estimate gate still applies; intervals and bounds disclosed; move to 26 cases if pilot costs allow | Dev pilot |
 | Non-model costs exceed their $15 allowance | L | M | IAP-only public surface, IAM-private services, size caps, teardown; alerts at $25/$50/$65; billing-disable at $70 | Budget alerts |
 | Real costs exceed the conservative model | L | H | Per-call reservations make overshoot impossible; units beyond the cap become `budget_skipped`; tighten limits from pilot maxima | Dev pilot, sealed run |
 | Vertex Live unusable or voice integration fails | M | M | Probe matrix; slice gate; predeclared owner branches | Oct 15, Oct 18 |
@@ -347,7 +347,7 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 5. **Isolation smoke:** four roles, sealed schema, the section 4.2 functions, pgTAP on the owner's Supabase project.
 
 ### 13.2 Owner decisions
-1. Confirm the D-009 plan: 26 hidden cases, extendable to 30-40 after the dev pilot if measured costs allow.
+1. Confirm the D-009 plan: 20 hidden cases as the baseline, 26 if the dev pilot's measured costs track the expected column; anything larger is a separate, re-simulated decision.
 2. Dedicated GCP project with billing and a budget alert (never `kbg-production`).
 3. Supabase project and plan (Pro, or free with a keep-alive job).
 4. DESIGN.md.
@@ -358,6 +358,6 @@ Set aside first: the non-model allowance ($15.00; itemized estimate $2.88 expect
 9. Team roster; KPI-1 volunteers (6-10).
 
 ## 14. Sources and critique history
-- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md` to `critique-round-8.md`.
+- Internal: I1-I7. External: X1-X11. Synthesis: `01-interim-after-batch1.md`, `cost_model.py`, `decision_matrix.py`, `stats_contracts.py`, `critique-round-1.md` to `critique-round-9.md`.
 - Tally: 143 Google web, 64 GDK, 34 Context7, 198 internal files (research-harness floors met), plus Codex verification searches (19 in round 1, 15 web plus GDK and Context7 checks in round 2).
-- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors), all applied; round 5 YELLOW on the D-009 re-plan (4 majors, 2 minors), all applied; round 6 YELLOW (2 majors, 2 minors), all applied; round 7 YELLOW (1 major, 3 minors), all applied; round 8 YELLOW (2 majors, 1 minor) on the same non-model class for the fourth time, resolved structurally in this version by no longer claiming a hard non-model bound.
+- Critique: round 1 YELLOW (0 blockers, 24 majors, 2 minors); round 2 YELLOW (12 majors, 3 minors; 14 round-1 findings confirmed fixed); round 3 YELLOW (6 majors, 4 minors; 9 round-2 findings confirmed fixed); round 4 YELLOW (5 majors, 3 minors), all applied; round 5 YELLOW on the D-009 re-plan (4 majors, 2 minors), all applied; round 6 YELLOW (2 majors, 2 minors), all applied; round 7 YELLOW (1 major, 3 minors), all applied; round 8 YELLOW (2 majors, 1 minor) on the same non-model class for the fourth time, resolved structurally in v10 by no longer claiming a hard non-model bound; round 9 GREEN (0 majors, 2 minor wording fixes applied in v10.1).

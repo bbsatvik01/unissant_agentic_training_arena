@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- **Direction GREEN** (Codex round 9: 0 majors; orchestrator green). `docs/research/synthesis/02-direction.md` v10.1 awaits owner review. Plan: 20 hidden cases baseline (~$37 / ~$63), 26 pilot-gated. $0 GCP spend so far.
 - Codex round 8: YELLOW (2 majors, 1 minor), fourth round on the non-model bound; v10 resolves the class by not claiming a hard non-model bound ($15 allowance, alerts, billing-disable at $70) and serving the web same-origin behind IAP. Plan: 20 hidden cases (~$37 / ~$63, complete in both); 26 after the pilot. Owner asked to front-load token-heavy design work now.
 - Codex round 7: YELLOW (1 major, 3 minors). Direction v9: deployment-level non-model contract (Spark static web, IAP, billable-instance-time watchdog), voice session fits 480 s; plan 26 hidden cases ~$42 expected / ~$70 conservative. $0 GCP spend so far.
 - Codex round 6: YELLOW (2 majors, 2 minors), both on D-009 enforcement. Direction v8: non-model upper bound $10.32 at gross rates with enforced caps; voice whole-session reservations; plan now 26 hidden cases + 10-case dev pilot (~$43 expected / ~$72 conservative, complete in both). Still $0 GCP spend.
@@ -26,7 +27,6 @@
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
 | task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8 (Opus x7, Sonnet x1) | Opus/Sonnet | 2026-10-08 ~21:00 EDT | ~21:45-22:30 EDT | `docs/spec/**` |
-| bash `bxoe2u3fw` (codex exec) | Codex critique round 9 on direction v10 | gpt-6-astra xhigh | 2026-10-08 ~20:58 EDT | ~21:15 EDT | `docs/research/synthesis/critique-round-9.md` (to write) |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
@@ -45,7 +45,7 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Codex round 9 on direction v10, in parallel with the spec-package workflow (S1-S8) (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Spec-package workflow S1-S8 running; then Codex review of the spec package (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
 3. Present direction to the owner.
 

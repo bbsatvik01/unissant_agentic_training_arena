@@ -63,3 +63,10 @@
 - **Alternatives considered + why rejected:** the $100 bake-off cap (D-007) and the $145-175 options in direction v3-v5: over the new ceiling.
 - **Files affected:** `docs/research/synthesis/cost_model.py`, `02-direction.md` section 8, future spend-guard code.
 - **Reversibility:** owner can raise it.
+
+## 2026-10-08 · D-010 Research direction v10.1 accepted by the research harness (pending owner review)
+- **Decision:** `docs/research/synthesis/02-direction.md` v10.1 is the working direction: typed agent port, four Cloud Run deployables with credential-boundary isolation and privileged SQL functions, in-process candidates on the official leaderboard, two-stage vs single-call coaching tested in the bake-off, Vertex Live voice on development cases, local Phoenix during the build, static web served same-origin behind IAP, 20 hidden cases baseline under D-009.
+- **Reasoning:** 19 research routes (143 web, 64 GDK, 34 Context7, 198 internal files) and nine Codex critique rounds ending GREEN.
+- **Alternatives considered + why rejected:** see the decision matrices in section 5 and `decision_matrix.py`.
+- **Files affected:** `docs/spec/**` (being written), the build.
+- **Reversibility:** cheap until the build starts; owner review is the final gate.

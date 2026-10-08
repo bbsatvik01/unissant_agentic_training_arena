@@ -9,6 +9,3 @@
 - **Outputs:** `docs/spec/S1-scenario-engine.md` (+ `schemas/*.schema.json`, `seed-families/F01-F03.json`), `S2-agents-and-prompts.md`, `S3-scoring-rubrics-metrics.md`, `S4-data-layer.md` (+ `sql/0001-0006*.sql`, `sql/TESTS.md`), `S5-backend-and-lift.md`, `S6-frontend-ux.md`, `S7-demo-and-judging.md`, `S8-build-plan.md`.
 - **Governing input:** direction v10. **Gate after:** Codex review of the spec package; owner approval of direction before any build.
 - **If the session dies:** `Workflow({scriptPath, resumeFromRunId: "wf_7986355a-2f8"})`.
-
-## Codex critique round 9
-- Background bash `bxoe2u3fw`, `codex exec` read-only on direction v10; output in session scratchpad `codex/round9.json`.
