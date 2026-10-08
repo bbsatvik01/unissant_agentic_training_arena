@@ -27,6 +27,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
+| task `w93j11g8w` / run `wf_7304b52c-bcb` | UI/UX research-harness, 5 routes, max 3 concurrent | Sonnet | 2026-10-08 ~20:05 | ~20:50-21:05 | `docs/research/ui/` |
 | task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8 (Opus x7, Sonnet x1) | Opus/Sonnet | 2026-10-08 ~21:00 EDT | ~21:45-22:30 EDT | `docs/spec/**` |
 
 ## Early signals from batch 1 (unverified until synthesis)
