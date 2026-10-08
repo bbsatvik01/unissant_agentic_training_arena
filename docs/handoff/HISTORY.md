@@ -6,3 +6,4 @@
 - Batch 1 research complete: 12 reports committed (98 web / 25 GDK / 18 Context7 / 127 files).
 - Owner decisions locked: D-005 deadline 2026-11-02, D-006 Gemini Live voice, D-007 $100 bake-off cap, D-008 all judging formats.
 - Interim synthesis after batch 1 written; batch 2 dispatched (run wf_70bb0865-2f7, 7 routes).
+- Batch 2 research complete: 7 reports committed (44 web / 39 GDK / 16 Context7 / 71 files).
