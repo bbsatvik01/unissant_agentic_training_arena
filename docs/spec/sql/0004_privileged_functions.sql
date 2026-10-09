@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0004_privileged_functions.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event,
 -- advance_replay), the per-trial event store writer, the context readers (arena.trial_context,
@@ -628,9 +628,13 @@ begin
      or exists (select 1 from arena.turns where trial_id = p_trial and turn_no > v_wi.turn_no) then
     raise exception using errcode = 'AR004', message = 'no open question for this work item';
   end if;
+  -- An accepted answer needs text. Only a G0 failure (schema failure or provider block after the repair) may
+  -- arrive without text; it is quarantined with a null utterance (SG2-39).
   if jsonb_typeof(p_guard_result -> 'passed') is distinct from 'boolean'
      or (p_tag_proposal is not null and jsonb_typeof(p_tag_proposal) <> 'object')
-     or coalesce(length(p_utterance), 0) = 0 then
+     or (coalesce(length(p_utterance), 0) = 0
+         and ((p_guard_result ->> 'passed')::boolean
+              or coalesce(p_guard_result ->> 'rule', '') not in ('G0_schema', 'G0_blocked'))) then
     raise exception using errcode = 'AR007', message = 'utterance, tag proposal object and guard_result.passed are required';
   end if;
 
@@ -657,7 +661,7 @@ begin
                                 'transcript_version', v.transcript_version + 1);
   else
     insert into sealed.quarantined_artifacts (trial_id, turn_no, utterance, tag, guard_result)
-      values (p_trial, v_wi.turn_no, p_utterance, p_tag_proposal, p_guard_result);
+      values (p_trial, v_wi.turn_no, nullif(p_utterance, ''), p_tag_proposal, p_guard_result);
     update arena.trials set status = 'terminated', ended_at = now(), transcript_version = transcript_version + 1
      where id = p_trial;
     v_seq := ledger.append_event('execution_recorded', v.tournament_id, p_trial,
@@ -879,18 +883,48 @@ begin
 end $$;
 
 -- Recompute a commitment from stored rows and the sealed nonce.
+-- SG3-42: a commitment verifies only when the recomputed commitment equals both the stored row and the one
+-- the chained ledger published at finalization: the trial_finalized event at the row's event_seq, for this
+-- trial and tournament, which is also the completed terminal record's event. A missing row or nonce, or a
+-- finding changed with its commitment recomputed, fails (the ledger event is not rewritable without
+-- breaking ledger.verify_chain).
 create or replace function ledger.verify_commitment(p_trial uuid)
 returns boolean
 language sql stable security definer set search_path = '' as $$
   select coalesce((
     select c.commitment_sha256 = encode(sha256(n.nonce || convert_to(p.payload::text, 'UTF8')), 'hex')
            and c.payload = p.payload
+           and e.event_type = 'trial_finalized' and e.trial_id = c.trial_id
+           and e.tournament_id is not distinct from t.tournament_id
+           and e.payload ->> 'commitment_sha256' = encode(sha256(n.nonce || convert_to(p.payload::text, 'UTF8')), 'hex')
+           and r.state = 'completed' and r.event_seq = c.event_seq
       from ledger.finding_commitments c
+      join arena.trials t on t.id = c.trial_id
       join sealed.commitment_nonces n on n.trial_id = c.trial_id
+      join ledger.events e on e.seq = c.event_seq
+      join ledger.terminal_records r on r.trial_id = c.trial_id
       cross join lateral (select ledger.commitment_payload(c.trial_id,
                                    (select f.finding from arena.final_findings f where f.trial_id = c.trial_id)) as payload) p
      where c.trial_id = p_trial), false)
 $$;
+
+-- first_unverified_finalization (internal; SG3-42, SG3-47): the reveal check's population. Every
+-- trial_finalized event of the tournament (chained, so verify_chain detects its removal) and every completed
+-- terminal record; returns the first trial whose commitment does not verify against its event, else null.
+create or replace function ledger.first_unverified_finalization(p_tournament uuid)
+returns uuid
+language sql stable security definer set search_path = '' as $$
+  select x.trial_id
+    from (select e.trial_id from ledger.events e
+           where e.event_type = 'trial_finalized' and e.tournament_id = p_tournament
+          union
+          select r.trial_id from ledger.terminal_records r join arena.trials t on t.id = r.trial_id
+           where t.tournament_id = p_tournament and r.state = 'completed') x
+   where not ledger.verify_commitment(x.trial_id)
+   order by x.trial_id limit 1
+$$;
+revoke all on function ledger.first_unverified_finalization(uuid)
+  from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 
 -- -----------------------------------------------------------------------------
 -- 4. record_execution_failure (arena_public)  F15, BKO-9, EVL-5
@@ -1101,8 +1135,11 @@ begin
                       where s.tournament_id = p_tournament and s.corpus_sha256 = d.corpus_sha256) then
     raise exception using errcode = 'AR021', message = 'replay corpus is not sealed or does not match its seal';
   end if;
-  select c.trial_id into v_bad from ledger.finding_commitments c join arena.trials t on t.id = c.trial_id
-   where t.tournament_id = p_tournament and not ledger.verify_commitment(c.trial_id) limit 1;
+  -- SG3-42, SG3-47: the population comes from the hash chain, not from mutable rows. Every trial_finalized
+  -- event of the tournament (chained, so verify_chain detects its removal) names a trial whose completed
+  -- terminal record, commitment and nonce must verify against that event; rewriting the terminal state or
+  -- deleting the commitment therefore fails here. A completed terminal record without such an event fails too.
+  v_bad := ledger.first_unverified_finalization(p_tournament);
   if v_bad is not null then
     raise exception using errcode = 'AR021', message = format('commitment of trial %s does not verify', v_bad);
   end if;
@@ -1389,6 +1426,13 @@ create view ledger.v_commitments with (security_barrier = true) as
          case when arena.trial_visible(c.trial_id) then c.payload::text end as payload_text
     from ledger.finding_commitments c;
 
+-- SG3-43: the trust center's isolation results. Check name, candidate, pass or fail, run time and the commit
+-- the check ran on; the evidence object (scan matches, file paths, hidden field paths) stays referee-only.
+create view arena.v_isolation_checks with (security_barrier = true) as
+  select i.check_name, i.candidate_id, c.name as candidate_name, i.passed, i.created_at as run_at,
+         case when i.evidence ->> 'commit_sha' ~ '^[0-9a-f]{40}$' then i.evidence ->> 'commit_sha' end as commit_sha
+    from arena.isolation_checks i left join arena.candidates c on c.id = i.candidate_id;
+
 create view ledger.v_revealed_nonces with (security_barrier = true) as
   select trial_id, nonce_hex, revealed_at from ledger.revealed_nonces;
 
@@ -1431,7 +1475,7 @@ grant execute on function
 grant select on arena.v_candidates, arena.v_tournaments, arena.v_planned_trials, arena.v_trials,
   arena.v_transcripts, arena.v_released_evidence, arena.v_trial_events, arena.v_findings, arena.v_scores,
   arena.v_leaderboards, arena.v_tournament_progress, ledger.v_events, ledger.v_commitments, ledger.v_revealed_nonces,
-  ledger.v_manifests, ledger.v_adjudications, ledger.v_corpus_seals
+  ledger.v_manifests, ledger.v_adjudications, ledger.v_corpus_seals, arena.v_isolation_checks
   to arena_public;
 
 -- arena_subject: two functions here, no tables
@@ -1446,7 +1490,7 @@ grant select on all tables in schema arena, subject, sealed, ledger to arena_ref
 -- arena_public may execute, and filter by an investigator the referee never is. The referee reads the base
 -- tables instead, so it holds no SELECT on these views (a grant it could never use).
 revoke select on arena.v_findings, arena.v_released_evidence, arena.v_transcripts, arena.v_trial_events,
-  arena.v_trials, ledger.v_adjudications, ledger.v_events from arena_referee;
+  arena.v_trials, ledger.v_adjudications, ledger.v_events, ledger.v_commitments from arena_referee;   -- SG3-45
 grant insert on sealed.independent_labels, sealed.judgments, arena.scores, arena.leaderboards, arena.isolation_checks
   to arena_referee;
 grant execute on function

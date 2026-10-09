@@ -1,0 +1,10 @@
+# Codex spec review, round 5 (v2.6, commit 5ceb21b): dispositions
+
+Verdicts: S6-S8 GREEN; S1-S5 YELLOW. 0 blockers, 3 majors (two of them one class). SQL was verified on a fresh PostgreSQL 16.13 cluster (port 55481, socket-only, stopped afterwards): 112 assertions pass and the capability CSV equals the live set. Seed files and S1 section 11 were not touched.
+
+| ID | Sev | Real | Change |
+| --- | --- | --- | --- |
+| SG1-34 / SG2-41 | major | Real (the R1 field was limited to `rec-NN`, R1's input omitted initial documents, and the cap was 6) | One rule: visible evidence is the initial documents, the released records and the prior turns, everywhere. R1 receives the initial documents. `record_conflict_ids` covers `doc-NN` and `rec-NN` (pattern-checked, unique, at most 10 = 4 initial + 6 releasable) and is validated against the same set the shared citation check uses. An initial document is available at exchange 0 for check 3e, and the coach's `evidence_conflict` flag uses the same wording. Tests: AT-REF-18 and AC-S3-2.11 (an unchallenged non-material `doc-01` contradiction on a valid trial makes 3e fail; a hidden-only contradiction still leaves it N/A). (S2 4.x flag kinds, 7.2; S3 1.3, 2.x table, 3.8) |
+| SG3-47 | major | Real (reproduced: v2.6's population, terminal records with state `completed`, misses a trial whose state was rewritten, and `verify_chain` still passes) | The reveal population comes from the hash chain: every `trial_finalized` event of the tournament, plus every completed terminal record. Each trial must verify its commitment against its event (which also requires a completed terminal record). `ledger.first_unverified_finalization` holds the query, with no grants. RV-06 covers the rewrite with the commitment kept and with it deleted. (SQL 0004; S4 6; TESTS RV-06) |
+
+Classes: SG1-34 and SG2-41 were one population defined three ways (R1 prompt, schema, trigger adapter); it is now defined once. SG3-47 is the same class as SG3-42: a check whose population came from mutable rows; it now comes from the chain.

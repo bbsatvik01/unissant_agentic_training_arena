@@ -311,7 +311,7 @@
       },
       {
         "id": "f:40",
-        "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe.",
+        "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe and was the second count on the tailgate sensor.",
         "kind": "action",
         "time": "2026-03-10T19:42",
         "actors": [
@@ -818,7 +818,7 @@
           },
           {
             "id": "x:02",
-            "text": "I came back for a reason other than my medication.",
+            "text": "I did not come back for my medication.",
             "contradicts": "f:06"
           },
           {
@@ -1760,7 +1760,7 @@
           {
             "id": "f:11",
             "class": "FREE",
-            "text": "The east-door camera was off that evening.",
+            "text": "The camera status report says the east-door camera was off that evening.",
             "certainty": "certain"
           },
           {
@@ -1906,7 +1906,7 @@
           },
           {
             "id": "x:04",
-            "text": "The person with me was a contractor or from Facilities.",
+            "text": "The person with me was a registered visitor.",
             "contradicts": "f:41"
           }
         ],
@@ -2078,7 +2078,7 @@
           },
           {
             "id": "f:40",
-            "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe.",
+            "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe and was the second count on the tailgate sensor.",
             "kind": "action",
             "time": "2026-03-10T19:42",
             "actors": [
@@ -2603,7 +2603,7 @@
           "decisive_support": [
             {
               "id": "r:01",
-              "description": "Elevator car 2 carried two people up to floor 3 at 19:43 and two down at 20:06, and Quell does not account for the second person when asked.",
+              "description": "Elevator car 2 carried two people up to floor 3, the records floor, at 19:43 and two down at 20:06; Quell acknowledges that Roff came in on her swipe, which the after-hours rules forbid, and does not say where he went inside.",
               "artifact_ids": [
                 "rec-02"
               ],
@@ -2613,19 +2613,6 @@
                 "f:41"
               ],
               "requires_subject_account": true
-            },
-            {
-              "id": "r:02",
-              "description": "The custodian saw her with an unrecognized man at the elevators, and the visitor register shows no registered visitor.",
-              "artifact_ids": [
-                "rec-04",
-                "rec-01"
-              ],
-              "fact_ids": [
-                "f:47",
-                "f:08"
-              ],
-              "requires_subject_account": false
             }
           ],
           "corroboration_to_name": [

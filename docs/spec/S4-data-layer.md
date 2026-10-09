@@ -1,6 +1,6 @@
 # S4: Data layer (Supabase Postgres)
 
-Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.5, 2026-10-09: Codex round 3 fixes.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.4; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-014 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings; D-013 build first, one global spend ceiling, per-phase cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review, no runtime generator). Today is 2026-10-08; the build runs to 2026-11-02.
+Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.7, 2026-10-09: Codex round 5 fixes.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.4; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-014 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings; D-013 build first, one global spend ceiling, per-phase cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review, no runtime generator). Today is 2026-10-08; the build runs to 2026-11-02.
 
 Deliverables of this part:
 
@@ -82,7 +82,7 @@ The migrations are drafts: never applied to any Supabase project. Version 2.3 wa
 | --- | --- | --- | --- | --- |
 | `arena_public` | `arena-api` (:8080) and the tournament job (`python -m arena_tournament`) | Its own DSN in its own gitignored file, `.env.local.public` (S5 10.2): `arena_public.<project-ref>` on the Supavisor shared pooler, transaction mode, port 6543 (owner's project), or a direct connection to `supabase start` | 28 projection views; `arena.trial_context`; `arena.work_item_results` | 30 functions (section 6.3) |
 | `arena_subject` | `arena-subject` (:8081) | Its own DSN in `.env.local.subject`, same pooler | `subject.turn_context`, `subject.voice_context` | 17 functions (`record_subject_turn`, voice, budget, spans) |
-| `arena_referee` | `arena-referee` (:8082); operator CLI for case ingest and reveal | Its own DSN in `.env.local.referee`, same pooler | Every table, and every view except the 15 actor-scoped public projections (they call `arena.trial_visible` or `arena.actor_id`, which only `arena_public` executes; the referee reads the tables and `ops.v_latency_report`, SG3-38) | 8 tables (labels, judgments, scores, leaderboards, isolation checks, participants, case sets, rubric scores); 35 functions, among them `training.publish_debrief` |
+| `arena_referee` | `arena-referee` (:8082); operator CLI for case ingest and reveal | Its own DSN in `.env.local.referee`, same pooler | Every table, and every view except the 16 actor-scoped public projections (with `ledger.v_commitments`, SG3-45) (they call `arena.trial_visible` or `arena.actor_id`, which only `arena_public` executes; the referee reads the tables and `ops.v_latency_report`, SG3-38) | 8 tables (labels, judgments, scores, leaderboards, isolation checks, participants, case sets, rubric scores); 35 functions, among them `training.publish_debrief` |
 | `postgres` (owner) | Migrations; owner-only controls (`ops.set_kill_switch`, `ops.set_bucket_ceiling`) and plan application (section 8.1) | Session mode, port 5432, or the SQL editor | All | All |
 
 - Roles are created `NOLOGIN NOINHERIT` in git (TechnoMile `supabase/migrations/20260927000100_foundation.sql` lines 21-29). The owner enables `LOGIN` and sets each password outside git; each local process reads only its own DSN (S5 1.3 boot checks). Setting the passwords is a secret write and needs explicit owner authorization (S4-D4).
@@ -203,7 +203,7 @@ All are append-only.
 | `debriefs` | `session_id`, `payload` (S3 5.7 debrief.v1: `schema_version`, `session_id`, `scored`, `outcome` with its `resolution`; when scored, also `rubric`, `scorecards` and `provenance`, which the unscored voice branch never carries; at most 65,536 bytes; one envelope check, `training.debrief_envelope_ok`, used by the table and `publish_debrief`, SG3-34), `sha256`, `published_at` | The one published debrief of a session (D8, SG3-14); its owner reads it through `training.v_my_debrief` |
 | `access_tickets` | `ticket_sha256`, `kind` (sse, voice), `user_id`, `trial_id`, `mode`, `expires_at` (60 s), `redeemed_at`, `subject_checked_at` | Single-use tickets bound to user, trial, split (dev) and mode |
 | `voice_sessions` | `id`, `session_id`, `ticket_id`, `reservation_id`, `status`, `close_code` | One Live session (unscored practice, D7); one open per session |
-| `voice_exchanges` | (`trial_id`, `exchange_no` 1-12), `voice_session_id`, `question` (nullable, 600), `answer` (nullable, 900), `partial` | A voice session's spoken transcript, one row per completed exchange, display only (D-016); append-only | `record_voice_exchange` |
+| `voice_exchanges` | (`trial_id`, `exchange_no` 1-12), `voice_session_id`, `lines` (array of at most 40 `{role, text <= 900, partial}`, at most 16 KB) | A voice session's spoken transcript, one row per exchange window, role-tagged and unpaired, display only (D-016, SG3-41); append-only | `record_voice_exchange` |
 
 Voice transcription fragments and playback counts are not stored (D7): a voice session stores one row per completed exchange in `training.voice_exchanges`, never a turn, and playback acknowledgements drive only the browser.
 
@@ -277,7 +277,7 @@ One open turn per trial (S5 5.1): from step 4 until a `coach_card` or `coach_una
 
 **Replay (D2).** A replay trial owns its transcript. Each step is `open_work_item(trial, 'replay_turn', key)` then `arena.advance_replay(trial, wi)`, which copies the next turn n of the sealed source corpus transcript into the replay trial as turn n: the question, then every source release made after turn n - 1 was answered (the evidence the source subject had when it answered), then the answer, with the same turn number, record ids and release sequence (+1 version; events `question_recorded`, `evidence_released`, `subject_turn`; the coaching hold starts). Steps 5 and 5b follow as for an interactive trial. The coach therefore never sees a later answer or a later record; work items, events, citations, the commitment and the scorer use the replay trial's own rows, and the source references are (`source_trial_id`, `turn_no`) and (`source_trial_id`, `record_id`). Finalization needs the whole source copied. No KPI-4 sample is opened (no live subject).
 
-**Voice (D7, D-016; development cases only, unscored practice).** A voice session writes no `arena.turns` row and no work item. `arena-subject` numbers exchanges itself and stores each completed one with `training.record_voice_exchange(voice_session, exchange_no, question, answer, partial)` (granted to `arena_subject`): the next number after the trial's stored exchanges, at most 12, idempotent on the number. The same transaction releases every due scheduled record (the shared internal `arena._apply_releases`, whose predicates count the trial's text exchanges plus its stored voice exchanges) and returns what it released, so `arena-subject` updates Live before forwarding more audio (SG3-27). Requested records use `release_evidence` exactly as in text; with no turns nothing blocks them (SG3-37). `arena-subject` reads its context with `subject.voice_context(voice_session)` (no work item), which carries the trial's stored exchanges. A session started with voice takes no typed question (`submit_question` AR007); its finding is committed in text and `finalize_trial` accepts a trial whose transcript is its stored exchanges (the finding then cites records only). A dropped connection ends the voice session with nothing half-written; a reconnect is a new voice session on the same trial; `training.close_orphan_voice_sessions()` closes sessions a dead process left open and settles their holds `usage_unknown` (SG3-36). The owner reads the exchanges through `training.v_my_voice_exchanges`.
+**Voice (D7, D-016; development cases only, unscored practice).** A spoken exchange writes no `arena.turns` row and no per-question or coaching work item; the evidence route's release item and the finding's finalize item are the only items on a voice session's trial (SG4-41). `arena-subject` closes an exchange window at each Live model `turn_complete` and stores it with `training.record_voice_exchange(voice_session, exchange_no, lines)` (granted to `arena_subject`): `lines` are the transcription fragments of that window, role-tagged (`investigator` or `subject`), in arrival order, with no question-answer pairing (Live's transcription carries no exchange identifier, SG3-41); the number is the next after the trial's stored windows, at most 12; idempotent on the number. The same transaction releases every due scheduled record (the shared internal `arena._apply_releases`, whose predicates count the trial's text exchanges plus its stored voice windows) and returns what it released, so `arena-subject` updates Live before forwarding more audio (SG3-27). Requested records use the evidence route exactly as in text: `open_work_item('release')` and `release_evidence` run in one transaction under the trial lock, so a concurrent `record_voice_exchange` waits and the item is never left bound to an outdated version; a retry after a rollback starts fresh (SG1-32). `arena-subject` reads its context with `subject.voice_context(voice_session)` (no work item), which carries the trial's stored windows. A session started with voice takes no typed question (`submit_question` AR007); its finding is committed in text and `finalize_trial` accepts a trial whose transcript is its stored windows (the finding then cites records only). A dropped connection ends the voice session with nothing half-written; a reconnect is a new voice session on the same trial; `training.close_orphan_voice_sessions()` closes sessions a dead process left open and settles their holds `usage_unknown` (SG3-36). The owner reads the windows through `training.v_my_voice_exchanges`.
 
 ### 5.4 Event store
 
@@ -319,17 +319,17 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | Idempotency | Request hash = sorted id list; same item and list returns the stored result |
 | Tests | RE-01..RE-17 |
 
-#### 2. `arena.record_subject_turn(p_trial uuid, p_work_item uuid, p_utterance text, p_tag_proposal jsonb, p_guard_result jsonb, p_partial boolean default false) returns jsonb`
+#### 2. `arena.record_subject_turn(p_trial uuid, p_work_item uuid, p_utterance text, p_tag_proposal jsonb, p_guard_result jsonb) returns jsonb`
 
 | Item | Contract |
 | --- | --- |
 | Grantee | `arena_subject` |
-| Caller supplies | Utterance, tag proposal (object or null), guard result (`{passed: bool, ...}`), partial flag for interrupted voice output |
+| Caller supplies | Utterance (required for an accepted answer; may be empty only for a G0 failure, `{passed: false, rule: "G0_schema" | "G0_blocked"}`, which is quarantined with a null utterance and no fabricated speech, SG2-39), tag proposal (object or null), guard result (`{passed: bool, ...}`) |
 | Derives and enforces | Item kind `subject_answer`, same trial, version current; the item's turn is the latest turn and unanswered (AR004); trial `running` |
 | Effects, guard passed | Answer stored once; exchanges +1; version +1; on a trial with an assistant, `coaching_pending` set and the turn's KPI-4 sample opened `pending` with the `subject_turn` event's commit time (D4); tag proposal into `sealed.subject_tag_proposals`; `subject_turn` event; ledger event with the answer hash. Voice never calls it (D-016) |
 | Effects, guard rejected | In one transaction: utterance, tag and guard result into `sealed.quarantined_artifacts`; trial `terminated`; terminal record `subject_quarantined`; `trial_ended` event with reason `subject_invalid` and no detail; ledger event |
 | Returns | `{outcome: recorded, turn_no, transcript_version}` or `{outcome: quarantined, turn_no}` |
-| Idempotency | Request hash over utterance, tag, guard result and partial flag |
+| Idempotency | Request hash over utterance, tag and guard result |
 | Tests | ST-01..ST-16, CO-04 |
 
 #### 3. `arena.finalize_trial(p_trial uuid, p_work_item uuid, p_final_finding jsonb) returns jsonb`
@@ -372,7 +372,7 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | Item | Contract |
 | --- | --- |
 | Grantee | `arena_referee` |
-| Preconditions (`ledger.check_reveal_preconditions`) | Status `scoring` (AR020); roster hash recomputes (AR021); every planned trial has an execution record (AR020); every trial needing subject review has an adjudication (AR020); corpus sealed and its digest recomputes, when the tournament has a replay track (AR021); every commitment of the tournament verifies (AR021); hidden seal verifies for a hidden tournament (AR021); ledger chain verifies (AR021) |
+| Preconditions (`ledger.check_reveal_preconditions`) | Status `scoring` (AR020); roster hash recomputes (AR021); every planned trial has an execution record (AR020); every trial needing subject review has an adjudication (AR020); corpus sealed and its digest recomputes, when the tournament has a replay track (AR021); every chained `trial_finalized` event of the tournament and every completed terminal record has a commitment and nonce that verify against that event (`ledger.first_unverified_finalization`; a rewritten terminal state or a deleted commitment fails, SG3-42, SG3-47) (AR021); hidden seal verifies for a hidden tournament (AR021); ledger chain verifies (AR021) |
 | Effects | Builds the inclusion manifest in S3's canonical text (section 7.5); `manifest_sha256` = sha256 of that text; status `revealed`; ledger event with the manifest hash; `ledger.inclusion_manifests` version 1; copies every nonce of the tournament into `ledger.revealed_nonces` |
 | Returns | `{manifest_id, manifest_sha256}`; a second call returns the same |
 | After reveal | Hidden trials become visible in the projections; held spans become exportable; scores and leaderboards can be inserted, each naming a manifest; `ledger.seal_corrected_manifest` creates version n+1 after a later adjudication; version 1 never changes |
@@ -580,6 +580,7 @@ All views are `security_barrier`, owned by the migration owner, and read through
 | `arena.v_candidates`, `v_tournaments`, `v_planned_trials` | Registry, tournaments, roster (no role anywhere) |
 | `arena.v_trials` | Every tournament trial's ids and states, the actor's training trials, execution state |
 | `arena.v_tournament_progress` | Per tournament, track and block: planned, running and ended counts and counts by execution state; the only progress source for a hidden tournament before reveal (D9, SG3-15) |
+| `arena.v_isolation_checks` | Per isolation check: check name, candidate, pass or fail, run time and the commit SHA it ran on (`evidence.commit_sha`, which the referee writes); never the `evidence` object, so hidden-text scan matches stay referee-only (SG3-43) |
 | `arena.v_transcripts` (with origin and channel), `v_released_evidence` (with `doc_kind` and content), `v_findings` (with `likelihood`) | Visible trials only |
 | `arena.v_trial_events` | Visible trials; debrief rows hidden while running |
 | `arena.v_scores`, `v_leaderboards` | Exist only after reveal; leaderboards carry the manifest hash and version |
@@ -598,9 +599,9 @@ RLS is enabled on every table in the six schemas (CM-04) with no policy for `ano
 
 | Role | USAGE | Tables | Views | Functions |
 | --- | --- | --- | --- | --- |
-| `arena_public` | arena, ledger, training, ops | none | 29 (SELECT) | 30 |
+| `arena_public` | arena, ledger, training, ops | none | 30 (SELECT) | 30 |
 | `arena_subject` | arena, subject, training, ops | none | none | 17 |
-| `arena_referee` | all six | SELECT on all 56; INSERT on 8 | SELECT on 15 of 30 (deny rows below) | 35 |
+| `arena_referee` | all six | SELECT on all 56; INSERT on 8 | SELECT on 15 of 31 (deny rows below) | 35 |
 | `anon`, `authenticated`, `service_role` | none | none | none | none |
 
 No runtime role holds schema CREATE, a sequence privilege, or UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER or MAINTAIN on any table or view (CM-14).
@@ -609,7 +610,7 @@ No runtime role holds schema CREATE, a sequence privilege, or UPDATE, DELETE, TR
 
 ## 10. Capability matrix as a test fixture (KPI-5, EVL-10)
 
-Copy this block verbatim to `supabase/tests/fixtures/capability_matrix.csv`. `001_capability_matrix.sql` (CM-01, CM-02) expands the pattern rows (`table+view`, `<schema>.*`), applies `deny` rows last, and asserts that the actual privilege set of the six roles over the six schemas equals the result exactly, in both directions. The actual set is read over every applicable privilege (SG3-21): function EXECUTE; schema USAGE and CREATE; table and view SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN (PostgreSQL 17), with SELECT, INSERT, UPDATE and REFERENCES read by `has_any_column_privilege` so a column-level grant counts; sequence USAGE, SELECT and UPDATE. Any new grant, function or view therefore fails CI until the fixture is updated in the same change, and that diff is reviewed like code. Version 2.3 rows were regenerated from the v2.3 drafts applied to a fresh PostgreSQL 17.11 database (TESTS.md section 0.1): the live privilege set (215 role, object, privilege triples) was read with `has_function_privilege`, `has_schema_privilege`, `has_any_column_privilege`, `has_table_privilege` and `has_sequence_privilege`, collapsed into the rows below, and the rows were expanded again and checked equal to the live set. Version 2.5 rows were checked the same way on PostgreSQL 16.13 (MAINTAIN is PostgreSQL 17 and no role holds it): 204 expanded rows equal the live set in both directions; against v2.4 `arena_public` gains `training.v_my_voice_exchanges`, `arena_subject` gains `training.record_voice_exchange` and `training.close_orphan_voice_sessions` and loses `record_voice_question` and `record_subject_turn`'s `partial` argument, and `arena_referee` gains `training.voice_exchanges` and `ops.v_latency_report` and loses SELECT on the 15 actor-scoped projections it could never read (deny rows, SG3-38). Against v2.1 the diff is: `arena_public` gains `arena.advance_replay`, `arena.work_item_results`, `arena.v_tournament_progress`, `ops.v_public_config`, `training.v_my_debrief` and `training.v_my_study`, loses `training.v_my_voice_fragments`, and has new signatures for `open_work_item`, `submit_question`, `reserve_model_call` and `start_session`; `arena_subject` gains `ops.settle_voice_reservation` and `subject.voice_context` and loses `record_voice_fragment` and `record_voice_utterance`; `arena_referee` gains `training.publish_debrief` and loses `arena.record_debrief_ready`.
+Copy this block verbatim to `supabase/tests/fixtures/capability_matrix.csv`. `001_capability_matrix.sql` (CM-01, CM-02) expands the pattern rows (`table+view`, `<schema>.*`), applies `deny` rows last, and asserts that the actual privilege set of the six roles over the six schemas equals the result exactly, in both directions. The actual set is read over every applicable privilege (SG3-21): function EXECUTE; schema USAGE and CREATE; table and view SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN (PostgreSQL 17), with SELECT, INSERT, UPDATE and REFERENCES read by `has_any_column_privilege` so a column-level grant counts; sequence USAGE, SELECT and UPDATE. Any new grant, function or view therefore fails CI until the fixture is updated in the same change, and that diff is reviewed like code. Version 2.3 rows were regenerated from the v2.3 drafts applied to a fresh PostgreSQL 17.11 database (TESTS.md section 0.1): the live privilege set (215 role, object, privilege triples) was read with `has_function_privilege`, `has_schema_privilege`, `has_any_column_privilege`, `has_table_privilege` and `has_sequence_privilege`, collapsed into the rows below, and the rows were expanded again and checked equal to the live set. Version 2.6 rows were checked the same way: 205 expanded rows equal the live set; against v2.5 `arena_public` gains `arena.v_isolation_checks` (SG3-43), `arena_referee` loses SELECT on `ledger.v_commitments` (SG3-45; it calls `arena.trial_visible`), and `record_voice_exchange` takes `(uuid, smallint, jsonb)` (SG3-41). Version 2.5 rows were checked the same way on PostgreSQL 16.13 (MAINTAIN is PostgreSQL 17 and no role holds it): 204 expanded rows equal the live set in both directions; against v2.4 `arena_public` gains `training.v_my_voice_exchanges`, `arena_subject` gains `training.record_voice_exchange` and `training.close_orphan_voice_sessions` and loses `record_voice_question` and `record_subject_turn`'s `partial` argument, and `arena_referee` gains `training.voice_exchanges` and `ops.v_latency_report` and loses SELECT on the 15 actor-scoped projections it could never read (deny rows, SG3-38). Against v2.1 the diff is: `arena_public` gains `arena.advance_replay`, `arena.work_item_results`, `arena.v_tournament_progress`, `ops.v_public_config`, `training.v_my_debrief` and `training.v_my_study`, loses `training.v_my_voice_fragments`, and has new signatures for `open_work_item`, `submit_question`, `reserve_model_call` and `start_session`; `arena_subject` gains `ops.settle_voice_reservation` and `subject.voice_context` and loses `record_voice_fragment` and `record_voice_utterance`; `arena_referee` gains `training.publish_debrief` and loses `arena.record_debrief_ready`.
 
 ```csv
 role,object_type,object,privilege,expect
@@ -650,6 +651,7 @@ arena_public,schema,training,USAGE,allow
 arena_public,view,arena.v_candidates,SELECT,allow
 arena_public,view,arena.v_dev_cases,SELECT,allow
 arena_public,view,arena.v_findings,SELECT,allow
+arena_public,view,arena.v_isolation_checks,SELECT,allow
 arena_public,view,arena.v_leaderboards,SELECT,allow
 arena_public,view,arena.v_planned_trials,SELECT,allow
 arena_public,view,arena.v_released_evidence,SELECT,allow
@@ -741,7 +743,7 @@ arena_subject,function,"training.claim_voice_ticket(uuid,uuid,uuid,text)",EXECUT
 arena_subject,function,training.close_orphan_voice_sessions(),EXECUTE,allow
 arena_subject,function,"training.close_voice_session(uuid,text)",EXECUTE,allow
 arena_subject,function,"training.open_voice_session(uuid,uuid)",EXECUTE,allow
-arena_subject,function,"training.record_voice_exchange(uuid,smallint,text,text,boolean)",EXECUTE,allow
+arena_subject,function,"training.record_voice_exchange(uuid,smallint,jsonb)",EXECUTE,allow
 arena_subject,schema,arena,USAGE,allow
 arena_subject,schema,ops,USAGE,allow
 arena_subject,schema,subject,USAGE,allow
@@ -758,6 +760,7 @@ arena_referee,view,arena.v_transcripts,SELECT,deny
 arena_referee,view,arena.v_trial_events,SELECT,deny
 arena_referee,view,arena.v_trials,SELECT,deny
 arena_referee,view,ledger.v_adjudications,SELECT,deny
+arena_referee,view,ledger.v_commitments,SELECT,deny
 arena_referee,view,ledger.v_events,SELECT,deny
 arena_referee,view,ops.v_call_costs,SELECT,deny
 arena_referee,view,ops.v_latency,SELECT,deny
@@ -822,7 +825,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | `training.voice_events`, playback counts | `training.voice_exchanges`, one display row per completed exchange (no turns); playback acknowledgements stay in the browser | D7, D-016 |
 | `training.voice_sessions.metered_usd` | `spend_usd` from `ops.record_usage` and `subject.voice_context` | |
 | `relay_pending` row at ticket mint | Ticket at mint; the session row is created at claim (`claim_voice_ticket`, `reserve_voice`, `open_voice_session` in one transaction) | |
-| `record_voice_question` (S5 Q8) | `training.record_voice_exchange` (display only, D-016) | Granted to `arena_subject` |
+| `record_voice_question` (S5 Q8) | `training.record_voice_exchange` (display windows, D-016, SG3-41) | Granted to `arena_subject` |
 | Per-user quotas (2 voice sessions/day, 5 text sessions/day) | `ops.config.voice_sessions_per_user_day`, `text_sessions_per_user_day` | Initial values; OWNER DECISION PENDING (S5 D-P7, S4-D3) |
 
 ---
@@ -852,7 +855,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | 2 | Separate `sealed.release_predicates` | Predicates are columns of `sealed.evidence_artifacts` | A predicate cannot point at a missing artifact |
 | 3 | `record_execution_failure` lists three states | Also `budget_truncated` | Direction 7.1 defines it and needs a writer |
 | 4 | `adjudicate_validity(trial, verdict, reason, evidence_ref)` | Adds `idempotency_key` | Retries must not create duplicate adjudications |
-| 5 | `record_subject_turn(..., guard_result)` | Adds optional `p_partial` | Marks a voice utterance Live reported interrupted, for display; voice is unscored (D7) |
+| 5 | `record_subject_turn(..., guard_result)` | No `p_partial` (v2.5, SG3-46): voice writes no turns; interruption is recorded only on voice exchange lines | D-016 |
 | 6 | `arena.coaching_events` | `arena.trial_events` (coach cards plus all turn events) | One gap-free stream per trial for SSE (S5 6.1) |
 | 7 | Reveal from the tournament state machine | Reveal only from `scoring` | Makes "every subject review resolved" a deliberate step |
 | 8 | Each privileged function granted to one role | Metering and tracing functions granted to all three runtime roles | Every service calls Vertex (section 8.7) |

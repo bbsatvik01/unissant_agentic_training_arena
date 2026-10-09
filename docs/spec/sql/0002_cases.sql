@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0002_cases.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0002_cases.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Case families and variants (public tier, no role), packets in three tiers, evidence
 -- artifacts with release predicates, the hidden-split seal, the candidate registry.
 -- Requirements: SCN-1, SCN-4, SCN-7, SCN-8, SCN-9, SCN-10, SCN-11, SCN-12, AST-5, BKO-5.
@@ -466,6 +466,11 @@ language sql stable security definer set search_path = '' as $$
   a as (select x from jsonb_array_elements(case when jsonb_typeof(p -> 'assignment') = 'array'
                                                 then p -> 'assignment' else '[]'::jsonb end) x)
   select jsonb_typeof(p) = 'object' and p ?& array['seed', 'n', 'assignment', 'max_phi']
+     -- SG1-33: a non-negative integer seed and a numeric max_phi within S1 7.5's accepted range (at most 0.40);
+     -- the authoring session's validator recomputes phi from the assignment before calling the seal
+     and jsonb_typeof(p -> 'seed') = 'number' and (p ->> 'seed')::numeric >= 0
+     and (p ->> 'seed')::numeric = trunc((p ->> 'seed')::numeric)
+     and jsonb_typeof(p -> 'max_phi') = 'number' and (p ->> 'max_phi')::numeric between 0 and 0.40
      and jsonb_typeof(p -> 'assignment') = 'array' and jsonb_typeof(p -> 'n') = 'number'
      and (p ->> 'n')::numeric = (select count(*) from fam)
      and (select count(*) from a) = (select count(*) from fam)

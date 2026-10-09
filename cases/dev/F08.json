@@ -2006,7 +2006,7 @@
               "after_exchanges": 3
             },
             "content": {
-              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: motion detector MS-6A, inside Suite R-6. Fault text: repeated motion alarms with the suite empty. Status at 07:00 on 6 March: open, waiting for part.",
+              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: motion detector MS-6A, inside Suite R-6. Fault text: repeated motion alarms with the suite empty. Status at 07:00 on 6 March: open, waiting for part. Queue check: SR-3051 was the only ticket assigned to S. Varga on the evening of 5 March.",
               "table": {
                 "columns": [
                   "Time",
@@ -3769,7 +3769,7 @@
               "after_exchanges": 3
             },
             "content": {
-              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: door contact DC-FD14, corridor fire door FD-14, outside Suite R-6. Fault text: repeated door-open alarms on a fire door kept shut. Status at 07:00 on 6 March: closed.",
+              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: door contact DC-FD14, corridor fire door FD-14, outside Suite R-6. Fault text: repeated door-open alarms on a fire door kept shut. Status at 07:00 on 6 March: closed. Queue check: SR-3051 was the only ticket assigned to S. Varga on the evening of 5 March.",
               "table": {
                 "columns": [
                   "Time",

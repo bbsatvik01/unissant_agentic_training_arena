@@ -462,7 +462,7 @@
       },
       {
         "id": "f:43",
-        "statement": "Arno was waiting on the dock steps when Okafor went out for the mail bins at 07:39.",
+        "statement": "Arno was waiting on the dock steps when Okafor went out for the mail bins at 07:39, and she saw him there.",
         "kind": "action",
         "time": "2026-02-17T07:39",
         "actors": [
@@ -2800,7 +2800,7 @@
           },
           {
             "id": "f:43",
-            "statement": "Arno was waiting on the dock steps when Okafor went out for the mail bins at 07:39.",
+            "statement": "Arno was waiting on the dock steps when Okafor went out for the mail bins at 07:39, and she saw him there.",
             "kind": "action",
             "time": "2026-02-17T07:39",
             "actors": [
@@ -3413,7 +3413,7 @@
           "decisive_support": [
             {
               "id": "r:01",
-              "description": "The service report puts Arno at the dock at 07:38 and logged in at 07:44 by a correct meter clock, before the lobby opened, when the only dock door entry was Okafor's 07:41 swipe with the door open 107 seconds; Okafor does not say how he came in.",
+              "description": "The service report puts Arno at the dock at 07:38 and logged in at 07:44 by a correct meter clock, before the lobby opened, when the dock door opened only for Okafor (her exit at 07:39:50 and her 07:41 swipe, with the door open 107 seconds); Okafor acknowledges he was waiting on the dock steps but does not say how he came in.",
               "artifact_ids": [
                 "rec-02"
               ],

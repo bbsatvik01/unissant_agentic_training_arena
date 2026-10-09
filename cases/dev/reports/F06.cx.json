@@ -7,8 +7,8 @@
   "cx3": true,
   "cx4": true,
   "findings": [],
-  "family_sha256": "1344d27b114ae890b99c1196e555c4453f94b593cd0b3dc03add2eb911a7bd64",
-  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "family_sha256": "af244d249fbc05f5932739801a4d5b660ecbde55966facb2649badcf9fb1aaae",
+  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -29,7 +29,7 @@
         "A5",
         "A6"
       ],
-      "basis": "The records corroborate the assigned leak response, necessary entry, protective handling of boxes and phone approval before withdrawal. No copying occurred during the visit. The late signature establishes a paperwork irregularity, but no concealed involvement. The subject’s account matches the records, which close the main gaps.",
+      "basis": "The dispatch log and repair order corroborate necessary leak-related entry, box protection and subsequent reporting. Ebdon confirms approval before withdrawal and explains the late signature. The copier log records no copying during the visit. The records close the main gaps; the signature irregularity does not establish concealment, and no record establishes misuse of selection papers.",
       "expected": "truthful",
       "pass": true
     },
@@ -38,17 +38,18 @@
       "cited_records": [
         "doc-01",
         "doc-02",
-        "doc-03",
+        "rec-01",
         "rec-02",
         "rec-03",
         "rec-05"
       ],
       "cited_answers": [
         "A1",
+        "A3",
         "A4",
         "A5"
       ],
-      "basis": "The records corroborate copying during Halloran’s stay in dry Room 417; the leak repair concerned Room 419. She acknowledges remaining without assigned work and making and removing nine copies, but avoids explaining their content or purpose. Telephone approval explains obtaining K-14, while her use of the restricted room beyond the assigned task remains concealed.",
+      "basis": "The copier log corroborates Halloran’s copying during her extended stay in dry Room 417. A1 confirms no remaining task there; the leak required work in 419. A4 acknowledges making and taking copies but avoids the requested account of her activities. Together, these establish non-task restricted-room use her answers leave unexplained. Prior telephone approval explains withdrawal, not that use.",
       "expected": "deceptive",
       "pass": true
     },
@@ -65,7 +66,7 @@
         "A3",
         "A4"
       ],
-      "basis": "Ebdon corroborates prior verbal approval for K-14, although the authorization form was signed afterward. The examined records do not verify the claimed leak and protective work inside Room 417 or establish improper file handling. Material gaps remain, but no record establishes involvement that Halloran’s answers conceal.",
+      "basis": "Ebdon corroborates authorization before withdrawal, although the form was signed later. The service request establishes an assigned corridor leak task, but no examined record confirms the claimed leak or protective work inside Room 417. The records neither establish activity Halloran concealed nor close the main gap about whether her task required that entry.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }

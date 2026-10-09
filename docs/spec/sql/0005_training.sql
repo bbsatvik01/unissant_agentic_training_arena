@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0005_training.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets with the session phase derived from committed state, blinded rubric scores, the
 -- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,
@@ -129,17 +129,18 @@ create table training.voice_sessions (
 );
 create unique index voice_sessions_one_open on training.voice_sessions (session_id) where status = 'open';
 
--- The spoken transcript of a voice session's trial, display only (D-016): one row per completed exchange,
--- numbered across the trial's voice sessions, at most 12 (BKO-8). question is the Live input transcription
--- and answer the output transcription; either is null when Live delivered none within the grace period
--- (S5 7.4); partial marks an answer Live reported interrupted. Nothing scores these rows.
+-- The spoken transcript of a voice session's trial, display only (D-016, SG3-41): one row per completed
+-- exchange (one Live model turn_complete), numbered across the trial's voice sessions, at most 12 (BKO-8).
+-- lines are the transcription fragments that arrived since the previous exchange boundary, role-tagged and
+-- in arrival order: [{role: investigator | subject, text, partial}]. Live gives transcription no exchange
+-- identifier, so the rows claim no question-answer pairing; a late fragment simply sits in the window it
+-- arrived in. Nothing scores these rows.
 create table training.voice_exchanges (
   trial_id         uuid not null references arena.trials(id) on delete restrict,
   exchange_no      smallint not null check (exchange_no between 1 and 12),
   voice_session_id uuid not null references training.voice_sessions(id) on delete restrict,
-  question         text check (length(question) between 1 and 600),
-  answer           text check (length(answer) between 1 and 900),
-  partial          boolean not null default false,
+  lines            jsonb not null check (jsonb_typeof(lines) = 'array' and jsonb_array_length(lines) <= 40
+                                         and octet_length(lines::text) <= 16384),
   created_at       timestamptz not null default now(),
   primary key (trial_id, exchange_no)
 );
@@ -377,13 +378,14 @@ begin
   return true;
 end $$;
 
--- record_voice_exchange (arena_subject; D-016): stores one completed exchange of an open voice session for
--- display, numbered across the trial (the next number, at most 12), and in the same transaction applies
+-- record_voice_exchange (arena_subject; D-016, SG3-41): stores one completed exchange window of an open voice
+-- session for display (role-tagged lines in arrival order, each {role, text <= 900, partial}), numbered across
+-- the trial (the next number, at most 12), and in the same transaction applies
 -- the trial's due scheduled releases (arena._apply_releases counts stored voice exchanges), so the result
 -- tells arena-subject what to add to Live's context before it forwards more audio. Idempotent on
 -- (trial, exchange_no): the same content returns the stored result, other content is refused (AR003).
 create or replace function training.record_voice_exchange(p_voice_session uuid, p_exchange_no smallint,
-                                                          p_question text, p_answer text, p_partial boolean)
+                                                          p_lines jsonb)
 returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -400,8 +402,7 @@ begin
   v := arena._lock_trial(v.id);
   select * into v_x from training.voice_exchanges where trial_id = v.id and exchange_no = p_exchange_no;
   if found then
-    if (v_x.voice_session_id, v_x.question, v_x.answer, v_x.partial)
-       is distinct from (p_voice_session, p_question, p_answer, coalesce(p_partial, false)) then
+    if (v_x.voice_session_id, v_x.lines) is distinct from (p_voice_session, p_lines) then
       raise exception using errcode = 'AR003', message = 'exchange number reused with different content';
     end if;
     return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'exists', 'released', '[]'::jsonb);
@@ -414,8 +415,16 @@ begin
      ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint then
     raise exception using errcode = 'AR004', message = 'voice exchanges are stored in order, at most 12';
   end if;
-  insert into training.voice_exchanges (trial_id, exchange_no, voice_session_id, question, answer, partial)
-    values (v.id, p_exchange_no, p_voice_session, p_question, p_answer, coalesce(p_partial, false));
+  if jsonb_typeof(p_lines) is distinct from 'array'
+     or exists (select 1 from jsonb_array_elements(p_lines) l
+                 where jsonb_typeof(l) <> 'object' or coalesce(l ->> 'role', '') not in ('investigator', 'subject')
+                    or jsonb_typeof(l -> 'text') is distinct from 'string' or length(l ->> 'text') not between 1 and 900
+                    or jsonb_typeof(l -> 'partial') is distinct from 'boolean'
+                    or exists (select 1 from jsonb_object_keys(l) k where k not in ('role', 'text', 'partial'))) then
+    raise exception using errcode = 'AR007', message = 'lines are [{role, text, partial}]';
+  end if;
+  insert into training.voice_exchanges (trial_id, exchange_no, voice_session_id, lines)
+    values (v.id, p_exchange_no, p_voice_session, p_lines);
   v_rel := arena._apply_releases(v.id, '{}'::text[], null);
   return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'recorded',
     'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id', 'kind', e ->> 'kind')),
@@ -520,7 +529,7 @@ create view training.v_my_scores with (security_barrier = true) as
 -- The actor's published debriefs (D8). Publication happens only after the session ended.
 -- The actor's voice transcripts (D-016): display only, for the room after a reload and the debrief.
 create view training.v_my_voice_exchanges with (security_barrier = true) as
-  select x.trial_id, x.exchange_no, x.question, x.answer, x.partial, x.created_at
+  select x.trial_id, x.exchange_no, x.lines, x.created_at
     from training.voice_exchanges x join training.sessions s on s.trial_id = x.trial_id
    where s.user_id = arena.actor_id();
 
@@ -582,7 +591,7 @@ grant select on arena.v_dev_cases, training.v_my_sessions, training.v_my_scores,
 
 grant execute on function
   training.claim_voice_ticket(uuid, uuid, uuid, text),
-  training.record_voice_exchange(uuid, smallint, text, text, boolean)
+  training.record_voice_exchange(uuid, smallint, jsonb)
   to arena_subject;
 
 -- arena_referee: reads training rows; writes participants, case sets and scores
