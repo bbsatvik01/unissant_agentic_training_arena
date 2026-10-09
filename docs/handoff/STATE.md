@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## WP-08 merged (2026-10-09)
+- feat/wp08-scenario merged (cold Codex CORRECT after 2 rounds; db-test green via OrbStack). Engine: assembler byte-identical for F01-F09, V1-V5, MU-01..MU-42, sampler record checks, ingest bundle requiring the full V5 corpus, guardscan equal to S2 6.9 (test parses the spec). Case IDs and canaries random and recorded. Open for spec: rule F4 (material flag) not in V2; F01 r:02 f:08 and F02 r:02 f:05 are material:false.
+- Main now has: spec v2.7 GREEN, dev cases, scaffold+gates, web foundation, DB migrations+harness, scenario engine.
+- Next build queue: fold 0800 fixes into spec SQL; WP-02 contracts; WP-05 agent port + global guard client (cna-guardian, label app=unissant-arena); WP-10 prompts; WP-11 guard/relay/replay; WP-13 orchestrator + routes; WP-15 scorer; WP-18 part 2.
+
 ## WP-03 merged (2026-10-09)
 - feat/wp03-db merged (cold Codex CORRECT after 2 rounds). Migration 20261008000800_draft_fixes.sql carries 7 fixes to the v2.7 draft SQL (reservation rounding, same-key lock, purpose in identity, usage-report repeats, voice exchange retry release, voice quota recheck at open, exchange 13 AR004): fold into docs/spec/sql and S4. Test IDs CM-16..CM-21 to record in TESTS.md. Docker Desktop is hung; harness ran on OrbStack (DOCKER_CONTEXT=orbstack).
 - deps-policy fixed on main (579f327).
