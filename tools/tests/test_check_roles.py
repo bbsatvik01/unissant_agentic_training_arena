@@ -246,6 +246,12 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
         "from arena_core.contracts.events import NoticeFrame\n"
         "\n\nclass W(BaseModel):\n    f: \"dict[str, 'NoticeFrame']\"\n",
         'from arena_core.contracts import events\n\n\nclass W(BaseModel):\n    f: "events.NoticeFrame"\n',
+        # Unicode aliases, plain and nested, and a name Python reaches through NFKC normalization
+        "from arena_core.contracts.events import NoticeFrame as N\u00f8tice\n\n\n"
+        'class W(BaseModel):\n    f: "N\u00f8tice"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\u00f8tice\n\n\n"
+        "class W(BaseModel):\n    f: \"list['N\u00f8tice']\"\n",
+        'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "\uff2eoticeFrame"\n',
         # a field inside a block of the class body is still a field
         "from arena_core.contracts.events import NoticeFrame\n\n\n"
         "class W(BaseModel):\n    if FLAG:\n        f: NoticeFrame\n",

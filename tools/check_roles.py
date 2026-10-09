@@ -50,6 +50,7 @@ import argparse
 import ast
 import re
 import sys
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -103,7 +104,9 @@ LOADER_FUNCTIONS = frozenset({"import_module", "__import__"})
 DYNAMIC_RULE = "dynamic import machinery {what} in product code (S5 1.2 item 2: imports must be static)"
 STRING_RULE = "{package} names {module} in a string; a load-by-name API would import it (S5 1.2 item 2)"
 # A dotted (`a.b`) or colon (`a:attr`) module reference, optionally `ext://`-prefixed (logging.config).
-_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+# A Python identifier, Unicode included (a letter or underscore, then word characters); tokens are compared
+# after NFKC normalization, as Python itself normalizes identifiers when it resolves a string annotation.
+_IDENTIFIER = re.compile(r"[^\W\d]\w*")
 MODULE_REFERENCE = re.compile(r"(?:ext://)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|[A-Za-z_]\w*(?=:))(?::[\w.]+)?")
 
 
@@ -371,7 +374,8 @@ def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
     identifier in it (a string annotation such as `"NoticeFrame | None"` or `"list['N']"`, which Pydantic
     resolves, nested quotes included). Prose that names a frame model is flagged too: product code has no
     reason to spell one outside the projection."""
-    return sorted(set(_IDENTIFIER.findall(text)) & set(names))
+    tokens = {unicodedata.normalize("NFKC", t) for t in _IDENTIFIER.findall(unicodedata.normalize("NFKC", text))}
+    return sorted(tokens & set(names))
 
 
 def _imports_export(path: str, node: ast.AST) -> bool:
