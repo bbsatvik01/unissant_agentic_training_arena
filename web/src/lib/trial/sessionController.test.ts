@@ -1589,3 +1589,54 @@ describe("session controller: Codex round 7 regressions", () => {
 function h0(f: TrialFrame): unknown {
   return { ...f, data: { session_id: 7 } };
 }
+
+describe("session controller: Codex round 8 regression", () => {
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+
+  it.each([
+    [2, false],
+    [3, true],
+  ] as const)("a snapshot ending at a held card places its unseen release before the card (card at %i shown: %s)", async (version, shown) => {
+    const b = new LogBuilder().ask({ coach: "none" });
+    b.release("rec-02");
+    const [q, , answer, release] = b.frames;
+    const card = frame("coach.card", b.seq + 1, version, { turn_no: 1, card: cardFor(1, version) });
+    const covered = snapshot({
+      last_seq: card.seq ?? 0,
+      exchanges_used: 1,
+      turns: [turn1],
+      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, version) }],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    for (const f of [q, answer]) h.last().send(f);
+    h.last().send({ ...(release as TrialFrame), data: { ...(release as TrialFrame).data, title: 9 } });
+    h.last().send(card);
+    await flush();
+    expect(trialView(c).cards.length).toBe(shown ? 1 : 0);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: shown }]);
+  });
+
+  it("a snapshot ending at a held card places an unseen later question before it: the card is stale", async () => {
+    const b = new LogBuilder().ask({ coach: "none" });
+    const [q, , answer] = b.frames;
+    const card = frame("coach.card", 4, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const covered = snapshot({
+      last_seq: 4,
+      exchanges_used: 1,
+      turns: [turn1, { turn_no: 2, question: "Two?", source: "investigator", answer: null, partial: false, committed_at: null, answer_version: null }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    for (const f of [q, answer]) h.last().send(f);
+    h.last().raw("{lost question 2");
+    h.last().send(card);
+    await flush();
+    expect(trialView(c).cards).toEqual([]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+  });
+});

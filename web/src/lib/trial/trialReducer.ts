@@ -285,29 +285,44 @@ function byKey<T>(map: ReadonlyMap<number, T>): T[] {
 }
 
 /**
- * Snapshot rule for a card (see the header). When this client holds the card's own frame from the stream, the
- * frames it held before that card are its ordering evidence: a later turn's question, or a release after the
- * answer read at a newer version, makes it stale; read at that context version, it is current. Otherwise (or when
- * the card reads a version the held frames do not reach), it is current when read at its answer, or at a release
- * of the same exchange made after the answer.
+ * Snapshot rule for a card (see the header). When this client holds the card's own frame from the stream (seq S),
+ * the frames it held are ordering evidence: a later turn's question before S makes it stale, and its context
+ * version is the newest release after the answer known to precede S: a held release frame before S, or, when every
+ * seq from S to the snapshot's `last_seq` is held, any snapshot release not among those held after S (it can only
+ * be before S). Read at that context version it is current, below it stale. Otherwise (or when the card reads a
+ * version that evidence does not reach), it is current when read at its answer, or at a release of the same
+ * exchange made after the answer.
  */
 function snapshotCardCurrent(
   card: CoachCard,
   turns: ReadonlyMap<number, MutableTurn>,
-  released: readonly SnapshotRelease[],
+  snapshot: TrialSnapshot,
+  state: TrialState,
   held: readonly TrialFrame[],
 ): boolean {
+  const released = snapshot.released;
   const answerVersion = turns.get(card.turn_no)?.answerVersion ?? null;
   if (answerVersion === null) return false;
   const version = card.card.transcript_version;
   const own = held.find((f) => f.type === "coach.card" && f.data.turn_no === card.turn_no);
   if (own?.seq != null) {
-    const before = held.filter((f) => f.seq !== null && f.seq < (own.seq ?? 0));
+    const ownSeq = own.seq;
+    const before = held.filter((f) => f.seq !== null && f.seq < ownSeq);
     if (before.some((f) => f.type === "question.accepted" && f.data.turn_no > card.turn_no)) return false;
-    const context = Math.max(
-      answerVersion,
-      ...before.filter((f) => f.type === "evidence.released" && f.transcript_version > answerVersion).map((f) => f.transcript_version),
-    );
+    const versions = before.filter((f) => f.type === "evidence.released").map((f) => f.transcript_version);
+    let afterComplete = true;
+    for (let seq = ownSeq + 1; seq <= snapshot.last_seq; seq += 1) {
+      if (!state.log.has(seq) && !state.skippedSeqs.has(seq)) afterComplete = false;
+    }
+    if (afterComplete) {
+      const later = held.filter((f) => f.seq !== null && f.seq > ownSeq);
+      const releasedAfter = new Set(later.flatMap((f) => (f.type === "evidence.released" ? [f.data.record_id] : [])));
+      const askedAfter = new Set(later.flatMap((f) => (f.type === "question.accepted" ? [f.data.turn_no] : [])));
+      // A later turn's question the stream did not show after the card came before it.
+      if (snapshot.turns.some((t) => t.turn_no > card.turn_no && !askedAfter.has(t.turn_no))) return false;
+      versions.push(...released.filter((r) => !releasedAfter.has(r.record_id)).map((r) => r.transcript_version));
+    }
+    const context = Math.max(answerVersion, ...versions.filter((rv) => rv > answerVersion));
     if (version < context) return false;
     if (version === context) return true;
   }
@@ -333,7 +348,7 @@ function derive(state: TrialState): TrialState {
   const held = byKey(state.log);
   if (snapshotCoachingVisible(snapshot)) {
     for (const c of snapshot.cards) {
-      if (snapshotCardCurrent(c, turns, snapshot.released, held)) cards.set(c.turn_no, c);
+      if (snapshotCardCurrent(c, turns, snapshot, state, held)) cards.set(c.turn_no, c);
       else rejected.add(c.turn_no);
     }
     for (const u of snapshot.updates) updates.set(u.turn_no, u);
