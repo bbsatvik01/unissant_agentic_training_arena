@@ -4,6 +4,11 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## Latest (2026-10-09 ~01:45 EDT)
+- Spec fix round 1 complete (4/4 fixers; 109 dispositions in `docs/spec/review-codex-r1.md`); spec v2.3 committed (a3ca7e9, de3524d). LIMITS now byte-bounded per D11 (subject 80k, card/deep/final 128k, referee 160k bytes); conservative sim for 30 cases now 12/15 blocks (expected complete); direction 8.2 table updated; tuning deferred (D-013).
+- Codex spec round 2 running (bg `b9mnxieqt`, 4 sessions; outputs scratchpad `codex/spec2/`). Codex CLI is not a workflow (owner's no-new-workflow rule respected).
+- Still running: cases `waitahbsj`, wave 2 `w8o2onnit`, web `wyuftupho`.
+
 ## Owner directives 2026-10-09 ~01:20 EDT
 - D-015: GCP project `cna-guardian` for Vertex (API enabled, ADC present; billing status unreadable here). Pass it explicitly; never touch the gcloud default.
 - No new workflows until tomorrow's usage refresh; do not stop anything running. Only record results and commit finished work until then.
