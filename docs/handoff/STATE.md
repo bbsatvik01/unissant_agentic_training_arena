@@ -1,6 +1,6 @@
 # State
 
-- **Date:** 2026-10-08, ~21:45 EDT
+- **Date:** 2026-10-08, ~22:00 EDT
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
@@ -8,7 +8,7 @@
 - **Direction** `docs/research/synthesis/02-direction.md` v10.3: Codex GREEN at v10 (round 9); v10.3 re-costed training work and moved the local baseline to 24 hidden cases (~$47 expected / ~$71 conservative). Codex round 10 on v10.3: **YELLOW** (6 majors; `critique-round-10.md`): paid evaluation work promised in the spec is uncosted (~$22-38), and `budget_plan()` sizes leaves from settled spend while the SQL guard admits per leaf (generation 17/21, dev pilot 4/5, replay 23/24 when replayed).
 - **UI direction** `03-ui-direction.md` v2.1: **GREEN** (Codex UI round 2). Awaits owner review and DESIGN.md.
 - **Spec package** `docs/spec/`: v1 (a75b362) plus v2 reconciliation of S2-S8 and SQL (c293bec). Cross-check **RED** (`docs/spec/review-v2-crosscheck.md`): S1 not reconciled (its agent stopped without editing), 8 majors, 8 minors. Draft SQL applies on fresh Postgres 16 with smokes passing (S4 owner, port 55491 scratch cluster, stopped).
-- **Budget plan today** (`cost_model.py --plan-json`, 24 cases, local): global $74.00 = demo $10.55 + art $6.20 + training $6.19 + build $51.06 (experiments 6.96, generation 9.92, dev_pilot 8.07, replay 4.64, interactive 21.47). Ceilings, not spend.
+- **Spend guard (D-013):** one global ceiling, $74.00 local (`cost_model.py --plan-json`), seeded at $0 until applied. Reference usage for 24 cases: ~$47 expected / ~$71 conservative (`simulate_d009`). Per-phase buckets and per-test cost lines deferred.
 
 ## Owner directive (2026-10-08 ~21:50, D-013)
 - Build the pipeline end to end first; cost tuning later; one global $74 ceiling keeps the $75 cap; keep it simple; get Codex to GREEN on the spec.
