@@ -484,7 +484,24 @@ class _BoundedSession:
         self._stalled = True
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
-        return await self._run(self._session.reserve(req))
+        """A reservation that completes while the call is being cancelled is not lost: a hold this call just made
+        (never dispatched) is released, bounded, before the cancellation propagates (S5 3.2 lifecycle)."""
+        made: list[Reservation] = []
+
+        async def reserve_and_keep() -> Reservation:
+            found = await self._session.reserve(req)
+            made.append(found)
+            return found
+
+        try:
+            return await self._run(reserve_and_keep())
+        except asyncio.CancelledError as cancelled:
+            if made and not made[0].existed and not self._stalled:
+                try:
+                    await self._run(self._session.settle(made[0].id, "released"))
+                except LEDGER_FAILURES as release_failed:
+                    cancelled.add_note(f"hold {made[0].id} not released: {type(release_failed).__name__}")
+            raise
 
     async def dispatch(self, reservation_id: UUID) -> None:
         await self._run(self._session.dispatch(reservation_id))

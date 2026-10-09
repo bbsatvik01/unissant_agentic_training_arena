@@ -172,5 +172,7 @@ class RunBudget:
             raise GuardProtocolError(msg)
         spent = sum(receipts, Decimal(0))
         amount = {"released": Decimal(0), "usage_unknown": max(held.reserved_usd, spent), "committed": spent}[outcome]
-        held.state, held.settled_usd = outcome, amount
+        # S4 _settle: usage_unknown whose receipts exceed the hold is committed at the receipts.
+        state = "committed" if outcome == "usage_unknown" and amount > held.reserved_usd else outcome
+        held.state, held.settled_usd = state, amount
         return amount

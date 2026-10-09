@@ -162,3 +162,14 @@ def test_a_unit_s_high_cost_matches_s5_4_5_and_rounds_up() -> None:
     assert exact <= got < exact + Decimal("0.000001")
     assert rates.unit_high_cost([]) == Decimal(0)
     assert rates.call_high_cost(rates.ModeledCall(VertexModel.FLASH_LITE_31, 0, 0, "LOW")) == Decimal("0.0015")
+
+
+def test_usage_unknown_with_receipts_above_the_hold_settles_committed_at_the_receipts() -> None:
+    budget = RunBudget(Decimal(10))
+    held = run(budget.reserve(req()))
+    run(budget.dispatch(held.id))
+    run(budget.record(usage(held.id, tokens=1_000_000)))  # an overrun receipt
+    settled = run(budget.settle(held.id, "usage_unknown"))
+    state = budget.reservations[held.id]
+    assert settled > held.reserved_usd
+    assert (state.state, state.settled_usd, budget.liability()) == ("committed", settled, settled)

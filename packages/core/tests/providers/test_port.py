@@ -1155,3 +1155,37 @@ def test_a_caller_cancellation_that_meets_an_abandoned_write_never_reuses_the_se
     assert [op for op, _ in budget.ops] == ["reserve", "dispatch"]  # no settlement on the abandoned session
     [held] = budget.reservations.values()
     assert held.state == "reserved"
+
+
+class CancelledWhileReserving(RunBudget):
+    """The reservation commits, and the caller is cancelled before it sees the answer."""
+
+    reserved_event: asyncio.Event | None = None
+
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        found = await super().reserve(req)
+        if self.reserved_event is not None:
+            self.reserved_event.set()
+        await asyncio.sleep(0.05)
+        return found
+
+
+def test_a_cancellation_during_reservation_releases_the_fresh_hold_and_a_retry_succeeds() -> None:
+    budget = CancelledWhileReserving(CEILING)
+    call = card()
+    agent = AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep))
+
+    async def cancel_while_reserving() -> None:
+        budget.reserved_event = asyncio.Event()
+        task = asyncio.create_task(agent.run(call))
+        await budget.reserved_event.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(cancel_while_reserving())
+    [held] = budget.reservations.values()
+    assert (held.state, budget.liability()) == ("released", Decimal(0))
+    budget.reserved_event = None
+    retry = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(call))
+    assert budget.reservations[retry.reservation_id].key.endswith(":2")
