@@ -76,3 +76,11 @@
 - **Reasoning:** owner directive this session ("do not worry about hosting on gcp, do it all locally only first").
 - **Effect:** under D-009 only Vertex model and voice calls bill GCP, all reserved by the guard; the non-model allowance drops to a $1 margin; the plan grows to 30 hidden cases (~$43 expected / ~$66 conservative, complete in both), 34 pilot-gated. Credential boundaries stay: subject and referee run as separate local processes with separate database roles.
 - **Reversibility:** cheap; the hosted design in direction sections 4, 5.6 and 8.3 remains the plan if hosting returns.
+
+## 2026-10-08 · D-012 Budget ceilings are generated and applied, never typed; buckets start at $0
+- **Decision:** the SQL migrations create the spend-guard bucket tree with $0 ceilings (fail-closed); the operator applies `cost_model.budget_plan()` (printed by `cost_model.py --plan-json`) through `ops.set_bucket_ceiling`, and a test asserts the applied ceilings equal that output. Local tree: global $74.00 with children demo, art, training and build (leaves experiments, generation, dev_pilot, replay, interactive).
+- **Reasoning:** the spec drafts typed $60.00 / $12.43 / $47.57 from direction v10, which were stale within hours (D-011, UI art cap, training costs). Generated-and-applied removes the duplicated numbers; fail-closed means a missing plan stops spend instead of running on stale ceilings. Simpler than S8 C-01's generated migration (`--emit-sql`), which would make migrations a build artifact.
+- **Alternatives:** typed seeds (rejected: drift, LESSONS 2026-10-08); generated SQL at migration build time (rejected: extra build step, migrations no longer static).
+- **Plan baseline (recommendation, owner decision OD-8):** 24 hidden cases, 30 if the dev pilot tracks the expected column (direction v10.3).
+- **Files affected:** `docs/research/synthesis/cost_model.py`, `docs/spec/README.md`, `docs/spec/sql/0006_ops_budget_traces.sql` (in reconciliation), S4, S5, S8.
+- **Reversibility:** cheap.

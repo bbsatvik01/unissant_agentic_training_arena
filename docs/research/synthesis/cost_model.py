@@ -441,6 +441,13 @@ LIVE_PROBE = (30, 0.05)                                            # day-1 probe
 PROBE_RESERVATION = voice_session_reservation(exchanges=2, audio_seconds=60)
 VOICE_SESSIONS = 8                                                 # 4 for development testing, 4 for judges and the demo
 TEXT_SESSIONS = 40
+# Training and KPI-1 (spec S3 6.1 and OQ-1, S8 C-15 and C-43): every scored training session gets R3, which is
+# the two referee calls (REFEREE_D009) run in investigator mode. KPI-1: up to 10 volunteers x (4 assessment-mode
+# test sessions + 3 practice sessions), each a full 12-exchange session (subject + card calls; cards are still
+# produced in assessment mode for the debrief), plus R3 on each; calibration scores 20 transcripts with R3.
+# KPI-1 needs 4 more development families than the dev pilot (S1 OQ-9): generated, never run as dev blocks.
+TRAINING = {"volunteers": 10, "sessions_each": 7, "calibration_transcripts": 20}
+KPI1_EXTRA_DEV_FAMILIES = 4
 # Character art (UI direction 03, UI-06): capped at 62 images = 12 characters x (1 sheet + 3 variants) + 30%
 # retries; drafts on Nano Banana 2.1 ($0.0336 per 1K image), finals on Gemini 3 Pro Image ($0.134 per 1K-2K
 # image, C2PA supported). Expected average ~$0.07; high assumes finals and retries at the Pro price, $0.10.
@@ -476,8 +483,21 @@ NON_MODEL_ALLOWANCE_LOCAL = 1.0
 NON_MODEL = {k: (q * r * f, q * r) for k, (q, _, r, f) in NON_MODEL_CAPS.items()}   # (expected, enforced bound)
 
 
+def r3(high: bool) -> float:
+    return sum(liab_cost(c, high) for c in REFEREE_D009)
+
+
+def session_text(high: bool) -> float:
+    return EXCHANGES * (liab_cost(CARD_SINGLE_35, high) + liab_cost(LINEUPS["d009"].subjects["S2"], high)) + r3(high)
+
+
+def training_bucket(high: bool) -> float:
+    sessions = TRAINING["volunteers"] * TRAINING["sessions_each"]
+    return (sessions * session_text(high) + TRAINING["calibration_transcripts"] * r3(high)) * RETRY_FACTOR
+
+
 def demo_bucket(high: bool) -> dict[str, float]:
-    text = TEXT_SESSIONS * EXCHANGES * (liab_cost(CARD_SINGLE_35, high) + liab_cost(LINEUPS["d009"].subjects["S2"], high))
+    text = TEXT_SESSIONS * session_text(high)
     voice = VOICE_SESSIONS * voice_session_cost(high)
     portraits = PORTRAITS[0] * (PORTRAITS[2] if high else PORTRAITS[1])
     return {"text": text * RETRY_FACTOR, "voice": voice, "portraits": portraits}
@@ -505,7 +525,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
     """
     lu = LINEUPS["d009"]
     allowance = NON_MODEL_ALLOWANCE_LOCAL if HOSTING == "local" else NON_MODEL_ALLOWANCE
-    avail = cap - allowance - demo_ceiling()
+    avail = cap - allowance - demo_ceiling() - training_bucket(True)
     spent = 0.0
     report = {"truncated": None}
     phase_spend: dict[str, float] = {}
@@ -532,8 +552,9 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
         phase_spend["experiments"] = phase_spend.get("experiments", 0.0) + (LIVE_PROBE[1] if not high else PROBE_RESERVATION)
     counts["experiments"] = int(ok)
     gens = 0
-    for i in range(dev_cases // 2 + sealed_cases // 2):
-        fam = family_generation_calls(lu, hidden=i >= dev_cases // 2)
+    dev_families = dev_cases // 2 + KPI1_EXTRA_DEV_FAMILIES
+    for i in range(dev_families + sealed_cases // 2):
+        fam = family_generation_calls(lu, hidden=i >= dev_families)
         if not (ok and run("generation", fam, fam)):
             ok = False
             break
@@ -561,7 +582,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
                 break
             done += 1
         counts[key] = (done, n)
-    demo = sum(demo_bucket(high).values())
+    demo = sum(demo_bucket(high).values()) + training_bucket(high)
     non_model = (0.0 if not high else NON_MODEL_ALLOWANCE_LOCAL) if HOSTING == "local" else \
         sum((h if high else e) for e, h in NON_MODEL.values())
     return {**counts, "model_spend": spent, "demo": demo, "non_model": non_model,
@@ -569,36 +590,49 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
 
 
 CAP = 75.0
-BUILD_PHASES = ("experiments", "generation", "dev_blocks", "replay", "interactive")
+BUILD_PHASES = ("experiments", "generation", "dev_pilot", "replay", "interactive")
 
 
-def budget_plan(sealed_cases: int = 30, dev_cases: int = 10, hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:
+PLAN = {"sealed": 24, "dev": 10}   # baseline that completes at conservative usage; 30 if the dev pilot tracks expected
+
+
+def budget_plan(sealed_cases: int = PLAN["sealed"], dev_cases: int = PLAN["dev"],
+                hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:
     """Spend-guard bucket tree {name: (parent, ceiling $)} applied by the operator (S4 ops.set_bucket_ceiling).
 
-    The SQL migrations seed no budget figure (the global row opens at $0, so nothing can spend until this plan
-    is applied); every ceiling comes from here. global = CAP - the non-model allowance for the hosting mode.
-    Leaves are the conservative simulation's phase spend rounded up to the cent; the art leaf is the
-    character-art sub-budget; the interactive leaf takes the remainder of build. Raises if the plan does not fit.
+    The SQL migrations seed the bucket tree with $0 ceilings (fail-closed: nothing can spend until this plan is
+    applied, D-012); every ceiling comes from here. global = CAP - the non-model allowance for the hosting mode.
+    Under global: demo (text and voice, plus one in-flight voice reservation), art (character-art sub-budget),
+    training (KPI-1 sessions and calibration with R3), and build. Build leaves are the conservative simulation's
+    phase spend rounded up to the cent; the interactive leaf takes the remainder. Raises if the plan does not fit.
     """
     import math
     up = lambda x: math.ceil(x * 100 - 1e-9) / 100
     allowance = NON_MODEL_ALLOWANCE_LOCAL if hosting == "local" else NON_MODEL_ALLOWANCE
     glob = CAP - allowance
     art = up(PORTRAITS[0] * PORTRAITS[2])
-    demo = up(demo_ceiling() - PORTRAITS[0] * PORTRAITS[2])        # text + voice + one in-flight voice reservation
+    demo = up(demo_ceiling() - PORTRAITS[0] * PORTRAITS[2])
+    training = up(training_bucket(True))
     r = simulate_d009(sealed_cases, dev_cases, True)
     ph = r["phase_spend"]
     leaves = {"experiments": up(ph.get("experiments", 0)), "generation": up(ph.get("generation", 0)),
-              "dev_blocks": up(ph.get("dev_blocks", 0)),
+              "dev_pilot": up(ph.get("dev_blocks", 0)),
               "replay": up(ph.get("replay_corpus", 0) + ph.get("replay_transcripts", 0))}
-    build = round(glob - demo - art, 2)
+    build = round(glob - demo - art - training, 2)
     leaves["interactive"] = round(build - sum(leaves.values()), 2)
-    if leaves["interactive"] < up(ph.get("interactive_blocks", 0)) or r["truncated"]:
-        raise ValueError(f"{sealed_cases} cases do not fit the {hosting} plan at conservative usage")
-    plan = {"global": (None, glob), "demo": ("global", demo), "art": ("global", art), "build": ("global", build)}
+    if r["truncated"] or r["interactive_blocks"][0] < r["interactive_blocks"][1] \
+            or leaves["interactive"] < up(ph.get("interactive_blocks", 0)):
+        raise ValueError(f"{sealed_cases} cases do not complete under the {hosting} plan at conservative usage")
+    plan = {"global": (None, glob), "demo": ("global", demo), "art": ("global", art),
+            "training": ("global", training), "build": ("global", build)}
     plan.update({k: ("build", v) for k, v in leaves.items()})
     return plan
 
+
+if __name__ == "__main__" and "--plan-json" in __import__("sys").argv:
+    import json
+    print(json.dumps({k: {"parent": par, "ceiling_usd": v} for k, (par, v) in budget_plan().items()}, indent=2))
+    raise SystemExit(0)
 
 if __name__ == "__main__":
     print(f"\nD-009 (total GCP hard cap $75, target $50), hosting={HOSTING}, lineup d009, liability rates:")
@@ -610,12 +644,13 @@ if __name__ == "__main__":
           f"probe reservation ${PROBE_RESERVATION:.2f} x {LIVE_PROBE[0]}")
     print(f"  demo ceiling set aside ${demo_ceiling():.2f}; non-model estimate expected "
           f"${sum(e for e, _ in NON_MODEL.values()):.2f}, itemized high ${sum(h for _, h in NON_MODEL.values()):.2f}, "
-          f"allowance set aside ${NON_MODEL_ALLOWANCE:.2f}")
+          f"allowance set aside ${NON_MODEL_ALLOWANCE_LOCAL if HOSTING == 'local' else NON_MODEL_ALLOWANCE:.2f} "
+          f"({HOSTING}; hosted allowance ${NON_MODEL_ALLOWANCE:.2f})")
     assert voice_session_cost(True) <= VOICE_SHUTOFF, "a conservative voice session must finish before the shutoff"
     conservative_seconds = VOICE["exchanges"] * (VOICE["in_s"] + VOICE["out_s"]) * 1.5
     assert conservative_seconds <= VOICE_LIMITS["audio_seconds"], "the conservative session must fit the audio limit"
     print(f"  conservative reference session audio: {conservative_seconds:.0f} s of {VOICE_LIMITS['audio_seconds']} s allowed")
-    for sealed in (20, 26, 30, 34, 40):
+    for sealed in (20, 24, 26, 30, 34):
         for high in (False, True):
             r = simulate_d009(sealed, 10, high)
             tag = "high" if high else "expected"
@@ -629,12 +664,19 @@ if __name__ == "__main__":
     kids = lambda p: round(sum(v for k, (par, v) in plan.items() if par == p), 2)
     assert kids("global") <= plan["global"][1] and kids("build") <= plan["build"][1]
     assert plan["global"][1] + NON_MODEL_ALLOWANCE_LOCAL == CAP
-    print(f"\n  budget plan (30 sealed + 10 dev cases, hosting={HOSTING}); operator applies it, SQL seeds none:")
+    print(f"\n  budget plan ({PLAN['sealed']} sealed + {PLAN['dev']} dev cases, hosting={HOSTING}); operator applies it, "
+          f"SQL seeds $0 ceilings:")
     for k, (par, v) in plan.items():
         print(f"    {k:<12} parent {str(par):<7} ${v:6.2f}")
+    for n in (26, 28, 30):
+        try:
+            budget_plan(sealed_cases=n)
+            print(f"  {n} cases: completes at conservative usage")
+        except ValueError as e:
+            print(f"  {n} cases: {e} (the guard truncates; it never overshoots)")
     try:
         budget_plan(hosting="hosted")
-        print("  hosted from day 1: the 30-case plan fits")
+        print(f"  hosted from day 1: the {PLAN['sealed']}-case plan fits")
     except ValueError as e:
         print(f"  hosted from day 1: {e}; hosting later is affordable only if committed liability at the switch "
               f"leaves the remaining work under ${CAP - NON_MODEL_ALLOWANCE:.2f}")

@@ -28,3 +28,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** GCP has no project-wide spend cap and billing metrics lag, so no in-app mechanism can hard-bound Cloud Run, logging or egress; each attempt overclaimed.
 - **Fix:** claim hard caps only where they are real (model and voice reservations); minimize non-model costs by design, give them an allowance with margin, and backstop with alerts and an automated billing-disable.
 - **Prevention pattern:** before engineering a guarantee, check whether the platform can provide it at all; when it cannot, state the residual risk and size a margin instead.
+
+### 2026-10-08 · Promised work was left out of the cost model until the spec package found it
+- **Symptom:** direction v10.2 claimed 30 hidden cases complete at ~$46 / ~$70. The spec package (S3 OQ-1, S1 OQ-9, S8 C-15 and C-43) found R3 investigator scoring, KPI-1 sessions, calibration scoring and four KPI-1 development families uncosted. With them, 30 cases is ~$52 expected and stops at 11 of 15 interactive blocks in the conservative case.
+- **Root cause:** the cost model was built from the bake-off's call lists; training-side promises (KPI-1, EVL-7 debriefs, calibration) lived in prose and never became call lists. Same rule as critique round 2 F01 ("every promised experiment is costed"), broken on the training side.
+- **Fix:** `cost_model.py` adds `r3()`, `session_text()`, `training_bucket()`, `KPI1_EXTRA_DEV_FAMILIES` and a `training` bucket in `budget_plan()`; direction v10.3 re-plans to 24 hidden cases (complete in both, ~$47 / ~$71), 30 pilot-gated.
+- **Prevention pattern:** every requirement that implies a model call (each KPI, debrief, calibration, validation pass) maps to a named call list in `cost_model.py`; spec reviews check that every call type in the spec appears there (S8 C-15 is the template).
