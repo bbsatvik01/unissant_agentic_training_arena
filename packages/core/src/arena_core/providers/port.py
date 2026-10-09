@@ -165,22 +165,24 @@ class AgentPort:
             raise InputTooLargeError(msg, request_bytes=reserved_bytes, limit_bytes=limits.input_bytes)
         plan = _Plan(call, limits, json_schema, reserved_bytes)
         started = self._opts.clock()
+        # S2 2: the deadline bounds the whole call, from here to the last attempt.
+        deadline = started + (call.deadline_s or DEFAULT_TIMING[call.context.call_type].deadline_s)
         async with self._guard.session() as guard:
-            # The step is this call's for the session's lifetime (it ends with the connection, so a dead process's
-            # step is free): only the holder may recover a reservation the step left dispatched (S5 5.1).
+            # The step is this call's until the session ends (a dead process's hold ends with its connection): only
+            # the holder may recover a reservation the step left dispatched (S5 5.1).
             if not await guard.claim(call.context.step_key):
                 msg = f"step {call.context.step_key!r} is held by another live call; nothing reserved or sent"
                 raise StepInProgressError(msg)
             reservation = await self._reserve(guard, call, reserved_bytes)
             try:
-                await guard.dispatch(reservation.id)
+                await self._dispatch(guard, reservation, deadline)
             except BaseException:
-                # Nothing was sent: the hold is released (the kill switch, or a dispatch the guard refused).
+                # Nothing was sent: the hold is released (the deadline, the kill switch, or a refused dispatch).
                 await guard.settle(reservation.id, "released")
                 raise
             run = _Run()
             try:
-                value = await self._attempts(_Live(guard, reservation, run), plan, started)
+                value = await self._attempts(_Live(guard, reservation, run), plan, deadline)
             except BaseException as exc:
                 await self._settle_failed(guard, reservation, run, exc)
                 raise
@@ -223,6 +225,13 @@ class AgentPort:
         msg = f"step {ctx.step_key!r} used all {MAX_KEY_ROUNDS} reservation keys"
         raise ProviderFailedError(msg)
 
+    async def _dispatch(self, guard: GuardSession, reservation: Reservation, deadline: float) -> None:
+        """`ops.mark_dispatched`, unless the deadline already passed while the reservation was made."""
+        if self._opts.clock() >= deadline:
+            msg = "call deadline reached before dispatch; nothing sent"
+            raise ProviderFailedError(msg)
+        await guard.dispatch(reservation.id)
+
     async def _settle_failed(
         self, guard: GuardSession, reservation: Reservation, run: _Run, exc: BaseException
     ) -> None:
@@ -238,11 +247,9 @@ class AgentPort:
             exc.add_note(f"settlement of reservation {reservation.id} failed: {type(settle_exc).__name__}")
 
     # ------------------------------------------------------------------ attempts
-    async def _attempts[T: BaseModel](self, live: _Live, plan: _Plan[T], started: float) -> T:
+    async def _attempts[T: BaseModel](self, live: _Live, plan: _Plan[T], deadline: float) -> T:
         call, opts, run = plan.call, self._opts, live.run
-        timing = DEFAULT_TIMING[call.context.call_type]  # S2 2, when the call sets none
-        timeout = call.timeout_s or timing.attempt_timeout_s
-        deadline = started + (call.deadline_s or timing.deadline_s)
+        timeout = call.timeout_s or DEFAULT_TIMING[call.context.call_type].attempt_timeout_s  # S2 2 when unset
         request = plan.request(call.messages, attempt=1)
         repairs = transient_retries = 0
         failure: _Failure | None = None

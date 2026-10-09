@@ -12,7 +12,7 @@ from typing import Any
 
 from arena_core.providers.errors import PolicyRefusedError
 from arena_core.providers.types import AgentCall, DataClass, Message
-from arena_core.spend.limits import LIMITS, PURPOSES, CallLimits, CallType
+from arena_core.spend.limits import LIMITS, PURPOSES, THINKING, CallLimits, CallType
 
 MESSAGE_ROLES = frozenset({"user", "model"})
 # A subject call carries the private packet; referee calls carry evaluator data; everything else is public.
@@ -32,6 +32,9 @@ def check_call_policy(call: AgentCall[Any], roster_manifest_shas: frozenset[str]
     limits = LIMITS[ctx.call_type]
     if call.model not in limits.models:
         msg = f"model {call.model.value} is not allowed for call type {ctx.call_type.value}"
+        raise PolicyRefusedError(msg)
+    if call.thinking not in THINKING[ctx.call_type]:
+        msg = f"thinking level {call.thinking.value} is not allowed for call type {ctx.call_type.value}"
         raise PolicyRefusedError(msg)
     if ctx.purpose not in PURPOSES[ctx.call_type]:
         msg = f"purpose {ctx.purpose!r} is not a {ctx.call_type.value} purpose"

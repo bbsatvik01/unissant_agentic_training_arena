@@ -13,7 +13,7 @@ token counts; the database prices both, reads the kill switch and enforces the c
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol
@@ -80,15 +80,15 @@ class SpendGuard(Protocol):
 
 
 class _DbSession:
-    def __init__(self, conn: calls.Conn) -> None:
+    def __init__(self, conn: calls.Conn, connect: Connector, holds: AsyncExitStack) -> None:
         self._conn = conn
-        self.claimed: list[str] = []
+        self._connect = connect
+        self._holds = holds
 
     async def claim(self, step_key: str) -> bool:
-        held = await calls.claim_step(self._conn, step_key)
-        if held:
-            self.claimed.append(step_key)
-        return held
+        """Hold the step on a dedicated connection whose transaction stays open until the session ends."""
+        hold = await self._holds.enter_async_context(self._connect())
+        return await calls.hold_step(hold, step_key)
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         return reservation_from(await calls.reserve_model_call(self._conn, req))
@@ -120,14 +120,10 @@ class DbSpendGuard:
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
-        async with self._connect() as conn:
-            session = _DbSession(conn)
-            try:
-                yield session
-            finally:
-                # Closing the connection releases every step too; releasing first keeps a pooled connection clean.
-                for step_key in session.claimed:
-                    await calls.release_step(conn, step_key)
+        # Step holds close last (the stack unwinds after the work connection): a hold's open transaction ends only
+        # once the call has settled. Closing a connection with an open transaction rolls it back.
+        async with AsyncExitStack() as holds, self._connect() as conn:
+            yield _DbSession(conn, self._connect, holds)
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()

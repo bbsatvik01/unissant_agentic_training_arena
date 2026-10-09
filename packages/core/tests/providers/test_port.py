@@ -836,3 +836,47 @@ def test_a_truncated_reply_s_visible_text_is_echoed_by_the_repair() -> None:
         Message("model", truncated.reply_text),
         Message("user", TRUNCATED_NOTE),
     )
+
+
+# ---------------------------------------------------------------- Codex round 3: deadline before dispatch, thinking
+
+
+class SlowReserve(RunBudget):
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        await asyncio.sleep(0.1)
+        return await super().reserve(req)
+
+
+def test_a_deadline_that_passes_while_reserving_releases_the_hold_and_sends_nothing() -> None:
+    adapter = FakeAdapter(script=[VALID])
+    budget = SlowReserve(CEILING)
+    agent = AgentPort(adapter, budget, PortOptions(sleep=no_sleep))
+    with pytest.raises(ProviderFailedError, match="before dispatch"):
+        run(agent.run(dataclasses.replace(card(), deadline_s=0.02)))
+    [held] = budget.reservations.values()
+    assert (held.state, held.dispatched, adapter.requests) == ("released", False, [])
+
+
+@pytest.mark.parametrize(
+    ("call_type", "purpose", "data_class", "thinking", "allowed"),
+    [
+        (CallType.CARD, "coach.card", "public", ThinkingLevel.HIGH, False),
+        (CallType.SUBJECT, "subject.answer", "subject_private", ThinkingLevel.LOW, False),
+        (CallType.REFEREE, "referee_subject", "evaluator", ThinkingLevel.LOW, True),
+        (CallType.REFEREE, "referee_assistant", "evaluator", ThinkingLevel.MINIMAL, True),
+        (CallType.REFEREE, "referee_subject", "evaluator", ThinkingLevel.HIGH, False),
+    ],
+)
+def test_thinking_levels_follow_the_call_type(
+    call_type: CallType, purpose: str, data_class: DataClass, thinking: ThinkingLevel, allowed: bool
+) -> None:
+    adapter = FakeAdapter(script=[VALID])
+    agent, budget = port(adapter)
+    context = CallContext(call_type=call_type, purpose=purpose, step_key=f"s:{uuid4()}", data_class=data_class)
+    call = dataclasses.replace(card(), thinking=thinking, context=context)
+    if allowed:
+        assert run(agent.run(call)).attempts == 1
+    else:
+        with pytest.raises(PolicyRefusedError, match="thinking"):
+            run(agent.run(call))
+        assert budget.ops == []

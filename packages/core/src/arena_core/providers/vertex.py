@@ -180,6 +180,11 @@ class VertexAdapter:
             raise ProviderCallError(
                 ErrorKind.TRANSIENT, f"transport error: {type(exc).__name__}", maybe_billed=not never_sent
             ) from exc
+        except ValueError as exc:
+            # The SDK could not decode or validate the response envelope (JSON or pydantic errors are ValueErrors): the
+            # request was sent and may have been billed, and no usage is readable. Typed, sanitized, retried.
+            msg = f"malformed response: {type(exc).__name__}"
+            raise ProviderCallError(ErrorKind.TRANSIENT, msg, maybe_billed=True) from exc
         return parse_response(resp)
 
 

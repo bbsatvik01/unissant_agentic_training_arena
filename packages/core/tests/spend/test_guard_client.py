@@ -290,8 +290,9 @@ def test_dsn_connector_opens_read_committed_and_always_closes(monkeypatch: pytes
         async def close(self) -> None:
             events.append("closed")
 
-    async def connect(dsn: str) -> FakeConnection:
+    async def connect(dsn: str, *, prepare_threshold: object) -> FakeConnection:
         events.append(dsn)
+        events.append(("prepare_threshold", prepare_threshold))
         return FakeConnection()
 
     monkeypatch.setattr(psycopg.AsyncConnection, "connect", connect)
@@ -302,7 +303,12 @@ def test_dsn_connector_opens_read_committed_and_always_closes(monkeypatch: pytes
 
     with pytest.raises(RuntimeError):
         run(use())
-    assert events == ["postgresql://role@127.0.0.1:1/db", psycopg.IsolationLevel.READ_COMMITTED, "closed"]
+    assert events == [
+        "postgresql://role@127.0.0.1:1/db",
+        ("prepare_threshold", None),  # S4 2.2: no prepared statements through the transaction-mode pooler
+        psycopg.IsolationLevel.READ_COMMITTED,
+        "closed",
+    ]
 
 
 # ---------------------------------------------------------------- the budget plan step (S5 4.4)
@@ -399,23 +405,40 @@ def test_main_reports_a_broken_plan(capsys: pytest.CaptureFixture[str]) -> None:
     assert "exited 1" in capsys.readouterr().err
 
 
-def test_a_step_is_claimed_for_the_session_and_released_when_it_ends() -> None:
-    fake = Conn({"pg_try_advisory_lock": [(True,)], "pg_advisory_unlock": [(True,)]})
-    guard = guard_over(fake)
+def counting_guard(fake: Conn) -> tuple[DbSpendGuard, list[str]]:
+    events: list[str] = []
+
+    @asynccontextmanager
+    async def connect() -> AsyncIterator[Any]:
+        number = sum(e.startswith("open") for e in events) + 1
+        events.append(f"open{number}")
+        try:
+            yield fake
+        finally:
+            events.append(f"close{number}")
+
+    return DbSpendGuard(connect), events
+
+
+def test_a_step_is_held_on_its_own_connection_until_the_session_ends() -> None:
+    fake = Conn({"pg_try_advisory_xact_lock": [(True,)]})
+    guard, events = counting_guard(fake)
 
     async def claim() -> object:
         async with guard.session() as session:
-            return await session.claim("step-key-1")
+            held = await session.claim("step-key-1")
+            events.append("work")
+            return held
 
     assert run(claim()) is True
-    sent = [(q.split("(")[0].split()[-1], p) for q, p in fake.executed]
-    assert sent == [
-        ("pg_try_advisory_lock", ("arena.step:step-key-1",)),
-        ("pg_advisory_unlock", ("arena.step:step-key-1",)),
-    ]
+    # the work connection (1) opens first; the hold (2) opens on claim and closes last, after the call has settled
+    assert events == ["open1", "open2", "work", "close1", "close2"]
+    [(query, params)] = fake.executed
+    assert "pg_try_advisory_xact_lock" in query
+    assert params == ("arena.step:step-key-1",)
+    assert fake.transactions == 0  # the hold's transaction is left open, never committed
 
 
-def test_a_step_held_elsewhere_is_not_claimed_and_not_released() -> None:
-    fake = Conn({"pg_try_advisory_lock": [(False,)]})
+def test_a_step_held_elsewhere_is_not_claimed() -> None:
+    fake = Conn({"pg_try_advisory_xact_lock": [(False,)]})
     assert run(in_session(guard_over(fake), "claim", "step-key-2")) is False
-    assert [q for q, _ in fake.executed if "unlock" in q] == []

@@ -86,6 +86,13 @@ DEFAULT_TIMING: dict[CallType, CallTiming] = {
     CallType.PORTRAIT: CallTiming(60.0, 120.0),
 }
 
+# S5 3.3 / S2 1, 2: thinking is MINIMAL on every call type except the referee, whose rows use LOW (R1, r3_subject)
+# or MINIMAL (R2, r3_investigator).
+THINKING: dict[CallType, frozenset[ThinkingLevel]] = {
+    **{t: frozenset({ThinkingLevel.MINIMAL}) for t in CallType},
+    CallType.REFEREE: frozenset({ThinkingLevel.LOW, ThinkingLevel.MINIMAL}),
+}
+
 # S5 3.3 / S2 2: the fixed purpose labels per call type. S4 accepts exactly the four referee labels on `referee`.
 REFEREE_PURPOSES: frozenset[str] = frozenset({"referee_subject", "referee_assistant", "r3_subject", "r3_investigator"})
 PURPOSES: dict[CallType, frozenset[str]] = {

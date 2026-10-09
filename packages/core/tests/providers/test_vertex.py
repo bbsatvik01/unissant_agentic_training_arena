@@ -317,3 +317,27 @@ def test_a_cut_off_reply_keeps_its_visible_text_for_the_repair() -> None:
     err = call_error(response(text='{"a": "partial', finish=gtypes.FinishReason.MAX_TOKENS))
     assert err.reply_text == '{"a": "partial'
     assert call_error(response(text="blocked part", finish=gtypes.FinishReason.SAFETY)).reply_text == "blocked part"
+
+
+def adapter_over(content: bytes, status: int = 200) -> vertex.VertexAdapter:
+    """The real SDK client on an in-memory transport that answers every request with ``content``."""
+
+    def handler(_sent: SentRequest) -> object:
+        return httpx.Response(status, content=content, headers={"content-type": "application/json"})
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    return vertex.VertexAdapter(
+        vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    )
+
+
+@pytest.mark.parametrize(
+    "content",
+    [b"not json at all", b'{"candidates": "not a list"}', b'{"usageMetadata": {"promptTokenCount": "x"}}'],
+    ids=["not-json", "bad-candidates", "bad-usage"],
+)
+def test_a_malformed_200_response_is_a_typed_transient_failure_that_may_have_been_billed(content: bytes) -> None:
+    with pytest.raises(ProviderCallError) as failed:
+        run(adapter_over(content).generate(request(), timeout_s=TIMEOUT_S))
+    assert (failed.value.kind, failed.value.maybe_billed, failed.value.usage) == (ErrorKind.TRANSIENT, True, None)
+    assert "malformed response" in failed.value.message
