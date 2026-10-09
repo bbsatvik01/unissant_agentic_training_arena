@@ -178,6 +178,7 @@ FRAMING = frozenset(
         "same",
         "says",
         "again",
+        "asked",
         "time",
     ]
 )
@@ -189,6 +190,44 @@ def stem(word: str) -> str:
         if w.endswith(suffix) and len(w) - len(suffix) >= MIN_CONTENT_WORD - 1:
             return w[: -len(suffix)]
     return w
+
+
+# A quote that states a duty or request (policy, instruction) supports a sentence only if the sentence reports it as
+# one; "please meet the visitor" never shows that the subject met the visitor.
+OBLIGATION = re.compile(r"\b(?:must|should|shall|please|may|required|requires|is to|are to)\b", re.IGNORECASE)
+REPORTED_OBLIGATION = re.compile(
+    r"\b(?:must|should|shall|please|may|required|requires|asked|told|rule|policy|procedure|instruction|request|requested|says|said)\b",
+    re.IGNORECASE,
+)
+TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
+
+
+def _content(word: str) -> bool:
+    return len(word) >= MIN_CONTENT_WORD and word.lower() not in FRAMING and not any(c.isdigit() for c in word)
+
+
+ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
+CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
+
+
+def _paired_problems(sentence: str, quotes: list[str]) -> list[str]:
+    """A time must sit with what it describes: a word of the clause holding a time may not come only from a quote line
+    that holds another time of the same sentence, so swapping two times (door opened 19:38, closed 19:12) fails."""
+    # A quote may run across table rows (`quote_ok` folds the line breaks), so it is cut before every time.
+    rows = [row for q in quotes for row in ROW_START.split(q)]
+    lines = [(row, {stem(x) for x in WORD.findall(row)}) for row in rows]
+    out: list[str] = []
+    for clause in CLAUSE.split(sentence):
+        words = WORD.findall(clause)
+        content = {stem(w) for w in words if _content(w)}
+        for time in (w for w in words if TIME.fullmatch(w)):
+            own = set().union(*(stems for line, stems in lines if time in line))
+            others = [t for t in TIME.findall(sentence) if t != time]
+            other = set().union(
+                *(stems for line, stems in lines if time not in line and any(t in line for t in others))
+            )
+            out.extend(f"{w} goes with another time than {time}" for w in sorted(content & other - own))
+    return out
 
 
 def support_problems(sentence: str, quotes: list[str], column_lines: set[str]) -> list[str]:
@@ -208,6 +247,9 @@ def support_problems(sentence: str, quotes: list[str], column_lines: set[str]) -
             problems.append(f"{word} not in the quote")
     if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(joined)):
         problems.append("negation differs from the quote")
+    if OBLIGATION.search(joined) and not REPORTED_OBLIGATION.search(sentence):
+        problems.append("an obligation in the quote is stated as an event")
+    problems.extend(_paired_problems(sentence, quotes))
     problems.extend("the quote is only a column line" for q in quotes if q in column_lines)
     return problems
 
@@ -264,6 +306,26 @@ def test_wrong_times_actors_actions_and_polarity_are_caught() -> None:
         long_word = next(w for w in WORD.findall(answer) if len(w) >= MIN_CONTENT_WORD and w.lower() not in FRAMING)
         assert _mutated_problems(transcript_id, long_word, "Zebrafish")  # a claim no record makes
         assert "negation differs from the quote" in _mutated_problems(transcript_id, " was ", " was not ")
+
+
+def test_swapped_times_and_duties_stated_as_events_are_caught() -> None:
+    """Swap the two times of each sentence whose times start two table rows of its quotes; each swap must fail."""
+    swapped: list[tuple[str, str, str, str]] = []
+    for transcript_id in fixtures.load("fx_coop")["transcripts"]:
+        for e in fixtures.transcript(transcript_id)["exchanges"]:
+            for sentence, supports in zip(SENTENCE_END.split(e["answer"]), e["support"], strict=False):
+                rows = [r for q in supports for r in ROW_START.split(q["quote"])]
+                starts = {t: r.partition(" | ")[2] for t in TIME.findall(sentence) for r in rows if r.startswith(t)}
+                pairs = [(a, b) for a in starts for b in starts if a < b and starts[a] != starts[b]]
+                swapped.extend((transcript_id, sentence, a, b) for a, b in pairs[:1])  # rows that say different things
+    assert swapped
+    for transcript_id, sentence, first, second in swapped:
+        flipped = sentence.replace(first, "@@").replace(second, first).replace("@@", second)
+        assert _mutated_problems(transcript_id, sentence, flipped), sentence
+    duty = support_problems("I met the visitor in the lobby.", ["please meet the visitor in the lobby"], set())
+    assert duty == ["an obligation in the quote is stated as an event"]
+    reported = "I was asked to meet the visitor in the lobby."
+    assert support_problems(reported, ["please meet the visitor in the lobby"], set()) == []
 
 
 def test_a_late_or_header_only_support_is_caught() -> None:

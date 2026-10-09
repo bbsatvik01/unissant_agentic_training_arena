@@ -2108,7 +2108,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "At 18:44 Fenwick at the Operations desk raised a request assigned to me, on the evening shift. It was a ceiling drip reported by the night custodian, to check and isolate, on floor 4 east corridor, between Rooms 417 and 419. At 18:52 K-14 was withdrawn from key cabinet KC-2 on my PIN. I opened the Room 417 door at 19:12, and it closed at 19:38. I returned K-14 at 20:06 and closed the request at 20:10: Isolated.",
+          "answer": "At 18:44 Fenwick at the Operations desk raised a request assigned to me, on the evening shift. It was a ceiling drip reported by the night custodian, with a request to check and isolate, on floor 4 east corridor, between Rooms 417 and 419. At 18:52 K-14 was withdrawn from key cabinet KC-2 on my PIN. I opened the Room 417 door at 19:12, and it closed at 19:38. I returned K-14 at 20:06 and closed the request at 20:10: Isolated.",
           "protected": [
             "I opened the Room 417 door at 19:12"
           ],
@@ -3168,7 +3168,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I entered R-6 to work on a device inside R-6 named on an open Security Systems ticket assigned to me. That ticket was SR-3051, for motion detector MS-6A, with repeated motion alarms with the suite empty. I registered walk tests at 21:16 and 21:22 and cleaned the lens. The detector head was failing, so I left the detector in service under Standard 5.3(c).",
+          "answer": "A technician may enter R-6 only to work on a device inside R-6 named on an open Security Systems ticket assigned to that technician. That ticket was SR-3051, for motion detector MS-6A, with repeated motion alarms with the suite empty. I registered walk tests at 21:16 and 21:22 and cleaned the lens. The detector head was failing, so I left the detector in service under Standard 5.3(c).",
           "protected": [
             "to work on a device inside R-6"
           ],
@@ -3220,7 +3220,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Fenwick radioed me at 20:52, and I radioed her at 21:53 that I was signing off. After 20:00 I was the only Security Systems technician on duty. The 21:14 entry was the only badge entry to R-6, and MS-6A is the only motion detector inside R-6. At 21:41 I was at WB-2, Hall B technician room. The parts request PR-880 was raised there at 21:36.",
+          "answer": "Fenwick radioed me at 20:52, and I radioed her at 21:53 that I was signing off. After 20:00 I was the only Security Systems technician on duty. The 21:14 entry was the only badge entry to R-6, and MS-6A is the only motion detector inside R-6. At 21:41 I was at WB-2, Hall B technician room. Parts request PR-880 is at 21:36 at WB-2, Hall B technician room.",
           "protected": [
             "the only Security Systems technician on duty"
           ],
@@ -3340,7 +3340,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "On 14 April Ashby sent me this: please meet Martin and have Room 2-07 and the projector ready for nine. My badge 70315 was granted at the north staff door, car park side, at 08:41. That was my one badge entry to the building on 15 April. As the member of staff the host named, I met the visitor in the lobby. The host told Security Operations that I was with the visitor in Room 2-07 when the host arrived.",
+          "answer": "On 14 April Ashby sent me this: please meet Martin and have Room 2-07 and the projector ready for nine. My badge 70315 was granted at the north staff door, car park side, at 08:41. That was my one badge entry to the building on 15 April. The host told Security Operations that I was with the visitor in Room 2-07 when the host arrived.",
           "protected": [
             "My badge 70315 was granted at the north staff door"
           ],
@@ -3369,12 +3369,6 @@
             ],
             [
               {
-                "record_id": "doc-02",
-                "quote": "(c) The host, or a member of staff the host names, meets the visitor in the lobby, escorts the visitor while in the building"
-              }
-            ],
-            [
-              {
                 "record_id": "doc-01",
                 "quote": "the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived."
               }
@@ -3389,7 +3383,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "I had Room 2-07 and the projector ready for nine, for the 09:00-10:00 booking. It was the quarterly review of the print and copier contract, with Keable of Penwick Document Services. Ashby was in a meeting in Room 3-02 until about 08:50. When the host arrived, I was with the visitor in Room 2-07. I escorted the visitor while in the building.",
+          "answer": "I was asked to have Room 2-07 and the projector ready for nine, for the 09:00-10:00 booking. It was the quarterly review of the print and copier contract, with Keable of Penwick Document Services. Ashby was in a meeting in Room 3-02 until about 08:50. When the host arrived, I was with the visitor in Room 2-07.",
           "protected": [
             "I was with the visitor in Room 2-07"
           ],
@@ -3428,12 +3422,6 @@
               {
                 "record_id": "doc-01",
                 "quote": "E. Dunmore was with the visitor in Room 2-07 when the host arrived"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-02",
-                "quote": "escorts the visitor while in the building"
               }
             ]
           ]
@@ -3831,7 +3819,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Ashby reached Room 2-07 at about five to nine, when Keable and I were already there and the projector was on. Haskett was the desk officer on duty from 07:30, and at 08:45 the desk shows Keeble with V-22. Camera C-12 recorded normally throughout and shows me with Keable from the main lobby at 08:51:05. At 08:46:50 the Procurement main line was at my Ext 2214, for 0:38.",
+          "answer": "Ashby reached Room 2-07 at about five to nine, when Keable and I were already there and the projector was on. Haskett was the desk officer on duty from 07:30, and at 08:45 it shows Keeble with V-22. Camera C-12 recorded normally throughout and shows me with Keable from the main lobby at 08:51:05. At 08:46:50 the Procurement main line was at my Ext 2214, for 0:38.",
           "protected": [
             "Camera C-12 recorded normally throughout"
           ],
