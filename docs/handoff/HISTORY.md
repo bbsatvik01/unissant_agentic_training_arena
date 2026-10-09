@@ -34,3 +34,4 @@
 - D-014 (owner): case families authored by Claude agents + Codex; Gemini 3.1 Pro dropped. Supabase MCP added at project scope (.mcp.json, project fzjgcwkvveetegpngujr).
 - Direction v10.4: D-013 + D-014 applied; offline authoring removes generation spend; baseline back to 30 hidden cases (~$44/$66, complete), 34 pilot-gated. Owner completed Supabase MCP login.
 - Session break stopped wf_cedd150a-eec mid-run (S1 done); resumed as wco6osdfj with D-014 added. Supabase MCP verified working (empty database).
+- 8d96b25 schema v1.1 + seeds committed (validated, mutation 29/29). Dispatched dev case authoring (wf_0246738e-32c) and web foundation (wf_20ff7f42-fb5) in worktrees; PATTERNS gains the adapted dispatch protocol (branch + self Codex + cold Codex + local merge).

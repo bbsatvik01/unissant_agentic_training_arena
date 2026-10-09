@@ -1,6 +1,6 @@
 # State
 
-- **Date:** 2026-10-08, ~22:05 EDT
+- **Date:** 2026-10-08, ~22:20 EDT
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
@@ -21,12 +21,15 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| task `wco6osdfj` / run `wf_cedd150a-eec` (resumed after session break) | S1 v2.1 done (cached); S1 D-014 update; S2-S8 integrator (X-02..X-17, D-013, D-014); WP-01 scaffold | Opus x3, Sonnet x1 | 2026-10-08 22:05 EDT | ~23:15 EDT | `docs/spec/**`; repo root scaffold |
+| task `wco6osdfj` / run `wf_cedd150a-eec` (resumed) | S1 D-014 update; S2-S8 integrator (X-02..X-17, D-013, D-014); WP-01 scaffold | Opus x2, Sonnet x1 | 22:05 EDT | ~23:15 EDT | main tree: `docs/spec/**`, root scaffold |
+| task `wznwlwvt8` / run `wf_0246738e-32c` | Dev case authoring F04-F09: kit (CX sheets, Codex runner, calibration on F01-F03, gateproof), 3 authors at a time, skeptic + fix loop, final cross-family gate, commit on branch | Opus | 22:15 EDT | ~01:00 EDT | worktree `/private/tmp/wt-cases` branch `data/dev-cases` |
+| task `wspgs42zb` / run `wf_20ff7f42-fb5` | WP-18 part 1 web foundation: Vite/React/TS scaffold + gates, ticketed SSE, voice machine, companion FSM; self Codex gate; independent verify | Opus | 22:18 EDT | ~00:00 EDT | worktree `/private/tmp/wt-web` branch `feat/web-foundation` |
 
 ## Next dispatch queue
-1. When the workflow lands: verify `make check` myself, commit scaffold and spec v2.1 separately (explicit paths, secret scan first).
+1. When wf_cedd150a-eec lands: commit spec v2.1/v2.2 to main; move the WP-01 scaffold onto branch `feat/wp01-scaffold`, run `make check` myself and a cold Codex gate, merge on CORRECT.
+1b. When the case and web branches land: cold Codex gate each (plus re-run validators / pnpm check), merge on CORRECT.
 2. Codex review of spec v2.1 (buildability and consistency; cost accounting deferred by D-013) until GREEN; Codex review of the scaffold.
-3. Apply D-014 to S1/S8/cost_model after the running workflow lands; then a case-authoring workflow (dev families first, hidden families isolated and sealed).
+3. After spec Codex GREEN: hidden-family authoring (15, isolated agents, git-ignored `cases/hidden/`, codes-only reports), then seal.
 4. WP-02 contracts package, then WP-03 migrations + WP-05 agent port and global guard, WP-08 scenario engine, WP-18 web foundation, toward the Oct 18 slice.
 
 ## Standing facts
