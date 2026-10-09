@@ -156,6 +156,55 @@ def test_ordinary_code_and_data_never_match(tmp_path: Path, line: str) -> None:
     assert nr.check(["app.ts"], reader(tmp_path), [], MARKERS) == []
 
 
+# ---------------------------------------------------------------- YAML read as YAML (Codex round 2, finding 2)
+# continue-on-error is judged on the parsed document, so a value on the next line, a block scalar, an alias
+# or a flow mapping is seen exactly as GitHub's parser sees it; anything but a plain boolean false is a
+# suppression.
+WORKFLOW_HEAD = "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n"
+# Whole workflows that enable continue-on-error in a form a line scan cannot see. They live in fixture files
+# with a suffix the scan skips, so this module holds no live suppression.
+SUPPRESSED_WORKFLOWS = sorted((Path(__file__).parent / "fixtures" / "suppressed-workflows").glob("*.fixture"))
+
+
+def test_the_workflow_fixtures_exist() -> None:
+    assert {p.stem for p in SUPPRESSED_WORKFLOWS} == {
+        "alias-to-true",
+        "block-scalar-expression",
+        "next-line-true",
+        "quoted-true",
+        "step-next-line-capital-true",
+        "yaml-1-1-no",
+    }
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("fixture", SUPPRESSED_WORKFLOWS, ids=lambda p: p.stem)
+def test_continue_on_error_is_found_on_the_parsed_yaml(tmp_path: Path, fixture: Path) -> None:
+    shutil.copy(fixture, tmp_path / "ci.yml")
+    errors = nr.check(["ci.yml"], reader(tmp_path), [], MARKERS)
+    assert any("[continue-on-error]" in e for e in errors), (fixture.name, errors)
+
+
+@pytest.mark.parametrize("value", ["false", "False", "FALSE"])
+def test_continue_on_error_false_passes(tmp_path: Path, value: str) -> None:
+    (tmp_path / "ci.yml").write_text(WORKFLOW_HEAD + f"    continue-on-error: {value}\n    steps: []\n")
+    assert nr.check(["ci.yml"], reader(tmp_path), [], MARKERS) == []
+
+
+@pytest.mark.gateproof
+def test_unparseable_yaml_fails_closed(tmp_path: Path) -> None:
+    (tmp_path / "ci.yml").write_text("jobs: [unclosed\n")
+    errors = nr.check(["ci.yml"], reader(tmp_path), [], MARKERS)
+    assert len(errors) == 1
+    assert "not valid YAML" in errors[0]
+
+
+def test_one_finding_per_line_when_the_line_scan_and_the_yaml_scan_agree(tmp_path: Path) -> None:
+    (tmp_path / "ci.yml").write_text(WORKFLOW_HEAD + CONTINUE + "\n    steps: []\n")
+    errors = nr.check(["ci.yml"], reader(tmp_path), [], MARKERS)
+    assert len(errors) == 1, errors
+
+
 # ---------------------------------------------------------------- suppression-list files
 @pytest.mark.gateproof
 def test_every_gitleaksignore_entry_is_a_suppression(tmp_path: Path) -> None:

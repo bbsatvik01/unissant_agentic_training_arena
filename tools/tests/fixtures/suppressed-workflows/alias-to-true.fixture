@@ -1,0 +1,7 @@
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env: {FLAG: &yes true}
+    continue-on-error: *yes
+    steps: []

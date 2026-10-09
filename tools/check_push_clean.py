@@ -9,7 +9,9 @@ one person's machine).
 
 Default mode reads every index entry from the index (so a file deleted only in the working tree is
 still checked), untracked-but-not-ignored files from disk, and every path added in ``BASE..HEAD``
-(a file committed then deleted is still pushed). ``--snapshot`` checks a plain exported directory.
+(a file committed then deleted is still pushed). History is read with rename detection off, so a move
+into a forbidden path counts as the add it is, and NUL-separated, so git never quotes or escapes a
+path. ``--snapshot`` checks a plain exported directory.
 """
 
 import argparse
@@ -83,10 +85,20 @@ def history_paths(root: Path, base: str) -> list[str]:
     if proc.run("git", ["-C", str(root), "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"]).returncode:
         msg = f"base ref {base!r} does not resolve to a commit"
         raise LookupError(msg)
-    log = proc.run(
-        "git", ["-C", str(root), "log", "--diff-filter=A", "--name-only", "--format=", f"{base}..HEAD"], check=True
-    )
-    return sorted({line for line in log.stdout.splitlines() if line})
+    args = [
+        "-C",
+        str(root),
+        "log",
+        "-z",
+        "--no-renames",
+        "--diff-filter=A",
+        "--name-only",
+        "--format=",
+        f"{base}..HEAD",
+    ]
+    log = proc.run_bytes("git", args, check=True)
+    names = (part.strip(b"\n") for part in log.stdout.split(b"\0"))
+    return sorted({name.decode("utf-8", errors="surrogateescape") for name in names if name})
 
 
 def snapshot_contents(root: Path) -> dict[str, bytes]:

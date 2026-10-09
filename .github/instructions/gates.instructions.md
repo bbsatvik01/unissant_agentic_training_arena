@@ -10,6 +10,6 @@ description: "The CI and test gates are never softened. A failing gate means fix
 - Thresholds live in `tools/gates/ratchet.toml` and only get stricter. Change a threshold in its source file and in the ratchet in the same commit, and only upward.
 - What each gate looks at (ruff, mypy, coverage, pytest, bandit, Semgrep and CodeQL scopes) is pinned by `tools/tests/test_gate_scope.py`; narrowing a scope is a visible, reviewed change to that test.
 - Suppressions are forbidden: `noqa`, `type: ignore`, inline `# mypy:` config, `no_type_check`, `nosec`, `nosemgrep`, `gitleaks:allow`, `.gitleaksignore` and gitleaks config entries, `trufflehog:ignore`, `osv-scanner.toml` ignores, `--ignore-vuln`, warning-ignore filters, `# isort: skip`, `pragma: no cover`, skip/xfail, `continue-on-error`. The only exception is a proven false positive in `tools/gates/suppressions-allowlist.toml`: one file, one marker, the exact line, and a reason. Adding an entry is a gate change and needs its own review.
-- Never add `continue-on-error`, remove a `needs:`, lower a timeout floor, or broaden an exclude.
+- Never add `continue-on-error` (the scan reads YAML as YAML: only a plain `false` passes), remove a `needs:`, lower a timeout floor, or broaden an exclude.
 - A new gate ships with a gateproof test (`@pytest.mark.gateproof`) that proves it fails on a seeded defect.
 - Lifted files are recorded in `ATTRIBUTIONS.md` (source path, commit, sha256, changes) and pass every gate like new code.

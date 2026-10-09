@@ -10,14 +10,21 @@ tools/, scripts/ that fails `make check` when:
   core. `arena_core` imports any role package (`arena_api`, `arena_subject`, `arena_referee`,
      `arena_tournament`). Every role imports arena_core, so a role import inside it would hand
      arena_api the subject's or the referee's code transitively and defeat rules a and b.
-  dyn. product code (arena_core or a role) uses dynamic import machinery (`importlib` other than the
-     `importlib.metadata` from-imports, `runpy`, `pkgutil`, `builtins`, `zipimport`, `__import__`,
-     `__builtins__`). Every module product code loads is then a static import this lint can check; an
-     alias or a keyword argument to `importlib.import_module` cannot route around rules a, b and core.
-     Outside product code, aliased and keyword dynamic imports with a literal target still resolve.
+  dyn. product code (arena_core or a role) touches the import system: it imports `importlib` (any part,
+     entry points included), `runpy`, `pkgutil`, `pydoc`, `site`, `builtins` or `zipimport`; names
+     `__import__` or `__builtins__` (as a name, an attribute or a string); or reaches `sys.path`,
+     `sys.meta_path`, `sys.path_hooks`, `sys.path_importer_cache` or `sys.modules`. Every module product
+     code loads is then a static import this lint checks.
+  str. product code names a module it may not import as a dotted or colon reference in a string
+     (`pkg.mod`, `pkg.mod:attr`, `ext://pkg.mod.Attr`). Every load-by-name API (uvicorn app strings,
+     logging.config, mock.patch, pydantic ImportString, entry points) takes the module name as data, so
+     this one rule covers them all. A bare name is not a reference (`arena_referee` is also the database
+     role), and docstrings are prose.
+  Outside product code, aliased and keyword dynamic imports with a literal target still resolve.
 
-The lint reads source, it is not a sandbox: attribute chains built at run time are out of its reach,
-and the database grants and per-process credentials (S5 1.2 items 1 and 3) remain the data boundary.
+The lint reads source; it is not a sandbox. A module name assembled at run time is out of its reach;
+the per-process credentials and the database grants (S5 1.2 items 1 and 3, S5 10.2 item 7) remain the
+data boundary, as S5's threat model states.
 
 A fifth rule in S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
 event frame model") needs the wire frame types, which WP-02 generates (`contracts/`, C-17) and WP-13's
@@ -31,6 +38,7 @@ Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: impor
 
 import argparse
 import ast
+import re
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -65,14 +73,18 @@ SERVICE_PACKAGE = {
 VERTEX_ADAPTER = "packages/core/src/arena_core/providers/vertex.py"
 GENAI = "google.genai"
 ADK = "google.adk"
-# Modules that load other modules by name at run time (rule dyn). importlib.metadata reads distribution
-# metadata without importing anything; its from-import forms are allowed (`import importlib.metadata` is not,
-# because it binds `importlib` itself).
-DYNAMIC_LOADER_MODULES = ("importlib", "runpy", "pkgutil", "builtins", "zipimport")
-METADATA = "importlib.metadata"
+# Modules that load or locate other modules by name at run time (rule dyn), whole: importlib.metadata loads
+# modules too (EntryPoint.load, entry_points()).
+DYNAMIC_LOADER_MODULES = ("importlib", "runpy", "pkgutil", "pydoc", "site", "builtins", "zipimport")
 DYNAMIC_NAMES = frozenset({"__import__", "__builtins__"})
+# The import system's mutable state on `sys` (rule dyn): a path entry or a module injected there loads code
+# under a name no import statement shows.
+IMPORT_STATE = frozenset({"path", "meta_path", "path_hooks", "path_importer_cache", "modules"})
 LOADER_FUNCTIONS = frozenset({"import_module", "__import__"})
 DYNAMIC_RULE = "dynamic import machinery {what} in product code (S5 1.2 item 2: imports must be static)"
+STRING_RULE = "{package} names {module} in a string; a load-by-name API would import it (S5 1.2 item 2)"
+# A dotted (`a.b`) or colon (`a:attr`) module reference, optionally `ext://`-prefixed (logging.config).
+MODULE_REFERENCE = re.compile(r"(?:ext://)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|[A-Za-z_]\w*(?=:))(?::[\w.]+)?")
 
 
 @dataclass(frozen=True)
@@ -159,20 +171,71 @@ def _is_loader_module(module: str) -> bool:
     return any(_is_or_starts_with(module, loader) for loader in DYNAMIC_LOADER_MODULES)
 
 
+def _sys_names(tree: ast.AST) -> frozenset[str]:
+    """Local names bound to the sys module (`import sys`, `import sys as s`)."""
+    return frozenset(
+        a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names if a.name == "sys"
+    )
+
+
+def _statement_machinery(node: ast.AST) -> str | None:
+    """An import statement that brings in a loader module or the import state on sys, or None."""
+    if isinstance(node, ast.Import):
+        loaders = [a.name for a in node.names if _is_loader_module(a.name)]
+        return f"`import {loaders[0]}`" if loaders else None
+    if not isinstance(node, ast.ImportFrom) or node.module is None or node.level != 0:
+        return None
+    if _is_loader_module(node.module):
+        return f"`from {node.module} import ...`"
+    state = [a.name for a in node.names if node.module == "sys" and a.name in IMPORT_STATE]
+    return f"`from sys import {state[0]}`" if state else None
+
+
+def _reference_machinery(node: ast.AST, sys_names: frozenset[str]) -> str | None:
+    """A reference to `__import__`, `__builtins__` or the import state on sys, or None."""
+    name = None
+    if isinstance(node, ast.Name) and node.id in DYNAMIC_NAMES:
+        name = f"`{node.id}`"
+    elif isinstance(node, ast.Attribute) and node.attr in DYNAMIC_NAMES:
+        name = f"`.{node.attr}`"
+    elif isinstance(node, ast.Attribute) and node.attr in IMPORT_STATE and isinstance(node.value, ast.Name):
+        name = f"`sys.{node.attr}`" if node.value.id in sys_names else None
+    elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value in DYNAMIC_NAMES:
+        name = f"the string {node.value!r}"
+    return name
+
+
 def _machinery(tree: ast.AST) -> list[tuple[int, str]]:
-    """(line, what) for every use of dynamic import machinery (rule dyn; product code only)."""
+    """(line, what) for every touch of the import system (rule dyn; product code only)."""
+    sys_names = _sys_names(tree)
     found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            found.extend((node.lineno, f"`import {a.name}`") for a in node.names if _is_loader_module(a.name))
-        elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
-            metadata_only = node.module == "importlib" and all(a.name == "metadata" for a in node.names)
-            if _is_loader_module(node.module) and not metadata_only and not _is_or_starts_with(node.module, METADATA):
-                found.append((node.lineno, f"`from {node.module} import ...`"))
-        elif isinstance(node, ast.Name) and node.id in DYNAMIC_NAMES:
-            found.append((node.lineno, f"`{node.id}`"))
-        elif isinstance(node, ast.Attribute) and node.attr == "__import__":
-            found.append((node.lineno, "`.__import__`"))
+        what = _statement_machinery(node) or _reference_machinery(node, sys_names)
+        if what is not None:
+            found.append((getattr(node, "lineno", 0), what))
+    return found
+
+
+def _docstrings(tree: ast.AST) -> set[int]:
+    """ids of the docstring constants (prose, not data)."""
+    found: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef) and node.body:
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+                found.add(id(first.value))
+    return found
+
+
+def _module_references(tree: ast.AST) -> list[tuple[int, str]]:
+    """(line, module) for every string constant that is a whole module reference (rule str)."""
+    docstrings = _docstrings(tree)
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in docstrings:
+            match = MODULE_REFERENCE.fullmatch(node.value.strip())
+            if match is not None:
+                found.append((node.lineno, match.group(1)))
     return found
 
 
@@ -187,6 +250,12 @@ def check_source(path: str, source: str) -> list[Finding]:
     forbidden = FORBIDDEN_IMPORTS.get(own_package or "", frozenset())
     if own_package is not None:
         findings.extend(Finding(path, line, DYNAMIC_RULE.format(what=what)) for line, what in _machinery(tree))
+        unnameable = {*forbidden, ADK} | ({GENAI} if path != VERTEX_ADAPTER else set())
+        findings.extend(
+            Finding(path, line, STRING_RULE.format(package=own_package, module=module))
+            for line, module in _module_references(tree)
+            if any(_is_or_starts_with(module, name) for name in unnameable)
+        )
     for line, module in _imports(tree):
         if any(_is_or_starts_with(module, name) for name in forbidden):
             findings.append(Finding(path, line, f"{own_package} may never import {module} (S5 1.2 item 2)"))

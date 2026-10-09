@@ -29,7 +29,10 @@ dev = [
   "pip-audit==2.10.1",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
+  # tools/check_no_rigging.py reads workflow YAML as YAML (PyYAML was already locked through bandit).
+  "pyyaml==6.0.3",
   "ruff==0.16.8",
+  "types-pyyaml==6.0.12.20260906",
 ]
 
 [tool.uv]

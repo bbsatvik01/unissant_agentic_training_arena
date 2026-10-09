@@ -9,7 +9,10 @@ skip as frozen research evidence) must stay inside the one archive root. A file 
 suppression list counts every entry line as a finding under the matching inline marker, so it needs the
 same reviewed allowlist entry: ``.gitleaksignore`` (fingerprints gitleaks skips, locally and in CI) and a
 gitleaks config (``.gitleaks.toml`` / ``gitleaks.toml``, loaded automatically by the CLI and the Action;
-it can allowlist findings, disable rules, or replace the default rule set).
+it can allowlist findings, disable rules, or replace the default rule set). YAML is also read as YAML:
+``continue-on-error`` is judged on the parsed document, so a value on the next line, a block scalar, an
+alias or a flow mapping counts as GitHub's parser reads it, and only a plain boolean false passes; a YAML
+file the parser cannot read fails closed.
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
@@ -23,6 +26,8 @@ import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
 
 from tools import proc
 
@@ -39,6 +44,10 @@ SUPPRESSION_FILES = {
     "gitleaks.toml": "gitleaks-allow",
 }
 SCANNED_NAMES = {"Makefile", "Dockerfile", "pre-commit", "pre-push", *SUPPRESSION_FILES}
+YAML_SUFFIXES = {".yaml", ".yml"}
+CONTINUE_ON_ERROR = "continue-on-error"
+# The only value that leaves a failing job or step failing: a plain (unquoted) YAML boolean false.
+FALSE_SPELLINGS = {"false", "False", "FALSE"}
 
 
 def load_markers(text: str) -> dict[str, re.Pattern[str]]:
@@ -105,6 +114,33 @@ def scan_text(path: str, text: str, markers: dict[str, re.Pattern[str]]) -> list
     return findings
 
 
+def _plain_false(node: yaml.Node) -> bool:
+    return isinstance(node, yaml.ScalarNode) and node.style is None and node.value in FALSE_SPELLINGS
+
+
+def yaml_findings(path: str, text: str) -> list[Finding]:
+    """``continue-on-error`` anywhere in the parsed documents with any value but a plain boolean false."""
+    lines = text.splitlines()
+    findings: list[Finding] = []
+    for document in yaml.compose_all(text, Loader=yaml.SafeLoader):
+        stack: list[yaml.Node] = [document]
+        seen: set[int] = set()
+        while stack:
+            node = stack.pop()
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            if isinstance(node, yaml.MappingNode):
+                for key, value in node.value:
+                    if isinstance(key, yaml.ScalarNode) and key.value == CONTINUE_ON_ERROR and not _plain_false(value):
+                        row = key.start_mark.line
+                        findings.append(Finding(path, row + 1, CONTINUE_ON_ERROR, lines[row].strip()[:160]))
+                    stack.extend((key, value))
+            elif isinstance(node, yaml.SequenceNode):
+                stack.extend(node.value)
+    return findings
+
+
 def docs_python_errors(paths: list[str]) -> list[str]:
     """The linters skip docs/ (frozen research evidence); new Python there must not escape them."""
     return [
@@ -130,7 +166,15 @@ def check(
         except UnicodeDecodeError as exc:
             errors.append(f"{path}: not UTF-8 text ({exc.reason}); the suppression scan cannot read it")
             continue
-        for finding in scan_text(path, text, markers):
+        findings = scan_text(path, text, markers)
+        if Path(path).suffix in YAML_SUFFIXES:
+            try:
+                findings += yaml_findings(path, text)
+            except yaml.YAMLError as exc:
+                reason = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+                errors.append(f"{path}: not valid YAML ({reason}); the suppression scan cannot read it")
+                continue
+        for finding in dict.fromkeys(findings):  # one finding per (line, marker) when the two scans agree
             covering = [a for a in allowed if a.covers(finding)]
             used.update(covering)
             if not covering:

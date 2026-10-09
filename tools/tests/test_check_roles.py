@@ -26,10 +26,10 @@ def rules(path: str, source: str) -> list[str]:
 
 
 def assert_only(found: list[str], needle: str) -> None:
-    """The expected rule fired, and nothing else did except the dynamic-machinery rule (rule dyn), which a
+    """The expected rule fired, and nothing else did except the dynamic-import rules (dyn and str), which a
     dynamic-import form in product code triggers as well."""
     assert any(needle in r for r in found), found
-    assert all(needle in r or "dynamic import machinery" in r for r in found), found
+    assert all(needle in r or "dynamic import machinery" in r or "in a string" in r for r in found), found
 
 
 # ---------------------------------------------------------------- rule a: api / tournament
@@ -213,9 +213,68 @@ def test_aliased_and_keyword_dynamic_imports_resolve_outside_product_packages(so
     assert any(r.startswith("google.genai imported outside") for r in found), (source, found)
 
 
-def test_importlib_metadata_from_imports_are_allowed_in_product_packages() -> None:
-    source = "from importlib.metadata import version\nfrom importlib import metadata\n"
-    assert rules(OTHER_CORE_FILE, source) == []
+# Round 2: importlib.metadata loads modules too (EntryPoint.load, entry_points()), and the import system can be
+# steered without importlib (sys.path, sys.modules, site, pydoc.locate). Product code touches none of it.
+@pytest.mark.gateproof
+@pytest.mark.parametrize("path", PRODUCT_FILES)
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from importlib.metadata import EntryPoint\nEntryPoint(name='r', value='arena_referee', group='g').load()\n",
+        "from importlib.metadata import version\n",
+        "from importlib import metadata\n",
+        "import sys\nsys.path.insert(0, 'services/referee/src/arena_referee')\n",
+        "import sys\nsys.modules['x'] = object()\n",
+        "import sys\nsys.meta_path.clear()\n",
+        "import site\n",
+        "import pydoc\npydoc.locate('arena_referee')\n",
+        "m = globals()['__builtins__']['__import__']('json')\n",
+    ],
+)
+def test_import_system_access_is_refused_in_product_packages(path: str, source: str) -> None:
+    assert any("dynamic import machinery" in r for r in rules(path, source)), (path, source)
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "literal",
+    [
+        "arena_referee.app:app",
+        "arena_referee.routes.label",
+        "ext://arena_referee.routes.label.Handler",
+        "arena_subject.answer",
+        "arena_core.agents.subject_prompts",
+        "google.genai",
+        "google.adk.agents",
+    ],
+)
+def test_a_forbidden_module_named_as_a_dotted_string_is_refused_in_api_code(literal: str) -> None:
+    """Every load-by-name API (uvicorn app strings, logging.config, mock.patch, pydantic ImportString, entry
+    points) needs the name as data; a dotted reference to a module the file may not import is refused."""
+    found = rules(ARENA_API_FILE, f"TARGET = {literal!r}\n")
+    assert any("names" in r and "in a string" in r for r in found), (literal, found)
+
+
+def test_strings_that_are_not_forbidden_module_references_pass() -> None:
+    source = (
+        '"""arena_api must never import arena_subject or arena_referee (a docstring)."""\n'
+        "DB_ROLE = 'arena_referee'\n"
+        "OWN = 'arena_api.app:app'\n"
+        "DSN = 'postgresql://arena_referee:x@127.0.0.1/postgres'\n"
+        "SENTENCE = 'calls arena_referee.score over HTTP'\n"
+        "LOGGER = 'logging.StreamHandler'\n"
+    )
+    assert rules(ARENA_API_FILE, source) == []
+
+
+def test_a_docstring_that_is_only_a_module_path_is_prose_not_a_reference() -> None:
+    source = 'def f() -> None:\n    """arena_referee.routes.label"""\n'
+    assert rules(ARENA_API_FILE, source) == []
+    assert rules(ARENA_API_FILE, "TARGET = 'arena_referee.routes.label'\n") != []
+
+
+def test_the_vertex_adapter_may_name_google_genai() -> None:
+    assert rules(VERTEX_ADAPTER, "PACKAGE = 'google.genai'\n") == []
 
 
 def test_tools_may_use_dynamic_imports_of_allowed_modules() -> None:

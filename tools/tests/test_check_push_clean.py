@@ -89,6 +89,41 @@ def test_file_committed_then_deleted_in_the_branch_fails(tmp_path: Path) -> None
     assert pc.main(["--root", str(tmp_path), "--base", "feature"]) == 0
 
 
+@pytest.mark.gateproof
+def test_a_file_renamed_into_hidden_cases_then_deleted_fails(tmp_path: Path) -> None:
+    """Codex round 2, finding 3: rename detection reported the move as R, which an A-only filter skipped."""
+    git_init(tmp_path)
+    (tmp_path / "ok.py").write_text("x = 1\n")
+    git_commit_all(tmp_path, "base")
+    proc.run("git", ["-C", str(tmp_path), "checkout", "-q", "-b", "feature"], check=True)
+    (tmp_path / "notes.json").write_text('{"family": "F10", "facts": "hidden"}\n')
+    git_commit_all(tmp_path, "add notes")
+    (tmp_path / "cases" / "hidden").mkdir(parents=True)
+    proc.run("git", ["-C", str(tmp_path), "mv", "notes.json", "cases/hidden/F10.json"], check=True)
+    git_commit_all(tmp_path, "move into hidden")
+    (tmp_path / "cases" / "hidden" / "F10.json").unlink()
+    git_commit_all(tmp_path, "delete")
+    assert pc.history_paths(tmp_path, "main") == ["cases/hidden/F10.json", "notes.json"]
+    assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
+
+
+@pytest.mark.gateproof
+def test_a_non_ascii_path_in_history_is_read_unquoted(tmp_path: Path) -> None:
+    """Without -z, git prints this path quoted and octal-escaped, so the cases/hidden/ check never matched."""
+    git_init(tmp_path)
+    (tmp_path / "ok.py").write_text("x = 1\n")
+    git_commit_all(tmp_path, "base")
+    proc.run("git", ["-C", str(tmp_path), "checkout", "-q", "-b", "feature"], check=True)
+    hidden = tmp_path / "cases" / "hidden" / "caf\u00e9.json"
+    hidden.parent.mkdir(parents=True)
+    hidden.write_text("{}\n")
+    git_commit_all(tmp_path, "add")
+    hidden.unlink()
+    git_commit_all(tmp_path, "delete")
+    assert pc.history_paths(tmp_path, "main") == ["cases/hidden/caf\u00e9.json"]
+    assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
+
+
 def test_snapshot_mode(tmp_path: Path) -> None:
     (tmp_path / "ok.py").write_text("x = 1\n")
     assert pc.main(["--root", str(tmp_path), "--snapshot"]) == 0
