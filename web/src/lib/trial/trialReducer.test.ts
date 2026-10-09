@@ -610,3 +610,14 @@ function shuffle<T>(items: readonly T[], rand: () => number): T[] {
   }
   return out;
 }
+
+describe("trialReducer: snapshots never go back", () => {
+  it("ignores a snapshot older than the one installed", () => {
+    const ended = boot(snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 6 }));
+    const older = trialReducer(ended, { type: "snapshot", snapshot: snapshot({ last_seq: 3 }) });
+    expect(older).toBe(ended);
+    expect(view(older).commitmentHash).toBe(COMMITMENT_HASH);
+    const same = trialReducer(ended, { type: "snapshot", snapshot: snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 6 }) });
+    expect(roomStatus(same)).toBe("ended");
+  });
+});

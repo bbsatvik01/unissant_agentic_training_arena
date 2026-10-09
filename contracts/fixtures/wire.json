@@ -6757,6 +6757,95 @@
         "updates": [],
         "coach_failures": []
       }
+    },
+    {
+      "id": "neg-89",
+      "schema": "snapshot",
+      "layer": "invariant",
+      "why": "a voice snapshot with two releases sharing one seq",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 2,
+        "exchanges_cap": 12,
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "date": null,
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry."
+            },
+            "released_at_turn": 1,
+            "trigger": "scheduled",
+            "transcript_version": 3,
+            "event_seq": 2
+          },
+          {
+            "record_id": "rec-03",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "date": null,
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry."
+            },
+            "released_at_turn": 1,
+            "trigger": "scheduled",
+            "transcript_version": 3,
+            "event_seq": 2
+          }
+        ],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "voice",
+        "turns": [],
+        "voice_exchanges": [
+          {
+            "exchange_no": 1,
+            "lines": [
+              {
+                "role": "investigator",
+                "text": "Why did you enter?",
+                "partial": false
+              },
+              {
+                "role": "subject",
+                "text": "It was a busy shift.",
+                "partial": false
+              }
+            ]
+          },
+          {
+            "exchange_no": 2,
+            "lines": [
+              {
+                "role": "subject",
+                "text": "The freezer alarm was going off, so I",
+                "partial": true
+              }
+            ]
+          }
+        ],
+        "cards": [],
+        "updates": [],
+        "coach_failures": []
+      }
     }
   ]
 }

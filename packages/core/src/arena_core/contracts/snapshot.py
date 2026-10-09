@@ -151,8 +151,12 @@ class VoiceTrialSnapshot(_SnapshotFields):
 
     @model_validator(mode="after")
     def _rules(self) -> Self:
-        if any(r.event_seq > self.last_seq for r in self.released):
+        seqs = [r.event_seq for r in self.released]
+        if any(seq > self.last_seq for seq in seqs):
             msg = "event seqs: a release seq is after last_seq"
+            raise ValueError(msg)
+        if len(set(seqs)) != len(seqs):
+            msg = "event seqs: one seq is used twice"
             raise ValueError(msg)
         numbers = [e.exchange_no for e in self.voice_exchanges]
         if numbers != list(range(1, len(numbers) + 1)):

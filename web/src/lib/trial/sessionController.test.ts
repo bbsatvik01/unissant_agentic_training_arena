@@ -1819,3 +1819,35 @@ describe("session controller: cold gate regressions", () => {
     expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
   });
 });
+
+describe("session controller: overlapping snapshot reads", () => {
+  it("a 409 reload that settles after the terminal recovery does not undo it", async () => {
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 6 });
+    let late: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness({ tickets: ["tk1", new ApiError(409, "stream_closed", "/x")] });
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((r) => (late = r));
+          return Promise.resolve(ended);
+        },
+        commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")),
+      },
+    });
+    await begin(c);
+    const refused = c.submitFinding((fixture("finding-commit") as { finding: never }).finding).catch((e: unknown) => e);
+    await flush();
+    h.last().fail();
+    await h.clock.advance(250);
+    await flush();
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+    late(snapshot({ last_seq: 3 }));
+    expect(await refused).toBeInstanceOf(ApiError);
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+    expect(roomStatus(c.getState().trial)).toBe("ended");
+  });
+});

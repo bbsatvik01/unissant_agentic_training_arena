@@ -239,6 +239,8 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
   switch (action.type) {
     case "snapshot": {
       const { snapshot } = action;
+      // Reads can overlap and settle out of order: a snapshot older than the one installed never replaces it.
+      if (state.snapshot !== null && snapshot.last_seq < state.snapshot.last_seq) return state;
       // The snapshot holds everything up to its last_seq, with the seqs the card rule needs: frames and skip
       // markers at or below it are superseded.
       const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
