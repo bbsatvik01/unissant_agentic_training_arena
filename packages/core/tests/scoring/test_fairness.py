@@ -212,3 +212,19 @@ def test_a_varying_stratum_gets_a_bootstrap_interval_and_no_bound() -> None:
     (s,) = stratified_rates([RateUnit(f"F{i}", "plain", i, 12) for i in range(6)], seed=5, b=300)
     assert s.interval is not None
     assert (s.interval.status, s.bound) == ("ok", None)
+
+
+def test_fa_5c_and_fa_5d_do_not_depend_on_the_order_rows_arrive_in() -> None:
+    seed = seed_for("FX-F03", "FA-5c", "A1", "I")
+    worsening = [OrderTrial("B1", p, p <= HALF) for p in range(1, 19)]
+    worsening += [OrderTrial("B2", p, p % 3 == 0) for p in range(1, 19)]
+    shuffled = [worsening[i] for i in np.random.default_rng(7).permutation(len(worsening))]
+    assert order_permutation_test(shuffled, seed, b=2000) == order_permutation_test(worsening, seed, b=2000)
+    pairs = [
+        PairingTrial(f"F{f}", v, s, (f + len(s)) % 2 == 0 or s == "S1")
+        for f in range(5)
+        for v in "TD"
+        for s in ("S1", "S2", "S3")
+    ]
+    mixed = [pairs[i] for i in np.random.default_rng(8).permutation(len(pairs))]
+    assert pairing_permutation_test(mixed, seed, b=500) == pairing_permutation_test(pairs, seed, b=500)

@@ -202,7 +202,9 @@ def spearman_rho(x: np.ndarray, y: np.ndarray) -> float:
 
 def order_permutation_test(trials: Sequence[OrderTrial], seed: int, b: int = B) -> float | None:
     """FA-5c, two-sided: statistic abs(Spearman rho) between within-block position and correct classification;
-    outcomes permuted within each block. None when nothing varies (published as undefined)."""
+    outcomes permuted within each block. None when nothing varies (published as undefined). Rows are put in one
+    canonical order first (rows with equal keys are interchangeable), so retrieval order never changes p."""
+    trials = sorted(trials, key=lambda t: (t.block_id, t.position, t.correct))
     blocks: dict[str, list[int]] = {}
     for i, t in enumerate(trials):
         blocks.setdefault(t.block_id, []).append(i)
@@ -244,9 +246,10 @@ def _subject_range(trials: Sequence[PairingTrial], subjects: Sequence[str]) -> F
 
 def pairing_permutation_test(trials: Sequence[PairingTrial], seed: int, b: int = B) -> float | None:
     """FA-5d: range of per-subject correct-classification rates for one assistant; subject labels permuted within
-    each (family, variant). None without at least two subjects."""
+    each (family, variant). None without at least two subjects; retrieval order never changes p."""
     if len({t.subject_id for t in trials}) < MIN_SUBJECTS:
         return None
+    trials = sorted(trials, key=lambda t: (t.family_id, t.variant_id, t.subject_id, t.correct))  # canonical order
     groups: dict[tuple[str, str], list[int]] = {}
     for i, t in enumerate(trials):
         groups.setdefault((t.family_id, t.variant_id), []).append(i)
