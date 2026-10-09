@@ -9,6 +9,12 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Progress (2026-10-09 ~04:30 EDT)
+- Spec v2.4 committed (1392310): 38 round-2 findings dispositioned (36 real, 2 removed under D-016); SQL 51 smoke assertions green. Codex spec round 3 running (scratchpad codex/spec3).
+- Dev cases F01-F09 merged into main (8c03747): validators green on v2.4 schemas; Codex CX green per family under v2.3 rules (v2.4 tightened CX-2 to all account facts: re-run later).
+- Web branch: cold Codex red (lint restrictions missing; dependency exceptions); sent back to the same agent (aadec2824ba80c8be). Reducer/controller/wire validation deferred to WP-18 part 2.
+- Disk: Data volume 98% full (8.7 GB free); this session uses ~1 GB; most is other projects (PangeaChat 12 GB in /private/tmp). Do not delete other projects' data; owner to free space.
+
 ## Resumed work (2026-10-09, owner: 25% usage left, continue; D-016 local demo, keep simple)
 - Normal agents (addressable with SendMessage for red-protocol follow-ups): web fix (wt-web: SSE stream-end retry major + 2 minors, self Codex gate) id aadec2824ba80c8be; seeds F01-F03 to CX green + sync into wt-cases id a735e3ef1d8570e23; spec round-2 majors with D-016 simplification id ae6c4a65789796395.
 - Still running: wave 2 workflow `w8o2onnit` (WP-01 gate, WP-08, WP-03).
