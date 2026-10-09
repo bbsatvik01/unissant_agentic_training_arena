@@ -650,3 +650,14 @@ describe("trialReducer: a finding in a running assessment snapshot (S6 5.4)", ()
     expect(view(applyFrame(s, own).state).committedFinding?.by).toBe("investigator");
   });
 });
+
+describe("trialReducer: notices in any order", () => {
+  it("keeps the newest notice of each kind whatever the arrival order", () => {
+    const at = (ts: string, text: string) => ({ ...frame("notice", null, 0, { kind: "paused", text }), ts });
+    const notes = [at("2026-10-20T15:04:05.123Z", "Paused at five."), at("2026-10-20T15:04:09.000Z", "Paused at nine."), at("2026-10-20T15:04:09.000Z", "Also nine.")];
+    const forward = view(fold(boot(), notes)).notices;
+    const backward = view(fold(boot(), [...notes].reverse())).notices;
+    expect(forward).toEqual([{ kind: "paused", text: "Paused at nine." }]);
+    expect(backward).toEqual(forward);
+  });
+});

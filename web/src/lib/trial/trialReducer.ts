@@ -441,13 +441,18 @@ function derive(state: TrialState): TrialState {
 
   const thinking = new Set<number>();
   const working = new Set<number>();
-  const notices = new Map<Notice["kind"], Notice>();
+  /** The newest notice of each kind, by its `ts`, ties broken by text: independent of arrival order (FE-SSE-2). */
+  const notices = new Map<Notice["kind"], { readonly ts: string; readonly notice: Notice }>();
   for (const hint of state.hints.values()) {
     if (!COACHING.has(hint.type)) version = Math.max(version, hint.transcript_version);
     if (hint.type === "subject.thinking") thinking.add(hint.data.turn_no);
     else if (hint.type === "coach.working") working.add(hint.data.turn_no);
     else if (hint.type === "trial.status") end(hint.data.status, hint.data.reason_code);
-    else if (hint.type === "notice") notices.set(hint.data.kind, hint.data);
+    else if (hint.type === "notice") {
+      const held = notices.get(hint.data.kind);
+      const newer = held === undefined || hint.ts > held.ts || (hint.ts === held.ts && hint.data.text > held.notice.text);
+      if (newer) notices.set(hint.data.kind, { ts: hint.ts, notice: hint.data });
+    }
   }
 
   // Judge every card by the one rule, once everything below it is known. A snapshot card has everything below it
@@ -525,7 +530,7 @@ function derive(state: TrialState): TrialState {
     committedFinding: committed,
     commitmentHash,
     debriefReady,
-    notices: [...notices.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
+    notices: [...notices.values()].map((n) => n.notice).sort((a, b) => a.kind.localeCompare(b.kind)),
   };
   return { ...state, view };
 }

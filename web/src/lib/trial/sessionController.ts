@@ -45,10 +45,23 @@ export const RESYNC_RETRIES = 3;
 /**
  * `idle` before `start()`; `loading` while the snapshot is read; `connecting` until the stream opens; `live`;
  * `reconnecting` while a retry is scheduled (the room says "Reconnecting"); `hidden` after the hidden-tab close;
- * `gave_up` when the retry budget ran out (`reconnect()` starts again); `finished` once the debrief is the
- * source of truth; `failed` when the snapshot could not be read; `closed` after `dispose()`.
+ * `gave_up` when the retry budget ran out (`reconnect()` starts again); `ending` once the stream is closed for good
+ * while the terminal snapshot and the debrief are read over REST (with bounded retries); `end_failed` when those
+ * reads kept failing (`reconnect()` reads them again, opening no stream); `finished` once both are loaded; `failed` when the snapshot could not be read; `closed` after `dispose()`.
  */
-export type ConnectionState = "idle" | "loading" | "connecting" | "live" | "reconnecting" | "hidden" | "gave_up" | "finished" | "failed" | "closed";
+export type ConnectionState =
+  | "idle"
+  | "loading"
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "hidden"
+  | "gave_up"
+  | "ending"
+  | "end_failed"
+  | "finished"
+  | "failed"
+  | "closed";
 
 export interface SessionState {
   readonly trial: TrialState;
@@ -274,10 +287,35 @@ export function createSessionController(options: SessionControllerOptions): Sess
     stream = null;
   };
 
-  const finish = () => {
+  /** The stream is closed for good (S6 5.1); what remains is reading the terminal state over REST. */
+  const stopForGood = () => {
     stopStream("finish");
     clearHiddenTimer();
-    set({ connection: "finished" });
+  };
+
+  /** The stream is closed for good: no stream is opened again (`ending`, `end_failed` or `finished`). */
+  const over = (): boolean => state.connection === "ending" || state.connection === "end_failed" || state.connection === "finished";
+
+  const delay = (ms: number) =>
+    new Promise<void>((resolve) => {
+      const handle = scheduler.setTimeout(() => {
+        catchUpTimers.delete(handle);
+        resolve();
+      }, ms);
+      catchUpTimers.add(handle);
+    });
+
+  /** A REST read retried RESYNC_RETRIES times (1, 2, 4 s); each failure is kept as the error. */
+  const readWithRetries = async <T,>(read: () => Promise<T>): Promise<T> => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await read();
+      } catch (error) {
+        set({ error });
+        if (attempt >= RESYNC_RETRIES || isDisposed()) throw error;
+        await delay(CATCH_UP_MS * 2 ** attempt);
+      }
+    }
   };
 
   /** A published debrief is never replaced by an older `scoring` answer. */
@@ -317,17 +355,24 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * 409 `stream_closed`): the terminal snapshot (the commitment hash, and in an assessment the coaching withheld
    * until now) and the debrief carry everything (S6 5.1, SG4-21).
    */
-  const complete = (): Promise<void> => {
+  const complete = (options: { readonly snapshotLoaded?: boolean } = {}): Promise<void> => {
     if (isDisposed()) return Promise.resolve();
     completing ??= (async () => {
-      finish();
+      stopForGood();
+      set({ connection: "ending" });
       try {
-        const snapshot = await api.trialSnapshot(trialId);
-        if (!disposed) dispatch({ type: "snapshot", snapshot });
-      } catch (error) {
-        set({ error });
+        if (options.snapshotLoaded !== true) {
+          const snapshot = await readWithRetries(() => api.trialSnapshot(trialId));
+          if (!isDisposed()) dispatch({ type: "snapshot", snapshot });
+        }
+        if (state.debrief === null || !("schema_version" in state.debrief)) {
+          setDebrief(await readWithRetries(() => api.readDebrief(sessionId)));
+        }
+        set({ connection: "finished", error: null });
+      } catch {
+        // Kept as `error`; `reconnect()` reads again. The stream stays closed for good.
+        set({ connection: "end_failed" });
       }
-      if (state.debrief === null || !("schema_version" in state.debrief)) await loadDebrief();
     })().finally(() => {
       // Only the run in flight is shared: a later call (another debrief request) reads the REST state again.
       completing = null;
@@ -343,7 +388,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   /** The room is following a stream (any mode): a lost frame there is covered by re-reading the snapshot. */
-  const streaming = (): boolean => view() !== null && stream !== null && state.connection !== "finished";
+  const streaming = (): boolean => view() !== null && stream !== null && !over();
 
   const gapFreeRunning = (): boolean => {
     const v = view();
@@ -367,7 +412,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         const snapshot = await api.trialSnapshot(trialId);
         resyncFailures = 0;
-        if (!disposed && state.connection !== "finished") {
+        if (!disposed && !over()) {
           dispatch({ type: "snapshot", snapshot });
           // The trial ended: a lost debrief.ready is not in any snapshot, so ask the debrief route directly.
           if (snapshot.status !== "running") await finishIfPublished();
@@ -378,7 +423,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       } finally {
         resyncing = false;
       }
-      if (disposed || state.connection === "finished") return;
+      if (disposed || over()) return;
       if (resyncAgain) {
         resyncAgain = false;
         resync();
@@ -492,7 +537,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     });
     // The first ticket mint can settle before this assignment only as a 409 handled by complete(), which
     // finished the session; never keep a handle after that.
-    if (state.connection === "finished" || disposed) handle.close();
+    if (over() || disposed) handle.close();
     else stream = handle;
     syncVisibility();
   };
@@ -578,8 +623,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
     dispatch({ type: "snapshot", snapshot });
     cursor = snapshot.last_seq;
     if (snapshot.status !== "running") {
-      finish();
-      await loadDebrief();
+      // Not awaited: start() settles once the snapshot is in; the debrief read (with its retries) follows.
+      void complete({ snapshotLoaded: true });
       return;
     }
     unsubscribeVisibility = visibility.subscribe(syncVisibility);
@@ -682,6 +727,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
       await complete();
     },
     reconnect() {
+      if (state.connection === "end_failed") {
+        void complete();
+        return;
+      }
       if (stream === null || state.connection !== "gave_up") return;
       set({ connection: "connecting" });
       stream.reconnect();

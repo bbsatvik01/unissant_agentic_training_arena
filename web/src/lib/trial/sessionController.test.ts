@@ -236,14 +236,33 @@ describe("session controller: bootstrap (S6 5.1, S5 6.4)", () => {
     expect(roomStatus(c.getState().trial)).toBe("ended");
   });
 
-  it("an ended session whose debrief cannot be read still finishes, with the error kept", async () => {
-    const h = harness({ snapshots: [snapshot({ status: "infra_failed" })], debrief: new Error("down") });
+  it("an ended session whose debrief keeps failing ends in end_failed; reconnect() reads it again and finishes", async () => {
+    let healthy = false;
+    let reads = 0;
+    const h = harness({
+      snapshots: [snapshot({ status: "infra_failed" })],
+      debrief: () => {
+        reads += 1;
+        return healthy ? (fixture("debrief:scored") as DebriefRead) : new Error("down");
+      },
+    });
     const c = h.make();
     await begin(c);
-    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().connection).toBe("ending");
+    await h.clock.advance(60_000);
+    expect(c.getState().connection).toBe("end_failed");
     expect(c.getState().debrief).toBeNull();
     expect(c.getState().error).toBeInstanceOf(Error);
+    expect(reads).toBe(1 + RESYNC_RETRIES);
+    healthy = true;
+    c.reconnect();
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+    expect(c.getState().error).toBeNull();
+    expect(h.sources).toHaveLength(0);
   });
+
 
   it("notifies subscribers on every change and stops after unsubscribe", async () => {
     const h = harness();
@@ -323,18 +342,24 @@ describe("session controller: through the end of the trial (S6 5.1, FE-SSE-5)", 
     expect(h.clock.pending()).toBe(0);
   });
 
-  it("a 409 whose snapshot reload fails still finishes, reads the debrief and keeps the error", async () => {
-    const h = harness({
-      snapshots: [snapshot(), new TypeError("network")],
-      tickets: [new ApiError(409, "stream_closed", "/x")],
-    });
+  it("a 409 whose snapshot reads keep failing ends in end_failed; reconnect() recovers with no stream and no debrief POST", async () => {
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 9 });
+    const failures = Array.from({ length: 1 + RESYNC_RETRIES }, () => new TypeError("network"));
+    const h = harness({ snapshots: [snapshot(), ...failures, ended], tickets: [new ApiError(409, "stream_closed", "/x")] });
     const c = h.make();
     await begin(c);
+    await h.clock.advance(60_000);
+    expect(c.getState().connection).toBe("end_failed");
+    expect(c.getState().error).toBeInstanceOf(TypeError);
+    expect(c.getState().debrief).toBeNull();
+    c.reconnect();
     await flush();
     expect(c.getState().connection).toBe("finished");
-    expect(c.getState().error).toBeInstanceOf(TypeError);
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
     expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+    expect(h.sources).toHaveLength(0);
   });
+
 
   it("a 409 stream_closed on the very first ticket also ends from REST", async () => {
     const h = harness({
@@ -932,8 +957,11 @@ describe("session controller: Codex round 1 regressions", () => {
     });
     const started = c.start();
     await flush();
-    await c.requestDebrief();
+    // the published document arrives first; the older GET (still in flight) settles after it
+    const requested = c.requestDebrief();
+    await flush();
     answer({ status: "scoring" });
+    await requested;
     await started;
     await flush();
     expect(c.getState().debrief).toEqual(debrief);
@@ -1038,22 +1066,20 @@ describe("session controller: Codex round 2 regressions", () => {
     expect(keysSent).toEqual(["k1", "k2", "k2"]);
   });
 
-  it("a terminal snapshot that failed to load is read again by a later debrief request", async () => {
+  it("a terminal snapshot read that fails once is retried and covers the end", async () => {
     const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 9 });
-    const debrief = fixture("debrief:scored");
-    const h = harness({
-      snapshots: [snapshot(), new TypeError("network"), ended],
-      tickets: [new ApiError(409, "stream_closed", "/x")],
-    });
-    const c = h.make({ api: { ...h.api, requestDebrief: () => Promise.resolve(debrief as never) } });
+    const h = harness({ snapshots: [snapshot(), new TypeError("network"), ended], tickets: [new ApiError(409, "stream_closed", "/x")] });
+    const c = h.make();
     await begin(c);
     await flush();
-    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().connection).toBe("ending");
     expect(trialView(c).commitmentHash).toBeNull();
-    await c.requestDebrief();
+    await h.clock.advance(CATCH_UP_MS);
+    expect(c.getState().connection).toBe("finished");
     expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
     expect(roomStatus(c.getState().trial)).toBe("ended");
   });
+
 
   it("a card above a missing frame neither shows nor is acknowledged until the snapshot re-read covers the gap", async () => {
     const b = new LogBuilder().ask({ releaseAfter: "rec-02" });
