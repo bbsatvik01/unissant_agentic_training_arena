@@ -17,6 +17,7 @@ from .conftest import SPEC_S2
 CASES_DIR: Path = SPEC_S2.parents[2] / "cases" / "dev"
 COOP_IDS: list[str] = fixtures.load("fx_coop")["transcripts"]
 COOP_SIZE = 3
+MIN_CITED = 5
 
 
 def _truthful(family_id: str) -> dict[str, Any]:
@@ -52,62 +53,128 @@ def test_fx_coop_is_three_cooperative_truthful_transcripts() -> None:
 
 
 @pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_every_sentence_passes_the_four_s2_11_1_checks(transcript_id: str) -> None:
-    """Known to the subject; agrees with any released record cited for the same fact; not contradicted by any record
-    of the variant; perception and memory claims phrased as such and backed by the ledger only."""
+def test_every_sentence_passes_the_mechanical_checks(transcript_id: str) -> None:
+    """S2 11.1 enforcement, code side: ledger IDs exist, quotes verbatim and released, numbers as whole tokens,
+    per-quote polarity, no time on the wrong row, perception claims phrased as such. The review is the semantic side."""
     assert problems(fixtures.transcript(transcript_id)) == []
+
+
+REVIEW = {r["id"]: r for r in fixtures.load("transcript_review")["transcripts"]}
+SEMANTIC = ("consistent", "responsive", "visible", "ledger_states_claims", "quotes_state_facts", "uncontradicted")
+
+
+@pytest.mark.parametrize("transcript_id", COOP_IDS)
+def test_every_pair_has_a_current_passing_semantic_review(transcript_id: str) -> None:
+    """S2 11.1 enforcement, review side: for every Q/A pair the recorded independent review says the cited ledger
+    entries state each claim (the question text did not supply it), every cited quote states the same fact, and no
+    record of the variant, cited or not, contradicts a claim. The text and case hash binding is in test_fixtures."""
+    review = REVIEW[transcript_id]
+    t = fixtures.transcript(transcript_id)
+    assert review["reviewed_text_sha256"] == fixtures.reviewed_text_sha256(t)
+    assert [e["turn"] for e in review["exchanges"]] == [e["turn"] for e in t["exchanges"]]
+    failing = [(e["turn"], k) for e in review["exchanges"] for k in SEMANTIC if e.get(k) is not True]
+    assert failing == []
 
 
 @pytest.mark.parametrize("transcript_id", COOP_IDS)
 def test_the_controls_state_facts_records_also_state(transcript_id: str) -> None:
-    """A control that cited no record anywhere would test nothing: most fact sentences cite a released record."""
+    """A control that cited no record would never exercise the agreement checks: each cites a released record for at
+    least five fact sentences. A quote is cited only where the review confirms it states the sentence's whole fact
+    (S2 11.1 requires agreement only where a record states the fact), so this is a floor on coverage, not a ratio."""
     support = [s for e in fixtures.transcript(transcript_id)["exchanges"] for s in e["support"]]
-    facts = [s for s in support if s["kind"] == "fact"]
-    assert sum(bool(s["records"]) for s in facts) * 2 > len(facts)
+    assert sum(bool(s["records"]) for s in support if s["kind"] == "fact") >= MIN_CITED
 
 
-# ---------------------------------------------------------------- regressions: each check fails on its own defect
+# ------------------------------------------------------- regressions: each mechanical check fails on its defect
 
-KNOWN = ["You did not use the copier."]
 COPIER_ROW = "16:52 | Copy | 3 | L. Specht"
+DOOR = "Door events.\n19:12 | Room 417 door contact | Door opened\n19:38 | Room 417 door contact | Door closed"
 
 
-def test_the_cold_gate_example_fails_on_polarity() -> None:
-    """A quote that says the opposite of the sentence fails agreement even when the ledger matches the sentence."""
-    assert cc.knowledge_problems("I did not use the copier.", KNOWN) == []
-    found = cc.agreement_problems("I did not use the copier.", ["I used the copier."], set())
-    assert any(p.startswith("polarity differs from the quote") for p in found)
+def test_a_contradicting_quote_fails_on_polarity() -> None:
+    """The cold-gate example: a quote saying the opposite fails, whatever the ledger says."""
+    assert polarity("I did not use the copier.", ["I used the copier."])
+    assert cc.polarity_problems(
+        "I did not use the office copier.", ["I did not use the office copier.", "I used the office copier."]
+    ) == ["polarity differs from the quote: 'I used the office copier.'"]
+    assert cc.polarity_problems("I did not use the copier.", ["I did not use the copier."]) == []
 
 
-def test_an_unrelated_supporting_quote_fails() -> None:
-    found = cc.agreement_problems("I closed the valve in the riser closet.", ["Walk-up copying is enabled."], set())
-    assert any(p.startswith("the quote is not about the sentence") for p in found)
+def polarity(sentence: str, quotes: list[str]) -> bool:
+    return bool(cc.polarity_problems(sentence, quotes))
 
 
-def test_a_contradicting_number_in_the_quote_fails() -> None:
-    found = cc.agreement_problems("The copier ran one job at 16:58 for Specht.", [COPIER_ROW], set())
-    assert "16:58 disagrees with the quote" in found
-
-
-def test_knowledge_is_never_borrowed_from_a_record() -> None:
-    """A word only the record holds is not known to the subject, however well the record supports it."""
-    sentence = "The copier ran one job for Specht."
-    assert "Specht is not known to the subject" in cc.knowledge_problems(sentence, KNOWN)
-    assert "16:52 is not known to the subject" in cc.knowledge_problems("Specht copied at 16:52.", ["Specht copied."])
-
-
-def test_polarity_must_match_the_ledger() -> None:
-    assert "polarity differs from the ledger" in cc.knowledge_problems("I used the copier.", KNOWN)
-
-
-def test_a_record_time_attached_to_something_else_contradicts_it() -> None:
-    rows = ["19:12 | Room 417 door contact | Door opened\n19:38 | Room 417 door contact | Door closed"]
-    found = cc.contradiction_problems("The door opened at 19:38 and closed at 19:12.", rows)
-    assert any(p.startswith("contradicts a record") for p in found)
-    assert cc.contradiction_problems("The door opened at 19:12 and closed at 19:38.", rows) == []
-    assert cc.contradiction_problems("I was there from 19:38 until 19:12.", rows) == [
-        "contradicts a record: the span from 19:38 to 19:12 runs backwards"
+def test_numbers_match_whole_tokens_and_spelled_out_numbers_count() -> None:
+    assert cc.number_problems("I opened the 41 door.", ["You opened the 417 door."], []) == [
+        "41 is not in the cited ledger or the questions"
     ]
+    assert cc.number_problems("The copier ran at 16:58.", ["16:58"], [COPIER_ROW]) == ["16:58 disagrees with the quote"]
+    assert (
+        cc.number_problems("The door opened at 19:12.", ["at 19:12"], ["19:12:40 | Room 417 door | Door opened"]) == []
+    )
+    assert cc.number_problems("I walk-tested it ten times.", ["You walk-tested it two times."], []) == [
+        "10 is not in the cited ledger or the questions"
+    ]
+    assert cc.number_problems("I walk-tested it twice.", ["You walk-tested it two times."], []) == []
+
+
+def test_no_time_on_the_wrong_row() -> None:
+    assert cc.time_row_problems("The door opened at 19:38.", [], [DOOR]) == ["open goes with another time than 19:38"]
+    assert cc.time_row_problems("The door opened at 19:12 and closed at 19:38.", [], [DOOR]) == []
+    assert cc.time_row_problems("The door closed at 19:12 and opened at 19:38.", [], [DOOR])
+    assert cc.time_row_problems("I was there from 19:38 until 19:12.", [], [DOOR]) == [
+        "the span from 19:38 to 19:12 runs backwards"
+    ]
+
+
+def test_no_time_on_the_wrong_row_against_a_real_record() -> None:
+    """The controls state no record-only clock times (their ledgers hold none), so the time-row check is proven on a
+    real development record instead: F06 doc-01 has the 417 door opening at 19:12 and closing at 19:38."""
+    records = list(record_texts("F06").values())
+    assert cc.time_row_problems("The 417 door opened at 19:12.", [], records) == []
+    assert cc.time_row_problems("The 417 door opened at 19:38.", [], records) == [
+        "open goes with another time than 19:38"
+    ]
+
+
+def test_quotes_must_be_verbatim_released_and_not_a_column_line() -> None:
+    texts = {"rec-03": "Copier log.\nTime | Job | Pages | Account\n" + COPIER_ROW}
+    columns = {"Time | Job | Pages | Account"}
+    ok = {"record_id": "rec-03", "quote": COPIER_ROW}
+    assert cc.quote_problems([ok], texts, {"rec-03"}, columns) == []
+    assert cc.quote_problems([ok], texts, set(), columns) == ["record not released in this interview"]
+    assert cc.quote_problems([{**ok, "quote": "16:52 | Copy | 4 | L. Specht"}], texts, {"rec-03"}, columns) == [
+        "quote not in the record"
+    ]
+    header = {"record_id": "rec-03", "quote": "Time | Job | Pages | Account"}
+    assert "the quote is only a column line" in cc.quote_problems([header], texts, {"rec-03"}, columns)
+    assert cc.quote_problems([ok, ok, ok], texts, {"rec-03"}, columns) == ["more than two quotes"]
+
+
+def test_ledger_ids_must_exist_and_only_plain_ignorance_cites_none() -> None:
+    ledger_ = {"f:01": "x"}
+    assert cc.ledger_problems(["f:99"], ledger_) == ["cites an unknown ledger entry"]
+    assert cc.ledger_problems(["f:01"], ledger_) == []
+    assert cc.ledger_problems([], ledger_) == ["cites no ledger entry of the subject"]
+    assert cc.ledger_problems([], ledger_, "I have not seen that camera review.", "perception") == []
+    assert cc.ledger_problems([], ledger_, "I have not seen that camera review.", "fact") == [
+        "cites no ledger entry of the subject"
+    ]
+    assert cc.ledger_problems([], ledger_, "I did not see anyone at the lift.", "perception") == [
+        "cites no ledger entry of the subject"
+    ]
+
+
+def test_every_ledger_free_ignorance_claim_is_confirmed_by_the_review() -> None:
+    """Whether the ledger really is silent is semantic: every turn holding a ledger-free ignorance sentence has a review
+    that confirms its claims are ledger-backed (no false denial of something the ledger knows)."""
+    found = 0
+    for transcript_id in COOP_IDS:
+        review = {e["turn"]: e for e in REVIEW[transcript_id]["exchanges"]}
+        for e in fixtures.transcript(transcript_id)["exchanges"]:
+            if any(not s["ledger"] for s in e["support"]):
+                found += 1
+                assert review[e["turn"]]["ledger_states_claims"] is True
 
 
 def test_perception_claims_are_phrased_as_such_and_cite_no_record() -> None:
@@ -125,15 +192,6 @@ def test_perception_claims_are_phrased_as_such_and_cite_no_record() -> None:
     assert cc.perception_problems("The pass was issued.", "claim", []) == ["unknown claim kind 'claim'"]
 
 
-def test_a_duty_and_a_column_line_are_not_support() -> None:
-    duty = cc.agreement_problems("I met the visitor in the lobby.", ["please meet the visitor in the lobby"], set())
-    assert "a duty in the quote is stated as an event" in duty
-    reported = "I was asked to meet the visitor in the lobby."
-    assert cc.agreement_problems(reported, ["please meet the visitor in the lobby"], set()) == []
-    header = "Date | Name | Card | Reason | Out | In"
-    assert "the quote is only a column line" in cc.agreement_problems("Date name card reason out.", [header], {header})
-
-
 def _mutate(transcript_id: str, old: str, new: str) -> set[str]:
     t = fixtures.transcript(transcript_id)
     hits = [e for e in t["exchanges"] if old in e["answer"]]
@@ -143,104 +201,37 @@ def _mutate(transcript_id: str, old: str, new: str) -> set[str]:
 
 
 @pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_edits_to_a_control_fail(transcript_id: str) -> None:
-    """A word no ledger holds, a flipped polarity, an unreleased record and an unknown ledger entry each fail."""
+def test_edits_to_a_control_fail_the_mechanical_checks(transcript_id: str) -> None:
+    """A record-cited sentence with a flipped polarity, an unreleased record and an unknown ledger entry each fail;
+    editing any answer also invalidates its review (test_fixtures)."""
     t = fixtures.transcript(transcript_id)
-    first = cc.sentences(t["exchanges"][0]["answer"])[0]
-    word = next(w for w in cc.WORD.findall(first) if cc.content(w))
-    assert any("Zebrafish" in p for p in _mutate(transcript_id, word, "Zebrafish"))
-    negated = f"Not {first[0].lower()}{first[1:]}"  # the same claim with its polarity flipped
-    assert "polarity differs from the ledger" in _mutate(transcript_id, first, negated)
-    t = fixtures.transcript(transcript_id)
-    cited = next((e, s) for e in t["exchanges"] for s in e["support"] if s["records"])
-    cited[1]["records"][0]["record_id"] = "rec-09"
+    exchange, sentence, support = next(
+        (e, s, sup)
+        for e in t["exchanges"]
+        for s, sup in zip(cc.sentences(e["answer"]), e["support"], strict=True)
+        if sup["records"]
+    )
+    flipped = cc.NEGATORS.sub("", sentence, count=1) if cc.NEGATORS.search(sentence) else f"Not {sentence}"
+    original = exchange["answer"]
+    exchange["answer"] = original.replace(sentence, flipped, 1)
+    assert any(p.startswith("polarity differs") for p in kinds(t))
+    exchange["answer"] = original
+    support["records"][0]["record_id"] = "rec-09"
     assert "record not released in this interview" in kinds(t)
     t = fixtures.transcript(transcript_id)
     t["exchanges"][0]["support"][0]["ledger"] = ["f:99"]
-    assert "cites no ledger entry of the subject, or an unknown one" in kinds(t)
+    assert "cites an unknown ledger entry" in kinds(t)
 
 
-def test_a_time_moved_to_another_row_of_its_record_fails() -> None:
-    """For every sentence of the controls that states a time a record row holds, moving it to another row's time of the
-    same record whose row says something else must fail (the record ties the event to the first time)."""
-    moved: list[tuple[str, str, str, str]] = []
+def test_a_changed_number_in_a_record_cited_sentence_fails() -> None:
+    changed = []
     for transcript_id in COOP_IDS:
         t = fixtures.transcript(transcript_id)
-        texts = record_texts(t["family_id"]).values()
         for e in t["exchanges"]:
-            for sentence in cc.sentences(e["answer"]):
-                for time in cc.TIME.findall(sentence):
-                    for text in texts:
-                        rows = cc.rows_of([text])
-                        own = [r for r, _ in rows if cc.number_in(time, r)]
-                        if not own:
-                            continue
-                        body = own[0].partition(" | ")[2]
-                        other = next(
-                            (
-                                cc.TIME.findall(r)[0]
-                                for r, _ in rows
-                                if cc.TIME.match(r)
-                                and r.partition(" | ")[2]
-                                and not cc.number_in(time, r)
-                                and r.partition(" | ")[2] != body
-                            ),
-                            None,
-                        )
-                        if other is not None:
-                            moved.append((transcript_id, sentence, time, other[:5]))
-    assert moved  # the controls hold record-backed times
-    caught = [m for m in moved if _mutate(m[0], m[1], m[1].replace(m[2], m[3], 1))]
-    assert len(caught) == len(moved), [m for m in moved if m not in caught]
-
-
-def _one_sentence(answer: str, support: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "family_id": "F06",
-        "variant": "truthful",
-        "exchanges": [
-            {
-                "turn": 1,
-                "question": "We have Copier MF-417 job log, Room 417. Can you tell me about it?",
-                "released_before": ["doc-01"],
-                "answer": answer,
-                "protected": [],
-                "support": [support],
-            }
-        ],
-    }
-
-
-def test_every_claim_needs_a_ledger_entry_even_a_denial_of_knowledge() -> None:
-    """S2 11.1: perception and memory claims need ledger support; "I do not know about the key" when the ledger knows
-    the key is a false denial, so no claim stands on an empty ledger list."""
-    plain = {"kind": "perception", "ledger": [], "records": []}
-    claimed = "cites no ledger entry of the subject, or an unknown one"
-    assert claimed in kinds(_one_sentence("I do not know anything about the restricted key.", plain))
-    assert claimed in kinds(_one_sentence("I have not seen the copier job log.", plain))
-    assert claimed in kinds(_one_sentence("I have not seen the copier job log.", {**plain, "kind": "fact"}))
-
-
-def test_numbers_match_whole_tokens() -> None:
-    """ "41" is not "417"; a time to the minute matches the same time to the second."""
-    assert cc.knowledge_problems("I opened the 41 door.", ["You opened the 417 door at 19:12."]) == [
-        "41 is not known to the subject"
-    ]
-    assert cc.agreement_problems("The door opened at 19:12.", ["19:12:40 | Room 417 door | Door opened"], set()) == []
-    found = cc.agreement_problems("The 41 door opened at 19:12.", ["19:12:40 | Room 417 door | Door opened"], set())
-    assert "41 disagrees with the quote" in found
-
-
-def test_each_quote_is_checked_for_polarity_on_its_own() -> None:
-    quotes = ["I did not use the office copier.", "I used the office copier."]
-    found = cc.agreement_problems("I did not use the office copier.", quotes, set())
-    assert found == ["polarity differs from the quote: 'I used the office copier.'"]
-
-
-def test_a_single_time_given_to_the_wrong_event_contradicts_the_record() -> None:
-    record = "Door events.\n19:12 | Room 417 door contact | Door opened\n19:38 | Room 417 door contact | Door closed"
-    assert cc.contradiction_problems("The door opened at 19:38.", [record]) == [
-        "contradicts a record: open goes with another time than 19:38"
-    ]
-    assert cc.contradiction_problems("The door opened at 19:12.", [record]) == []
-    assert cc.contradiction_problems("The door closed at 19:38.", [record]) == []
+            for s, sup in zip(cc.sentences(e["answer"]), e["support"], strict=True):
+                if sup["records"] and cc.numbers(s):
+                    n = next(w for w in cc.WORD.findall(s) if cc.numbers(w))
+                    changed.append((transcript_id, s, s.replace(n, "99", 1)))
+    assert changed
+    for transcript_id, old, new in changed:
+        assert any("99" in p for p in _mutate(transcript_id, old, new)), old

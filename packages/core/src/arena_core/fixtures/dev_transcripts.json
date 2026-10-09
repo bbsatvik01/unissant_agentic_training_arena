@@ -2123,7 +2123,7 @@
             "doc-03",
             "doc-04"
           ],
-          "answer": "My personal leave on 7 April was from half past twelve, and I left the reason blank on the timesheet. Celia phoned me at about ten to five and asked me to collect the training kit that evening and get it to Corbel Lane before the eight o'clock session. I came in with my badge through the loading dock door. My badge opened S-2 when I went in for the kit.",
+          "answer": "I took personal leave from half past twelve that day and left the reason blank on the timesheet. Celia phoned me at about ten to five and asked me to collect the training kit from S-2 that evening and get it to Corbel Lane before the eight o'clock session. I came in with my badge through the loading dock door. Then my badge opened S-2. That was when I went in for the kit.",
           "protected": [
             "asked me to collect the training kit"
           ],
@@ -2137,24 +2137,16 @@
                 {
                   "record_id": "doc-04",
                   "quote": "G. Mattick | Supply Technician | 07:00-12:30 | Personal leave 12:30-17:00; reason field blank"
-                },
-                {
-                  "record_id": "rec-06",
-                  "quote": "7 Apr, 12:30-17:00 | Personal leave"
                 }
               ]
             },
             {
               "kind": "fact",
               "ledger": [
-                "f:08"
+                "f:08",
+                "u:02"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening and get it to Corbel Lane before the session."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2165,6 +2157,18 @@
                 {
                   "record_id": "doc-01",
                   "quote": "19:47:10 | Loading dock door | Badge 40562 (G. Mattick) | Granted, entry"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "19:52:31 | Supply Store S-2 | Badge 40562 (G. Mattick) | Granted"
                 }
               ]
             },
@@ -2186,7 +2190,7 @@
             "doc-03",
             "doc-04"
           ],
-          "answer": "The two cartons I loaded were the training kit from the dispatch shelf: the projector kit and thirty training binders. I went out through the loading dock door with the cartons just after eight. I do not know the exact minute. Owen, the night guard, saw me loading the two cartons into my car at the dock. Owen waved and did not ask me for a pass number.",
+          "answer": "The two cartons I loaded were the training kit from the dispatch shelf: the projector kit and thirty training binders. I went out through the loading dock door just after eight. I do not know the exact minute. I had the cartons with me. Owen, the night guard, saw me loading the two cartons into my car at the dock. He did not ask me for a pass number.",
           "protected": [
             "did not ask me for a pass number"
           ],
@@ -2196,17 +2200,13 @@
               "ledger": [
                 "f:20"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "2 cartons: projector kit BA-AV-0412; 30 training binders (Records Handling course)"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
-                "f:13"
+                "f:13",
+                "u:01"
               ],
               "records": [
                 {
@@ -2219,6 +2219,13 @@
               "kind": "perception",
               "ledger": [
                 "u:01"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:13"
               ],
               "records": []
             },
@@ -2239,12 +2246,7 @@
               "ledger": [
                 "f:09"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "He waved. I was finishing the dock round and did not stop to check a property pass."
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -2300,7 +2302,7 @@
             "rec-04",
             "rec-06"
           ],
-          "answer": "I booked that personal leave on 30 March, and Celia approved it the same day. It was personal leave from half past twelve on 7 April, and I left the reason blank on the timesheet.",
+          "answer": "I booked that personal leave on 30 March, and Celia approved it the same day. It was personal leave from half past twelve on 7 April. I left the reason blank on the timesheet.",
           "protected": [
             "booked that personal leave"
           ],
@@ -2325,12 +2327,20 @@
               ],
               "records": [
                 {
-                  "record_id": "doc-04",
-                  "quote": "G. Mattick | Supply Technician | 07:00-12:30 | Personal leave 12:30-17:00; reason field blank"
-                },
-                {
                   "record_id": "rec-06",
                   "quote": "7 Apr, 12:30-17:00 | Personal leave"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:03"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-04",
+                  "quote": "Personal leave 12:30-17:00; reason field blank"
                 }
               ]
             }
@@ -2351,7 +2361,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "Celia told me she had raised a property pass for the kit, with me as the holder. I never saw the pass itself, only what Celia told me on the phone. The kit was the projector kit and thirty training binders, in two cartons. Celia had asked me to get it to Corbel Lane before the eight o'clock session.",
+          "answer": "Celia told me she had raised a property pass for the kit, with me as the holder. I never saw the pass itself, only what Celia told me on the phone. The kit was the projector kit and thirty training binders, in two cartons.",
           "protected": [
             "with me as the holder"
           ],
@@ -2361,12 +2371,7 @@
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "at 16:45 I raised property pass PP-0407-06 for it with Glen as holder"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "perception",
@@ -2384,18 +2389,6 @@
                 {
                   "record_id": "rec-01",
                   "quote": "2 cartons: projector kit BA-AV-0412; 30 training binders (Records Handling course)"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "get it to Corbel Lane before the session"
                 }
               ]
             }
@@ -2416,7 +2409,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "I got to the Corbel Lane training centre at twenty to eight the next morning and dropped off the kit. Joanna Ainsley at Corbel Lane signed for both cartons when I dropped them off.",
+          "answer": "I got to the Corbel Lane training centre at twenty to eight the next morning and dropped off the kit. Joanna Ainsley signed for both cartons.",
           "protected": [
             "signed for both cartons"
           ],
@@ -2463,7 +2456,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "I do not know anything about the stock counts. I did not take anything from S-2 apart from the two kit cartons. The two cartons I loaded were the projector kit and thirty training binders.",
+          "answer": "I do not know anything about the stock counts. I did not take anything from S-2 apart from the two kit cartons. The two cartons I dropped off at Corbel Lane were the projector kit and thirty training binders.",
           "protected": [
             "anything about the stock counts"
           ],
@@ -2485,12 +2478,13 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:20"
+                "f:20",
+                "f:24"
               ],
               "records": [
                 {
                   "record_id": "rec-02",
-                  "quote": "the projector kit (BA-AV-0412) and the 30 Records Handling binders"
+                  "quote": "I signed for two cartons against pass PP-0407-06: the projector kit (BA-AV-0412) and the 30 Records Handling binders"
                 }
               ]
             }
@@ -2511,11 +2505,24 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "Celia phoned me at about ten to five and asked me to collect the training kit that evening and get it to Corbel Lane before the eight o'clock session. She told me she had raised a property pass for the kit, with me as the holder. Celia had left the Corbel Lane training kit on the dispatch shelf in S-2.",
+          "answer": "Celia phoned me at about ten to five and asked me to collect the kit that evening. She asked me to get it to Corbel Lane before the session. She told me she had raised a property pass for the kit, with me as the holder. Celia had left the Corbel Lane training kit on the dispatch shelf in S-2.",
           "protected": [
             "raised a property pass for the kit"
           ],
           "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:08",
+                "u:02"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
+                }
+              ]
+            },
             {
               "kind": "fact",
               "ledger": [
@@ -2524,7 +2531,7 @@
               "records": [
                 {
                   "record_id": "rec-05",
-                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening and get it to Corbel Lane before the session."
+                  "quote": "and asked him to collect the kit that evening and get it to Corbel Lane before the session."
                 }
               ]
             },
@@ -2533,12 +2540,7 @@
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "at 16:45 I raised property pass PP-0407-06 for it with Glen as holder"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2569,7 +2571,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "At the end, Joanna Ainsley signed for both cartons at Corbel Lane the next morning. Before that, Owen saw me loading the two cartons into my car at the dock. Before that I went out through the loading dock door with the cartons just after eight. Before that my badge opened S-2. Before that I came in with my badge through the loading dock door. First, Celia phoned me at about ten to five and asked me to collect the kit.",
+          "answer": "At the end, Joanna Ainsley signed for both cartons. Before that, I got to Corbel Lane at twenty to eight the next morning. Before that, Owen saw me loading the two cartons into my car at the dock. Before that, I went out through the loading dock door just after eight. Before that, my badge opened S-2. Before that, I came in with my badge through the loading dock door. First, Celia phoned me at about ten to five and asked me to collect the kit.",
           "protected": [
             "saw me loading the two cartons"
           ],
@@ -2577,13 +2579,24 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:24",
-                "f:19"
+                "f:24"
               ],
               "records": [
                 {
                   "record_id": "rec-02",
                   "quote": "I signed for two cartons against pass PP-0407-06"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:19"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "Glen Mattick dropped the kit off at 07:40."
                 }
               ]
             },
@@ -2602,7 +2615,8 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:13"
+                "f:13",
+                "u:01"
               ],
               "records": [
                 {
@@ -2616,7 +2630,12 @@
               "ledger": [
                 "f:11"
               ],
-              "records": []
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "19:52:31 | Supply Store S-2 | Badge 40562 (G. Mattick) | Granted"
+                }
+              ]
             },
             {
               "kind": "fact",
@@ -2633,7 +2652,8 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:08"
+                "f:08",
+                "u:02"
               ],
               "records": [
                 {
@@ -2659,7 +2679,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "My badge opened Supply Store S-2 at 19:52 when I went in for the kit. Celia had left the Corbel Lane training kit on the dispatch shelf in S-2. I went out through the loading dock door with the cartons just after eight.",
+          "answer": "My badge opened Supply Store S-2. That was when I went in for the kit. Celia had left the Corbel Lane training kit on the dispatch shelf in S-2. I went out through the loading dock door just after eight. I had the cartons with me.",
           "protected": [
             "when I went in for the kit"
           ],
@@ -2679,6 +2699,13 @@
             {
               "kind": "fact",
               "ledger": [
+                "f:11"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
                 "f:07"
               ],
               "records": [
@@ -2691,7 +2718,8 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:13"
+                "f:13",
+                "u:01"
               ],
               "records": [
                 {
@@ -2699,6 +2727,13 @@
                   "quote": "20:03:18 | Loading dock door | Badge 40562 (G. Mattick) | Granted, exit"
                 }
               ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:13"
+              ],
+              "records": []
             }
           ]
         },
@@ -2717,7 +2752,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "I went in to collect the training kit; Celia had phoned me and asked me to collect it that evening. She asked me to get it to Corbel Lane before the eight o'clock session. She had raised a property pass for the kit, with me as the holder.",
+          "answer": "I went in to collect the training kit. Celia had phoned me and asked me to collect it that evening. She asked me to get it to Corbel Lane before the session. She told me she had raised a property pass for the kit, with me as the holder.",
           "protected": [
             "went in to collect the training kit"
           ],
@@ -2725,8 +2760,15 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:08",
-                "f:11"
+                "f:11",
+                "f:08"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:08"
               ],
               "records": [
                 {
@@ -2743,7 +2785,7 @@
               "records": [
                 {
                   "record_id": "rec-05",
-                  "quote": "get it to Corbel Lane before the session"
+                  "quote": "and asked him to collect the kit that evening and get it to Corbel Lane before the session."
                 }
               ]
             },
@@ -2752,12 +2794,7 @@
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "at 16:45 I raised property pass PP-0407-06 for it with Glen as holder"
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -2776,7 +2813,7 @@
             "rec-05",
             "rec-06"
           ],
-          "answer": "Celia phoned me at about ten to five and asked me to collect the kit. Owen, the night guard, saw me loading the two cartons into my car at the dock. Joanna Ainsley at Corbel Lane signed for both cartons when I dropped them off. I do not know whether anyone else went into S-2 that night.",
+          "answer": "Celia phoned me at about ten to five and asked me to collect the kit. Owen, the night guard, saw me loading the two cartons into my car at the dock. Joanna Ainsley at Corbel Lane signed for both cartons. I do not know whether anyone else went into S-2 that night.",
           "protected": [
             "Joanna Ainsley at Corbel Lane"
           ],
@@ -2784,7 +2821,8 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:08"
+                "f:08",
+                "u:02"
               ],
               "records": [
                 {
@@ -2813,7 +2851,7 @@
               "records": [
                 {
                   "record_id": "rec-02",
-                  "quote": "I signed for two cartons against pass PP-0407-06"
+                  "quote": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre. To: C. Brandt, Supply Supervisor. Sent: 8 April 2026, 07:52. Subject: Kit received. Glen Mattick dropped the kit off at 07:40. I signed for two cartons against pass PP-0407-06"
                 }
               ]
             },
@@ -2852,24 +2890,14 @@
                 "f:19",
                 "f:04"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00)."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2877,12 +2905,7 @@
                 "f:07",
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "20:50 | M. Fenwick | Ticket queue | Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -2894,9 +2917,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "My badge opened R-6 a bit after nine. I went into R-6 to work on MS-6A for SR-3051. I walk-tested motion detector MS-6A two times. The detector head was failing, and I could not fix it on site.",
+          "answer": "My badge opened R-6 a bit after nine. I went into R-6 to work on MS-6A for SR-3051. I walk-tested motion detector MS-6A. The detector head was failing, and I could not fix it on site.",
           "protected": [
-            "I walk-tested motion detector MS-6A two times"
+            "I walk-tested motion detector MS-6A"
           ],
           "support": [
             {
@@ -2904,12 +2927,7 @@
               "ledger": [
                 "f:09"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "Exception: badge 51873 (S. Varga) opened Suite R-6"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2924,28 +2942,14 @@
                 "f:23",
                 "f:08"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion"
-                },
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:24"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Detector head failing; cannot repair on site. No spare in stock"
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -2957,7 +2961,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "At the end of my shift I badged out at the staff exit. Before that I updated the ticket at WB-2 in the Hall B tech room around twenty to ten, and left the detector in service. Before that I ordered a new detector head on a parts request. Before that I left R-6 around twenty-five past nine. Before that I walk-tested motion detector MS-6A two times. Before that my badge opened R-6 a bit after nine. First, Marisol radioed me: alarm fault by R-6, ticket in my queue.",
+          "answer": "At the end of my shift I badged out at the staff exit. Before that, at WB-2 in the Hall B tech room, I updated the ticket around twenty to ten and left the detector in service. I also ordered a new detector head there on a parts request. Before that I left R-6 around twenty-five past nine. Before that I walk-tested motion detector MS-6A. Before that my badge opened R-6 a bit after nine. First, Marisol radioed me: alarm fault by R-6, ticket in my queue.",
           "protected": [
             "badged out at the staff exit"
           ],
@@ -2967,42 +2971,28 @@
               "ledger": [
                 "f:14"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:55:02 | Staff exit | Badge 51873 (S. Varga) | Granted, exit"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:26",
-                "f:08"
+                "u:02"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "21:41 | WB-2, Hall B technician room | S. Varga | Detector left in service under Standard 5.3(c)."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:27"
               ],
-              "records": [
-                {
-                  "record_id": "rec-04",
-                  "quote": "PR-880 | 21:36 | WB-2, Hall B technician room | S. Varga | Motion detector MS-6A | Replacement detector head"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
-                "f:25"
+                "f:25",
+                "u:01"
               ],
               "records": []
             },
@@ -3012,40 +3002,21 @@
                 "f:23",
                 "f:08"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion"
-                },
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:09"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "Exception: badge 51873 (S. Varga) opened Suite R-6"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -3112,7 +3083,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The alarm came from MS-6A. I walk-tested motion detector MS-6A two times while I was in R-6. I did not see the alarm history for that evening.",
+          "answer": "The alarm came from MS-6A. I walk-tested the motion detector while I was in the room. I did not see the alarm history for that evening.",
           "protected": [
             "The alarm came from MS-6A"
           ],
@@ -3128,18 +3099,9 @@
               "kind": "fact",
               "ledger": [
                 "f:23",
-                "f:08"
+                "f:22"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion"
-                },
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "perception",
@@ -3207,7 +3169,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I have not seen the new panel's log. Calder put a new access panel there on 3 March. I did not open the new access panel.",
+          "answer": "I have not seen the new panel's log. A new access panel went in there on 3 March. Calder put that panel in. I did not open the new access panel.",
           "protected": [
             "have not seen the new panel's log"
           ],
@@ -3224,12 +3186,14 @@
               "ledger": [
                 "f:16"
               ],
-              "records": [
-                {
-                  "record_id": "rec-03",
-                  "quote": "Exported 6 March by P. Ostby, commissioning engineer, Calder Integrated Security. AP-6C was installed on 3 March"
-                }
-              ]
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:16"
+              ],
+              "records": []
             },
             {
               "kind": "fact",
@@ -3263,40 +3227,21 @@
               "ledger": [
                 "f:06"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:04"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "radioed Sami, the only security systems technician on after eight"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:08"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14."
-                },
-                {
-                  "record_id": "doc-01",
-                  "quote": "MS-6A is the only motion detector inside R-6"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "perception",
@@ -3320,7 +3265,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "My badge opened Suite R-6 at 21:14, a bit after nine. My badge is in the Security Systems Maintenance group, and it opens R-6. I'm not on the R-6 access list. I went into R-6 to work on MS-6A for SR-3051.",
+          "answer": "My badge opened Suite R-6 a bit after nine. My badge is in the Security Systems Maintenance group, and it opens R-6. I'm not on the R-6 access list. I went into R-6 to work on MS-6A for SR-3051.",
           "protected": [
             "I'm not on the R-6 access list"
           ],
@@ -3383,7 +3328,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I went into R-6 to work on MS-6A for SR-3051. The alarm came from MS-6A, and the fault was motion alarms with nobody in the room. I walk-tested motion detector MS-6A two times. The detector head was failing, and I could not fix it on site.",
+          "answer": "I went into R-6 to work on MS-6A for SR-3051. The alarm came from MS-6A, and the fault was motion alarms with nobody in the room. I walk-tested the motion detector while I was in the room. The detector head was failing, and I could not fix it on site.",
           "protected": [
             "to work on MS-6A for SR-3051"
           ],
@@ -3407,30 +3352,16 @@
               "kind": "fact",
               "ledger": [
                 "f:23",
-                "f:08"
+                "f:22"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion"
-                },
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:24"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Detector head failing; cannot repair on site. No spare in stock"
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -3447,7 +3378,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Marisol radioed me about the alarm fault by R-6 and put ticket SR-3051 in my queue. After eight I was the only security systems tech on duty. I do not know if anybody else went into R-6 that night.",
+          "answer": "Marisol radioed me about the alarm fault by R-6. She put ticket SR-3051 in my queue. After eight I was the only security systems tech on duty. I do not know if anybody else went into R-6 that night.",
           "protected": [
             "Marisol radioed me about the alarm fault"
           ],
@@ -3455,13 +3386,24 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:06",
+                "f:06"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-03",
+                  "quote": "20:52 | M. Fenwick (radio) | S. Varga | 'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
                 "f:07"
               ],
               "records": [
                 {
                   "record_id": "doc-03",
-                  "quote": "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                  "quote": "20:50 | M. Fenwick | Ticket queue | Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
                 }
               ]
             },
@@ -3530,12 +3472,7 @@
               "ledger": [
                 "f:24"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Detector head failing; cannot repair on site. No spare in stock"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3543,12 +3480,7 @@
                 "f:26",
                 "f:08"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Detector left in service under Standard 5.3(c)."
-                }
-              ]
+              "records": []
             }
           ]
         }
@@ -3622,7 +3554,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "After the review, I walked Mr Keable out of the room at about ten past ten. I took Mr Keable down to the main lobby, where he signed out at the desk and handed back his visitor badge.",
+          "answer": "I walked Mr Keable out of the room at about ten past ten. I took Mr Keable down to the main lobby, where he signed out at the desk and handed back his visitor badge.",
           "protected": [
             "he signed out at the desk"
           ],
@@ -3630,7 +3562,8 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:13"
+                "f:13",
+                "u:02"
               ],
               "records": []
             },
@@ -3654,7 +3587,7 @@
             "rec-03",
             "rec-05"
           ],
-          "answer": "Mr Keable, the visitor from Penwick Document Services, had signed in at the desk and was wearing a visitor badge when I met him. I do not know how the desk officer wrote his name in the register.",
+          "answer": "Mr Keable, the visitor from Penwick Document Services, had signed in at the desk. He was wearing a visitor badge when I met him. I do not know how the desk officer wrote his name in the register.",
           "protected": [
             "had signed in at the desk"
           ],
@@ -3671,6 +3604,13 @@
                   "quote": "08:45 | M. Keeble | Penwick Document Services | V-22 | G. Ashby | 10:12"
                 }
               ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:21"
+              ],
+              "records": []
             },
             {
               "kind": "perception",
@@ -3728,7 +3668,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review. Ms Ashby had another meeting before the nine o'clock review. She came into Room 2-07 at about five to nine, when Mr Keable and I were already there. Mr Keable came to the last two quarterly reviews of the print and copier contract, so I know him by sight. I do not know what Ms Ashby told Security Operations.",
+          "answer": "On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review. Ms Ashby had another meeting before the nine o'clock review. She came into Room 2-07 at about five to nine, when Mr Keable and I were already there. Mr Keable came to the last two quarterly reviews. That was the print and copier contract, so I know him by sight. I do not know what Ms Ashby told Security Operations.",
           "protected": [
             "Mr Keable and I were already there"
           ],
@@ -3738,12 +3678,7 @@
               "ledger": [
                 "f:01"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3751,36 +3686,28 @@
                 "f:10",
                 "f:01"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "My meeting in Room 3-02 ran until about ten to nine."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:11"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
                 "f:17"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "He has come to the last two quarterly reviews, so Elise knows him."
-                }
-              ]
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:17"
+              ],
+              "records": []
             },
             {
               "kind": "perception",
@@ -3804,34 +3731,29 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The lift lobby camera review is from the time I went down and met Mr Keable in the main lobby after he had signed in. He was wearing a visitor badge when I met him.",
+          "answer": "I have not seen that camera review. I went down and met Mr Keable in the main lobby after he had signed in. Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and I were already there.",
           "protected": [
             "met Mr Keable in the main lobby"
           ],
           "support": [
             {
-              "kind": "fact",
-              "ledger": [
-                "f:23"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-                }
-              ]
+              "kind": "perception",
+              "ledger": [],
+              "records": []
             },
             {
               "kind": "fact",
               "ledger": [
-                "f:21"
+                "f:23"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-                }
-              ]
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": []
             }
           ]
         },
@@ -3848,7 +3770,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The lobby desk rang the Procurement main line to say Mr Keable had arrived, and I took the call at my desk. After the call, I went down and met him in the main lobby.",
+          "answer": "The lobby desk rang the Procurement main line, and I took the call at my desk. The call was to say Mr Keable had arrived. I went down and met him in the main lobby after he had signed in.",
           "protected": [
             "I took the call at my desk"
           ],
@@ -3868,15 +3790,16 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:23",
                 "f:22"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-                }
-              ]
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23"
+              ],
+              "records": []
             }
           ]
         },
@@ -3934,12 +3857,7 @@
               "ledger": [
                 "f:23"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3980,7 +3898,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "My badge opened the north staff door at 08:41 when I came in from the car park that morning. Nobody came in with me through the north staff door. That was the only time I badged into the building that day, at the north staff door.",
+          "answer": "My badge opened the north staff door when I came in from the car park that morning. Nobody came in with me through the north staff door. That was the only time I badged into the building that day, at the north staff door.",
           "protected": [
             "the only time I badged into the building"
           ],
@@ -4032,11 +3950,18 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The purpose of my entry through the north staff door at 08:41 was that I came in from the car park that morning. On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review.",
+          "answer": "On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review. My badge opened the north staff door when I came in from the car park.",
           "protected": [
             "I came in from the car park"
           ],
           "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:01"
+              ],
+              "records": []
+            },
             {
               "kind": "fact",
               "ledger": [
@@ -4046,18 +3971,6 @@
                 {
                   "record_id": "doc-01",
                   "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:01"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
                 }
               ]
             }
@@ -4076,7 +3989,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and I were already there. Nobody came in with me through the north staff door. I do not know who else used the north staff door that morning.",
+          "answer": "Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and I were already there. The lobby desk rang the Procurement main line, and I took the call at my desk. Nobody came in with me through the north staff door. I do not know who else used the north staff door that morning.",
           "protected": [
             "Ms Ashby came into Room 2-07"
           ],
@@ -4090,6 +4003,18 @@
                 {
                   "record_id": "rec-05",
                   "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-04",
+                  "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
                 }
               ]
             },
@@ -4122,7 +4047,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The lobby desk rang the Procurement main line to say Mr Keable had arrived, and I took the call at my desk. I do not know who was signing in at the lobby desk before I went down. I met Mr Keable in the main lobby after he had signed in, and he was wearing a visitor badge.",
+          "answer": "The lobby desk rang the Procurement main line, and I took the call at my desk. The call was to say Mr Keable had arrived. I do not know who was signing in at the lobby desk before I went down. I met Mr Keable in the main lobby after he had signed in. He was wearing a visitor badge when I met him.",
           "protected": [
             "to say Mr Keable had arrived"
           ],
@@ -4132,12 +4057,14 @@
               "ledger": [
                 "f:22"
               ],
-              "records": [
-                {
-                  "record_id": "rec-04",
-                  "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
-                }
-              ]
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": []
             },
             {
               "kind": "perception",
@@ -4149,15 +4076,16 @@
             {
               "kind": "fact",
               "ledger": [
-                "f:23",
+                "f:23"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
                 "f:21"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-                }
-              ]
+              "records": []
             }
           ]
         }

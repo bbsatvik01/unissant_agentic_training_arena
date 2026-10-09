@@ -1,7 +1,7 @@
 {
   "fixture": "transcript review",
   "review": "transcript_review.v1",
-  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also the S2 11.1 rule: every claim known to the subject, no claim contradicted by any record of the variant, a claim that a released record also states agreeing with it in content and polarity, perception and memory claims backed by the ledger only) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
+  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also the S2 11.1 rule: every claim known to the subject, no claim contradicted by any record of the variant, a claim that a released record also states agreeing with it in content and polarity, perception and memory claims backed by the ledger only; recorded per exchange as ledger_states_claims, quotes_state_facts and uncontradicted, the semantic half of the S2 11.1 enforcement) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
   "transcripts": [
     {
       "id": "TX-F01-T",
@@ -915,7 +915,7 @@
     },
     {
       "id": "TX-F07-C",
-      "reviewed_text_sha256": "2d8f23fe7a477e4fe0a743413ffc930e8d614b277e94c9e22aac1c39debb1ef1",
+      "reviewed_text_sha256": "1789c8cf9cc34d85aefd29b1b4a51950ec7ea526aa88e900836bf8b6051d64af",
       "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
       "exchanges": [
         {
@@ -923,90 +923,126 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The account matches ledger facts and preserves the approximate call time."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The account matches the cited ledger entries and records, preserving u:02's approximate call time."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues from the S-2 entry with ledger-supported carton contents, departure and guard interaction."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer continues from entering S-2 through departure and loading, with supported contents and uncertainty."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly addresses the camera record using the ledger's explicit knowledge and memory limits."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The camera-related ignorance matches the private packet and is not contradicted by the staff email record."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The leave dates, approval and blank reason match the ledger and leave records."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The booking date, approval, leave period and blank reason match the cited ledger entries and records."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the pass through Celia's statement while accurately acknowledging never seeing it."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer accurately distinguishes Celia's assurance from the unseen pass and states supported kit contents."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The arrival time and receipt of both cartons are ledger-supported and agree with rec-02."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The delivery time and Joanna's receipt of both cartons are known ledger facts corroborated by rec-02."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Accurately states ignorance of the counts and the ledger-supported fact that only the kit cartons were taken."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The stated ignorance of stock counts and account of taking only the kit match the private packet and records."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses Celia's statement with ledger-supported details of her call, pass and staging."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses Celia's statement using known instructions and staging details without adopting record-only precision."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Recounts the events in reverse chronological order using known details and permitted time approximations."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The reverse chronology follows the supported event sequence and preserves both uncertainty limits."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Explains the entry using ledger facts and the 19:52 time explicitly supplied in the question."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer directly explains the S-2 entry and subsequent departure using supported ledger facts."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the collection purpose, delivery deadline and pass consistently with the ledger and records."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The collection purpose, supervisor's request and reported pass authorization are explicitly supported."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies ledger-supported corroborating people and preserves the explicit uncertainty about other S-2 entrants."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer identifies supported corroborating people and accurately preserves ignorance about other S-2 entrants."
         }
       ]
     },
     {
       "id": "TX-F08-C",
-      "reviewed_text_sha256": "593f2f14f82ac086d88d33696a42e8843df7c1fcb7068cc23f486952a712ef67",
+      "reviewed_text_sha256": "fff0115378384b45d19c0b36ec0122fa97afceb3f2b4656b576a7b0146ad6604",
       "case_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
       "exchanges": [
         {
@@ -1014,90 +1050,126 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The shift, staffing and dispatch account matches the ledger and records."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The cited ledger entries support the shift, radio dispatch and ticket assignment."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues from dispatch to entry, testing and diagnosis using ledger facts."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer continues from dispatch with supported entry, testing and repair findings."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Recounts events backwards in the supported order while preserving both time uncertainties."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The reverse account follows canonical chronology and preserves both approximate times."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses SR-3051 with ledger details that agree with rec-01."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The ticket explanation matches the cited ledger entries and record quotes without claiming exact timing."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the alarm history using known testing facts and explicitly supported lack of access to the history."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses the alarm history using known work and the explicit f:29 knowledge limit."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The replacement request and failing detector head match the ledger and rec-04."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The parts order and failing detector head are supported by the cited ledger entries and quotes."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The installation, unopened panel and unseen log are ledger-supported and agree with rec-03."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The installation, unopened panel and unfamiliarity with its log match f:16, f:30 and f:31."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses Marisol's involvement without claiming knowledge of her statement or memory."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses Marisol's statement through known events while respecting the f:18 knowledge limit."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The question supplies 21:14, and the access status and entry purpose are ledger-supported."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The entry, badge permissions, access-list exclusion and assigned purpose are supported and mutually consistent."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the entry's purpose with supported ticket, testing and diagnosis facts."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer directly explains the entry's purpose using the assigned detector work and supported findings."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies Marisol's involvement and accurately states the limits of knowledge about others entering R-6."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer identifies Marisol's corroborating involvement and correctly preserves uncertainty about other entrants."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the later motion with supported uncertainty, approximate departure time and the known detector fault."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses the later motion through supported fault details without claiming to know which events were false."
         }
       ]
     },
     {
       "id": "TX-F09-C",
-      "reviewed_text_sha256": "7a883a6f3a720f940e17d05448a5308ff1b6da954c0a047d7ead0af4b74ba300",
+      "reviewed_text_sha256": "ab891bc36c95aef44206c6882d2776d9f501ffd954c3dabb95589189e829454f",
       "case_sha256": "7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91",
       "exchanges": [
         {
@@ -1105,84 +1177,120 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The morning sequence matches FREE ledger facts and preserves the approximate arrival time."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The arrival account matches the cited ledger entries and badge record."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues the account with the supported departure and lobby sign-out."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The account advances to departure, matching f:13 and f:25 while preserving u:02."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses registration using f:21 and the explicit uncertainty about the recorded name."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The register supports the sign-in, and f:20 explicitly supports ignorance of the recorded spelling."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Both statements match her recorded lack of knowledge about the camera fault."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The stated lack of knowledge matches f:09's subject view and f:16."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses Ashby's involvement through known events and correctly disclaims knowledge of her statement."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses Ashby's statement using supported personal knowledge and the explicit f:12 uncertainty."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Relates the question's stated recording window to her known lobby visit without claiming unseen recording contents."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The ledger contains no knowledge of the camera review, and the remaining claims match f:23 and f:11."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The call and subsequent lobby visit match f:22 and f:23 without adding log-only details."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The call account matches f:22 and the quoted log entry, with the subsequent meeting supported by f:23."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Recounts supported events in reverse order while retaining approximate times."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The requested reverse chronology follows supported events and retains approximate times."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The question supplies 08:41, and the entry details match f:04, f:24 and f:14."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The entry details match f:04, f:24 and f:14 and both cited badge-record excerpts."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Explains her arrival in the context of her routine car-park route and assigned review duties."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The assigned meeting duties explain the arrival's purpose without adding an unsupported reason."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies Ashby and Keable as present and accurately states her limits concerning other door users."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer identifies corroborating participants and accurately limits knowledge of other door users."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Describes the arrival call and lobby meeting while preserving her explicit uncertainty about earlier desk activity."
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The visitor-arrival account matches f:22, f:23 and f:21, including the explicit f:02 knowledge limit."
         }
       ]
     }

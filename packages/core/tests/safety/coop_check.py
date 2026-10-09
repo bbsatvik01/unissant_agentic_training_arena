@@ -1,22 +1,35 @@
-"""The FX-COOP rule of S2 11.1 as separate, independent checks over one cooperative transcript.
+"""FX-COOP (S2 11.1): the checks a program can decide reliably, and nothing more.
 
 S2 11.1: every claim is known to the subject (its ledger); no claim is contradicted by any record of the variant; a
 claim that states a fact a released record also states agrees with it in content and polarity; claims about the
-subject's own perception or memory ("I did not see", "I do not remember") need ledger support only. Each sentence of an
-answer carries `{"kind": "fact" | "perception", "ledger": [ids], "records": [{"record_id", "quote"}]}`; `records`
-lists the released records that state the same fact (none for a perception claim, and none when no record states it).
+subject's own perception or memory need ledger support only. Each sentence of an answer carries
+`{"kind": "fact" | "perception", "ledger": [ids], "records": [{"record_id", "quote"}]}`; `records` lists released
+records that state the same fact (none for a perception claim, none when no record states it).
 
-The checks never borrow from each other:
-- `knowledge_problems`: the sentence's words, numbers and polarity come from the cited ledger entries and the
-  questions so far (the subject never sees records, S2 6.7, 8.4). Record quotes are not consulted.
-- `agreement_problems`: each cited record quote is about the sentence (shares its content) and agrees with it: every
-  number of the sentence that the quote's subject matter carries, polarity, duties, and times on their own rows.
-  Ledger text is not consulted.
-- `contradiction_problems`: against every record of the variant, released or not: a time the sentence states may not
-  be one that the records attach to something else.
-- `perception_problems`: a perception or memory claim is phrased as one and cites no record; a fact claim is not
-  phrased as a perception.
-The independent review (transcript_review.json) judges the same rule semantically; these checks are its floor.
+Enforcement is split exactly as S2 11.1 says.
+
+Mechanical, decided here (each check is independent and decides only what it states):
+- `ledger_problems`: every cited ID exists in the variant's ledger, and the sentence cites at least one, except a
+  plain statement of ignorance ("I have not seen that camera review."), which S2 6.3 tells the subject to make about
+  anything its ledger does not hold.
+- `quote_problems`: every cited quote is verbatim in its record (`quote_ok`), at least three words, the record is
+  released in the interview, at most two per sentence, and no quote is only a table's column line.
+- `number_problems`: numbers, times and codes compare as whole tokens ("41" is not "417"; a time to the minute matches
+  the same time to the second), spelled-out quantities normalised to digits ("ten times" carries 10). Every number of
+  the sentence is in its cited ledger entries or the questions so far, and, when quotes are cited, in the quotes.
+- `polarity_problems`: each cited quote, on its own, has the sentence's polarity (a negator in both or neither).
+- `time_row_problems`: no time is attached to the wrong record row: the words nearest a time may not come only from
+  rows of the same record that hold other times (cited quotes and every record of the variant), and a
+  "from ... until" span runs forward.
+- `perception_problems`: a perception or memory claim is phrased as one and cites no record; a fact is not phrased as
+  a perception.
+
+Semantic, decided by the recorded independent review (transcript_review.json, one fresh read-only session per
+transcript, bound to the text and case hashes; a test fails if any pair lacks a current passing review): whether the
+cited ledger entries state the claim (and the question text did not supply it), whether every cited quote states the
+same fact, whether a statement of ignorance is about something the ledger really does not hold, and whether any
+record of the variant, cited or not, contradicts a claim. Word matching cannot decide these,
+so no check here claims to.
 """
 
 from __future__ import annotations
@@ -32,96 +45,7 @@ WORD = re.compile(r"[A-Za-z0-9]+(?:[:'.\-][A-Za-z0-9]+)*")
 NEGATORS = re.compile(r"\b(?:not|no|never|none|nothing|nobody|without)\b|n't\b", re.IGNORECASE)
 MIN_CONTENT_WORD = 4
 MIN_QUOTE_WORDS = 3
-MIN_SHARED = 2  # content words a quote shares with its sentence, so an unrelated quote fails
 MAX_QUOTES = 2
-# Words a sentence may use without a source: framing about records and the conversation, never a fact.
-FRAMING = frozenset(
-    [
-        "about",
-        "after",
-        "again",
-        "also",
-        "another",
-        "asked",
-        "been",
-        "before",
-        "both",
-        "copy",
-        "could",
-        "document",
-        "documents",
-        "does",
-        "each",
-        "earlier",
-        "entries",
-        "entry",
-        "file",
-        "first",
-        "from",
-        "have",
-        "here",
-        "history",
-        "into",
-        "item",
-        "items",
-        "just",
-        "later",
-        "line",
-        "lines",
-        "listed",
-        "lists",
-        "made",
-        "mine",
-        "more",
-        "next",
-        "note",
-        "notes",
-        "notice",
-        "only",
-        "page",
-        "pages",
-        "part",
-        "record",
-        "records",
-        "report",
-        "said",
-        "same",
-        "says",
-        "sheet",
-        "show",
-        "showed",
-        "shows",
-        "statement",
-        "that",
-        "their",
-        "them",
-        "then",
-        "there",
-        "these",
-        "they",
-        "this",
-        "those",
-        "ticket",
-        "time",
-        "were",
-        "what",
-        "when",
-        "where",
-        "which",
-        "while",
-        "will",
-        "with",
-        "would",
-        "your",
-        "yours",
-    ]
-)
-OBLIGATION = re.compile(r"\b(?:must|should|shall|please|may|required|requires|is to|are to)\b", re.IGNORECASE)
-REPORTED_OBLIGATION = re.compile(
-    r"\b(?:must|should|shall|please|may|required|requires|asked|told|rule|policy|procedure|instruction|request"
-    r"|requested|says|said)\b",
-    re.IGNORECASE,
-)
 PERCEPTION = re.compile(
     r"\bI\s+(?:did not|didn't|do not|don't|have not|haven't|had not|hadn't|never|cannot|can't|could not|couldn't)"
     r"\s+(?:\w+\s+)?(?:see|saw|seen|know|knew|remember|recall|notice|noticed|hear|heard|look|looked)\b",
@@ -131,6 +55,34 @@ TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
 SPAN = re.compile(r"\bfrom (\d{2}:\d{2})\b.{0,40}?\b(?:until|to|till)\b.{0,20}?(\d{2}:\d{2})\b")
 CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
+NUMBER_WORDS = {
+    w: str(i)
+    for i, w in enumerate(
+        [
+            "zero",
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+            "eight",
+            "nine",
+            "ten",
+            "eleven",
+            "twelve",
+            "thirteen",
+            "fourteen",
+            "fifteen",
+            "sixteen",
+            "seventeen",
+            "eighteen",
+            "nineteen",
+            "twenty",
+        ]
+    )
+} | {"thirty": "30", "forty": "40", "fifty": "50", "sixty": "60", "hundred": "100", "once": "1", "twice": "2"}
 
 Problem = tuple[int, str, str]
 
@@ -143,17 +95,74 @@ def stem(word: str) -> str:
     return w
 
 
+# Function words of four or more letters; they never say what happened at a time.
+FUNCTION_WORDS = frozenset(
+    [
+        "about",
+        "after",
+        "also",
+        "been",
+        "before",
+        "could",
+        "does",
+        "from",
+        "have",
+        "into",
+        "just",
+        "only",
+        "that",
+        "their",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "this",
+        "those",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "will",
+        "with",
+        "would",
+        "your",
+    ]
+)
+
+
 def content(word: str) -> bool:
-    return len(word) >= MIN_CONTENT_WORD and word.lower() not in FRAMING and not any(c.isdigit() for c in word)
+    """A word that can say what happened: four or more letters, no digit, not a function word."""
+    return len(word) >= MIN_CONTENT_WORD and not any(c.isdigit() for c in word) and word.lower() not in FUNCTION_WORDS
+
+
+_NUMBER_WORD = "(?:" + "|".join(NUMBER_WORDS) + ")"
+# Spoken clock times ("half past twelve", "ten to five", "after eight", "nine o'clock") are times, not quantities; they
+# are approximate by nature, so code does not compare them (the review does).
+_LEAD = r"(?:(?:after|before|around|about|until|till|from|at|by|since) )"
+SPOKEN_TIME = re.compile(
+    rf"\b{_LEAD}?(?:(?:half|quarter|{_NUMBER_WORD}) (?:past|to) {_NUMBER_WORD}|{_NUMBER_WORD} o'clock)\b"
+    rf"|\b{_LEAD}{_NUMBER_WORD}\b",
+    re.IGNORECASE,
+)
 
 
 def numbers(text: str) -> list[str]:
-    return [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
+    """Numbers, times and codes, with spelled-out quantities as digits; spoken clock times are left out."""
+    out = []
+    for w in WORD.findall(SPOKEN_TIME.sub(" ", text)):
+        if any(c.isdigit() for c in w):
+            out.append(w)
+        elif w.lower() in NUMBER_WORDS:
+            out.append(NUMBER_WORDS[w.lower()])
+    return out
 
 
 def number_in(token: str, text: str) -> bool:
-    """A number, time or code matches a whole token of `text`, never part of one ("41" is not in "417"); a time
-    given to the minute matches the same time given to the second ("19:12" matches "19:12:40")."""
+    """A number matches a whole token of `text`, never part of one; a time to the minute matches the same time to the
+    second ("19:12" matches "19:12:40")."""
     token = token.lower()
     for other in (w.lower() for w in numbers(text)):
         if other == token or (TIME.fullmatch(token) and TIME.fullmatch(other) and other.startswith(f"{token}:")):
@@ -165,20 +174,54 @@ def sentences(answer: str) -> list[str]:
     return [s for s in SENTENCE_END.split(answer) if s]
 
 
-def knowledge_problems(sentence: str, known: Iterable[str]) -> list[str]:
-    """The subject can say this: every number and every content word (simple inflections allowed) is in `known` (the
-    cited ledger entries and the questions so far), and its polarity is the ledger's."""
+# "I have not seen that camera review." / "I do not know anything about the copier log." The subject's instruction
+# (S2 6.3) says: if something is not in the ledger, you do not know it; say so. Such a sentence may cite no ledger
+# entry; whether the ledger really is silent on the thing (a false denial of something the ledger knows is not) is a
+# semantic question the review decides (ledger_states_claims).
+IGNORANCE = re.compile(
+    r"I (?:have not seen|haven't seen|do not know (?:anything )?about|don't know (?:anything )?about) "
+    r"(?:that|the|this|any) [\w\s-]+\."
+)
+
+
+def ledger_problems(cited: list[str], ledger: dict[str, str], sentence: str = "", kind: str = "fact") -> list[str]:
+    """Every cited ID exists; a sentence cites at least one, except a plain statement of ignorance (IGNORANCE)."""
+    if not set(cited) <= set(ledger):
+        return ["cites an unknown ledger entry"]
+    if not cited and not (kind == "perception" and IGNORANCE.fullmatch(sentence)):
+        return ["cites no ledger entry of the subject"]
+    return []
+
+
+def number_problems(sentence: str, known: Iterable[str], quotes: list[str]) -> list[str]:
     known_text = " ".join(known)
-    words = {w.lower() for w in WORD.findall(known_text)}
-    stems = {stem(w) for w in words}
-    problems = [f"{n} is not known to the subject" for n in numbers(sentence) if not number_in(n, known_text)]
-    problems += [
-        f"{w} is not known to the subject"
-        for w in WORD.findall(sentence)
-        if content(w) and w.lower() not in words and stem(w) not in stems
+    problems = [
+        f"{n} is not in the cited ledger or the questions" for n in numbers(sentence) if not number_in(n, known_text)
     ]
-    if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(known_text)):
-        problems.append("polarity differs from the ledger")
+    if quotes:
+        joined = " ".join(quotes)
+        problems += [f"{n} disagrees with the quote" for n in numbers(sentence) if not number_in(n, joined)]
+    return problems
+
+
+def polarity_problems(sentence: str, quotes: list[str]) -> list[str]:
+    negated = bool(NEGATORS.search(sentence))
+    return [f"polarity differs from the quote: {q[:60]!r}" for q in quotes if bool(NEGATORS.search(q)) != negated]
+
+
+def quote_problems(
+    records: list[dict[str, str]], record_texts: dict[str, str], released: set[str], column_lines: set[str]
+) -> list[str]:
+    problems = ["more than two quotes"] if len(records) > MAX_QUOTES else []
+    for record in records:
+        if record["record_id"] not in released:
+            problems.append("record not released in this interview")
+        elif len(record["quote"].split()) < MIN_QUOTE_WORDS or not quote_ok(
+            record["quote"], record_texts[record["record_id"]]
+        ):
+            problems.append("quote not in the record")
+        if record["quote"] in column_lines:
+            problems.append("the quote is only a column line")
     return problems
 
 
@@ -253,32 +296,10 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
     return out
 
 
-def agreement_problems(sentence: str, quotes: list[str], column_lines: set[str]) -> list[str]:
-    """Each quote states the sentence's fact and agrees with it: it shares at least two content words with the sentence
-    (an unrelated quote fails), every number of the sentence is in the quotes, the polarity is the same, a duty is
-    reported as a duty, times stay on their rows, and no quote is only a table's column line."""
-    joined = " ".join(quotes)
-    sentence_stems = {stem(w) for w in WORD.findall(sentence) if content(w)}
-    problems: list[str] = []
-    for quote in quotes:
-        shared = sentence_stems & {stem(w) for w in WORD.findall(quote) if content(w)}
-        if len(shared) < MIN_SHARED:
-            problems.append(f"the quote is not about the sentence: {quote[:60]!r}")
-        if quote in column_lines:
-            problems.append("the quote is only a column line")
-    problems += [f"{n} disagrees with the quote" for n in numbers(sentence) if not number_in(n, joined)]
-    negated = bool(NEGATORS.search(sentence))
-    problems += [f"polarity differs from the quote: {q[:60]!r}" for q in quotes if bool(NEGATORS.search(q)) != negated]
-    if OBLIGATION.search(joined) and not REPORTED_OBLIGATION.search(sentence):
-        problems.append("a duty in the quote is stated as an event")
-    problems += _time_problems(sentence, [rows_of(quotes)])
-    return problems
-
-
-def contradiction_problems(sentence: str, all_records: Iterable[str]) -> list[str]:
-    """Against every record of the variant, released or not: the times the sentence states sit with what the records
-    say happened at them."""
-    return [f"contradicts a record: {p}" for p in _time_problems(sentence, [rows_of([r]) for r in all_records])]
+def time_row_problems(sentence: str, quotes: list[str], all_records: Iterable[str]) -> list[str]:
+    """Times against the cited quotes and against every record of the variant, released or not."""
+    tables = [rows_of(quotes)] + [rows_of([r]) for r in all_records]
+    return list(dict.fromkeys(_time_problems(sentence, tables)))
 
 
 def perception_problems(sentence: str, kind: str, records: list[Any]) -> list[str]:
@@ -291,7 +312,7 @@ def perception_problems(sentence: str, kind: str, records: list[Any]) -> list[st
 
 
 def coop_problems(t: dict[str, Any], ledger: dict[str, str], record_texts: dict[str, str]) -> list[Problem]:
-    """Every problem of one FX-COOP transcript: (turn, sentence, problem)."""
+    """Every mechanical problem of one FX-COOP transcript: (turn, sentence, problem)."""
     columns = {lines[1] for x in record_texts.values() if len(lines := x.split("\n")) > 1 and "|" in lines[1]}
     released = set(t["exchanges"][-1]["released_before"])  # records reach the coach during the interview
     out: list[Problem] = []
@@ -304,23 +325,13 @@ def coop_problems(t: dict[str, Any], ledger: dict[str, str], record_texts: dict[
             continue
         for sentence, support in zip(parts, e["support"], strict=True):
             records = support["records"]
-            found: list[str] = []
-            if not support["ledger"] or not set(support["ledger"]) <= set(ledger):
-                found.append("cites no ledger entry of the subject, or an unknown one")
-            else:
-                found += knowledge_problems(sentence, [ledger[i] for i in support["ledger"]] + asked)
+            quotes = [r["quote"] for r in records]
+            known = [ledger[i] for i in support["ledger"] if i in ledger] + asked
+            found = ledger_problems(support["ledger"], ledger, sentence, support["kind"])
+            found += quote_problems(records, record_texts, released, columns)
+            found += number_problems(sentence, known, quotes)
+            found += polarity_problems(sentence, quotes)
+            found += time_row_problems(sentence, quotes, record_texts.values())
             found += perception_problems(sentence, support["kind"], records)
-            if len(records) > MAX_QUOTES:
-                found.append("more than two quotes")
-            for record in records:
-                if record["record_id"] not in released:
-                    found.append("record not released in this interview")
-                elif len(record["quote"].split()) < MIN_QUOTE_WORDS or not quote_ok(
-                    record["quote"], record_texts[record["record_id"]]
-                ):
-                    found.append("quote not in the record")
-            if records:
-                found += agreement_problems(sentence, [r["quote"] for r in records], columns)
-            found += contradiction_problems(sentence, record_texts.values())
             out.extend((e["turn"], sentence, p) for p in found)
     return out

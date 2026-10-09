@@ -50,7 +50,11 @@ def transcript(transcript_id: str) -> dict[str, Any]:
 
 
 def reviewed_text_sha256(transcript: dict[str, Any]) -> str:
-    """The hash a review is bound to: family, variant, and every exchange's turn, question and answer. Any edit to
-    a reviewed answer changes it, so the review must be redone."""
-    exchanges = [[e["turn"], e["question"], e["answer"]] for e in transcript["exchanges"]]
+    """The hash a review is bound to: family, variant, and every exchange's turn, question and answer, plus its
+    per-sentence support where the transcript carries one (FX-COOP: the review judges the cited ledger entries and
+    quotes too). Any edit to what was reviewed changes it, so the review must be redone."""
+    exchanges = [
+        [e["turn"], e["question"], e["answer"], *([e["support"]] if "support" in e else [])]
+        for e in transcript["exchanges"]
+    ]
     return canonical_sha256([transcript["family_id"], transcript["variant"], exchanges])

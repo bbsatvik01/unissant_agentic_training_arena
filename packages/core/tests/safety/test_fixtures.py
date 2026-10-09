@@ -231,6 +231,13 @@ def test_the_review_binding_detects_an_edited_case() -> None:
     assert canonical_sha256(family) != before
 
 
+def test_the_review_binding_detects_edited_support() -> None:
+    t = fixtures.transcript(fixtures.load("fx_coop")["transcripts"][0])
+    before = fixtures.reviewed_text_sha256(t)
+    t["exchanges"][0]["support"][0]["ledger"] = [*t["exchanges"][0]["support"][0]["ledger"], "f:01"]
+    assert fixtures.reviewed_text_sha256(t) != before
+
+
 def test_the_review_binding_detects_an_edited_answer() -> None:
     t = fixtures.transcript(ALL_TRANSCRIPT_IDS[0])
     before = fixtures.reviewed_text_sha256(t)
