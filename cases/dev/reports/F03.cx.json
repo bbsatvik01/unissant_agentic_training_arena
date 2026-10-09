@@ -1,0 +1,71 @@
+{
+  "family": "F03",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "aa352b4e7980fd0cacce13a428f0044afa4b30ba8bcdc2ec12ebf63295c8d104",
+  "rules_sha256": "449c23c96198ac0ff2c51d624e074f18067309b9e6feecaa56a1a9b376716a75",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4"
+      ],
+      "basis": "Records identify Lindqvist as the entrant, establish A-2291 as a reassigned lockbox spare, and document its sign-out, use, and return. OP-7 permitted this outage access, and the required documentation was completed. The answers consistently disclose these facts. The outdated holder name and suspended personal access are explained, closing the main gaps.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A5"
+      ],
+      "basis": "The badge log, Haddad’s handoff, Avery’s removed access and her solo N-3 repair establish her use of Haddad’s personal badge, contrary to OP-7. A1 acknowledges possession but avoids explaining entry; A3 confirms no spare-card sign-out and omission of the access method from the ticket.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2"
+      ],
+      "basis": "Avery acknowledges the access suspension and using A-2291 as a lockbox spare. OP-7 permits spare-card use, but the card’s actual status, sign-out entry and incident-ticket contents are unexamined. The database’s Haddad listing does not establish prohibited borrowing. The records neither establish involvement Avery conceals nor close the main policy-compliance gaps.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "family": "F05",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "1755c6a1218126fe6e6a96d6c4687b368cb37ec0bc04d7cbb26e4e9ec513e9d2",
+  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-04",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05",
+        "rec-06"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7"
+      ],
+      "basis": "The records corroborate that Strand presented his badge, Grell presented SP-3, both worked and left together, and Grell returned the card. Both were certified, and the documented spare-card arrangement complied with policy. The renewal backlog and delayed backup explain the access and timing anomalies. Strand's answers consistently disclose his involvement, and the records close the main gaps.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-04"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A7"
+      ],
+      "basis": "Records establish Strand’s solo vault entry, opened with his badge and SP-3, released under his PIN. Grell was absent and had no spare. Strand acknowledges working alone, failing to register a holder and returning SP-3, but leaves its purpose and the credential presenters unanswered, concealing how he gained entry despite the two-person requirement.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-04",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "basis": "The records explain the late tape pull and permit releasing a spare for a certified colleague. However, they do not verify who presented each credential or remained inside. Strand identifies Tobias as the holder and says they worked and left together. The provisional credential attribution establishes neither concealed involvement nor compliance; the main gaps remain open.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

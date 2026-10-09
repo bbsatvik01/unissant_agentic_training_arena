@@ -1,0 +1,73 @@
+{
+  "family": "F06",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "1344d27b114ae890b99c1196e555c4453f94b593cd0b3dc03add2eb911a7bd64",
+  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "basis": "The records corroborate the assigned leak response, necessary entry, protective handling of boxes and phone approval before withdrawal. No copying occurred during the visit. The late signature establishes a paperwork irregularity, but no concealed involvement. The subject’s account matches the records, which close the main gaps.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A4",
+        "A5"
+      ],
+      "basis": "The records corroborate copying during Halloran’s stay in dry Room 417; the leak repair concerned Room 419. She acknowledges remaining without assigned work and making and removing nine copies, but avoids explaining their content or purpose. Telephone approval explains obtaining K-14, while her use of the restricted room beyond the assigned task remains concealed.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A2",
+        "A3",
+        "A4"
+      ],
+      "basis": "Ebdon corroborates prior verbal approval for K-14, although the authorization form was signed afterward. The examined records do not verify the claimed leak and protective work inside Room 417 or establish improper file handling. Material gaps remain, but no record establishes involvement that Halloran’s answers conceal.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

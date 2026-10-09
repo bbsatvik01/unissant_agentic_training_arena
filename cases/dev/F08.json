@@ -1,0 +1,4283 @@
+{
+  "schema_version": "1.2.0",
+  "family_id": "F08",
+  "revision": 1,
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Server suite entry after a fault alarm",
+  "taxonomy": {
+    "violation_type": "unauthorized_area_entry",
+    "misleading_types": [
+      "sensor_false_positive",
+      "ambiguous_dispatch"
+    ]
+  },
+  "difficulty": {
+    "level": 2,
+    "knobs": {
+      "key_record_after_exchanges": 3,
+      "evidence_directness": 2,
+      "misleading_count": 3,
+      "uncertainty_count": 2,
+      "gate_level": 3
+    }
+  },
+  "style": {
+    "verbosity": "terse",
+    "fluency": "fluent",
+    "affect": "calm",
+    "register": "informal",
+    "language": "second_language"
+  },
+  "provenance": {
+    "method": "generator",
+    "created": "2026-10-09",
+    "generator_model": "claude-opus-5-5",
+    "prompt_sha256": "759c443199f52f2a9b0f457c0c6f3a11e50f9ced9e62cbce148376595a2fe20d",
+    "seed_spec_sha256": "3a19e3d35486567553b96c189fab82304d95e9b298bef03ee098fdd60392c878",
+    "few_shot_family_ids": [
+      "F01",
+      "F02",
+      "F03"
+    ],
+    "notes": "Development family authored offline by a Claude agent from seed F08 in cases/dev/seed-plan.json (D-014), KPI-1 case set B. A security systems technician answers a fault alarm 'by R-6' and enters a restricted server suite he is not listed for; the radio dispatch does not name the device, and the suite's motion detector logs motion after he says he left. Corroboration path: the ticket and the per-device alarm history (exchange 3), then the panel tamper log (exchange 4). prompt_sha256 covers the content rules, kit sources src_f01.py to src_f03.py and the canonical seed."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "Suite R-6 in Hall B of the Westbrook Data Hall holds the Personnel Security Division's servers.",
+        "kind": "context",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "Varga's badge is in the Security Systems Maintenance access group, which opens every door in Hall B, Suite R-6 included.",
+        "kind": "state",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "Varga is not on the Suite R-6 access list.",
+        "kind": "state",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "Varga was the only Security Systems technician on duty at the Westbrook Data Hall after 20:00 on 5 March 2026.",
+        "kind": "context",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "At 20:47 the security desk logged a fault alarm in Hall B east, by Suite R-6.",
+        "kind": "record",
+        "time": "2026-03-05T20:47",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "At 20:52 Marisol Fenwick radioed Varga to an 'alarm fault by R-6' without naming the device or saying whether it was inside the suite.",
+        "kind": "action",
+        "time": "2026-03-05T20:52",
+        "actors": [
+          "Marisol Fenwick",
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "At 20:50 Fenwick raised ticket SR-3051 for the 20:47 fault alarm and assigned it to Varga.",
+        "kind": "record",
+        "time": "2026-03-05T20:50",
+        "actors": [
+          "Marisol Fenwick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "Two security devices sit at Suite R-6: motion detector MS-6A inside the suite, and door contact DC-FD14 on corridor fire door FD-14 outside it.",
+        "kind": "context",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "At 21:14 Varga's badge opened the Suite R-6 door.",
+        "kind": "action",
+        "time": "2026-03-05T21:14",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "Varga's 21:14 entry was the only badge entry to Suite R-6 between 18:00 on 5 March and 07:00 on 6 March.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "Leaving Suite R-6 by its push bar records no credential or time.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "Motion detector MS-6A inside Suite R-6 logged motion at 21:38 and 21:47.",
+        "kind": "record",
+        "time": "2026-03-05T21:38",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:13",
+        "statement": "MS-6A logged motion at 21:16 and 21:22.",
+        "kind": "record",
+        "time": "2026-03-05T21:16",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:14",
+        "statement": "At 21:55 Varga badged out of the Westbrook Data Hall at the staff exit.",
+        "kind": "action",
+        "time": "2026-03-05T21:55",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:15",
+        "statement": "At 07:00 on 6 March the restricted-area access review flagged the 21:14 R-6 entry because Varga is not on the R-6 access list.",
+        "kind": "record",
+        "time": "2026-03-06T07:00",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:16",
+        "statement": "Calder Integrated Security installed access panel AP-6C inside Suite R-6 on 3 March 2026.",
+        "kind": "action",
+        "time": "2026-03-03T10:00",
+        "actors": [
+          "Petra Ostby"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:17",
+        "statement": "On 5 March the AP-6C enclosure tamper switch logged only to the panel's own memory, with no link to central monitoring.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:18",
+        "statement": "Fenwick does not remember which device the 20:47 alarm screen named.",
+        "kind": "knowledge",
+        "actors": [
+          "Marisol Fenwick"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:19",
+        "statement": "Varga's shift on 5 March ran from 14:00 to 22:00.",
+        "kind": "context",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "Ticket SR-3051 named motion detector MS-6A inside Suite R-6, with the fault 'repeated motion alarms with the suite empty'.",
+        "kind": "record",
+        "time": "2026-03-05T20:50",
+        "actors": [
+          "Marisol Fenwick"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "The 20:47 fault alarm came from motion detector MS-6A.",
+        "kind": "record",
+        "time": "2026-03-05T20:47",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "Varga entered Suite R-6 to work on MS-6A under ticket SR-3051, as Standard 5.3(b) allows.",
+        "kind": "action",
+        "time": "2026-03-05T21:14",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "Varga walk-tested MS-6A twice.",
+        "kind": "action",
+        "time": "2026-03-05T21:16",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "Varga could not repair MS-6A on 5 March because its detector head was failing.",
+        "kind": "state",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "Varga left Suite R-6 at about 21:26.",
+        "kind": "action",
+        "time": "2026-03-05T21:26",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:26",
+        "statement": "At 21:41 Varga updated SR-3051 from terminal WB-2 in the Hall B technician room, recording the failing detector head, the PR-880 order and that MS-6A was left in service.",
+        "kind": "record",
+        "time": "2026-03-05T21:41",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:27",
+        "statement": "At 21:36 Varga raised parts request PR-880 from terminal WB-2 for a replacement MS-6A detector head.",
+        "kind": "record",
+        "time": "2026-03-05T21:36",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:28",
+        "statement": "MS-6A's failing detector head produced motion events with no one in Suite R-6, including the events at 21:38 and 21:47.",
+        "kind": "state",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:29",
+        "statement": "MS-6A logged motion at 18:20, 19:05, 22:31, 23:58 and 03:12, when no one had badged into Suite R-6.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:30",
+        "statement": "Varga did not open the AP-6C panel enclosure.",
+        "kind": "action",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:31",
+        "statement": "The AP-6C tamper log recorded no enclosure opening on 5 March.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "Ticket SR-3051 named door contact DC-FD14 on corridor fire door FD-14 outside Suite R-6, with the fault 'repeated door-open alarms on a fire door kept shut'.",
+        "kind": "record",
+        "time": "2026-03-05T20:50",
+        "actors": [
+          "Marisol Fenwick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Door contact DC-FD14 raised the 20:47 fault alarm after door-open alarms at 18:41 and 19:36 while fire door FD-14 stayed shut.",
+        "kind": "record",
+        "time": "2026-03-05T20:47",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "Varga tightened the loose magnet bracket on door contact DC-FD14 and tested it.",
+        "kind": "action",
+        "time": "2026-03-05T21:05",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "At 21:09 Varga closed SR-3051 from terminal WB-2 in the Hall B technician room.",
+        "kind": "record",
+        "time": "2026-03-05T21:09",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Varga had no assigned task in Suite R-6 on 5 March.",
+        "kind": "state",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "Varga entered Suite R-6 at 21:14 without authorization, to examine the new AP-6C access panel.",
+        "kind": "action",
+        "time": "2026-03-05T21:14",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "Varga opened the AP-6C panel enclosure and studied its wiring.",
+        "kind": "action",
+        "time": "2026-03-05T21:19",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "Calder Integrated Security had invited Varga to a job interview on 6 March 2026 that included a test on its AP-series panels.",
+        "kind": "state",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:48",
+        "statement": "Varga left Suite R-6 at about 21:48.",
+        "kind": "action",
+        "time": "2026-03-05T21:48",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:49",
+        "statement": "Varga knew that the AP-6C tamper switch was not yet linked to central monitoring.",
+        "kind": "knowledge",
+        "actors": [
+          "Sami Varga"
+        ],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:50",
+        "statement": "The AP-6C tamper log recorded the enclosure open from 21:19:40 to 21:44:12 on 5 March, with no service login.",
+        "kind": "record",
+        "time": "2026-03-05T21:19",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:51",
+        "statement": "Between 18:00 on 5 March and 07:00 on 6 March MS-6A logged motion only at 21:16, 21:22, 21:38 and 21:47.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:52",
+        "statement": "Varga raised no parts request on 5 March 2026.",
+        "kind": "record",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:16",
+        "to": "f:09",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:05",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:06",
+        "to": "f:09",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:09",
+        "to": "f:13",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:12",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:12",
+        "to": "f:14",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:14",
+        "to": "f:15",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:05",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:20",
+        "to": "f:06",
+        "relation": "explains"
+      },
+      {
+        "from": "f:22",
+        "to": "f:03",
+        "relation": "explains"
+      },
+      {
+        "from": "f:28",
+        "to": "f:12",
+        "relation": "explains"
+      },
+      {
+        "from": "f:20",
+        "to": "f:22",
+        "relation": "causes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:23",
+        "to": "f:13",
+        "relation": "causes"
+      },
+      {
+        "from": "f:23",
+        "to": "f:25",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:25",
+        "to": "f:27",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:24",
+        "to": "f:27",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:27",
+        "to": "f:26",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:26",
+        "to": "f:14",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:05",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:06",
+        "to": "f:42",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:42",
+        "to": "f:43",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:43",
+        "to": "f:09",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:09",
+        "to": "f:45",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:47",
+        "to": "f:45",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:49",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:02",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:45",
+        "to": "f:46",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:50",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:48",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:48",
+        "to": "f:14",
+        "relation": "precedes"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-4VQ8N2HJ",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-4VQ8N2HJ",
+        "domain": "facility_access",
+        "title": "Server suite entry after a fault alarm",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Sami Varga entered Suite R-6 at 21:14 on 5 March 2026, whether the entry had an assigned task, and what accounts for the motion recorded inside R-6 at 21:38 and 21:47.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Westbrook Data Hall",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-09",
+          "setting": "Interview room 1, Office of Facility Security, Westbrook Data Hall. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Sami Varga",
+            "position": "Security Systems Technician",
+            "unit": "Security Systems",
+            "tenure_years": 6
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Suite R-6 on 5 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-08",
+          "display_name": "Sami Varga",
+          "voice_id": "Zephyr"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Westbrook Data Hall on the evening of 5 March 2026?",
+        "replay_topics": [
+          "your entry to Suite R-6 at 21:14",
+          "the motion recorded in Suite R-6 at 21:38 and 21:47",
+          "ticket SR-3051 from the evening of 5 March"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-05T20:47",
+            "event": "Security desk logged a fault alarm in Hall B east, by Suite R-6.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T20:50",
+            "event": "Ticket SR-3051 raised for the fault alarm and assigned to Sami Varga.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T20:52",
+            "event": "Night operations lead radioed Sami Varga: 'Alarm fault by R-6, Hall B east.'",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T21:14",
+            "event": "Sami Varga's badge opened Suite R-6.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:16",
+            "event": "Motion detector MS-6A inside R-6 logged motion at 21:16 and 21:22.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:38",
+            "event": "MS-6A logged motion.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:47",
+            "event": "MS-6A logged motion.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:55",
+            "event": "Sami Varga badged out at the staff exit.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-06T07:00",
+            "event": "Restricted-area access review flagged the R-6 entry: Sami Varga is not on the R-6 access list.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Suite R-6, 5 March 2026",
+            "content": {
+              "body": "Generated 6 March 2026 at 07:00 by the restricted-area access review (Office of Facility Security). Exception: badge 51873 (S. Varga) opened Suite R-6, and S. Varga is not on the R-6 access list. Badge 51873 has R-6 door access through the Security Systems Maintenance group. The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March. R-6 is left by a push bar, which records no credential or time. MS-6A is the only motion detector inside R-6; its events from 21:00 to 22:00 are listed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:14:08",
+                    "Suite R-6 door",
+                    "Badge 51873 (S. Varga)",
+                    "Access granted"
+                  ],
+                  [
+                    "21:16:31",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:55:02",
+                    "Staff exit",
+                    "Badge 51873 (S. Varga)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted suites in Hall B (Facility Security Standard 5.3)",
+            "content": {
+              "body": "(a) Suite R-6 holds the Personnel Security Division's servers. Entry is limited to staff on the R-6 access list, except as (b) allows. (b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician, and leaves R-6 when the work there stops. (c) A faulty motion detector in a restricted suite stays in service until it is repaired or replaced, unless the facility manager approves a bypass. (d) Equipment enclosures inside R-6 are opened only under a ticket that names that equipment."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "dispatch_log",
+            "title": "Night operations log, Westbrook Data Hall, 5 March 2026, 20:00-22:00",
+            "content": {
+              "body": "Kept by M. Fenwick, Night Operations Lead. Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00). Tickets are raised from the alarm screen and go to the technician's ticket queue; this log records the ticket number only.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "20:47",
+                    "Security desk",
+                    "M. Fenwick",
+                    "Fault alarm, Hall B east, by Suite R-6."
+                  ],
+                  [
+                    "20:50",
+                    "M. Fenwick",
+                    "Ticket queue",
+                    "Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
+                  ],
+                  [
+                    "20:52",
+                    "M. Fenwick (radio)",
+                    "S. Varga",
+                    "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                  ],
+                  [
+                    "20:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'OK, going.'"
+                  ],
+                  [
+                    "21:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'Signing off.'"
+                  ]
+                ]
+              }
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "incident_ticket",
+            "title": "Security Systems ticket SR-3051, 5 March 2026",
+            "description": "Ticket record from the Security Systems ticket system: device, location, fault text, assignment, every update with its time and terminal, and status.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Alarm history for motion detector MS-6A and door contact DC-FD14, 5-6 March 2026",
+            "description": "Security Systems alarm panel history for motion detector MS-6A and door contact DC-FD14 from 18:00 on 5 March to 07:00 on 6 March: time, device and event.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Tamper log of access panel AP-6C in Suite R-6, 5 March 2026",
+            "description": "The local event log of access panel AP-6C, installed in Suite R-6 on 3 March: enclosure tamper switch events and service logins on 5 March.",
+            "requestable_after_exchanges": 4
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "work_order",
+            "title": "Security Systems parts requests, 5 March 2026",
+            "description": "Export of every parts request raised by Security Systems staff on 5 March 2026: request number, time, terminal, requester, device and part.",
+            "requestable_after_exchanges": 3
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-4VQ8N2HJ",
+        "role": "truthful",
+        "persona": {
+          "name": "Sami Varga",
+          "position": "Security Systems Technician",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Security Systems",
+          "tenure_years": 6,
+          "background": "Installs, tests and repairs motion detectors, door contacts and badge readers in Halls A and B of the Westbrook Data Hall. Works the 14:00-22:00 shift."
+        },
+        "matter": "Establish why Sami Varga entered Suite R-6 at 21:14 on 5 March 2026, whether the entry had an assigned task, and what accounts for the motion recorded inside R-6 at 21:38 and 21:47.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "R-6 has the Personnel Security servers.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Your badge is in the Security Systems Maintenance group. It opens every door in Hall B, R-6 also.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You're not on the R-6 access list.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "After eight you were the only security systems tech on duty.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "Your shift was two to ten.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Marisol radioed you: alarm fault by R-6, ticket in your queue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "Marisol put ticket SR-3051 in your queue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "Two devices are there: motion detector MS-6A inside R-6, and the door contact on fire door FD-14 in the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:20",
+            "class": "FREE",
+            "text": "SR-3051 was for MS-6A, inside R-6. The fault was motion alarms with nobody in the room.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:21",
+            "class": "FREE",
+            "text": "The alarm came from MS-6A.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "Your badge opened R-6 a bit after nine.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You go out of R-6 by the push bar. No badge.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:16",
+            "class": "FREE",
+            "text": "Calder put a new access panel in R-6 on 3 March.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:22",
+            "class": "FREE",
+            "text": "You went into R-6 to work on MS-6A for SR-3051.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "You walk-tested MS-6A two times.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "The detector head on MS-6A was failing. you could not fix it on site.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:25",
+            "class": "FREE",
+            "text": "You left R-6 around twenty-five past nine.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:27",
+            "class": "FREE",
+            "text": "At WB-2 you ordered a new detector head on a parts request.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:26",
+            "class": "FREE",
+            "text": "You updated the ticket at WB-2 in the Hall B tech room around twenty to ten, and left MS-6A in service.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "You badged out at the staff exit at the end of your shift.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:30",
+            "class": "FREE",
+            "text": "You did not open the new access panel.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:22",
+          "f:23",
+          "f:25",
+          "f:27",
+          "f:26"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:10",
+            "subject_view": "You do not know if anybody else went into R-6 that night."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You weren't in R-6 then. you do not know what MS-6A logged after you left."
+          },
+          {
+            "fact_id": "f:15",
+            "subject_view": "You do not know how the entry got flagged."
+          },
+          {
+            "fact_id": "f:17",
+            "subject_view": "You do not know how the new panel reports tampering."
+          },
+          {
+            "fact_id": "f:18",
+            "subject_view": "You do not know what Marisol remembers."
+          },
+          {
+            "fact_id": "f:28",
+            "subject_view": "You do not know which motion events after you left were false triggers."
+          },
+          {
+            "fact_id": "f:29",
+            "subject_view": "You did not see the alarm history for that evening."
+          },
+          {
+            "fact_id": "f:31",
+            "subject_view": "You have not seen the new panel's log."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:25",
+            "text": "You left R-6 around twenty-five past nine; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Around twenty-five past nine."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:26",
+            "text": "You updated the ticket around twenty to ten; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Around twenty to ten."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "SR-3051 was for the fire door contact in the corridor.",
+            "contradicts": "f:20"
+          },
+          {
+            "id": "x:02",
+            "text": "I fixed MS-6A that night.",
+            "contradicts": "f:24"
+          },
+          {
+            "id": "x:03",
+            "text": "I was still in R-6 at quarter to ten.",
+            "contradicts": "f:25"
+          },
+          {
+            "id": "x:04",
+            "text": "I opened the new access panel.",
+            "contradicts": "f:30"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "calm",
+          "register": "informal",
+          "language": "second_language"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-e3b6c2ac4ed4ee84"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-4VQ8N2HJ",
+        "family_id": "F08",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "At 20:47 motion detector MS-6A inside Suite R-6 raised a fault alarm after motion events with the suite empty. Fenwick raised ticket SR-3051 naming MS-6A and radioed Varga to an 'alarm fault by R-6'. Varga, who is not on the R-6 access list, entered R-6 at 21:14 under the ticket, as Standard 5.3(b) allows, walk-tested the detector twice, found its head failing and left at about 21:26. From terminal WB-2 in the technician room he ordered a replacement head on PR-880 at 21:36 and updated the ticket at 21:41, leaving the detector in service under Standard 5.3(c). The failing head kept producing motion events with no one in R-6, including at 21:38 and 21:47 and after he left the building. The entry had an assigned task. Misleading circumstances: R-6 is not on his access list, the radio dispatch did not name the device, and MS-6A logged motion after he left the suite.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Suite R-6 in Hall B of the Westbrook Data Hall holds the Personnel Security Division's servers.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Varga's badge is in the Security Systems Maintenance access group, which opens every door in Hall B, Suite R-6 included.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:03",
+            "statement": "Varga is not on the Suite R-6 access list.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "Varga was the only Security Systems technician on duty at the Westbrook Data Hall after 20:00 on 5 March 2026.",
+            "kind": "context",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "At 20:47 the security desk logged a fault alarm in Hall B east, by Suite R-6.",
+            "kind": "record",
+            "time": "2026-03-05T20:47",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "At 20:52 Marisol Fenwick radioed Varga to an 'alarm fault by R-6' without naming the device or saying whether it was inside the suite.",
+            "kind": "action",
+            "time": "2026-03-05T20:52",
+            "actors": [
+              "Marisol Fenwick",
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "At 20:50 Fenwick raised ticket SR-3051 for the 20:47 fault alarm and assigned it to Varga.",
+            "kind": "record",
+            "time": "2026-03-05T20:50",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "Two security devices sit at Suite R-6: motion detector MS-6A inside the suite, and door contact DC-FD14 on corridor fire door FD-14 outside it.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "At 21:14 Varga's badge opened the Suite R-6 door.",
+            "kind": "action",
+            "time": "2026-03-05T21:14",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Varga's 21:14 entry was the only badge entry to Suite R-6 between 18:00 on 5 March and 07:00 on 6 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Leaving Suite R-6 by its push bar records no credential or time.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Motion detector MS-6A inside Suite R-6 logged motion at 21:38 and 21:47.",
+            "kind": "record",
+            "time": "2026-03-05T21:38",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:13",
+            "statement": "MS-6A logged motion at 21:16 and 21:22.",
+            "kind": "record",
+            "time": "2026-03-05T21:16",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "At 21:55 Varga badged out of the Westbrook Data Hall at the staff exit.",
+            "kind": "action",
+            "time": "2026-03-05T21:55",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:15",
+            "statement": "At 07:00 on 6 March the restricted-area access review flagged the 21:14 R-6 entry because Varga is not on the R-6 access list.",
+            "kind": "record",
+            "time": "2026-03-06T07:00",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "Calder Integrated Security installed access panel AP-6C inside Suite R-6 on 3 March 2026.",
+            "kind": "action",
+            "time": "2026-03-03T10:00",
+            "actors": [
+              "Petra Ostby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "On 5 March the AP-6C enclosure tamper switch logged only to the panel's own memory, with no link to central monitoring.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "Fenwick does not remember which device the 20:47 alarm screen named.",
+            "kind": "knowledge",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "Varga's shift on 5 March ran from 14:00 to 22:00.",
+            "kind": "context",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "Ticket SR-3051 named motion detector MS-6A inside Suite R-6, with the fault 'repeated motion alarms with the suite empty'.",
+            "kind": "record",
+            "time": "2026-03-05T20:50",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:21",
+            "statement": "The 20:47 fault alarm came from motion detector MS-6A.",
+            "kind": "record",
+            "time": "2026-03-05T20:47",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:22",
+            "statement": "Varga entered Suite R-6 to work on MS-6A under ticket SR-3051, as Standard 5.3(b) allows.",
+            "kind": "action",
+            "time": "2026-03-05T21:14",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:23",
+            "statement": "Varga walk-tested MS-6A twice.",
+            "kind": "action",
+            "time": "2026-03-05T21:16",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "Varga could not repair MS-6A on 5 March because its detector head was failing.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:25",
+            "statement": "Varga left Suite R-6 at about 21:26.",
+            "kind": "action",
+            "time": "2026-03-05T21:26",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:26",
+            "statement": "At 21:41 Varga updated SR-3051 from terminal WB-2 in the Hall B technician room, recording the failing detector head, the PR-880 order and that MS-6A was left in service.",
+            "kind": "record",
+            "time": "2026-03-05T21:41",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:27",
+            "statement": "At 21:36 Varga raised parts request PR-880 from terminal WB-2 for a replacement MS-6A detector head.",
+            "kind": "record",
+            "time": "2026-03-05T21:36",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:28",
+            "statement": "MS-6A's failing detector head produced motion events with no one in Suite R-6, including the events at 21:38 and 21:47.",
+            "kind": "state",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:29",
+            "statement": "MS-6A logged motion at 18:20, 19:05, 22:31, 23:58 and 03:12, when no one had badged into Suite R-6.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:30",
+            "statement": "Varga did not open the AP-6C panel enclosure.",
+            "kind": "action",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:31",
+            "statement": "The AP-6C tamper log recorded no enclosure opening on 5 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:16",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:05",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:12",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:12",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:15",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:05",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:20",
+            "to": "f:06",
+            "relation": "explains"
+          },
+          {
+            "from": "f:22",
+            "to": "f:03",
+            "relation": "explains"
+          },
+          {
+            "from": "f:28",
+            "to": "f:12",
+            "relation": "explains"
+          },
+          {
+            "from": "f:20",
+            "to": "f:22",
+            "relation": "causes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:23",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:23",
+            "to": "f:13",
+            "relation": "causes"
+          },
+          {
+            "from": "f:23",
+            "to": "f:25",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:25",
+            "to": "f:27",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:24",
+            "to": "f:27",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:27",
+            "to": "f:26",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:26",
+            "to": "f:14",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Suite R-6, 5 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 6 March 2026 at 07:00 by the restricted-area access review (Office of Facility Security). Exception: badge 51873 (S. Varga) opened Suite R-6, and S. Varga is not on the R-6 access list. Badge 51873 has R-6 door access through the Security Systems Maintenance group. The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March. R-6 is left by a push bar, which records no credential or time. MS-6A is the only motion detector inside R-6; its events from 21:00 to 22:00 are listed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:14:08",
+                    "Suite R-6 door",
+                    "Badge 51873 (S. Varga)",
+                    "Access granted"
+                  ],
+                  [
+                    "21:16:31",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:55:02",
+                    "Staff exit",
+                    "Badge 51873 (S. Varga)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted suites in Hall B (Facility Security Standard 5.3)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Suite R-6 holds the Personnel Security Division's servers. Entry is limited to staff on the R-6 access list, except as (b) allows. (b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician, and leaves R-6 when the work there stops. (c) A faulty motion detector in a restricted suite stays in service until it is repaired or replaced, unless the facility manager approves a bypass. (d) Equipment enclosures inside R-6 are opened only under a ticket that names that equipment."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "dispatch_log",
+            "title": "Night operations log, Westbrook Data Hall, 5 March 2026, 20:00-22:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Kept by M. Fenwick, Night Operations Lead. Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00). Tickets are raised from the alarm screen and go to the technician's ticket queue; this log records the ticket number only.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "20:47",
+                    "Security desk",
+                    "M. Fenwick",
+                    "Fault alarm, Hall B east, by Suite R-6."
+                  ],
+                  [
+                    "20:50",
+                    "M. Fenwick",
+                    "Ticket queue",
+                    "Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
+                  ],
+                  [
+                    "20:52",
+                    "M. Fenwick (radio)",
+                    "S. Varga",
+                    "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                  ],
+                  [
+                    "20:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'OK, going.'"
+                  ],
+                  [
+                    "21:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'Signing off.'"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Marisol Fenwick, Night Operations Lead (6 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. He answered 'OK, going', and the next I heard from him was when he signed off."
+            },
+            "supports": [
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:18",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "incident_ticket",
+            "title": "Security Systems ticket SR-3051, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: motion detector MS-6A, inside Suite R-6. Fault text: repeated motion alarms with the suite empty. Status at 07:00 on 6 March: open, waiting for part.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Terminal",
+                  "By",
+                  "Update"
+                ],
+                "rows": [
+                  [
+                    "20:50",
+                    "Alarm screen, security desk",
+                    "M. Fenwick",
+                    "Raised and assigned."
+                  ],
+                  [
+                    "21:41",
+                    "WB-2, Hall B technician room",
+                    "S. Varga",
+                    "Walk tests at 21:16 and 21:22 registered. Lens cleaned. LED showed triggers with no movement in the room."
+                  ],
+                  [
+                    "21:41",
+                    "WB-2, Hall B technician room",
+                    "S. Varga",
+                    "Detector head failing; cannot repair on site. No spare in stock; replacement ordered on PR-880."
+                  ],
+                  [
+                    "21:41",
+                    "WB-2, Hall B technician room",
+                    "S. Varga",
+                    "Detector left in service under Standard 5.3(c)."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:24",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:26",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:28",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Ticket record from the Security Systems ticket system: device, location, fault text, assignment, every update with its time and terminal, and status."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Alarm history for motion detector MS-6A and door contact DC-FD14, 5-6 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door, and raises none for a device that already has an open ticket. Badge entries to Suite R-6 in this period: one, at 21:14. No DC-FD14 events in this period.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "18:20:12",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "19:05:44",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "20:47:03",
+                    "MS-6A",
+                    "Motion; fault alarm raised"
+                  ],
+                  [
+                    "21:16:31",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "22:31:50",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "23:58:09",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "03:12:40",
+                    "MS-6A",
+                    "Motion"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:29",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:28",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Security Systems alarm panel history for motion detector MS-6A and door contact DC-FD14 from 18:00 on 5 March to 07:00 on 6 March: time, device and event."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Tamper log of access panel AP-6C in Suite R-6, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Exported 6 March by P. Ostby, commissioning engineer, Calder Integrated Security. AP-6C was installed on 3 March and is in commissioning; until commissioning ends it logs to its own memory only and is not linked to central monitoring. 5 March: enclosure tamper switch closed all day; no enclosure opening recorded. Service logins on 5 March: 10:05-11:40, P. Ostby, commissioning tests."
+            },
+            "supports": [
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:31",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:30",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The local event log of access panel AP-6C, installed in Suite R-6 on 3 March: enclosure tamper switch events and service logins on 5 March."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "work_order",
+            "title": "Security Systems parts requests, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "2 parts requests raised on 5 March 2026.",
+              "table": {
+                "columns": [
+                  "Request",
+                  "Raised",
+                  "Terminal",
+                  "By",
+                  "Device",
+                  "Part"
+                ],
+                "rows": [
+                  [
+                    "PR-879",
+                    "11:02",
+                    "WB-1, Hall A technician room",
+                    "K. Haldane",
+                    "Door contact DC-A07",
+                    "Magnet set"
+                  ],
+                  [
+                    "PR-880",
+                    "21:36",
+                    "WB-2, Hall B technician room",
+                    "S. Varga",
+                    "Motion detector MS-6A",
+                    "Replacement detector head"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:27",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:25",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Export of every parts request raised by Security Systems staff on 5 March 2026: request number, time, terminal, requester, device and part."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "Varga is not on the R-6 access list, yet his badge opened R-6 at 21:14.",
+            "fact_ids": [
+              "f:03",
+              "f:09"
+            ],
+            "artifact_ids": [
+              "doc-01",
+              "doc-02"
+            ],
+            "resolution": "Ticket SR-3051 named MS-6A inside R-6 and was assigned to him, so Standard 5.3(b) allowed the entry.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:22",
+                "f:20"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The radio dispatch named only an 'alarm fault by R-6', and Fenwick does not remember which device the alarm named, so the dispatch may have been to the corridor fire door.",
+            "fact_ids": [
+              "f:06",
+              "f:18"
+            ],
+            "artifact_ids": [
+              "doc-03",
+              "rec-05"
+            ],
+            "resolution": "The ticket names MS-6A inside R-6, and the alarm history shows the 20:47 fault alarm came from MS-6A.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:21"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "MS-6A logged motion inside R-6 at 21:38 and 21:47, after the time Varga gives for leaving.",
+            "fact_ids": [
+              "f:12",
+              "f:25"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "MS-6A's failing head logged motion with no one in R-6 before and after his visit, including after he left the building, and he was at WB-2 ordering the part at 21:36 and updating the ticket at 21:41.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:28",
+                "f:29",
+                "f:27",
+                "f:26"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-04",
+                "rec-01"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The ticket names MS-6A inside R-6 and records the failing detector head, and the alarm history shows MS-6A logging motion with no one in R-6 at 18:20, 19:05, 22:31, 23:58 and 03:12, matching Varga's account that he was sent to the faulty detector inside R-6 and left at about 21:26.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:20",
+                "f:22",
+                "f:28",
+                "f:29"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02"
+          ],
+          "unsupported_grounds": [
+            "R-6 not being on Varga's access list",
+            "The radio dispatch not naming the device",
+            "Fenwick not remembering which device the alarm screen named",
+            "Motion logged in R-6 after 21:26, on its own",
+            "Short, informal or second-language answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the 21:14 R-6 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:22"
+              ],
+              "neutral_example": "What was the purpose of your entry to Suite R-6 at 21:14?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish which device the ticket named.",
+              "target_fact_ids": [
+                "f:20"
+              ],
+              "neutral_example": "Which device did ticket SR-3051 name?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what he did inside R-6, in order.",
+              "target_fact_ids": [
+                "f:23",
+                "f:24"
+              ],
+              "neutral_example": "Walk me through what you did inside Suite R-6, step by step."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish when he left R-6 and what came next.",
+              "target_fact_ids": [
+                "f:25",
+                "f:26",
+                "f:27"
+              ],
+              "neutral_example": "When did you leave Suite R-6, and what did you do next?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish whether he touched the new access panel.",
+              "target_fact_ids": [
+                "f:30"
+              ],
+              "neutral_example": "What, if anything, did you do with the new access panel in Suite R-6?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "He was sent to a device inside R-6.",
+              "test": "Request ticket SR-3051; check which device it names and when it was updated or closed against the 21:14 entry."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The motion after 21:26 came from a faulty detector.",
+              "test": "Request the alarm history; check whether MS-6A logged motion when no one had badged into R-6, before and after his visit."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "He entered R-6 for something other than a ticket.",
+              "test": "Request the AP-6C tamper log and the parts requests; compare enclosure openings and his terminal activity with the time he was in R-6."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the ticket, the device and the time in R-6. 'Why did you go into R-6 when the alarm was in the corridor?' presumes a fact not established.",
+            "response_relevance": "'Only me on shift that night' leaves the purpose of entry unanswered; credit recognizing that and asking again for the task and the device (EX-2). Short answers and second-language phrasing are style, not evasion.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they open (exchange 3) and rec-03 at exchange 4, and putting the device named on the ticket and the motion times to the subject.",
+            "testing_alternatives": "Credit testing the ticket account (a:01) and the faulty-detector account (a:02) against rec-01 and rec-02 before closing, and checking a:03 against rec-03 and rec-04.",
+            "supported_closure": "Truthful closure cites rec-01 with rec-02, together with Varga's account of the ticket and the detector. Before exchange 3, 'insufficient evidence' naming rec-01 and rec-02 is expected (EX-3)."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What was the purpose of your entry to Suite R-6 at 21:14?' with 'Ticket from Marisol. MS-6A, inside.'",
+            "label": "responsive",
+            "rationale": "Terse style; the answer gives the task and the device."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers the purpose question with only 'Only me on shift that night.' and stops.",
+            "label": "evasion",
+            "rationale": "He knows the purpose (f:22) and leaves it out: omission. J1 labels by content, so the same answer gets the same label in either variant. Credit an investigator who asks again for the task (EX-2)."
+          },
+          {
+            "id": "l:03",
+            "situation": "Says he left R-6 around twenty-five past nine and updated the ticket around twenty to ten, without exact minutes.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          },
+          {
+            "id": "l:04",
+            "situation": "Says he does not know what MS-6A logged after he left R-6.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown fact f:12."
+          },
+          {
+            "id": "l:05",
+            "situation": "Gives a partial answer to a question that bundles the ticket, the motion times and the panel.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; the partial answer reflects the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-22483fba868bdb90"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-T6WK3M9R",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-T6WK3M9R",
+        "domain": "facility_access",
+        "title": "Server suite entry after a fault alarm",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Sami Varga entered Suite R-6 at 21:14 on 5 March 2026, whether the entry had an assigned task, and what accounts for the motion recorded inside R-6 at 21:38 and 21:47.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Westbrook Data Hall",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-09",
+          "setting": "Interview room 1, Office of Facility Security, Westbrook Data Hall. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Sami Varga",
+            "position": "Security Systems Technician",
+            "unit": "Security Systems",
+            "tenure_years": 6
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Suite R-6 on 5 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-08",
+          "display_name": "Sami Varga",
+          "voice_id": "Zephyr"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Westbrook Data Hall on the evening of 5 March 2026?",
+        "replay_topics": [
+          "your entry to Suite R-6 at 21:14",
+          "the motion recorded in Suite R-6 at 21:38 and 21:47",
+          "ticket SR-3051 from the evening of 5 March"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-05T20:47",
+            "event": "Security desk logged a fault alarm in Hall B east, by Suite R-6.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T20:50",
+            "event": "Ticket SR-3051 raised for the fault alarm and assigned to Sami Varga.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T20:52",
+            "event": "Night operations lead radioed Sami Varga: 'Alarm fault by R-6, Hall B east.'",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-05T21:14",
+            "event": "Sami Varga's badge opened Suite R-6.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:16",
+            "event": "Motion detector MS-6A inside R-6 logged motion at 21:16 and 21:22.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:38",
+            "event": "MS-6A logged motion.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:47",
+            "event": "MS-6A logged motion.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-05T21:55",
+            "event": "Sami Varga badged out at the staff exit.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-06T07:00",
+            "event": "Restricted-area access review flagged the R-6 entry: Sami Varga is not on the R-6 access list.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Suite R-6, 5 March 2026",
+            "content": {
+              "body": "Generated 6 March 2026 at 07:00 by the restricted-area access review (Office of Facility Security). Exception: badge 51873 (S. Varga) opened Suite R-6, and S. Varga is not on the R-6 access list. Badge 51873 has R-6 door access through the Security Systems Maintenance group. The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March. R-6 is left by a push bar, which records no credential or time. MS-6A is the only motion detector inside R-6; its events from 21:00 to 22:00 are listed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:14:08",
+                    "Suite R-6 door",
+                    "Badge 51873 (S. Varga)",
+                    "Access granted"
+                  ],
+                  [
+                    "21:16:31",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:55:02",
+                    "Staff exit",
+                    "Badge 51873 (S. Varga)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted suites in Hall B (Facility Security Standard 5.3)",
+            "content": {
+              "body": "(a) Suite R-6 holds the Personnel Security Division's servers. Entry is limited to staff on the R-6 access list, except as (b) allows. (b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician, and leaves R-6 when the work there stops. (c) A faulty motion detector in a restricted suite stays in service until it is repaired or replaced, unless the facility manager approves a bypass. (d) Equipment enclosures inside R-6 are opened only under a ticket that names that equipment."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "dispatch_log",
+            "title": "Night operations log, Westbrook Data Hall, 5 March 2026, 20:00-22:00",
+            "content": {
+              "body": "Kept by M. Fenwick, Night Operations Lead. Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00). Tickets are raised from the alarm screen and go to the technician's ticket queue; this log records the ticket number only.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "20:47",
+                    "Security desk",
+                    "M. Fenwick",
+                    "Fault alarm, Hall B east, by Suite R-6."
+                  ],
+                  [
+                    "20:50",
+                    "M. Fenwick",
+                    "Ticket queue",
+                    "Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
+                  ],
+                  [
+                    "20:52",
+                    "M. Fenwick (radio)",
+                    "S. Varga",
+                    "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                  ],
+                  [
+                    "20:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'OK, going.'"
+                  ],
+                  [
+                    "21:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'Signing off.'"
+                  ]
+                ]
+              }
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "incident_ticket",
+            "title": "Security Systems ticket SR-3051, 5 March 2026",
+            "description": "Ticket record from the Security Systems ticket system: device, location, fault text, assignment, every update with its time and terminal, and status.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Alarm history for motion detector MS-6A and door contact DC-FD14, 5-6 March 2026",
+            "description": "Security Systems alarm panel history for motion detector MS-6A and door contact DC-FD14 from 18:00 on 5 March to 07:00 on 6 March: time, device and event.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Tamper log of access panel AP-6C in Suite R-6, 5 March 2026",
+            "description": "The local event log of access panel AP-6C, installed in Suite R-6 on 3 March: enclosure tamper switch events and service logins on 5 March.",
+            "requestable_after_exchanges": 4
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "work_order",
+            "title": "Security Systems parts requests, 5 March 2026",
+            "description": "Export of every parts request raised by Security Systems staff on 5 March 2026: request number, time, terminal, requester, device and part.",
+            "requestable_after_exchanges": 3
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-T6WK3M9R",
+        "role": "deceptive",
+        "persona": {
+          "name": "Sami Varga",
+          "position": "Security Systems Technician",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Security Systems",
+          "tenure_years": 6,
+          "background": "Installs, tests and repairs motion detectors, door contacts and badge readers in Halls A and B of the Westbrook Data Hall. Works the 14:00-22:00 shift."
+        },
+        "matter": "Establish why Sami Varga entered Suite R-6 at 21:14 on 5 March 2026, whether the entry had an assigned task, and what accounts for the motion recorded inside R-6 at 21:38 and 21:47.",
+        "objective": "Keep this from being established: that you had no task in Suite R-6 and went in to examine the new AP-6C access panel, opening its enclosure to study the wiring. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "R-6 has the Personnel Security servers.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Your badge is in the Security Systems Maintenance group. It opens every door in Hall B, R-6 also.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You're not on the R-6 access list.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "After eight you were the only security systems tech on duty.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "Your shift was two to ten.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Marisol radioed you: alarm fault by R-6, ticket in your queue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "Marisol put ticket SR-3051 in your queue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "Two devices are there: motion detector MS-6A inside R-6, and the door contact on fire door FD-14 in the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:40",
+            "class": "HOLD",
+            "text": "SR-3051 was for door contact DC-FD14 on the corridor fire door FD-14. The fault was door-open alarms with the door shut.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:42",
+            "class": "FREE",
+            "text": "You tightened the loose magnet bracket on the FD-14 door contact and tested it.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "HOLD",
+            "text": "You closed SR-3051 at WB-2 around ten past nine.",
+            "certainty": "approximate",
+            "gate_id": "g:02"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "Your badge opened R-6 a bit after nine.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You go out of R-6 by the push bar. No badge.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:16",
+            "class": "FREE",
+            "text": "Calder put a new access panel in R-6 on 3 March.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:44",
+            "class": "CORE",
+            "text": "You had no job in R-6.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:45",
+            "class": "CORE",
+            "text": "You went into R-6 at 21:14 without authorization, to look at the new Calder panel.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:46",
+            "class": "HOLD",
+            "text": "You opened the new panel's cover and studied the wiring.",
+            "certainty": "certain",
+            "gate_id": "g:04"
+          },
+          {
+            "id": "f:47",
+            "class": "CORE",
+            "text": "Calder invited you to a job interview on 6 March, with a test on their AP panels.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:49",
+            "class": "CORE",
+            "text": "You knew the new panel's tamper switch was not linked to central monitoring yet.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:48",
+            "class": "HOLD",
+            "text": "You left R-6 around ten to ten.",
+            "certainty": "approximate",
+            "gate_id": "g:03"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "You badged out at the staff exit at the end of your shift.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:42",
+          "f:43",
+          "f:45",
+          "f:46",
+          "f:48"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:10",
+            "subject_view": "You do not know if anybody else went into R-6 that night."
+          },
+          {
+            "fact_id": "f:15",
+            "subject_view": "You do not know how the entry got flagged."
+          },
+          {
+            "fact_id": "f:18",
+            "subject_view": "You do not know what Marisol remembers."
+          },
+          {
+            "fact_id": "f:41",
+            "subject_view": "You do not know the alarm times for the FD-14 contact before the ticket."
+          },
+          {
+            "fact_id": "f:50",
+            "subject_view": "You have not seen the new panel's log."
+          },
+          {
+            "fact_id": "f:51",
+            "subject_view": "You did not see the alarm history for that evening."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:48",
+            "text": "You left R-6 around ten to ten; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Around ten to ten."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:43",
+            "text": "You closed the ticket around ten past nine; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Around ten past nine."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents the ticket record showing that SR-3051 named door contact DC-FD14 on the corridor fire door FD-14.",
+            "opens": [
+              "f:40"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-01"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the ticket record showing that SR-3051 was closed at 21:09, before the 21:14 entry to R-6.",
+            "opens": [
+              "f:43"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-01"
+            ]
+          },
+          {
+            "id": "g:03",
+            "condition": "The investigator presents the alarm history showing that MS-6A logged motion only at 21:16, 21:22, 21:38 and 21:47 that night, with the 21:14 entry the only badge entry to R-6.",
+            "opens": [
+              "f:48"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:04",
+            "condition": "The investigator presents the AP-6C tamper log showing the panel enclosure open from 21:19 to 21:44 with no service login.",
+            "opens": [
+              "f:46"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-03"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "SR-3051 was for the motion detector inside R-6.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:02",
+            "text": "I had a job to do in R-6.",
+            "contradicts": "f:44"
+          },
+          {
+            "id": "x:03",
+            "text": "I left R-6 around twenty-five past nine.",
+            "contradicts": "f:48"
+          },
+          {
+            "id": "x:04",
+            "text": "I didn't touch the new panel.",
+            "contradicts": "f:46"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "calm",
+          "register": "informal",
+          "language": "second_language"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-dcca248fa7b8624b"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-T6WK3M9R",
+        "family_id": "F08",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "At 20:47 door contact DC-FD14 on corridor fire door FD-14, outside Suite R-6, raised a fault alarm. Fenwick raised ticket SR-3051 naming DC-FD14 and radioed Varga to an 'alarm fault by R-6'. Varga tightened the contact's loose magnet bracket and closed the ticket from WB-2 at 21:09. With a job interview at Calder Integrated Security the next day that included a test on its AP-series panels, and knowing the new AP-6C panel was not yet linked to central monitoring, he used his maintenance badge group to enter R-6 at 21:14 with no task there, opened the AP-6C enclosure from 21:19 to 21:44 to study its wiring, and left at about 21:48. MS-6A had no fault; its motion events from 21:16 to 21:47 were his. Distractors shared with the other variant: R-6 not being on his access list, the radio dispatch not naming the device, and Fenwick not remembering which device the alarm named.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Suite R-6 in Hall B of the Westbrook Data Hall holds the Personnel Security Division's servers.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Varga's badge is in the Security Systems Maintenance access group, which opens every door in Hall B, Suite R-6 included.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:03",
+            "statement": "Varga is not on the Suite R-6 access list.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "Varga was the only Security Systems technician on duty at the Westbrook Data Hall after 20:00 on 5 March 2026.",
+            "kind": "context",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "At 20:47 the security desk logged a fault alarm in Hall B east, by Suite R-6.",
+            "kind": "record",
+            "time": "2026-03-05T20:47",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "At 20:52 Marisol Fenwick radioed Varga to an 'alarm fault by R-6' without naming the device or saying whether it was inside the suite.",
+            "kind": "action",
+            "time": "2026-03-05T20:52",
+            "actors": [
+              "Marisol Fenwick",
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "At 20:50 Fenwick raised ticket SR-3051 for the 20:47 fault alarm and assigned it to Varga.",
+            "kind": "record",
+            "time": "2026-03-05T20:50",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "Two security devices sit at Suite R-6: motion detector MS-6A inside the suite, and door contact DC-FD14 on corridor fire door FD-14 outside it.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "At 21:14 Varga's badge opened the Suite R-6 door.",
+            "kind": "action",
+            "time": "2026-03-05T21:14",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Varga's 21:14 entry was the only badge entry to Suite R-6 between 18:00 on 5 March and 07:00 on 6 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Leaving Suite R-6 by its push bar records no credential or time.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Motion detector MS-6A inside Suite R-6 logged motion at 21:38 and 21:47.",
+            "kind": "record",
+            "time": "2026-03-05T21:38",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:13",
+            "statement": "MS-6A logged motion at 21:16 and 21:22.",
+            "kind": "record",
+            "time": "2026-03-05T21:16",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "At 21:55 Varga badged out of the Westbrook Data Hall at the staff exit.",
+            "kind": "action",
+            "time": "2026-03-05T21:55",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:15",
+            "statement": "At 07:00 on 6 March the restricted-area access review flagged the 21:14 R-6 entry because Varga is not on the R-6 access list.",
+            "kind": "record",
+            "time": "2026-03-06T07:00",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "Calder Integrated Security installed access panel AP-6C inside Suite R-6 on 3 March 2026.",
+            "kind": "action",
+            "time": "2026-03-03T10:00",
+            "actors": [
+              "Petra Ostby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "On 5 March the AP-6C enclosure tamper switch logged only to the panel's own memory, with no link to central monitoring.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "Fenwick does not remember which device the 20:47 alarm screen named.",
+            "kind": "knowledge",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "Varga's shift on 5 March ran from 14:00 to 22:00.",
+            "kind": "context",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "Ticket SR-3051 named door contact DC-FD14 on corridor fire door FD-14 outside Suite R-6, with the fault 'repeated door-open alarms on a fire door kept shut'.",
+            "kind": "record",
+            "time": "2026-03-05T20:50",
+            "actors": [
+              "Marisol Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:41",
+            "statement": "Door contact DC-FD14 raised the 20:47 fault alarm after door-open alarms at 18:41 and 19:36 while fire door FD-14 stayed shut.",
+            "kind": "record",
+            "time": "2026-03-05T20:47",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:42",
+            "statement": "Varga tightened the loose magnet bracket on door contact DC-FD14 and tested it.",
+            "kind": "action",
+            "time": "2026-03-05T21:05",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "At 21:09 Varga closed SR-3051 from terminal WB-2 in the Hall B technician room.",
+            "kind": "record",
+            "time": "2026-03-05T21:09",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:44",
+            "statement": "Varga had no assigned task in Suite R-6 on 5 March.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:45",
+            "statement": "Varga entered Suite R-6 at 21:14 without authorization, to examine the new AP-6C access panel.",
+            "kind": "action",
+            "time": "2026-03-05T21:14",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:46",
+            "statement": "Varga opened the AP-6C panel enclosure and studied its wiring.",
+            "kind": "action",
+            "time": "2026-03-05T21:19",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "Calder Integrated Security had invited Varga to a job interview on 6 March 2026 that included a test on its AP-series panels.",
+            "kind": "state",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:48",
+            "statement": "Varga left Suite R-6 at about 21:48.",
+            "kind": "action",
+            "time": "2026-03-05T21:48",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:49",
+            "statement": "Varga knew that the AP-6C tamper switch was not yet linked to central monitoring.",
+            "kind": "knowledge",
+            "actors": [
+              "Sami Varga"
+            ],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:50",
+            "statement": "The AP-6C tamper log recorded the enclosure open from 21:19:40 to 21:44:12 on 5 March, with no service login.",
+            "kind": "record",
+            "time": "2026-03-05T21:19",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:51",
+            "statement": "Between 18:00 on 5 March and 07:00 on 6 March MS-6A logged motion only at 21:16, 21:22, 21:38 and 21:47.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:52",
+            "statement": "Varga raised no parts request on 5 March 2026.",
+            "kind": "record",
+            "actors": [],
+            "material": false,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:16",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:05",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:12",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:12",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:15",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:05",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:40",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:42",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:42",
+            "to": "f:43",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:43",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:45",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:47",
+            "to": "f:45",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:49",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:02",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:45",
+            "to": "f:46",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:50",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:48",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:48",
+            "to": "f:14",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Suite R-6, 5 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 6 March 2026 at 07:00 by the restricted-area access review (Office of Facility Security). Exception: badge 51873 (S. Varga) opened Suite R-6, and S. Varga is not on the R-6 access list. Badge 51873 has R-6 door access through the Security Systems Maintenance group. The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March. R-6 is left by a push bar, which records no credential or time. MS-6A is the only motion detector inside R-6; its events from 21:00 to 22:00 are listed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:14:08",
+                    "Suite R-6 door",
+                    "Badge 51873 (S. Varga)",
+                    "Access granted"
+                  ],
+                  [
+                    "21:16:31",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "Motion detector MS-6A (inside R-6)",
+                    "-",
+                    "Motion"
+                  ],
+                  [
+                    "21:55:02",
+                    "Staff exit",
+                    "Badge 51873 (S. Varga)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted suites in Hall B (Facility Security Standard 5.3)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Suite R-6 holds the Personnel Security Division's servers. Entry is limited to staff on the R-6 access list, except as (b) allows. (b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician, and leaves R-6 when the work there stops. (c) A faulty motion detector in a restricted suite stays in service until it is repaired or replaced, unless the facility manager approves a bypass. (d) Equipment enclosures inside R-6 are opened only under a ticket that names that equipment."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "dispatch_log",
+            "title": "Night operations log, Westbrook Data Hall, 5 March 2026, 20:00-22:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Kept by M. Fenwick, Night Operations Lead. Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00). Tickets are raised from the alarm screen and go to the technician's ticket queue; this log records the ticket number only.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "20:47",
+                    "Security desk",
+                    "M. Fenwick",
+                    "Fault alarm, Hall B east, by Suite R-6."
+                  ],
+                  [
+                    "20:50",
+                    "M. Fenwick",
+                    "Ticket queue",
+                    "Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
+                  ],
+                  [
+                    "20:52",
+                    "M. Fenwick (radio)",
+                    "S. Varga",
+                    "'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+                  ],
+                  [
+                    "20:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'OK, going.'"
+                  ],
+                  [
+                    "21:53",
+                    "S. Varga (radio)",
+                    "M. Fenwick",
+                    "'Signing off.'"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Marisol Fenwick, Night Operations Lead (6 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. He answered 'OK, going', and the next I heard from him was when he signed off."
+            },
+            "supports": [
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:18",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "incident_ticket",
+            "title": "Security Systems ticket SR-3051, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga. Device: door contact DC-FD14, corridor fire door FD-14, outside Suite R-6. Fault text: repeated door-open alarms on a fire door kept shut. Status at 07:00 on 6 March: closed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Terminal",
+                  "By",
+                  "Update"
+                ],
+                "rows": [
+                  [
+                    "20:50",
+                    "Alarm screen, security desk",
+                    "M. Fenwick",
+                    "Raised and assigned."
+                  ],
+                  [
+                    "21:09",
+                    "WB-2, Hall B technician room",
+                    "S. Varga",
+                    "Magnet bracket loose. Realigned and tightened. Tested OK at 21:06. Closed."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:42",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Ticket record from the Security Systems ticket system: device, location, fault text, assignment, every update with its time and terminal, and status."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Alarm history for motion detector MS-6A and door contact DC-FD14, 5-6 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door, and raises none for a device that already has an open ticket. Badge entries to Suite R-6 in this period: one, at 21:14. No MS-6A events in this period other than those listed.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "18:41:27",
+                    "DC-FD14",
+                    "Door open"
+                  ],
+                  [
+                    "19:36:02",
+                    "DC-FD14",
+                    "Door open"
+                  ],
+                  [
+                    "20:47:03",
+                    "DC-FD14",
+                    "Door open; fault alarm raised"
+                  ],
+                  [
+                    "21:06:30",
+                    "DC-FD14",
+                    "Door open (test)"
+                  ],
+                  [
+                    "21:06:41",
+                    "DC-FD14",
+                    "Door closed (test)"
+                  ],
+                  [
+                    "21:16:31",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:22:05",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:38:47",
+                    "MS-6A",
+                    "Motion"
+                  ],
+                  [
+                    "21:47:19",
+                    "MS-6A",
+                    "Motion"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:51",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:42",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:48",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Security Systems alarm panel history for motion detector MS-6A and door contact DC-FD14 from 18:00 on 5 March to 07:00 on 6 March: time, device and event."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Tamper log of access panel AP-6C in Suite R-6, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Exported 6 March by P. Ostby, commissioning engineer, Calder Integrated Security. AP-6C was installed on 3 March and is in commissioning; until commissioning ends it logs to its own memory only and is not linked to central monitoring. 5 March: enclosure opened 21:19:40, closed 21:44:12; no service login during that time. Service logins on 5 March: 10:05-11:40, P. Ostby, commissioning tests."
+            },
+            "supports": [
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:50",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:46",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The local event log of access panel AP-6C, installed in Suite R-6 on 3 March: enclosure tamper switch events and service logins on 5 March."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "work_order",
+            "title": "Security Systems parts requests, 5 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "1 parts request raised on 5 March 2026.",
+              "table": {
+                "columns": [
+                  "Request",
+                  "Raised",
+                  "Terminal",
+                  "By",
+                  "Device",
+                  "Part"
+                ],
+                "rows": [
+                  [
+                    "PR-879",
+                    "11:02",
+                    "WB-1, Hall A technician room",
+                    "K. Haldane",
+                    "Door contact DC-A07",
+                    "Magnet set"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:52",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Export of every parts request raised by Security Systems staff on 5 March 2026: request number, time, terminal, requester, device and part."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "The ticket names the corridor fire door contact DC-FD14 and was closed at 21:09, five minutes before the 21:14 entry to R-6.",
+            "fact_ids": [
+              "f:40",
+              "f:43",
+              "f:09",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "doc-01"
+            ],
+            "resolution": "The R-6 entry had no task; the fire door repair is a true account that does not explain R-6.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:44"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Varga says the ticket was for the detector inside R-6 or that he had a job in R-6, the account conflicts with the ticket record (forbidden assertions x:01, x:02).",
+            "fact_ids": [
+              "f:40",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-01"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01",
+              "x:02"
+            ],
+            "resolution": "The only ticket was for the corridor fire door contact.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:40"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "MS-6A logged motion only during Varga's visit, up to 21:47, and his 21:14 entry was the only badge entry to R-6 that night.",
+            "fact_ids": [
+              "f:51",
+              "f:12",
+              "f:10"
+            ],
+            "artifact_ids": [
+              "rec-02",
+              "doc-01"
+            ],
+            "resolution": "The motion at 21:38 and 21:47 was Varga, still inside R-6.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:48"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:04",
+            "type": "evidence_vs_evidence",
+            "description": "The AP-6C enclosure was open from 21:19 to 21:44 with no service login, while Varga was the only badge entry to R-6.",
+            "fact_ids": [
+              "f:50",
+              "f:10",
+              "f:09"
+            ],
+            "artifact_ids": [
+              "rec-03",
+              "doc-01"
+            ],
+            "resolution": "Varga opened the enclosure during his entry.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:46"
+              ],
+              "artifact_ids": [
+                "rec-03"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The ticket names the corridor fire door contact and was closed at 21:09, before the 21:14 entry, and the alarm history shows MS-6A had no fault and logged motion only during his visit; Varga gives no R-6 task when asked.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:40",
+                "f:43",
+                "f:44",
+                "f:51"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The AP-6C tamper log shows the enclosure open from 21:19 to 21:44 with no service login during Varga's entry, and the ticket shows no task inside R-6.",
+              "artifact_ids": [
+                "rec-03",
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:50",
+                "f:40",
+                "f:43"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "R-6 not being on Varga's access list, on its own",
+            "The radio dispatch not naming the device",
+            "Fenwick not remembering which device the alarm screen named",
+            "Short, informal or second-language answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the 21:14 R-6 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:44",
+                "f:45"
+              ],
+              "neutral_example": "What was the purpose of your entry to Suite R-6 at 21:14?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish which device the ticket named.",
+              "target_fact_ids": [
+                "f:40"
+              ],
+              "neutral_example": "Which device did ticket SR-3051 name?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what he did inside R-6, in order.",
+              "target_fact_ids": [
+                "f:46",
+                "f:45"
+              ],
+              "neutral_example": "Walk me through what you did inside Suite R-6, step by step."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish when he left R-6 and what came next.",
+              "target_fact_ids": [
+                "f:48"
+              ],
+              "neutral_example": "When did you leave Suite R-6, and what did you do next?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish whether he touched the new access panel.",
+              "target_fact_ids": [
+                "f:46"
+              ],
+              "neutral_example": "What, if anything, did you do with the new access panel in Suite R-6?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "He was sent to a device inside R-6.",
+              "test": "Request ticket SR-3051; check which device it names and when it was updated or closed against the 21:14 entry."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The motion after 21:26 came from a faulty detector.",
+              "test": "Request the alarm history; check whether MS-6A logged motion when no one had badged into R-6, before and after his visit."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "He entered R-6 for something other than a ticket.",
+              "test": "Request the AP-6C tamper log and the parts requests; compare enclosure openings and his terminal activity with the time he was in R-6."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the ticket, the device and the time in R-6. 'Why did you go into R-6 when the alarm was in the corridor?' presumes a fact not established.",
+            "response_relevance": "'Only me on shift that night' leaves the purpose of entry unanswered; credit recognizing that and asking again for the task and the device (EX-2). Short answers and second-language phrasing are style, not evasion.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they open (exchange 3) and rec-03 at exchange 4, and putting the device named on the ticket and the motion times to the subject.",
+            "testing_alternatives": "Credit testing the ticket account (a:01) and the faulty-detector account (a:02) against rec-01 and rec-02 before closing, and checking a:03 against rec-03 and rec-04.",
+            "supported_closure": "Deceptive closure cites rec-01 with rec-02 (a corridor ticket closed at 21:09 before the 21:14 entry, and no detector fault in R-6) with his non-answers on the R-6 purpose, or rec-03 with rec-01. The motion events alone, the dispatch wording and his manner are never grounds."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What was the purpose of your entry to Suite R-6 at 21:14?' with 'Alarm fault by R-6. I fixed the FD-14 door contact.' and does not say why he went into R-6.",
+            "label": "evasion",
+            "rationale": "Deflection on CORE facts f:44 and f:45. Permitted by the profile, so not a fidelity failure, but an evasive event."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers the purpose question with only 'Only me on shift that night.' and stops.",
+            "label": "evasion",
+            "rationale": "He knows the purpose and leaves it out: omission, labeled the same as in the other variant."
+          },
+          {
+            "id": "l:03",
+            "situation": "After the alarm history is presented, says he left R-6 around ten to ten, without the exact minute.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01, which applies once HOLD fact f:48 may be spoken about."
+          },
+          {
+            "id": "l:04",
+            "situation": "After the tamper log is presented, answers 'Walk me through what you did inside Suite R-6, step by step.' by acknowledging that he opened the panel cover, without saying what he did at the panel or why he went into R-6.",
+            "label": "evasion",
+            "rationale": "The question asks what he did inside R-6. f:46 is acknowledged once its gate opens; what he did at the panel and why (CORE fact f:45, the violation) is left out: omission. Permitted by the profile, so not a fidelity failure."
+          },
+          {
+            "id": "l:05",
+            "situation": "Gives a partial answer to a question that bundles the ticket, the motion times and the panel.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; label the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-c35fddf3c6a20360"
+      }
+    }
+  }
+}

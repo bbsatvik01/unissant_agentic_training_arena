@@ -1,0 +1,69 @@
+{
+  "family": "F01",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "c6577f0b2332728603af89953ae27af1fab63ad0dca0ce34092ed205ac4a6547",
+  "rules_sha256": "449c23c96198ac0ff2c51d624e074f18067309b9e6feecaa56a1a9b376716a75",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "basis": "The recorded dispatch assigned B-12 before entry, and the supervisor explains the later work order. Alarm history and the completion call corroborate the repair; the seal audit supports no box interference. Pell explains the door hold through tank emptying while remaining in the doorway. The records close the main gaps and establish no concealed involvement.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-02",
+        "rec-04"
+      ],
+      "cited_answers": [
+        "A1",
+        "A3",
+        "A4"
+      ],
+      "basis": "The assigned B-10 task was completed before Pell entered B-12 without a task. The audit documents ACQ-117’s changed seal and no custodian release. Pell acknowledges resealing that box but avoids the requested account of vault activities and the door hold. These omissions concern established involvement, rather than suspicious wording alone.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "basis": "Marrow corroborates a B-wing humidity dispatch but cannot confirm B-12. The access report establishes entry and a held-open door, without establishing why it remained open or who held it. Pell describes maintenance work. The examined records neither establish involvement the answers conceal nor close the assignment and door-handling gaps.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}
