@@ -222,6 +222,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   const set = (patch: Partial<SessionState>) => {
     if (disposed) return;
+    // A finished room is final: a failure of some older read arriving later is obsolete and never becomes its error.
+    if (state.connection === "finished" && patch.connection === undefined && patch.error !== undefined && patch.error !== null) return;
     state = { ...state, ...patch };
     for (const listener of [...listeners]) listener();
   };
@@ -378,6 +380,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** Read the debrief; a published one ends the stream (S6 5.1), a `scoring` answer keeps it open. */
   const finishIfPublished = async () => {
+    if (isDisposed()) return;
     try {
       setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
     } catch {
@@ -470,8 +473,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
         if (snapshot.status !== "running" && !over()) await finishIfPublished();
       } catch (error) {
         failed = true;
-        // An obsolete failure never replaces the state of a finished room.
-        if (state.connection !== "finished") set({ error });
+        set({ error });
       } finally {
         resyncing = false;
       }

@@ -2431,3 +2431,54 @@ describe("session controller: a re-read retry due after the end", () => {
     expect(reads).toBe(readsAtEnd);
   });
 });
+
+describe("session controller: Codex round 28 regressions", () => {
+  it("a re-read settling with a terminal snapshot after dispose starts no debrief read", async () => {
+    let answer: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>((r) => (answer = r));
+        },
+      },
+    });
+    await begin(c);
+    h.last().raw("{lost frame");
+    await flush();
+    c.dispose();
+    answer(snapshot({ status: "completed", last_seq: 4 }));
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+
+  it("a finding-409 reload failing after the room finished leaves no obsolete error", async () => {
+    let fail: (e: Error) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((_r, j) => (fail = j));
+          return Promise.resolve(snapshot({ status: "completed", last_seq: 4 }));
+        },
+        commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")),
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    const refused = c.submitFinding((fixture("finding-commit") as { finding: never }).finding).catch(() => undefined);
+    await flush();
+    await c.requestDebrief();
+    expect(c.getState().connection).toBe("finished");
+    fail(new TypeError("obsolete"));
+    await refused;
+    expect(c.getState().error).toBeNull();
+  });
+});
