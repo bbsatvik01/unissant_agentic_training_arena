@@ -9,6 +9,9 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Web cold gate round 2 (2026-10-09)
+- feat/web-foundation at 5f998d9: lint restrictions added (72 fixtures), semver exclusion removed, source-map-js age exclusion kept as a verified expiring exception (security patch, expires 2026-10-15). Cold Codex round 2: ISSUES-FOUND, softening no: voice machine follows the superseded voice protocol (exchange frame, draining on 4410, no resume after D-016). SSE/companion/lint pass. Hold the voice fix until spec v2.5 (voice simplification in progress with the spec agent), then send it to the web agent (aadec2824ba80c8be), cold-gate again, merge.
+
 ## Progress (2026-10-09 ~04:30 EDT)
 - Spec v2.4 committed (1392310): 38 round-2 findings dispositioned (36 real, 2 removed under D-016); SQL 51 smoke assertions green. Codex spec round 3 running (scratchpad codex/spec3).
 - Dev cases F01-F09 merged into main (8c03747): validators green on v2.4 schemas; Codex CX green per family under v2.3 rules (v2.4 tightened CX-2 to all account facts: re-run later).
