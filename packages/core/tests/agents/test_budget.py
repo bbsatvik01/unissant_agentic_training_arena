@@ -28,14 +28,17 @@ from arena_core.agents.untrusted import (
     TextTooLongError,
     check_question,
     clean,
+    clean_lines,
     rendered_bytes,
 )
 from arena_core.agents.views import TranscriptTurn, public_case
+from arena_core.contracts.citations import quote_ok
 from arena_core.contracts.coaching import CoachingCard, FinalFinding
 from arena_core.contracts.findings import InvestigatorFinding
 from arena_core.contracts.routes import TurnSubmit
 from arena_core.contracts.subject import SubjectTurn
 from arena_core.providers.structured import sent_schema
+from arena_core.scenario.content import content_text
 from arena_core.scenario.validators import validate_family
 
 from . import fixtures as fx
@@ -240,3 +243,23 @@ def test_the_word_limit_applies_to_the_rendered_answer() -> None:
     tag = {"disclosed": [], "withheld": [], "uncertainty_used": [], "behavior": "responsive", "gates_opened": []}
     _, errors = output_errors(SubjectTurn, json.dumps({"utterance": utterance.strip(), "tag": tag}))
     assert errors == ["utterance: more than 120 words (V1)"]
+
+
+def test_a_record_the_renderer_would_change_is_refused_at_authoring() -> None:
+    family = copy.deepcopy(fx.family("F01"))
+    for role in ("truthful", "deceptive"):
+        for doc in family["variants"][role]["public_packet"]["initial_documents"]:
+            if doc["doc_id"] == "doc-01":
+                doc["content"]["body"] = doc["content"]["body"].replace("Generated", "Gener­ated")
+        for art in family["variants"][role]["evaluator_packet"]["evidence_artifacts"]:
+            if art["artifact_id"] == "doc-01":
+                art["content"]["body"] = art["content"]["body"].replace("Generated", "Gener­ated")
+    # The path the check closes: the coach quotes the record as shown, and the quote rule reads the stored text.
+    stored = content_text(family["variants"]["deceptive"]["public_packet"]["initial_documents"][0]["content"])
+    shown = clean_lines(stored)
+    assert not quote_ok("Generated 16:00 by the end-of-day roster check", stored)
+    assert quote_ok("Generated 16:00 by the end-of-day roster check", shown)
+    issues = [(i.variant, i.message) for i in validate_family(family) if i.rule == "V1d.canonical"]
+    message = "doc-01: the rendered text differs from the stored text"
+    # Each variant holds doc-01 twice: its evaluator artifact and its public initial document.
+    assert issues == [("truthful", message)] * 2 + [("deceptive", message)] * 2

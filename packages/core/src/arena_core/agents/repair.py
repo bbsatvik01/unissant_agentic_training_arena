@@ -14,6 +14,7 @@ reservation, the echo of the previous reply cut to the byte budget, transient re
 from __future__ import annotations
 
 import typing
+import unicodedata
 from functools import cache
 
 from pydantic import BaseModel, ValidationError
@@ -101,13 +102,25 @@ def output_errors[T: BaseModel](
         value = model.model_validate_json(reply, context=context)
     except ValidationError as exc:
         return None, error_items(exc, field_names(model))
-    # Checked on the decoded values as rendered too: JSON escapes, invisible characters and NFKC variants hide it.
-    if salt is not None and (salt in reply or any(salt in clean(s) for s in _strings(value.model_dump()))):
+    # Checked on the decoded values in every readable form too: JSON escapes, invisible characters, NFKC variants
+    # and tags the renderer strips can each hide it from the raw reply.
+    if salt is not None and (salt in reply or _carries(value, salt)):
         return None, [SALT_LEAK]
     rendered = rendered_overruns(value)
     if rendered:
         return None, [_cut(i) for i in rendered[:MAX_ERRORS]]
     return value, []
+
+
+def _carries(value: BaseModel, salt: str) -> bool:
+    return any(salt in form for s in _strings(value.model_dump()) for form in _salt_forms(s))
+
+
+def _salt_forms(text: str) -> tuple[str, ...]:
+    """A decoded string as written, with invisible characters dropped and NFKC applied (tags and comments kept),
+    and as a prompt renders it: every form in which a salt could be read back."""
+    visible = "".join(c for c in text if unicodedata.category(c) not in ("Cc", "Cf", "Co"))
+    return (text, unicodedata.normalize("NFKC", visible), clean(text))
 
 
 def _strings(node: object) -> list[str]:

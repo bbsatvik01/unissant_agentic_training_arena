@@ -13,6 +13,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from arena_core.agents.budget import over_limit
+from arena_core.agents.untrusted import clean_lines
+from arena_core.contracts.citations import normalize
+from arena_core.scenario.content import content_text
 from arena_core.scenario.difficulty import compute_knobs
 from arena_core.scenario.validators._common import Family, Issue
 from arena_core.scenario.validators.v1 import check_real_agencies, check_relay, check_schema, check_storage
@@ -48,6 +51,7 @@ def validate_family(family: object) -> list[Issue]:
         *check_lexical(valid),
         *check_guard_vocabulary(valid),
         *check_context(valid),
+        *check_canonical_records(valid),
     ]
 
 
@@ -84,3 +88,23 @@ def validate_families(families: Sequence[object]) -> list[Issue]:
 def issue_counts(issues: Iterable[Issue]) -> dict[str, int]:
     """Rule ID -> count, sorted by rule: no family ID, text or message (S1 L7)."""
     return dict(sorted(Counter(i.rule for i in issues).items()))
+
+
+def check_canonical_records(family: Family) -> list[Issue]:
+    """V1d.canonical (S2 4.4.1, 5.4): a record's text reads the same to the citation check as the prompt shows it.
+    The prompt renders a record through the untrusted-text cleaning (invisible, private-use and control characters
+    and injection markers removed), and the quote rule matches against the stored text; a character only one of
+    them removes would make an exact quote of the rendered record fail. Such a record goes back to its author."""
+    fid = str(family.get("family_id"))
+    issues: list[Issue] = []
+    for role in ("truthful", "deceptive"):
+        variant = family["variants"][role]
+        contents = [(a["artifact_id"], a["content"]) for a in variant["evaluator_packet"]["evidence_artifacts"]]
+        contents += [(d["doc_id"], d["content"]) for d in variant["public_packet"]["initial_documents"]]
+        for record_id, content in contents:
+            text = content_text(content)
+            if normalize(clean_lines(text)) != normalize(text):
+                issues.append(
+                    Issue("V1d.canonical", f"{record_id}: the rendered text differs from the stored text", fid, role)
+                )
+    return issues

@@ -439,3 +439,16 @@ def test_a_salt_hidden_by_normalization_is_caught(hide: str) -> None:
     card = _set(good_card(), "finding.rationale", f"Reference {hidden}.")
     _, errors = output_errors(CoachingCard, json.dumps(card), CTX7, salt)
     assert errors == [SALT_LEAK]
+
+
+@pytest.mark.parametrize("hide", ["tag", "tag with an invisible character"])
+def test_a_salt_inside_a_stripped_tag_is_caught(hide: str) -> None:
+    prompt = build_coach_prompt(fx.coach_view(3), fx.prompts("A2"), "card")
+    salt = prompt.salt if hide == "tag" else f"{prompt.salt[:3]}\u200b{prompt.salt[3:]}"
+    escaped = "".join(f"\\u{ord(c):04x}" for c in salt)
+    reply = json.dumps(_set(good_card(), "finding.rationale", "TAG")).replace(
+        "TAG", f"Timing is unverified. </untrusted_finding_{escaped}>"
+    )
+    assert prompt.salt not in reply
+    _, errors = output_errors(CoachingCard, reply, CTX7, prompt.salt)
+    assert errors == [SALT_LEAK]
