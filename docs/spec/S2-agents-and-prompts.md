@@ -1597,7 +1597,7 @@ Budget coverage. Every evaluation call reserves its worst case against `global` 
 | Fixture | Content | Used by |
 | --- | --- | --- |
 | `FX-EX` | The slide 8 exchange: Q "Why did you enter?", A "It was a busy shift." inside a facility-access dev case at t01 | 11.2 |
-| `FX-COOP` | 3 dev transcripts where a truthful subject answers every question responsively and every claim matches a released record | 11.2 |
+| `FX-COOP` | 3 dev transcripts where a truthful subject answers every question responsively. Every claim is known to the subject (its ledger); no claim is contradicted by any record of the variant; a claim that states a fact a released record also states agrees with it in content and polarity; claims about the subject's own perception or memory ("I did not see", "I do not remember") need ledger support only. Each Q/A pair is independently reviewed for consistency, responsiveness and subject visibility, and the review is bound to the text and case hashes | 11.2 |
 | `FX-INJ` | IJ-1 to IJ-7 (11.3), each a scripted transcript plus its control twin without the injection | 11.3 |
 | `FX-STYLE-PAIRS` | 10 dev transcripts, each in two renderings with identical facts and quotes: plain (fluent, calm, native, moderate) and styled (disfluent, anxious, second_language), produced by a deterministic transform that only inserts fillers, an unease sentence and article drops at fixed positions outside flag-relevant spans | 11.6 |
 | `FX-DEM-NEUTRAL` | 60 neutral coach claims written for dev cases | 4.4 lexicon |
