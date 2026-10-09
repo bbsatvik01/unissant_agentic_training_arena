@@ -1,0 +1,51 @@
+{
+  "plan_version": 1,
+  "created": "2026-10-08",
+  "decision": "D-014: development families authored offline by Claude agents, checked by deterministic validators and Codex CX-1..CX-4 (S1 section 9).",
+  "split": "dev",
+  "agency": "Brannock Administrative Services Agency (fictional)",
+  "dev_facilities": ["Halvern Street Annex", "Corliss Records Center", "Westbrook Data Hall"],
+  "existing": [
+    {"family_id": "F01", "violation_type": "sealed_material_access", "first_misleading": "late_paperwork", "level": 2, "use": "dev pilot, practice", "persona": "Jordan Pell"},
+    {"family_id": "F02", "violation_type": "unregistered_visitor_escort", "first_misleading": "sensor_false_positive", "level": 1, "use": "dev pilot, practice", "persona": "Mara Quell"},
+    {"family_id": "F03", "violation_type": "badge_sharing", "first_misleading": "records_data_error", "level": 3, "use": "dev pilot, practice", "persona": "Avery Lindqvist"}
+  ],
+  "seeds": [
+    {"family_id": "F04", "use": "dev pilot, practice", "violation_type": "tailgating_assist", "misleading_types": ["clock_skew", "door_held_alarm"], "level": 1,
+     "knob_targets": {"key_record_after_exchanges": "<= 2", "evidence_directness": 1, "misleading_count": ">= 1", "gate_level": "<= 2"},
+     "style": {"verbosity": "terse", "fluency": "disfluent", "affect": "calm", "register": "formal", "language": "native"},
+     "presentation": {"persona_id": "persona-04", "voice_id": "Puck"}, "persona_name": "Dana Okafor", "occupation": "Mailroom Clerk",
+     "facility": "Corliss Records Center", "incident_date": "2026-02-17", "interview_date": "2026-02-20"},
+    {"family_id": "F05", "use": "dev pilot, practice", "violation_type": "spare_credential_misuse", "misleading_types": ["access_lapse_admin", "unusual_access_pattern", "records_data_error"], "level": 3,
+     "knob_targets": {"key_record_after_exchanges": ">= 5", "evidence_directness": ">= 2", "misleading_count": ">= 2", "gate_level": 4},
+     "style": {"verbosity": "expansive", "fluency": "fluent", "affect": "calm", "register": "informal", "language": "native"},
+     "presentation": {"persona_id": "persona-05", "voice_id": "Fenrir"}, "persona_name": "Rafael Strand", "occupation": "Data Center Operator",
+     "facility": "Westbrook Data Hall", "incident_date": "2026-03-24", "interview_date": "2026-03-27"},
+    {"family_id": "F06", "use": "KPI-1 case set A (never used in practice)", "violation_type": "key_misuse", "misleading_types": ["ambiguous_dispatch", "late_paperwork"], "level": 2,
+     "knob_targets": {"key_record_after_exchanges": "3-4", "evidence_directness": "<= 2", "misleading_count": ">= 2", "gate_level": 3},
+     "style": {"verbosity": "terse", "fluency": "fluent", "affect": "anxious", "register": "formal", "language": "native"},
+     "presentation": {"persona_id": "persona-06", "voice_id": "Leda"}, "persona_name": "Priya Halloran", "occupation": "Building Engineer",
+     "facility": "Corliss Records Center", "incident_date": "2026-02-25", "interview_date": "2026-03-02"},
+    {"family_id": "F07", "use": "KPI-1 case set A (never used in practice)", "violation_type": "after_hours_property_removal", "misleading_types": ["camera_outage", "privacy_reason"], "level": 2,
+     "knob_targets": {"key_record_after_exchanges": "3-4", "evidence_directness": "<= 2", "misleading_count": ">= 2", "gate_level": 3},
+     "style": {"verbosity": "expansive", "fluency": "disfluent", "affect": "calm", "register": "informal", "language": "native"},
+     "presentation": {"persona_id": "persona-07", "voice_id": "Orus"}, "persona_name": "Glen Mattick", "occupation": "Supply Technician",
+     "facility": "Halvern Street Annex", "incident_date": "2026-04-07", "interview_date": "2026-04-10"},
+    {"family_id": "F08", "use": "KPI-1 case set B (never used in practice)", "violation_type": "unauthorized_area_entry", "misleading_types": ["sensor_false_positive", "ambiguous_dispatch"], "level": 2,
+     "knob_targets": {"key_record_after_exchanges": "3-4", "evidence_directness": "<= 2", "misleading_count": ">= 2", "gate_level": 3},
+     "style": {"verbosity": "terse", "fluency": "fluent", "affect": "calm", "register": "informal", "language": "second_language"},
+     "presentation": {"persona_id": "persona-08", "voice_id": "Zephyr"}, "persona_name": "Sami Varga", "occupation": "Security Systems Technician",
+     "facility": "Westbrook Data Hall", "incident_date": "2026-03-05", "interview_date": "2026-03-09"},
+    {"family_id": "F09", "use": "KPI-1 case set B (never used in practice)", "violation_type": "tailgating_assist", "misleading_types": ["records_data_error", "camera_outage"], "level": 2,
+     "knob_targets": {"key_record_after_exchanges": "3-4", "evidence_directness": "<= 2", "misleading_count": ">= 2", "gate_level": 3},
+     "style": {"verbosity": "expansive", "fluency": "fluent", "affect": "anxious", "register": "formal", "language": "native"},
+     "presentation": {"persona_id": "persona-09", "voice_id": "Kore"}, "persona_name": "Elise Dunmore", "occupation": "Procurement Assistant",
+     "facility": "Halvern Street Annex", "incident_date": "2026-04-15", "interview_date": "2026-04-20"}
+  ],
+  "rules": [
+    "Signature (violation_type, first misleading type) is unique within the dev split.",
+    "Persona names unique across all families; hidden facilities will be drawn from a list disjoint from dev_facilities.",
+    "Levels across the 9 dev families: L1 x2 (F02, F04), L2 x5 (F01, F06-F09), L3 x2 (F03, F05). KPI-1 sets use L2 only so set A and set B are matched in difficulty.",
+    "Style is shared by both variants of a family and never cues the role."
+  ]
+}
