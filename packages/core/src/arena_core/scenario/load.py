@@ -45,7 +45,7 @@ from arena_core.scenario.validators import Issue, issue_counts, validate_familie
 from arena_core.scenario.validators.v1 import check_schema
 
 INGEST_FUNCTION = "sealed.ingest_case_family"
-VALIDATOR_VERSION = "arena_core.scenario S1 v2.7"
+VALIDATOR_VERSION = "arena_core.scenario S1 v2.8"
 # S1 10.5: the deterministic checks an attestation names; S4 refuses an attestation that lacks one.
 CHECKS_PASSED: tuple[str, ...] = ("V1", "V1b", "V1c", "V1d", "V2", "V3a", "V4a", "V4b", "V4c", "V5")
 MAX_CODEX_ROUNDS = 5  # S1 8.5 step 4

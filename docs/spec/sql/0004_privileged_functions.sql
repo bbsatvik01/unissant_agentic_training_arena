@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0004_privileged_functions.sql  (DRAFT v2.8, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event,
 -- advance_replay), the per-trial event store writer, the context readers (arena.trial_context,

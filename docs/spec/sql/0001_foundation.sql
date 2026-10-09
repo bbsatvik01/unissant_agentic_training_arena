@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0001_foundation.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0001_foundation.sql  (DRAFT v2.8, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Schemas, runtime roles, revoke-all, shared helpers, append-only trigger.
 -- Requirements: SCN-5, SCN-9, SCN-12, BKO-9, EVL-10, KPI-5 (isolation by construction).
 --
@@ -123,3 +123,17 @@ revoke all on function arena.tg_forbid_mutation(), ledger.hash_text(text), ledge
 -- actor_id() is called inside the projection views read by arena_public.
 grant usage on schema arena to arena_public;
 grant execute on function arena.actor_id() to arena_public;
+
+-- -----------------------------------------------------------------------------
+-- public schema hardening (WP-03 migration 0007, folded in v2.8; CM-21). The arena keeps `public` empty;
+-- Supabase's documented default-privilege revokes, widened to ALL, so an object created there by accident is
+-- reachable by no API role until granted. PUBLIC's EXECUTE on new functions is already revoked above (SG3-20).
+-- -----------------------------------------------------------------------------
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated, service_role;
+
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated, service_role;
+
+alter default privileges for role postgres in schema public
+  revoke execute on functions from anon, authenticated, service_role;

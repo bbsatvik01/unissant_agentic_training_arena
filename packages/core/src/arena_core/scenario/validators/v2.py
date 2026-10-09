@@ -13,18 +13,13 @@ Rows of S1 9.2 and their rule IDs (each prefixed `V2.`):
   one range or unsure entry and no entry names another fact, S1 7.3), `forbidden_assertion`,
   `style` (M6), `entry_ids_unique`.
 - Evaluator: `correct_finding`, `contradiction_type` (both roles, S1 4.3), `contradiction_refs`, `decisive_refs`,
-  `corroboration_refs`, `rubric_refs`.
+  `corroboration_refs`, `rubric_refs`, `material_decisive` (F4, v2.8: every fact a decisive-support item names
+  is `material: true` in the event graph).
 - Knobs: `knobs_matched` (M5), `knobs_stored`, `knobs_band`.
 
 Rules the schema already guarantees after V1 are not repeated: predicate values at most 10
 (`completedExchanges`), a HOLD fact carrying a `gate_id` and no other class carrying one (`ledgerFact`),
 truthful ledgers holding only FREE and PRIVATE facts, and record IDs `doc-0[1-4]` / `rec-0[1-6]`.
-
-Not checked, for the spec owner: fact rule F4 (S1 5, `material: true` when a resolution criterion depends on
-the fact) is an authoring rule that S1 9.2 does not list among V2's checks, and the committed seeds F01 and
-F02, whose hashes S1 11 publishes, break it (truthful `decisive_support` r:02 names f:08 and f:05, which are
-`material: false`). Adding the check here would reject published seeds; the seeds or the rule have to change
-in the spec first.
 """
 
 from __future__ import annotations
@@ -384,6 +379,8 @@ def _check_ledger(family: Family, report: Reporter) -> None:
 
 
 def _check_evaluator(family: Family, report: Reporter) -> None:
+    # F4 (S1 5, v2.8): a fact a resolution rests on is material in the graph, so in every variant carrying it.
+    material = {str(f["id"]): bool(f["material"]) for f in family["event_graph"]["facts"]}
     for variant in VARIANTS:
         _public, private, evaluator = packets(family, variant)
         in_variant = set(variant_fact_ids(family, variant))
@@ -408,6 +405,10 @@ def _check_evaluator(family: Family, report: Reporter) -> None:
         for item in resolution["decisive_support"]:
             if not (set(item["artifact_ids"]) <= artifact_ids and set(item["fact_ids"]) <= in_variant):
                 report.add("V2.decisive_refs", f"decisive item {item['id']} has dangling references", variant)
+            not_material = sorted(f for f in item["fact_ids"] if f in material and not material[f])
+            if not_material:
+                message = f"decisive item {item['id']} names facts {not_material} that are not material (F4)"
+                report.add("V2.material_decisive", message, variant)
         if not set(resolution["corroboration_to_name"]) <= artifact_ids:
             report.add("V2.corroboration_refs", "corroboration_to_name names unknown records", variant)
         rubric = evaluator["rubric"]

@@ -1,11 +1,11 @@
 # Development families (F01-F09)
 
-Status of the development split as of 2026-10-09. All nine files are case-family schema v1.2 (`revision` 1), validated against the S1 v2.5 schemas. Validators are V1-V5 (`validate.py`, run over all nine files together, with the cross-family V5 checks) and V4c (`guardscan.py`). CX is the Codex review in `reports/<ID>.cx.json` under the S1 v2.5 rules (CX-2 passes only on a complete decisive-support item with its whole account: every account fact covered by a cited answer; CX-1 also checks that each forbidden assertion contradicts its named fact as stated, that FREE texts do not imply a protected fact even in combination, and that each decisive item establishes the finding from its own records plus the free evidence; the CX-3 sheet holds free evidence only). All nine reports share one rules hash; each is bound to the family hash in the last column (canonical-JSON SHA-256 of `<ID>.json`, as recorded in the report's `family_sha256`).
+Status of the development split as of 2026-10-09. All nine files are case-family schema v1.2 (`revision` 1), validated against the S1 v2.5 schemas. Validators are V1-V5 (`validate.py`, run over all nine files together, with the cross-family V5 checks) and V4c (`guardscan.py`). CX is the Codex review in `reports/<ID>.cx.json` under the S1 v2.5 rules (CX-2 passes only on a complete decisive-support item with its whole account: every account fact covered by a cited answer; CX-1 also checks that each forbidden assertion contradicts its named fact as stated, that FREE texts do not imply a protected fact even in combination, and that each decisive item establishes the finding from its own records plus the free evidence; the CX-3 sheet holds free evidence only). F03-F09's reports share one rules hash (the S1 v2.5 excerpt); F01's and F02's were re-run on 2026-10-09 after the v2.8 F4 fix (f:08 and f:05 made `material: true`; S1 v2.8 excerpt, a different rules hash) and pass every CX check. Each report is bound to the family hash in the last column (canonical-JSON SHA-256 of `<ID>.json`, as recorded in the report's `family_sha256`).
 
 | Family | Use | Level | Violation type | Style (verbosity, fluency, affect, register, language) | Validators | CX | sha256 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F01 | Dev pilot, practice | 2 | sealed_material_access | not set (hand-authored seed) | pass | pass | `a87851bc803ab4e38aab88d1ae980033b3cc739013d73cefa8e2f77eb65e9467` |
-| F02 | Dev pilot, practice | 1 | unregistered_visitor_escort | not set (hand-authored seed) | pass | pass | `5c55433715772b8f64754352d9ea59b68b770e6918ab03897320cbb4674ecb71` |
+| F01 | Dev pilot, practice | 2 | sealed_material_access | not set (hand-authored seed) | pass | pass | `162e3f264a1317bcc9a93fb2925c541011bceac217d2e01de46ca23dbb3ddcdb` |
+| F02 | Dev pilot, practice | 1 | unregistered_visitor_escort | not set (hand-authored seed) | pass | pass | `f9e8b052924473e4c50bf4292c5338a912b74c9cec07b74cabab4f4e20f52346` |
 | F03 | Dev pilot, practice | 3 | badge_sharing | not set (hand-authored seed) | pass | pass | `1c0caea56b4c580cf58ab0ffc6c66d6f4e09c2ab89e4160ed8e3fee973095d0d` |
 | F04 | Dev pilot, practice | 1 | tailgating_assist | terse, disfluent, calm, formal, native | pass | pass | `7536bc2c75cf3e43d438091498d0460d79218fa6d3118de140897a77b7d8cdf5` |
 | F05 | Dev pilot, practice | 3 | spare_credential_misuse | expansive, fluent, calm, informal, native | pass | pass | `a7490ba29687054c9700f40e743f3df8f6394d152e95206a280ef1abfa480af9` |
@@ -14,7 +14,7 @@ Status of the development split as of 2026-10-09. All nine files are case-family
 | F08 | KPI-1 set B (never in practice) | 2 | unauthorized_area_entry | terse, fluent, calm, informal, second_language | pass | pass | `ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2` |
 | F09 | KPI-1 set B (never in practice) | 2 | tailgating_assist | expansive, fluent, anxious, formal, native | pass | pass | `7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91` |
 
-Split seal over the nine families (`validate.py`): `734cdea34ba0ab3fbfbc2ff0ea0e8766611256d08efc544b74c7d05ec8c23838`. Guard hits: 0. Largest V5 overlap: jaccard3(F04, F09) = 0.028.
+Split seal over the nine families (`validate.py`): `2f1e0930ab9327c0c439b4d85db2e05179aeb112426dd4ffb6be7fe34eddf74b`. Guard hits: 0. Largest V5 overlap: jaccard3(F04, F09) = 0.028.
 
 F01-F03 are byte-identical to `docs/spec/seed-families/` on main (S1 section 11 hashes).
 

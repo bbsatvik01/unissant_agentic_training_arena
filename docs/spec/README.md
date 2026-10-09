@@ -1,6 +1,6 @@
 # Spec package
 
-Build specification for the arena, in eight parts. **Version 2.7, 2026-10-09: Codex round 5 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
+Build specification for the arena, in eight parts. **Version 2.8, 2026-10-09: WP-03 draft fixes folded in.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
 
 | Part | Scope |
 | --- | --- |
@@ -84,3 +84,9 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 | ID | What changed |
 | --- | --- |
 | Codex round 5 | Visible evidence is one population everywhere (initial documents, released records, prior turns): R1 sees the initial documents and `record_conflict_ids` covers doc-NN and rec-NN (up to 10), with initial documents available at exchange 0 for check 3e; the reveal check takes its population from the chained `trial_finalized` events; dispositions in `review-codex-r5.md`. |
+
+## Changes in v2.8
+
+| ID | What changed |
+| --- | --- |
+| WP-03 | The drafts in `sql/` now equal `supabase/migrations/` 0001-0008 in substance. Migration 0007 (`public` schema default-privilege revokes) is folded into 0001; migration 0008's seven fixes are folded into 0005 and 0006: per-attempt rounding in the reservation, an advisory lock on the reservation key, purpose in a reservation's identity, a strict and informative repeated usage report, a voice-exchange retry that returns its original release, the voice quota rechecked at opening, and a 13th exchange refused with AR004. TESTS.md records CM-16..CM-21, BU-38..BU-41 and VB-21..VB-24. S1 F4 is enforced by V2: every fact a decisive-support item names is material. |

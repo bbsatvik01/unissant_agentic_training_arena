@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0006_ops_budget_traces.sql  (DRAFT v2.8, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
 -- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
@@ -353,10 +353,16 @@ declare
   v_id     uuid;
 begin
   perform ledger.require_read_committed();
+  -- WP-03 fix 2: one reservation key at a time. Two calls with the same key both missed the lookup under READ COMMITTED
+  -- and the second then hit the unique key (23505) or a cap refusal instead of returning the first reservation.
+  perform pg_advisory_xact_lock(hashtextextended('ops.budget_reservations:' || p_idempotency_key, 0));
   select * into v_ex from ops.budget_reservations where idempotency_key = p_idempotency_key;
   if found then
-    if (v_ex.kind, v_ex.bucket, v_ex.model, v_ex.call_kind, v_ex.trial_id, v_ex.actor_user_id, v_ex.input_bytes, v_ex.caller_role)
-       is distinct from ('model_call', p_bucket, p_model, p_call_kind, p_trial, p_actor, p_input_bytes, ops.invoker_role()) then
+    -- WP-03 fix 3: the purpose is part of the reservation's identity.
+    if (v_ex.kind, v_ex.bucket, v_ex.model, v_ex.call_kind, v_ex.purpose, v_ex.trial_id, v_ex.actor_user_id, v_ex.input_bytes,
+        v_ex.caller_role)
+       is distinct from ('model_call', p_bucket, p_model, p_call_kind, p_purpose, p_trial, p_actor, p_input_bytes,
+                         ops.invoker_role()) then
       raise exception using errcode = 'AR003', message = 'reservation key reused with different inputs';
     end if;
     return jsonb_build_object('outcome', 'exists', 'id', v_ex.id, 'state', v_ex.state, 'reserved_usd', v_ex.reserved_usd,
@@ -377,8 +383,10 @@ begin
     raise exception using errcode = 'AR007', message = format('input of %s bytes is outside the %s call''s limit of %s',
                                                                p_input_bytes, p_call_kind, v_lim.input_limit);
   end if;
-  v_worst := (ceil((select attempts_per_call from ops.config where id)
-                   * (p_input_bytes * v_price.text_in + v_lim.output_limit * v_price.text_out)) / 1000000)::numeric(14, 6);
+  -- WP-03 fix 1: attempts x the per-attempt worst case rounded up to the micro-dollar, the way ops.record_usage rounds
+  -- each receipt, so the receipts of every permitted attempt never exceed the reservation.
+  v_worst := ((select attempts_per_call from ops.config where id)
+              * ceil(p_input_bytes * v_price.text_in + v_lim.output_limit * v_price.text_out) / 1000000)::numeric(14, 6);
   v_adm := ops._admit(p_bucket, v_worst, p_actor);
   if v_adm ->> 'outcome' <> 'admitted' then
     return v_adm;
@@ -457,7 +465,20 @@ begin
   end if;
   select * into v_ex from ops.model_calls where reservation_id = p_reservation and seq = p_seq;
   if found then
-    return jsonb_build_object('outcome', 'exists', 'cost_usd', v_ex.cost_usd);
+    -- WP-03 fix 4: a repeated report must be the same report (else AR003), and it returns the full metering answer as it
+    -- stands now (spend, reservation, shutoff), so a caller whose first response was lost still learns to stop.
+    if (v_ex.model, v_ex.input_tokens, v_ex.output_tokens, v_ex.thinking_tokens, v_ex.audio_input_tokens,
+        v_ex.audio_output_tokens)
+       is distinct from (p_model, coalesce(p_input_tokens, 0), coalesce(p_output_tokens, 0), coalesce(p_thinking_tokens, 0),
+                         coalesce(p_audio_input_tokens, 0), coalesce(p_audio_output_tokens, 0)) then
+      raise exception using errcode = 'AR003', message = 'usage report number reused with different usage';
+    end if;
+    select * into v_cfg from ops.config where id;
+    v_spend := ops.receipts_usd(p_reservation);
+    return jsonb_build_object('outcome', 'exists', 'cost_usd', v_ex.cost_usd, 'spend_usd', v_spend,
+                              'reserved_usd', v.reserved_usd,
+                              'shutoff', v.overrun or (v.kind <> 'model_call'
+                                                       and (v_spend >= v.reserved_usd * 2 / 3 or v_cfg.kill_switch)));
   end if;
   if v.state <> 'reserved' then
     raise exception using errcode = 'AR001', message = 'reservation already settled: receipts are sealed';
@@ -589,10 +610,14 @@ declare
   r     ops.budget_reservations;
 begin
   perform ledger.require_read_committed();
+  -- WP-03 fix 2: one reservation key at a time. Two calls with the same key both missed the lookup under READ COMMITTED
+  -- and the second then hit the unique key (23505) or a cap refusal instead of returning the first reservation.
+  perform pg_advisory_xact_lock(hashtextextended('ops.budget_reservations:' || p_idempotency_key, 0));
   select * into v_ex from ops.budget_reservations where idempotency_key = p_idempotency_key;
   if found then
-    if (v_ex.kind, v_ex.bucket, v_ex.trial_id, v_ex.actor_user_id, v_ex.caller_role)
-       is distinct from (p_kind, p_bucket, p_trial, p_actor, ops.invoker_role()) then
+    -- WP-03 fix 3: the purpose is part of the reservation's identity.
+    if (v_ex.kind, v_ex.bucket, v_ex.purpose, v_ex.trial_id, v_ex.actor_user_id, v_ex.caller_role)
+       is distinct from (p_kind, p_bucket, p_purpose, p_trial, p_actor, ops.invoker_role()) then
       raise exception using errcode = 'AR003', message = 'reservation key reused with different inputs';
     end if;
     return jsonb_build_object('outcome', 'exists', 'id', v_ex.id, 'state', v_ex.state, 'reserved_usd', v_ex.reserved_usd);
@@ -645,6 +670,15 @@ begin
      or v_r.state <> 'reserved' or v_r.trial_id is distinct from v_t.trial_id
      or v_r.caller_role is distinct from ops.invoker_role() then
     raise exception using errcode = 'AR040', message = 'voice session refused';
+  end if;
+  -- WP-03 fix 6: the daily voice quota counts opened sessions, but issue_access_ticket checked it only when a ticket was
+  -- issued, so tickets issued before the quota was reached could open sessions beyond it. One actor's openings
+  -- serialize here and the quota is checked again, against every session already opened today.
+  perform pg_advisory_xact_lock(hashtextextended('training.voice_quota:' || v_t.user_id::text, 0));
+  if (select voice_sessions_per_user_day from ops.config where id) <=
+     (select count(*) from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
+       where s.user_id = v_t.user_id and vs.opened_at >= date_trunc('day', now())) then
+    raise exception using errcode = 'AR040', message = 'daily voice session quota reached';
   end if;
   insert into training.voice_sessions (session_id, ticket_id, reservation_id) values (v_s, p_ticket_id, p_reservation)
     returning id into v_id;

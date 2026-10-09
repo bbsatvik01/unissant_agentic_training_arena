@@ -1,6 +1,6 @@
 # S5: Backend architecture and lift dossier
 
-Spec part S5 of the Investigative AI Training Arena build specification. **Version 2.7, 2026-10-09: Codex round 5 fixes.** Build window 2026-10-08 to 2026-11-02.
+Spec part S5 of the Investigative AI Training Arena build specification. **Version 2.8, 2026-10-09: WP-03 draft fixes folded in.** Build window 2026-10-08 to 2026-11-02.
 
 Governing inputs: `docs/spec/README.md` (baseline facts; they win over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3, 4, 8, 9, 10, 11) with D-011 local-first, `docs/research/synthesis/03-ui-direction.md` v2.1 (section 2a), `docs/challenge/REQUIREMENTS.md` (IDs cited inline), `docs/handoff/DECISIONS.md` (D-001 to D-014; D-007 superseded by D-009; D-013 one global spend ceiling, cost tuning deferred; D-014 case families authored offline, no runtime generator), `docs/spec/S8-build-plan.md` sections 2 and 9 (OD-0 to OD-14, C-01 to C-48), `docs/spec/review-v2-crosscheck.md` (X-01 to X-17), `docs/handoff/PATTERNS.md`, `docs/research/synthesis/cost_model.py` (run 2026-10-08 with `HOSTING = "local"`; every dollar figure here names the function or formula that produced it, section 4). Data definitions (tables, privileged SQL functions, grants, pgTAP) belong to S4 (`docs/spec/sql/`); this part defines the services that call them and uses S4's function names throughout (S4 section 12).
 

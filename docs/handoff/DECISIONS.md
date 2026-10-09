@@ -110,3 +110,9 @@
 - **Decision:** owner directive ("we are gonna demo locally and only we will run the demo, so do not over complicate things; we will work on scale later"). Build for a local demo operated by the team: one machine, the three role processes, local Phoenix, Supabase. Hosted variant, multi-user hardening beyond what isolation needs, and scale work wait. When a spec finding can be resolved by removing or narrowing a mechanism the local demo does not need, prefer that over adding one. Isolation by credential, the spend guard, scoring correctness and the tournament protocol stay (they are what the sponsor judges).
 - **Process:** red findings go back to the same agent that wrote the code (normal agents, addressable with SendMessage), under red-to-root-cause; workflows are not used for fix loops.
 - **Reversibility:** cheap.
+
+## 2026-10-09 · D-017 Per-user daily spend cap = $5.00
+- **Decision:** owner directive ("keep it 5"). `ops.config.per_user_daily_usd` is seeded at $5.00 (was $3.00), so one voice session ($3.39 whole-session hold, `cost_model.VOICE_RESERVATION`) fits per user per day with room for text sessions. The global $74 ceiling (D-013) is unchanged.
+- **Reason:** at $3.00 every voice session was refused (hold above cap).
+- **Files:** a new migration setting the seed, the spec SQL draft 0006 and S4 (config table), TESTS.md.
+- **Reversibility:** cheap (owner config).
