@@ -300,20 +300,34 @@ def test_request_bytes_measure_exactly_the_body_the_sdk_sends(text: str) -> None
 # ---------------------------------------------------------------- partial usage metadata never under-counts
 
 
+Counts = tuple[int | None, int | None, int | None, int | None, int | None]  # prompt, candidates, thoughts, total, tool
+
+
+def usage_metadata(counts: Counts) -> object:
+    prompt, candidates, thoughts, total, tool = counts
+    return gtypes.GenerateContentResponseUsageMetadata(
+        prompt_token_count=prompt,
+        candidates_token_count=candidates,
+        thoughts_token_count=thoughts,
+        total_token_count=total,
+        tool_use_prompt_token_count=tool,
+    )
+
+
 @pytest.mark.parametrize(
-    ("meta", "want"),
+    ("counts", "want"),
     [
-        ({"prompt_token_count": 10, "candidates_token_count": 5, "thoughts_token_count": 2}, Usage(10, 7, 2, 0)),
-        ({"prompt_token_count": 10, "total_token_count": 100}, Usage(10, 90, 0, 0)),
-        ({"prompt_token_count": 10, "candidates_token_count": 5, "total_token_count": 40}, Usage(10, 30, 0, 0)),
-        ({"prompt_token_count": 10, "tool_use_prompt_token_count": 4, "total_token_count": 20}, Usage(14, 6, 0, 0)),
-        ({"prompt_token_count": 10}, None),
-        ({"candidates_token_count": 5, "total_token_count": 9}, None),
+        ((10, 5, 2, None, None), Usage(10, 7, 2, 0)),
+        ((10, None, None, 100, None), Usage(10, 90, 0, 0)),
+        ((10, 5, None, 40, None), Usage(10, 30, 0, 0)),
+        ((10, None, None, 20, 4), Usage(14, 6, 0, 0)),
+        ((10, None, None, None, None), None),
+        ((None, 5, None, 9, None), None),
     ],
     ids=["complete", "total-only", "total-above-parts", "tool-prompt", "no-output-count", "no-prompt-count"],
 )
-def test_billed_usage_is_unknown_or_an_upper_bound(meta: dict[str, int], want: Usage | None) -> None:
-    assert vertex.billed_usage(gtypes.GenerateContentResponseUsageMetadata(**meta)) == want
+def test_billed_usage_is_unknown_or_an_upper_bound(counts: Counts, want: Usage | None) -> None:
+    assert vertex.billed_usage(cast("Any", usage_metadata(counts))) == want
     assert vertex.billed_usage(None) is None
 
 
