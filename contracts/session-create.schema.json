@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/session-create.schema.json",
+  "title": "SessionCreate",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^C-[0-9A-HJKMNP-TV-Z]{8}$",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "practice",
+        "assessment"
+      ],
+      "type": "string"
+    },
+    "voice": {
+      "type": "boolean"
+    },
+    "idem_key": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "mode",
+    "voice",
+    "idem_key"
+  ],
+  "type": "object"
+}

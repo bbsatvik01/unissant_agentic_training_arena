@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/review-list.schema.json",
+  "title": "ReviewList",
+  "$defs": {
+    "ReviewListEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "task": {
+          "enum": [
+            "T-RUB",
+            "T-LAB",
+            "T-FLAG"
+          ],
+          "type": "string"
+        },
+        "submitted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "item_id",
+        "task",
+        "submitted"
+      ],
+      "title": "ReviewListEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ReviewListEntry"
+      },
+      "maxItems": 500,
+      "type": "array"
+    }
+  },
+  "required": [
+    "items"
+  ],
+  "type": "object"
+}

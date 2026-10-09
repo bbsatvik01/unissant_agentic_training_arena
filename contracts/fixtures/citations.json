@@ -1,0 +1,397 @@
+{
+  "description": "S2 4.4.1 shared citation fixtures (D6). quote_cases run in Python (arena_core.contracts.citations.quote_ok) and in the browser port (web/src/lib/contracts/quote.ts); each case has either 'text' or 'content' (an S1 Content object, matched through content_text). citation_cases run flag_citations_ok in Python on the trial's own turns and records.",
+  "quote_cases": [
+    {
+      "id": "CQ-1",
+      "quote": "It was a busy shift.",
+      "text": "It was a busy shift.",
+      "expected": true
+    },
+    {
+      "id": "CQ-2",
+      "quote": "busy shift",
+      "text": "It was a busy shift.",
+      "expected": false
+    },
+    {
+      "id": "CQ-3",
+      "quote": "a busy shift",
+      "text": "It was a busy shift.",
+      "expected": true
+    },
+    {
+      "id": "CQ-4",
+      "quote": "left at 9-10 - maybe \"around\"",
+      "text": "I left at 9\u201310 \u2014 maybe \u201caround\u201d then.",
+      "expected": true
+    },
+    {
+      "id": "CQ-5",
+      "quote": "No.",
+      "text": "No.",
+      "expected": true
+    },
+    {
+      "id": "CQ-6",
+      "quote": "never.",
+      "text": "No, never.",
+      "expected": false
+    },
+    {
+      "id": "CQ-7",
+      "quote": "busy shift. The freezer alarm",
+      "text": "It was a busy shift.",
+      "expected": false
+    },
+    {
+      "id": "FE-1",
+      "quote": "the alarm - it was",
+      "text": "I reset the alarm \u2014 it was loud.",
+      "expected": true
+    },
+    {
+      "id": "FE-2",
+      "quote": "freezer alarm",
+      "text": "The freezer alarm was going off, so I went in to reset it.",
+      "expected": false
+    },
+    {
+      "id": "FE-3",
+      "quote": "Not me.",
+      "text": "Not me.",
+      "expected": true
+    },
+    {
+      "id": "FE-4",
+      "quote": "Lab B | no alarm events 21:00-22:30",
+      "content": {
+        "body": "Lab B panel alarm log for the evening of the entry.",
+        "table": {
+          "columns": [
+            "Time",
+            "Panel",
+            "Event"
+          ],
+          "rows": [
+            [
+              "21:00-22:30",
+              "Lab B",
+              "no alarm events 21:00-22:30"
+            ],
+            [
+              "22:31",
+              "Lab C",
+              "freezer alarm reset"
+            ]
+          ]
+        }
+      },
+      "expected": true
+    },
+    {
+      "id": "N-1",
+      "quote": "I   heard it\nbeeping",
+      "text": "I heard it beeping from the corridor.",
+      "expected": true
+    },
+    {
+      "id": "N-2",
+      "quote": "i heard it",
+      "text": "I heard it beeping from the corridor.",
+      "expected": false
+    },
+    {
+      "id": "N-3",
+      "quote": "it\u2019s on the shared",
+      "text": "Maybe it was the Lab C panel; it's on the shared wall.",
+      "expected": true
+    },
+    {
+      "id": "N-4",
+      "quote": "\uff2c\uff41\uff42 C panel",
+      "text": "Maybe it was the Lab C panel.",
+      "expected": true
+    },
+    {
+      "id": "N-5",
+      "quote": "on the\u00a0shared wall",
+      "text": "it's on the shared wall.",
+      "expected": true
+    },
+    {
+      "id": "N-6",
+      "quote": "on the\u001fshared wall",
+      "text": "it's on the shared wall.",
+      "expected": true
+    },
+    {
+      "id": "N-7",
+      "quote": "on the\ufeffshared wall",
+      "text": "it's on the shared wall.",
+      "expected": false
+    },
+    {
+      "id": "N-8",
+      "quote": "   ",
+      "text": "   ",
+      "expected": false
+    },
+    {
+      "id": "N-9",
+      "quote": "",
+      "text": "",
+      "expected": false
+    },
+    {
+      "id": "N-10",
+      "quote": "  No.  ",
+      "text": "No.\n",
+      "expected": true
+    },
+    {
+      "id": "N-11",
+      "quote": "minus \u2212 sign here",
+      "text": "a minus - sign here",
+      "expected": true
+    },
+    {
+      "id": "N-12",
+      "quote": "two words",
+      "text": "two  words",
+      "expected": true
+    },
+    {
+      "id": "N-13",
+      "quote": "the body text",
+      "content": {
+        "body": "Only the body text is here."
+      },
+      "expected": true
+    },
+    {
+      "id": "N-14",
+      "quote": "\ufeffNo.",
+      "text": "No.",
+      "expected": false
+    },
+    {
+      "id": "N-15",
+      "quote": "\u001fNo.\u0085",
+      "text": "No.",
+      "expected": true
+    }
+  ],
+  "citation_cases": [
+    {
+      "id": "CQ-7",
+      "card_turn": 3,
+      "flag": {
+        "kind": "possible_evasion",
+        "turn_id": "t02",
+        "quote": "busy shift. The freezer alarm",
+        "missing_fact": "the task that required entry",
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": false
+    },
+    {
+      "id": "CQ-8",
+      "card_turn": 3,
+      "flag": {
+        "kind": "possible_evasion",
+        "turn_id": "t05",
+        "quote": "the Lab C panel",
+        "missing_fact": "which panel was reset",
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": false
+    },
+    {
+      "id": "CQ-9",
+      "card_turn": 6,
+      "flag": {
+        "kind": "possible_evasion",
+        "turn_id": "t06",
+        "quote": "I do not recall",
+        "missing_fact": "the time of exit",
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": false
+    },
+    {
+      "id": "CQ-10a",
+      "card_turn": 3,
+      "flag": {
+        "kind": "evidence_conflict",
+        "turn_id": "t03",
+        "quote": "heard it beeping from",
+        "missing_fact": null,
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": "rec-02",
+        "conflict_record_quote": "no alarm events 21:00-22:30"
+      },
+      "expected": false
+    },
+    {
+      "id": "CQ-10b",
+      "card_turn": 4,
+      "flag": {
+        "kind": "evidence_conflict",
+        "turn_id": "t03",
+        "quote": "heard it beeping from",
+        "missing_fact": null,
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": "rec-02",
+        "conflict_record_quote": "no alarm events 21:00-22:30"
+      },
+      "expected": true
+    },
+    {
+      "id": "CQ-11",
+      "card_turn": 1,
+      "flag": {
+        "kind": "evidence_conflict",
+        "turn_id": "t01",
+        "quote": "It was a busy shift.",
+        "missing_fact": null,
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": "doc-01",
+        "conflict_record_quote": "without a work order"
+      },
+      "expected": true
+    },
+    {
+      "id": "CQ-12a",
+      "card_turn": 2,
+      "flag": {
+        "kind": "contradiction",
+        "turn_id": "t02",
+        "quote": "alarm was going off",
+        "missing_fact": null,
+        "conflict_turn_id": "t02",
+        "conflict_quote": "The freezer alarm was",
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": false
+    },
+    {
+      "id": "CQ-12b",
+      "card_turn": 2,
+      "flag": {
+        "kind": "contradiction",
+        "turn_id": "t02",
+        "quote": "The freezer alarm was",
+        "missing_fact": null,
+        "conflict_turn_id": "t02",
+        "conflict_quote": "went in to reset",
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": true
+    },
+    {
+      "id": "C-13",
+      "card_turn": 5,
+      "flag": {
+        "kind": "contradiction",
+        "turn_id": "t03",
+        "quote": "heard it beeping",
+        "missing_fact": null,
+        "conflict_turn_id": "t05",
+        "conflict_quote": "the Lab C panel",
+        "conflict_record_id": null,
+        "conflict_record_quote": null
+      },
+      "expected": true
+    },
+    {
+      "id": "C-14",
+      "card_turn": 5,
+      "flag": {
+        "kind": "evidence_conflict",
+        "turn_id": "t03",
+        "quote": "heard it beeping",
+        "missing_fact": null,
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": "rec-03",
+        "conflict_record_quote": "no alarm events"
+      },
+      "expected": false
+    }
+  ],
+  "trial": {
+    "turns": {
+      "1": {
+        "answer": "It was a busy shift.",
+        "partial": false
+      },
+      "2": {
+        "answer": "The freezer alarm was going off, so I went in to reset it.",
+        "partial": false
+      },
+      "3": {
+        "answer": "I heard it beeping from the corridor.",
+        "partial": false
+      },
+      "4": {
+        "answer": "No. I went in because of the alarm.",
+        "partial": false
+      },
+      "5": {
+        "answer": "Maybe it was the Lab C panel; it's on the shared wall.",
+        "partial": false
+      },
+      "6": {
+        "answer": "I do not recall the exact time I left.",
+        "partial": true
+      }
+    },
+    "records": {
+      "doc-01": {
+        "content": {
+          "body": "Access exception report: Lab B door opened at 21:47 by badge 4471 without a work order."
+        },
+        "released_after": null
+      },
+      "rec-02": {
+        "content": {
+          "body": "Lab B panel alarm log for the evening of the entry.",
+          "table": {
+            "columns": [
+              "Time",
+              "Panel",
+              "Event"
+            ],
+            "rows": [
+              [
+                "21:00-22:30",
+                "Lab B",
+                "no alarm events 21:00-22:30"
+              ],
+              [
+                "22:31",
+                "Lab C",
+                "freezer alarm reset"
+              ]
+            ]
+          }
+        },
+        "released_after": 3
+      }
+    }
+  }
+}

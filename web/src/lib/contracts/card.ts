@@ -1,8 +1,15 @@
 /**
- * The card.v1 `question` block (S2 4.1, C-04): the only part of a coaching card the companion may
- * read (S6 6.3). Mirrored by hand from S2 until WP-02 exports the contract schemas and the frontend
- * generates its types from them (S6 5.2); the enums below are S2's, verbatim.
+ * The card.v1 `question` block (S2 4.1, C-04): the only part of a coaching card the companion may read
+ * (S6 6.3). The type is generated from the exported wire schemas (WP-02, `generated/types.ts`); the two
+ * lists below are the schema's enums as values, checked against the exported schema in `validate.test.ts`
+ * and against the generated types at compile time.
  */
+
+import type { Question } from "./generated/types";
+
+export type QuestionType = Question["question_type"];
+export type NeutralityIssue = Question["neutrality_issues"][number];
+export type CardQuestion = Question;
 
 export const QUESTION_TYPES = [
   "open",
@@ -13,9 +20,7 @@ export const QUESTION_TYPES = [
   "compound",
   "forced_choice",
   "opinion",
-] as const;
-
-export type QuestionType = (typeof QUESTION_TYPES)[number];
+] as const satisfies readonly QuestionType[];
 
 export const NEUTRALITY_ISSUES = [
   "presupposes_fact",
@@ -26,14 +31,4 @@ export const NEUTRALITY_ISSUES = [
   "solicits_opinion",
   "emotionally_loaded",
   "pressure_or_inducement",
-] as const;
-
-export type NeutralityIssue = (typeof NEUTRALITY_ISSUES)[number];
-
-export interface CardQuestion {
-  readonly question_type: QuestionType;
-  /** Empty when the question is neutral (S2 4.1, at most 4). */
-  readonly neutrality_issues: readonly NeutralityIssue[];
-  /** One sentence on the question. */
-  readonly assessment: string;
-}
+] as const satisfies readonly NeutralityIssue[];

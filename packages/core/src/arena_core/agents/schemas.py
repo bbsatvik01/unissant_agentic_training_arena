@@ -1,4 +1,4 @@
-"""S2 output models: CoachingCard, DeepUpdate, FinalFinding, Finding, SubjectTurn and the referee reports.
-
-Empty, importable stub (WP-01 layout only, S5 1); the implementation lands in WP-02.
+"""S2 output models live in `arena_core.contracts` (WP-02): `findings.Finding`, `coaching.CoachingCard`
+(card.v1), `coaching.DeepUpdate`, `coaching.FinalFinding`, `subject.SubjectTurn` and the referee reports in
+`referee`. This module stays as the S5 1 layout's name for them and holds nothing of its own.
 """

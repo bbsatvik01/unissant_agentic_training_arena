@@ -143,6 +143,9 @@ def test_make_roles_fails_on_a_seeded_subject_import_in_services_api(tmp_path: P
     (tmp_path / "tools").mkdir()
     for name in ("__init__.py", "check_roles.py", "proc.py"):
         shutil.copy(REPO_ROOT / "tools" / name, tmp_path / "tools" / name)
+    # The frame rule reads the frame models from their defining module (fails closed without it).
+    (tmp_path / lint.FRAME_SOURCE).parent.mkdir(parents=True)
+    shutil.copy(REPO_ROOT / lint.FRAME_SOURCE, tmp_path / lint.FRAME_SOURCE)
     api = tmp_path / "services" / "api" / "src" / "arena_api"
     api.mkdir(parents=True)
     (api / "clean.py").write_text("VALUE = 1\n")
@@ -154,6 +157,59 @@ def test_make_roles_fails_on_a_seeded_subject_import_in_services_api(tmp_path: P
     seeded = proc.run("make", ["-f", makefile, "roles", uv_run], cwd=tmp_path)
     assert seeded.returncode != 0, seeded.stdout + seeded.stderr
     assert "services/api/src/arena_api/leak.py:1: arena_api may never import arena_subject" in seeded.stderr
+    (api / "leak.py").unlink()
+    (api / "frames.py").write_text(
+        "from arena_core.contracts.events import NoticeFrame\n\nFRAME = NoticeFrame.model_validate({})\n"
+    )
+    framed = proc.run("make", ["-f", makefile, "roles", uv_run], cwd=tmp_path)
+    assert framed.returncode != 0, framed.stdout + framed.stderr
+    assert "services/api/src/arena_api/frames.py:3: NoticeFrame is an event frame model" in framed.stderr
+
+
+# ---------------------------------------------------------------- rule frame (S5 1.2 item 2, S5 6.5)
+FRAMES = lint.frame_models(REPO_ROOT)
+
+
+def frame_rules(path: str, source: str) -> list[str]:
+    return [f.rule for f in lint.check_source(path, source, FRAMES)]
+
+
+def test_the_frame_models_are_read_from_the_contracts() -> None:
+    assert {"QuestionAcceptedFrame", "CoachCardFrame", "NoticeFrame", "TrialFrame", "ReplayFrame"} <= FRAMES
+    assert {"TournamentFrame", "TrialStartedFrame", "TournamentCoachCardFrame"} <= FRAMES
+    assert all(name.endswith("Frame") for name in FRAMES)
+    assert "TrialSnapshot" not in FRAMES
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("path", [ARENA_API_FILE, ARENA_TOURNAMENT_FILE, ARENA_REFEREE_FILE, OTHER_CORE_FILE])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n",
+        "from arena_core.contracts.events import NoticeFrame as N\nf = N.model_validate({})\n",
+        "from arena_core.contracts.events import TrialFrame\nA = TypeAdapter(TrialFrame)\n",
+        "from arena_core.contracts import events\nf = events.CoachCardFrame.model_construct()\n",
+        "import arena_core.contracts.events as ev\nf = ev.TrialStartedFrame(v=1)\n",
+    ],
+)
+def test_a_frame_model_built_outside_the_projection_fails(path: str, source: str) -> None:
+    found = frame_rules(path, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+def test_the_projection_and_annotations_may_name_frame_models() -> None:
+    build = "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n"
+    assert frame_rules(lint.FRAME_BUILDER, build) == []
+    assert frame_rules(lint.FRAME_SOURCE, build) == []
+    annotated = (
+        "from arena_core.contracts.events import TrialFrame\n\n"
+        "def send(frame: TrialFrame) -> TrialFrame:\n    last: TrialFrame = frame\n    return last\n"
+    )
+    assert frame_rules(ARENA_API_FILE, annotated) == []
+    assert frame_rules("packages/core/tests/contracts/test_x.py", build) == []
+    assert frame_rules("tools/some_tool.py", build) == []
 
 
 # ---------------------------------------------------------------- dynamic imports (Codex round 1, finding 1)

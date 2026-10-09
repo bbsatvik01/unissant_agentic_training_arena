@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/stored-finding.schema.json",
+  "title": "StoredFinding",
+  "additionalProperties": false,
+  "properties": {
+    "label": {
+      "enum": [
+        "deceptive",
+        "truthful",
+        "insufficient_evidence"
+      ],
+      "type": "string"
+    },
+    "likelihood": {
+      "enum": [
+        "almost_no_chance",
+        "very_unlikely",
+        "unlikely",
+        "roughly_even_chance",
+        "likely",
+        "very_likely",
+        "almost_certain"
+      ],
+      "type": "string"
+    },
+    "confidence": {
+      "enum": [
+        "low",
+        "moderate",
+        "high"
+      ],
+      "type": "string"
+    },
+    "basis_flag_refs": {
+      "items": {
+        "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "type": "array"
+    },
+    "cited_turns": {
+      "items": {
+        "maximum": 12,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "cited_records": {
+      "items": {
+        "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "type": "array"
+    },
+    "corroboration_needed": {
+      "items": {
+        "maxLength": 120,
+        "minLength": 3,
+        "type": "string"
+      },
+      "maxItems": 3,
+      "type": "array"
+    },
+    "rationale": {
+      "maxLength": 600,
+      "minLength": 1,
+      "type": "string"
+    },
+    "alternative_explanations": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 160,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_revised_turn": {
+      "anyOf": [
+        {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "label",
+    "likelihood",
+    "confidence",
+    "basis_flag_refs",
+    "cited_turns",
+    "cited_records",
+    "corroboration_needed",
+    "rationale",
+    "alternative_explanations",
+    "last_revised_turn"
+  ],
+  "type": "object"
+}

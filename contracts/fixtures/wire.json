@@ -1,0 +1,2961 @@
+{
+  "description": "S6 12 contract fixtures (WP-02): every wire type and REST body, and negative fixtures with forbidden fields. Run by packages/core/tests/contracts/test_wire_fixtures.py (Pydantic and jsonschema) and web/src/lib/contracts/validate.test.ts (ajv); every runner must reach the expected verdict on every case.",
+  "valid": [
+    {
+      "id": "frame:question.accepted",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 1,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "question.accepted",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 1,
+        "data": {
+          "turn_no": 1,
+          "text": "Why did you enter?",
+          "source": "investigator",
+          "channel": "text"
+        }
+      }
+    },
+    {
+      "id": "frame:subject.thinking",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.thinking",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 1,
+        "data": {
+          "turn_no": 1
+        }
+      }
+    },
+    {
+      "id": "frame:evidence.released",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 7,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "evidence.released",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 7,
+        "data": {
+          "record_id": "rec-02",
+          "title": "Lab B panel alarm log",
+          "kind": "record",
+          "doc_kind": "alarm_log",
+          "date": "2026-09-14",
+          "content": {
+            "body": "Lab B panel alarm log for the evening of the entry.",
+            "table": {
+              "columns": [
+                "Time",
+                "Panel",
+                "Event"
+              ],
+              "rows": [
+                [
+                  "21:00-22:30",
+                  "Lab B",
+                  "no alarm events 21:00-22:30"
+                ],
+                [
+                  "22:31",
+                  "Lab C",
+                  "freezer alarm reset"
+                ]
+              ]
+            }
+          },
+          "released_at_turn": 3,
+          "trigger": "requested"
+        }
+      }
+    },
+    {
+      "id": "frame:subject.answer",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 2,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "It was a busy shift.",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      }
+    },
+    {
+      "id": "frame:coach.working",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.working",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1
+        }
+      }
+    },
+    {
+      "id": "frame:coach.card",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 3,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.card",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "card": {
+            "schema_version": "card.v1",
+            "turn_id": "t01",
+            "question": {
+              "question_type": "open",
+              "neutrality_issues": [],
+              "assessment": "An open question about the reason for entry."
+            },
+            "answer_category": "non_responsive",
+            "flags": [
+              {
+                "kind": "non_responsive",
+                "turn_id": "t01",
+                "quote": "It was a busy shift.",
+                "missing_fact": "purpose of entry",
+                "conflict_turn_id": null,
+                "conflict_quote": null,
+                "conflict_record_id": null,
+                "conflict_record_quote": null,
+                "flag_ref": "t01.f1"
+              }
+            ],
+            "follow_up": {
+              "question": "What task required entry?",
+              "tactic": "funnel_probe",
+              "purpose": "Ask for the task the entry served.",
+              "record_request": null
+            },
+            "finding": {
+              "label": "insufficient_evidence",
+              "likelihood": "roughly_even_chance",
+              "confidence": "low",
+              "basis_flag_refs": [],
+              "cited_turns": [
+                1
+              ],
+              "cited_records": [],
+              "corroboration_needed": [
+                "the work order",
+                "the timeline"
+              ],
+              "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+              "alternative_explanations": null,
+              "last_revised_turn": 1
+            },
+            "boundary_notice": false,
+            "commit_requested": false,
+            "card_seq": 1,
+            "turn_no": 1,
+            "validation": {
+              "valid": true,
+              "flags": {
+                "t01.f1": {
+                  "citation_ok": true,
+                  "demeanor_based": false,
+                  "duplicate": false
+                }
+              },
+              "demeanor_in_rationale": false
+            },
+            "latency_ms": 1840,
+            "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+            "transcript_version": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "frame:coach.update",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 9,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.update",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 6,
+        "data": {
+          "turn_no": 3,
+          "update": {
+            "schema_version": "deep.v1",
+            "as_of_turn": "t03",
+            "finding": {
+              "label": "insufficient_evidence",
+              "likelihood": "roughly_even_chance",
+              "confidence": "low",
+              "basis_flag_refs": [],
+              "cited_turns": [
+                1,
+                3
+              ],
+              "cited_records": [],
+              "corroboration_needed": [
+                "the work order",
+                "the timeline"
+              ],
+              "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+              "alternative_explanations": null,
+              "last_revised_turn": 1
+            },
+            "evidence_coverage": [],
+            "open_gaps": [
+              {
+                "missing_fact": "the task that required entry",
+                "first_seen_turn": "t01"
+              }
+            ],
+            "disclosure_plan": {
+              "record_id": "rec-02",
+              "step": "evidence_topic"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "frame:coach.failed",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 10,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.failed",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 8,
+        "data": {
+          "turn_no": 4,
+          "reason": "timeout"
+        }
+      }
+    },
+    {
+      "id": "frame:finding.committed",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 20,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "finding.committed",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "by": "investigator",
+          "finding": {
+            "label": "truthful",
+            "likelihood": "very_unlikely",
+            "confidence": "moderate",
+            "basis_flag_refs": [],
+            "cited_turns": [
+              2,
+              4
+            ],
+            "cited_records": [
+              "rec-02"
+            ],
+            "corroboration_needed": [],
+            "rationale": "The account is consistent and the record corroborates the reset.",
+            "alternative_explanations": null,
+            "last_revised_turn": null
+          },
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      }
+    },
+    {
+      "id": "frame:trial.status.completed",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.status",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "status": "completed",
+          "reason_code": null
+        }
+      }
+    },
+    {
+      "id": "frame:trial.status.failed",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 21,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.status",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "status": "assistant_failed",
+          "reason_code": "repair_failed"
+        }
+      }
+    },
+    {
+      "id": "frame:trial.finalized",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 21,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.finalized",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "commitment_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    },
+    {
+      "id": "frame:debrief.ready",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 22,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "debrief.ready",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f"
+        }
+      }
+    },
+    {
+      "id": "frame:notice",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "notice",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": null,
+        "data": {
+          "kind": "paused",
+          "text": "The arena is paused by the operator."
+        }
+      }
+    },
+    {
+      "id": "snapshot:text",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "snapshot:voice",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 2,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "voice",
+        "turns": [],
+        "voice_exchanges": [
+          {
+            "exchange_no": 1,
+            "lines": [
+              {
+                "role": "investigator",
+                "text": "Why did you enter?",
+                "partial": false
+              },
+              {
+                "role": "subject",
+                "text": "It was a busy shift.",
+                "partial": false
+              }
+            ]
+          },
+          {
+            "exchange_no": 2,
+            "lines": [
+              {
+                "role": "subject",
+                "text": "The freezer alarm was going off, so I",
+                "partial": true
+              }
+            ]
+          }
+        ],
+        "cards": [],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "debrief:scored",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": true,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        },
+        "rubric": {
+          "scorable": true,
+          "unscorable_reason": null,
+          "total": 70,
+          "dimensions": [
+            {
+              "dim_id": "D1",
+              "score": 3,
+              "checks": [
+                {
+                  "id": "1a",
+                  "result": "fail",
+                  "turns": [
+                    3
+                  ]
+                },
+                {
+                  "id": "1b",
+                  "result": "pass",
+                  "turns": []
+                }
+              ]
+            },
+            {
+              "dim_id": "D2",
+              "score": 4,
+              "checks": [
+                {
+                  "id": "2b",
+                  "result": "na",
+                  "turns": []
+                }
+              ]
+            }
+          ]
+        },
+        "scorecards": {
+          "learning": {
+            "evidence_coverage": {
+              "addressed": 3,
+              "key_facts": 5
+            },
+            "key_questions": [
+              {
+                "intent": "Why the subject entered Lab B",
+                "addressed_turns": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          },
+          "detection": {
+            "evasion_strict": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "evasion_broad": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "unique_flags": 3,
+            "unsupported": {
+              "citation": 0,
+              "demeanor": 1,
+              "claim": 0
+            },
+            "coach_last_label": "truthful"
+          },
+          "subject_realism": {
+            "turns": 5,
+            "compliant": 5,
+            "failures": {
+              "F1": 0,
+              "F2_F4": 0,
+              "F3": 0,
+              "F5": 0,
+              "F6": 0
+            }
+          }
+        },
+        "provenance": {
+          "rubric_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "r3_prompt_sha256": [
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ],
+          "referee_model_ids": [
+            "gemini-3.1-flash-lite",
+            "gemini-3.5-flash-lite"
+          ],
+          "scorer_git_sha": "ffffffffffffffffffffffffffffffffffffffff"
+        }
+      }
+    },
+    {
+      "id": "debrief:unscored",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": false,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        }
+      }
+    },
+    {
+      "id": "debrief:unscorable",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": true,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        },
+        "rubric": {
+          "scorable": false,
+          "unscorable_reason": "fewer than three questions",
+          "total": null,
+          "dimensions": []
+        },
+        "scorecards": {
+          "learning": {
+            "evidence_coverage": {
+              "addressed": 3,
+              "key_facts": 5
+            },
+            "key_questions": [
+              {
+                "intent": "Why the subject entered Lab B",
+                "addressed_turns": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          },
+          "detection": {
+            "evasion_strict": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "evasion_broad": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "unique_flags": 3,
+            "unsupported": {
+              "citation": 0,
+              "demeanor": 1,
+              "claim": 0
+            },
+            "coach_last_label": "truthful"
+          },
+          "subject_realism": {
+            "turns": 5,
+            "compliant": 5,
+            "failures": {
+              "F1": 0,
+              "F2_F4": 0,
+              "F3": 0,
+              "F5": 0,
+              "F6": 0
+            }
+          }
+        },
+        "provenance": {
+          "rubric_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "r3_prompt_sha256": [
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ],
+          "referee_model_ids": [
+            "gemini-3.1-flash-lite",
+            "gemini-3.5-flash-lite"
+          ],
+          "scorer_git_sha": "ffffffffffffffffffffffffffffffffffffffff"
+        }
+      }
+    },
+    {
+      "id": "debrief-read:scoring",
+      "schema": "debrief-read",
+      "value": {
+        "status": "scoring"
+      }
+    },
+    {
+      "id": "debrief-read:published",
+      "schema": "debrief-read",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": false,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        }
+      }
+    },
+    {
+      "id": "training-card",
+      "schema": "training-card",
+      "value": {
+        "schema_version": "card.v1",
+        "turn_id": "t01",
+        "question": {
+          "question_type": "open",
+          "neutrality_issues": [],
+          "assessment": "An open question about the reason for entry."
+        },
+        "answer_category": "non_responsive",
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          }
+        ],
+        "follow_up": {
+          "question": "What task required entry?",
+          "tactic": "funnel_probe",
+          "purpose": "Ask for the task the entry served.",
+          "record_request": null
+        },
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [],
+          "corroboration_needed": [
+            "the work order",
+            "the timeline"
+          ],
+          "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+          "alternative_explanations": null,
+          "last_revised_turn": 1
+        },
+        "boundary_notice": false,
+        "commit_requested": false,
+        "card_seq": 1,
+        "turn_no": 1,
+        "validation": {
+          "valid": true,
+          "flags": {
+            "t01.f1": {
+              "citation_ok": true,
+              "demeanor_based": false,
+              "duplicate": false
+            }
+          },
+          "demeanor_in_rationale": false
+        },
+        "latency_ms": 1840,
+        "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+        "transcript_version": 2
+      }
+    },
+    {
+      "id": "tournament-card",
+      "schema": "tournament-card",
+      "value": {
+        "schema_version": "card.v1",
+        "turn_id": "t01",
+        "question": {
+          "question_type": "open",
+          "neutrality_issues": [],
+          "assessment": "An open question about the reason for entry."
+        },
+        "answer_category": "non_responsive",
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          }
+        ],
+        "follow_up": {
+          "question": "What task required entry?",
+          "tactic": "funnel_probe",
+          "purpose": "Ask for the task the entry served.",
+          "record_request": null
+        },
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [],
+          "corroboration_needed": [
+            "the work order",
+            "the timeline"
+          ],
+          "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+          "alternative_explanations": null,
+          "last_revised_turn": 1
+        },
+        "boundary_notice": false,
+        "commit_requested": false,
+        "card_seq": 1,
+        "turn_no": 1,
+        "validation": {
+          "valid": true,
+          "flags": {
+            "t01.f1": {
+              "citation_ok": true,
+              "demeanor_based": false,
+              "duplicate": false
+            }
+          },
+          "demeanor_in_rationale": false
+        },
+        "latency_ms": 1840,
+        "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+        "transcript_version": 2,
+        "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+      }
+    },
+    {
+      "id": "poll:events",
+      "schema": "tournament-poll",
+      "value": {
+        "visibility": "events",
+        "last": 41,
+        "frames": [
+          {
+            "v": 1,
+            "seq": 40,
+            "scope": "tournament",
+            "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+            "type": "trial.started",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "data": {
+              "trial_ref": 3,
+              "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+              "pairing": "A2 x S1",
+              "track": "interactive",
+              "block": 1
+            }
+          },
+          {
+            "v": 1,
+            "seq": 41,
+            "scope": "tournament",
+            "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+            "type": "trial.execution",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "data": {
+              "trial_ref": 3,
+              "state": "budget_skipped"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "poll:counts",
+      "schema": "tournament-poll",
+      "value": {
+        "visibility": "counts",
+        "progress": [
+          {
+            "track": "interactive",
+            "block": 1,
+            "planned": 9,
+            "counts_by_state": {
+              "completed": 4,
+              "budget_skipped": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "replay-page",
+      "schema": "replay-page",
+      "value": {
+        "frames": [
+          {
+            "v": 1,
+            "seq": 3,
+            "scope": "trial",
+            "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+            "type": "coach.card",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "transcript_version": 2,
+            "data": {
+              "turn_no": 1,
+              "card": {
+                "schema_version": "card.v1",
+                "turn_id": "t01",
+                "question": {
+                  "question_type": "open",
+                  "neutrality_issues": [],
+                  "assessment": "An open question about the reason for entry."
+                },
+                "answer_category": "non_responsive",
+                "flags": [
+                  {
+                    "kind": "non_responsive",
+                    "turn_id": "t01",
+                    "quote": "It was a busy shift.",
+                    "missing_fact": "purpose of entry",
+                    "conflict_turn_id": null,
+                    "conflict_quote": null,
+                    "conflict_record_id": null,
+                    "conflict_record_quote": null,
+                    "flag_ref": "t01.f1"
+                  }
+                ],
+                "follow_up": {
+                  "question": "What task required entry?",
+                  "tactic": "funnel_probe",
+                  "purpose": "Ask for the task the entry served.",
+                  "record_request": null
+                },
+                "finding": {
+                  "label": "insufficient_evidence",
+                  "likelihood": "roughly_even_chance",
+                  "confidence": "low",
+                  "basis_flag_refs": [],
+                  "cited_turns": [
+                    1
+                  ],
+                  "cited_records": [],
+                  "corroboration_needed": [
+                    "the work order",
+                    "the timeline"
+                  ],
+                  "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                  "alternative_explanations": null,
+                  "last_revised_turn": 1
+                },
+                "boundary_notice": false,
+                "commit_requested": false,
+                "card_seq": 1,
+                "turn_no": 1,
+                "validation": {
+                  "valid": true,
+                  "flags": {
+                    "t01.f1": {
+                      "citation_ok": true,
+                      "demeanor_based": false,
+                      "duplicate": false
+                    }
+                  },
+                  "demeanor_in_rationale": false
+                },
+                "latency_ms": 1840,
+                "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+                "transcript_version": 2,
+                "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "candidate_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+              }
+            }
+          }
+        ],
+        "last": 3
+      }
+    },
+    {
+      "id": "review-item:T-RUB",
+      "schema": "review-item",
+      "value": {
+        "task": "T-RUB",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "instrument": "C-QQ",
+        "case_file": {
+          "title": "Lab B after-hours entry",
+          "investigation_objective": "Establish why the subject entered Lab B after hours.",
+          "initial_documents": [
+            {
+              "doc_id": "doc-01",
+              "kind": "access_exception_report",
+              "title": "Access exception report",
+              "content": {
+                "body": "Lab B door opened at 21:47 by badge 4471 without a work order."
+              }
+            }
+          ]
+        },
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Panel",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:00-22:30",
+                    "Lab B",
+                    "no alarm events 21:00-22:30"
+                  ],
+                  [
+                    "22:31",
+                    "Lab C",
+                    "freezer alarm reset"
+                  ]
+                ]
+              }
+            },
+            "released_after_exchanges": 3
+          }
+        ],
+        "transcript": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "answer": "It was a busy shift.",
+            "partial": false
+          }
+        ],
+        "questions": [
+          {
+            "turn_no": 1,
+            "question": "What task required entry?",
+            "source": "assistant_proposal"
+          }
+        ],
+        "finding": {
+          "label": "truthful",
+          "likelihood": "very_unlikely",
+          "confidence": "moderate",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            2,
+            4
+          ],
+          "cited_records": [
+            "rec-02"
+          ],
+          "corroboration_needed": [],
+          "rationale": "The account is consistent and the record corroborates the reset.",
+          "alternative_explanations": null,
+          "last_revised_turn": null
+        },
+        "triggers": [
+          {
+            "subcheck_id": "2a",
+            "trigger_turns": [
+              1
+            ],
+            "trigger_record": null,
+            "question_turns": [
+              2,
+              3
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-item:T-LAB",
+      "schema": "review-item",
+      "value": {
+        "task": "T-LAB",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Panel",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:00-22:30",
+                    "Lab B",
+                    "no alarm events 21:00-22:30"
+                  ],
+                  [
+                    "22:31",
+                    "Lab C",
+                    "freezer alarm reset"
+                  ]
+                ]
+              }
+            },
+            "released_after_exchanges": 3
+          }
+        ],
+        "transcript": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "answer": "It was a busy shift.",
+            "partial": false
+          }
+        ],
+        "facts": [
+          {
+            "id": "f:01",
+            "fact_class": "FREE",
+            "text": "You entered Lab B at 21:47.",
+            "certainty": "certain",
+            "gate_id": null
+          }
+        ],
+        "uncertainty": [],
+        "gates": [],
+        "permitted_behaviors": [],
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "The subject entered Lab B at 21:47."
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-item:T-FLAG",
+      "schema": "review-item",
+      "value": {
+        "task": "T-FLAG",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Panel",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:00-22:30",
+                    "Lab B",
+                    "no alarm events 21:00-22:30"
+                  ],
+                  [
+                    "22:31",
+                    "Lab C",
+                    "freezer alarm reset"
+                  ]
+                ]
+              }
+            },
+            "released_after_exchanges": 3
+          }
+        ],
+        "transcript": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "answer": "It was a busy shift.",
+            "partial": false
+          }
+        ],
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-list",
+      "schema": "review-list",
+      "value": {
+        "items": [
+          {
+            "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+            "task": "T-FLAG",
+            "submitted": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-submission:T-RUB",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-RUB",
+        "followups": [
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          }
+        ],
+        "subchecks": [
+          {
+            "id": "1b",
+            "result": "pass",
+            "turn_ids": []
+          }
+        ],
+        "citations": [
+          {
+            "cite": "t02",
+            "supports_basis": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-submission:T-LAB",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-LAB",
+        "turns": [
+          {
+            "turn_id": "t01",
+            "label": "evasion",
+            "eva_subtype": "deflection",
+            "pfq_reason": null,
+            "no_contradiction": true,
+            "no_invention": true,
+            "uncertainty_respected": true,
+            "disclosure_policy_respected": true,
+            "in_character": true,
+            "platform_attack": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-submission:T-FLAG",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-FLAG",
+        "flags": [
+          {
+            "flag_ref": "t01.f1",
+            "quote_relevant": true,
+            "claim_holds": true,
+            "content_based": true,
+            "no_outside_facts": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-create",
+      "schema": "session-create",
+      "value": {
+        "case_id": "C-7K2M9QXR",
+        "mode": "practice",
+        "voice": false,
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "turn-submit",
+      "schema": "turn-submit",
+      "value": {
+        "question": "Why did you enter?",
+        "release_ids": [],
+        "expected_version": 0,
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "evidence-request",
+      "schema": "evidence-request",
+      "value": {
+        "record_ids": [
+          "rec-02"
+        ],
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "evidence-result",
+      "schema": "evidence-result",
+      "value": {
+        "released": [
+          {
+            "record_id": "rec-02",
+            "kind": "record",
+            "doc_kind": "alarm_log"
+          }
+        ],
+        "already_released": [],
+        "denied": [
+          "rec-04"
+        ],
+        "transcript_version": 7
+      }
+    },
+    {
+      "id": "finding-commit",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open."
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "finding-commit:alternatives",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open.",
+          "alternative_explanations": [
+            "The alarm was in Lab C."
+          ]
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "card-ack",
+      "schema": "card-ack",
+      "value": {
+        "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "turn_no": 1,
+        "client_valid": true
+      }
+    },
+    {
+      "id": "voice-ticket-request",
+      "schema": "voice-ticket-request",
+      "value": {
+        "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "id": "neg-01",
+      "why": "training card carries candidate_sha256 (SG4-05)",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 3,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.card",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "card": {
+            "schema_version": "card.v1",
+            "turn_id": "t01",
+            "question": {
+              "question_type": "open",
+              "neutrality_issues": [],
+              "assessment": "An open question about the reason for entry."
+            },
+            "answer_category": "non_responsive",
+            "flags": [
+              {
+                "kind": "non_responsive",
+                "turn_id": "t01",
+                "quote": "It was a busy shift.",
+                "missing_fact": "purpose of entry",
+                "conflict_turn_id": null,
+                "conflict_quote": null,
+                "conflict_record_id": null,
+                "conflict_record_quote": null,
+                "flag_ref": "t01.f1"
+              }
+            ],
+            "follow_up": {
+              "question": "What task required entry?",
+              "tactic": "funnel_probe",
+              "purpose": "Ask for the task the entry served.",
+              "record_request": null
+            },
+            "finding": {
+              "label": "insufficient_evidence",
+              "likelihood": "roughly_even_chance",
+              "confidence": "low",
+              "basis_flag_refs": [],
+              "cited_turns": [
+                1
+              ],
+              "cited_records": [],
+              "corroboration_needed": [
+                "the work order",
+                "the timeline"
+              ],
+              "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+              "alternative_explanations": null,
+              "last_revised_turn": 1
+            },
+            "boundary_notice": false,
+            "commit_requested": false,
+            "card_seq": 1,
+            "turn_no": 1,
+            "validation": {
+              "valid": true,
+              "flags": {
+                "t01.f1": {
+                  "citation_ok": true,
+                  "demeanor_based": false,
+                  "duplicate": false
+                }
+              },
+              "demeanor_in_rationale": false
+            },
+            "latency_ms": 1840,
+            "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+            "transcript_version": 2,
+            "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      }
+    },
+    {
+      "id": "neg-02",
+      "why": "training card carries a candidate id",
+      "schema": "training-card",
+      "value": {
+        "schema_version": "card.v1",
+        "turn_id": "t01",
+        "question": {
+          "question_type": "open",
+          "neutrality_issues": [],
+          "assessment": "An open question about the reason for entry."
+        },
+        "answer_category": "non_responsive",
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          }
+        ],
+        "follow_up": {
+          "question": "What task required entry?",
+          "tactic": "funnel_probe",
+          "purpose": "Ask for the task the entry served.",
+          "record_request": null
+        },
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [],
+          "corroboration_needed": [
+            "the work order",
+            "the timeline"
+          ],
+          "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+          "alternative_explanations": null,
+          "last_revised_turn": 1
+        },
+        "boundary_notice": false,
+        "commit_requested": false,
+        "card_seq": 1,
+        "turn_no": 1,
+        "validation": {
+          "valid": true,
+          "flags": {
+            "t01.f1": {
+              "citation_ok": true,
+              "demeanor_based": false,
+              "duplicate": false
+            }
+          },
+          "demeanor_in_rationale": false
+        },
+        "latency_ms": 1840,
+        "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+        "transcript_version": 2,
+        "candidate_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+      }
+    },
+    {
+      "id": "neg-03",
+      "why": "snapshot carries the role",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": [],
+        "role": "deceptive"
+      }
+    },
+    {
+      "id": "neg-04",
+      "why": "snapshot carries the style",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": [],
+        "style": {
+          "tone": "terse"
+        }
+      }
+    },
+    {
+      "id": "neg-05",
+      "why": "snapshot carries the resolution",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": [],
+        "resolution": "x"
+      }
+    },
+    {
+      "id": "neg-06",
+      "why": "subject answer carries the tag",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 2,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "It was a busy shift.",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z",
+          "tag": {
+            "behavior": "omission"
+          }
+        }
+      }
+    },
+    {
+      "id": "neg-07",
+      "why": "released record carries baseline_demeanor",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 7,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "evidence.released",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 7,
+        "data": {
+          "record_id": "rec-02",
+          "title": "Lab B panel alarm log",
+          "kind": "record",
+          "doc_kind": "alarm_log",
+          "date": "2026-09-14",
+          "content": {
+            "body": "Lab B panel alarm log for the evening of the entry.",
+            "table": {
+              "columns": [
+                "Time",
+                "Panel",
+                "Event"
+              ],
+              "rows": [
+                [
+                  "21:00-22:30",
+                  "Lab B",
+                  "no alarm events 21:00-22:30"
+                ],
+                [
+                  "22:31",
+                  "Lab C",
+                  "freezer alarm reset"
+                ]
+              ]
+            }
+          },
+          "released_at_turn": 3,
+          "trigger": "requested",
+          "baseline_demeanor": "calm"
+        }
+      }
+    },
+    {
+      "id": "neg-08",
+      "why": "turn carries presented_record_ids (C-19)",
+      "schema": "turn-submit",
+      "value": {
+        "question": "Why?",
+        "release_ids": [],
+        "expected_version": 0,
+        "idem_key": "00000000-0000-4000-8000-000000000001",
+        "presented_record_ids": [
+          "rec-02"
+        ]
+      }
+    },
+    {
+      "id": "neg-09",
+      "why": "unknown frame type",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "referee.labeled",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": null,
+        "data": {
+          "kind": "paused",
+          "text": "The arena is paused by the operator."
+        }
+      }
+    },
+    {
+      "id": "neg-10",
+      "why": "seq as a string",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": "2",
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "It was a busy shift.",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      }
+    },
+    {
+      "id": "neg-11",
+      "why": "synthesized frame with a seq",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 5,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.thinking",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 1,
+        "data": {
+          "turn_no": 1
+        }
+      }
+    },
+    {
+      "id": "neg-12",
+      "why": "persisted frame without a seq",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "It was a busy shift.",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      }
+    },
+    {
+      "id": "neg-13",
+      "why": "envelope version 2",
+      "schema": "events",
+      "value": {
+        "v": 2,
+        "seq": 2,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "It was a busy shift.",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      }
+    },
+    {
+      "id": "neg-14",
+      "why": "question over 600 characters (D11)",
+      "schema": "turn-submit",
+      "value": {
+        "question": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "release_ids": [],
+        "expected_version": 0,
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-15",
+      "why": "unscored debrief with a rubric (SG4-31)",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": false,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        },
+        "rubric": {
+          "scorable": true,
+          "unscorable_reason": null,
+          "total": 70,
+          "dimensions": [
+            {
+              "dim_id": "D1",
+              "score": 3,
+              "checks": [
+                {
+                  "id": "1a",
+                  "result": "fail",
+                  "turns": [
+                    3
+                  ]
+                },
+                {
+                  "id": "1b",
+                  "result": "pass",
+                  "turns": []
+                }
+              ]
+            },
+            {
+              "dim_id": "D2",
+              "score": 4,
+              "checks": [
+                {
+                  "id": "2b",
+                  "result": "na",
+                  "turns": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "neg-16",
+      "why": "scored debrief without provenance",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": true,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        },
+        "rubric": {
+          "scorable": true,
+          "unscorable_reason": null,
+          "total": 70,
+          "dimensions": [
+            {
+              "dim_id": "D1",
+              "score": 3,
+              "checks": [
+                {
+                  "id": "1a",
+                  "result": "fail",
+                  "turns": [
+                    3
+                  ]
+                },
+                {
+                  "id": "1b",
+                  "result": "pass",
+                  "turns": []
+                }
+              ]
+            },
+            {
+              "dim_id": "D2",
+              "score": 4,
+              "checks": [
+                {
+                  "id": "2b",
+                  "result": "na",
+                  "turns": []
+                }
+              ]
+            }
+          ]
+        },
+        "scorecards": {
+          "learning": {
+            "evidence_coverage": {
+              "addressed": 3,
+              "key_facts": 5
+            },
+            "key_questions": [
+              {
+                "intent": "Why the subject entered Lab B",
+                "addressed_turns": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          },
+          "detection": {
+            "evasion_strict": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "evasion_broad": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "unique_flags": 3,
+            "unsupported": {
+              "citation": 0,
+              "demeanor": 1,
+              "claim": 0
+            },
+            "coach_last_label": "truthful"
+          },
+          "subject_realism": {
+            "turns": 5,
+            "compliant": 5,
+            "failures": {
+              "F1": 0,
+              "F2_F4": 0,
+              "F3": 0,
+              "F5": 0,
+              "F6": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "neg-17",
+      "why": "voice snapshot with turns",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 2,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "voice",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [
+          {
+            "exchange_no": 1,
+            "lines": [
+              {
+                "role": "investigator",
+                "text": "Why did you enter?",
+                "partial": false
+              },
+              {
+                "role": "subject",
+                "text": "It was a busy shift.",
+                "partial": false
+              }
+            ]
+          },
+          {
+            "exchange_no": 2,
+            "lines": [
+              {
+                "role": "subject",
+                "text": "The freezer alarm was going off, so I",
+                "partial": true
+              }
+            ]
+          }
+        ],
+        "cards": [],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "neg-18",
+      "why": "text snapshot with voice exchanges",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [
+          {
+            "exchange_no": 1,
+            "lines": [
+              {
+                "role": "investigator",
+                "text": "Why did you enter?",
+                "partial": false
+              },
+              {
+                "role": "subject",
+                "text": "It was a busy shift.",
+                "partial": false
+              }
+            ]
+          },
+          {
+            "exchange_no": 2,
+            "lines": [
+              {
+                "role": "subject",
+                "text": "The freezer alarm was going off, so I",
+                "partial": true
+              }
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "neg-19",
+      "why": "hidden counts poll carrying a trial id",
+      "schema": "tournament-poll",
+      "value": {
+        "visibility": "counts",
+        "progress": [
+          {
+            "track": "interactive",
+            "block": 1,
+            "planned": 9,
+            "counts_by_state": {
+              "completed": 4,
+              "budget_skipped": 1
+            },
+            "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41"
+          }
+        ]
+      }
+    },
+    {
+      "id": "neg-20",
+      "why": "investigator finding with a basis flag",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [
+            "t01.f1"
+          ],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open."
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-21",
+      "why": "investigator finding with a field outside Finding",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open.",
+          "last_revised_turn": 3
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-22",
+      "why": "investigator finding citing doc-05",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-05"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open."
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-23",
+      "why": "investigator finding citing turn 1.5",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1.5
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "The reason for entry is open."
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-24",
+      "why": "rationale over 600 characters",
+      "schema": "finding-commit",
+      "value": {
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [
+            "doc-01"
+          ],
+          "corroboration_needed": [
+            "the work order"
+          ],
+          "rationale": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "idem_key": "00000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "neg-25",
+      "why": "card acknowledgement with a client duration (S6 5.6)",
+      "schema": "card-ack",
+      "value": {
+        "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "turn_no": 1,
+        "client_valid": true,
+        "latency_ms": 120
+      }
+    },
+    {
+      "id": "neg-26",
+      "why": "validation map with a stray key",
+      "schema": "training-card",
+      "value": {
+        "schema_version": "card.v1",
+        "turn_id": "t01",
+        "question": {
+          "question_type": "open",
+          "neutrality_issues": [],
+          "assessment": "An open question about the reason for entry."
+        },
+        "answer_category": "non_responsive",
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          }
+        ],
+        "follow_up": {
+          "question": "What task required entry?",
+          "tactic": "funnel_probe",
+          "purpose": "Ask for the task the entry served.",
+          "record_request": null
+        },
+        "finding": {
+          "label": "insufficient_evidence",
+          "likelihood": "roughly_even_chance",
+          "confidence": "low",
+          "basis_flag_refs": [],
+          "cited_turns": [
+            1
+          ],
+          "cited_records": [],
+          "corroboration_needed": [
+            "the work order",
+            "the timeline"
+          ],
+          "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+          "alternative_explanations": null,
+          "last_revised_turn": 1
+        },
+        "boundary_notice": false,
+        "commit_requested": false,
+        "card_seq": 1,
+        "turn_no": 1,
+        "validation": {
+          "valid": true,
+          "flags": {
+            "t01.f1": {
+              "citation_ok": true,
+              "demeanor_based": false,
+              "duplicate": false
+            },
+            "role": {
+              "citation_ok": true,
+              "demeanor_based": false,
+              "duplicate": false
+            }
+          },
+          "demeanor_in_rationale": false
+        },
+        "latency_ms": 1840,
+        "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+        "transcript_version": 2
+      }
+    },
+    {
+      "id": "neg-27",
+      "why": "ICD likelihood that is not a token",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 3,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "coach.card",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "card": {
+            "schema_version": "card.v1",
+            "turn_id": "t01",
+            "question": {
+              "question_type": "open",
+              "neutrality_issues": [],
+              "assessment": "An open question about the reason for entry."
+            },
+            "answer_category": "non_responsive",
+            "flags": [
+              {
+                "kind": "non_responsive",
+                "turn_id": "t01",
+                "quote": "It was a busy shift.",
+                "missing_fact": "purpose of entry",
+                "conflict_turn_id": null,
+                "conflict_quote": null,
+                "conflict_record_id": null,
+                "conflict_record_quote": null,
+                "flag_ref": "t01.f1"
+              }
+            ],
+            "follow_up": {
+              "question": "What task required entry?",
+              "tactic": "funnel_probe",
+              "purpose": "Ask for the task the entry served.",
+              "record_request": null
+            },
+            "finding": {
+              "label": "insufficient_evidence",
+              "likelihood": "probable",
+              "confidence": "low",
+              "basis_flag_refs": [],
+              "cited_turns": [
+                1
+              ],
+              "cited_records": [],
+              "corroboration_needed": [
+                "the work order",
+                "the timeline"
+              ],
+              "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+              "alternative_explanations": null,
+              "last_revised_turn": 1
+            },
+            "boundary_notice": false,
+            "commit_requested": false,
+            "card_seq": 1,
+            "turn_no": 1,
+            "validation": {
+              "valid": true,
+              "flags": {
+                "t01.f1": {
+                  "citation_ok": true,
+                  "demeanor_based": false,
+                  "duplicate": false
+                }
+              },
+              "demeanor_in_rationale": false
+            },
+            "latency_ms": 1840,
+            "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+            "transcript_version": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "neg-28",
+      "why": "label as an S3 code (C-09)",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-LAB",
+        "turns": [
+          {
+            "turn_id": "t01",
+            "label": "EVA",
+            "eva_subtype": "deflection",
+            "pfq_reason": null,
+            "no_contradiction": true,
+            "no_invention": true,
+            "uncertainty_respected": true,
+            "disclosure_policy_respected": true,
+            "in_character": true,
+            "platform_attack": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "neg-29",
+      "why": "review item carrying the role",
+      "schema": "review-item",
+      "value": {
+        "task": "T-LAB",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Panel",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:00-22:30",
+                    "Lab B",
+                    "no alarm events 21:00-22:30"
+                  ],
+                  [
+                    "22:31",
+                    "Lab C",
+                    "freezer alarm reset"
+                  ]
+                ]
+              }
+            },
+            "released_after_exchanges": 3
+          }
+        ],
+        "transcript": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "answer": "It was a busy shift.",
+            "partial": false
+          }
+        ],
+        "facts": [
+          {
+            "id": "f:01",
+            "fact_class": "FREE",
+            "text": "You entered Lab B at 21:47.",
+            "certainty": "certain",
+            "gate_id": null
+          }
+        ],
+        "uncertainty": [],
+        "gates": [],
+        "permitted_behaviors": [],
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "The subject entered Lab B at 21:47."
+          }
+        ],
+        "role": "deceptive"
+      }
+    },
+    {
+      "id": "neg-30",
+      "why": "table cell with a vertical bar",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 7,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "evidence.released",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 7,
+        "data": {
+          "record_id": "rec-02",
+          "title": "Lab B panel alarm log",
+          "kind": "record",
+          "doc_kind": "alarm_log",
+          "date": "2026-09-14",
+          "content": {
+            "body": "Lab B panel alarm log for the evening of the entry.",
+            "table": {
+              "columns": [
+                "Time",
+                "Panel",
+                "Event"
+              ],
+              "rows": [
+                [
+                  "21:00|22:30",
+                  "Lab B",
+                  "no alarm events 21:00-22:30"
+                ],
+                [
+                  "22:31",
+                  "Lab C",
+                  "freezer alarm reset"
+                ]
+              ]
+            }
+          },
+          "released_at_turn": 3,
+          "trigger": "requested"
+        }
+      }
+    }
+  ]
+}

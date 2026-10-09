@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/ref_asst.v2.schema.json",
+  "title": "RefereeAssistantReport",
+  "$defs": {
+    "CitationVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "cite": {
+          "pattern": "^(t(0[1-9]|1[0-2])|doc-0[1-4]|rec-0[1-6])$",
+          "type": "string"
+        },
+        "supports_basis": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cite",
+        "supports_basis"
+      ],
+      "title": "CitationVerdict",
+      "type": "object"
+    },
+    "FlagVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "flag_ref": {
+          "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+          "type": "string"
+        },
+        "quote_relevant": {
+          "type": "boolean"
+        },
+        "claim_holds": {
+          "type": "boolean"
+        },
+        "content_based": {
+          "type": "boolean"
+        },
+        "no_outside_facts": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "flag_ref",
+        "quote_relevant",
+        "claim_holds",
+        "content_based",
+        "no_outside_facts"
+      ],
+      "title": "FlagVerdict",
+      "type": "object"
+    },
+    "FollowupVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "question_type": {
+          "enum": [
+            "open",
+            "probing",
+            "closed",
+            "leading",
+            "suggestive",
+            "compound",
+            "forced_choice",
+            "opinion"
+          ],
+          "type": "string"
+        },
+        "not_leading": {
+          "type": "boolean"
+        },
+        "well_framed": {
+          "type": "boolean"
+        },
+        "no_loaded_wording": {
+          "type": "boolean"
+        },
+        "on_objective": {
+          "type": "boolean"
+        },
+        "builds_on_previous": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "turn_id",
+        "question_type",
+        "not_leading",
+        "well_framed",
+        "no_loaded_wording",
+        "on_objective",
+        "builds_on_previous"
+      ],
+      "title": "FollowupVerdict",
+      "type": "object"
+    },
+    "SubcheckVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[1-5][a-e]$",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "na"
+          ],
+          "type": "string"
+        },
+        "turn_ids": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "result",
+        "turn_ids"
+      ],
+      "title": "SubcheckVerdict",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "ref_asst.v2"
+      ],
+      "type": "string"
+    },
+    "flags": {
+      "items": {
+        "$ref": "#/$defs/FlagVerdict"
+      },
+      "maxItems": 36,
+      "type": "array"
+    },
+    "followups": {
+      "items": {
+        "$ref": "#/$defs/FollowupVerdict"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "citations": {
+      "items": {
+        "$ref": "#/$defs/CitationVerdict"
+      },
+      "maxItems": 22,
+      "type": "array"
+    },
+    "subchecks": {
+      "items": {
+        "$ref": "#/$defs/SubcheckVerdict"
+      },
+      "maxItems": 30,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "flags",
+    "followups",
+    "citations",
+    "subchecks"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/evidence-result.schema.json",
+  "title": "EvidenceResult",
+  "$defs": {
+    "ReleasedRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^rec-0[1-6]$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "record",
+            "clarification",
+            "context_change"
+          ],
+          "type": "string"
+        },
+        "doc_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "access_exception_report",
+                "badge_log",
+                "door_log",
+                "sensor_metadata",
+                "camera_metadata",
+                "camera_status",
+                "alarm_log",
+                "monitor_alert",
+                "dispatch_log",
+                "work_order",
+                "staffing_note",
+                "visitor_register",
+                "lockbox_log",
+                "credential_record",
+                "access_change_notice",
+                "incident_ticket",
+                "seal_audit",
+                "witness_statement",
+                "supervisor_statement",
+                "email",
+                "policy_excerpt",
+                "procedure_excerpt",
+                "facilities_notice",
+                "clarification",
+                "context_change"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "record_id",
+        "kind",
+        "doc_kind"
+      ],
+      "title": "ReleasedRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "released": {
+      "items": {
+        "$ref": "#/$defs/ReleasedRef"
+      },
+      "maxItems": 6,
+      "type": "array"
+    },
+    "already_released": {
+      "items": {
+        "pattern": "^rec-0[1-6]$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "type": "array"
+    },
+    "denied": {
+      "items": {
+        "pattern": "^rec-0[1-6]$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "type": "array"
+    },
+    "transcript_version": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "released",
+    "already_released",
+    "denied",
+    "transcript_version"
+  ],
+  "type": "object"
+}
