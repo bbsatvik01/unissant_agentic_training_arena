@@ -55,3 +55,4 @@
 - F4 rule merged; spec v2.8 (89d6e6e).
 - WP-02 contracts merged; D-017 cap merged.
 - WP-15 scorer merged.
+- 8b3b0df WP-10 merged.

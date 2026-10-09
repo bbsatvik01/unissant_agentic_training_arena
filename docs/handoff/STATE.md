@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## WP-10 merged (2026-10-09 night)
+- WP-10 prompts/builders/manifests/byte bounds merged (8b3b0df; cold Codex CORRECT, 3 rounds). Question cap 600 chars and 2,400 normalized bytes (contracts/rendered.py). S2 11.1 FX-COOP enforcement split recorded (a355544).
+- In fix loops: WP-05 port (serialized byte bound, cap replay, per-role tests), WP-11 guard (FX-COOP option A), WP-18 part 2 (5 findings).
+- Supabase still blocked at 0600 (owner: .env.owner or session restart).
+
 ## Progress (2026-10-09 evening)
 - WP-15 scorer merged (cold Codex CORRECT, 2 rounds). Spec follow-ups from it: AC-S3-4.5 says 12 material facts for F01 truthful (file has 13); S3 5.3 reference code duplicate rule; S3 5.5 full (recall, QQ) key; rubric CONFIG lexicon/prompts must be filled by the WP that adds them (lineage tripwire).
 - In fix loops with the same agents: WP-10 prompts (3 majors), WP-11 guard (fixture content), WP-05 port (building), WP-18 part 2 (building).
