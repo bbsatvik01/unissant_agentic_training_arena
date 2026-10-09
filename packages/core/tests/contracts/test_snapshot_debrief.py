@@ -164,3 +164,22 @@ def test_snapshot_event_seqs_are_distinct_and_within_last_seq(
     change(snap)
     with pytest.raises(ValidationError, match=message):
         SNAPSHOT.validate_python(snap)
+
+
+def test_a_voice_snapshot_release_seq_is_within_last_seq() -> None:
+    snap = _valid("snapshot:voice")
+    release = {
+        "record_id": "rec-02",
+        "title": "Lab B panel alarm log",
+        "kind": "record",
+        "doc_kind": "alarm_log",
+        "date": None,
+        "content": {"body": "Lab B panel alarm log for the evening of the entry."},
+        "released_at_turn": 1,
+        "trigger": "scheduled",
+        "transcript_version": 3,
+        "event_seq": 3,
+    }
+    SNAPSHOT.validate_python({**snap, "released": [release]})
+    with pytest.raises(ValidationError, match="after last_seq"):
+        SNAPSHOT.validate_python({**snap, "released": [{**release, "event_seq": 4}]})
