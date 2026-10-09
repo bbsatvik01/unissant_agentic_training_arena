@@ -4,6 +4,12 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## HOLD (owner directive, 2026-10-08 ~22:45 EDT)
+- Usage limit may hit. Do NOT stop anything running. Do NOT dispatch anything new until ~00:45 EDT (2 hours); after that, full force.
+- Running at hold time (all keep running): spec fix r1 (`wf_09e6717a-210`), build wave 2 (`wf_9aced0c9-52d`), dev case authoring (`wf_0246738e-32c`), web foundation (`wf_20ff7f42-fb5`).
+- If a session ends mid-run: relaunch each with `Workflow({scriptPath, resumeFromRunId})` (paths in SUBAGENTS.md); completed agents replay from cache. Agent edits live in: main tree `docs/spec/**` (spec fixers, uncommitted), worktrees `/private/tmp/wt-wp01`, `wt-wp08`, `wt-wp03`, `wt-cases`, `wt-web` (branches). Never delete a worktree or reset a branch before its work is committed and gated.
+- Scratch state worth keeping: scratchpad `codex/spec1/` (round-1 findings), `authoring/` (case kit), `backup-wp01/` (scaffold copy), `s1v21`/`s4v21` reference kits, `v21_result.json`, `reconcile_result.json`.
+
 ## Where things stand
 - **Direction** v10.4 (D-013, D-014): 30 hidden cases baseline (~$44 / ~$66, complete), 34 pilot-gated; one global spend ceiling $74; case families authored offline by Claude agents + Codex.
 - **UI direction** v2.1: GREEN (Codex UI round 2). Awaits owner review and DESIGN.md.
