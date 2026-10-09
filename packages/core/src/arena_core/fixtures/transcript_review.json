@@ -1,7 +1,7 @@
 {
   "fixture": "transcript review",
   "review": "transcript_review.v1",
-  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
+  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also every claim shown by a record released in the interview, not merely partly backed) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
   "transcripts": [
     {
       "id": "TX-F01-T",

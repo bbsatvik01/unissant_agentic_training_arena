@@ -333,7 +333,9 @@ def coop_problems(t: dict[str, Any]) -> list[tuple[int, str, str]]:
 
 
 @pytest.mark.parametrize("transcript_id", fixtures.load("fx_coop")["transcripts"])
-def test_every_fx_coop_claim_matches_a_record_released_by_then(transcript_id: str) -> None:
+def test_every_fx_coop_claim_is_known_and_corroborated_by_a_record_released_in_the_interview(
+    transcript_id: str,
+) -> None:
     """S2 11.1: every claim matches a released record. Each sentence of each answer cites the subject's own ledger
     entries (what it can know) and one or two verbatim quotes (`quote_ok`) of documents or records released in the
     interview that corroborate it."""

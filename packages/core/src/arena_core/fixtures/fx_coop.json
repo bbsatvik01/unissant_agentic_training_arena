@@ -1,7 +1,7 @@
 {
   "fixture": "FX-COOP",
   "spec": "S2 11.1, 11.2 EV-COACH-2",
-  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches a released record: each sentence carries one or two verbatim quotes of an initial document or a record released before that question that state its numbers, words and polarity. Families whose truthful explanation appears in records were chosen (F06, F07, F08). The transcripts are in dev_transcripts.json. Each cooperative transcript was reviewed by an independent session for consistency and responsiveness (transcript_review.json).",
+  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches a released record. The subject speaks only from its ledger and the questions (it never sees records, S2 6.7, 8.4); each sentence cites its ledger entries and one or two verbatim quotes of records released in the interview (possibly after that question) that corroborate it. Families F06, F07, F08. Each transcript passed an independent review for consistency, responsiveness and subject visibility (transcript_review.json). The transcripts are in dev_transcripts.json.",
   "transcripts": [
     "TX-F06-C",
     "TX-F07-C",

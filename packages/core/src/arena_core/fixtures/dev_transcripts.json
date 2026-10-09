@@ -1,7 +1,7 @@
 {
   "fixture": "dev transcripts",
   "spec": "S2 11.1",
-  "note": "Scripted development transcripts: replay_script.v1 questions for the case (arena_core.scenario.relay.plan_replay), answers authored from the variant packet, plain rendering (fluent, calm, native, moderate). protected: the verbatim spans a flag would quote; the FX-STYLE-PAIRS transform never edits inside them. The -C transcripts are the FX-COOP controls: each sentence carries one or two verbatim quotes of records released by then that state what it states.",
+  "note": "Scripted development transcripts: replay_script.v1 questions for the case (arena_core.scenario.relay.plan_replay); answers from the variant's ledger and the questions so far only (the subject never sees records); plain rendering (fluent, calm, native, moderate). protected: the verbatim spans a flag would quote; the FX-STYLE-PAIRS transform never edits inside them. The -C transcripts are the FX-COOP controls: each sentence cites its ledger entries and one or two verbatim quotes of records released in the interview that corroborate it.",
   "transcripts": [
     {
       "id": "TX-F01-T",
