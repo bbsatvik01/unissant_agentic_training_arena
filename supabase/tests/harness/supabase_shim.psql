@@ -1,0 +1,24 @@
+-- Stand-ins for the objects a hosted or local Supabase database already has, so the migrations and the
+-- pgTAP suite run on a throwaway database of any PostgreSQL 16 or 17 server (S4 sql/TESTS.md section 0).
+-- Lifted from TechnoMile supabase/tests/harness/supabase_shim.psql (ATTRIBUTIONS.md), trimmed to what the
+-- arena migrations reference: the three API roles, the auth schema with auth.users (arena allowlists users
+-- there, C-02, C-03) and the extensions schema (pgcrypto, pgtap, dblink). TechnoMile's auth.jwt(),
+-- auth.uid() and public.rls_auto_enable() stand-ins are dropped: no arena object calls them.
+-- Every statement is idempotent, so on a Supabase server the existing roles are kept untouched.
+-- NEVER applied to a Supabase project database: run_pgtap.sh loads it only into the throwaway database it
+-- creates itself, and its --in-place mode (a fresh local Supabase database) skips it.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin noinherit; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin noinherit; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin noinherit bypassrls; end if;
+end $$;
+
+create schema if not exists auth;
+create schema if not exists extensions;
+grant usage on schema auth to anon, authenticated, service_role;
+
+create table if not exists auth.users (
+  id    uuid primary key,
+  email text
+);

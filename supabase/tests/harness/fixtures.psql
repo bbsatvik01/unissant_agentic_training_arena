@@ -1,0 +1,419 @@
+-- Shared pgTAP fixtures (S4 sql/TESTS.md section 0). Pattern of TechnoMile
+-- supabase/tests/harness/fixtures.psql (ATTRIBUTIONS.md): included by every test file with
+--   \ir harness/fixtures.psql
+-- right after its BEGIN, so everything here (schema tests, its functions, the role grant below) is created
+-- inside the test's own transaction and disappears with its ROLLBACK.
+--
+-- Fixtures call the arena functions as the migration owner, the way setup code runs; the assertions under
+-- test switch to a runtime role with `set local role ...` (or tests.as_role). Investigator requests set
+-- arena.actor_id, harness requests leave it unset (S4 2.3, 5.5).
+create schema if not exists tests;
+
+-- `set local role arena_*` needs a SET membership. On Supabase the migration owner `postgres` is not a superuser
+-- and holds only ADMIN on the roles its migration created (PostgreSQL 16+, createrole_self_grant unset), so the
+-- test transaction grants itself SET (no INHERIT: it gains no privilege of those roles). Rolled back with the
+-- test, so a run against any database leaves no membership behind. Runtime roles stay members of nothing
+-- (capability test CM-10).
+grant arena_public, arena_subject, arena_referee to current_user with inherit false, set true;
+-- Assertions may run while switched to a runtime role (TESTS.md section 0): those roles need USAGE on the
+-- schema pgTAP lives in (Supabase convention: extensions, which runtime roles cannot use in production) and on
+-- schema tests. Both grants roll back with the test.
+do $$
+begin
+  execute format('grant usage on schema %I to arena_public, arena_subject, arena_referee',
+                 (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+                   where e.extname = 'pgtap'));
+end $$;
+grant usage on schema tests to arena_public, arena_subject, arena_referee;
+
+-- hex sha256 of a text value
+create or replace function tests.h(p text) returns text
+language sql immutable as $$ select encode(sha256(convert_to(p, 'UTF8')), 'hex') $$;
+
+-- four allowlisted users (auth.users rows, C-02) for actor-scoped tests
+create or replace function tests.uid(p text) returns uuid
+language sql immutable as $$
+  select case p
+    when 'A' then '00000000-0000-0000-0000-00000000000a'::uuid
+    when 'B' then '00000000-0000-0000-0000-00000000000b'::uuid
+    when 'C' then '00000000-0000-0000-0000-00000000000c'::uuid
+    when 'D' then '00000000-0000-0000-0000-00000000000d'::uuid
+  end $$;
+
+-- the request key of a step (S5 5.1): sha256 of trial, turn, step kind and purpose joined by colons
+create or replace function tests.k(p_trial uuid, p_turn integer, p_kind text, p_purpose text) returns text
+language sql immutable as $$ select tests.h(p_trial || ':' || p_turn || ':' || p_kind || ':' || p_purpose) $$;
+
+create or replace function tests.users() returns void
+language sql as $$
+  insert into auth.users (id, email)
+  values (tests.uid('A'), 'a@example.test'), (tests.uid('B'), 'b@example.test'), (tests.uid('C'), 'c@example.test'),
+         (tests.uid('D'), 'd@example.test')
+  on conflict (id) do nothing
+$$;
+
+-- The probes below expect a statement to FAIL. They never leave its effects behind: a statement that succeeds
+-- is undone (sentinel SQLSTATE TS000 aborts the probe's own subtransaction), so a defect that lets it through
+-- fails that one assertion instead of corrupting the state the rest of the file tests.
+
+-- The SQLSTATE a statement raises, or 00000 when it succeeds.
+create or replace function tests.sqlstate(p_sql text) returns text
+language plpgsql as $$
+declare
+  v text;
+begin
+  begin
+    execute p_sql;
+    raise exception using errcode = 'TS000', message = 'tests: undo a statement that succeeded';
+  exception
+    when sqlstate 'TS000' then v := '00000';
+    when others then v := sqlstate;
+  end;
+  return v;
+end $$;
+
+-- 'SQLSTATE: message' of the error a statement raises, or 00000 when it succeeds: pins both the code and the
+-- cause, for rows whose several refusals share one code (for example AR007).
+create or replace function tests.error(p_sql text) returns text
+language plpgsql as $$
+declare
+  v text;
+begin
+  begin
+    execute p_sql;
+    raise exception using errcode = 'TS000', message = 'tests: undo a statement that succeeded';
+  exception
+    when sqlstate 'TS000' then v := '00000';
+    when others then v := sqlstate || ': ' || sqlerrm;
+  end;
+  return v;
+end $$;
+
+-- Negative test that pins the INTENDED failure: SQLSTATE plus the constraint name or a message regex, so a
+-- different guard firing first fails the test (TechnoMile tests.throws).
+create or replace function tests.throws(p_sql text, p_code text, p_match text, p_desc text) returns text
+language plpgsql as $$
+declare
+  v_state text; v_msg text; v_con text;
+begin
+  begin
+    execute p_sql;
+    raise exception using errcode = 'TS000', message = 'tests: undo a statement that succeeded';
+  exception
+    when sqlstate 'TS000' then
+      return ok(false, p_desc) || E'\n' || diag('no error raised');
+    when others then
+      get stacked diagnostics v_state = returned_sqlstate, v_msg = message_text, v_con = constraint_name;
+  end;
+  if v_state = p_code and (coalesce(v_con, '') = p_match or v_msg ~ p_match) then
+    return ok(true, p_desc);
+  end if;
+  return ok(false, p_desc) || E'\n'
+    || diag(format('got %s constraint=%s: %s; wanted %s matching %s', v_state, v_con, v_msg, p_code, p_match));
+end $$;
+
+-- Run one statement as a runtime role and return its single jsonb value; the caller's role is restored
+-- whether the statement succeeds or raises.
+create or replace function tests.as_role(p_role text, p_sql text) returns jsonb
+language plpgsql as $$
+declare
+  v_prev text := current_setting('role');
+  v      jsonb;
+begin
+  perform set_config('role', p_role, true);
+  begin
+    execute p_sql into v;
+  exception when others then
+    perform set_config('role', v_prev, true);
+    raise;
+  end;
+  perform set_config('role', v_prev, true);
+  return v;
+end $$;
+
+-- ------------------------------------------------------------------ cases and candidates
+-- opaque case id of a family's variant (S1 caseId shape, C-25)
+create or replace function tests.vcode(p_code text, p_role text) returns text
+language sql immutable as $$ select 'C-' || upper(substr(md5(p_code || ':' || p_role), 1, 8)) $$;
+
+-- S2 3.1 manifest.v1 with every key (C-47)
+create or replace function tests.manifest(p_kind text, p_name text, p_version text, p_model text) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'manifest_version', 'manifest.v1', 'candidate_id', p_name, 'kind', p_kind, 'display_name', p_name,
+    'version', p_version, 'official', true, 'transport', 'in_process',
+    'model', jsonb_build_object('provider', 'vertex', 'location', 'global'),
+    'prompt', jsonb_build_object('files', '[]'::jsonb),
+    'tools', case when p_kind = 'assistant' then '["record_request"]'::jsonb else '[]'::jsonb end,
+    'coaching_policy', case when p_kind = 'assistant'
+                            then '{"design": "single_call", "deep_update": null}'::jsonb else 'null'::jsonb end,
+    'subject_policy', case when p_kind = 'subject' then '{"policy": "standard"}'::jsonb else 'null'::jsonb end,
+    'limits', case p_kind
+                when 'subject' then jsonb_build_object('subject', jsonb_build_object(
+                  'model_id', p_model, 'max_input_tokens', 6000, 'max_output_tokens', 1600))
+                when 'referee' then jsonb_build_object(
+                  'referee_subject', jsonb_build_object('model_id', p_model, 'max_input_tokens', 12000,
+                                                        'max_output_tokens', 4000),
+                  'referee_assistant', jsonb_build_object('model_id', p_model, 'max_input_tokens', 12000,
+                                                          'max_output_tokens', 4000))
+                else jsonb_build_object('card', jsonb_build_object(
+                  'model_id', p_model, 'max_input_tokens', 6000, 'max_output_tokens', 1600))
+              end,
+    'repair', '{"schema_repairs": 1, "transient_retries": 2}'::jsonb,
+    'sampling', '{"temperature": null}'::jsonb,
+    'lineage', '{"parent_sha256": null, "change_note": "fixture"}'::jsonb)
+$$;
+
+-- register (idempotently) candidate p_name version v1 of kind p_kind
+create or replace function tests.candidate(p_kind text, p_name text) returns uuid
+language sql as $$
+  select arena.register_candidate(p_kind, p_name, 'v1',
+    tests.manifest(p_kind, p_name, 'v1', case p_kind when 'subject' then 'gemini-3.1-flash-lite'
+                                                     else 'gemini-3.5-flash-lite' end))
+$$;
+
+-- A matched family file (S1 family file, schema 1.2.0; SCN-11): one truthful and one deceptive variant with opaque
+-- case ids. The truthful variant has rec-01 (work order, on request after 1 exchange) and rec-02 (badge log,
+-- scheduled after 2 exchanges); the deceptive variant has rec-01. Tests mutate it with jsonb_set for negative cases.
+create or replace function tests.family_file(p_code text, p_split text) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'schema_version', '1.2.0', 'family_id', p_code, 'revision', 1, 'split', p_split, 'domain', 'facility_access',
+    'taxonomy', jsonb_build_object('violation_type', 'sealed_material_access',
+                                   'misleading_types', jsonb_build_array('late_paperwork')),
+    'difficulty', jsonb_build_object('level', 2), 'style', jsonb_build_object('verbosity', 'terse'),
+    'variants', jsonb_build_object(
+      'truthful', jsonb_build_object(
+        'case_id', tests.vcode(p_code, 'truthful'),
+        'public_packet', jsonb_build_object('case_id', tests.vcode(p_code, 'truthful'), 'requestable_records',
+          jsonb_build_array(jsonb_build_object('record_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
+                                               'requestable_after_exchanges', 1))),
+        'private_packet', jsonb_build_object('role', 'truthful', 'concealed', '[]'::jsonb),
+        'evaluator_packet', jsonb_build_object('role', 'truthful', 'facts', jsonb_build_array('F1'), 'evidence_artifacts',
+          jsonb_build_array(
+            jsonb_build_object('artifact_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
+                               'content', jsonb_build_object('text', 'HVAC repair, room 4'),
+                               'release', jsonb_build_object('type', 'on_request', 'after_exchanges', 1)),
+            jsonb_build_object('artifact_id', 'rec-02', 'kind', 'badge_log', 'title', 'Badge log',
+                               'content', jsonb_build_object('text', 'badge 17 at 21:04'),
+                               'release', jsonb_build_object('type', 'scheduled', 'after_exchanges', 2))))),
+      'deceptive', jsonb_build_object(
+        'case_id', tests.vcode(p_code, 'deceptive'),
+        'public_packet', jsonb_build_object('case_id', tests.vcode(p_code, 'deceptive'), 'requestable_records',
+          jsonb_build_array(jsonb_build_object('record_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
+                                               'requestable_after_exchanges', 1))),
+        'private_packet', jsonb_build_object('role', 'deceptive', 'concealed', jsonb_build_array('F1')),
+        'evaluator_packet', jsonb_build_object('role', 'deceptive', 'facts', jsonb_build_array('F1'), 'evidence_artifacts',
+          jsonb_build_array(
+            jsonb_build_object('artifact_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
+                               'content', jsonb_build_object('text', 'no work order on file'),
+                               'release', jsonb_build_object('type', 'on_request', 'after_exchanges', 1)))))))
+$$;
+
+-- S1 10.5 attestation of a family file text: its sha256, every required check and every Codex result passed.
+create or replace function tests.attestation(p_source text) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object('family_id', p_source::jsonb ->> 'family_id', 'revision', p_source::jsonb -> 'revision',
+    'family_sha256', tests.h(p_source), 'validator_version', 'v1',
+    'checks_passed', '["V1", "V1b", "V1c", "V1d", "V2", "V3a", "V4a", "V4b", "V4c", "V5"]'::jsonb,
+    'codex', jsonb_build_object('rounds', 1, 'review', 'pass', 'cx2_truthful', 'pass', 'cx2_deceptive', 'pass',
+                                'cx3', 'pass'))
+$$;
+
+-- The ingest bundle S1 4.4's loader builds from a family file: the archived text and its attestation, and per
+-- variant the file's case id, role, packets, style and difficulty level, with one artifact row per releasable
+-- evaluator record (kind follows doc_kind; on_request rows are requestable).
+create or replace function tests.bundle_of(p_file jsonb) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'family_code', p_file ->> 'family_id', 'domain', p_file ->> 'domain', 'split', p_file ->> 'split',
+    'source', p_file::text, 'attestation', tests.attestation(p_file::text),
+    'variants', (select jsonb_agg(jsonb_build_object(
+        'variant_code', v.value ->> 'case_id', 'role', v.key, 'style', p_file -> 'style',
+        'difficulty', p_file #> '{difficulty,level}', 'public_packet', v.value -> 'public_packet',
+        'private_packet', v.value -> 'private_packet', 'evaluator_packet', v.value -> 'evaluator_packet',
+        'artifacts', (select coalesce(jsonb_agg(jsonb_build_object(
+            'record_id', e ->> 'artifact_id',
+            'kind', case e ->> 'kind' when 'clarification' then 'clarification'
+                                      when 'context_change' then 'context_change' else 'record' end,
+            'doc_kind', e ->> 'kind', 'title', e ->> 'title', 'content', e -> 'content',
+            'requestable', e #>> '{release,type}' = 'on_request',
+            'scheduled_turn', case when e #>> '{release,type}' = 'scheduled' then e #> '{release,after_exchanges}' end,
+            'request_after_turn', case when e #>> '{release,type}' = 'on_request' then e #> '{release,after_exchanges}' end)
+            order by e ->> 'artifact_id'), '[]'::jsonb)
+          from jsonb_array_elements(v.value #> '{evaluator_packet,evidence_artifacts}') e))
+        order by v.key)
+      from jsonb_each(p_file -> 'variants') v))
+$$;
+
+create or replace function tests.bundle(p_code text, p_split text) returns jsonb
+language sql immutable as $$ select tests.bundle_of(tests.family_file(p_code, p_split)) $$;
+
+-- ingest tests.bundle(p_code, p_split) (idempotent) and return the family id
+create or replace function tests.family(p_code text, p_split text) returns uuid
+language sql as $$ select sealed.ingest_case_family(tests.bundle(p_code, p_split)) $$;
+
+-- The hidden split's sampler record (S1 10.5): every ingested hidden family once, with its archived taxonomy,
+-- difficulty level and style, so sealed.seal_hidden_split accepts it.
+create or replace function tests.sampler() returns jsonb
+language sql stable as $$
+  select jsonb_build_object('seed', 42, 'max_phi', 0.1,
+    'n', (select count(*) from arena.case_families where split = 'hidden'),
+    'assignment', (select coalesce(jsonb_agg(jsonb_build_object(
+                       'family_id', f ->> 'family_id', 'violation_type', f #> '{taxonomy,violation_type}',
+                       'misleading_types', f #> '{taxonomy,misleading_types}', 'level', f #> '{difficulty,level}',
+                       'style', f -> 'style') order by f ->> 'family_id'), '[]'::jsonb)
+                     from (select i.source::jsonb as f from sealed.family_ingests i
+                             join arena.case_families c on c.id = i.family_id where c.split = 'hidden') s))
+$$;
+
+-- the variant of family p_code whose evaluator packet carries p_role
+create or replace function tests.variant(p_code text, p_role text) returns uuid
+language sql stable as $$
+  select v.id from arena.case_variants v join arena.case_families f on f.id = v.family_id
+    join sealed.evaluator_packets e on e.variant_id = v.id
+   where f.family_code = p_code and e.role = p_role
+$$;
+
+-- ------------------------------------------------------------------ tournaments and turns
+-- A small tournament on family TDEV (dev) or THID (hidden; ingested, then the split is sealed), frozen and
+-- running. Tracks: replay_corpus (position 1, truthful, subject S1), replay (position 2, scoring position 1,
+-- assistant A1; needs replay_corpus), interactive (block 1: positions 3 truthful and 4 deceptive, A1 x S1).
+create or replace function tests.tournament(p_split text, p_tracks text[]) returns uuid
+language plpgsql as $$
+declare
+  v_code text := case p_split when 'dev' then 'TDEV' when 'hidden' then 'THID' end;
+  v_a    uuid;
+  v_s    uuid;
+  v_vt   uuid;
+  v_vd   uuid;
+  v_t    uuid;
+  v_rows jsonb := '[]'::jsonb;
+begin
+  if v_code is null or p_tracks is null or cardinality(p_tracks) = 0
+     or not p_tracks <@ array['replay_corpus', 'replay', 'interactive']
+     or ('replay' = any (p_tracks) and not 'replay_corpus' = any (p_tracks)) then
+    raise exception 'tests.tournament: split dev|hidden and tracks from replay_corpus, replay (with replay_corpus), interactive';
+  end if;
+  v_a := tests.candidate('assistant', 'A1');
+  v_s := tests.candidate('subject', 'S1');
+  perform tests.family(v_code, p_split);
+  if p_split = 'hidden' and not exists (select 1 from sealed.hidden_split_seals) then
+    perform sealed.seal_hidden_split(tests.sampler());
+  end if;
+  v_vt := tests.variant(v_code, 'truthful');
+  v_vd := tests.variant(v_code, 'deceptive');
+  if 'replay_corpus' = any (p_tracks) then
+    v_rows := v_rows || jsonb_build_array(jsonb_build_object('position', 1, 'track', 'replay_corpus',
+                                                             'variant_id', v_vt, 'subject_candidate_id', v_s));
+  end if;
+  if 'replay' = any (p_tracks) then
+    v_rows := v_rows || jsonb_build_array(jsonb_build_object('position', 2, 'track', 'replay', 'variant_id', v_vt,
+                                                             'assistant_candidate_id', v_a, 'source_position', 1));
+  end if;
+  if 'interactive' = any (p_tracks) then
+    v_rows := v_rows || jsonb_build_array(
+      jsonb_build_object('position', 3, 'track', 'interactive', 'block_no', 1, 'variant_id', v_vt,
+                         'assistant_candidate_id', v_a, 'subject_candidate_id', v_s),
+      jsonb_build_object('position', 4, 'track', 'interactive', 'block_no', 1, 'variant_id', v_vd,
+                         'assistant_candidate_id', v_a, 'subject_candidate_id', v_s));
+  end if;
+  v_t := arena.create_tournament('t-' || p_split || '-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 16),
+                                 p_split, 42, 'global');
+  perform arena.add_planned_trials(v_t, v_rows);
+  perform arena.freeze_tournament(v_t);
+  perform arena.open_tournament(v_t);
+  return v_t;
+end $$;
+
+-- the latest attempt of the planned trial at p_position
+create or replace function tests.trial(p_tournament uuid, p_position integer) returns uuid
+language sql stable as $$
+  select t.id from arena.trials t join arena.planned_trials p on p.id = t.planned_trial_id
+   where p.tournament_id = p_tournament and p.position = p_position
+   order by t.attempt desc limit 1
+$$;
+
+-- One full exchange on a running trial (S4 5.3): question, release (also with an empty list), subject answer
+-- (guard passed), and the coach card when the trial has an assistant, each step opened with its request key
+-- (tests.k). Acts as the trial's own kind of caller (the owner's actor id on a training trial, no actor and a
+-- harness_fixed question on a tournament trial) and restores arena.actor_id.
+create or replace function tests.exchange(p_trial uuid, p_question text, p_release_ids text[], p_answer text)
+returns jsonb
+language plpgsql as $$
+declare
+  v      arena.trials;
+  v_prev text := coalesce(current_setting('arena.actor_id', true), '');
+  v_q    jsonb;
+  v_turn integer;
+  v_wi   uuid;
+begin
+  select * into v from arena.trials where id = p_trial;
+  if v.id is null then
+    raise exception 'tests.exchange: no trial %', p_trial;
+  end if;
+  perform set_config('arena.actor_id', case when v.kind = 'training' then v.owner_user_id::text else '' end, true);
+  v_q := arena.submit_question(p_trial, v.transcript_version, p_question,
+                               'ex-' || tests.h(p_trial::text || ':' || v.transcript_version || ':' || p_question),
+                               case when v.kind = 'training' then null else 'harness_fixed' end);
+  v_turn := (v_q ->> 'turn_no')::integer;
+  v_wi := (arena.open_work_item(p_trial, 'release', tests.k(p_trial, v_turn, 'release', 'turn')) ->> 'work_item_id')::uuid;
+  perform arena.release_evidence(p_trial, v_wi, coalesce(p_release_ids, '{}'::text[]));
+  v_wi := (arena.open_work_item(p_trial, 'subject_answer', tests.k(p_trial, v_turn, 'subject_answer', 'subject.answer'))
+           ->> 'work_item_id')::uuid;
+  perform arena.record_subject_turn(p_trial, v_wi, p_answer, null, '{"passed": true}'::jsonb);
+  if v.assistant_candidate_id is not null then
+    v_wi := (arena.open_work_item(p_trial, 'coaching', tests.k(p_trial, v_turn, 'coaching', 'coach.card'))
+             ->> 'work_item_id')::uuid;
+    perform arena.record_coaching_event(p_trial, v_wi, jsonb_build_object('card', 'fixture', 'turn_no', v_turn));
+  end if;
+  perform set_config('arena.actor_id', v_prev, true);
+  return jsonb_build_object('turn_no', v_turn,
+                            'transcript_version', (select transcript_version from arena.trials where id = p_trial));
+end $$;
+
+-- ------------------------------------------------------------------ budget plan (D-012, D-013)
+-- Apply cost_model.py --plan-json the way the operator does (S4 8.1; S5 4.4 scripts/budget_plan.py --apply):
+-- ops.set_bucket_ceiling per entry, parents before children. Runs as the owner. Returns the entries applied.
+create or replace function tests.apply_plan(p_plan jsonb) returns integer
+language plpgsql as $$
+declare
+  r   record;
+  v_n integer := 0;
+begin
+  for r in
+    with recursive d as (
+      select e.key as name, e.value ->> 'parent' as parent, (e.value ->> 'ceiling_usd')::numeric as ceiling, 0 as depth
+        from jsonb_each(p_plan) e where e.value ->> 'parent' is null
+      union all
+      select e.key, e.value ->> 'parent', (e.value ->> 'ceiling_usd')::numeric, d.depth + 1
+        from jsonb_each(p_plan) e join d on e.value ->> 'parent' = d.name
+    )
+    select * from d order by depth, name
+  loop
+    perform ops.set_bucket_ceiling(r.name, r.parent, r.ceiling, 'budget_plan() applied');
+    v_n := v_n + 1;
+  end loop;
+  if v_n <> (select count(*) from jsonb_object_keys(p_plan)) then
+    raise exception 'tests.apply_plan: the plan is not one tree under a parentless root: %', p_plan;
+  end if;
+  return v_n;
+end $$;
+
+-- Differences between ops.budget_buckets and the plan, one line each (name, parent, ceiling). With p_seed the
+-- expected ceilings are $0: the fail-closed seed has the plan's shape and nothing to spend (D-012).
+create or replace function tests.plan_mismatches(p_plan jsonb, p_seed boolean) returns setof text
+language sql stable as $$
+  select format('%s: table (parent %s, ceiling %s) vs plan (parent %s, ceiling %s)',
+                coalesce(b.name, e.key), coalesce(b.parent, '-'), coalesce(b.ceiling_usd::text, 'absent'),
+                coalesce(e.value ->> 'parent', '-'),
+                case when e.key is null then 'absent' when p_seed then '0' else e.value ->> 'ceiling_usd' end)
+    from ops.budget_buckets b full join jsonb_each(p_plan) e on e.key = b.name
+   where b.name is null or e.key is null
+      or b.parent is distinct from (e.value ->> 'parent')
+      or b.ceiling_usd is distinct from case when p_seed then 0 else (e.value ->> 'ceiling_usd')::numeric end
+$$;
+
+-- Explicit, so the fixtures stay callable by the runtime roles even where the migration owner's global default
+-- privileges no longer give PUBLIC EXECUTE on new functions.
+grant execute on all functions in schema tests to arena_public, arena_subject, arena_referee;
