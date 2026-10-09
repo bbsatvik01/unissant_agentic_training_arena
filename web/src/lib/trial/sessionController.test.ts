@@ -2533,3 +2533,56 @@ describe("session controller: a debrief request settles when the end state is lo
     await requested;
   });
 });
+
+describe("session controller: the same question asked again is a new turn once the first was recorded", () => {
+  it("sends a second POST with the current version and a new key while the first POST is still open", async () => {
+    let n = 0;
+    const sent: TurnSubmit[] = [];
+    const h = harness();
+    const c = h.make({
+      newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          // the first POST stays open (the deep update runs inside it, S5 5.2)
+          return sent.length === 1 ? new Promise(() => undefined) : Promise.resolve({ last_seq: 0 });
+        },
+      },
+    });
+    await begin(c);
+    void c.submitTurn("Why?");
+    const frames = new LogBuilder().ask().frames.map((f) => (f.type === "question.accepted" ? { ...f, data: { ...f.data, text: "Why?" } } : f));
+    for (const f of frames) h.last().send(f);
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+    await c.submitTurn("Why?");
+    expect(sent).toHaveLength(2);
+    expect(sent[1]?.expected_version).toBe(trialView(c).transcriptVersion);
+    expect(sent[1]?.idem_key).not.toBe(sent[0]?.idem_key);
+  });
+});
+
+describe("session controller: a retry after the question was recorded but not answered", () => {
+  it("still resends the same request, so the server resumes the open turn", async () => {
+    const sent: TurnSubmit[] = [];
+    let n = 0;
+    const h = harness();
+    const c = h.make({
+      newKey: () => `k${String((n += 1))}`,
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          return sent.length === 1 ? Promise.reject(new TypeError("lost")) : Promise.resolve({ last_seq: 0 });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.submitTurn("Why?")).rejects.toBeInstanceOf(TypeError);
+    const [q] = new LogBuilder().ask().frames as [TrialFrame];
+    h.last().send({ ...q, data: { ...q.data, text: "Why?" } });
+    expect(roomStatus(c.getState().trial)).toBe("subject_answering");
+    await c.submitTurn("Why?");
+    expect(sent[1]).toEqual(sent[0]);
+  });
+});

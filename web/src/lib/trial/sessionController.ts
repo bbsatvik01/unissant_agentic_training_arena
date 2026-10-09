@@ -151,6 +151,12 @@ const globalScheduler: Scheduler = {
   },
 };
 
+/** An unresolved turn: its request, and how many turns the room held when it was first sent. */
+interface PendingTurn {
+  readonly body: TurnSubmit;
+  readonly turnsBefore: number;
+}
+
 /**
  * The server refused this attempt outright (4xx: this attempt wrote nothing). Any other failure (network, 5xx, a
  * lost or malformed answer) may have been applied: the retry must reuse the key.
@@ -200,7 +206,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * idempotency key (S5 5.2) even after other actions ran in between. Each is forgotten only when its own request
    * settles: answered, or refused outright (4xx).
    */
-  const pendingTurns = new Map<string, TurnSubmit>();
+  const pendingTurns = new Map<string, PendingTurn>();
   const pendingKeys = new Map<string, string>();
   /** Idempotency keys some attempt of which may have been applied (a lost answer, a 5xx, a malformed answer). */
   const uncertainKeys = new Set<string>();
@@ -307,20 +313,14 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const over = (): boolean =>
     state.connection === "ending" || state.connection === "end_failed" || state.connection === "scoring" || state.connection === "finished";
 
-  /** Waits of the REST retries; dispose() ends them all at once, so nothing awaiting one hangs. */
-  const waits = new Set<() => void>();
+  /** A wait of the REST retries; dispose() cancels its timer, and endWaiters release whoever awaited the end. */
   const delay = (ms: number) =>
     new Promise<void>((resolve) => {
-      const done = () => {
-        waits.delete(done);
-        resolve();
-      };
       const handle = scheduler.setTimeout(() => {
         catchUpTimers.delete(handle);
-        done();
+        resolve();
       }, ms);
       catchUpTimers.add(handle);
-      waits.add(done);
     });
 
   /** A terminal snapshot is installed: the trial's final state. */
@@ -713,18 +713,29 @@ export function createSessionController(options: SessionControllerOptions): Sess
       };
     },
     submitTurn(question) {
-      return once(`turn:${question}`, async () => {
-        const v = requireView();
-        // A retry of the same question resends the same request, key and version included, so the server resumes it.
-        const body: TurnSubmit = pendingTurns.get(question) ?? {
-          question,
-          release_ids: [],
-          expected_version: v.transcriptVersion,
-          idem_key: newKey(),
-        };
-        pendingTurns.set(question, body);
+      const v = view();
+      if (v === null) return Promise.reject(new Error("the room cannot act before the snapshot is read"));
+      // A retry of the same question resends the same request, key and version included, so the server resumes the
+      // turn it may have started. Once that turn is on the record and closed (the room awaits the next question, so
+      // it was answered), the earlier request did all it could: asking it again is a new turn with a new key.
+      const held = pendingTurns.get(question);
+      const completed =
+        held !== undefined &&
+        (v.status === "awaiting_question" || v.status === "cap_reached") &&
+        v.turns.some((t) => t.turn_no > held.turnsBefore && t.question === question);
+      const reuse = held !== undefined && !completed;
+      const entry: PendingTurn = reuse
+        ? held
+        : {
+            body: { question, release_ids: [], expected_version: v.transcriptVersion, idem_key: newKey() },
+            turnsBefore: Math.max(0, ...v.turns.map((t) => t.turn_no)),
+          };
+      pendingTurns.set(question, entry);
+      const { body } = entry;
+      // Two submissions of one identity in flight share one request.
+      return once(`turn:${body.idem_key}`, async () => {
         const settle = () => {
-          if (pendingTurns.get(question) === body) pendingTurns.delete(question);
+          if (pendingTurns.get(question) === entry) pendingTurns.delete(question);
           uncertainKeys.delete(body.idem_key);
         };
         try {
@@ -814,7 +825,6 @@ export function createSessionController(options: SessionControllerOptions): Sess
       clearHiddenTimer();
       for (const handle of catchUpTimers) scheduler.clearTimeout(handle);
       catchUpTimers.clear();
-      for (const done of [...waits]) done();
       for (const release of [...endWaiters]) release();
       unsubscribeVisibility?.();
       unsubscribeVisibility = null;
