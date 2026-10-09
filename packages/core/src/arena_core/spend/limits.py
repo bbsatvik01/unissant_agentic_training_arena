@@ -86,11 +86,15 @@ DEFAULT_TIMING: dict[CallType, CallTiming] = {
     CallType.PORTRAIT: CallTiming(60.0, 120.0),
 }
 
-# S5 3.3 / S2 1, 2: thinking is MINIMAL on every call type except the referee, whose rows use LOW (R1, r3_subject)
-# or MINIMAL (R2, r3_investigator).
-THINKING: dict[CallType, frozenset[ThinkingLevel]] = {
-    **{t: frozenset({ThinkingLevel.MINIMAL}) for t in CallType},
-    CallType.REFEREE: frozenset({ThinkingLevel.LOW, ThinkingLevel.MINIMAL}),
+# S5 3.3 / S2 1, 2: thinking is MINIMAL on every call type except the referee. The referee's rows pair model and
+# thinking (S5 3.3: gemini-3.1-flash-lite with LOW, gemini-3.5-flash-lite with MINIMAL) and S2 2 gives each referee
+# purpose its level (R1 and r3_subject LOW; R2 and r3_investigator MINIMAL), so each purpose has one combination.
+THINKING: dict[CallType, frozenset[ThinkingLevel]] = {t: frozenset({ThinkingLevel.MINIMAL}) for t in CallType}
+REFEREE_COMBINATIONS: dict[str, tuple[VertexModel, ThinkingLevel]] = {
+    "referee_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.LOW),
+    "r3_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.LOW),
+    "referee_assistant": (VertexModel.FLASH_LITE_35, ThinkingLevel.MINIMAL),
+    "r3_investigator": (VertexModel.FLASH_LITE_35, ThinkingLevel.MINIMAL),
 }
 
 # S5 3.3 / S2 2: the fixed purpose labels per call type. S4 accepts exactly the four referee labels on `referee`.

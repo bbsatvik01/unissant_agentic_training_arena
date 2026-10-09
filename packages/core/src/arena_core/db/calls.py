@@ -325,17 +325,3 @@ async def set_kill_switch(conn: Conn, *, on: bool, reason: str) -> None:
     """`ops.set_kill_switch(on, reason)`: owner credential only."""
     async with conn.transaction():
         await conn.execute("select ops.set_kill_switch(%s, %s)", (on, reason))
-
-
-def _step_lock_key(step_key: str) -> str:
-    return f"arena.step:{step_key}"
-
-
-async def hold_step(conn: Conn, step_key: str) -> bool:
-    """Try to hold the step on ``conn`` with a TRANSACTION advisory lock and leave that transaction open: True when
-    the step was free. The caller dedicates ``conn`` to the hold and ends it by rolling back or closing. A
-    transaction pins its backend under Supavisor transaction mode (S4 2.2), so the hold is exact through the pooler,
-    and a holder that dies drops its connection, which aborts the transaction and frees the step."""
-    cur = await conn.execute("select pg_try_advisory_xact_lock(hashtextextended(%s, 0))", (_step_lock_key(step_key),))
-    row = await cur.fetchone()
-    return bool(row and row[0])

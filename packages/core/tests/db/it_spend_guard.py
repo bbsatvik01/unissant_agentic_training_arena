@@ -12,6 +12,7 @@ The file name does not match `test_*.py`, so `make test` (no database) never col
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import os
 import secrets
 from collections.abc import AsyncIterator, Coroutine
@@ -362,7 +363,6 @@ class _KillAfterReserve:
                     await admin_exec(outer._dsn, "select ops.set_kill_switch(true, 'flip at dispatch')")
                     return found
 
-                claim = session.claim
                 dispatch = session.dispatch
                 record = session.record
                 settle = session.settle
@@ -458,7 +458,12 @@ def test_a_restarted_call_settles_its_dispatched_hold_usage_unknown_and_reserves
             return made.reservation_id
 
     dead = run(crashed_after_dispatch())
-    result = run(port(admin_dsn, FakeAdapter(script=[VALID], usage=USAGE)).run(call))
+    adapter = FakeAdapter(script=[VALID], usage=USAGE)
+    with pytest.raises(StepInProgressError):  # without the owner's word, an open hold is a live call's
+        run(port(admin_dsn, adapter).run(call))
+    assert adapter.requests == []
+    recovering = dataclasses.replace(call, context=dataclasses.replace(call.context, recover=True))
+    result = run(port(admin_dsn, adapter).run(recovering))
     old = run(reservation_row(admin_dsn, dead))
     assert (old["state"], old["settled_usd"]) == ("usage_unknown", old["reserved_usd"])  # never released
     new = run(reservation_row(admin_dsn, result.reservation_id))
@@ -466,8 +471,8 @@ def test_a_restarted_call_settles_its_dispatched_hold_usage_unknown_and_reserves
 
 
 def test_a_live_call_s_step_is_never_recovered_from_under_it(admin_dsn: str) -> None:
-    """Two processes on one step: the second is refused while the first holds the step (a session advisory lock),
-    so the first's dispatched hold is never settled usage_unknown and resent; once the first ends, the step is free."""
+    """Two processes on one step: the second finds the first's open reservation and is refused, so the first's
+    dispatched hold is never settled usage_unknown and resent; once the first has settled, the next key is used."""
     run(open_ceiling(admin_dsn, Decimal("1.00")))
     call = card_call(step())
     slow = FakeAdapter(script=[VALID], usage=USAGE, delay_s=0.5)

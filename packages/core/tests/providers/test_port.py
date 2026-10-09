@@ -528,7 +528,11 @@ def test_a_dispatched_hold_left_by_a_dead_process_is_settled_usage_unknown_and_t
     [(old_id, old)] = budget.reservations.items()
     old.state, old.settled_usd = "reserved", None  # as if the process died after dispatch
     budget.rows.clear()
-    result = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(call))
+    unowned = FakeAdapter(script=[VALID])
+    with pytest.raises(StepInProgressError):  # an open hold is a live call's unless the step's owner says otherwise
+        run(AgentPort(unowned, budget, PortOptions(sleep=no_sleep)).run(call))
+    assert (unowned.requests, old.state) == ([], "reserved")
+    result = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(recovering(call)))
     assert budget.reservations[old_id].state == "usage_unknown"
     assert budget.reservations[result.reservation_id].key == f"{call.context.step_key}:2"
 
@@ -542,7 +546,9 @@ def test_an_undispatched_hold_is_resumed_and_a_settled_one_skipped() -> None:
     held = budget.reservations[second.reservation_id]
     held.state, held.dispatched, held.settled_usd = "reserved", False, None
     budget.rows.clear()
-    third = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(call))
+    with pytest.raises(StepInProgressError):
+        run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(call))
+    third = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(recovering(call)))
     assert third.reservation_id == second.reservation_id
 
 
@@ -715,6 +721,10 @@ def test_the_backoff_never_outlasts_the_deadline() -> None:
 # ---------------------------------------------------------------- Codex round 2: step ownership, timing, text, cancel
 
 
+def recovering(call: AgentCall[Reply]) -> AgentCall[Reply]:
+    return dataclasses.replace(call, context=dataclasses.replace(call.context, recover=True))
+
+
 def test_a_second_live_call_on_the_same_step_is_refused_and_the_first_completes() -> None:
     budget = RunBudget(CEILING)
     call = card()
@@ -732,7 +742,6 @@ def test_a_second_live_call_on_the_same_step_is_refused_and_the_first_completes(
     assert isinstance(second, StepInProgressError)
     assert fast.requests == []
     assert [h.state for h in budget.reservations.values()] == ["committed"]
-    assert budget.held_steps == set()  # released when the first call's session ended
 
 
 @pytest.mark.parametrize(
@@ -742,7 +751,7 @@ def test_a_second_live_call_on_the_same_step_is_refused_and_the_first_completes(
         (CallType.CARD, "coach.card", "public", 6.0),
         (CallType.DEEP, "coach.deep", "public", 10.0),
         (CallType.FINAL, "coach.final", "public", 15.0),
-        (CallType.REFEREE, "referee_subject", "evaluator", 30.0),
+        (CallType.REFEREE, "referee_assistant", "evaluator", 30.0),
     ],
 )
 def test_a_call_without_timing_uses_s2_s_attempt_timeout(
@@ -857,26 +866,71 @@ def test_a_deadline_that_passes_while_reserving_releases_the_hold_and_sends_noth
     assert (held.state, held.dispatched, adapter.requests) == ("released", False, [])
 
 
+L31, L35 = VertexModel.FLASH_LITE_31, VertexModel.FLASH_LITE_35
+DATA_CLASSES: dict[CallType, DataClass] = {
+    CallType.CARD: "public",
+    CallType.SUBJECT: "subject_private",
+    CallType.REFEREE: "evaluator",
+}
+
+
 @pytest.mark.parametrize(
-    ("call_type", "purpose", "data_class", "thinking", "allowed"),
+    ("call_type", "purpose", "model", "thinking", "allowed"),
     [
-        (CallType.CARD, "coach.card", "public", ThinkingLevel.HIGH, False),
-        (CallType.SUBJECT, "subject.answer", "subject_private", ThinkingLevel.LOW, False),
-        (CallType.REFEREE, "referee_subject", "evaluator", ThinkingLevel.LOW, True),
-        (CallType.REFEREE, "referee_assistant", "evaluator", ThinkingLevel.MINIMAL, True),
-        (CallType.REFEREE, "referee_subject", "evaluator", ThinkingLevel.HIGH, False),
+        (CallType.CARD, "coach.card", L35, ThinkingLevel.HIGH, False),
+        (CallType.SUBJECT, "subject.answer", L31, ThinkingLevel.LOW, False),
+        (CallType.REFEREE, "referee_subject", L31, ThinkingLevel.LOW, True),
+        (CallType.REFEREE, "r3_subject", L31, ThinkingLevel.LOW, True),
+        (CallType.REFEREE, "referee_assistant", L35, ThinkingLevel.MINIMAL, True),
+        (CallType.REFEREE, "r3_investigator", L35, ThinkingLevel.MINIMAL, True),
+        (CallType.REFEREE, "referee_subject", L31, ThinkingLevel.MINIMAL, False),
+        (CallType.REFEREE, "referee_subject", L35, ThinkingLevel.LOW, False),
+        (CallType.REFEREE, "referee_assistant", L35, ThinkingLevel.LOW, False),
+        (CallType.REFEREE, "referee_assistant", L31, ThinkingLevel.MINIMAL, False),
     ],
 )
-def test_thinking_levels_follow_the_call_type(
-    call_type: CallType, purpose: str, data_class: DataClass, thinking: ThinkingLevel, allowed: bool
+def test_thinking_follows_the_call_type_and_the_referee_s_model_and_purpose(
+    call_type: CallType, purpose: str, model: VertexModel, thinking: ThinkingLevel, allowed: bool
 ) -> None:
     adapter = FakeAdapter(script=[VALID])
     agent, budget = port(adapter)
+    data_class = DATA_CLASSES[call_type]
     context = CallContext(call_type=call_type, purpose=purpose, step_key=f"s:{uuid4()}", data_class=data_class)
-    call = dataclasses.replace(card(), thinking=thinking, context=context)
+    call = dataclasses.replace(card(), model=model, thinking=thinking, context=context)
     if allowed:
         assert run(agent.run(call)).attempts == 1
     else:
         with pytest.raises(PolicyRefusedError, match="thinking"):
             run(agent.run(call))
         assert budget.ops == []
+
+
+class SlowRecord(RunBudget):
+    """Signals when a receipt write begins, then takes a while to finish it."""
+
+    entered: asyncio.Event | None = None
+
+    async def record(self, report: UsageReport) -> UsageResult:
+        if self.entered is not None:
+            self.entered.set()
+        await asyncio.sleep(0.05)
+        return await super().record(report)
+
+
+def test_a_cancellation_during_the_receipt_write_still_completes_the_receipt_and_the_settlement() -> None:
+    budget = SlowRecord(CEILING)
+    agent = AgentPort(FakeAdapter(script=[VALID], usage=USAGE), budget, PortOptions(sleep=no_sleep))
+
+    async def cancel_mid_receipt() -> None:
+        budget.entered = asyncio.Event()
+        task = asyncio.create_task(agent.run(card()))
+        await budget.entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(cancel_mid_receipt())
+    [row] = budget.rows
+    assert (row.report.input_tokens, row.report.output_tokens) == (USAGE.input_tokens, USAGE.output_tokens)
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("committed", row.cost_usd)  # the known usage, not the full hold

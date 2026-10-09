@@ -86,8 +86,8 @@ class ProviderFailedError(ProviderError):
 
 
 class StepInProgressError(ProviderFailedError):
-    """Another live call holds this step key (S5 5.1): nothing was reserved or sent. A step's reservation is only
-    recovered by the call that holds the step, so a running call's hold is never settled from under it."""
+    """The step key has an open reservation and the caller did not ask to recover it (S5 5.1): nothing was reserved,
+    settled or sent, so a live call's hold is never settled from under it."""
 
 
 class ProviderCallError(ProviderError):

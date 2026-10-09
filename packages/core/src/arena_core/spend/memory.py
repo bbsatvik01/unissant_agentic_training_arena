@@ -51,33 +51,6 @@ class UsageRow:
 KILL_MESSAGE = "the kill switch is on"
 
 
-class _MemorySession:
-    """One call's session on the double: its own step claims, everything else delegated to the budget."""
-
-    def __init__(self, budget: RunBudget) -> None:
-        self.budget = budget
-        self.claimed: set[str] = set()
-
-    async def claim(self, step_key: str) -> bool:
-        if step_key in self.budget.held_steps:
-            return False
-        self.budget.held_steps.add(step_key)
-        self.claimed.add(step_key)
-        return True
-
-    async def reserve(self, req: ModelCallRequest) -> Reservation:
-        return await self.budget.reserve(req)
-
-    async def dispatch(self, reservation_id: UUID) -> None:
-        await self.budget.dispatch(reservation_id)
-
-    async def record(self, report: UsageReport) -> UsageResult:
-        return await self.budget.record(report)
-
-    async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
-        return await self.budget.settle(reservation_id, outcome)
-
-
 @dataclass
 class RunBudget:
     """In-memory guard with S4's semantics. ``ops`` logs every call for assertions (op name, reservation id)."""
@@ -87,7 +60,6 @@ class RunBudget:
     reservations: dict[UUID, HeldReservation] = field(default_factory=dict)
     rows: list[UsageRow] = field(default_factory=list)
     ops: list[tuple[str, UUID | None]] = field(default_factory=list)
-    held_steps: set[str] = field(default_factory=set)
 
     def liability(self) -> Decimal:
         total = Decimal(0)
@@ -100,11 +72,7 @@ class RunBudget:
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
-        session = _MemorySession(self)
-        try:
-            yield session
-        finally:
-            self.held_steps -= session.claimed  # a session's steps end with it, as a database session's locks do
+        yield self
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()

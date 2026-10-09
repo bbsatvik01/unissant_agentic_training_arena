@@ -82,6 +82,9 @@ class CallContext:
     split: Split = "none"
     data_class: DataClass = "public"
     candidate_manifest_sha: str | None = None
+    # Set only by the step's owner (its work item, S5 5.1) after it found the previous attempt dead: an open
+    # reservation under the step is then resumed or settled usage_unknown instead of refusing the call.
+    recover: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -13,7 +13,7 @@ token counts; the database prices both, reads the kill switch and enforces the c
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol
@@ -64,8 +64,6 @@ def reservation_from(result: calls.ReserveResult) -> Reservation:
 class GuardSession(Protocol):
     """One logical call's conversation with the guard (one connection for the call's lifetime)."""
 
-    async def claim(self, step_key: str) -> bool: ...
-
     async def reserve(self, req: ModelCallRequest) -> Reservation: ...
 
     async def dispatch(self, reservation_id: UUID) -> None: ...
@@ -80,15 +78,8 @@ class SpendGuard(Protocol):
 
 
 class _DbSession:
-    def __init__(self, conn: calls.Conn, connect: Connector, holds: AsyncExitStack) -> None:
+    def __init__(self, conn: calls.Conn) -> None:
         self._conn = conn
-        self._connect = connect
-        self._holds = holds
-
-    async def claim(self, step_key: str) -> bool:
-        """Hold the step on a dedicated connection whose transaction stays open until the session ends."""
-        hold = await self._holds.enter_async_context(self._connect())
-        return await calls.hold_step(hold, step_key)
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         return reservation_from(await calls.reserve_model_call(self._conn, req))
@@ -120,10 +111,8 @@ class DbSpendGuard:
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
-        # Step holds close last (the stack unwinds after the work connection): a hold's open transaction ends only
-        # once the call has settled. Closing a connection with an open transaction rolls it back.
-        async with AsyncExitStack() as holds, self._connect() as conn:
-            yield _DbSession(conn, self._connect, holds)
+        async with self._connect() as conn:
+            yield _DbSession(conn)
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()

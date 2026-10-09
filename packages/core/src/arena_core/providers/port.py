@@ -24,7 +24,7 @@ import asyncio
 import hashlib
 import random
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -168,17 +168,12 @@ class AgentPort:
         # S2 2: the deadline bounds the whole call, from here to the last attempt.
         deadline = started + (call.deadline_s or DEFAULT_TIMING[call.context.call_type].deadline_s)
         async with self._guard.session() as guard:
-            # The step is this call's until the session ends (a dead process's hold ends with its connection): only
-            # the holder may recover a reservation the step left dispatched (S5 5.1).
-            if not await guard.claim(call.context.step_key):
-                msg = f"step {call.context.step_key!r} is held by another live call; nothing reserved or sent"
-                raise StepInProgressError(msg)
             reservation = await self._reserve(guard, call, reserved_bytes)
             try:
                 await self._dispatch(guard, reservation, deadline)
             except BaseException:
                 # Nothing was sent: the hold is released (the deadline, the kill switch, or a refused dispatch).
-                await guard.settle(reservation.id, "released")
+                await _to_completion(guard.settle(reservation.id, "released"))
                 raise
             run = _Run()
             try:
@@ -187,7 +182,7 @@ class AgentPort:
                 await self._settle_failed(guard, reservation, run, exc)
                 raise
             outcome: SettleOutcome = "usage_unknown" if run.unknown else "committed"
-            cost = await guard.settle(reservation.id, outcome)
+            cost = await _to_completion(guard.settle(reservation.id, outcome))
         return AgentResult(
             value=value,
             attempts=run.sends,
@@ -201,9 +196,14 @@ class AgentPort:
 
     # ------------------------------------------------------------------ reservation
     async def _reserve(self, guard: GuardSession, call: AgentCall[Any], input_bytes: int) -> Reservation:
-        """Reserve under `<step_key>:<n>`. A reservation found again by its key is resumed when it was never
-        dispatched; one left dispatched by a dead process is settled usage_unknown (its hold stays charged) and the
-        call reserves under the next key; a settled one is skipped (S5 4.10 recovery, S2 AT-PORT-6)."""
+        """Reserve under `<step_key>:<n>`, skipping keys whose reservation is settled (a finished earlier call).
+
+        An OPEN reservation under the step belongs to a live call unless the caller says otherwise: the port alone
+        cannot tell a live holder from a dead one, and the step's owner is its work item (S5 5.1, D3; one owner per
+        request key, SG3-25). So without `context.recover` the call is refused (StepInProgressError) and nothing is
+        settled or sent. With it (the work-item owner found its previous attempt dead), an undispatched hold is
+        resumed and a dispatched one is settled usage_unknown, keeping its full hold, before the next key is used
+        (S5 4.10 recovery, S2 AT-PORT-6)."""
         ctx = call.context
         for n in range(1, MAX_KEY_ROUNDS + 1):
             found = await guard.reserve(
@@ -218,10 +218,16 @@ class AgentPort:
                     input_bytes=input_bytes,
                 )
             )
-            if not found.existed or (found.state == "reserved" and not found.dispatched):
+            if not found.existed:
                 return found
-            if found.state == "reserved":
-                await guard.settle(found.id, "usage_unknown")
+            if found.state != "reserved":
+                continue
+            if not ctx.recover:
+                msg = f"step {ctx.step_key!r} has an open reservation; nothing reserved or sent"
+                raise StepInProgressError(msg)
+            if not found.dispatched:
+                return found
+            await _to_completion(guard.settle(found.id, "usage_unknown"))
         msg = f"step {ctx.step_key!r} used all {MAX_KEY_ROUNDS} reservation keys"
         raise ProviderFailedError(msg)
 
@@ -240,7 +246,7 @@ class AgentPort:
         complete = run.sends > 0 and run.recorded == run.sends and not run.unknown
         outcome: SettleOutcome = "committed" if complete else "usage_unknown"
         try:
-            await guard.settle(reservation.id, outcome)
+            await _to_completion(guard.settle(reservation.id, outcome))
         except GUARD_ERRORS as settle_exc:
             # The hold stays `reserved` and counts at its full amount against the ceiling: still fail-safe. The
             # call's own failure is what the caller acts on; the settlement failure rides along as a note.
@@ -353,20 +359,37 @@ class AgentPort:
                 # The request may have been billed: its receipt (usage unknown) is written before the cancellation
                 # propagates, so every send leaves its row and the call settles usage_unknown (S5 3.2, 3.6).
                 run.unknown = True
-                await self._record(live, request, None, ("error", int((clock() - began) * 1000), trace_id, span_id))
+                row: _Row = ("error", int((clock() - began) * 1000), trace_id, span_id)
+                await _to_completion(self._record(live, request, None, row))
                 raise
             usage = result.usage
             if usage is None and (isinstance(result, RawCompletion) or result.maybe_billed):
                 run.unknown = True
-            receipt = await self._record(
-                live, request, usage, (status, int((clock() - began) * 1000), trace_id, span_id)
-            )
+            # The receipt and its tally complete even if the call is cancelled meanwhile (the row is the spend record).
+            row = (status, int((clock() - began) * 1000), trace_id, span_id)
+            receipt = await _to_completion(self._record(live, request, usage, row))
             if receipt.outcome == "overrun":
                 # Receipts above the hold: the database turned the kill switch on (S4 8.3). Stop at once.
                 raise KillSwitchOnError(OVERRUN_MESSAGE)
             if isinstance(result, ProviderCallError):
                 span.set_status(Status(StatusCode.ERROR, result.kind.value))
         return result
+
+
+async def _to_completion[R](write: Coroutine[Any, Any, R]) -> R:
+    """Run one ledger write (a receipt, a settlement) to completion even when the call is cancelled meanwhile, then
+    re-raise the cancellation: a billed attempt always leaves its row, and a settled call its settlement (S5 3.2)."""
+    task = asyncio.ensure_future(write)
+    deferred: list[asyncio.CancelledError] = []
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError as cancelled:
+            deferred.append(cancelled)  # keep waiting for the write; the cancellation is delivered once it is done
+    result = task.result()
+    if deferred:
+        raise deferred[0]
+    return result
 
 
 def _timed_out(timeout_s: float, cause: TimeoutError) -> ProviderCallError:

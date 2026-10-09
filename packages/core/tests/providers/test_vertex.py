@@ -11,17 +11,21 @@ import asyncio
 import dataclasses
 import json
 from collections.abc import Callable, Coroutine
+from decimal import Decimal
 from typing import Any, Protocol, cast
 
 import pytest
 from google.auth.credentials import AnonymousCredentials, Credentials
 from google.auth.exceptions import DefaultCredentialsError
 from google.oauth2.credentials import Credentials as TokenCredentials
+from pydantic import BaseModel
 
 from arena_core.providers import vertex
-from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError
-from arena_core.providers.types import Message, ModelRequest, Usage, request_body, request_bytes
-from arena_core.spend.limits import LIMITS, CallType, ThinkingLevel, VertexModel
+from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError, ProviderFailedError
+from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.providers.types import AgentCall, CallContext, Message, ModelRequest, Usage, request_body, request_bytes
+from arena_core.spend.limits import ATTEMPTS, LIMITS, CallType, ThinkingLevel, VertexModel
+from arena_core.spend.memory import RunBudget
 
 gtypes: Any = vertex.SDK_TYPES
 genai_errors: Any = vertex.SDK_ERRORS
@@ -333,11 +337,43 @@ def adapter_over(content: bytes, status: int = 200) -> vertex.VertexAdapter:
 
 @pytest.mark.parametrize(
     "content",
-    [b"not json at all", b'{"candidates": "not a list"}', b'{"usageMetadata": {"promptTokenCount": "x"}}'],
-    ids=["not-json", "bad-candidates", "bad-usage"],
+    [
+        b"not json at all",
+        b'{"candidates": "not a list"}',
+        b'{"candidates": 1}',
+        b'{"candidates": true}',
+        b'{"usageMetadata": {"promptTokenCount": "x"}}',
+    ],
+    ids=["not-json", "string-candidates", "int-candidates", "bool-candidates", "bad-usage"],
 )
 def test_a_malformed_200_response_is_a_typed_transient_failure_that_may_have_been_billed(content: bytes) -> None:
     with pytest.raises(ProviderCallError) as failed:
         run(adapter_over(content).generate(request(), timeout_s=TIMEOUT_S))
     assert (failed.value.kind, failed.value.maybe_billed, failed.value.usage) == (ErrorKind.TRANSIENT, True, None)
     assert "malformed response" in failed.value.message
+
+
+def test_through_the_port_a_malformed_envelope_is_retried_receipted_and_settled_usage_unknown() -> None:
+    budget = RunBudget(Decimal(1))
+    agent = AgentPort(adapter_over(b'{"candidates": 1}'), budget, PortOptions(sleep=_no_sleep))
+    call = AgentCall(
+        model=VertexModel.FLASH_LITE_35,
+        thinking=ThinkingLevel.MINIMAL,
+        system="s",
+        messages=(Message("user", "q"),),
+        schema=Small,
+        context=CallContext(call_type=CallType.CARD, purpose="coach.card", step_key="malformed-step"),
+    )
+    with pytest.raises(ProviderFailedError, match="after 4 attempt"):
+        run(agent.run(call))
+    assert [(r.seq, r.report.status) for r in budget.rows] == [(n, "error") for n in range(1, ATTEMPTS + 1)]
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("usage_unknown", held.reserved_usd)
+
+
+class Small(BaseModel):
+    a: str
+
+
+async def _no_sleep(_seconds: float) -> None:
+    return None
