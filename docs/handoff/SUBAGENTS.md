@@ -10,9 +10,3 @@
 - **Governing input:** direction v10. **Gate after:** Codex review of the spec package; owner approval of direction before any build.
 - **If the session dies:** `Workflow({scriptPath, resumeFromRunId: "wf_7986355a-2f8"})`.
 
-## Codex UI critique round 2
-- **ID:** background shell `b06kabicr` (`codex --search exec -s read-only`, 30 min timeout).
-- **Dispatched:** 2026-10-08 20:31 EDT. **Expected:** ~20:50 EDT.
-- **Input:** `03-ui-direction.md` v2 + `critique-ui-round-1.md`; prompt at scratchpad `codex/ui2_prompt.md`.
-- **Output:** scratchpad `codex/ui2.json` (schema `critique_schema.json`), log `codex/ui2.log`.
-- **Gate:** GREEN means no blocker or major; otherwise apply red-to-root-cause and run round 3.

@@ -5,6 +5,8 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- **UI direction GREEN** (Codex UI round 2: 0 majors, 3 minors applied in v2.1, 00b8184; orchestrator green). Awaits owner review and DESIGN.md.
+- Spec drift found: `docs/spec/**` was written against direction v10 (hosted, 20 cases, demo bucket $12.43, $60 global) before D-011 and UI v2. Draft SQL applies cleanly on fresh Postgres 16 and the S4 smoke scenarios reproduce. Reconciliation pass queued after S8: SQL seeds no budget numbers (global opens at $0 until the plan from `cost_model.py` is applied), S5-S7 local-first with hosting optional, S6 to UI v2.1, art sub-budget as a guard leaf.
 - Codex UI round 1 YELLOW (3 majors, 8 minors, all real); UI direction v2 applies them (ecd95e3): one server-authorized event projection for all motion, complete-card reveal only, ranged UI matrices with GSAP and avatar choices provisional, frame-interval measurement, playback-driven voice state, 62-image art cap in the D-009 simulation (30 cases ~$46 / ~$70, complete). Codex UI round 2 running. Spec workflow: S1-S7 written, S8 build plan in progress.
 - UI/UX research-harness complete (U1-U5: 69 web, 9 GDK, 17 Context7); UI direction v1 written (`docs/research/synthesis/03-ui-direction.md`): kin-style status pet, generated portrait avatars with amplitude mouths, Motion + GSAP + CSS, pill voice bar, rail-first agents view, no-jargon copy rules, Stitch/impeccable pipeline; Live Avatar out of scope. Codex UI critique running.
 - D-011 local-first (owner): hosting deferred; plan now 30 hidden cases (~$43 / ~$66), 34 pilot-gated. Owner also asked for a research-harness pass on UI/UX (animations, speaking avatars, pets, Claude skills); launching now.
@@ -29,7 +31,6 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| bg `b06kabicr` codex exec (UI round 2) | Codex critique of `03-ui-direction.md` v2 | gpt-6-astra xhigh | 2026-10-08 20:31 EDT | ~20:50 EDT (30 min timeout) | scratchpad `codex/ui2.json` |
 | task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8; S1-S7 done, S8 running | Opus/Sonnet | 2026-10-08 19:40 EDT | ~21:00 EDT | `docs/spec/**` |
 
 ## Early signals from batch 1 (unverified until synthesis)
@@ -49,8 +50,8 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Codex UI round 2 -> fix until green x green; record `critique-ui-round-2.md`.
-2. Spec-package workflow S8 running; then secret scan, commit `docs/spec/**`, Codex review of the spec package (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+1. Spec-package workflow S8 running; then secret scan, commit `docs/spec/**`.
+2. Spec reconciliation pass (v10.2 + D-011 + UI v2.1, numbers generated from scripts); then Codex review of the spec package (`codex exec` in the foreground, TechnoMile lesson) until green x green.
 3. Apply spec findings, re-run until green x green.
 4. Present direction to the owner.
 

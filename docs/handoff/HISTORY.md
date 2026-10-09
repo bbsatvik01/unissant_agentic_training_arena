@@ -24,3 +24,4 @@
 - UI research complete; UI direction v1 committed (c3ef79b); Codex UI critique round 1 started.
 - Character-art budget capped at 62 images (UI-06); local plan re-simulated: 30 cases ~$46/$70 complete; 34 pilot-gated. Supersedes the ~$43/$66 figures in D-011.
 - ecd95e3 UI direction v2 after Codex UI round 1 (YELLOW, 11 findings, all real); Codex UI round 2 started.
+- 00b8184 Codex UI round 2 GREEN (3 minors applied); UI direction v2.1 awaits owner review.
