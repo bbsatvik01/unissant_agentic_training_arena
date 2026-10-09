@@ -405,3 +405,15 @@ def test_rubric_text_is_bounded_in_rendered_bytes() -> None:
     raw["dimensions"][0]["subchecks"][1]["text"] = "\\" * 300  # 300 bytes typed, 600 once escaped in a request
     with pytest.raises(ValueError, match=r"subchecks\.1\.text: longer than 400 bytes as rendered"):
         Rubric.model_validate(raw)
+
+
+def test_rubric_text_renders_as_measured() -> None:
+    raw = PLACEHOLDER_RUBRIC.model_dump()
+    raw["dimensions"][0]["subchecks"][1]["text"] = "T" + "\u0001" * 380 + "  wide   gaps"
+    raw["dimensions"][0]["name"] = "clarity\u0001\u0001 and neutrality"
+    rubric = Rubric.model_validate(raw)
+    system = build_referee_assistant_prompt(assistant_input(), REFEREE, salt=fx.SALT, dev_rubric=rubric)
+    section = system.system_instruction.split("Rubric sub-checks:\n", 1)[1]
+    assert "1b: T wide gaps\n" in section
+    assert "D1 clarity and neutrality\n" in section
+    assert "\u0001" not in system.system_instruction

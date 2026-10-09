@@ -167,11 +167,13 @@ class RefereeAssistantInput(Contract):
 
 
 def rubric_subchecks(rubric: Rubric) -> str:
-    """S2 7.3: each dimension's name, then every sub-check other than the five asked per question."""
+    """S2 7.3: each dimension's name, then every sub-check other than the five asked per question. The texts are
+    rendered through the same cleaning as every other text (`clean`), so the rubric's byte caps, measured on that
+    form, bound what the prompt carries."""
     lines: list[str] = []
     for dim in rubric.dimensions:
-        lines.append(f"{dim.dim_id} {dim.name}")
-        lines += [f"{s.id}: {s.text}" for s in dim.subchecks if s.id not in PER_QUESTION_SUBCHECKS]
+        lines.append(f"{dim.dim_id} {clean(dim.name)}")
+        lines += [f"{s.id}: {clean(s.text)}" for s in dim.subchecks if s.id not in PER_QUESTION_SUBCHECKS]
     return "\n".join(lines)
 
 
