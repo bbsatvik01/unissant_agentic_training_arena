@@ -2101,3 +2101,51 @@ describe("session controller: recovery reads never undo a loaded end state", () 
     expect(debriefReads).toBeLessThanOrEqual(2 + RESYNC_RETRIES);
   });
 });
+
+describe("session controller: the debrief must be published to finish", () => {
+  it("an ended visit whose debrief is still scoring waits in `scoring`; reconnect() reads it again and finishes", async () => {
+    let ready = false;
+    const h = harness({
+      snapshots: [snapshot({ status: "completed" })],
+      debrief: () => (ready ? (fixture("debrief:scored") as DebriefRead) : { status: "scoring" }),
+    });
+    const c = h.make();
+    await begin(c);
+    expect(c.getState().connection).toBe("scoring");
+    expect(c.getState().debrief).toEqual({ status: "scoring" });
+    ready = true;
+    c.reconnect();
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+    expect(h.sources).toHaveLength(0);
+  });
+
+  it("a terminal snapshot installed by another read while this one fails: the debrief is still read", async () => {
+    let fail: (e: Error) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((_r, j) => (fail = j));
+          return Promise.resolve(snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 5 }));
+        },
+        commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")),
+      },
+    });
+    await begin(c);
+    h.last().send(frame("debrief.ready", 1, 0, { session_id: SESSION_ID }));
+    await flush();
+    expect(c.getState().connection).toBe("ending");
+    await c.submitFinding((fixture("finding-commit") as { finding: never }).finding).catch(() => undefined);
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+    fail(new TypeError("down"));
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toHaveLength(1);
+    expect(c.getState().connection).toBe("finished");
+  });
+});

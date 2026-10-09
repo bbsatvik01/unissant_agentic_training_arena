@@ -47,7 +47,9 @@ export const RESYNC_RETRIES = 3;
  * `reconnecting` while a retry is scheduled (the room says "Reconnecting"); `hidden` after the hidden-tab close;
  * `gave_up` when the retry budget ran out (`reconnect()` starts again); `ending` once the stream is closed for good
  * while the terminal snapshot and the debrief are read over REST (with bounded retries); `end_failed` when those
- * reads kept failing (`reconnect()` reads them again, opening no stream); `finished` once both are loaded; `failed` when the snapshot could not be read; `closed` after `dispose()`.
+ * reads kept failing (`reconnect()` reads them again, opening no stream); `scoring` when the end state is in but
+ * the debrief is not published yet (`requestDebrief()` runs it, `reconnect()` reads it again); `finished` once the
+ * terminal snapshot and the published debrief are both loaded; `failed` when the snapshot could not be read; `closed` after `dispose()`.
  */
 export type ConnectionState =
   | "idle"
@@ -59,6 +61,7 @@ export type ConnectionState =
   | "gave_up"
   | "ending"
   | "end_failed"
+  | "scoring"
   | "finished"
   | "failed"
   | "closed";
@@ -294,7 +297,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   /** The stream is closed for good: no stream is opened again (`ending`, `end_failed` or `finished`). */
-  const over = (): boolean => state.connection === "ending" || state.connection === "end_failed" || state.connection === "finished";
+  const over = (): boolean =>
+    state.connection === "ending" || state.connection === "end_failed" || state.connection === "scoring" || state.connection === "finished";
 
   /** Waits of the REST retries; dispose() ends them all at once, so nothing awaiting one hangs. */
   const waits = new Set<() => void>();
@@ -384,9 +388,14 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         // A terminal snapshot already installed is the end state; it is not read again.
         if (options.snapshotLoaded !== true && !terminalLoaded()) {
-          const snapshot = await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded);
-          if (isDisposed()) return;
-          dispatch({ type: "snapshot", snapshot });
+          try {
+            const snapshot = await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded);
+            if (isDisposed()) return;
+            dispatch({ type: "snapshot", snapshot });
+          } catch (error) {
+            // Another read installed the terminal snapshot meanwhile: go on to the debrief.
+            if (!terminalLoaded()) throw error;
+          }
         }
         if (!published()) {
           try {
@@ -397,7 +406,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
           }
         }
         if (isDisposed()) return;
-        set({ connection: "finished", error: null });
+        // Finished only with the published document; until then the debrief is being scored (S5 5.4): the page's
+        // debrief request runs it, and reconnect() reads it again.
+        set({ connection: published() ? "finished" : "scoring", error: null });
       } catch {
         // Kept as `error`; `reconnect()` reads again. The stream stays closed for good. A read superseded by the end
         // state arriving another way (the debrief POST) changes nothing.
@@ -766,7 +777,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       await complete();
     },
     reconnect() {
-      if (state.connection === "end_failed") {
+      if (state.connection === "end_failed" || state.connection === "scoring") {
         void complete();
         return;
       }
