@@ -192,7 +192,7 @@ select is(array[tests.error(format('select ops.set_bucket_ceiling(%L, null, %s, 
   || 'it holds reservations');
 
 -- BU-42 (D-017): the per-user daily cap is $5.00. One voice session's whole-session hold ($3.392520) fits for an
--- actor; a second the same day does not (5.00 - 3.392520 < 3.392520) and is refused per_user_cap; a text card
+-- actor; a second does not while the first hold is reserved (5.00 - 3.392520 < 3.392520): per_user_cap; a text card
 -- reservation ($0.023200 at 6,000 bytes) still fits beside the first voice hold. Runs before the other voice rows
 -- (the open-voice concurrency count is 2).
 create temp table bu42 (step integer, val text) on commit drop;
@@ -206,14 +206,20 @@ insert into bu42 select 2, concat_ws('/', r ->> 'outcome', r ->> 'reason')
 insert into bu42 select 3, concat_ws('/', r ->> 'outcome', r ->> 'reserved_usd')
   from tests.as_role('arena_public', format('select ops.reserve_model_call(%L, %L, %L, %L, %L, null, %L, 6000)',
          'bu42-card-key-1', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card', tests.uid('D'))) r;
--- the voice hold was never dispatched: release it, so the later voice rows see no open hold of this actor
+-- The cap counts liability, not holds made: once the first hold settles (released here: never dispatched, so its
+-- liability is 0) the second voice session fits. It is released too, so the later voice rows see no open hold.
 select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)',
                                               split_part((select val from bu42 where step = 1), '/', 3), 'released'));
-select is((select array_agg(case when step = 1 then split_part(val, '/', 1) || '/' || split_part(val, '/', 2) else val end
+insert into bu42 select 4, concat_ws('/', r ->> 'outcome', r ->> 'reserved_usd', r ->> 'id')
+  from tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, null, %L)',
+         'bu42-voice-key-3', 'global', 'voice_session', 'voice.session', tests.uid('D'))) r;
+select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)',
+                                              split_part((select val from bu42 where step = 4), '/', 3), 'released'));
+select is((select array_agg(case when step in (1, 4) then split_part(val, '/', 1) || '/' || split_part(val, '/', 2) else val end
                             order by step) from bu42),
-          array['5.000000', 'reserved/3.392520', 'refused/per_user_cap', 'reserved/0.023200'],
-  'BU-42 D-017: with the $5.00 per-user cap one voice session fits, a second the same day is refused per_user_cap, '
-  || 'and a text card still fits');
+          array['5.000000', 'reserved/3.392520', 'refused/per_user_cap', 'reserved/0.023200', 'reserved/3.392520'],
+  'BU-42 D-017: with the $5.00 per-user cap one voice session fits, a second is refused per_user_cap while the '
+  || 'first hold is reserved, a text card still fits, and the second fits once the first hold settles');
 
 -- BU-38: four receipts at the reservation's maximum (6,001 input tokens, 1,600 output on a 6,001-byte card) are
 -- within the reservation: no overrun, kill switch off. The draft's single rounding reserved $0.023202 for $0.023204.
