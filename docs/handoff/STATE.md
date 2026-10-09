@@ -14,9 +14,10 @@
 - Running (normal agents, addressable with SendMessage):
   | Agent id | Work | Worktree / branch | Next step when it reports |
   | --- | --- | --- | --- |
-  | ac1b3a38666e87dcf | WP-05 agent port: serialized byte bound (align with contracts/rendered.py + agents/budget.request_bytes), S5 4.10 cap replay, per-role lifecycle tests | /private/tmp/wt-wp05-port feat/wp05-port | cold Codex gate, merge |
+  | ac1b3a38666e87dcf | WP-05 DONE on its side (1e7d458, self Codex CORRECT): wire-exact byte measure (json \\u escapes), S5 4.10 cap replay (13,614 calls, matches simulate_d009), per-role lifecycle | /private/tmp/wt-wp05-port feat/wp05-port | on resume: cold Codex gate, merge; then switch port to WP-10 sent_schema/budget.request_bytes/repair helpers + parity test |
   | adb48fe0d3cc9a911 | WP-11 guard: finish FX-COOP checks under option A (S2 11.1 a355544) | /private/tmp/wt-wp11-guard feat/wp11-guard | cold Codex gate, merge |
   | a80b942018d564e81 | WP-18 part 2 web state: 5 cold-gate findings (snapshot event_seq, malformed POST bodies, finding 409 reload, bootstrap retry, URL normalization) | /private/tmp/wt-wp18b-web feat/wp18b-web | cold Codex gate, merge |
+- OPEN DECISION (cost_model, mine): escaped wire bytes make non-ASCII cost 2-3x UTF-8, so S2's adversarial maximum exceeds input limits (card 117,219 -> well over 128,000). Options: cap questions/model fields in transmitted bytes (simplest), or raise LIMITS 2-3x. Decide on resume with WP-10's renderer numbers. db-test now ~27 min (cap replay).
 - Supabase blocked at migration 0600 of 10 (0100-0500 applied byte-exact); owner action: .env.owner with the session-pooler DSN, or restart the Claude Code session so the MCP allow rules load; then apply 0600-1000 and roles.
 - Next queue after the three merges: WP-12 subject service, WP-13 orchestrator + routes + SSE, WP-14 referee, WP-07 observability, then WP-19 slice UI (DESIGN.md D-018) and WP-24 integration; first local end-to-end text run follows.
 - Spec follow-ups collected: content_text separator (S2 4.4.1 ' ; ' vs code ' | '); AC-S3-4.5 F01 material count; S3 5.3 code block duplicate rule; S3 5.5 full ranking key; S2 HOLD range wording; finding_contract migration into spec 0004; web-check CI job.
