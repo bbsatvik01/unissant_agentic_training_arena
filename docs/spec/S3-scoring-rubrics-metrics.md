@@ -1,8 +1,10 @@
 # S3: Scoring, rubrics and metric contracts
 
 **Part of:** build-ready specification, Investigative AI Training Arena (GMU Challenge X, sponsor Unissant).
-**Version:** 1.0, 2026-10-08. **Governing direction:** `docs/research/synthesis/02-direction.md` v10.1 (Codex round 9 GREEN). **Constraints:** D-001 to D-009 (`docs/handoff/DECISIONS.md`; D-007 superseded by D-009).
-**Statistical source of truth:** `docs/research/synthesis/stats_contracts.py` (zero-event bound, attrition rules). This part specifies the product scorer that implements those contracts; it does not change them.
+**Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** **Governing direction:** `docs/research/synthesis/02-direction.md` v10.3 (Codex round 9 GREEN on v10; v10.3 re-costs the plan) with D-011 local-first; `docs/research/synthesis/03-ui-direction.md` v2.1. **Constraints:** D-001 to D-012 (`docs/handoff/DECISIONS.md`; D-007 superseded by D-009). Where this part and `docs/spec/README.md` disagree, the README wins.
+**Statistical source of truth:** `docs/research/synthesis/stats_contracts.py` (zero-event bound, attrition rules). This part specifies the product scorer that implements those contracts; it does not change them. **Numbers:** every count-derived denominator, bound and dollar figure below names the function or formula that produced it (`cost_model.py` run 2026-10-08 with `HOSTING = "local"`, `PLAN = {"sealed": 24, "dev": 10}`; `stats_contracts.py`).
+
+**Run mode.** Local-first (D-011): the scorer runs in the local `arena-referee` process with its own credential (`arena_referee`), beside the separate `arena-api` (`arena_public`) and `arena-subject` (`arena_subject`) processes and local Phoenix, against the owner's Supabase project (local `supabase start` for development); Vertex AI is the only model provider. The hosted design is kept in 9.1 (Hosted variant, deferred).
 
 This part defines how every number on every scorecard and leaderboard is produced: the investigator rubric (EVL-7), the evasion annotation guideline (EVL-8), the inclusion rules, every metric in direction section 7 and REQUIREMENTS section 11, the KPI procedures, calibration, the fairness audit, the isolation gate interface, and the test fixtures. Where the owner has not yet decided something, the text says **OWNER DECISION PENDING** and the design works either way.
 
@@ -16,10 +18,10 @@ This part defines how every number on every scorecard and leaderboard is produce
 | S3-D2 | The same five dimensions, checks and windows score a human investigator's questions and an assistant's proposed follow-ups. Questioning quality (QQ) for ranking uses dimensions 1-4 only; dimension 5 (supported closure) is published for assistants as "closure support" and is not a ranking key. | Follow-ups are questions; closure is already measured by the role metrics, so adding it to QQ would double count. | EVL-7, EVL-10, AST-6 |
 | S3-D3 | EVL-8 labels are role-independent by definition: a truthful subject can evade, and a deceptive subject can be responsive. Truthfulness of content is a separate axis (subject fidelity). | EX-4: evasive wording alone does not prove a violation. | EVL-8, EX-4, PRB-4 |
 | S3-D4 | A "poorly framed question" label on an answer forces the asking question's clarity check (1c) to fail, and that turn is never an evasion event. | Routes blame to the question, as EVL-8 and X1 Q5 require. | EVL-7, EVL-8 |
-| S3-D5 | Primary evasion metrics count only flags whose category is `possible_evasion` (strict). A broad variant that also counts `non_responsive` flags is published as secondary. | The deck defines evasion flags; slide 8's own flag is a non-responsive gap flag, so the broad variant shows how cautious candidates fare. | EVL-3, EVL-8, AST-8, EX-2 |
+| S3-D5 | Primary evasion metrics count only flags whose S2 `kind` is `possible_evasion` (strict). A broad variant that also counts `non_responsive` flags is published as secondary (C-06: S3 decides, S2 defers). | The deck defines evasion flags; slide 8's own flag is a non-responsive gap flag, so the broad variant shows how cautious candidates fare. | EVL-3, EVL-8, AST-8, EX-2 |
 | S3-D6 | A flag is a true positive only if its citation exists (code check), its claim is supported (referee check), it is not demeanor-based, it cites an evasion event, and it is the first such flag on that event. | "No credit simply for producing more flags." | AST-7, AST-10, EVL-8 |
 | S3-D7 | Every interval is a family-cluster percentile bootstrap (B = 10,000, nearest-rank bounds, seed derived from the manifest hash), except KPI-1 (participant bootstrap) and KPI-4 (session bootstrap). Gate comparisons use exact rationals. | BKO-10 clustering; reproducible seeds prevent seed fishing; exact rationals make 3/60 = 5% eligible without float doubt. | BKO-10, EVL-10 |
-| S3-D8 | KPI-4 latency uses two timestamps from the same clock (Postgres `clock_timestamp()`): subject-turn commit, and the insert of the client's acknowledgement of the validated card. The measure overstates true latency by the acknowledgement's uplink, so it is conservative. | Avoids client-server clock skew. | KPI-4 |
+| S3-D8 | KPI-4 latency uses two timestamps from the same clock (Postgres `clock_timestamp()`): subject-turn commit, and `ops.ack_card(trial, turn_no)` recording the client's acknowledgement of the validated card. The measure overstates true latency by the acknowledgement's uplink, so it is conservative. This is the one KPI-4 formula (C-28). | Avoids client-server clock skew. | KPI-4 |
 | S3-D9 | The inclusion manifest is hashed over a line-oriented canonical text, not JSON, so SQL (`reveal()`) and the Python verifier produce byte-identical input. | Postgres `jsonb` key order differs from Python `sort_keys`; a line format has no such trap. | BKO-9 |
 | S3-D10 | The interactive-track leaderboard is the headline for KPI-2 and KPI-5; the replay-track leaderboard uses the same functions and is published beside it. | Interactive has three times the trials per assistant (one subject per case in replay vs three in interactive); replay isolates evaluation quality (BKO-6). | BKO-2, BKO-6, KPI-2 |
 
@@ -58,34 +60,80 @@ This part defines how every number on every scorecard and leaderboard is produce
 | Cell | (family, variant, subject) for one assistant. Paired comparisons use cells both candidates have included. |
 | Included trial | A trial whose inclusion for assistant metrics is `included` (section 4.3). |
 | Question sequence | The ordered questions being scored: an investigator's questions in a training session, or an assistant's proposed follow-ups in a trial (whether or not the harness relayed them). |
-| Card | The assistant's per-turn output (direction 6.1). |
-| Flag | One element of a card's flag list, with a stable `flag_id` (section 1.3). |
-| Evasion event | A subject turn the referee labels `EVA` (section 3). |
-| R1, R2 | The two per-trial referee calls in `cost_model.py` (`REFEREE_D009`): R1 on `gemini-3.1-flash-lite` (LOW) produces EVL-8 labels and compliance checks for every subject turn; R2 on `gemini-3.5-flash-lite` (MINIMAL) produces flag support, question sub-checks and closure sub-checks. Replay scoring runs R2 only; R1 labels come from the sealed corpus. |
-| R3 | The investigator-rubric call for training sessions (one per scored session). Not yet in `cost_model.py`; see open question OQ-1. |
+| Card | The assistant's per-turn output (direction 6.1), S2 card.v1. |
+| Flag | One element of a card's `flags` list (S2 card.v1), identified by its code-filled `flag_ref` (`t07.f2`). Flags are never carried forward: a later card refers to earlier flags only through `finding.basis_flag_refs` (C-05). |
+| Duplicate flag | A flag with the same `kind`, cited turn and normalized quote as a flag in an earlier card of the same trial (S2 4.4). Counted once for support (M08); a false positive for evasion precision (direction 7.2, C-05). |
+| Evasion event | A subject turn the referee labels `evasion` (EVA, section 3). |
+| R1 | S2's `referee_subject` call (judges J1 evasion labels and J2 fidelity; output ref_subj.v2, 1.3.2) on `gemini-3.1-flash-lite` (LOW), `cost_model.REFEREE_D009[0]`: labels and compliance checks for every subject turn. |
+| R2 | S2's `referee_assistant` call (judges J3 flag support and J4 questioning quality; output ref_asst.v1, 1.3.2) on `gemini-3.5-flash-lite` (MINIMAL), `cost_model.REFEREE_D009[1]`: flag support, question types, question and closure sub-checks. Replay scoring runs R2 only (`cost_model` `replay_referee`); R1 labels come from the sealed corpus. Both calls are call kind `referee`; `referee_subject` and `referee_assistant` are `purpose` labels (S8 C-31). |
+| R3 | The same two referee calls run on a training session in investigator mode (S2 7.4: J4 rates the investigator's questions and the flags block is empty), R1-mode call first (C-15). Cost per session: `cost_model.r3(False)` = $0.0082 expected, `r3(True)` = $0.0112 conservative, before `RETRY_FACTOR`. Allocation in 6.1. |
 
 ### 1.3 Scorer input contract
 
-The scorer runs inside `arena-referee` (credential `arena_referee`) and reads committed rows only. Field names below are the contract other parts must produce; table names follow direction 4.6.
+The scorer runs inside the local `arena-referee` process (credential `arena_referee`) and reads committed rows only. Field names below are the contract other parts must produce; table names follow S4 section 4. Storage is canonical: S2's card.v1, Finding and referee outputs are stored as S2 defines them, and S3 reads them through the adapters in 1.3.1 and 1.3.2 (C-04).
 
-| Input | Source (direction 4.6) | Fields the scorer requires |
+| Input | Source (S4) | Fields the scorer requires |
 | --- | --- | --- |
-| Planned trial | `arena.planned_trials` | `planned_trial_id`, `tournament_id`, `track`, `assistant_id`, `subject_id`, `family_id`, `variant_id`, `repeat`, `block_id`, `order_in_block` |
-| Execution record | `ledger.terminal_records` | `planned_trial_id`, `state` (6 values, 4.1), `reason`, `work_item_id` |
-| Validity adjudication | append-only table written by `adjudicate_validity()` | `adjudication_id`, `planned_trial_id`, `verdict` (`valid`, `subject_invalid`), `reason_code`, `evidence_ref`, `decided_by` (`auto_rule` or a human reviewer ID), `created_at` |
+| Planned trial | `arena.planned_trials`, `arena.blocks` | `planned_trial_id`, `tournament_id`, `track`, `assistant_id`, `subject_id`, `family_id`, `variant_id`, `repeat`, `block_id`, `position` |
+| Execution record | `ledger.terminal_records` through `ledger.planned_execution` (latest attempt) | `planned_trial_id`, `trial_id`, `state` (7 values, 4.1), `reason`, `work_item_id` |
+| Validity adjudication | `ledger.validity_adjudications` (append-only, written by `ledger.adjudicate_validity()`; latest in force) | `id`, `adj_seq`, `trial_id`, `verdict` (`valid`, `subject_invalid`), `reason` (this part's reason code maps to S4 `reason`), `evidence_ref`, `decided_by` (`auto_rule` or a human reviewer ID; S4 adds the column, C-33) |
 | Role and variant facts | `sealed.evaluator_packets` | `variant_id`, `role` (`truthful`, `deceptive`), `style`, `difficulty`, `material_fact_ids`, `key_fact_ids` (resolution criteria), `material_contradictions` |
-| Transcript | `arena.turns` | `turn_id`, `trial_id`, `index`, `speaker` (`question`, `subject`), `text`, `asked_by` (`harness_fixed`, `harness_fallback`, `assistant_relay`, `investigator`), `committed_at` |
-| Released records | ledger events from `release_evidence()` | `record_id`, `released_before_turn_index`, `text` |
-| Cards | `arena.coaching_events` | `card_id`, `trial_id`, `turn_index`, `question_type`, `neutrality_issues[]`, `answer_category`, `flags[]`, `follow_up.text`, `follow_up.tactic`, `finding` (below), `valid` (schema-valid after repair) |
-| Flag | inside a card | `flag_id` (stable across cards; a flag carried forward keeps its ID), `kind` (`gap`, `contradiction`), `category` (AST-8 enum: `non_responsive`, `contradiction`, `explicit_uncertainty`, `possible_evasion`), `citations[]` each `{turn_id or record_id, quote}`, `missing_fact` (gap) or `statement_a`/`statement_b` (contradiction), `basis` (free text, at most 40 words) |
-| Finding | inside a card and the committed record | `label` (`deceptive`, `truthful`, `insufficient_evidence`), `likelihood_term` (one of the seven ICD 203 terms, stated about the proposition "the subject concealed the assigned violation"), `analytic_confidence` (`low`, `moderate`, `high`), `basis`, `citations[]`, `corroboration_to_seek` (required when `insufficient_evidence`), `last_revised_turn` |
-| R1 labels | `sealed.independent_labels` | per subject turn: the schema in 3.8 |
-| R2 outputs | `arena.scores` (sealed until reveal) | per flag: `support_ok`, `demeanor_basis`; per question in the sequence: `question_type` and sub-check verdicts; per finding: closure verdicts |
-| Latency events | `ops` latency rows | `trial_or_session_id`, `turn_index`, `subject_commit_at`, `card_validated_server_at`, `client_ack_at` (nullable), `card_outcome` (`delivered`, `timeout`, `repair_failed`, `client_invalid`), `instance_cold` (bool), `population` (`practice_client`, `harness`, `assessment`) |
-| Cost | `ops.model_calls` | `call_id`, `tournament_id`, `trial_id`, `candidate_id`, `role_in_call`, `settled_cost_usd` (liability rates) |
-| Training session | `training.sessions` | `session_id`, `participant_pseudonym`, `case_variant_id`, `mode`, `phase` (`pre`, `practice`, `post`, `free`), committed finding (same schema as Finding) |
+| Transcript | `arena.turns`, keyed (`trial_id`, `turn_no`), one row per exchange | `turn_no` (1-12), `question`, `question_source` (the asker: harness fixed, harness fallback, assistant relay, investigator), `answer`, `answer_partial`, commit timestamps. Model-facing IDs are `tNN` derived from `turn_no` (`t07`); the UI label `T{n}` is display only (C-16) |
+| Trial mode | `arena.trials` | `mode` (`practice`, `assessment`, `harness`), `kind` |
+| Released records | `arena.released_evidence` | `record_id` (`rec-NN`; documents are `doc-NN`, C-16), `released_after_exchanges`, content |
+| Cards | `arena.trial_events` (kind `coach_card`) | the stored S2 card.v1 (S2 4.1) with its code-filled fields (`flag_ref`, `finding.last_revised_turn`, `validation` post-check results, `transcript_version`), `turn_no`, `candidate_id`, and whether the card validated after repair; read through 1.3.1 |
+| Finding | card.v1 `finding`, final.v1 (S2 4.7), `arena.final_findings` | One `Finding` object for assistants and investigators (C-27): S2 `$defs.Finding` (`label`, `likelihood`, `confidence`, `basis_flag_refs`, `corroboration_needed`, `rationale`) plus `cited_turns`, `cited_records`, optional `alternative_explanations` and code-filled `last_revised_turn`. S4 stores `classification` = `label`, a `likelihood` column, and `confidence` constrained to `low`, `moderate`, `high` |
+| R1 output | `sealed.judgments` (kind `fidelity_detail`: the full ref_subj.v2 report) and `sealed.independent_labels` (the model's label and compliance per turn; for calibration samples also the human consensus) (C-34) | per subject turn: 1.3.2 and 3.8 |
+| R2 output | `sealed.judgments` (kinds `flag_support`, `questioning_quality`: the ref_asst.v1 report), sealed until reveal | per deduplicated flag: J3 verdicts; per proposal: `question_type`; per sub-check: `result` and deciding `turn_ids` (1.3.2) |
+| Latency | `ops.latency_samples`, keyed (`trial_id`, `turn_no`) (C-28) | `subject_commit_at` (the `subject_turn` event's `clock_timestamp()`), `card_validated_server_at` (the `coach_card` event's commit time; the server segment, kept as a diagnostic), `client_ack_at` (stamped `clock_timestamp()` by `ops.ack_card(trial, turn_no)`; nullable), `card_outcome` (`delivered`, `timeout`, `repair_failed`, `client_invalid`), `instance_cold` (bool), `population` (`practice_client`, `harness`, `assessment`). KPI-4 uses only these columns (6.4) |
+| Cost | `ops.model_calls` joined to `ops.budget_reservations` | `reservation_id`, `trial_id`, candidate, `call_kind` and purpose, `cost_usd` (settled at liability rates) |
+| Training session | `training.sessions` | `id`, `trial_id`, `participant_id`, `phase` (`practice`, `pre`, `post`; v1's `free` maps to `practice`, C-44); case variant, mode and committed finding through the session's trial |
 
-The ICD 203 terms, in order: almost no chance, very unlikely, unlikely, roughly even chance, likely, very likely, almost certain.
+The ICD 203 terms, in order, with S2's stored tokens: almost no chance (`almost_no_chance`), very unlikely (`very_unlikely`), unlikely (`unlikely`), roughly even chance (`roughly_even_chance`), likely (`likely`), very likely (`very_likely`), almost certain (`almost_certain`). The proposition is S2's: "the subject is concealing involvement in the matter under review" (C-07). It is role-neutral and does not presume a violation exists; truthful variants have none.
+
+#### 1.3.1 Adapter from S2 card.v1 and Finding (C-04, C-05, C-27)
+
+The scorer never reads card JSON directly; one adapter module in the scorer maps each stored card to the internal types used in sections 2 and 5. The adapter adds no information and fails closed (raises) on a stored card that does not validate as card.v1.
+
+| S3 internal field | From S2 (card.v1, S2 4.1) |
+| --- | --- |
+| `flag.flag_ref` | `flags[].flag_ref` (code-filled, `t07.f1`); replaces v1's stable `flag_id` |
+| `flag.kind` | `flags[].kind`, five values: `gap`, `non_responsive`, `possible_evasion`, `contradiction`, `evidence_conflict` |
+| `flag.shape` (v1 `kind`) | `gap` when `kind` in {`gap`, `non_responsive`, `possible_evasion`}; `contradiction` when `kind` in {`contradiction`, `evidence_conflict`} |
+| `flag.category` (AST-8) | `kind` when it is an AST-8 value (`non_responsive`, `contradiction`, `possible_evasion`); null for `gap` and `evidence_conflict`. Evasion metrics select on `kind` directly (S3-D5) |
+| `flag.citations` | (`turn_id`, `quote`) plus (`conflict_turn_id`, `conflict_quote`) for `contradiction` or (`conflict_record_id`, `conflict_record_quote`) for `evidence_conflict`; `tNN` parsed to `turn_no` |
+| `flag.turn_no` (the cited answer) | `flags[].turn_id` parsed to `turn_no` |
+| `flag.basis` | `missing_fact` (null for the two contradiction kinds, whose claim is the cited pair) |
+| `flag.demeanor_based` | S2 4.4 lexicon post-check on `missing_fact` (stored in `validation`) |
+| `card.question_type`, `card.neutrality_issues` | `question.question_type`, `question.neutrality_issues` |
+| `card.follow_up` | `follow_up.question`, `follow_up.tactic`, `follow_up.record_request` |
+| `finding.label` | `finding.label` |
+| `finding.likelihood_term` | `finding.likelihood` (token to term, 1.3) |
+| `finding.analytic_confidence` | `finding.confidence` |
+| `finding.basis` | `finding.rationale` (S2 4.4 marks `demeanor_in_rationale` on a lexicon hit) |
+| `finding.corroboration_to_seek` | `finding.corroboration_needed` (1 to 3 entries for `insufficient_evidence`, S2 4.2) |
+| `finding.cited_turns`, `finding.cited_records` | Assistants: derived by code from the flags named in `basis_flag_refs` (their `turn_id` and `conflict_turn_id`; their `conflict_record_id`). Investigators: the turns and records selected in the finding form (S6 4.6); `basis_flag_refs` is empty |
+| `finding.alternative_explanations` | final.v1 `alternative_explanations` (assistants); optional field of the investigator form |
+| `finding.last_revised_turn` | code-filled (S2 4.1) |
+
+Flags are not carried forward (C-05). Earlier flags are referenced through `basis_flag_refs`, never re-emitted; a re-emitted flag is a duplicate (1.2), counted once for support and as a false positive for evasion precision (5.3).
+
+#### 1.3.2 Adapter from the referee outputs (C-09, C-11, C-12, C-13, C-14)
+
+| S3 internal field | From S2 (7.2, 7.3) |
+| --- | --- |
+| `label` (per subject turn) | ref_subj.v2 `turns[].label`, stored as words (`evasion`, `genuine_uncertainty`, `legitimate_non_disclosure`, `poorly_framed_question`, `responsive`); the codes EVA, UNC, LND, PFQ, RSP are display abbreviations only (C-09) |
+| `eva_subtype`, `pfq_reason`, `asked_fact_status`, `uncertainty_expressed`, `innocent_explanation_offered` | the five fields ref_subj.v2 adds to S2's ref_subj.v1 (C-11; 3.8) |
+| `asked_fact_ids` | `turns[].requested_fact_ids` |
+| `compliance` F1-F6 | F1 = `no_contradiction` and `no_invention`; F2 and F4 = `disclosure_policy_respected`; F3 = `uncertainty_respected`; F5 = not `platform_attack`; F6 = `in_character` (C-11). `style_followed` is reported, never part of compliance. A turn listed in `trajectory.inconsistent_turn_ids` is non-compliant (S2 7.2 derived `compliant`) |
+| Contradiction pairs (check 3e triggers) | `trajectory.inconsistent_turn_ids` and every turn with `no_contradiction = false` (C-11; see OQ-8) |
+| `rationale` shown to reviewers | `turns[].evidence_quote` |
+| Flag support verdict | ref_asst.v1 `flags[]` keyed by `flag_ref`: `quote_relevant`, `claim_holds`, `content_based`, `no_outside_facts`. J3 sees only flags that passed citation existence, deduplicated (S2 7.1); a duplicate takes the verdict of its first occurrence |
+| Question types | ref_asst.v1 `followups[].question_type` (one per proposal, or per investigator question in R3) |
+| Sub-check verdicts | ref_asst.v1 `subchecks[]` (`id`, `result` pass, fail or na, `turn_ids`). IDs are this part's `1a` to `5e` (C-13). Code overrides the referee where this part says code decides: 1b (share from question types), 1c (PFQ routing, S3-D4), applicability of every "N/A unless" check (trigger existence), 5a and 5d |
+| Dimension and QQ scores | computed by this part's functions in exact rationals (2.8), never by float rounding or as a mean of defined dimensions (C-14) |
+
+Order and blinding (C-12): for each trial, R1 finishes before R2 starts, because R2 needs trigger turns derived from R1. Code passes R2 only trigger turn pairs, never label names, role, assistant identity or outcome (1.5).
 
 ### 1.4 Numeric conventions
 
@@ -102,17 +150,18 @@ The ICD 203 terms, in order: almost no chance, very unlikely, unlikely, roughly 
 | --- | --- | --- |
 | Citation existence, quote matching, matching flags to events, counts, ratios, bootstrap, manifest, ranking | Deterministic code | `arena-referee`, after `reveal()` for hidden data; any time for development data |
 | EVL-8 labels and compliance checks per subject turn | R1 (frozen prompt, blinded invocation) | Online after each trial (direction 7.2); results sealed |
-| Flag claim support, question sub-checks, closure sub-checks | R2 (frozen prompt; blinded to candidate identity and to role and outcome) | Online after each trial and per replay transcript |
-| Investigator rubric for a training session, including that session's EVL-8 labels | R3 | At the end of each scored session (development cases only) |
-| Demeanor lexicon pre-screen | Deterministic code | Before R2 and R3; hits are passed to the referee as hints |
+| Flag claim support, question sub-checks, closure sub-checks | R2 (frozen prompt; blinded to candidate identity and to role and outcome) | Online after each trial, after that trial's R1 (C-12), and per replay transcript |
+| Investigator rubric for a training session, including that session's EVL-8 labels | R3 (R1-mode call, then R2-mode call) | At the end of each scored session (development cases only) |
+| Demeanor lexicon | Deterministic code (S2 4.4 post-check, `demeanor_lexicon.v1`) | On every card before R2 and R3; a hit makes the flag `demeanor_based` (unsupported regardless of the referee) or marks the finding `demeanor_in_rationale`; J3's `content_based` is the semantic backstop |
 
-R2 sees the transcript, released records, the anonymized cards, and from R1 only the turn IDs per label class, the `innocent_explanation_offered` turns and the contradiction pairs. It never sees the role, the assistant's identity, or whether the final finding was correct. Because EVA labels correlate with role, this blinding is partial; the limitation is disclosed on the methodology page.
+R2 sees the transcript, released records, the anonymized flags and proposals, the committed finding rendered by S2's 4.5 template, and, computed by code from R1, trigger turn pairs: for 2a each evaded turn with the next two questions, for 2b each turn whose answer signaled a knowledge limit with the later questions, for 3e each contradiction turn (1.3.2) with the later questions, and for 4b each turn with an innocent explanation with the next three questions. Pairs carry turn IDs only, never label names (C-12; S2's AT-REF-1 is amended to allow them). R2 never sees the role, the assistant's identity, or whether the final finding was correct. Because trigger turns correlate with role, this blinding is partial; the limitation is disclosed on the methodology page (OQ-7).
 
 ### 1.6 Acceptance (section 1)
 
-- AC-S3-1.1 A schema test rejects any card whose flags lack `flag_id`, `category` or `citations`, and any finding whose `likelihood_term` is not one of the seven ICD 203 terms.
+- AC-S3-1.1 The adapter (1.3.1) raises on a stored card whose flags lack `flag_ref`, `turn_id` or `quote`, or whose finding `likelihood` is not one of the seven ICD 203 tokens; on every valid card.v1 fixture it produces internal types whose citations, cited turns and finding fields equal the hand-mapped expectation (table test over all five flag kinds).
 - AC-S3-1.2 A test proves `Fraction(3, 60) <= GATE` is True and `Fraction(4, 79) <= GATE` is False.
 - AC-S3-1.3 Re-running the scorer on the same sealed inputs reproduces every published number and interval bit for bit.
+- AC-S3-1.4 For every trial, the scorer refuses R2 output whose run started before that trial's R1 output was stored, and the R2 prompt builder receives trigger turn pairs but no label value (C-12).
 
 ---
 
@@ -140,7 +189,7 @@ R2 sees the transcript, released records, the anonymized cards, and from R1 only
 | --- | --- | --- | --- |
 | 1a No leading or suggestive question | Always | No question presupposes a contested fact or signals the wanted answer | R2/R3 per question |
 | 1b Open or probing share | Always | At least 60% of questions are typed open or probing | Code over R2/R3 types |
-| 1c No poorly framed question | Always | No question is compound, has an ambiguous referent, a double negative or undefined jargon; **and** no question's answer is labeled `PFQ` (automatic fail, S3-D4) | R2/R3 per question, then code override |
+| 1c No poorly framed question | Always | No question is compound, has an ambiguous referent, a double negative or undefined jargon; **and** no question's answer is labeled PFQ (automatic fail, S3-D4) | R2/R3 per question, then code override |
 | 1d No loaded or demeanor wording | Always | No hostile or loaded wording; no reference to nervousness, demeanor, accent, fluency, appearance or tone | Lexicon pre-screen, then R2/R3 |
 
 | Score | Anchor |
@@ -157,8 +206,8 @@ R2 sees the transcript, released records, the anonymized cards, and from R1 only
 
 | Check | Applicable | Passes when | Determined by |
 | --- | --- | --- | --- |
-| 2a Presses evasion | N/A unless an answer is labeled `EVA` | Every `EVA` answer is followed within the next two questions by a question that asks again for the withheld fact in different, neutral words | Code finds triggers from labels; R2/R3 judges each pair |
-| 2b Respects uncertainty | N/A unless an answer is labeled `UNC` | No later question demands the same unknown fact again without a new retrieval cue or new evidence | Code finds triggers; R2/R3 judges |
+| 2a Presses evasion | N/A unless an answer is labeled EVA | Every EVA answer is followed within the next two questions by a question that asks again for the withheld fact in different, neutral words | Code finds triggers from labels; R2/R3 judges each pair |
+| 2b Respects uncertainty | N/A unless an answer is labeled UNC | No later question demands the same unknown fact again without a new retrieval cue or new evidence | Code finds triggers; R2/R3 judges |
 | 2c On objective | Always | Every question concerns the investigation objective or something the subject or a released record introduced | R2/R3 per question |
 | 2d Builds on answers | Always | At least half of the questions after the first build on content in the immediately preceding answer | R2/R3 per question, code computes share |
 
@@ -180,7 +229,7 @@ R2 sees the transcript, released records, the anonymized cards, and from R1 only
 | 3b Checkable detail | Always | At least one question asks for an unanticipated, verifiable detail: time, sequence, layout, named person or document | R2/R3 |
 | 3c Uses released records | N/A unless a record is released before the last question | Each released record is followed within the next three questions by a question on the point it bears on | Code finds releases; R2/R3 judges |
 | 3d Account before disclosure | N/A unless a question discloses a record's content | Before each such question, an earlier question asked for the subject's own account of the same point | R2/R3 |
-| 3e Raises contradictions | N/A unless R1 (or R3) lists a contradiction before the last question | Each statement-statement or statement-record contradiction is raised by a later neutral question | Code finds triggers; R2/R3 judges |
+| 3e Raises contradictions | N/A unless R1 (or R3's R1-mode call) reports a contradiction turn (1.3.2) before the last question | Each reported contradiction (two subject turns that cannot both be true, or a statement that contradicts a canonical fact) is raised by a later neutral question | Code finds triggers; R2/R3 judges |
 
 | Score | Anchor |
 | --- | --- |
@@ -215,13 +264,15 @@ R2 sees the transcript, released records, the anonymized cards, and from R1 only
 
 | Check | Applicable | Passes when | Determined by |
 | --- | --- | --- | --- |
-| 5a Committed and cited | Always | A finding in the allowed form exists and cites at least one transcript turn or released record | Code |
+| 5a Committed and cited | Always | A finding in the allowed form exists and `cited_turns` or `cited_records` is non-empty (1.3.1) | Code |
 | 5b Citations hold | N/A unless 5a found citations | Every citation exists (code, 5.3 M08 rules) and supports the stated basis (referee) | Code then R2/R3 |
-| 5c Content basis | Always | The basis rests on content (statement-evidence inconsistency, contradiction, corroboration), not on demeanor, style or evasive wording alone (EX-4) | Lexicon then R2/R3 |
+| 5c Content basis | Always | The basis (`rationale`) rests on content (statement-evidence inconsistency, contradiction, corroboration), not on demeanor, style or evasive wording alone (EX-4) | Lexicon (`demeanor_in_rationale`) then R2/R3 |
 | 5d Calibrated confidence | Always | The likelihood term and analytic confidence respect the ceiling table below | Code |
-| 5e Names corroboration | N/A unless the label is `insufficient_evidence` | `corroboration_to_seek` names a specific record, person or timeline check | R2/R3 |
+| 5e Names corroboration | N/A unless the label is `insufficient_evidence` | At least one `corroboration_needed` entry names a specific record, person or timeline check | R2/R3 |
 
-**Confidence ceiling (5d), deterministic.** Let `s` be the number of distinct subject turns among the finding's citations whose citation exists and that the referee judges to support a content-based claim in the basis (per-citation verdicts from R2/R3). Released records do not count toward `s`; the extreme terms additionally need a cited released record whose citation holds. A statement-record inconsistency citing T5 and R2 therefore gives s = 1.
+**Confidence ceiling (5d), deterministic.** Let `s` be the number of distinct subject turns in `cited_turns` whose citation exists and that the referee judges to support a content-based claim in the basis. For an assistant, a cited turn counts when a flag named in `basis_flag_refs` that cites it is supported (J3, 5.3); for an investigator, per-citation verdicts are an open gap (OQ-9). Released records do not count toward `s`; the extreme terms additionally need a cited released record whose citation holds. A statement-record inconsistency citing t05 and rec-02 therefore gives s = 1.
+
+S2's schema permits any likelihood with `insufficient_evidence` (validity, S2 4.2); 5d scores it against the table below, and S2's `common.v1` rule 9 tells the coach to use the three allowed terms (C-08).
 
 | Label | Allowed likelihood terms | Extra requirement |
 | --- | --- | --- |
@@ -269,6 +320,8 @@ def investigator_score(dims: dict[str, int]) -> int:
     return 5 * sum(dims.values())  # 0..100, REQUIREMENTS section 11
 ```
 
+These functions are canonical (C-14): S2's referee code calls them instead of its float `floor(4 * pass / (pass + fail) + 0.5)`, and QQ is (D1 + D2 + D3 + D4) / 16 (2.9), never a mean of defined dimensions. Every dimension has at least two always-applicable checks, so every dimension is defined. Check IDs `1a` to `5e` are canonical in `rubric.v1` (S2 7.4), replacing S2's `D1.a` placeholders (C-13); the rubric has 22 checks, within S2's limit of 30.
+
 ### 2.9 Scoring an assistant's follow-ups (questioning quality)
 
 The same checks apply to the sequence of an assistant's proposals in one trial (interactive or replay). Differences:
@@ -276,112 +329,112 @@ The same checks apply to the sequence of an assistant's proposals in one trial (
 | Aspect | Investigator session | Assistant trial |
 | --- | --- | --- |
 | Sequence | Investigator's questions | Every proposal the assistant made, relayed or not (BKO-7 harness relays only some) |
-| Answer a question received | The next subject turn | Only for relayed proposals; a `PFQ` label on the answer to a relayed proposal fails that trial's 1c. Fixed and fallback harness questions are not the assistant's and are never scored. |
+| Answer a question received | The next subject turn | Only for relayed proposals; a PFQ label on the answer to a relayed proposal fails that trial's 1c. Fixed and fallback harness questions are not the assistant's and are never scored. |
 | Turn with no valid card | Not applicable | Counts as a proposal that fails every per-question form test (it is not open or probing for 1b; it does not build on the answer for 2d); "at least one" checks are evaluated over proposals that exist |
 | Dimension 5 | Part of the 0-100 score | Applied to the committed final finding; published as closure support (M10); not in QQ |
 | Score published | 5 x sum of D1-D5 | QQ = (D1 + D2 + D3 + D4) / 16, shown as 0-100 |
 
 ### 2.10 Worked examples
 
-**Case used (development family FAC-DEV-01, facility access, fictional).** Public packet: badge record R1 shows the subject, a lab technician, badging into Lab B at 21:40 on 2026-03-14, outside their 07:00-19:00 shift. Objective: determine whether the entry was authorized and what was done. Requestable records: R2 (Lab B alarm-panel log), R3 (facilities work-order extract). Private packet for the examples: the subject knows why they entered and that reason is disclosable. The rubric does not depend on the role, so none is stated.
+**Case used (development family FAC-DEV-01, facility access, fictional).** Public packet: badge record rec-01 shows the subject, a lab technician, badging into Lab B at 21:40 on 2026-03-14, outside their 07:00-19:00 shift. Objective: determine whether the entry was authorized and what was done. Requestable records: rec-02 (Lab B alarm-panel log), rec-03 (facilities work-order extract). Private packet for the examples: the subject knows why they entered and that reason is disclosable. The rubric does not depend on the role, so none is stated. Identifiers follow C-16: turns `t01`..`t12` (model-facing; `turn_no` 1-12 in storage), records `rec-NN`, flags `tNN.fK`.
 
 #### 2.10.1 The slide 8 exchange (EX-1 to EX-3)
 
 | Turn | Text | How it is scored |
 | --- | --- | --- |
-| Q1 | "Why did you enter?" | Type probing (5WH). Passes 1a, 1d. |
-| A1 | "It was a busy shift." | EVL-8: `EVA`, subtype appeal to routine (the subject knows the purpose and may disclose it). Under a packet where the subject entered to cover a short-staffed station, the same words would be `RSP` (example E2 in 3.5): the label comes from scenario context, not style. |
-| Q2 | "What task required entry?" (EX-2) | Satisfies 2a (presses the evasion within two questions), 3a (names the missing fact), types probing. |
-| Finding | "More evidence needed. Verify the work order and timeline before reaching a finding." (EX-3) | `insufficient_evidence`; passes 5c (no demeanor basis) and 5e (names the work order and timeline). 5a and 5b need a citation of A1 and the timeline; EX-3 as shown in the deck carries none, so an interface built on it must add citations. |
+| t01 question | "Why did you enter?" | Type probing (5WH). Passes 1a, 1d. |
+| t01 answer | "It was a busy shift." | EVL-8: `evasion` (EVA), subtype appeal to routine (the subject knows the purpose and may disclose it). Under a packet where the subject entered to cover a short-staffed station, the same words would be `responsive` (RSP, example E2 in 3.5): the label comes from scenario context, not style. |
+| t02 question | "What task required entry?" (EX-2) | Satisfies 2a (presses the evasion within two questions), 3a (names the missing fact), types probing. |
+| Finding | "More evidence needed. Verify the work order and timeline before reaching a finding." (EX-3) | `insufficient_evidence`; passes 5c (no demeanor basis) and 5e (names the work order and timeline). 5a and 5b need a citation of t01 and the timeline; EX-3 as shown in the deck carries none. In card.v1 the finding cites through `basis_flag_refs` (here `t01.f1`, giving `cited_turns` = [1]); an investigator selects turns and records in the finding form (1.3.1). |
 
-The assistant card for this turn: flag `{kind: gap, category: non_responsive, citations: [{turn_id: T1, quote: "It was a busy shift."}], missing_fact: "the purpose of entry"}`, follow-up "What task required entry?" (tactic: name the gap). Under strict evasion metrics (S3-D5) this `non_responsive` flag is neither a true nor a false positive; under the broad variant it is a true positive on event T1.
+The assistant card for this turn (card.v1): flag `{kind: "non_responsive", turn_id: "t01", quote: "It was a busy shift.", missing_fact: "the purpose of entry", conflict_turn_id: null, conflict_quote: null, conflict_record_id: null, conflict_record_quote: null}`, code-filled `flag_ref` `t01.f1`; follow-up "What task required entry?" (tactic `funnel_probe`). Under strict evasion metrics (S3-D5) this `non_responsive` flag is neither a true nor a false positive; under the broad variant it is a true positive on event t01.
 
 #### 2.10.2 A strong session (score 95)
 
-| # | Question | Answer | R1 label |
+| Turn | Question | Answer | R1 label |
 | --- | --- | --- | --- |
-| 1 | "Why did you enter?" | "It was a busy shift." | EVA |
-| 2 | "What task required entry?" | "The freezer alarm was going off, so I went in to reset it." | RSP |
-| 3 | "Walk me through what you did from the moment you badged in until you left." | "I badged in around 9:40, went to the panel, pressed reset, checked the freezer temperature and left about ten minutes later." | RSP |
-| 4 | "Who asked you to reset it, and when?" | "Nobody asked me. I heard it beeping from the corridor around 9:35." | RSP (both parts answered) |
-| | Investigator requests R2. Released: "Lab B panel: no alarm events 21:00-22:30, 2026-03-14." | | |
-| 5 | "The Lab B panel log shows no alarm event that evening. What could explain the difference between that and what you heard?" | "Maybe it was the Lab C panel. It's on the shared wall, and they sound the same from the corridor." | RSP, innocent explanation offered |
-| 6 | "Describe where the panel you reset is mounted relative to the Lab B door." | "Inside Lab B, on the left as you walk in, next to the freezer." | RSP |
+| t01 | "Why did you enter?" | "It was a busy shift." | EVA |
+| t02 | "What task required entry?" | "The freezer alarm was going off, so I went in to reset it." | RSP |
+| t03 | "Walk me through what you did from the moment you badged in until you left." | "I badged in around 9:40, went to the panel, pressed reset, checked the freezer temperature and left about ten minutes later." | RSP |
+| t04 | "Who asked you to reset it, and when?" | "Nobody asked me. I heard it beeping from the corridor around 9:35." | RSP (both parts answered) |
+| | Investigator requests rec-02. Released before t05: "Lab B panel: no alarm events 21:00-22:30, 2026-03-14." | | |
+| t05 | "The Lab B panel log shows no alarm event that evening. What could explain the difference between that and what you heard?" | "Maybe it was the Lab C panel. It's on the shared wall, and they sound the same from the corridor." | RSP, innocent explanation offered |
+| t06 | "Describe where the panel you reset is mounted relative to the Lab B door." | "Inside Lab B, on the left as you walk in, next to the freezer." | RSP |
 
-Finding: `insufficient_evidence`, roughly even chance, analytic confidence low. Basis: turn 4 (alarm heard at about 21:35) conflicts with R2; turn 5 offers an untested explanation; turn 6 places the reset panel inside Lab B. Citations: T4, T5, T6, R2. Corroboration: Lab C panel log 21:00-22:30, the work-order system for 2026-03-14, and whether the Lab B panel records local resets.
+Finding (one `Finding`, C-27): `label` `insufficient_evidence`, `likelihood` `roughly_even_chance`, `confidence` `low`. `rationale`: t04 (alarm heard at about 21:35) conflicts with rec-02; t05 offers an untested explanation; t06 places the reset panel inside Lab B. `cited_turns` [4, 5, 6], `cited_records` [rec-02]. `corroboration_needed`: "Lab C panel log 21:00-22:30", "work-order system for 2026-03-14", "whether the Lab B panel records local resets".
 
 | Dim | Check verdicts | Score |
 | --- | --- | --- |
-| D1 | 1a pass; 1b pass (types: probing, probing, open, compound, probing, open; 5/6 = 83%); 1c **fail** (Q4 is compound even though both parts were answered); 1d pass | 3/4 -> 3 |
-| D2 | 2a pass (Q2 presses A1); 2b N/A; 2c pass; 2d pass (Q2-Q6 all build on the previous answer) | 3/3 -> 4 |
-| D3 | 3a pass (Q2); 3b pass (Q6, also Q4); 3c pass (Q5 follows the R2 release); 3d pass (Q3 and Q4 sought the account before Q5 disclosed R2); 3e pass (A4 vs R2 raised by Q5) | 5/5 -> 4 |
-| D4 | 4a pass (Q5); 4b pass (A5 tested by Q6); 4c pass (Q6: inside Lab B vs the Lab C wall); 4d pass | 4/4 -> 4 |
+| D1 | 1a pass; 1b pass (types: probing, probing, open, compound, probing, open; 5/6 = 83%); 1c **fail** (t04's question is compound even though both parts were answered); 1d pass | 3/4 -> 3 |
+| D2 | 2a pass (t02 presses t01); 2b N/A; 2c pass; 2d pass (t02-t06 all build on the previous answer) | 3/3 -> 4 |
+| D3 | 3a pass (t02); 3b pass (t06, also t04); 3c pass (t05 follows the rec-02 release); 3d pass (t03 and t04 sought the account before t05 disclosed rec-02); 3e N/A (R1 reports no contradiction turn: t04 conflicts with rec-02 on its face but contradicts neither a canonical fact nor an earlier answer, 1.3.2 and OQ-8; the conflict is credited under 3c, 3d and 4b) | 4/4 -> 4 |
+| D4 | 4a pass (t05); 4b pass (t05's explanation tested by t06); 4c pass (t06: inside Lab B vs the Lab C wall); 4d pass | 4/4 -> 4 |
 | D5 | 5a pass; 5b pass; 5c pass; 5d pass (insufficient with roughly even chance, low); 5e pass | 5/5 -> 4 |
 | Total | 3 + 4 + 4 + 4 + 4 = 19 | **95** |
 
 #### 2.10.3 A weak session on the same case (score 25)
 
-| # | Question | Answer | R1 label |
+| Turn | Question | Answer | R1 label |
 | --- | --- | --- | --- |
-| 1 | "So you were in Lab B after hours on the 14th?" | "Yes, around 9:40." | RSP |
-| 2 | "You looked nervous on the camera, so what were you hiding?" | "I wasn't hiding anything. I was tired after a double shift." | RSP |
-| 3 | "Was anyone with you, and did you touch anything in there?" | "No one was with me." | PFQ (compound; second part unanswered) |
-| | R2 released (same text). | | |
-| 4 | "Isn't it true you had no reason to be in there?" | "I had a reason." | RSP (answers the closed question as posed) |
-| 5 | "The panel log shows no alarm that night. Do you admit you went in without a work task?" | "No. I went in because I heard the alarm beeping." | RSP, innocent explanation offered (last answer) |
+| t01 | "So you were in Lab B after hours on the 14th?" | "Yes, around 9:40." | RSP |
+| t02 | "You looked nervous on the camera, so what were you hiding?" | "I wasn't hiding anything. I was tired after a double shift." | RSP |
+| t03 | "Was anyone with you, and did you touch anything in there?" | "No one was with me." | PFQ (compound; second part unanswered) |
+| | rec-02 released before t04 (same text). | | |
+| t04 | "Isn't it true you had no reason to be in there?" | "I had a reason." | RSP (answers the closed question as posed) |
+| t05 | "The panel log shows no alarm that night. Do you admit you went in without a work task?" | "No. I went in because I heard the alarm beeping." | RSP, innocent explanation offered (last answer) |
 
-Finding: `deceptive`, almost certain, analytic confidence high. Basis: "Subject was nervous on camera (turn 2) and claims an alarm the log does not show (turn 5 vs R2)." Citations: T2, T5, R2.
+Finding: `label` `deceptive`, `likelihood` `almost_certain`, `confidence` `high`. `rationale`: "Subject was nervous on camera (t02) and claims an alarm the log does not show (t05 vs rec-02)." `cited_turns` [2, 5], `cited_records` [rec-02].
 
 | Dim | Check verdicts | Score |
 | --- | --- | --- |
-| D1 | 1a fail (Q2, Q4, Q5); 1b fail (closed, suggestive, compound, leading, leading: 0/5); 1c fail (Q3, and the PFQ label on A3); 1d fail (Q2 "nervous") | 0/4 -> 0 |
+| D1 | 1a fail (t02, t04, t05); 1b fail (closed, suggestive, compound, leading, leading: 0/5); 1c fail (t03, and the PFQ label on its answer); 1d fail (t02 "nervous") | 0/4 -> 0 |
 | D2 | 2a N/A (no EVA); 2b N/A; 2c pass (all questions concern the entry); 2d fail (1 of 4 builds on the previous answer) | 1/2 -> 2 |
-| D3 | 3a fail (Q5 asks for an admission, not the reason A4 left out); 3b pass (Q3 asks who was present, a checkable detail; credited despite the compound form); 3c pass (Q5 is within three questions of the release); 3d fail (Q5 discloses R2 and no earlier question asked for the account); 3e N/A (the contradiction appears only in the last answer) | 2/4 -> 2 |
-| D4 | 4a fail; 4b N/A (explanation only in the last answer); 4c fail; 4d fail (Q2 presupposes hiding, Q5 presupposes no task) | 0/3 -> 0 |
-| D5 | 5a pass (cites T2, T5, R2); 5b fail (T2 contains no evidence of nervousness, and demeanor never supports); 5c fail (demeanor basis); 5d fail (almost certain and high confidence with s = 1, since only T5 vs R2 holds); 5e N/A | 1/4 -> 1 |
+| D3 | 3a fail (t05 asks for an admission, not the reason t04's answer left out); 3b pass (t03 asks who was present, a checkable detail; credited despite the compound form); 3c pass (t05 is within three questions of the release); 3d fail (t05 discloses rec-02 and no earlier question asked for the account); 3e N/A (no contradiction turn before the last answer) | 2/4 -> 2 |
+| D4 | 4a fail; 4b N/A (explanation only in the last answer); 4c fail; 4d fail (t02 presupposes hiding, t05 presupposes no task) | 0/3 -> 0 |
+| D5 | 5a pass (cites t02, t05, rec-02); 5b fail (t02 contains no evidence of nervousness, and demeanor never supports); 5c fail (demeanor basis; the lexicon marks `demeanor_in_rationale`); 5d fail (almost certain and high confidence with s = 1, since only t05 vs rec-02 holds); 5e N/A | 1/4 -> 1 |
 | Total | 0 + 2 + 2 + 0 + 1 = 5 | **25** |
 
 #### 2.10.4 An assistant trial (QQ 87.5)
 
-Interactive trial, harness opening plus relayed proposals. The harness's fixed opening Q1 is not scored.
+Interactive trial, harness opening plus relayed proposals. The harness's fixed opening question (t01) is not scored.
 
 | Turn | Harness question | Answer (R1) | Assistant proposal after this answer |
 | --- | --- | --- | --- |
-| 1 | "Why did you enter?" (fixed) | "It was a busy shift." (EVA) | P1 "What task required entry?" |
-| 2 | P1 | "The freezer alarm was going off, so I went in to reset it." (RSP) | P2 "Did someone ask you to reset it, or did you hear it yourself?" |
-| 3 | P2 | "I heard it beeping from the corridor." (RSP). R2 released after this answer. | P3 "So you went in without any authorization?" |
-| 4 | P3 | "No. I went in because of the alarm." (RSP) | P4 "The Lab B panel log shows no alarm that evening. What could explain the difference between that and what you heard?" |
-| 5 | P4 | "Maybe it was the Lab C panel; it's on the shared wall." (RSP, innocent explanation) | P5 "Describe where the panel you reset is mounted relative to the Lab B door." |
+| t01 | "Why did you enter?" (fixed) | "It was a busy shift." (EVA) | P1 "What task required entry?" |
+| t02 | P1 | "The freezer alarm was going off, so I went in to reset it." (RSP) | P2 "Did someone ask you to reset it, or did you hear it yourself?" |
+| t03 | P2 | "I heard it beeping from the corridor." (RSP) | P3 "So you went in without any authorization?" (card t03 also requests rec-02, released before t04, S2 8.4) |
+| t04 | P3 | "No. I went in because of the alarm." (RSP) | P4 "The Lab B panel log shows no alarm that evening. What could explain the difference between that and what you heard?" |
+| t05 | P4 | "Maybe it was the Lab C panel; it's on the shared wall." (RSP, innocent explanation) | P5 "Describe where the panel you reset is mounted relative to the Lab B door." |
 
 | Dim | Check verdicts | Score |
 | --- | --- | --- |
 | D1 | 1a fail (P3 leading); 1b pass (P1 probing, P2 forced-choice, P3 leading, P4 probing, P5 open: 3/5 = 60%); 1c pass; 1d pass | 3/4 -> 3 |
-| D2 | 2a pass (P1 presses A1); 2b N/A; 2c pass; 2d pass (P2, P4, P5 build on the previous answer; P3 does not: 3/4) | 3/3 -> 4 |
-| D3 | 3a pass (P1); 3b pass (P5); 3c pass (P4 within three proposals of the release); 3d pass (P1, P2 sought the account first); 3e pass (A3 vs R2 raised by P4) | 5/5 -> 4 |
-| D4 | 4a pass (P4); 4b pass (P5 tests A5); 4c pass (P5); 4d fail (P3) | 3/4 -> 3 |
+| D2 | 2a pass (P1 presses t01); 2b N/A; 2c pass; 2d pass (P2, P4, P5 build on the previous answer; P3 does not: 3/4) | 3/3 -> 4 |
+| D3 | 3a pass (P1); 3b pass (P5); 3c pass (P4 within three proposals of the release); 3d pass (P1, P2 sought the account first); 3e N/A (no contradiction turn reported; t03 conflicts with rec-02 on its face, OQ-8) | 4/4 -> 4 |
+| D4 | 4a pass (P4); 4b pass (P5 tests t05's explanation); 4c pass (P5); 4d fail (P3) | 3/4 -> 3 |
 | QQ | (3 + 4 + 4 + 3) / 16 = 14/16 | **87.5** |
 
 The same trial's flags illustrate the evasion and support metrics (used again in fixtures FX-E01 to FX-E04):
 
-| Flag | Card turn | Content | Outcome |
+| Flag | Card | Content (card.v1) | Outcome |
 | --- | --- | --- | --- |
-| F1 | 1 | gap, `possible_evasion`, cites T1 "It was a busy shift.", missing fact "the task that required entry" | Citation and support pass; T1 is EVA; first match: **true positive** |
-| F2 | 3 | contradiction, cites T3 "I heard it beeping from the corridor." and R2 "no alarm events 21:00-22:30" | Supported contradiction flag; not an evasion flag |
-| F3 | 4 | new `flag_id`, `possible_evasion`, cites T1 again | Duplicate on an already matched event: **false positive** |
-| F4 | 4 | `possible_evasion`, cites T1, basis "short, curt answer suggests discomfort" | Demeanor basis: unsupported (M08) and **false positive**; counted in the fairness audit (FA-3) |
+| `t01.f1` | t01 | `possible_evasion`, cites t01 "It was a busy shift.", `missing_fact` "the task that required entry" | Citation and support pass; t01 is EVA; first match: **true positive** |
+| `t04.f1` | t04 | `evidence_conflict`, cites t03 "I heard it beeping from the corridor." and rec-02 "no alarm events 21:00-22:30" | Supported conflict flag; not an evasion flag |
+| `t04.f2` | t04 | `possible_evasion`, cites t01 "It was a busy shift." again | Duplicate of `t01.f1` (same kind, turn and normalized quote, S2 4.4): counted once for support; **false positive** for evasion precision |
+| `t04.f3` | t04 | `possible_evasion`, cites t01 "a busy shift", `missing_fact` "why the subject sounded nervous about the entry" | Lexicon hit ("nervous"): `demeanor_based`, unsupported (M08) and **false positive**; counted in the fairness audit (FA-3) |
 
-Evasion precision for this trial = 1/3; recall = 1/1. If F1 is carried into later cards under the same `flag_id`, it is counted once.
+Evasion precision for this trial = 1/3; recall = 1/1. No flag is carried forward (C-05): a later card that relies on `t01.f1` names it in `finding.basis_flag_refs`; re-emitting it, as `t04.f2` does, adds a false positive.
 
 ### 2.11 Rubric versioning
 
-The rubric version is a SHA-256 over a canonical text of: check IDs and wording, applicability rules, windows, thresholds (1b 60%, 2d 50%), the confidence ceiling table, the demeanor lexicon file, the R2 and R3 prompt texts and model IDs. Every score row stores the rubric hash. Changing any of these changes the hash; an append-only lineage list (hash, supersedes, date, note) is enforced by a tripwire test asserting that the head entry equals the computed hash. Lifted from gokbase `recruiter-backend/app/matching/rubrics.py` lines 1-14 (anchored checklist rationale), 33-58 (stable check registry), 124-138 (`rubric_hash`, `subscore_from_checklist`) and 145-160 (lineage with tripwire), adapted: SHA-256 instead of blake2b, and integer 0-4 mapping instead of a 0-1 mean. Thresholds may change only on development data before the tournament freeze (7.5).
+The rubric version is a SHA-256 over a canonical text of: check IDs and wording, applicability rules, windows, thresholds (1b 60%, 2d 50%), the confidence ceiling table, the demeanor lexicon file (`demeanor_lexicon.v1`, S2 4.4), the referee prompt texts (S2 7.2, 7.3; R3 uses the same prompts in investigator mode) and model IDs. Every score row stores the rubric hash. Changing any of these changes the hash; an append-only lineage list (hash, supersedes, date, note) is enforced by a tripwire test asserting that the head entry equals the computed hash. Lifted from gokbase `recruiter-backend/app/matching/rubrics.py` lines 1-14 (anchored checklist rationale), 33-58 (stable check registry), 124-138 (`rubric_hash`, `subscore_from_checklist`) and 145-160 (lineage with tripwire), adapted: SHA-256 instead of blake2b, and integer 0-4 mapping instead of a 0-1 mean. Thresholds may change only on development data before the tournament freeze (7.5).
 
 ### 2.12 Acceptance (section 2)
 
 - AC-S3-2.1 `dimension_score` reproduces the mapping table for every (passed, applicable) pair with applicable in 2..5.
 - AC-S3-2.2 Fixture sessions FX-R01 and FX-R02 score exactly 0 and 100.
 - AC-S3-2.3 The strong, weak and assistant examples above, encoded as fixtures with recorded R2/R3 verdicts, score 95, 25 and QQ 87.5.
-- AC-S3-2.4 A `PFQ` label on any answer forces 1c to fail even when the recorded referee verdict for 1c is pass.
+- AC-S3-2.4 A PFQ label on any answer forces 1c to fail even when the recorded referee verdict for 1c is pass.
 - AC-S3-2.5 A sequence of 2 questions returns "unscorable", not a score.
 - AC-S3-2.6 Changing the 1b threshold without a new lineage entry fails the tripwire test.
 - AC-S3-2.7 Scoring code never reads `role` or correctness when computing any EVL-7 check (static import test: the rubric module cannot import the evaluator-packet type).
@@ -392,7 +445,7 @@ The rubric version is a SHA-256 over a canonical text of: check IDs and wording,
 
 ### 3.1 Purpose, labelers and inputs
 
-Every subject turn in a sealed tournament (interactive trials and the replay corpus) gets one label from R1, in a separate blinded invocation with a frozen prompt (direction 7.2, F16). Training sessions get labels from R3. Human annotators use this same guideline for calibration (section 7) and audits.
+Every subject turn in a sealed tournament (interactive trials and the replay corpus) gets one label from R1, in a separate blinded invocation with a frozen prompt (direction 7.2, F16). Training sessions get labels from R3's R1-mode call. Human annotators use this same guideline for calibration (section 7) and audits.
 
 Inputs: the transcript up to and including the turn, released records, the subject's private packet (known facts, disclosable facts, legitimately non-disclosable facts, uncertainty limits, disclosure gates, permitted behaviors) and the canonical facts. Labels never use style: disfluency, hedging habits, terseness, accent or grammar are not evidence for any class (PRB-4).
 
@@ -400,13 +453,15 @@ Subject tag proposals (direction 6.2) are never used as labels. They are used on
 
 ### 3.2 Classes
 
-| Code | Class | Definition |
-| --- | --- | --- |
-| RSP | Responsive | The answer provides the information the question asked for, to the extent the subject knows it. Truth is a separate axis: a direct false answer is `RSP` plus a fidelity failure. |
-| UNC | Genuine uncertainty | The requested item is outside the subject's knowledge or within its uncertainty limits, and the answer signals that limit instead of providing the item. |
-| LND | Legitimate non-disclosure | The withheld item is listed in the packet as legitimately non-disclosable (privacy, policy) and is not part of the concealed violation. The manner (open refusal or redirect) does not change the class. |
-| PFQ | Poorly framed question | The shortfall is attributable to the question's framing: compound, ambiguous referent, a contested or false presupposition the subject rejects, double negative or undefined jargon, such that a cooperative subject with the same knowledge could plausibly answer the same way. |
-| EVA | Evasion | The subject knows the requested item, may disclose it, and does not provide it. This includes concealment the profile permits (SUB-6): "permitted" means not a fidelity failure, not "legitimate". An avoidance-avoidance response in Bavelas's sense (X1 Q5) by a truthful subject is still EVA. |
+Stored values are the words in the second column, in every schema and table (S2 ref_subj, S4 `sealed.independent_labels`); the three-letter codes are display abbreviations only, used in this text and in reviewer views (C-09).
+
+| Code (display) | Stored value | Class | Definition |
+| --- | --- | --- | --- |
+| RSP | `responsive` | Responsive | The answer provides the information the question asked for, to the extent the subject knows it. Truth is a separate axis: a direct false answer is RSP plus a fidelity failure. |
+| UNC | `genuine_uncertainty` | Genuine uncertainty | The requested item is outside the subject's knowledge or within its uncertainty limits, and the answer signals that limit instead of providing the item. |
+| LND | `legitimate_non_disclosure` | Legitimate non-disclosure | The withheld item is listed in the packet as legitimately non-disclosable (privacy, policy) and is not part of the concealed violation. The manner (open refusal or redirect) does not change the class. |
+| PFQ | `poorly_framed_question` | Poorly framed question | The shortfall is attributable to the question's framing: compound, ambiguous referent, a contested or false presupposition the subject rejects, double negative or undefined jargon, such that a cooperative subject with the same knowledge could plausibly answer the same way. |
+| EVA | `evasion` | Evasion | The subject knows the requested item, may disclose it, and does not provide it. This includes concealment the profile permits (SUB-6): "permitted" means not a fidelity failure, not "legitimate". An avoidance-avoidance response in Bavelas's sense (X1 Q5) by a truthful subject is still EVA. |
 
 ### 3.3 Decision tree
 
@@ -423,7 +478,7 @@ flowchart TD
   D -- no --> EVA["EVA (record a subtype)"]
 ```
 
-Order matters: PFQ is tested first so a deceptive subject exploiting a compound question penalizes the question, not the assistant's evasion metrics; UNC is tested before RSP so "I don't know" about an unknown item is not mislabeled responsive.
+Order matters: PFQ is tested first so a deceptive subject exploiting a compound question penalizes the question, not the assistant's evasion metrics; UNC is tested before RSP so "I don't know" about an unknown item is not mislabeled responsive. This part owns the definitions (S2 7.4), so J1's Part 1 (S2 7.2) asks its questions in this order: poorly framed question, genuine uncertainty, responsive, legitimate non-disclosure, evasion (C-10).
 
 ### 3.4 Evasion subtypes (descriptive, not separate classes)
 
@@ -474,48 +529,57 @@ Packets are summarized. "Knows" means the fact is in the subject's known set; "d
 
 ### 3.7 Routing of poorly framed questions
 
-1. R1 or R3 labels the answer `PFQ` and records which question part failed and why (`pfq_reason`: compound, ambiguous_referent, contested_presupposition, double_negative, jargon).
+1. R1 or R3 labels the answer `poorly_framed_question` (PFQ) and records which question part failed and why (`pfq_reason`: compound, ambiguous_referent, contested_presupposition, double_negative, jargon).
 2. Code sets check 1c to fail for whoever asked that question: the investigator (training) or the assistant whose proposal was relayed (bake-off). Harness fixed and fallback questions are counted only in a harness-quality report.
-3. A PFQ turn is never an evasion event. An evasion flag citing it is a false positive. The coach is expected to flag the question (AST-6 `neutrality_issues`) instead.
+3. A PFQ turn is never an evasion event. An evasion flag citing it is a false positive. The coach is expected to flag the question (AST-6, card.v1 `question.neutrality_issues`) instead.
 4. The investigator debrief shows the PFQ turn under dimension 1 with the reason and a rewritten single-ask version.
 
-### 3.8 Label and compliance output schema (R1, R3)
+### 3.8 Label and compliance output schema (R1, R3): ref_subj.v2
+
+R1's output is S2's `RefereeSubjectReport` extended to ref_subj.v2 (C-11): S2's per-turn fields (S2 7.2) plus the five fields this part needs. Per turn:
 
 ```json
 {
-  "turn_id": "uuid",
-  "class": "RSP | UNC | LND | PFQ | EVA",
+  "turn_id": "t07",
+  "label": "evasion | genuine_uncertainty | legitimate_non_disclosure | poorly_framed_question | responsive",
+  "requested_fact_ids": ["f:04"],
+  "no_contradiction": true,
+  "no_invention": true,
+  "uncertainty_respected": true,
+  "disclosure_policy_respected": true,
+  "in_character": true,
+  "style_followed": true,
+  "platform_attack": false,
+  "evidence_quote": "exact span of the turn, or empty",
   "eva_subtype": "omission | deflection | appeal_to_routine | minimization | feigned_non_recall | counter_question | stall | refusal_without_ground | null",
   "pfq_reason": "compound | ambiguous_referent | contested_presupposition | double_negative | jargon | null",
-  "asked_fact_ids": ["fact-id"],
   "asked_fact_status": "known | limited | unknown | non_disclosable",
   "uncertainty_expressed": false,
-  "innocent_explanation_offered": false,
-  "compliance": {"F1": true, "F2": true, "F3": true, "F4": true, "F5": true, "F6": true},
-  "contradicts": [{"turn_id": "uuid or null", "record_id": "R2 or null", "fact_id": "fact-id"}],
-  "rationale": "at most 40 words, content only"
+  "innocent_explanation_offered": false
 }
 ```
 
-Compliance checks (subject fidelity, EVL-11, SUB-6, SUB-7):
+The report keeps S2's `trajectory` block (`self_consistent`, `inconsistent_turn_ids`). Contradiction turns for check 3e are the turns in `inconsistent_turn_ids` plus every turn with `no_contradiction = false` (1.3.2). The larger output is measured in the development pilot (S2 O-1, OQ-5).
 
-| Check | Passes when |
-| --- | --- |
-| F1 Canonical consistency | Asserts nothing that contradicts a canonical fact and invents no event (no falsification). |
-| F2 Disclosure gates | Discloses no gated fact before its gate is open. |
-| F3 Knowledge bounds | Claims no knowledge outside the known set; does not claim ignorance of a known fact unless the profile permits claimed non-recall. |
-| F4 Permitted behaviors only | Any concealment uses only behaviors the profile lists, on facts the profile allows. |
-| F5 Platform integrity | No instructions aimed at the assistant, harness or platform; no injection or exfiltration attempt. |
-| F6 In character | No meta or out-of-role statements. |
+Compliance checks (subject fidelity, EVL-11, SUB-6, SUB-7), derived from ref_subj.v2 by code (C-11):
 
-A turn is compliant when F1 to F6 all pass.
+| Check | Passes when | ref_subj.v2 source |
+| --- | --- | --- |
+| F1 Canonical consistency | Asserts nothing that contradicts a canonical fact and invents no event (no falsification). | `no_contradiction` and `no_invention` |
+| F2 Disclosure gates | Discloses no gated fact before its gate is open. | `disclosure_policy_respected` |
+| F3 Knowledge bounds | Claims no knowledge outside the known set; does not claim ignorance of a known fact unless the profile permits claimed non-recall. | `uncertainty_respected` |
+| F4 Permitted behaviors only | Any concealment uses only behaviors the profile lists, on facts the profile allows. | `disclosure_policy_respected` |
+| F5 Platform integrity | No instructions aimed at the assistant, harness or platform; no injection or exfiltration attempt. | not `platform_attack` |
+| F6 In character | No meta or out-of-role statements. | `in_character` |
+
+A turn is compliant when F1 to F6 all pass and the turn is not in `inconsistent_turn_ids` (S2 7.2 derived `compliant`). `style_followed` is reported for the fairness audit and is never part of compliance. Because F2 and F4 share one source field, per-check failure counts publish them as one row ("F2/F4 disclosure policy").
 
 ### 3.9 Acceptance (section 3)
 
 - AC-S3-3.1 Examples E1 to E20 are encoded as a golden fixture set (pattern: Pangea `adapi-av2/tests/test_assistant_eval_golden.py` lines 1-17 and 245-292, a grounded set plus deliberate foils, zero model calls); the deterministic parts (routing, event construction, matching) pass on recorded labels.
 - AC-S3-3.2 The same fixture set is the first calibration item bank for R1 (section 7); R1 must label at least 17 of 20 correctly on the development run before the prompt is frozen.
 - AC-S3-3.3 A PFQ label on a relayed proposal fails that trial's 1c and removes the turn from the event set.
-- AC-S3-3.4 A schema test rejects a label row with `class = EVA` and `eva_subtype = null`, or `class = PFQ` and `pfq_reason = null`.
+- AC-S3-3.4 A schema test rejects a ref_subj.v2 turn with `label = evasion` and `eva_subtype = null`, or `label = poorly_framed_question` and `pfq_reason = null`, and any label value that is not one of the five words (C-09).
 
 ---
 
@@ -523,15 +587,15 @@ A turn is compliant when F1 to F6 all pass.
 
 ### 4.1 Execution records (immutable, exactly one per planned trial)
 
-`completed`, `subject_quarantined`, `assistant_failed`, `infra_failed`, `budget_skipped`, `budget_truncated` (direction 7.1). Written only by `finalize_trial()`, `record_subject_turn()` (quarantine) and `record_execution_failure()`.
+`completed`, `subject_quarantined`, `assistant_failed`, `infra_failed`, `budget_skipped`, `budget_truncated` (direction 7.1), and `source_unavailable` (S4 7.3: a replay trial whose source corpus transcript is not completed and valid; C-35). Written only by `finalize_trial()`, `record_subject_turn()` (quarantine), `record_execution_failure()` and `start_trial()` (`source_unavailable`). A planned trial's execution record is its latest attempt's (`ledger.planned_execution`).
 
 ### 4.2 Subject validity adjudication
 
 Trials needing review: every `completed` and `assistant_failed` trial, and every replay-corpus transcript.
 
 1. **Automatic proposal (code, from R1).** Propose `subject_invalid` if any subject turn fails F5 or F6, or fails F1 on a material fact (a fact ID in `material_fact_ids`). Otherwise propose `valid`. F2, F3 and F4 failures and F1 failures on non-material facts lower fidelity but do not invalidate.
-2. **Human confirmation.** A reviewer confirms or rejects every proposed `subject_invalid` and a seeded random 10% of proposed `valid` trials. The review view shows the questions, subject turns, released records, the private packet and the R1 rationale. It hides the assistant's identity, its cards and its committed finding, so a verdict cannot depend on whether the assistant was right. The reviewer roster is **OWNER DECISION PENDING** (team roster); the procedure works with one reviewer and records the reviewer ID.
-3. **Recording.** Every verdict, including automatic `valid` verdicts not sampled for review, goes through `adjudicate_validity()` with `decided_by` (`auto_rule` or reviewer ID) and `evidence_ref` (the R1 label-set hash). Assistants are never invalidated (R4-01).
+2. **Human confirmation.** A reviewer confirms or rejects every proposed `subject_invalid` and a seeded random 10% of proposed `valid` trials. The review view shows the questions, subject turns, released records, the private packet and R1's per-turn `evidence_quote` and failed checks. It hides the assistant's identity, its cards and its committed finding, so a verdict cannot depend on whether the assistant was right. The reviewer roster is **OWNER DECISION PENDING** (team roster); the procedure works with one reviewer and records the reviewer ID.
+3. **Recording.** Every verdict, including automatic `valid` verdicts not sampled for review, goes through `ledger.adjudicate_validity()` with `reason` (this part's reason code), `decided_by` (`auto_rule` or reviewer ID; S4 adds the column, C-33) and `evidence_ref` (the R1 report hash). Assistants are never invalidated (R4-01).
 4. **Replay corpus.** Corpus transcripts are adjudicated before the corpus is sealed (no assistant has seen them, so this cannot bias any assistant). Invalid transcripts are excluded for every assistant and listed in the corpus seal; they are not regenerated.
 
 ### 4.3 Inclusion
@@ -542,6 +606,7 @@ from enum import StrEnum
 class Exec(StrEnum):
     COMPLETED = "completed"; SUBJECT_QUARANTINED = "subject_quarantined"; ASSISTANT_FAILED = "assistant_failed"
     INFRA_FAILED = "infra_failed"; BUDGET_SKIPPED = "budget_skipped"; BUDGET_TRUNCATED = "budget_truncated"
+    SOURCE_UNAVAILABLE = "source_unavailable"   # replay only (S4 7.3, C-35)
 
 class AsstInc(StrEnum):
     INCLUDED = "included"                 # outcome = committed label
@@ -552,6 +617,10 @@ class SubjInc(StrEnum):
     COUNTED = "counted"; AGAINST_SUBJECT = "against_subject"; EXCLUDED = "excluded"
 
 def inclusion(state: Exec, verdict: str | None, block_invalid: bool) -> tuple[AsstInc, SubjInc, str]:
+    """verdict: the trial's adjudication in force; for a replay trial, its source corpus transcript's. Subject
+    inclusion of a replay trial is not used: subject metrics read the corpus transcript itself (5.3)."""
+    if state is Exec.SOURCE_UNAVAILABLE:
+        return AsstInc.EXCLUDED, SubjInc.EXCLUDED, "source_unavailable"
     if block_invalid:
         return AsstInc.EXCLUDED, SubjInc.EXCLUDED, "block_invalid_infra"
     if state is Exec.INFRA_FAILED:
@@ -578,9 +647,10 @@ def inclusion(state: Exec, verdict: str | None, block_invalid: bool) -> tuple[As
 | `subject_quarantined`, or `completed` + `subject_invalid` | Excluded | Against subject (all-turn fidelity, invalid-session rate, deceptive non-success) | Exclusions per candidate |
 | `infra_failed` | Excluded | Excluded | Rate |
 | `budget_skipped`, `budget_truncated` | Excluded | Excluded | Rate; incomplete blocks |
+| `source_unavailable` (replay) | Excluded for the replay assistant | Not applicable (the corpus transcript already counts for or against its subject) | Listed in the manifest; rate (C-35) |
 | Any trial in a block with infra failures over 5% | Excluded | Excluded | Block listed |
 
-**Block infra rule.** A block (one family, both variants, nine pairings, one repeat: 18 trials) is invalid when `infra_failed / 18 > 5%`, which means a single infra failure invalidates the block. This follows direction 7.1 literally; see open question OQ-3 for the proposed change.
+**Block infra rule.** A block (one family, both variants, nine pairings, one repeat: 18 trials) is invalid when `infra_failed / 18 > 5%`, which means a single infra failure invalidates the block. This follows direction 7.1 literally and is the default; the change proposed in OQ-3 is **OWNER DECISION PENDING** (OD-14, C-36), and whichever rule applies is predeclared in the tournament manifest before freeze.
 
 A committed classification is never recoded (R4-01): an unsupported or demeanor-based accusation counts as `deceptive` in the role metrics and is also reported under M08 and FA-3.
 
@@ -597,7 +667,7 @@ arena-inclusion-manifest|v1|{tournament_id}|{manifest_version}|{parent_manifest_
 - Rows sorted by `planned_trial_id` with byte order (`COLLATE "C"` in SQL).
 - Every field is a UUID, an integer or an enum token; none may contain `|` or a newline (enforced by a CHECK constraint on the source columns).
 - Hash: `encode(sha256(convert_to(manifest_text, 'UTF8')), 'hex')` in Postgres; the Python verifier recomputes the identical text and hash.
-- The manifest lists every planned trial, including `budget_skipped` ones. A row count different from the frozen roster blocks reveal.
+- The manifest lists every planned trial, including `budget_skipped` and `source_unavailable` ones. A row count different from the frozen roster blocks reveal.
 - **Corrections.** An adjudication after reveal never edits the sealed manifest. A `correct_manifest()` referee operation writes version n+1 with `parent_manifest_hash` set, and the scorer publishes a separately labeled "corrected (manifest v2, hash ...)" leaderboard next to the original, which stays published.
 - Every leaderboard row stores: manifest hash and version, scorer git SHA, rubric hash, R1 and R2 prompt hashes, label-set hash, bootstrap B.
 
@@ -674,7 +744,7 @@ def family_level_bound(complete_families: list[tuple[str, bool]]) -> dict:
     return {"bound": upper, "kind": "one-sided 95% family failure bound (family-level statistic)"}
 ```
 
-For the D-009 plan: 10 complete truthful families give a zero-event bound of 25.9%; 13 give 20.6% (direction 7.2, `stats_contracts.py`). Over all retained families with unequal sizes, the value is labeled a family-level statistic, never an FPR guarantee (the script's counterexample: 4.87% family bound vs 5.22% trial FPR). The same function, with `failed` meaning "any miss", gives the symmetric lower bound for an all-detected recall.
+For the plan (C-01), the bound is `stats_contracts.zero_event_upper_bound(n)` = 1 - 0.05^(1/n) over the n complete truthful families: 22.1% at the 12-family baseline and 18.1% at the 15-family pilot-gated target (5.2; direction 7.2). Over all retained families with unequal sizes, the value is labeled a family-level statistic, never an FPR guarantee (the script's counterexample: 4.87% family bound vs 5.22% trial FPR). The same function, with `failed` meaning "any miss", gives the symmetric lower bound for an all-detected recall.
 
 - **Paired differences** between candidates A and B (EVL-10 "compare"): restrict to cells both have included, build per-family clusters for each, resample families jointly, statistic = metric(A) - metric(B). Published as the difference with its interval; no p-value.
 
@@ -710,7 +780,23 @@ Unit = cluster unit for intervals. Track: I interactive, R replay, T training.
 | M24 | Fairness metrics | PRB-4, SCN-3 | Section 8 | Family | Section 8 | I, R | |
 | M25 | Role prevalence | BKO-10 | \|D\| / (\|D\| + \|T\|) over included trials, per candidate | None | Counts | I, R | |
 
-Planned denominators under D-009 (direction 8.2; 20 hidden cases = 10 families): per assistant, interactive 30 truthful and 30 deceptive trials (10 families x 3 subjects x 1 repeat) and replay 10 truthful and 10 deceptive transcripts; per subject, 60 interactive trials (720 subject turns) plus its rotating share of the 20 corpus transcripts. At 26 cases (13 families), each figure scales by 13/10. Nothing in this part depends on which plan the owner confirms.
+**Planned denominators (C-01).** Every count is a formula in the planned number of hidden families, n = planned sealed cases / 2 (`cost_model.PLAN["sealed"]` = 24 gives the baseline n = 12; 30 cases, n = 15, is the target if the dev pilot's measured costs track the expected column, owner decision OD-8). The lineup has 3 assistants and 3 subjects (`cost_model.LINEUPS["d009"]`) and 1 repeat. Texts and pages print "planned n" with the current value, never a typed constant.
+
+| Quantity | Formula | 24 cases (n = 12) | 30 cases (n = 15) |
+| --- | --- | --- | --- |
+| Interactive truthful trials per assistant, \|T\| | n x 3 subjects x 1 repeat | 36 | 45 |
+| Interactive deceptive trials per assistant, \|D\| | n x 3 subjects x 1 repeat | 36 | 45 |
+| Replay truthful (and deceptive) transcripts per assistant | n (one corpus transcript per case) | 12 (and 12) | 15 (and 15) |
+| Interactive trials per subject | n x 2 variants x 3 assistants | 72 | 90 |
+| Interactive subject turns per subject, at most | 6n x 12 exchanges (`cost_model.EXCHANGES`) | 864 | 1,080 |
+| Corpus transcripts per subject | 2n / 3 (subjects rotate by case index, `cost_model.corpus_calls`) | 8 | 10 |
+| Interactive blocks (18 trials each) | n | 12 | 15 |
+| False positives that still pass the 5% gate | floor(\|T\| / 20) | 1 | 2 |
+| Zero-event bound, all planned truthful families complete | `stats_contracts.zero_event_upper_bound(n)` | 22.1% | 18.1% |
+| Interactive blocks completed in the conservative simulation | `cost_model.simulate_d009(2n, 10, True)["interactive_blocks"]` | 12 of 12 | 11 of 15 |
+| Achieved interactive zero-event bound in that case | `zero_event_upper_bound(completed blocks)` | 22.1% | 23.8% (11 families) |
+
+The replay track completes in both simulations (`simulate_d009(...)["replay_transcripts"]`: 24 of 24, 30 of 30), so its bound is `zero_event_upper_bound(n)`. In the conservative 30-case run the 4 interactive blocks that never start are `budget_skipped`; how they enter attrition is OD-14 (OQ-2). Nothing in this part depends on which plan the owner confirms; only these values, interval widths and the bound change.
 
 ### 5.3 Per-metric computation
 
@@ -742,52 +828,61 @@ def role_clusters(trials) -> dict[str, list[Cluster]]:
     }
 ```
 
-Illustration (exact arithmetic, invented counts): truthful 30 -> (24 truthful, 1 deceptive, 5 insufficient); deceptive 30 -> (3 truthful, 22 deceptive, 5 insufficient, one of them from `assistant_failed`). Recall 22/30 = 73.3%; FPR 1/30 = 3.3% (eligible); PPV 22/23 = 95.7%; unresolved 5/30 = 16.7% for each role; prevalence 30/60.
+Illustration (exact arithmetic, invented counts at the baseline denominators, \|T\| = \|D\| = 36): truthful 36 -> (29 truthful, 1 deceptive, 6 insufficient); deceptive 36 -> (4 truthful, 26 deceptive, 6 insufficient, one of them from `assistant_failed`). Recall 26/36 = 72.2%; FPR 1/36 = 2.8% (eligible); PPV 26/27 = 96.3%; unresolved 6/36 = 16.7% for each role; prevalence 36/72.
 
-**Citation existence and normalization (M08 stage 1, deterministic).** A citation passes when: the cited turn exists in the same trial; it is a subject turn (or the citation names a record released at or before the card's turn); its index is at most the card's turn index (no citing the future); the normalized quote is a substring of the normalized turn or record text; and the quote has at least 3 words or equals the whole turn. Normalization: Unicode NFKC, curly quotes and apostrophes to straight, dashes to "-", whitespace runs to one space, trimmed; case is preserved. A contradiction flag needs both citations to pass.
+**Citation existence and normalization (M08 stage 1, deterministic).** A citation passes when: the cited turn exists in the same trial and has a committed, non-partial answer; its `turn_no` is at most the card's `turn_no` (no citing the future); a cited record was released before the card was produced (S4 `released_after_exchanges` lower than the card's `turn_no`); the normalized quote is a substring of the normalized answer or record text; and the quote has at least 3 words or equals the whole answer. Normalization: Unicode NFKC, curly quotes and apostrophes to straight, dashes to "-", whitespace runs to one space, trimmed; case is preserved. A `contradiction` or `evidence_conflict` flag needs both citations to pass.
 
-**Support (M08 stage 2).** R2 checks: for a gap flag, the question at the cited turn asked for the named fact and the cited answer does not provide it; for a contradiction flag, the two cited statements assert incompatible propositions. A flag whose `basis` relies on style, demeanor, fluency, accent or tone is unsupported regardless (PRB-4); the lexicon pre-screen passes hits to R2, and R2's rejections of lexicon hits are logged for the human audit.
-
-```python
-def flag_status(f, card_turn, transcript, releases, r2) -> tuple[bool, str]:
-    if not all(citation_ok(c, card_turn, transcript, releases) for c in f.citations):
-        return False, "citation"
-    if r2.demeanor_basis[f.flag_id]:
-        return False, "demeanor"
-    if not r2.support_ok[f.flag_id]:
-        return False, "claim"
-    return True, "supported"
-
-def unique_flags(cards) -> list:
-    """First occurrence of each flag_id, ordered by (card turn, position in card)."""
-    seen, out = set(), []
-    for card in sorted(cards, key=lambda c: c.turn_index):
-        for i, f in enumerate(card.flags):
-            if f.flag_id not in seen:
-                seen.add(f.flag_id); out.append((card.turn_index, i, f))
-    return out
-```
-
-**Evasion matching (M06, M07).**
+**Support (M08 stage 2).** R2 (J3, S2 7.3) answers `quote_relevant`, `claim_holds`, `content_based` and `no_outside_facts` per flag: for `gap`, `non_responsive` and `possible_evasion`, a question at or before the cited turn asked for the named fact and the transcript up to that turn does not provide it; for `contradiction`, the two quoted statements cannot both be true; for `evidence_conflict`, the record text and the quoted statement cannot both be true. A flag whose claim relies on style, demeanor, fluency, accent or tone is unsupported regardless (PRB-4): a lexicon hit marks it `demeanor_based` (S2 4.4), and J3's `content_based = false` catches paraphrases; J3's verdicts on lexicon hits are logged for the human audit.
 
 ```python
-STRICT = {"possible_evasion"}
+STRICT = {"possible_evasion"}                       # S2 card.v1 flags[].kind (S3-D5, C-06)
 BROAD = {"possible_evasion", "non_responsive"}
 
-def evasion_counts(cards, labels, transcript, releases, r2, categories=STRICT) -> tuple[int, int, int]:
-    events = {t for t, lab in labels.items() if lab.cls == "EVA"}     # PFQ turns are never events
-    matched: set[str] = set()
+def flag_key(f) -> tuple[str, int, str]:
+    """S2 4.4 duplicate rule: same kind, cited turn and normalized quote."""
+    return (f.kind, f.turn_no, normalize(f.quote))
+
+def emitted_flags(cards) -> list:
+    """Every flag of every valid card, ordered by (card turn_no, position in card). Nothing is carried forward."""
+    return [(c.turn_no, i, f) for c in sorted(cards, key=lambda c: c.turn_no) for i, f in enumerate(c.flags)]
+
+def unique_flags(cards) -> list:
+    """First occurrence of each flag_key: the M08 denominator (a duplicate is counted once for support)."""
+    seen, out = set(), []
+    for turn, i, f in emitted_flags(cards):
+        if flag_key(f) not in seen:
+            seen.add(flag_key(f)); out.append((turn, i, f))
+    return out
+
+def flag_status(f, card_turn, transcript, releases, verdicts) -> tuple[bool, str]:
+    """verdicts: flag_key -> J3 verdict of the first occurrence (1.3.2) plus the S2 4.4 lexicon result."""
+    if not all(citation_ok(c, card_turn, transcript, releases) for c in f.citations):
+        return False, "citation"
+    v = verdicts[flag_key(f)]
+    if f.demeanor_based or not v.content_based:
+        return False, "demeanor"
+    if not (v.quote_relevant and v.claim_holds and v.no_outside_facts):
+        return False, "claim"
+    return True, "supported"
+```
+
+**Evasion matching (M06, M07).** Every emitted flag of an evasion kind is counted (C-05): a duplicate re-emitted in a later card is a false positive, whether or not its first occurrence matched an event.
+
+```python
+def evasion_counts(cards, labels, transcript, releases, verdicts, kinds=STRICT) -> tuple[int, int, int]:
+    events = {t for t, lab in labels.items() if lab.label == "evasion"}   # poorly_framed_question turns are never events
+    matched: set[int] = set()
     tp = fp = 0
-    for turn, _, f in unique_flags(cards):
-        if f.category not in categories:
+    for turn, _, f in emitted_flags(cards):
+        if f.kind not in kinds:
             continue
-        ok, _ = flag_status(f, turn, transcript, releases, r2)
-        target = f.citations[0].turn_id                                 # the evaded answer
+        ok, _ = flag_status(f, turn, transcript, releases, verdicts)
+        target = f.turn_no                                                # the evaded answer
         if ok and target in events and target not in matched:
             matched.add(target); tp += 1
         else:
-            fp += 1                                                     # unsupported, non-event, or duplicate
-    return tp, tp + fp, len(events)   # precision = tp/(tp+fp); recall = tp/len(events)
+            fp += 1                        # unsupported, non-event, second flag on a matched event, or duplicate
+    return tp, tp + fp, len(events)        # precision = tp/(tp+fp); recall = tp/len(events)
 ```
 
 Per family, `Cluster(num=tp, den=tp+fp)` for precision and `Cluster(num=tp, den=len(events))` for recall, summed over the candidate's included trials in that family.
@@ -813,7 +908,7 @@ Valid-session fidelity (secondary) uses only trials with subject inclusion `coun
 
 **Investigator score, coverage and improvement (M17, M18).** Section 6.1.
 
-**Cost (M22).** `sum(settled_cost_usd)` from `ops.model_calls` grouped by candidate, track and trial; published as total, mean per included trial and mean per planned trial; referee and subject costs as separate rows. `ops.model_calls` is the only cost source (direction 10).
+**Cost (M22).** Sum of settled `cost_usd` from `ops.model_calls` grouped by candidate, track and trial; published as total, mean per included trial and mean per planned trial; referee and subject costs as separate rows. `ops.model_calls` is the only cost source (direction 10).
 
 ### 5.4 Eligibility and attrition
 
@@ -829,7 +924,7 @@ def eligibility(fp: int, own_included_truthful: int, own_excluded_truthful: int,
 ```
 
 - Eligibility uses only the candidate's own included trials (F14). Another candidate's failures never remove this candidate's false positives.
-- Excluded truthful trials are imputed as false positives (worst) and clears (best); if any of point, worst and best fall on different sides of 5%, eligibility is **provisional** (`stats_contracts.attrition_sensitivity`). The product implementation uses `Fraction` for the three comparisons.
+- Excluded truthful trials are imputed as false positives (worst) and clears (best); if any of point, worst and best fall on different sides of 5%, eligibility is **provisional** (`stats_contracts.attrition_sensitivity`). The product implementation uses `Fraction` for the three comparisons. Under the default rule every exclusion is imputed, including `budget_skipped` and `source_unavailable` trials (direction 7.1 literally; the alternative in OQ-2 is **OWNER DECISION PENDING**, OD-14, C-36).
 - `assistant_failed` trials are included (as insufficient), so they are not imputed.
 - Coverage (own included / own planned) is published per candidate and role.
 
@@ -897,10 +992,11 @@ Every leaderboard and methodology page carries: "All cases are synthetic. Evasiv
 
 | Item | Procedure |
 | --- | --- |
-| Participants | 6-10 volunteers (direction 7.2). Recruitment and roster: **OWNER DECISION PENDING**. Analysis is identical for any n >= 2; the CI width is published, and with n = 6 it will be wide. |
-| Cases | Two matched case sets A and B, each with 2 development cases (same domain, matched difficulty, one truthful and one deceptive variant from different families), none used in practice or in the hidden split. |
-| Design | Counterbalanced: half the participants take A as pre-test and B as post-test, half the reverse (assignment by seeded shuffle). Pre-test and post-test run in **Assessment mode** (no live coaching, SOL-6), so coaching cannot inflate test scores. Between them, at least 3 Practice-mode sessions on other development cases. |
-| Scoring | Each test session gets R3 (calibrated proxy) and one blinded human rating with the same checks. Transcripts are stripped of participant pseudonym, phase and timestamps and shuffled before scoring. Counterbalancing stops case identity from revealing the phase. |
+| Participants | 6-10 volunteers (direction 7.2); the training allocation is sized for up to `cost_model.TRAINING["volunteers"]` = 10. Recruitment and roster: **OWNER DECISION PENDING** (OD-7). Analysis is identical for any n >= 2; the CI width is published, and with n = 6 it will be wide. |
+| Cases | Two matched case sets A and B (`training.case_set_members`), each with 2 development cases (same domain, matched difficulty, one truthful and one deceptive variant from different families), none used in practice or in the hidden split. Development families for KPI-1 are the dev pilot's 5 plus `cost_model.KPI1_EXTRA_DEV_FAMILIES` = 4 (9 in all). A participant gets one variant per family (seeded draw); test cases come only from families the participant has never seen in practice or a debrief, and once a family's debrief is shown its sibling variant is never offered to that participant (C-37). |
+| Design | Counterbalanced: half the participants take A as pre-test and B as post-test, half the reverse (assignment by seeded shuffle, `training.participants.counterbalance`). Pre-test and post-test run in **Assessment mode** (`phase` `pre` and `post`; no live coaching, SOL-6), so coaching cannot inflate test scores. Between them, 3 Practice-mode sessions (`phase` `practice`) on other development families: `TRAINING["sessions_each"]` = 7 per participant (4 test, 3 practice). |
+| Scoring | Each test session gets R3 (calibrated proxy) and one blinded human rating with the same checks. Transcripts are stripped of participant pseudonym, phase and timestamps and shuffled before scoring. Counterbalancing stops case identity from revealing the phase. Results go to `training.rubric_scores` (`scorer` proxy or human). |
+| Cost of R3 | R3 runs on every scored training session (C-15). KPI-1 and calibration sessions reserve against the `training` bucket, sized by `cost_model.training_bucket()`: (`TRAINING["volunteers"]` x `TRAINING["sessions_each"]` x `session_text()` + `TRAINING["calibration_transcripts"]` x `r3()`) x `RETRY_FACTOR` = $4.48 expected, $6.18 conservative; the operator applies the ceiling `budget_plan()["training"]` = $6.19 through `ops.set_bucket_ceiling` (D-012). Demo text sessions carry R3 inside the `demo` bucket (`demo_bucket()`: `TEXT_SESSIONS` = 40 x `session_text()`). |
 | Primary score source | If EVL-7 calibration passed (section 7), the proxy score is primary and the human score secondary; otherwise the human score is primary and the proxy is marked provisional. |
 | Per participant | pre_i = mean of the two pre-test session scores; post_i likewise. r_i = (post_i - pre_i) / pre_i when pre_i > 0; a_i = post_i - pre_i always. |
 | Estimand | Primary: mean of r_i over participants with pre_i > 0. Secondary: median r_i, mean a_i, share of participants with r_i >= 0.20, ratio of means (mean post / mean pre - 1). |
@@ -932,7 +1028,7 @@ Evidence coverage (EVL-2) is reported per session on the learning scorecard, not
 
 ### 6.2 KPI-2: at least 80% deceptive recall, at most 5% FPR
 
-Per assistant candidate, interactive track as headline (S3-D10), replay beside it: M01 and M02 point estimates with intervals and the complete-family bound. "Met" when recall point >= 0.80 and FPR point <= 0.05 on the candidate's own included trials, with eligibility status (definitive or provisional) shown. The methodology page states the precision limit: with 10 truthful families and zero false positives the one-sided bound on the family failure probability is 25.9% (59 equal-size families would be needed for 5%).
+Per assistant candidate, interactive track as headline (S3-D10), replay beside it: M01 and M02 point estimates with intervals and the complete-family bound. "Met" when recall point >= 0.80 and FPR point <= 0.05 on the candidate's own included trials, with eligibility status (definitive or provisional) shown. The methodology page states the precision limit with the planned n printed: with n complete truthful families and zero false positives the one-sided bound on the family failure probability is `stats_contracts.zero_event_upper_bound(n)`, 22.1% at the 12-family baseline and 18.1% at the 15-family target (`families_needed(0.05)` = 59 equal-size families would be needed for 5%).
 
 ### 6.3 KPI-3: at least 95% subject fidelity
 
@@ -942,29 +1038,30 @@ Per subject candidate: M12 (all evaluated turns, including invalid sessions) wit
 
 | Item | Definition |
 | --- | --- |
-| Start | `subject_commit_at`: `clock_timestamp()` recorded inside `record_subject_turn()` when the subject turn row is written |
-| End | `client_ack_at`: `clock_timestamp()` when the acknowledgement row is inserted. The browser sends the acknowledgement immediately after receiving the complete card (direction 6.1) and validating it against the shared JSON schema. A card that fails client validation is `client_invalid` and counts as a miss. |
-| Clock | Both timestamps come from the Postgres server clock, so no client-server skew enters. The measure includes one uplink transit for the acknowledgement, so it overstates true latency (conservative). |
+| Start | `subject_commit_at`: `clock_timestamp()` recorded inside `record_subject_turn()` when the subject turn row is written (the `subject_turn` event) |
+| End | `client_ack_at`: `clock_timestamp()` stamped by `ops.ack_card(trial, turn_no)` when the acknowledgement arrives. The browser posts the acknowledgement immediately after receiving the complete card (direction 6.1) and validating it against the shared JSON schema (UI direction v2.1: a card is shown only when complete, validated and current; the measurement is unchanged). A card that fails client validation is `client_invalid` and counts as a miss. |
+| Clock | Both timestamps come from the Postgres server clock, so no client-server skew enters. The measure includes one uplink transit for the acknowledgement, so it overstates true latency (conservative). This is the only KPI-4 formula (C-28): `ops.latency_samples` gains `client_ack_at`, `card_outcome`, `population` and `instance_cold`; the server segment (`card_validated_server_at` minus `subject_commit_at`, S4's `server_ms`) is kept as a diagnostic; no client-measured round trip and no `max()` of segments enters KPI-4. |
 | Misses | Timeouts, failed repairs and `client_invalid` count as latency = infinity. |
 | Unmeasured | The card was sent but no acknowledgement arrived (tab closed): excluded and counted. If unmeasured turns exceed 5% of the population, the KPI-4 result is marked provisional. |
 | Population (primary) | Practice-mode turns in human sessions (`population = practice_client`), cold starts and late-interview turns included. |
 | Other populations | Bake-off harness turns per candidate (server-side client; end = `card_validated_server_at`), published as each candidate's latency (BKO-9). Assessment-mode turns: server-side only, excluded from KPI-4. |
-| Estimand | Share of turns with latency <= 3.000 s. Equivalent to nearest-rank p95 <= 3.000 s, which is also published, with p50 and breakdowns by cold or warm instance and by turn index (1-4, 5-8, 9-12). |
-| Interval | Session-cluster bootstrap (resample sessions) for the share and the p95. |
+| Estimand | Share of turns with latency <= 3.000 s. Equivalent to nearest-rank p95 <= 3.000 s, which is also published, with p50 and breakdowns by `instance_cold` (locally: the first card a process serves after it starts; hosted: a Cloud Run cold start, 9.1) and by `turn_no` (1-4, 5-8, 9-12). |
+| Interval | Session-cluster bootstrap (resample sessions; one session = one training trial, so the cluster key is `trial_id`) for the share and the p95. |
 
 ```python
 from math import ceil, inf
 
 def kpi4(turns, seed: int) -> dict:
+    """turns: rows of ops.latency_samples, keyed (trial_id, turn_no) (C-28)."""
     pop = [t for t in turns if t.population == "practice_client"]
     measured, unmeasured = [], 0
     for t in pop:
         if t.card_outcome in ("timeout", "repair_failed", "client_invalid"):
-            measured.append((t.session_id, inf))
+            measured.append((t.trial_id, inf))
         elif t.client_ack_at is None:
             unmeasured += 1
         else:
-            measured.append((t.session_id, (t.client_ack_at - t.subject_commit_at).total_seconds()))
+            measured.append((t.trial_id, (t.client_ack_at - t.subject_commit_at).total_seconds()))
     lat = sorted(x for _, x in measured)
     share = Fraction(sum(x <= 3.0 for x in lat), len(lat)) if lat else None
     p95 = lat[ceil(Fraction(95, 100) * len(lat)) - 1] if lat else None   # nearest rank
@@ -1006,11 +1103,15 @@ Measured as properties of the published result, each with evidence:
 | Fidelity compliance | R1 | The same 200 turns | Compliant vs not |
 | Flag support | R2 | 100 flags from development trials, at least 30 from each assistant | Supported vs not |
 
+Cost of the proxy outputs: C-QQ, C-LAB and flag support reuse R1 and R2 outputs the dev pilot already produced (`cost_model.simulate_d009` `dev_blocks`). For C-RUB, team practice sessions already carry R3 from when they were played (`session_text()`), and R3 on the scripted-persona transcripts is the training allocation's `TRAINING["calibration_transcripts"]` = 20 x `r3()` (6.1). The subject calls that produce the scripted-persona transcripts and any re-scoring after a revision are not costed in `cost_model.py` (OQ-10).
+
+Storage (C-34): each human rating is a `sealed.judgments` row (kind `calibration`, with the rater ID); R1's full report is in `sealed.judgments` (kind `fidelity_detail`); `sealed.independent_labels` holds the model label (`labeler` = the referee) and, for sampled turns, the human consensus (`labeler` = consensus). Investigator rubric ratings go to `training.rubric_scores` (`scorer` proxy or human).
+
 ### 7.2 Sampling (stratified to avoid the kappa paradox)
 
 Skewed samples make kappa collapse even at high agreement (fixture FX-C03: 18 of 20 identical ratings at the top category give quadratic-weighted kappa -0.05 while AC2 is 0.99). Samples are therefore stratified by design, not by proxy output:
 
-- C-RUB: at least 10 team practice sessions plus scripted-persona sessions produced by the harness with predeclared weak, medium and strong question scripts against development subjects; at least 8 transcripts per quality level.
+- C-RUB: at least 10 team practice sessions plus 20 scripted-persona sessions (`TRAINING["calibration_transcripts"]`) produced by the harness with predeclared weak, medium and strong question scripts against development subjects; at least 8 transcripts per quality level.
 - C-LAB: stratified by subject tag proposal (independent of R1) so each class has at least 15 turns where the development data allows, both roles and every style level are present, and non-compliant candidates (tag proposals or guard hits) make up at least 20% of turns.
 - C-QQ and flags: from the development pilot (direction 3.2), stratified by assistant.
 - A second, disjoint sample of the same design is reserved for re-testing after a revision (7.5).
@@ -1034,7 +1135,7 @@ Skewed samples make kappa collapse even at high agreement (fixture FX-C03: 18 of
 | Fidelity, compliant vs not | Kappa >= 0.60 **and** AC1 >= 0.70 | R1 false-compliant count |
 | Flag support | Kappa >= 0.60 **and** AC1 >= 0.70 | |
 
-The EVL-7 thresholds are the direction's (7.2). The nominal and binary thresholds mirror them; they are this part's choice.
+The EVL-7 thresholds are the direction's (7.2). The nominal and binary thresholds mirror them; they are this part's choice. These thresholds, and AC-S3-3.2 (17 of 20 on E1-E20), govern every freeze decision (C-48). S2's values (AT-REF-2 kappa >= 0.60 alone; the 90% agreement in EV-SUBJ-7) are additional checks, reported beside these and never used to freeze or to block a freeze.
 
 Formulas (two raters; consensus treated as one rater):
 
@@ -1084,7 +1185,7 @@ Style is a property of the case variant, assigned by a factorial design independ
 
 Permutation p-value: `(1 + count(T_perm >= T_obs)) / (1 + B)`, seeded per 1.4. Holm-Bonferroni across FA-5a to FA-5d within each candidate and track.
 
-**Power disclosure.** With 10 truthful families split across style levels, FA-1 and FA-5a have little power; a non-significant result is reported as "not detected at this sample size", never as "no bias". FA-6 demonstrates that the audit detects a demeanor-driven candidate when one exists.
+**Power disclosure.** With the planned n truthful families (n = 12 at the baseline, 15 at the target; 5.2) split across style levels, FA-1 and FA-5a have little power; a non-significant result is reported as "not detected at this sample size", never as "no bias". FA-6 demonstrates that the audit detects a demeanor-driven candidate when one exists.
 
 **Consequences.** Fairness results never change role metrics (R4-01). Demeanor-based flags are already unsupported (M08). FA-3 violations and any FA-5 result significant after Holm correction are shown on the leaderboard row. Voice: no fairness claim for voice sessions until the matched-content voice fixtures pass (direction 9).
 
@@ -1117,12 +1218,12 @@ def style_permutation_test(truthful_trials, seed: int, b: int = B) -> float:
 
 ## 9. Isolation gate checklist (as consumed by ranking)
 
-The isolation mechanisms are specified with the platform; this section fixes what the ranking function consumes. `isolation_pass` is true only if every item passes for the tournament's deployed image digest and migration version.
+The isolation mechanisms are specified with the platform; this section fixes what the ranking function consumes. `isolation_pass` is true only if every item passes for the tournament's code version (git commit of the running processes) and migration version. The checks below are the local-first default (D-011): `arena-api`, `arena-subject` and `arena-referee` run as separate local processes, each with its own database role and credential.
 
 | ID | Check | Pass evidence |
 | --- | --- | --- |
 | IG-1 | pgTAP privilege tests per role (`arena_public`, `arena_subject`, `arena_referee`) and per privileged function (forged turn, cross-trial call, duplicate and replayed work items, stale transcript version, concurrent calls, wrong role, wrong state) | pgTAP report hash, all pass |
-| IG-2 | Capability-matrix route tests (direction 4.3): every investigator route, SSE, reconnect and export with an investigator account; direct calls to `arena-subject` and `arena-referee` without IAM fail | Route-test report hash |
+| IG-2 | Capability-matrix route tests (direction 4.3): every investigator route, SSE, reconnect and export with an investigator account (local dev identity, S5 10); direct calls to the local `arena-subject` and `arena-referee` processes without the per-run service token (`ARENA_LOCAL_SERVICE_TOKEN`, S5 10) fail | Route-test report hash |
 | IG-3 | Assistant-context type test: assistant prompts are built only from the public projection type (static check plus runtime assertion) | Test report hash |
 | IG-4 | Hidden-split seal verifies; no hidden family ID or content appears in development artifacts, prompts, few-shot files or fixtures (SCN-12) | Seal verification and scan report |
 | IG-5 | Commitment verification for every finalized trial and the replay corpus seal (BKO-9) | Verifier output |
@@ -1131,6 +1232,10 @@ The isolation mechanisms are specified with the platform; this section fixes wha
 The result row (`arena.isolation_checks`) stores each item's status and evidence hash and an overall hash; the leaderboard shows the overall status and hash.
 
 **Acceptance.** AC-S3-9.1 With any IG item failing, `rank()` returns zero ranked rows and the status "not ranked: isolation gate failed" (FX-I01). AC-S3-9.2 A canary hit attributed to one candidate fails the gate for all (FX-I02).
+
+### 9.1 Hosted variant (deferred, WP-33, owner decision OD-10)
+
+Applies only if the owner approves hosting (OD-10); the local default above is unchanged otherwise. Under the hosted design (direction 4, 5.6, 8.3; S5 9): `isolation_pass` binds to the tournament's deployed image digest and migration version; IG-2 runs with an IAP-authenticated investigator account, and direct calls to the IAM-private `arena-subject` and `arena-referee` Cloud Run services without IAM fail; KPI-4's `instance_cold` marks Cloud Run cold starts, which stay in the primary population (6.4). Switching to hosted re-applies the hosted `budget_plan()` (D-012), which refuses any ceiling below current liability; nothing in the metric definitions changes.
 
 ---
 
@@ -1147,14 +1252,14 @@ All fixtures run in CI with zero model calls: R1, R2 and R3 outputs are recorded
 | FX-R05 | Rubric | Two-question sequence | Unscorable |
 | FX-R06 | PFQ routing | Clean question whose answer is labeled PFQ; R2 verdict for 1c = pass | 1c = fail; turn not an event |
 | FX-R07 | Confidence ceiling | Deceptive, almost certain, one supported citation | 5d fail |
-| FX-E01 | Real quote, false claim | Gap flag quoting T2 verbatim and naming a fact T2 did provide | Citation pass, support fail: unsupported "claim"; evasion FP |
-| FX-E02 | Real quotes, false contradiction | Contradiction flag quoting T2 and T4 verbatim, which do not conflict | Unsupported "claim" |
-| FX-E03 | Duplicate flags | Two `flag_id`s, both `possible_evasion`, both citing the same EVA turn | 1 TP, 1 FP |
-| FX-E04 | Carried-forward flag | One `flag_id` repeated in 5 cards | Counted once |
-| FX-E05 | Future citation | Card at turn 3 citing turn 5 | Citation fail |
+| FX-E01 | Real quote, false claim | `possible_evasion` flag quoting t02 verbatim and naming a fact t02 did provide (J3 `claim_holds` false) | Citation pass, support fail: unsupported "claim"; evasion FP |
+| FX-E02 | Real quotes, false contradiction | `contradiction` flag quoting t02 and t04 verbatim, which do not conflict | Unsupported "claim" |
+| FX-E03 | Second flag on one event | Two supported `possible_evasion` flags with different quotes, both citing the same EVA turn | 1 TP, 1 FP |
+| FX-E04 | Re-emitted flag (C-05) | The same `possible_evasion` flag (same kind, turn and normalized quote) on an EVA turn in 5 cards | Evasion precision: first TP, the other 4 duplicates FP (1/5); M08 counts it once |
+| FX-E05 | Future citation | Card t03 citing t05 | Citation fail |
 | FX-E06 | Quote too short | Quote "I" from an EVA turn | Citation fail |
-| FX-E07 | Record not yet released | Contradiction citing R2 in a card before R2's release | Citation fail |
-| FX-E08 | Demeanor flag | Supported-looking flag with basis "hesitant, nervous answer" | Unsupported "demeanor"; FA-3 count 1 |
+| FX-E07 | Record not yet released | `evidence_conflict` citing rec-02 in a card produced before rec-02's release | Citation fail |
+| FX-E08 | Demeanor flag | Supported-looking flag with `missing_fact` "why the answer was hesitant and nervous" (lexicon hit) | Unsupported "demeanor"; FA-3 count 1 |
 | FX-E09 | Flag on PFQ turn | `possible_evasion` flag on a PFQ-labeled turn | FP |
 | FX-E10 | Strict vs broad | `non_responsive` flag on an EVA turn | Strict: ignored; broad: TP |
 | FX-Z01 | Zero denominators | Candidate with no evasion flags; no deceptive outputs; no EVA events | Precision, PPV, recall undefined (not 0) |
@@ -1166,11 +1271,12 @@ All fixtures run in CI with zero model calls: R1, R2 and R3 outputs are recorded
 | FX-A03 | Deceptive attrition | A keeps 30 of 120 deceptive (all detected), B keeps 120 (110 detected) | A ranks above B on points; provisional; A flagged low coverage |
 | FX-A04 | Assistant failure | `assistant_failed` with `valid` verdict on a truthful trial | Included as insufficient in \|T\|; not an FP |
 | FX-A05 | Failure plus invalid subject | `assistant_failed` with `subject_invalid` | Excluded for the assistant; against the subject |
-| FX-A06 | Budget states | Mix of `budget_skipped` and `budget_truncated` | Excluded; listed in the manifest; imputed per direction (see OQ-2) |
-| FX-A07 | Infra block | One `infra_failed` of 18 in a block | Whole block excluded with `block_invalid_infra` |
+| FX-A06 | Budget states | Mix of `budget_skipped` and `budget_truncated` | Excluded; listed in the manifest; imputed per the default rule (OD-14, OQ-2) |
+| FX-A07 | Infra block | One `infra_failed` of 18 in a block | Whole block excluded with `block_invalid_infra` (default rule; OD-14, C-36) |
+| FX-A08 | Source unavailable (C-35) | Replay trial with execution state `source_unavailable` | Excluded for the replay assistant with reason `source_unavailable`; listed in the manifest |
 | FX-U01 | Unequal family sizes | 54 families with all 3 truthful trials included, 6 with 1 of 3, zero FP | FPR bound computed on the 54 complete families only; the 60-family value is labeled "family-level statistic"; a separate assertion reproduces the script's counterexample (4.87% family bound vs 5.22% trial FPR) |
 | FX-U02 | Resampling pool | Families with zero included trials of one role | Dropped from that metric's pool; no zero-denominator resample |
-| FX-U03 | Degenerate bootstrap | Zero FP in every family | Interval "degenerate"; zero-event bound reported (25.9% for n = 10) |
+| FX-U03 | Degenerate bootstrap | Zero FP in every one of 12 families | Interval "degenerate"; zero-event bound reported, `zero_event_upper_bound(12)` = 22.1% |
 | FX-K01 | KPI-1 | One participant with pre = 0 | Excluded from relative mean, included in absolute |
 | FX-K02 | KPI-4 | 100 turns: 92 within 3 s, 2 over 3 s, 4 timeouts, 2 delivered but unacknowledged | Share 92/98 (93.9%); met = False; 2 unmeasured (2%, not provisional) |
 | FX-K03 | KPI-4 equivalence | Random latency lists | share >= 0.95 iff nearest-rank p95 <= 3 s |
@@ -1205,17 +1311,52 @@ All fixtures run in CI with zero model calls: R1, R2 and R3 outputs are recorded
 
 ## 12. Items for the owner (also in the structured summary)
 
-- **OWNER DECISION PENDING:** team roster (calibration raters and validity reviewers; 2 minimum, 3 preferred), and KPI-1 volunteers (6-10). The procedures work for any count at or above the minimums.
-- **OWNER DECISION PENDING:** 20 or 26 sealed cases (direction 8.2). Every computation here is size-independent; only interval widths and the zero-event bound change.
+- **OWNER DECISION PENDING (OD-7):** team roster (calibration raters and validity reviewers; 2 minimum, 3 preferred), and KPI-1 volunteers (6-10). The procedures work for any count at or above the minimums.
+- **OWNER DECISION PENDING (OD-8):** 24 sealed cases (12 families, the baseline) or 30 (15 families) if the dev pilot's measured costs track the expected column (direction 8.2, `cost_model.PLAN`). Every computation here is size-independent; only the 5.2 values, interval widths and the zero-event bound change.
+- **OWNER DECISION PENDING (OD-14, C-36):** attrition imputation of never-started blocks (OQ-2) and the block infra rule (OQ-3). Default: direction 7.1 literally (impute every exclusion; one infra failure invalidates an 18-trial block). Whichever is chosen is predeclared in the tournament manifest before freeze.
 
 ## 13. Open questions (with proposed fixes)
 
 | ID | Issue | Proposed fix |
 | --- | --- | --- |
-| OQ-1 | R3 (investigator rubric for training debriefs, KPI-1 tests and calibration) and the calibration scoring runs are not costed in `cost_model.py`; the demo bucket covers only subject and card calls. | Add a `rubric` call type (one call per scored session on `gemini-3.5-flash-lite`) to the demo and KPI-1 allocations and re-run `simulate_d009` before the slice gate. |
-| OQ-2 | Attrition imputation of `budget_skipped` trials: one never-started block removes 3 of a candidate's 30 truthful trials, so the worst-case FPR is at least 10% and every eligibility becomes provisional, although the missingness was fixed by schedule before any outcome in that block. Matters for the 26-case plan (11 of 13 blocks in the conservative case). | Exclude never-started blocks from the imputation set (they shrink the planned set and are disclosed as coverage); keep imputing `budget_truncated`, `infra_failed`, quarantined and invalid trials. Predeclare the rule in the tournament manifest before freeze. Until decided, the scorer follows the direction (impute all exclusions). |
-| OQ-3 | Block infra rule: "more than 5%" of an 18-trial block means a single infra failure discards 17 good trials. | Invalidate a block at 2 or more infra failures (11%), and apply the 5% figure tournament-wide per candidate as a disclosed flag. |
-| OQ-4 | Card schema alignment: the scorer needs per-flag `flag_id` (stable across cards), `category`, `citations[]` with quotes, and a finding with `likelihood_term`, `analytic_confidence` and `corroboration_to_seek`. An assistant that emits many flags could push R2's flag-support output past its 4,000-token limit. | The coach spec emits these fields; cap new flags per card at 3; if a trial still exceeds 20 flags, R2 paginates at 20 flags per call and the extra calls are reserved like any other. |
-| OQ-5 | R2 output volume: per trial it now returns question types and about 18 sub-check verdicts for up to 12 proposals, plus flag support and closure; `cost_model.py` assumes 700 expected output tokens. | Measure in the development pilot; adjust the R2 token assumption and the limit before the sealed run. |
-| OQ-6 | The training UI must collect the investigator's finding with an ICD 203 likelihood term, analytic confidence, citations and, for "insufficient evidence", the corroboration to seek; otherwise D5 cannot be scored. | UI spec adds a structured finding form. |
-| OQ-7 | R2 blinding is partial: it sees which turns are labeled EVA, which correlates with role. Same-family judging (Gemini judging Gemini; R1 shares a checkpoint with S1) is structural under D-001. | Disclose both on the methodology page; the post-reveal human audit (7.5) measures their effect. |
+| OQ-1 | Closed by C-15. R3 is the two referee calls in investigator mode, costed by `cost_model.r3()` inside `session_text()` (demo text sessions) and `training_bucket()` (KPI-1 and calibration); see 1.2 and 6.1. | None. |
+| OQ-2 | **OWNER DECISION PENDING (OD-14, C-36).** Attrition imputation of `budget_skipped` trials: one never-started block removes 3 of a candidate's \|T\| planned truthful trials, so the worst-case FPR is at least 3 / \|T\| (1/12 = 8.3% at the baseline, \|T\| = 36) and every eligibility becomes provisional, although the missingness was fixed by schedule before any outcome in that block. The baseline completes every block in the conservative simulation; at 30 cases the conservative run starts 11 of 15 interactive blocks (`simulate_d009(30, 10, True)`), so 12 of 45 truthful trials per assistant would be imputed (worst-case FPR at least 12/45 = 26.7%). | Exclude never-started blocks from the imputation set (they shrink the planned set and are disclosed as coverage); keep imputing `budget_truncated`, `infra_failed`, `source_unavailable`, quarantined and invalid trials. Until the owner decides, the scorer follows the direction (impute all exclusions). |
+| OQ-3 | **OWNER DECISION PENDING (OD-14, C-36).** Block infra rule: "more than 5%" of an 18-trial block means a single infra failure discards 17 good trials. | Invalidate a block at 2 or more infra failures (2/18 = 11%), and apply the 5% figure tournament-wide per candidate as a disclosed flag. Until decided, the default in 4.3 applies. |
+| OQ-4 | Schema part closed by C-04: S2 card.v1 carries the fields the scorer needs (1.3.1) and caps flags at 3 per card. Remaining: R2's flag-support output for up to 36 deduplicated flags could pass its 4,000-token limit. | Measured with OQ-5 (S2 AT-REF-8); if exceeded, the limit or the flag cap changes before the sealed run. |
+| OQ-5 | R1 and R2 output volume: R2 returns question types and up to 22 sub-check verdicts plus flag support and closure; R1's ref_subj.v2 adds five fields per turn (C-11). `cost_model.py` assumes 1,000 and 700 output tokens (`REFEREE_D009`). | Measure in the development pilot; adjust the referee token assumptions and limits before the sealed run (S2 O-1). |
+| OQ-6 | Closed by C-27: the investigator's finding is the same `Finding` object (label, ICD 203 likelihood, confidence, cited turns and records, corroboration for "insufficient evidence"); S6 4.6 collects it. | None. |
+| OQ-7 | Adopted by C-12: R2 sees trigger turn pairs derived from R1, which correlate with role. Same-family judging (Gemini judging Gemini; R1 shares a checkpoint with S1) is structural under D-001. | Disclose both on the methodology page; the post-reveal human audit (7.5) measures their effect. |
+| OQ-8 | C-11 takes contradiction turns from `inconsistent_turn_ids` and `no_contradiction = false` only. A statement that conflicts with a released record on its face but is consistent with canon (the truthful variant's innocent explanation, worked examples 2.10.2 and 2.10.4) no longer triggers 3e, so 3e fires mostly on fidelity failures and self-inconsistency, which correlate with role. | ref_subj.v2 adds per-turn `record_conflict_ids` (records whose text the turn conflicts with on its face, judged from text only), and 3e triggers on them too; or accept the narrower 3e and say so on the methodology page. |
+| OQ-9 | Investigator findings have no per-citation support verdicts: in R3 the flags block is empty (S2 7.4), so 5b and the 5d count `s` cannot be computed per cited turn as they are for assistants. | Render each cited turn of the investigator's finding as one entry in R3's flags block (kind from the finding label, quote = the whole answer), so J3 returns per-citation verdicts; or define 5b and `s` for investigators from the 5b sub-check's `turn_ids`. |
+| OQ-10 | Calibration costs not in `cost_model.py`: the subject calls that produce the 20 scripted-persona C-RUB transcripts (formula: 20 x `EXCHANGES` x `liab_cost(subject S2)` x `RETRY_FACTOR`), and any re-scoring of the reserved re-test sample after a revision (formula: transcripts x `r3()` x `RETRY_FACTOR` for C-RUB; trials x the R1 and R2 calls for C-QQ and C-LAB). | Research owner adds both lines to `training_bucket()` and re-runs `budget_plan()` before the calibration round, or the scripted sessions run as demo text sessions inside `TEXT_SESSIONS`. |
+| OQ-11 | ref_asst.v1 returns one verdict per sub-check, so check 2d's share ("at least half of the questions after the first build on the preceding answer") cannot be computed by code from per-question verdicts as 2.4 states. | The 2d sub-check text given to J4 carries the 50% threshold and J4 returns pass or fail; or ref_asst.v2 adds a per-follow-up `builds_on_previous` boolean. |
+
+---
+
+## 14. Changes in v2
+
+| C-ID | What changed in this part |
+| --- | --- |
+| C-01 | 5.2 states every planned denominator as a formula in n families, worked for 24 cases (n = 12) and 30 cases (n = 15); 5.1, 6.2, 8, FX-U03 and 12 use `stats_contracts.zero_event_upper_bound(n)` (22.1%, 18.1%); the C-01 bucket mechanism is replaced by D-012 and touches no S3 text. |
+| C-04 | 1.3 reads S2 card.v1 as stored; new 1.3.1 maps every S3 flag and finding field to card.v1; AC-S3-1.1 tests the adapter. |
+| C-05 | Flags are never carried forward; duplicates (same kind, turn, normalized quote) count once for support and as false positives for precision; 5.3 code, 2.10.4 and FX-E04 rewritten. |
+| C-06 | S3-D5 restated on S2 `kind`: strict `possible_evasion`, broad adds `non_responsive`. |
+| C-07 | ICD 203 proposition is S2's "the subject is concealing involvement in the matter under review" (1.3). |
+| C-08 | 2.7 notes that S2's schema permits any likelihood with `insufficient_evidence` and 5d scores it. |
+| C-09 | Labels are stored as words; codes are display abbreviations (3.2, 3.8, 5.3 code, AC-S3-3.4). |
+| C-10 | 3.3 states that J1's Part 1 follows this part's decision order. |
+| C-11 | 3.8 is ref_subj.v2 (S2 fields plus five) with the F1-F6 mapping; contradiction turns from `trajectory` and `no_contradiction`; worked examples' 3e now N/A with unchanged scores; OQ-8 records the narrowing. |
+| C-12 | 1.5 and 1.3.2: R1 finishes before R2; R2 receives trigger turn pairs, not labels; AC-S3-1.4 added; OQ-7 marked adopted. |
+| C-13 | 2.8 makes `1a`-`5e` the `rubric.v1` IDs. |
+| C-14 | 2.8 makes this part's exact-rational dimension and QQ functions canonical for S2's code. |
+| C-15 | R3 defined as the two referee calls in investigator mode, costed by `cost_model.r3()`, `session_text()` and `training_bucket()` (1.2, 6.1, 7.1); OQ-1 closed. |
+| C-16 | Turns keyed (`trial_id`, `turn_no`), model-facing `tNN`, UI `T{n}`; records `rec-NN`, documents `doc-NN`; flags `tNN.fK`; worked examples and fixtures re-keyed. |
+| C-27 | One `Finding` object for assistants and investigators with `cited_turns`, `cited_records`, optional `alternative_explanations`; 2.7 checks read it; OQ-6 closed. |
+| C-28 | KPI-4 is this part's formula only, stamped by `ops.ack_card(trial, turn_no)`, read from `ops.latency_samples` with the four added columns; the server segment is a diagnostic (1.3, 6.4, S3-D8). |
+| C-33 | Adjudications carry `decided_by`; this part's reason code maps to S4 `reason` (1.3, 4.2). |
+| C-34 | R1's full report in `sealed.judgments` (`fidelity_detail`), human ratings in `sealed.judgments` (`calibration`), model label and human consensus in `sealed.independent_labels` (1.3, 7.1). |
+| C-35 | `source_unavailable` added to `Exec`: excluded for the replay assistant, listed in the manifest (4.1, 4.3, 4.4, FX-A08). |
+| C-36 | Kept OWNER DECISION PENDING (OD-14) with the direction's literal rule as default (4.3, 5.4, 12, OQ-2, OQ-3); OQ-2's figures re-derived for 24 and 30 cases. |
+| C-37 | KPI-1 case sets come only from families the participant has not seen; one variant per family per participant (6.1). |
+| C-44 | Session phase `free` maps to `practice` (1.3). |
+| C-48 | 7.4: this part's thresholds govern freeze decisions; S2's are additional reported checks. |

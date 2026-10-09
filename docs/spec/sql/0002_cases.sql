@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0002_cases.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0002_cases.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Case families and variants (public tier, no role), packets in three tiers, evidence
 -- artifacts with release predicates, the hidden-split seal, the candidate registry.
 -- Requirements: SCN-1, SCN-4, SCN-7, SCN-8, SCN-9, SCN-10, SCN-11, SCN-12, AST-5, BKO-5.
@@ -23,7 +23,9 @@ create table arena.case_families (
 create table arena.case_variants (
   id           uuid primary key default gen_random_uuid(),
   family_id    uuid not null references arena.case_families(id) on delete restrict,
-  variant_code text not null check (variant_code ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),
+  -- variant_code = the variant's opaque case_id (S1 loader rule L3; public-packet.schema.json
+  -- caseId pattern). The shape check means a loader bug cannot write a role word here (C-25).
+  variant_code text not null check (variant_code ~ '^C-[0-9A-HJKMNP-TV-Z]{8}$'),
   -- style factors (pace, register, recall confidence, ...) assigned by factorial design,
   -- independent of role (SCN-3, SCN-11, PRB-4)
   style        jsonb not null check (jsonb_typeof(style) = 'object'),
@@ -75,10 +77,19 @@ create table sealed.hidden_public_packets (
 -- predicate, so a predicate can never point at a missing artifact.
 --   scheduled_turn:     released automatically once that many exchanges are complete
 --   request_after_turn: releasable on request once that many exchanges are complete
+-- record_id: S1 rec-NN (initial documents doc-NN stay in the public packet; C-16).
+-- doc_kind: S1's document kind (public-packet.schema.json $defs.artifactKind), filled by the
+-- loader so the evidence board keeps it (C-24); kind stays the release behaviour.
 create table sealed.evidence_artifacts (
   variant_id         uuid not null references arena.case_variants(id) on delete restrict,
-  record_id          text not null check (record_id ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),
+  record_id          text not null check (record_id ~ '^rec-0[1-6]$'),
   kind               text not null check (kind in ('record', 'clarification', 'context_change', 'difficulty_change')),
+  doc_kind           text check (doc_kind in (
+                       'access_exception_report', 'badge_log', 'door_log', 'sensor_metadata', 'camera_metadata',
+                       'camera_status', 'alarm_log', 'monitor_alert', 'dispatch_log', 'work_order', 'staffing_note',
+                       'visitor_register', 'lockbox_log', 'credential_record', 'access_change_notice', 'incident_ticket',
+                       'seal_audit', 'witness_statement', 'supervisor_statement', 'email', 'policy_excerpt',
+                       'procedure_excerpt', 'facilities_notice', 'clarification', 'context_change')),
   title              text not null check (length(title) between 1 and 200),
   content            jsonb not null check (jsonb_typeof(content) = 'object' and pg_column_size(content) <= 32768),
   sha256             text not null generated always as (ledger.hash_jsonb(content)) stored,
@@ -111,22 +122,31 @@ create unique index hidden_split_seals_one on sealed.hidden_split_seals ((true))
 -- -----------------------------------------------------------------------------
 -- Candidate registry (AST-5, BKO-5): an immutable version per row, hashed.
 -- -----------------------------------------------------------------------------
+-- kind: S2 manifest.v1's four kinds (C-47). Only assistant and subject candidates fill tournament
+-- slots (arena.add_planned_trials) and training sessions (training.start_session); referee and
+-- negative_control versions are registered so their manifests are hashed and auditable.
 create table arena.candidates (
   id         uuid primary key default gen_random_uuid(),
-  kind       text not null check (kind in ('assistant', 'subject')),
+  kind       text not null check (kind in ('assistant', 'subject', 'referee', 'negative_control')),
   name       text not null check (name ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),
   version    text not null check (version ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),
-  -- assistant: model, prompt_sha256, tools, coaching_policy, max_input_tokens, max_output_tokens,
-  --            thinking_level, timeout_s;  subject: model, prompt_sha256, policy, max_input_tokens,
-  --            max_output_tokens, thinking_level, timeout_s
+  -- S2 3.1 manifest.v1: every top-level key present (fields that do not apply are null);
+  -- kind, candidate_id and version agree with the row.
   manifest   jsonb not null check (jsonb_typeof(manifest) = 'object'),
   sha256     text not null generated always as (ledger.hash_jsonb(manifest)) stored,
   created_at timestamptz not null default now(),
   unique (kind, name, version),
   constraint candidate_manifest_keys check (
-    manifest ?& array['model', 'prompt_sha256', 'max_input_tokens', 'max_output_tokens', 'thinking_level', 'timeout_s']
-    and (kind <> 'assistant' or manifest ?& array['tools', 'coaching_policy'])
-    and (kind <> 'subject' or manifest ? 'policy'))
+    manifest ?& array['manifest_version', 'candidate_id', 'kind', 'display_name', 'version', 'official', 'transport',
+                      'model', 'prompt', 'tools', 'coaching_policy', 'subject_policy', 'limits', 'repair', 'sampling',
+                      'lineage']
+    and manifest ->> 'manifest_version' = 'manifest.v1'
+    and manifest ->> 'kind' = kind
+    and manifest ->> 'candidate_id' = name
+    and manifest ->> 'version' = version
+    and jsonb_typeof(manifest -> 'limits') = 'object'
+    and (kind <> 'assistant' or jsonb_typeof(manifest -> 'coaching_policy') = 'object')
+    and (kind <> 'subject' or jsonb_typeof(manifest -> 'subject_policy') = 'object'))
 );
 
 -- -----------------------------------------------------------------------------
@@ -204,7 +224,8 @@ $$;
 -- ingest_case_family (arena_referee). One transaction writes every tier of one family.
 -- bundle: {family_code, domain, split, variants: [{variant_code, style, difficulty, role,
 --          public_packet, private_packet, evaluator_packet,
---          artifacts: [{record_id, kind, title, content, requestable, scheduled_turn, request_after_turn}]}]}
+--          artifacts: [{record_id, kind, doc_kind, title, content, requestable, scheduled_turn,
+--                       request_after_turn}]}]}   (S1 4.4; doc_kind is S1's artifactKind, C-24)
 -- Refuses: a hidden family after the seal (AR001); a family without both roles (SCN-11, AR007);
 -- more than 6 artifacts on a variant (MAX_RELEASES, AR006); a re-ingest with different
 -- content (AR003). An identical re-ingest returns the existing id.
@@ -263,9 +284,9 @@ begin
     insert into sealed.evaluator_packets (variant_id, role, packet)
       values (v_variant, v_var ->> 'role', v_var -> 'evaluator_packet');
     for v_art in select * from jsonb_array_elements(coalesce(v_var -> 'artifacts', '[]'::jsonb)) loop
-      insert into sealed.evidence_artifacts (variant_id, record_id, kind, title, content, requestable,
+      insert into sealed.evidence_artifacts (variant_id, record_id, kind, doc_kind, title, content, requestable,
                                              scheduled_turn, request_after_turn)
-        values (v_variant, v_art ->> 'record_id', v_art ->> 'kind', v_art ->> 'title', v_art -> 'content',
+        values (v_variant, v_art ->> 'record_id', v_art ->> 'kind', v_art ->> 'doc_kind', v_art ->> 'title', v_art -> 'content',
                 (v_art ->> 'requestable')::boolean, (v_art ->> 'scheduled_turn')::smallint,
                 (v_art ->> 'request_after_turn')::smallint);
     end loop;
@@ -306,7 +327,8 @@ language sql stable security definer set search_path = '' as $$
                      from sealed.hidden_split_seals s, sealed.hidden_split_digest() d), false)
 $$;
 
--- register_candidate (arena_referee). Idempotent for an identical manifest.
+-- register_candidate (arena_referee). Idempotent for an identical manifest. Checks the S2 3.1
+-- manifest.v1 shape (C-47) and refuses a malformed manifest with AR007 before the table constraint.
 create or replace function arena.register_candidate(p_kind text, p_name text, p_version text, p_manifest jsonb)
 returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -314,6 +336,19 @@ declare
   v_id  uuid;
   v_sha text;
 begin
+  if jsonb_typeof(p_manifest) is distinct from 'object'
+     or not (p_manifest ?& array['manifest_version', 'candidate_id', 'kind', 'display_name', 'version', 'official',
+                                 'transport', 'model', 'prompt', 'tools', 'coaching_policy', 'subject_policy', 'limits',
+                                 'repair', 'sampling', 'lineage'])
+     or p_manifest ->> 'manifest_version' is distinct from 'manifest.v1'
+     or (p_manifest ->> 'kind', p_manifest ->> 'candidate_id', p_manifest ->> 'version')
+        is distinct from (p_kind, p_name, p_version)
+     or jsonb_typeof(p_manifest -> 'limits') is distinct from 'object'
+     or (p_kind = 'assistant' and jsonb_typeof(p_manifest -> 'coaching_policy') is distinct from 'object')
+     or (p_kind = 'subject' and jsonb_typeof(p_manifest -> 'subject_policy') is distinct from 'object') then
+    raise exception using errcode = 'AR007',
+      message = 'manifest must be manifest.v1 with every key, matching kind, candidate_id and version';
+  end if;
   select id, sha256 into v_id, v_sha from arena.candidates
    where kind = p_kind and name = p_name and version = p_version;
   if found then

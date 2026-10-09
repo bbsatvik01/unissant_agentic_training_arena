@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0005_training.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets, blinded rubric scores, single-use access tickets for SSE and voice, voice
 -- sessions, transcript fragments, utterance playback counts and resume credentials.
@@ -34,7 +34,7 @@ create table training.sessions (
   trial_id        uuid not null unique references arena.trials(id) on delete restrict,
   user_id         uuid not null references auth.users(id) on delete restrict,
   participant_id  uuid references training.participants(id) on delete restrict,
-  phase           text not null check (phase in ('practice', 'pre', 'post')),
+  phase           text not null check (phase in ('practice', 'pre', 'post')),   -- S3 phase 'free' maps to 'practice' (C-44)
   voice           boolean not null default false,
   idempotency_key text not null check (length(idempotency_key) between 8 and 200),
   created_at      timestamptz not null default now(),
@@ -135,9 +135,11 @@ create table training.voice_resumes (
 );
 
 -- -----------------------------------------------------------------------------
--- start_session (arena_public): the actor (verified JWT, arena.actor_id) opens a practice or
+-- start_session (arena_public): the actor (arena.actor_id, set by arena-api's identity layer:
+-- the dev identity middleware locally, the IAP mapping in the hosted variant) opens a practice or
 -- assessment interview on a development variant. Idempotent per (actor, key). Daily session
--- quota from ops.config (OWNER DECISION PENDING value).
+-- quota from ops.config (OWNER DECISION PENDING value). The coach must be an assistant candidate
+-- and the subject a subject candidate (referee and negative_control kinds never run sessions).
 -- -----------------------------------------------------------------------------
 create or replace function training.start_session(p_variant uuid, p_mode text, p_phase text, p_coach_candidate uuid,
                                                   p_subject_candidate uuid, p_voice boolean, p_idempotency_key text)

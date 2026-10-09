@@ -1,6 +1,6 @@
 # S4 pgTAP test plan
 
-Spec part S4 (`../S4-data-layer.md`), version 1, 2026-10-08. Every test below is a pgTAP assertion in `supabase/tests/NNN_*.sql`, one transaction per file, ending in `ROLLBACK` (concurrency files clean up their committed rows). Requirement IDs refer to `docs/challenge/REQUIREMENTS.md`; F- and R- IDs refer to the direction's critique findings.
+Spec part S4 (`../S4-data-layer.md`). **Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** Every test below is a pgTAP assertion in `supabase/tests/NNN_*.sql`, one transaction per file, ending in `ROLLBACK` (concurrency files clean up their committed rows). Requirement IDs refer to `docs/challenge/REQUIREMENTS.md`; F- and R- IDs refer to the direction's critique findings.
 
 ## 0. Harness
 
@@ -13,12 +13,15 @@ Spec part S4 (`../S4-data-layer.md`), version 1, 2026-10-08. Every test below is
 | Concurrency | Real sessions through `dblink` (`dblink_send_query`, `dblink_is_busy`, `dblink_get_result`); each concurrent case opens fresh connections | TechnoMile `007_checkpoint_fence_concurrency.sql` lines 10-40 |
 | Gate | Part of `make check`; CI fails on any failing or skipped test. No `skip`, no `todo` (global never-rig rule) | `docs/handoff/PATTERNS.md` |
 | Plan counts | Each file states `plan(n)` equal to its rows below; a changed count is reviewed like code | |
+| Budget plan | `014_budget.sql` reads the output of `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` into a psql variable (the runner passes it with `-v plan=...`). Until S4 Q10 is fixed the runner takes the last top-level JSON object on stdout. Tests that need ceilings take them from the applied plan, never from typed numbers | D-012 |
 
 Expected errors use SQLSTATE: `42501` permission denied; `AR001` wrong state; `AR002` stale transcript version; `AR003` work item or key mismatch; `AR004` no open question or turn in progress; `AR005` not requestable; `AR006` release limit; `AR007` invalid input; `AR010` append-only; `AR020` reveal precondition; `AR021` seal or hash mismatch; `AR031` open child reservations; `AR040` caller, ticket or quota refused; `23505`, `23514` constraint.
 
 ### 0.1 Smoke run already done on the drafts
 
-The six draft migrations were applied in order to a throwaway local PostgreSQL 16.13 cluster in the session scratchpad (no Supabase project, no network). Plain-SQL smoke scripts (pgTAP is not installed there) covered: role denials on base tables and on other roles' functions; forged, replayed and cross-trial work items; stale versions; turn in progress; release predicates (requestable after a turn, scheduled at a turn); quarantine; finalize idempotency and commitment verification; BKO-2 ordering; reveal preconditions, manifest completeness and the manifest rules for completed, replay and quarantined trials; corrected manifest; ledger append-only and chain verification; caller separation; the SSE projection; budget caps on a leaf, on an ancestor and per user; non-leaf refusal; unit admission; voice totals and concurrency; overrun and the kill switch; trace-mirror idempotency and single export; and two dblink concurrency cases (concurrent finalize: the second session waits on the trial lock and then fails; reservation race at a cap: the second waits on the bucket lock and is refused, liability 2.016 of 2.10). All passed. The privilege allowlist in S4 section 10 was exported from that database, not typed by hand. This shows the drafts are coherent; it does not replace this suite.
+Version 2 was applied in order to a fresh throwaway PostgreSQL 16.13 cluster in the session scratchpad (`initdb -U postgres -A trust`, port 55491, unix socket only, the Supabase shim and `dblink`; no Supabase project, no network, no model calls). The v1 smoke scripts were re-run in order on one database, adapted to the v2 shapes (opaque case-id variant codes, `rec-NN` record ids, manifest.v1 candidates, the Finding object, `decided_by`, and the plan's leaf buckets in place of the old `build` leaf), plus two new scripts. Covered: role denials on base tables and on other roles' functions; forged, replayed and cross-trial work items; stale versions; turn in progress; release predicates; quarantine; finalize idempotency and commitment verification; BKO-2 ordering; reveal preconditions, manifest completeness and the manifest rules for completed, replay and quarantined trials; corrected manifest; ledger append-only and chain verification; caller separation; the SSE projection; budget caps on a leaf, on an ancestor and per user; non-leaf refusal; unit admission; voice totals and concurrency; overrun and the kill switch; trace-mirror idempotency and single export; two dblink concurrency cases (concurrent finalize: the second session waits on the trial lock and then fails; reservation race on a fresh test leaf that holds one `generate` worst case: the second waits on the bucket lock and is refused, liability 2.016 of 2.10).
+
+New in v2: the $0 seed has the ten buckets of `budget_plan()` with matching parents; before the plan every leaf refuses a model call with reason `cap`, a voice reservation is refused, `admit_unit` skips and no reservation row is written; a child cannot be raised above its $0 parent; the `--plan-json` output applied top-down makes the bucket table equal to it exactly (names, parents, ceilings), and re-applying changes nothing; the generation and experiments leaves refuse at floor(ceiling / 2.016) + 1 `generate` reservations; and every v2 SQL change (C-16, C-17, C-22, C-24, C-25, C-27, C-28, C-31, C-33, C-34, C-47) behaves as the rows below state. All passed. The privilege allowlist in S4 section 10 was regenerated from that database and checked to expand back to the live privilege set exactly. This shows the drafts are coherent; it does not replace this suite.
 
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
@@ -53,9 +56,13 @@ The six draft migrations were applied in order to a throwaway local PostgreSQL 1
 | CS-09 | Hidden ingest after the seal | `AR001` |
 | CS-10 | Tamper fixture: owner disables the trigger, edits one hidden artifact, re-enables; `verify_hidden_seal()` | false |
 | CS-11 | `update` or `delete` on each case table (families, variants, three packet tables, artifacts, ingests, seals, candidates) | `AR010` each |
-| CS-12 | Candidate manifest without `timeout_s`; assistant manifest without `tools` | `23514` each |
+| CS-12 | `register_candidate` with a manifest missing a manifest.v1 key, with a flat v1-style manifest, or whose `kind`, `candidate_id` or `version` differs from the row; the owner inserting such a row directly | `AR007` each; `23514` |
 | CS-13 | `register_candidate` same version, different manifest | `AR003` |
 | CS-14 | `arena_public` calls `sealed.ingest_case_family` | `42501` |
+| CS-15 | `variant_code` `T`, `deceptive` or `truthful` (owner insert or ingest); a valid `C-` case id (C-25) | `23514` each; accepted |
+| CS-16 | Artifact `record_id` outside `rec-0[1-6]` (C-16) | `23514` |
+| CS-17 | Artifact `doc_kind` outside S1's `artifactKind` enum; a valid one is stored and copied to `arena.released_evidence`, the release result, the event payload and `arena.v_released_evidence` (C-24) | `23514`; holds |
+| CS-18 | `register_candidate` of kinds `referee` and `negative_control` succeeds; `add_planned_trials` with a referee in an assistant slot or a negative control in a subject slot; `training.start_session` with a referee as coach (C-47) | Holds; `AR007` each |
 
 ## 3. `003_role_reads.sql` ("role cannot read X"; SCN-5, SCN-9, SCN-12)
 
@@ -75,6 +82,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RR-27 | `arena_public` | `arena.trial_context` on a running hidden trial with an open coaching item returns the hidden public packet and no key of the private or evaluator packet (`role`, `facts`, `concealed`) | Holds |
 | RR-28 | `arena_public` | `arena.trial_context` on the same trial after finalization | `AR003` |
 | RR-29 | `arena_referee` | `training.voice_resumes` (Live handles stay with `arena_subject`) | `42501` |
+| RR-30 | `arena_public` | `arena.v_dev_cases` has no `style` column (C-22, C-26) | 0 columns |
 
 ## 4. `004_turns_and_versions.sql` (SCN-10, BKO-7, BKO-8, F07)
 
@@ -152,13 +160,15 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | CC-08 | `arena.events_after` for the owner: live rows always; debrief rows only after the trial ends; internal rows never; another actor or no actor gets nothing | Holds |
 | CC-09 | `arena.v_trial_events` hides debrief rows while the trial runs | Holds |
 | CC-10 | `events_after` page size is capped at 200 | Holds |
-| CC-11 | KPI-4: `coach_card` writes `ops.latency_samples` with `server_ms` = coach event time minus subject event time; `coach_unavailable` writes `miss = true` | Holds |
-| CC-12 | `record_client_latency` sets `client_ms` once; `kpi4_ms` = max(server, client) | Holds |
+| CC-11 | KPI-4 sample (C-28): `coach_card` writes `ops.latency_samples` with `subject_commit_at` and `card_validated_server_at` equal to the two events' `created_at`, `card_outcome = delivered`, `population` derived from the trial, `instance_cold` from `arena.instance_cold` (unset = false); `coach_unavailable` writes `repair_failed` when its payload says so, else `timeout`, and `miss = true` | Holds |
+| CC-12 | `ops.ack_card(trial, turn, true)` on a practice turn stamps `client_ack_at` once (returns true, then false); `kpi4_ms = client_ack_at - subject_commit_at` in ms and is at least `server_ms`; `ack_card(..., false)` records `client_invalid`, `miss = true`, `kpi4_ms` null | Holds |
 | CC-13 | `trial_context` with a closed item, wrong trial, or `failure` kind | `AR003` |
 | CC-14 | Caller separation: actor set on a tournament trial | `AR040` |
 | CC-15 | Caller separation: actor B on actor A's training trial | `AR040` |
 | CC-16 | Caller separation: no actor on a training trial | `AR040` |
 | CC-17 | `start_session` with no actor | `AR040` |
+| CC-18 | `ack_card` on an assessment turn, a harness turn or a missed card | Returns false; no change; assessment and harness `kpi4_ms` = `server_ms` |
+| CC-19 | `arena.record_debrief_ready` (C-17): by `arena_public`; on a running training trial; on a tournament trial; with a non-object payload; on an ended training trial twice | `42501`; `AR001`; `AR001`; `AR007`; `recorded` then `exists` with the same `seq`, visibility `live`, returned by `events_after` |
 
 ## 8. `008_finalize_commitment.sql` (BKO-9, SOL-5, EVL-9)
 
@@ -167,7 +177,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | FC-01 | Finalize with a valid finding returns `commitment_sha256` and `payload_sha256`; writes `arena.final_findings`, a 32-byte `sealed.commitment_nonces` row, `ledger.finding_commitments`, terminal `completed`; trial `finalized`; `trial_ended` event | Holds |
 | FC-02 | Duplicate work item, same finding | Same result; one commitment |
 | FC-03 | Duplicate work item, different finding | `AR003` |
-| FC-04 | Classification outside the three values; missing confidence; cited turn 9 of a 2-turn transcript; non-numeric cited turn | `AR007` each |
+| FC-04 | Finding (C-27): `label` outside the three values or missing (a v1 `classification` key alone); `likelihood` outside the seven ICD 203 terms; `confidence` outside low, moderate, high; cited turn 9 of a 2-turn transcript; non-numeric cited turn; `cited_records` missing, or naming a record not released on the transcript's trial | `AR007` each |
 | FC-05 | Finalize over an open question | `AR004` |
 | FC-06 | Finalize a corpus trial with a finding; an interview without one | `AR007` each |
 | FC-07 | `verify_commitment` after finalization | true |
@@ -179,6 +189,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | FC-13 | `open_work_item` on a finalized trial | `AR001` |
 | FC-14 | A replay trial's commitment hashes the source corpus transcript and evidence | `transcript_sha256` equals the corpus trial's |
 | FC-15 | Training finalization emits `finding_committed` (live); tournament finalization does not | Holds |
+| FC-16 | A valid Finding (`doc-01` and released `rec-NN` citations, optional `alternative_explanations`) stores `classification` = `label`, `likelihood`, `confidence` and the whole object; `arena.v_findings` shows `likelihood` | Holds |
 
 ## 9. `009_execution_failures.sql` (F15, BKO-9, EVL-5)
 
@@ -205,7 +216,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | CO-02 | Concurrent finalize with the same item X in both | Both return the same commitment; one row |
 | CO-03 | Concurrent `submit_question`, different keys, same version | One succeeds; the other `AR002` after the lock |
 | CO-04 | Concurrent `record_subject_turn`, same item, different utterances | One `recorded`; the other `AR003` |
-| CO-05 | Reservation race in a bucket with room for one (test bucket 2.10, two 2.016 reservations) | First `reserved`; second waits on the bucket lock, then `refused` (`cap`); liability <= ceiling |
+| CO-05 | Reservation race in a fresh test leaf that holds one `generate` worst case but not two (the owner lowers a sibling, then creates the leaf at, for example, 2.10 against 2 x 2.016) | First `reserved`; second waits on the bucket lock, then `refused` (`cap`); liability <= ceiling |
 | CO-06 | 20 parallel reservations (4 sessions x 5) against the per-user cap | Liability of the user's reservations <= `per_user_daily_usd` |
 | CO-07 | Two reservations racing in sibling leaf buckets for the last room in their parent | Exactly one admitted; parent liability <= parent ceiling |
 | CO-08 | `adjudicate_validity` in A holds the tournament share lock; `reveal` in B | B waits; the manifest contains A's adjudication |
@@ -223,6 +234,9 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | AD-06 | The latest adjudication is the one `build_manifest` uses | Holds |
 | AD-07 | `arena_public` calls `adjudicate_validity` | `42501` |
 | AD-08 | Adjudication after reveal has `after_reveal = true` | Holds |
+| AD-09 | `decided_by` empty or malformed; same key with another `decided_by`; `auto_rule` and a reviewer ID stored and shown in `ledger.v_adjudications` (C-33) | `23514`; `AR003`; holds |
+| AD-10 | `sealed.independent_labels` with `labeler` `human` (per-rater rows go to judgments); `model` and `human_consensus` rows for one turn (C-34) | `23514`; accepted |
+| AD-11 | `sealed.judgments` kind `calibration` without `rater_id`; kind `fidelity_detail` with a `rater_id`; calibration with a rater and fidelity_detail without (C-34) | `23514` each; accepted |
 
 ## 12. `012_reveal_manifest.sql` (BKO-9, EVL-9, EVL-10, F14, F15)
 
@@ -266,12 +280,12 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| BU-01 | Seeds: `global` 60.00; `demo` 12.43 + `build` 47.57 <= `global`; voice 1.635720 and 0.132140; `attempts_per_call` 4; call limits equal `cost_model.py` LIMITS (S5 parity script checks the same from Python) | Holds |
-| BU-02 | Worst case `card` on `gemini-3.5-flash-lite` | 0.023200 |
-| BU-03 | Worst case `generate` on `gemini-3.1-pro-preview` | 2.016000 |
-| BU-04 | Fill `build` with `generate` reservations until refused | Refused at the 24th; liability 46.368000 <= 47.57 |
+| BU-01 | Seeds: the bucket tree has exactly the names and parents of the `--plan-json` output (ten buckets) and every ceiling is 0 (D-012); voice amounts equal `VOICE_RESERVATION` rounded up to 6 dp and `PROBE_RESERVATION`; `attempts_per_call` = `ATTEMPTS`; call limits equal `cost_model.LIMITS` (S5 parity script checks the same from Python) | Holds |
+| BU-02 | Worst case `card` on `gemini-3.5-flash-lite`: 4 x (6000 x 0.30 + 1600 x 2.50) / 1e6 (`liab_reservation`) | 0.023200 |
+| BU-03 | Worst case `generate` on `gemini-3.1-pro-preview`: 4 x (12000 x 2.00 + 40000 x 12.00) / 1e6 | 2.016000 |
+| BU-04 | After the plan (BU-28), fill the `generation` leaf with `generate` reservations until refused | Refused at reservation floor(ceiling / 2.016) + 1 with reason `cap` at `generation`; liability <= ceiling |
 | BU-05 | Invariant after every step of this file: for every bucket, subtree liability <= ceiling | Holds |
-| BU-06 | Per-user cap (proposed 3.00): `card` reservations for one actor | Refused after 129 (2.992800), reason `per_user_cap` |
+| BU-06 | Per-user cap (seeded proposal `per_user_daily_usd`): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations (129 at the 3.00 proposal), reason `per_user_cap` |
 | BU-07 | Unknown model or call kind | `AR007` |
 | BU-08 | Same key, same inputs; different inputs | `exists` with the same id; `AR003` |
 | BU-09 | Usage before dispatch | `AR001` |
@@ -286,19 +300,24 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-18 | `set_kill_switch` and `set_bucket_ceiling` by any runtime role | `42501` |
 | BU-19 | Settled rows: any update; identity change on an open row | `AR010` each |
 | BU-20 | `ops.model_prices`, `ops.call_limits` updates | `AR010` |
-| BU-21 | Bucket tree: owner adds `experiments` 7.00 and `interactive` 40.57 under `build`; adding `generation` 0.01 | Accepted; `AR007` (children above parent) |
+| BU-21 | After the plan, raising `generation` by 0.01 (the leaves of `build` sum to `build`) | `AR007` (children above parent) |
 | BU-22 | Reservation into the non-leaf `build` | `AR007` |
-| BU-23 | `experiments` fills to 6.048 and refuses the 4th `generate` (cap at `experiments`) | Holds |
+| BU-23 | `experiments` refuses the `generate` reservation number floor(ceiling / 2.016) + 1, with the cap at `experiments` | Holds |
 | BU-24 | `set_bucket_ceiling` below current liability; changing a bucket's parent; making a bucket with reservations a parent | `AR007` each |
-| BU-25 | `admit_unit`: admit when every bucket on the path has >= 1.5 x the high cost free, else skip | admit/admit/skip for 0.10, 15.00, 30.00 in the BU-21 tree |
+| BU-25 | `admit_unit`: admit when every bucket on the path has >= 1.5 x the high cost free (`ADMIT_FACTOR`), else skip; with F = the least headroom on the `interactive` path, units of F / 1.5 - 0.01 and F / 1.5 + 0.01 | admit; skip |
 | BU-26 | `ops.budget_status` reports subtree liability per bucket, released at 0, open and unknown at reserved, committed at settled | Holds |
+| BU-27 | Fail-closed before any plan is applied (D-012): a model-call reservation into every leaf; a `voice_session` reservation; `admit_unit` on a leaf | `refused` with reason `cap` (ceiling 0) each, no reservation row written; `refused` (`cap`); `skip` |
+| BU-28 | Plan application (D-012): apply the `--plan-json` entries with `ops.set_bucket_ceiling` top-down (root, its children, then `build`'s leaves); compare `{name: {parent, ceiling_usd}}` from `ops.budget_buckets` with the JSON | Equal: same names, same parents, every ceiling equal; re-applying changes nothing; a `card` reservation into `demo` is then `reserved` |
+| BU-29 | Order: raising a child above its parent while the parent is still 0; lowering a parent below its children's sum before lowering them | `AR007` each |
+| BU-30 | Referee purposes (C-31): `reserve_model_call` with call kind `referee` and purpose other than `referee_subject` or `referee_assistant`; with `referee_subject` | `AR007`; `reserved` |
+| BU-31 | Call kinds `retranscribe` and `portrait` while `cost_model.LIMITS` has no row for them (C-31, S4 Q7) | `AR007` each |
 
 ## 15. `015_voice.sql` (D-006, D-009, direction 8.3 and 9; S5 section 7)
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| VB-01 | `reserve_voice('voice_session')` reserves 1.635720 and returns shutoff 1.090481 | Holds |
-| VB-02 | `voice_probe` reserves 0.132140 | Holds |
+| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (1.635720) and returns shutoff = round(reservation x `voice_shutoff_fraction`, 6) (1.090481) | Holds |
+| VB-02 | `voice_probe` reserves the seeded `PROBE_RESERVATION` (0.132140) | Holds |
 | VB-03 | Third open voice reservation with `max_open_voice_sessions` 2 | `voice_concurrency` |
 | VB-04 | Ninth voice session (`voice_sessions_total` 8); 31st probe | `voice_total_cap` each |
 | VB-05 | Child coaching reservation counts against the session, not the bucket | Bucket liability unchanged |

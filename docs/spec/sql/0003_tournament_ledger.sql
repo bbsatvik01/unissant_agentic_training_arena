@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0003_tournament_ledger.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -14,7 +14,7 @@
 -- -----------------------------------------------------------------------------
 -- Hash-chained event ledger (SCN-10, BKO-9). One global chain: every append locks the head
 -- row, so seq is gap-free and each row's sha256 covers its predecessor. Volume is small
--- (1-2 users, about 20-26 hidden cases), so one serialized chain is cheap.
+-- (1-2 users; planned hidden cases = cost_model.PLAN["sealed"]), so one serialized chain is cheap.
 -- -----------------------------------------------------------------------------
 create table ledger.chain_head (
   id          boolean primary key default true check (id),
@@ -267,6 +267,7 @@ create table arena.released_evidence (
   release_seq              smallint not null check (release_seq between 1 and 6),
   released_after_exchanges smallint not null check (released_after_exchanges between 0 and 12),
   kind                     text not null,
+  doc_kind                 text,                    -- copied from sealed.evidence_artifacts (C-24)
   title                    text not null,
   content                  jsonb not null,
   content_sha256           text not null check (content_sha256 ~ '^[0-9a-f]{64}$'),
@@ -314,12 +315,15 @@ create trigger work_items_once before update or delete on arena.work_items
 -- row lock by the function that commits the change. SSE reads it through arena.events_after.
 -- visibility: live (stream now), debrief (stream after the trial ends: assessment coaching),
 -- internal (tournament trials: never streamed; readable in projections after reveal or on dev).
+-- Persisted kinds only; arena_core/events/projections.py maps them to S6 wire names and synthesizes
+-- snapshot, notice, subject.thinking and coach.working (C-17). debrief_ready is written by the
+-- referee (arena.record_debrief_ready) once a training trial's debrief scores exist.
 create table arena.trial_events (
   trial_id           uuid not null references arena.trials(id) on delete restrict,
   seq                integer not null check (seq >= 1),
   kind               text not null check (kind in ('question_recorded', 'subject_turn', 'evidence_released', 'clarification',
                                                    'coach_card', 'coach_deep', 'coach_unavailable', 'finding_committed',
-                                                   'trial_ended')),
+                                                   'trial_ended', 'debrief_ready')),
   visibility         text not null check (visibility in ('live', 'debrief', 'internal')),
   transcript_version integer not null,
   turn_no            smallint not null,
@@ -333,10 +337,15 @@ create table arena.trial_events (
 create trigger trial_events_append_only before update or delete on arena.trial_events
   for each row execute function arena.tg_forbid_mutation();
 
+-- One Finding object for assistants and investigators (C-27): S2 $defs.Finding plus the derived
+-- cited_turns and cited_records and optional alternative_explanations. classification holds the
+-- Finding's label; likelihood is the ICD 203 term; confidence is the analytic confidence.
 create table arena.final_findings (
   trial_id       uuid primary key references arena.trials(id) on delete restrict,
   classification text not null check (classification in ('deceptive', 'truthful', 'insufficient_evidence')),
-  confidence     text not null check (length(confidence) between 1 and 40),
+  likelihood     text not null check (likelihood in ('almost_no_chance', 'very_unlikely', 'unlikely', 'roughly_even_chance',
+                                                     'likely', 'very_likely', 'almost_certain')),
+  confidence     text not null check (confidence in ('low', 'moderate', 'high')),
   finding        jsonb not null check (jsonb_typeof(finding) = 'object' and pg_column_size(finding) <= 16384),
   committed_at   timestamptz not null default now()
 );
@@ -382,10 +391,13 @@ create trigger quarantined_artifacts_append_only before update or delete on seal
   for each row execute function arena.tg_forbid_mutation();
 
 -- Independent per-turn labels (EVL-8, F16) and fidelity (EVL-11): written by arena_referee.
+-- One row per turn for the model label (R1) and, where calibrated, one for the human consensus
+-- (C-34). R1's full output goes to sealed.judgments (fidelity_detail); each rater's own rating to
+-- sealed.judgments (calibration, rater_id). Labels are words; codes are display only (C-09).
 create table sealed.independent_labels (
   trial_id      uuid not null references arena.trials(id) on delete restrict,
   turn_no       smallint not null,
-  labeler       text not null check (labeler in ('model', 'human')),
+  labeler       text not null check (labeler in ('model', 'human_consensus')),
   label         text not null check (label in ('evasion', 'genuine_uncertainty', 'legitimate_non_disclosure',
                                                 'poorly_framed_question', 'responsive')),
   compliant     boolean not null,            -- subject fidelity: obeys packet and canonical facts
@@ -397,14 +409,17 @@ create table sealed.independent_labels (
 create trigger independent_labels_append_only before update or delete on sealed.independent_labels
   for each row execute function arena.tg_forbid_mutation();
 
--- Other referee judgments: flag support (EVL-5), questioning quality (EVL-6), calibration.
+-- Other referee judgments: flag support (EVL-5), questioning quality (EVL-6), R1's full output
+-- (fidelity_detail, with F1-F6 detail), and each human rater's calibration rating (C-34).
 create table sealed.judgments (
   id            uuid primary key default gen_random_uuid(),
   trial_id      uuid not null references arena.trials(id) on delete restrict,
   kind          text not null check (kind in ('flag_support', 'questioning_quality', 'fidelity_detail', 'calibration')),
+  rater_id      text check (rater_id ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),   -- calibration rows only
   payload       jsonb not null check (jsonb_typeof(payload) = 'object' and pg_column_size(payload) <= 65536),
   prompt_sha256 text check (prompt_sha256 ~ '^[0-9a-f]{64}$'),
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  constraint judgment_rater_shape check ((kind = 'calibration') = (rater_id is not null))
 );
 create index judgments_trial_idx on sealed.judgments (trial_id, kind);
 create trigger judgments_append_only before update or delete on sealed.judgments
@@ -452,8 +467,9 @@ create table ledger.validity_adjudications (
   adj_seq         bigint generated always as identity unique,
   trial_id        uuid not null references arena.trials(id) on delete restrict,
   verdict         text not null check (verdict in ('valid', 'subject_invalid')),
-  reason          text not null check (length(reason) between 1 and 2000),
+  reason          text not null check (length(reason) between 1 and 2000),   -- S3 reason_code maps here (C-33)
   evidence_ref    text check (length(evidence_ref) between 1 and 500),
+  decided_by      text not null check (decided_by ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),  -- 'auto_rule' or reviewer ID (C-33)
   idempotency_key text not null unique check (length(idempotency_key) between 8 and 200),
   after_reveal    boolean not null,
   event_seq       bigint not null references ledger.events(seq) on delete restrict,

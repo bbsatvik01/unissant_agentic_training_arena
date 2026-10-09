@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0001_foundation.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0001_foundation.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Schemas, runtime roles, revoke-all, shared helpers, append-only trigger.
 -- Requirements: SCN-5, SCN-9, SCN-12, BKO-9, EVL-10, KPI-5 (isolation by construction).
 --
@@ -9,9 +9,11 @@
 -- before any grant).
 --
 -- Exposure: none of the six schemas is listed in the Supabase Data API "Exposed schemas"
--- setting, and the Data API is disabled if the project allows it (S4 section 2.3). The browser
--- uses Supabase Auth only. Runtime services connect as arena_public, arena_subject or
--- arena_referee through the Supavisor shared pooler (username "<role>.<project-ref>").
+-- setting, and the Data API is disabled if the project allows it (S4 section 2.1). The browser
+-- never talks to Postgres or Supabase Auth (C-03). Runtime services run as separate local
+-- processes (D-011), each connecting with its own credential: arena_public, arena_subject or
+-- arena_referee (owner's Supabase project through the Supavisor pooler, username
+-- "<role>.<project-ref>", or a local `supabase start` database for development).
 -- No runtime use of service_role.
 --
 -- Error codes (SQLSTATE class AR):
@@ -103,10 +105,12 @@ begin
   end if;
 end $$;
 
--- Investigator identity for projection views. arena-api verifies the Supabase JWT and runs
--- set_config('arena.actor_id', <sub>, true) inside each request transaction (transaction-mode
--- pooling allows transaction-local settings only). Unset means no actor: views return no
--- investigator rows (fail closed).
+-- Investigator identity for projection views. arena-api's identity layer resolves the request to
+-- an allowlisted user (an auth.users row) and runs set_config('arena.actor_id', <user id>, true)
+-- inside each request transaction (transaction-mode pooling allows transaction-local settings
+-- only). Local default: S5 section 10's dev identity middleware (ARENA_ENV=local, 127.0.0.1, a
+-- configured email). Hosted variant (WP-33): the IAP JWT mapped to the same allowlist. Unset
+-- means no actor: views return no investigator rows (fail closed).
 create or replace function arena.actor_id() returns uuid
 language sql stable set search_path = '' as $$
   select nullif(current_setting('arena.actor_id', true), '')::uuid

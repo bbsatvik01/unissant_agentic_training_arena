@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0006_ops_budget_traces.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Spend guard (D-009): a bucket tree under one global ceiling, liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
 -- unit admission, the single cost ledger (ops.model_calls), kill switch with history, KPI-4 latency
@@ -15,12 +15,14 @@
 -- 20260927001000_trace_mirror.sql lines 57-115 (span rows, trace summaries with derived
 -- telemetry_incomplete).
 --
--- Figures seeded below come from docs/research/synthesis/cost_model.py (run 2026-10-08):
---   global model ceiling 60.00 = 75.00 cap - 15.00 NON_MODEL_ALLOWANCE
---   demo 12.43 >= demo_ceiling() 12.429816;  build 47.57 = 60.00 - 12.43
---   voice whole-session reservation 1.635720 (shutoff 2/3); probe 0.132140
---   VOICE_SESSIONS 8, LIVE_PROBE 30, LIMITS per call type, ATTEMPTS 4, LIABILITY_PRICES
---   (3.8 Flash undiscounted; Live = VOICE rates x 1.5)
+-- Bucket ceilings (D-012): this migration seeds the bucket tree with $0 ceilings, so nothing can
+-- reserve until the operator applies cost_model.budget_plan() (printed by
+-- `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`) through ops.set_bucket_ceiling.
+-- No ceiling is typed here; a test asserts the applied ceilings equal the --plan-json output.
+-- Other seeds come from docs/research/synthesis/cost_model.py (run 2026-10-08):
+--   voice whole-session reservation VOICE_RESERVATION (1.635720 rounded up to 6 dp, shutoff 2/3);
+--   probe PROBE_RESERVATION (0.132140); VOICE_SESSIONS 8, LIVE_PROBE[0] 30, LIMITS per call type,
+--   ATTEMPTS 4, LIABILITY_PRICES (3.8 Flash undiscounted; Live = VOICE rates x 1.5)
 -- S5's tools/check_cost_parity.py asserts these seeds equal cost_model.py. Change them with a new
 -- migration after re-running cost_model.py, never by hand.
 -- =============================================================================
@@ -62,10 +64,12 @@ create trigger kill_switch_events_append_only before update or delete on ops.kil
   for each row execute function arena.tg_forbid_mutation();
 
 -- -----------------------------------------------------------------------------
--- Bucket tree. Reservations go to leaf buckets only. A reservation is admitted when it fits the
--- leaf and every ancestor (subtree liability + amount <= ceiling). Children's ceilings never sum
--- above their parent (checked on every change; to move money between children, lower one first). S5's phase buckets (experiments, generation, dev_pilot,
--- replay, interactive) are created under 'build' by the owner with ops.set_bucket_ceiling.
+-- Bucket tree (D-012). Reservations go to leaf buckets only. A reservation is admitted when it fits
+-- the leaf and every ancestor (subtree liability + amount <= ceiling). Children's ceilings never sum
+-- above their parent (checked on every change; to move money between children, lower one first).
+-- The tree is the shape of cost_model.budget_plan(): global with children demo, art, training and
+-- build; build with leaves experiments, generation, dev_pilot, replay and interactive. Every ceiling
+-- starts at $0 (fail-closed); the operator raises them top-down with ops.set_bucket_ceiling.
 -- -----------------------------------------------------------------------------
 create table ops.budget_buckets (
   name        text primary key check (name ~ '^[a-z][a-z0-9_]{0,31}$'),
@@ -88,9 +92,16 @@ create constraint trigger budget_buckets_sum after insert or update on ops.budge
 create trigger budget_buckets_no_delete before delete on ops.budget_buckets
   for each row execute function arena.tg_forbid_mutation();
 insert into ops.budget_buckets (name, parent, ceiling_usd, note) values
-  ('global', null, 60.00, 'D-009 $75 cap minus the $15 non-model allowance (cost_model.py)'),
-  ('demo', 'global', 12.43, 'judge and team sessions, voice, portraits: demo_ceiling() rounded up'),
-  ('build', 'global', 47.57, 'experiments, probes, generation, dev pilot, replay corpus, replay, interactive');
+  ('global', null, 0, 'budget_plan()["global"]: CAP minus the non-model allowance of the hosting mode'),
+  ('demo', 'global', 0, 'budget_plan()["demo"]: demo text sessions with R3, voice sessions, one in-flight voice reservation'),
+  ('art', 'global', 0, 'budget_plan()["art"]: character-art sub-budget, PORTRAITS count x high price'),
+  ('training', 'global', 0, 'budget_plan()["training"]: KPI-1 sessions and calibration transcripts with R3'),
+  ('build', 'global', 0, 'budget_plan()["build"]: global minus demo, art and training'),
+  ('experiments', 'build', 0, 'budget_plan()["experiments"]: day-1 experiments and metered Live probes'),
+  ('generation', 'build', 0, 'budget_plan()["generation"]: dev, KPI-1 and hidden family generation and validation'),
+  ('dev_pilot', 'build', 0, 'budget_plan()["dev_pilot"]: dev pilot blocks'),
+  ('replay', 'build', 0, 'budget_plan()["replay"]: replay corpus and replay scoring'),
+  ('interactive', 'build', 0, 'budget_plan()["interactive"]: interactive blocks (remainder of build)');
 
 alter table arena.tournaments
   add constraint tournaments_bucket_fk foreign key (budget_bucket) references ops.budget_buckets(name) on delete restrict;
@@ -117,7 +128,12 @@ insert into ops.model_prices (model, effective_from, text_in, text_out, audio_in
   ('gemini-live-2.5-flash-native-audio', '2026-10-08', 1.125, 6.75, 4.50, 18.00, 'cost_model.py VOICE x 1.5 (unconfirmed)');
 
 -- Request limits per call type: the agent port truncates input to input_limit and sets
--- max_output_tokens = output_limit (bounds thinking plus visible output).
+-- max_output_tokens = output_limit (bounds thinking plus visible output). Rows equal
+-- cost_model.LIMITS exactly. C-31 adds 'retranscribe' and 'portrait' rows in the same change that
+-- adds them to cost_model.LIMITS (no script produces their limits yet: retranscribe input =
+-- VOICE_LIMITS["audio_seconds"] x VOICE["tok_per_s"] + prompt allowance, priced on audio input;
+-- portrait is priced per image). Until then reserve_model_call refuses both call kinds (AR007),
+-- voice sessions stay scored = false and no portrait can reserve.
 create table ops.call_limits (
   call_kind    text primary key check (call_kind ~ '^[a-z][a-z0-9_]{0,31}$'),
   input_limit  integer not null check (input_limit > 0),
@@ -333,6 +349,10 @@ begin
   select * into v_lim from ops.call_limits where call_kind = p_call_kind;
   if v_price.model is null or v_lim.call_kind is null then
     raise exception using errcode = 'AR007', message = 'unknown model price or call kind: the call is refused';
+  end if;
+  -- C-31: S2's two referee call types are purpose labels on call kind referee (R3 uses the same two).
+  if p_call_kind = 'referee' and p_purpose not in ('referee_subject', 'referee_assistant') then
+    raise exception using errcode = 'AR007', message = 'a referee call has purpose referee_subject or referee_assistant';
   end if;
   v_worst := (ceil((select attempts_per_call from ops.config where id)
                    * (v_lim.input_limit * v_price.text_in + v_lim.output_limit * v_price.text_out)) / 1000000)::numeric(14, 6);
@@ -618,8 +638,10 @@ begin
   insert into ops.kill_switch_events (turned_on, reason) values (p_on, p_reason);
 end $$;
 
--- Create or change a bucket. Refuses a ceiling below the subtree's current liability; the
--- constraint trigger refuses children above their parent.
+-- Create or change a bucket (owner only). Applying budget_plan() from the $0 seed raises ceilings
+-- top-down (global, then its children, then build's leaves); lowering goes bottom-up (leaves first).
+-- Refuses a ceiling below the subtree's current liability, a change of parent, and making a bucket
+-- that holds reservations into a parent; the constraint trigger refuses children above their parent.
 create or replace function ops.set_bucket_ceiling(p_name text, p_parent text, p_ceiling numeric, p_note text)
 returns void
 language plpgsql security definer set search_path = '' as $$
@@ -652,34 +674,60 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- KPI-4 latency samples (direction 7.2; S5 8.7). The server segment is written by
--- arena.record_coaching_event; the client difference by record_client_latency. The reported
--- sample is the larger of the two, so the metric never flatters.
+-- KPI-4 latency samples (S3 6.4 canonical, C-28). arena.record_coaching_event writes the row when
+-- the card (or coach_unavailable) commits; ops.ack_card stamps client_ack_at when the browser
+-- acknowledges a complete, schema-valid card. KPI-4 = client_ack_at - subject_commit_at, both
+-- Postgres server clock (includes one uplink, so conservative). server_ms stays as a diagnostic and
+-- is the harness population's latency. Misses: card_outcome other than delivered.
 -- -----------------------------------------------------------------------------
 create table ops.latency_samples (
-  trial_id   uuid not null references arena.trials(id) on delete restrict,
-  turn_no    smallint not null,
-  server_ms  integer not null check (server_ms >= 0),
-  client_ms  integer check (client_ms >= 0),
-  kpi4_ms    integer generated always as (greatest(server_ms, coalesce(client_ms, 0))) stored,
-  miss       boolean not null,          -- coach_unavailable, or a timeout recorded by the caller
-  created_at timestamptz not null default now(),
-  primary key (trial_id, turn_no)
+  trial_id                 uuid not null references arena.trials(id) on delete restrict,
+  turn_no                  smallint not null,
+  subject_commit_at        timestamptz not null,   -- subject_turn event commit (clock_timestamp())
+  card_validated_server_at timestamptz not null,   -- coach_card / coach_unavailable event commit
+  client_ack_at            timestamptz,            -- ops.ack_card, practice turns only
+  card_outcome             text not null check (card_outcome in ('delivered', 'timeout', 'repair_failed', 'client_invalid')),
+  population               text not null check (population in ('practice_client', 'harness', 'assessment')),
+  instance_cold            boolean not null default false,
+  server_ms                integer generated always as
+                             ((extract(epoch from (card_validated_server_at - subject_commit_at)) * 1000)::integer) stored,
+  kpi4_ms                  integer generated always as (case
+                             when card_outcome <> 'delivered' then null
+                             when population = 'practice_client'
+                               then (extract(epoch from (client_ack_at - subject_commit_at)) * 1000)::integer
+                             else (extract(epoch from (card_validated_server_at - subject_commit_at)) * 1000)::integer
+                           end) stored,
+  miss                     boolean generated always as (card_outcome <> 'delivered') stored,
+  created_at               timestamptz not null default now(),
+  primary key (trial_id, turn_no),
+  constraint latency_order check (card_validated_server_at >= subject_commit_at
+                                  and (client_ack_at is null or client_ack_at >= card_validated_server_at)),
+  constraint latency_ack_population check (client_ack_at is null or population = 'practice_client')
 );
 
-create or replace function ops.record_client_latency(p_trial uuid, p_turn_no smallint, p_client_ms integer)
-returns void
+-- ack_card (arena_public; S5 acknowledgement route): the client posts immediately after it has the
+-- complete card and has validated it against the shared JSON schema. Stamps clock_timestamp() once,
+-- on a practice turn whose card was delivered; p_client_valid = false records client_invalid (a miss).
+-- Returns true when this call stamped the acknowledgement.
+create or replace function ops.ack_card(p_trial uuid, p_turn_no smallint, p_client_valid boolean)
+returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
-  v arena.trials;
+  v   arena.trials;
+  v_n integer;
 begin
   select * into v from arena.trials where id = p_trial;
   if v.id is null then
     raise exception using errcode = 'AR001', message = 'trial not found';
   end if;
   perform arena._check_caller(v.kind, v.owner_user_id);
-  update ops.latency_samples set client_ms = least(greatest(p_client_ms, 0), 600000)
-   where trial_id = p_trial and turn_no = p_turn_no and client_ms is null;
+  update ops.latency_samples
+     set client_ack_at = clock_timestamp(),
+         card_outcome = case when coalesce(p_client_valid, false) then 'delivered' else 'client_invalid' end
+   where trial_id = p_trial and turn_no = p_turn_no and client_ack_at is null
+     and population = 'practice_client' and card_outcome = 'delivered';
+  get diagnostics v_n = row_count;
+  return v_n = 1;
 end $$;
 
 -- -----------------------------------------------------------------------------
@@ -872,7 +920,8 @@ create view ops.v_call_costs with (security_barrier = true) as
    where r.trial_id is null or arena.trial_visible(r.trial_id);
 
 create view ops.v_latency with (security_barrier = true) as
-  select l.trial_id, l.turn_no, l.server_ms, l.client_ms, l.kpi4_ms, l.miss, l.created_at
+  select l.trial_id, l.turn_no, l.subject_commit_at, l.card_validated_server_at, l.client_ack_at, l.card_outcome,
+         l.population, l.instance_cold, l.server_ms, l.kpi4_ms, l.miss, l.created_at
     from ops.latency_samples l where arena.trial_visible(l.trial_id);
 
 -- -----------------------------------------------------------------------------
@@ -899,7 +948,7 @@ revoke all on function training.open_voice_session(uuid, uuid), training.close_v
 grant usage on schema ops to arena_public, arena_subject, arena_referee;
 
 -- metered calls and tracing: every runtime service calls Vertex and emits spans, so these go to the
--- three runtime roles (the one deliberate exception to "one grantee per function", S4 section 8.6)
+-- three runtime roles (the one deliberate exception to "one grantee per function", S4 section 8.7)
 grant execute on function
   ops.reserve_model_call(text, text, text, text, text, uuid, uuid, uuid),
   ops.mark_dispatched(uuid),
@@ -910,7 +959,7 @@ grant execute on function
   ops.record_trace_summary(text, text, uuid, integer, integer, integer)
   to arena_public, arena_subject, arena_referee;
 
-grant execute on function ops.keepalive(text), ops.record_client_latency(uuid, smallint, integer)
+grant execute on function ops.keepalive(text), ops.ack_card(uuid, smallint, boolean)
   to arena_public;
 grant execute on function ops.admit_unit(text, numeric), ops.set_export_state(jsonb, text) to arena_public, arena_referee;
 grant select on ops.v_exportable_spans, ops.v_budget_status, ops.v_call_costs, ops.v_latency to arena_public;

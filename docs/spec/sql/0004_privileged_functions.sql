@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT, spec S4; not applied anywhere)
+-- 0004_privileged_functions.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event), the
 -- per-trial event store writer, the two context readers (arena.trial_context,
@@ -344,8 +344,8 @@ begin
     raise exception using errcode = 'AR005', message = 'requested id is not on the case''s requestable list';
   end if;
 
-  select coalesce(jsonb_agg(jsonb_build_object('record_id', a.record_id, 'kind', a.kind, 'title', a.title,
-                                               'content', a.content, 'sha256', a.sha256)
+  select coalesce(jsonb_agg(jsonb_build_object('record_id', a.record_id, 'kind', a.kind, 'doc_kind', a.doc_kind,
+                                               'title', a.title, 'content', a.content, 'sha256', a.sha256)
                             order by a.record_id collate "C"), '[]'::jsonb),
          count(*)::integer
     into v_new, v_n_new
@@ -366,10 +366,10 @@ begin
                                   'records', (select jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id',
                                                                                   'sha256', e ->> 'sha256'))
                                                 from jsonb_array_elements(v_new) e)));
-    insert into arena.released_evidence (trial_id, record_id, release_seq, released_after_exchanges, kind, title,
-                                         content, content_sha256, event_seq)
+    insert into arena.released_evidence (trial_id, record_id, release_seq, released_after_exchanges, kind, doc_kind,
+                                         title, content, content_sha256, event_seq)
       select p_trial, e.value ->> 'record_id', (v_n_old + e.ordinality)::smallint, v.exchanges, e.value ->> 'kind',
-             e.value ->> 'title', e.value -> 'content', e.value ->> 'sha256', v_seq
+             e.value ->> 'doc_kind', e.value ->> 'title', e.value -> 'content', e.value ->> 'sha256', v_seq
         from jsonb_array_elements(v_new) with ordinality e;
     for v_art in select x from jsonb_array_elements(v_new) x loop
       perform arena._emit(v, case when v_art ->> 'kind' = 'clarification' then 'clarification' else 'evidence_released' end,
@@ -465,8 +465,12 @@ end $$;
 -- -----------------------------------------------------------------------------
 -- record_coaching_event (arena_public; S5 "record_coaching"): one validated card bound to the
 -- version it read (the work item carries the version). A stale card is refused (AR002) and
--- discarded by the caller. coach_card and coach_unavailable end the turn in progress and write the
--- KPI-4 server segment (subject_turn commit to this commit, both clock_timestamp()).
+-- discarded by the caller. coach_card and coach_unavailable end the turn in progress and open the
+-- turn's KPI-4 sample (S3 6.4, C-28): subject_commit_at and card_validated_server_at (both
+-- clock_timestamp() of the committed events), card_outcome, population derived from the trial, and
+-- instance_cold from the transaction-local setting arena.instance_cold (unset = false). The client's
+-- acknowledgement (ops.ack_card) later stamps client_ack_at on practice turns.
+-- coach_unavailable payload reason: 'repair_failed' is recorded as such, anything else as 'timeout'.
 -- -----------------------------------------------------------------------------
 create or replace function arena.record_coaching_event(p_trial uuid, p_work_item uuid, p_card jsonb,
                                                        p_kind text default 'coach_card')
@@ -502,12 +506,50 @@ begin
     select max(e.created_at) into v_ans from arena.trial_events e where e.trial_id = p_trial and e.kind = 'subject_turn';
     select created_at into v_now from arena.trial_events where trial_id = p_trial and seq = v_seq;
     if v_ans is not null and v.kind <> 'replay' then
-      insert into ops.latency_samples (trial_id, turn_no, server_ms, miss)
-        values (p_trial, v_wi.turn_no, (extract(epoch from (v_now - v_ans)) * 1000)::integer, p_kind = 'coach_unavailable')
+      insert into ops.latency_samples (trial_id, turn_no, subject_commit_at, card_validated_server_at, card_outcome,
+                                       population, instance_cold)
+        values (p_trial, v_wi.turn_no, v_ans, v_now,
+                case when p_kind = 'coach_card' then 'delivered'
+                     when p_card ->> 'reason' = 'repair_failed' then 'repair_failed'
+                     else 'timeout' end,
+                case when v.kind <> 'training' then 'harness'
+                     when v.mode = 'practice' then 'practice_client'
+                     else 'assessment' end,
+                coalesce(nullif(current_setting('arena.instance_cold', true), '')::boolean, false))
         on conflict (trial_id, turn_no) do nothing;
     end if;
   end if;
   return arena._complete_work_item(p_work_item, v_sha, jsonb_build_object('seq', v_seq));
+end $$;
+
+-- -----------------------------------------------------------------------------
+-- record_debrief_ready (arena_referee; C-17): after the referee has written a training trial's
+-- debrief scores (R3 rubric rows, judgments), it appends one persisted debrief_ready event so the
+-- investigator's stream can show the debrief. Training trials only, after the trial ended; once per
+-- trial (a second call returns the first event's seq). Payload: ids only (for example the
+-- rubric_scores ids), never role labels or evaluator content.
+-- -----------------------------------------------------------------------------
+create or replace function arena.record_debrief_ready(p_trial uuid, p_payload jsonb)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v     arena.trials;
+  v_seq integer;
+begin
+  perform ledger.require_read_committed();
+  v := arena._lock_trial(p_trial);
+  if v.kind <> 'training' or v.status not in ('finalized', 'terminated') then
+    raise exception using errcode = 'AR001', message = 'debrief_ready follows the end of a training trial';
+  end if;
+  if p_payload is not null and jsonb_typeof(p_payload) <> 'object' then
+    raise exception using errcode = 'AR007', message = 'payload must be an object';
+  end if;
+  select seq into v_seq from arena.trial_events where trial_id = p_trial and kind = 'debrief_ready';
+  if found then
+    return jsonb_build_object('seq', v_seq, 'outcome', 'exists');
+  end if;
+  v_seq := arena._emit(v, 'debrief_ready', null, coalesce(p_payload, '{}'::jsonb));
+  return jsonb_build_object('seq', v_seq, 'outcome', 'recorded');
 end $$;
 
 -- -----------------------------------------------------------------------------
@@ -551,6 +593,11 @@ $$;
 -- 3. finalize_trial (arena_public)  BKO-9, SOL-5
 -- Freezes the execution artifacts and writes the commitment, the sealed nonce and the
 -- execution record `completed` in one transaction.
+-- The finding is the one Finding object for assistants and investigators (C-27; S2 $defs.Finding):
+--   {label, likelihood, confidence, basis_flag_refs, corroboration_needed, rationale,
+--    cited_turns (derived), cited_records (derived), alternative_explanations (optional)}
+-- The database checks the enums and that every citation exists; S2 4.2's label/likelihood rules
+-- are schema validation in code.
 -- -----------------------------------------------------------------------------
 create or replace function arena.finalize_trial(p_trial uuid, p_work_item uuid, p_final_finding jsonb)
 returns jsonb
@@ -591,18 +638,29 @@ begin
       raise exception using errcode = 'AR007', message = 'a corpus transcript carries no finding';
     end if;
   elsif jsonb_typeof(p_final_finding) is distinct from 'object'
-        or coalesce(p_final_finding ->> 'classification', '') not in ('deceptive', 'truthful', 'insufficient_evidence')
-        or coalesce(length(p_final_finding ->> 'confidence'), 0) not between 1 and 40
+        or coalesce(p_final_finding ->> 'label', '') not in ('deceptive', 'truthful', 'insufficient_evidence')
+        or coalesce(p_final_finding ->> 'likelihood', '') not in ('almost_no_chance', 'very_unlikely', 'unlikely',
+                                                                  'roughly_even_chance', 'likely', 'very_likely',
+                                                                  'almost_certain')
+        or coalesce(p_final_finding ->> 'confidence', '') not in ('low', 'moderate', 'high')
         or jsonb_typeof(p_final_finding -> 'cited_turns') is distinct from 'array'
         or exists (select 1 from jsonb_array_elements(p_final_finding -> 'cited_turns') c
-                    where jsonb_typeof(c) <> 'number' or (c #>> '{}')::numeric not between 1 and v_len) then
+                    where jsonb_typeof(c) <> 'number' or (c #>> '{}')::numeric not between 1 and v_len)
+        or jsonb_typeof(p_final_finding -> 'cited_records') is distinct from 'array'
+        or exists (select 1 from jsonb_array_elements(p_final_finding -> 'cited_records') r
+                    where jsonb_typeof(r) <> 'string'
+                       or not ((r #>> '{}') ~ '^doc-0[1-4]$'
+                               or exists (select 1 from arena.released_evidence x
+                                           where x.trial_id = case when v.kind = 'replay' then v.source_trial_id else p_trial end
+                                             and x.record_id = r #>> '{}'))) then
     raise exception using errcode = 'AR007',
-      message = 'finding needs classification, confidence and cited_turns that exist in the transcript';
+      message = 'finding needs label, likelihood, confidence, and cited_turns and cited_records that exist';
   end if;
 
   if p_final_finding is not null then
-    insert into arena.final_findings (trial_id, classification, confidence, finding)
-      values (p_trial, p_final_finding ->> 'classification', p_final_finding ->> 'confidence', p_final_finding);
+    insert into arena.final_findings (trial_id, classification, likelihood, confidence, finding)
+      values (p_trial, p_final_finding ->> 'label', p_final_finding ->> 'likelihood', p_final_finding ->> 'confidence',
+              p_final_finding);
   end if;
   v_payload := ledger.commitment_payload(p_trial, p_final_finding);
   v_nonce := extensions.gen_random_bytes(32);
@@ -687,7 +745,7 @@ end $$;
 -- commitments. The latest adjudication of a trial is the one in force.
 -- -----------------------------------------------------------------------------
 create or replace function ledger.adjudicate_validity(p_trial uuid, p_verdict text, p_reason text, p_evidence_ref text,
-                                                      p_idempotency_key text)
+                                                      p_decided_by text, p_idempotency_key text)
 returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -705,8 +763,8 @@ begin
   v := arena._lock_trial(p_trial);
   select * into v_prev from ledger.validity_adjudications where idempotency_key = p_idempotency_key;
   if found then
-    if (v_prev.trial_id, v_prev.verdict, v_prev.reason, v_prev.evidence_ref)
-       is not distinct from (p_trial, p_verdict, p_reason, p_evidence_ref) then
+    if (v_prev.trial_id, v_prev.verdict, v_prev.reason, v_prev.evidence_ref, v_prev.decided_by)
+       is not distinct from (p_trial, p_verdict, p_reason, p_evidence_ref, p_decided_by) then
       return v_prev.id;
     end if;
     raise exception using errcode = 'AR003', message = 'idempotency key reused with a different adjudication';
@@ -721,8 +779,10 @@ begin
   v_id := gen_random_uuid();
   v_seq := ledger.append_event('validity_adjudicated', v_tid, p_trial,
              jsonb_build_object('adjudication_id', v_id, 'verdict', p_verdict, 'after_reveal', v_tstat = 'revealed'));
-  insert into ledger.validity_adjudications (id, trial_id, verdict, reason, evidence_ref, idempotency_key, after_reveal, event_seq)
-    values (v_id, p_trial, p_verdict, p_reason, p_evidence_ref, p_idempotency_key, v_tstat = 'revealed', v_seq);
+  insert into ledger.validity_adjudications (id, trial_id, verdict, reason, evidence_ref, decided_by, idempotency_key,
+                                             after_reveal, event_seq)
+    values (v_id, p_trial, p_verdict, p_reason, p_evidence_ref, p_decided_by, p_idempotency_key, v_tstat = 'revealed',
+            v_seq);
   return v_id;
 end $$;
 
@@ -927,8 +987,9 @@ begin
     'transcript', coalesce((select jsonb_agg(jsonb_build_object('turn_no', turn_no, 'question', question, 'answer', answer,
                                                                 'partial', answer_partial)
                                              order by turn_no) from arena.turns where trial_id = v_src), '[]'::jsonb),
-    'released_evidence', coalesce((select jsonb_agg(jsonb_build_object('record_id', record_id, 'kind', kind, 'title', title,
-                                                                       'content', content, 'after_exchanges', released_after_exchanges)
+    'released_evidence', coalesce((select jsonb_agg(jsonb_build_object('record_id', record_id, 'kind', kind,
+                                                                       'doc_kind', doc_kind, 'title', title, 'content', content,
+                                                                       'after_exchanges', released_after_exchanges)
                                                     order by release_seq) from arena.released_evidence where trial_id = v_src), '[]'::jsonb),
     'coaching', coalesce((select jsonb_agg(jsonb_build_object('seq', seq, 'kind', kind, 'turn_no', turn_no, 'card', payload)
                                            order by seq)
@@ -986,8 +1047,10 @@ $$;
 -- clause cannot see filtered rows). No role reads a base table in arena, sealed, subject or ledger
 -- except arena_referee.
 -- -----------------------------------------------------------------------------
+-- No style column: style stays out of every pre-interview surface (C-22, C-26); the fairness audit
+-- reads arena.case_variants as arena_referee.
 create view arena.v_dev_cases with (security_barrier = true) as
-  select v.id as variant_id, f.family_code, f.domain, v.variant_code, v.style, v.difficulty, p.packet as public_packet
+  select v.id as variant_id, f.family_code, f.domain, v.variant_code, v.difficulty, p.packet as public_packet
     from arena.case_variants v join arena.case_families f on f.id = v.family_id
     join arena.public_packets p on p.variant_id = v.id
    where f.split = 'dev';
@@ -1018,7 +1081,8 @@ create view arena.v_transcripts with (security_barrier = true) as
     from arena.turns u where arena.trial_visible(u.trial_id);
 
 create view arena.v_released_evidence with (security_barrier = true) as
-  select r.trial_id, r.record_id, r.release_seq, r.released_after_exchanges, r.kind, r.title, r.content, r.released_at
+  select r.trial_id, r.record_id, r.release_seq, r.released_after_exchanges, r.kind, r.doc_kind, r.title, r.content,
+         r.released_at
     from arena.released_evidence r where arena.trial_visible(r.trial_id);
 
 -- debriefs and exports: assessment coaching (debrief rows) stays hidden until the trial ends (SOL-6)
@@ -1028,7 +1092,7 @@ create view arena.v_trial_events with (security_barrier = true) as
    where arena.trial_visible(e.trial_id) and not (e.visibility = 'debrief' and t.status = 'running');
 
 create view arena.v_findings with (security_barrier = true) as
-  select f.trial_id, f.classification, f.confidence, f.finding, f.committed_at
+  select f.trial_id, f.classification, f.likelihood, f.confidence, f.finding, f.committed_at
     from arena.final_findings f where arena.trial_visible(f.trial_id);
 
 create view arena.v_scores with (security_barrier = true) as
@@ -1058,7 +1122,7 @@ create view ledger.v_manifests with (security_barrier = true) as
   select id, tournament_id, version, manifest, manifest_sha256, supersedes_id, created_at from ledger.inclusion_manifests;
 
 create view ledger.v_adjudications with (security_barrier = true) as
-  select a.id, a.trial_id, a.verdict, a.reason, a.after_reveal, a.created_at
+  select a.id, a.trial_id, a.verdict, a.reason, a.decided_by, a.after_reveal, a.created_at
     from ledger.validity_adjudications a where arena.trial_visible(a.trial_id);
 
 create view ledger.v_corpus_seals with (security_barrier = true) as
@@ -1113,7 +1177,8 @@ grant execute on function
   arena.freeze_tournament(uuid), arena.open_tournament(uuid), ledger.seal_replay_corpus(uuid),
   arena.close_tournament_run(uuid), arena.begin_scoring(uuid),
   ledger.verify_chain(), ledger.planned_execution(uuid), ledger.corpus_digest(uuid), arena.roster_digest(uuid),
-  ledger.adjudicate_validity(uuid, text, text, text, text),
+  ledger.adjudicate_validity(uuid, text, text, text, text, text),
+  arena.record_debrief_ready(uuid, jsonb),
   ledger.reveal(uuid),
   ledger.seal_corrected_manifest(uuid),
   ledger.build_manifest(uuid),
