@@ -34,6 +34,19 @@ class HeldReservation:
     settled_usd: Decimal | None = None
 
 
+def _usage_identity(report: UsageReport) -> tuple[object, ...]:
+    """What S4 compares on a repeated report number: the model and the token counts (status, latency and span ids
+    are metadata, so a repeat that differs only there still answers `exists`)."""
+    return (
+        report.model,
+        report.input_tokens,
+        report.output_tokens,
+        report.thinking_tokens,
+        report.audio_input_tokens,
+        report.audio_output_tokens,
+    )
+
+
 @dataclass(frozen=True)
 class UsageRow:
     report: UsageReport
@@ -129,7 +142,7 @@ class RunBudget:
             if row.reservation_id == report.reservation_id and row.seq == report.seq:
                 # S4 draft fix 4: the same report again answers `exists` (even after settlement); different usage
                 # under the same number is AR003.
-                if row.report != report:
+                if _usage_identity(row.report) != _usage_identity(report):
                     msg = "AR003: usage report number reused with different usage"
                     raise GuardProtocolError(msg)
                 return UsageResult("exists", row.cost_usd, spent, held.reserved_usd, spent > held.reserved_usd)

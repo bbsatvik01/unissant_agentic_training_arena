@@ -426,11 +426,15 @@ def _retrieve(task: asyncio.Future[Any]) -> None:
         task.exception()
 
 
-async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> R:
+async def _bounded_write[R](
+    write: Coroutine[Any, Any, R], timeout_s: float, on_abandon: Callable[[], None] | None = None
+) -> R:
     """Run one ledger operation (opening the session, a reservation, a dispatch, a receipt, a settlement) to completion
     even when the call is cancelled meanwhile, then re-raise the cancellation: a billed attempt always leaves its row,
     and a settled call its settlement (S5 3.2). Bounded: an operation still running after ``timeout_s`` is cancelled,
-    given CLEANUP_S to unwind, and abandoned with LedgerStalledError, so a stalled database cannot hang a request."""
+    given CLEANUP_S to unwind, and abandoned with LedgerStalledError, so a stalled database cannot hang a request.
+    ``on_abandon`` runs whenever the operation is abandoned, whichever exception then propagates (the caller's own
+    cancellation, or LedgerStalledError)."""
     task = asyncio.ensure_future(write)
     task.add_done_callback(_retrieve)
     loop = asyncio.get_running_loop()
@@ -439,6 +443,8 @@ async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> 
     while not task.done():
         remaining = end - loop.time()
         if remaining <= 0:
+            if on_abandon is not None:
+                on_abandon()
             task.cancel()
             await asyncio.wait({task}, timeout=CLEANUP_S)  # a cancelled task never raises out of wait
             stalled = LedgerStalledError(f"a spend-guard operation did not finish within {timeout_s}s")
@@ -471,11 +477,11 @@ class _BoundedSession:
             write.close()
             msg = "the guard session stalled earlier in this call and is not reused"
             raise LedgerStalledError(msg)
-        try:
-            return await _bounded_write(write, self._timeout_s)
-        except LedgerStalledError:
-            self._stalled = True
-            raise
+        return await _bounded_write(write, self._timeout_s, self._abandon)
+
+    def _abandon(self) -> None:
+        """An operation was abandoned mid-flight: its connection is not used again in this call."""
+        self._stalled = True
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         return await self._run(self._session.reserve(req))

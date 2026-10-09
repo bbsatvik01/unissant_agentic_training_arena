@@ -1127,3 +1127,31 @@ def test_an_abandoned_write_whose_cleanup_fails_leaves_no_unretrieved_exception(
     run(drive())
     gc.collect()
     assert "never retrieved" not in caplog.text
+
+
+class SlowDispatchStuckCleanup(RunBudget):
+    """A dispatch that never answers and whose cancellation cleanup outlasts CLEANUP_S."""
+
+    async def dispatch(self, reservation_id: UUID) -> None:
+        self.ops.append(("dispatch", reservation_id))
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await asyncio.sleep(1.5)  # rollback slower than CLEANUP_S
+
+
+def test_a_caller_cancellation_that_meets_an_abandoned_write_never_reuses_the_session() -> None:
+    budget = SlowDispatchStuckCleanup(CEILING)
+    agent = AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep, ledger_timeout_s=0.05))
+
+    async def cancel_during_dispatch() -> None:
+        task = asyncio.create_task(agent.run(card()))
+        await asyncio.sleep(0.02)  # the dispatch is in flight
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(cancel_during_dispatch())
+    assert [op for op, _ in budget.ops] == ["reserve", "dispatch"]  # no settlement on the abandoned session
+    [held] = budget.reservations.values()
+    assert held.state == "reserved"

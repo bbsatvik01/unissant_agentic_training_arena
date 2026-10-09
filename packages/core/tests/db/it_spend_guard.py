@@ -597,6 +597,8 @@ def test_each_role_runs_the_whole_lifecycle_on_its_own_login_and_no_other_role_c
             settled = await calls.settle_reservation(conn, rid, "committed")
             again = await calls.record_usage(conn, report)  # the same report after settlement: exists, not an error
             assert again.outcome == "exists"
+            metadata_only = dataclasses.replace(report, status="error", latency_ms=99)
+            assert (await calls.record_usage(conn, metadata_only)).outcome == "exists"
             with pytest.raises(psycopg.Error) as conflicting:
                 await calls.record_usage(conn, dataclasses.replace(report, input_tokens=901))
             assert conflicting.value.sqlstate == "AR003"

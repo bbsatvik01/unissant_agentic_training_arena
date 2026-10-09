@@ -4,6 +4,7 @@ rate mirror reproduces the database's formulas (S5 4.3; S4 draft fix 1)."""
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 from collections.abc import Coroutine
 from decimal import Decimal
 from typing import Any
@@ -121,6 +122,8 @@ def test_dispatch_record_and_settle_follow_s4s_rules() -> None:
     first = run(budget.record(usage(held.id)))
     again = run(budget.record(usage(held.id)))  # S4 draft fix 4: the same report again answers exists
     assert (again.outcome, again.cost_usd, again.spend_usd) == ("exists", first.cost_usd, first.spend_usd)
+    metadata_only = dataclasses.replace(usage(held.id), status="error", latency_ms=99, trace_id="a" * 32)
+    assert run(budget.record(metadata_only)).outcome == "exists"  # S4 compares model and tokens only
     with pytest.raises(GuardProtocolError, match="AR003"):
         run(budget.record(usage(held.id, tokens=101)))  # the same number with different usage
     assert run(budget.settle(held.id, "usage_unknown")) == held.reserved_usd
