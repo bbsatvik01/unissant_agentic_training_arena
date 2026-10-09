@@ -9,6 +9,9 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Codex spec round 2 (2026-10-09 ~02:30 EDT)
+- YELLOW, RED, RED, RED: 4 blockers, 35 majors (down from ~60). Recorded in `docs/spec/review-codex-r2.md`. Fixes queued for after 07:00 (hold).
+
 ## Latest (2026-10-09 ~01:45 EDT)
 - Spec fix round 1 complete (4/4 fixers; 109 dispositions in `docs/spec/review-codex-r1.md`); spec v2.3 committed (a3ca7e9, de3524d). LIMITS now byte-bounded per D11 (subject 80k, card/deep/final 128k, referee 160k bytes); conservative sim for 30 cases now 12/15 blocks (expected complete); direction 8.2 table updated; tuning deferred (D-013).
 - Codex spec round 2 running (bg `b9mnxieqt`, 4 sessions; outputs scratchpad `codex/spec2/`). Codex CLI is not a workflow (owner's no-new-workflow rule respected).
