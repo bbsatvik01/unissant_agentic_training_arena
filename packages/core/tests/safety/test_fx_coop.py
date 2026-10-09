@@ -166,6 +166,8 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "thirty\u2011two training binders",
         "thirty and a half training binders",
         "half a dozen training binders",
+        "half the thirty training binders",
+        "thirty and a fifth training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
@@ -176,7 +178,19 @@ def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
     assert any(any(n in p for n in numeric) for p in found), found
 
 
-@pytest.mark.parametrize("phrase", ["thirty and a half", "half a dozen", "two thirds", "1.5", "3/4"])
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "thirty and a half",
+        "half a dozen",
+        "two thirds",
+        "1.5",
+        "3/4",
+        "half the thirty",
+        "thirty and a fifth",
+        "10 percent",
+    ],
+)
 def test_fractional_quantities_are_rejected(phrase: str) -> None:
     assert cc.number_problems(f"I loaded {phrase} binders.", ["I loaded binders."], [])[0].startswith(
         "unsupported number phrase"
@@ -211,6 +225,14 @@ def test_an_identifier_on_another_times_row_fails_against_a_real_record() -> Non
         "70315 entered at 08:12.",
     ):
         assert cc.time_row_problems(wrong, [], records) == ["70315 goes with another time than 08:12"], wrong
+
+
+def test_a_long_clause_still_binds_its_event_to_its_time() -> None:
+    records = list(record_texts("F06").values())
+    assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:12.", [], records) == []
+    assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:38.", [], records) == [
+        "open goes with another time than 19:38"
+    ]
 
 
 def test_no_time_on_the_wrong_row_against_a_real_record() -> None:

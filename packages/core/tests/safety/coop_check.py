@@ -183,13 +183,15 @@ def numbers(text: str) -> list[str]:
     return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
 
-_FRACTION = r"(?:half|halves|quarter|quarters|third|thirds)"
-# Fractional quantities ("thirty and a half", "half a dozen", "two thirds") are not normalised; they are rejected
-# outright so they can never pass as the whole number next to them (fail closed). "half past twelve" is a time.
+_FRACTION = (
+    r"(?:half|halves|thirds?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?|hundredths?|percent"
+    r"|per cent)"
+)
+# Fractional and proportional quantities ("half the thirty", "thirty and a fifth", "two thirds", "10 percent", 1.5,
+# 3/4) are not normalised; any of them is rejected outright, so none can pass as a whole number beside it (fail
+# closed). Only the clock phrases "half past", "quarter past" and "quarter to" are left alone.
 UNSUPPORTED_NUMBER = re.compile(
-    rf"\b(?:{_NUMBER_WORD}|\d+) and an? {_FRACTION}\b|\b{_FRACTION} (?:an? |of )?(?:{_NUMBER_WORD}|\d+)\b"
-    rf"|\b(?:{_NUMBER_WORD}|\d+)[ -]{_FRACTION}\b|\b\d+/\d+\b|\b\d+\.\d+\b",
-    re.IGNORECASE,
+    rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b|%|\b\d+/\d+\b|\b\d+\.\d+\b", re.IGNORECASE
 )
 
 
@@ -290,7 +292,6 @@ def rows_of(texts: Iterable[str]) -> list[tuple[str, set[str]]]:
     return [(row, {stem(w) for w in WORD.findall(row)}) for row in rows]
 
 
-NEAR = 3  # content words on each side of a time that say what happened at it
 # Calendar words date an event; they never say what happened, so they are not compared with table rows.
 CALENDAR = frozenset(
     [
@@ -317,13 +318,13 @@ CALENDAR = frozenset(
 
 
 def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> list[str]:
-    """A time sits with what it describes. For each time, the binding words nearest it in its clause (up to three
-    on each side: content words and identifiers such as badge numbers) may not come only from rows of the same record
-    that hold other times and never from a row that holds this one: "the door opened at 19:38", when the record says
-    opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge 70288's row.
-    A "from ... until" span runs forward. A record is judged for a time when its row at that time shares a binding word
-    with the clause or the record names one of the clause's identifiers anywhere (otherwise its row at that time is
-    about something else); a time no row holds is not judged here."""
+    """A time sits with what it describes. For each time, the binding words of its clause that are nearer to it
+    than to any other time (content words and identifiers such as badge numbers) may not come only from rows of the
+    same record that hold other times and never from a row that holds this one: "the door opened at 19:38", when the
+    record says opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge
+    70288's row. A "from ... until" span runs forward. A record is judged for a time when its row at that time shares a
+    binding word with the clause or the record names one of the clause's identifiers anywhere (otherwise its row at
+    that time is about something else); a time no row holds is not judged here."""
     sentence = fold(sentence)
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
     for clause in clauses(sentence):
@@ -331,17 +332,11 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
         for i, time in enumerate(tokens):
             if not TIME.fullmatch(time):
                 continue
-            before = [w for w in tokens[:i] if content(w)][-NEAR:]
-            after = [w for w in tokens[i + 1 :] if content(w)][:NEAR]
-            near = {stem(w) for w in before + after if w.lower() not in CALENDAR}
-            # Identifiers bind across the whole clause, to the nearest time in it.
+            # Every binding word of the clause belongs to the nearest time in it (ties to the earlier time).
             times = [k for k, w in enumerate(tokens) if TIME.fullmatch(w)]
-            idents = {
-                stem(w)
-                for k, w in enumerate(tokens)
-                if binding(w) and not content(w) and min(times, key=lambda t: (abs(t - k), t)) == i
-            }
-            near |= idents
+            mine = [w for k, w in enumerate(tokens) if binding(w) and min(times, key=lambda t: (abs(t - k), t)) == i]
+            near = {stem(w) for w in mine if w.lower() not in CALENDAR}
+            idents = {stem(w) for w in mine if not content(w)}
             for rows in tables:
                 holding = [s for row, s in rows if number_in(time, row)]
                 if not holding:
