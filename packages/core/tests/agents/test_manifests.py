@@ -368,3 +368,19 @@ def test_user_templates_are_found_wherever_the_manifest_keeps_them(prompt_copy: 
     assert prompts.user_template("user.card.v1.txt").startswith("Exchange {{n}} of 12.")
     with pytest.raises(m.ManifestMismatchError, match=r"no single user template user\.deep\.v1\.txt"):
         prompts.user_template("user.deep.v1.txt")
+
+
+@pytest.mark.parametrize("candidate", ["A2", "A3"])
+def test_only_a1_may_freeze_with_a_deep_call(official: dict[str, m.CandidateManifest], candidate: str) -> None:
+    spec = {
+        "A2": ("Cognitive-Load Prober", "a2", "gemini-3.5-flash-lite"),
+        "A3": ("Conservative Corroborator", "a3", "gemini-3.5-flash-lite"),
+    }[candidate]
+    two_stage = m.with_hash(
+        m.assistant_manifest(
+            m.CoachSpec(candidate, spec[0], f"{m.COACH_DIR}{spec[1]}.strategy.v1.txt", spec[2], two_stage=True)
+        )
+    )
+    roster = [two_stage if c == candidate else official[c] for c in ROSTER]
+    with pytest.raises(m.RosterRefusedError, match=f"{candidate}: limits.deep"):
+        m.check_roster(roster)

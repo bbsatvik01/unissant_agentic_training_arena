@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from arena_core.agents import budget
 from arena_core.agents.budget import (
     INPUT_LIMITS,
     REPAIR_BYTES,
@@ -21,7 +22,7 @@ from arena_core.agents.budget import (
 from arena_core.agents.coach_prompts import Prompt
 from arena_core.agents.referee_prompts import FindingProjection, FollowUpLine
 from arena_core.agents.repair import output_errors
-from arena_core.agents.subject_prompts import SubjectTurnState
+from arena_core.agents.subject_prompts import SubjectPacket, SubjectTurnState, build_subject_prompt
 from arena_core.agents.untrusted import (
     QUESTION_MAX_BYTES,
     QUESTION_MAX_CHARS,
@@ -34,7 +35,9 @@ from arena_core.agents.untrusted import (
 from arena_core.agents.views import TranscriptTurn, public_case
 from arena_core.contracts.citations import quote_ok
 from arena_core.contracts.coaching import CoachingCard, FinalFinding
+from arena_core.contracts.common import MAX_TURNS
 from arena_core.contracts.findings import InvestigatorFinding
+from arena_core.contracts.review import MAX_TRIGGERS
 from arena_core.contracts.routes import TurnSubmit
 from arena_core.contracts.subject import SubjectTurn
 from arena_core.providers.structured import sent_schema
@@ -263,3 +266,43 @@ def test_a_record_the_renderer_would_change_is_refused_at_authoring() -> None:
     message = "doc-01: the rendered text differs from the stored text"
     # Each variant holds doc-01 twice: its evaluator artifact and its public initial document.
     assert issues == [("truthful", message)] * 2 + [("deceptive", message)] * 2
+
+
+def _codex_f02() -> dict[str, Any]:
+    """F02 with author text at the caps where it reaches the subject's ledger (a validator-accepted family)."""
+    family = copy.deepcopy(fx.family("F02"))
+    for role in ("truthful", "deceptive"):
+        variant = family["variants"][role]
+        variant["private_packet"]["persona"]["background"] = "ﷺ" * 400
+        position = "ﷺ" * 49 + "x" * 31
+        variant["private_packet"]["persona"]["position"] = position
+        variant["public_packet"]["interview_context"]["subject"]["position"] = position
+    return family
+
+
+@pytest.mark.parametrize("family", [fx.family("F02"), _codex_f02()], ids=["F02", "F02-at-caps"])
+def test_the_subject_estimate_bounds_every_gate_status_combination(family: dict[str, Any]) -> None:
+    variant = family["variants"]["deceptive"]
+    packet = SubjectPacket.from_private_packet(variant["private_packet"], split="dev")
+    estimate = max_context(family, "deceptive")["subject"]
+    gates = [g.id for g in packet.gates]
+    prompts = fx.prompts("S3")
+    for mask in range(2 ** len(gates)):
+        opened = {g for i, g in enumerate(gates) if mask >> i & 1}
+        for released in (True, False):
+            state = budget._subject_state(packet, variant, opened)
+            if not released:
+                state = state.model_copy(update={"released": {}})
+            prompt = build_subject_prompt(packet, state, prompts, salt=budget.SALT)
+            assert budget._sized(prompts, "subject", prompt) <= estimate
+
+
+def test_the_trigger_population_is_the_legal_maximum() -> None:
+    entries = budget._triggers()
+    assert len(entries) == MAX_TRIGGERS
+    for e in entries:
+        start = max(e.trigger_turns, default=1)
+        assert e.question_turns == list(range(start, start + len(e.question_turns)))
+        assert e.question_turns[-1] <= MAX_TURNS
+        limit = {"2a": 2, "3c": 3, "4b": 3}.get(e.subcheck_id)
+        assert len(e.question_turns) == min(limit or MAX_TURNS, MAX_TURNS - start + 1)

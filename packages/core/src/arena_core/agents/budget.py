@@ -61,7 +61,7 @@ from arena_core.contracts.coaching import (
 )
 from arena_core.contracts.common import MAX_TURNS
 from arena_core.contracts.findings import StoredFinding
-from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
+from arena_core.contracts.review import TriggerEntry
 from arena_core.providers.structured import sent_schema
 
 REPAIR_BYTES = 5_200  # S2 2: the most a repair adds to a request
@@ -205,11 +205,45 @@ def _max_rubric() -> Rubric:
 
 
 def _triggers() -> list[TriggerEntry]:
-    window = list(range(1, MAX_TURNS + 1))
-    return [
-        TriggerEntry(subcheck_id="3e", trigger_turns=[11, 12], trigger_record=None, question_turns=window)
-        for _ in range(MAX_TRIGGERS)
+    """Every trigger S3's rules can produce for one 12-turn trial (the populations of `contracts.review.
+    MAX_TRIGGERS`), each with its widest legal window: an assistant's proposals, where card c answers a trigger at
+    answer k once c >= k (`triggers.assistant_questions`; an investigator's window is one question shorter), and
+    every record released before the first question."""
+
+    def after(k: int, limit: int | None = None) -> list[int]:
+        cards = list(range(max(k, 1), MAX_TURNS + 1))
+        return cards[:limit]
+
+    turns = range(1, MAX_TURNS + 1)
+    records = [*(f"doc-0{k}" for k in range(1, 5)), *(f"rec-0{k}" for k in range(1, 7))]
+    out = [
+        TriggerEntry(subcheck_id="2a", trigger_turns=[k], trigger_record=None, question_turns=after(k, 2))
+        for k in turns
     ]
+    out += [
+        TriggerEntry(subcheck_id="2b", trigger_turns=[k], trigger_record=None, question_turns=after(k)) for k in turns
+    ]
+    out += [
+        TriggerEntry(subcheck_id="3c", trigger_turns=[], trigger_record=r, question_turns=after(1, 3))
+        for r in records
+        if r.startswith("rec-")
+    ]
+    out += [
+        TriggerEntry(subcheck_id="3e", trigger_turns=[a, b], trigger_record=None, question_turns=after(b))
+        for a in turns
+        for b in turns
+        if a < b
+    ]
+    out += [
+        TriggerEntry(subcheck_id="3e", trigger_turns=[k], trigger_record=r, question_turns=after(k))
+        for k in turns
+        for r in records
+    ]
+    out += [
+        TriggerEntry(subcheck_id="4b", trigger_turns=[k], trigger_record=None, question_turns=after(k, 3))
+        for k in turns
+    ]
+    return out
 
 
 # ---------------------------------------------------------------- per call kind
@@ -227,6 +261,46 @@ def worst_view(case: PublicCase, variant: Mapping[str, Any], call: CoachCall) ->
         earlier=EarlierOutput(running_finding=_finding(seen), flags=_flags(seen), deep_update=_deep(seen)),
         exchange=MAX_TURNS,
     )
+
+
+def _subject_state(packet: SubjectPacket, variant: Mapping[str, Any], opened: set[str]) -> SubjectTurnState:
+    return SubjectTurnState(
+        n=MAX_TURNS,
+        transcript=_turns(MAX_TURNS - 1),
+        question=question_fill(),
+        released={r.record_id: 0 for r in _released(variant, 0)},
+        opened_gates=dict.fromkeys(sorted(opened), 1),
+        first_disclosed={f.id: 1 for f in packet.facts},
+    )
+
+
+def _gate_bytes(packet: SubjectPacket, user_message: str) -> dict[str, int]:
+    """Serialized bytes of each gate's own ledger lines: its gate line and the uncertainty lines on the facts it
+    opens (the lines whose text depends on the gate's status)."""
+    gate_of = {f.id: f.gate_id for f in packet.facts if f.gate_id}
+    unc_gate = {u.id: gate_of[u.fact_id] for u in packet.uncertainty if u.fact_id in gate_of}
+    out = dict.fromkeys((g.id for g in packet.gates), 0)
+    for line in user_message.split("\n"):
+        head = line.split(" ", 1)[0]
+        gate = head if head in out and line.startswith(f"{head} condition:") else unc_gate.get(head)
+        if gate is not None:
+            out[gate] += len(json.dumps(line, ensure_ascii=False).encode("utf-8"))
+    return out
+
+
+def worst_subject_state(packet: SubjectPacket, variant: Mapping[str, Any], prompts: PromptSet) -> SubjectTurnState:
+    """Turn 12 with every record released and each gate in whichever reachable status renders longest. A gate's
+    lines depend only on its own status, so the maximum is taken gate by gate between OPEN and CLOSED (LOCKED
+    renders the CLOSED gate line with a shorter or equal uncertainty suffix)."""
+    gates = {g.id for g in packet.gates}
+    rendered = {
+        status: _gate_bytes(
+            packet, build_subject_prompt(packet, _subject_state(packet, variant, opened), prompts, SALT).user_message
+        )
+        for status, opened in (("OPEN", gates), ("CLOSED", set()))
+    }
+    opened = {g for g in gates if rendered["OPEN"][g] >= rendered["CLOSED"][g]}
+    return _subject_state(packet, variant, opened)
 
 
 @cache
@@ -256,15 +330,10 @@ def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
             if p.manifest.prompt is not None and call in p.manifest.prompt.assembly
         )
     packet = SubjectPacket.from_private_packet(variant["private_packet"], split=family["split"])
-    state = SubjectTurnState(
-        n=MAX_TURNS,
-        transcript=_turns(MAX_TURNS - 1),
-        question=question_fill(),
-        released={r.record_id: 0 for r in _released(variant, 0)},
-        opened_gates={g.id: 1 for g in packet.gates},
-        first_disclosed={f.id: 1 for f in packet.facts},
+    sizes["subject"] = max(
+        _sized(p, "subject", build_subject_prompt(packet, worst_subject_state(packet, variant, p), p, salt=SALT))
+        for p in subjects
     )
-    sizes["subject"] = max(_sized(p, "subject", build_subject_prompt(packet, state, p, salt=SALT)) for p in subjects)
     referee = _referee()
     r1 = RefereeSubjectInput(
         canonical_facts=[

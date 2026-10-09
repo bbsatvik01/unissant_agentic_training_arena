@@ -414,6 +414,9 @@ def _max_flags(m: CandidateManifest) -> object:
     return m.coaching_policy.max_flags_per_card if m.coaching_policy else None
 
 
+DEEP_CANDIDATE = "A1"
+
+
 def check_roster(manifests: Sequence[CandidateManifest]) -> None:
     """S2 3.3 and S5 3.3: refuse to freeze unless the roster is official in-process assistants and subjects with
     equal budgets, limits within the ceilings and allowlisted models."""
@@ -425,6 +428,9 @@ def check_roster(manifests: Sequence[CandidateManifest]) -> None:
             errors.append(f"{m.candidate_id}: a {m.kind} cannot be on a tournament roster")
         if not m.official or m.transport != "in_process":
             errors.append(f"{m.candidate_id}: only official in_process candidates are frozen")
+        # S2 3.3, 5.3: the deep update is A1's design (two_stage); every other official assistant is single_call.
+        if m.kind == "assistant" and m.candidate_id != DEEP_CANDIDATE and "deep" in m.limits:
+            errors.append(f"{m.candidate_id}: limits.deep (a two_stage design) exists only for {DEEP_CANDIDATE}")
         errors += limit_errors(m)
     assistants = [m for m in manifests if m.kind == "assistant"]
     subjects = [m for m in manifests if m.kind == "subject"]
