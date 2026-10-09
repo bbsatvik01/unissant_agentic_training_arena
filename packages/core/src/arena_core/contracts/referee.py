@@ -230,12 +230,62 @@ class RefAsstContext:
     transcript_turn_ids: frozenset[str]
 
 
+def _twice(field: str, got: list[str]) -> list[str]:
+    return [f"{field}: {g} listed twice" for g in sorted({g for g in got if got.count(g) > 1})]
+
+
 def _exactly_once(field: str, got: list[str], expected: frozenset[str]) -> list[str]:
-    errors = [f"{field}: {g} listed twice" for g in sorted({g for g in got if got.count(g) > 1})]
+    errors: list[str] = []
     if missing := sorted(expected - set(got)):
         errors.append(f"{field}: missing {missing}")
     if extra := sorted(set(got) - expected):
         errors.append(f"{field}: {extra} were not submitted")
+    return errors
+
+
+def assistant_judgment_errors(
+    info: ValidationInfo,
+    *,
+    flags: list[FlagVerdict] | None = None,
+    followups: list[FollowupVerdict] | None = None,
+    citations: list[CitationVerdict] | None = None,
+    subchecks: list[SubcheckVerdict] | None = None,
+) -> list[str]:
+    """S2 7.3's code checks for J3/J4 judgments, shared by ref_asst.v2 and the raters' T-RUB and T-FLAG
+    submissions (S3 7.3: the rater submits the proxy's own fields): every item judged once, the per-question
+    sub-checks never answered once, and, against a `RefAsstContext`, every submitted item present and every
+    deciding turn a turn of the transcript. A list left as None is not part of the payload."""
+    lists = {
+        "flags": [f.flag_ref for f in flags] if flags is not None else None,
+        "followups": [f.turn_id for f in followups] if followups is not None else None,
+        "citations": [c.cite for c in citations] if citations is not None else None,
+        "subchecks": [s.id for s in subchecks] if subchecks is not None else None,
+    }
+    errors = [e for field, got in lists.items() if got is not None for e in _twice(field, got)]
+    errors += [
+        f"subchecks: {i} is answered per question, not once"
+        for i in lists["subchecks"] or []
+        if i in PER_QUESTION_SUBCHECKS
+    ]
+    ctx = info.context
+    if ctx is None:
+        return errors
+    if not isinstance(ctx, RefAsstContext):
+        msg = f"validation context must be a RefAsstContext, not {type(ctx).__name__}"
+        raise TypeError(msg)
+    expected = {
+        "flags": ctx.flag_refs,
+        "followups": ctx.followup_turn_ids,
+        "citations": ctx.citation_ids,
+        "subchecks": ctx.rubric_subcheck_ids - PER_QUESTION_SUBCHECKS,
+    }
+    errors += [e for field, got in lists.items() if got is not None for e in _exactly_once(field, got, expected[field])]
+    errors += [
+        f"subchecks[{i}].turn_ids: {t} is not a turn of this transcript"
+        for i, s in enumerate(subchecks or [])
+        for t in s.turn_ids
+        if t not in ctx.transcript_turn_ids
+    ]
     return errors
 
 
@@ -248,26 +298,9 @@ class RefereeAssistantReport(Contract):
 
     @model_validator(mode="after")
     def _rules(self, info: ValidationInfo) -> Self:
-        errors = [
-            f"subchecks: {s.id} is answered per question, not once"
-            for s in self.subchecks
-            if s.id in PER_QUESTION_SUBCHECKS
-        ]
-        ctx = info.context
-        if ctx is not None:
-            if not isinstance(ctx, RefAsstContext):
-                msg = f"validation context must be a RefAsstContext, not {type(ctx).__name__}"
-                raise TypeError(msg)
-            errors += _exactly_once("flags", [f.flag_ref for f in self.flags], ctx.flag_refs)
-            errors += _exactly_once("followups", [f.turn_id for f in self.followups], ctx.followup_turn_ids)
-            errors += _exactly_once("citations", [c.cite for c in self.citations], ctx.citation_ids)
-            once = ctx.rubric_subcheck_ids - PER_QUESTION_SUBCHECKS
-            errors += _exactly_once("subchecks", [s.id for s in self.subchecks], once)
-            errors += [
-                f"subchecks[{i}].turn_ids: {t} is not a turn of this transcript"
-                for i, s in enumerate(self.subchecks)
-                for t in s.turn_ids
-                if t not in ctx.transcript_turn_ids
-            ]
-        _raise(errors)
+        _raise(
+            assistant_judgment_errors(
+                info, flags=self.flags, followups=self.followups, citations=self.citations, subchecks=self.subchecks
+            )
+        )
         return self

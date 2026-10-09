@@ -390,7 +390,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "default": null
         }
       },
       "required": [
@@ -398,8 +399,7 @@
         "kind",
         "title",
         "description",
-        "requestable_after_exchanges",
-        "date"
+        "requestable_after_exchanges"
       ],
       "title": "RequestableRecord",
       "type": "object"
@@ -531,6 +531,7 @@
         "answer": {
           "anyOf": [
             {
+              "maxBytes": 1800,
               "maxLength": 900,
               "minLength": 1,
               "type": "string"

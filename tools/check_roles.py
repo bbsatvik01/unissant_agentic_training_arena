@@ -336,9 +336,23 @@ def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[
             found.append((node.lineno, node.id))
         elif isinstance(node, ast.Attribute) and node.attr in frames:
             found.append((node.lineno, node.attr))
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.strip() in frames:
-            found.append((node.lineno, node.value.strip()))
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            found.extend((node.lineno, name) for name in _named_in_string(node.value, frames | local))
     return found
+
+
+def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
+    """Frame names a string carries: the whole string (`getattr(events, "NoticeFrame")`) or any name in it read
+    as an expression (a string annotation such as `"NoticeFrame | None"`, which Pydantic resolves)."""
+    if text.strip() in names:
+        return [text.strip()]
+    try:
+        expression = ast.parse(text.strip(), mode="eval")
+    except SyntaxError:
+        return []
+    named = {n.id for n in ast.walk(expression) if isinstance(n, ast.Name)}
+    named |= {n.attr for n in ast.walk(expression) if isinstance(n, ast.Attribute)}
+    return sorted(named & set(names))
 
 
 def _imports_export(path: str, node: ast.AST) -> bool:

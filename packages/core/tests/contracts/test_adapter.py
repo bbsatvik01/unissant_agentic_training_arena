@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from collections.abc import Mapping
 from typing import Any
 
@@ -23,9 +24,10 @@ from arena_core.contracts.adapter import (
 )
 from arena_core.contracts.citations import Cite, Record, Turn, content_text, flag_citations_ok
 from arena_core.contracts.referee import FlagVerdict, RefereeAssistantReport, RefereeSubjectReport
-from arena_core.contracts.review import MAX_TRIGGERS, RubricItem, TriggerEntry
+from arena_core.contracts.review import MAX_TRIGGERS, CaseFile, RubricItem, TriggerEntry
 
 from .cards import flag, judgment, stored_card
+from .conftest import REPO_ROOT
 
 # ---------------------------------------------------------------- S3 5.3 reference scorer (consumer of the adapter)
 # Verbatim from S3 5.3 so the adapter is proven against the code that will read it; WP-15's scorer library owns
@@ -391,6 +393,13 @@ def test_a_stored_deceptive_card_without_a_basis_flag_fails_closed() -> None:
         adapt_card(raw)
 
 
+def _f01_public_packet() -> dict[str, Any]:
+    family = json.loads((REPO_ROOT / "cases" / "dev" / "F01.json").read_text(encoding="utf-8"))
+    packet = family["variants"]["truthful"]["public_packet"]
+    assert isinstance(packet, dict)
+    return packet
+
+
 def test_a_maximal_trigger_population_fits_one_review_task() -> None:
     records = ["doc-01", "doc-02", "doc-03", "doc-04", "rec-01", "rec-02", "rec-03", "rec-04", "rec-05", "rec-06"]
     turns = [judgment(f"t{n:02d}", record_conflict_ids=records) for n in range(1, 13)]
@@ -421,7 +430,7 @@ def test_a_maximal_trigger_population_fits_one_review_task() -> None:
         "task": "T-RUB",
         "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
         "instrument": "C-RUB",
-        "case_file": {"title": "Lab B", "investigation_objective": "Why the subject entered.", "initial_documents": []},
+        "case_file": CaseFile.from_public_packet(_f01_public_packet()).model_dump(mode="json"),
         "released": [],
         "transcript": [],
         "questions": [],

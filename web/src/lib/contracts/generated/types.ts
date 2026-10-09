@@ -14,8 +14,12 @@ export interface CardValidation {
 
 export interface CaseFile {
   readonly title: string;
+  readonly domain: "facility_access";
   readonly investigation_objective: string;
+  readonly interview_context: InterviewContext;
+  readonly known_timeline: readonly (TimelineEntry)[];
   readonly initial_documents: readonly (InitialDocument)[];
+  readonly requestable_records: readonly (RequestableRecord)[];
 }
 
 export interface CitationVerdict {
@@ -33,7 +37,7 @@ export interface CoachCardFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "coach.card";
   readonly data: CoachCard;
@@ -49,7 +53,7 @@ export interface CoachFailedFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "coach.failed";
   readonly data: CoachFailed;
@@ -65,7 +69,7 @@ export interface CoachUpdateFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "coach.update";
   readonly data: CoachUpdate;
@@ -76,7 +80,7 @@ export interface CoachWorkingFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: null;
   readonly type: "coach.working";
   readonly data: TurnRef;
@@ -108,7 +112,7 @@ export interface DebriefReadyFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "debrief.ready";
   readonly data: DebriefReady;
@@ -152,7 +156,7 @@ export interface EvidenceReleasedFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "evidence.released";
   readonly data: EvidenceReleased;
@@ -177,7 +181,7 @@ export interface FindingCommittedFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "finding.committed";
   readonly data: FindingCommitted;
@@ -241,6 +245,24 @@ export interface InitialDocument {
   readonly kind: "access_exception_report" | "badge_log" | "door_log" | "sensor_metadata" | "camera_metadata" | "camera_status" | "alarm_log" | "monitor_alert" | "dispatch_log" | "work_order" | "staffing_note" | "visitor_register" | "lockbox_log" | "credential_record" | "access_change_notice" | "incident_ticket" | "seal_audit" | "witness_statement" | "supervisor_statement" | "email" | "policy_excerpt" | "procedure_excerpt" | "facilities_notice" | "clarification" | "context_change";
   readonly title: string;
   readonly content: Content;
+}
+
+export interface InterviewContext {
+  readonly agency: string;
+  readonly facility: string;
+  readonly timezone: string;
+  readonly interview_date: string;
+  readonly setting: string;
+  readonly investigator_role: string;
+  readonly subject: InterviewSubject;
+  readonly purpose_statement: string;
+}
+
+export interface InterviewSubject {
+  readonly name: string;
+  readonly position: string;
+  readonly unit: string;
+  readonly tenure_years: number;
 }
 
 export interface InvestigatorFinding {
@@ -314,7 +336,7 @@ export interface NoticeFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: null;
   readonly type: "notice";
   readonly data: Notice;
@@ -364,7 +386,7 @@ export interface QuestionAcceptedFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "question.accepted";
   readonly data: QuestionAccepted;
@@ -397,7 +419,7 @@ export interface RequestableRecord {
   readonly title: string;
   readonly description: string;
   readonly requestable_after_exchanges: number;
-  readonly date: string | null;
+  readonly date?: string | null;
 }
 
 export interface ReviewListEntry {
@@ -557,7 +579,7 @@ export interface SubjectAnswerFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "subject.answer";
   readonly data: SubjectAnswer;
@@ -574,7 +596,7 @@ export interface SubjectThinkingFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: null;
   readonly type: "subject.thinking";
   readonly data: TurnRef;
@@ -605,6 +627,12 @@ export interface TextTrialSnapshot {
   readonly coach_failures: readonly (CoachFailed)[];
 }
 
+export interface TimelineEntry {
+  readonly time: string;
+  readonly event: string;
+  readonly source: string;
+}
+
 export interface TournamentCoachCard {
   readonly turn_no: number;
   readonly card: TournamentWireCard;
@@ -615,7 +643,7 @@ export interface TournamentCoachCardFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "coach.card";
   readonly data: TournamentCoachCard;
@@ -723,7 +751,7 @@ export interface TrialFinalizedFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number;
   readonly type: "trial.finalized";
   readonly data: TrialFinalized;
@@ -757,7 +785,7 @@ export interface TrialStatusFrame {
   readonly scope: "trial";
   readonly scope_id: string;
   readonly ts: string;
-  readonly transcript_version: number | null;
+  readonly transcript_version: number;
   readonly seq: number | null;
   readonly type: "trial.status";
   readonly data: TrialStatusData;

@@ -17,12 +17,16 @@ proxy's own output fields, reused from `referee`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Annotated, Any, Literal, Self
 
-from pydantic import ConfigDict, Field, StringConstraints, model_validator
+from pydantic import ConfigDict, Field, StringConstraints, ValidationInfo, model_validator
 
 from arena_core.contracts.coaching import StoredFlag
 from arena_core.contracts.common import (
+    DATE,
+    LOCAL_DATE_TIME,
+    Answer,
     ArtifactKind,
     CitableRecordId,
     Contract,
@@ -40,15 +44,19 @@ from arena_core.contracts.common import (
     Uuid,
     when,
 )
-from arena_core.contracts.events import Content, QuestionSource, Text600, Text900
+from arena_core.contracts.events import Content, QuestionSource, Text600
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import (
+    PER_QUESTION_SUBCHECKS,
     CitationVerdict,
     FlagVerdict,
     FollowupVerdict,
+    RefSubjContext,
     SubcheckVerdict,
+    assistant_judgment_errors,
     label_reason_errors,
 )
+from arena_core.contracts.snapshot import RequestableRecord
 
 Statement = Annotated[str, StringConstraints(min_length=5, max_length=300)]
 
@@ -56,7 +64,7 @@ Statement = Annotated[str, StringConstraints(min_length=5, max_length=300)]
 class ReviewTurn(Contract):
     turn_no: TurnNo
     question: Text600
-    answer: Text900 | None
+    answer: Answer | None
     partial: bool
 
 
@@ -78,12 +86,50 @@ class InitialDocument(Contract):
     content: Content
 
 
-class CaseFile(Contract):
-    """The public case file (S1 public packet): what every investigator saw before the first question."""
+class InterviewSubject(Contract):
+    name: Annotated[str, StringConstraints(min_length=3, max_length=80)]
+    position: Annotated[str, StringConstraints(min_length=3, max_length=80)]
+    unit: Annotated[str, StringConstraints(min_length=3, max_length=80)]
+    tenure_years: Annotated[int, Field(ge=0, le=45)]
 
-    title: Annotated[str, StringConstraints(min_length=1, max_length=160)]
-    investigation_objective: Annotated[str, StringConstraints(min_length=1, max_length=600)]
-    initial_documents: Annotated[list[InitialDocument], Field(max_length=4)]
+
+class InterviewContext(Contract):
+    """S1 public-packet `interviewContext`."""
+
+    agency: Annotated[str, StringConstraints(min_length=3, max_length=120)]
+    facility: Annotated[str, StringConstraints(min_length=3, max_length=120)]
+    timezone: Annotated[str, StringConstraints(min_length=3, max_length=40)]
+    interview_date: Annotated[str, StringConstraints(pattern=DATE)]
+    setting: Annotated[str, StringConstraints(min_length=10, max_length=300)]
+    investigator_role: Annotated[str, StringConstraints(min_length=5, max_length=160)]
+    subject: InterviewSubject
+    purpose_statement: Annotated[str, StringConstraints(min_length=20, max_length=400)]
+
+
+class TimelineEntry(Contract):
+    time: Annotated[str, StringConstraints(pattern=LOCAL_DATE_TIME)]
+    event: Annotated[str, StringConstraints(min_length=5, max_length=240)]
+    source: Annotated[str, StringConstraints(pattern=r"^doc-0[1-4]$")]
+
+
+class CaseFile(Contract):
+    """The public case file every investigator and the proxy saw (S1 public packet, S3 7.3): its title, domain,
+    objective, interview context, known timeline, initial documents and requestable records. The packet's
+    case ID, difficulty, presentation, opening question, replay topics, limits and ground rules are left out:
+    they are not case evidence, and the case ID and difficulty are not the rater's to see."""
+
+    title: Annotated[str, StringConstraints(min_length=5, max_length=120)]
+    domain: Literal["facility_access"]
+    investigation_objective: Annotated[str, StringConstraints(min_length=20, max_length=600)]
+    interview_context: InterviewContext
+    known_timeline: Annotated[list[TimelineEntry], Field(min_length=2, max_length=12)]
+    initial_documents: Annotated[list[InitialDocument], Field(min_length=1, max_length=4)]
+    requestable_records: Annotated[list[RequestableRecord], Field(min_length=1, max_length=6)]
+
+    @classmethod
+    def from_public_packet(cls, packet: Mapping[str, Any]) -> CaseFile:
+        """The projection of an S1 public packet."""
+        return cls.model_validate({name: packet[name] for name in cls.model_fields})
 
 
 class ScoredQuestion(Contract):
@@ -257,20 +303,64 @@ class LabelVerdict(Contract):
 
 
 class RubricSubmission(Contract):
+    """The T-RUB rating: ref_asst.v2's J4 fields under the same checks as the proxy's (pass a
+    `RefAsstContext` for the task to check completeness)."""
+
     task: Literal["T-RUB"]
     followups: Annotated[list[FollowupVerdict], Field(max_length=12)]
     subchecks: Annotated[list[SubcheckVerdict], Field(max_length=30)]
     citations: Annotated[list[CitationVerdict], Field(max_length=22)]
 
+    @model_validator(mode="after")
+    def _rules(self, info: ValidationInfo) -> Self:
+        errors = assistant_judgment_errors(
+            info, followups=self.followups, citations=self.citations, subchecks=self.subchecks
+        )
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        once = {"type": "object", "properties": {"id": {"not": {"enum": sorted(PER_QUESTION_SUBCHECKS)}}}}
+        return [{"properties": {"subchecks": {"type": "array", "items": once}}}]
+
 
 class LabelSubmission(Contract):
+    """The T-LAB rating: one judgment per subject turn, in order (against a `RefSubjContext`, exactly the
+    transcript's turns)."""
+
     task: Literal["T-LAB"]
     turns: Annotated[list[LabelVerdict], Field(max_length=12)]
 
+    @model_validator(mode="after")
+    def _rules(self, info: ValidationInfo) -> Self:
+        ids = [t.turn_id for t in self.turns]
+        errors = [] if ids == sorted(set(ids)) else ["turns: one judgment per subject turn, in order"]
+        ctx = info.context
+        if ctx is not None:
+            if not isinstance(ctx, RefSubjContext):
+                msg = f"validation context must be a RefSubjContext, not {type(ctx).__name__}"
+                raise TypeError(msg)
+            if tuple(ids) != ctx.subject_turn_ids:
+                errors.append(f"turns: must be exactly {list(ctx.subject_turn_ids)} in order")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
+
 
 class FlagSubmission(Contract):
+    """The T-FLAG rating: J3's four answers per flag, each flag once (against a `RefAsstContext`, every flag
+    of the task)."""
+
     task: Literal["T-FLAG"]
     flags: Annotated[list[FlagVerdict], Field(max_length=36)]
+
+    @model_validator(mode="after")
+    def _rules(self, info: ValidationInfo) -> Self:
+        if errors := assistant_judgment_errors(info, flags=self.flags):
+            raise ValueError("; ".join(errors))
+        return self
 
 
 ReviewSubmission = RubricSubmission | LabelSubmission | FlagSubmission

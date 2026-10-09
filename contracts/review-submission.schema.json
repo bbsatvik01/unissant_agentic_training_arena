@@ -285,6 +285,31 @@
     },
     "RubricSubmission": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "subchecks": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "not": {
+                      "enum": [
+                        "1a",
+                        "1c",
+                        "1d",
+                        "2c",
+                        "2d"
+                      ]
+                    }
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        }
+      ],
       "properties": {
         "task": {
           "const": "T-RUB",

@@ -21,6 +21,7 @@ from pydantic import Field, StringConstraints, model_validator
 from arena_core.contracts.coaching import StoredDeepUpdate, TournamentWireCard, TrainingWireCard
 from arena_core.contracts.common import (
     DATE,
+    Answer,
     ArtifactKind,
     Contract,
     Exchanges,
@@ -128,7 +129,7 @@ class EvidenceReleased(Contract):
 
 class SubjectAnswer(Contract):
     turn_no: TurnNo
-    text: Text900
+    text: Answer
     channel: Literal["text"]
     partial: bool
     committed_at: Timestamp
@@ -248,11 +249,14 @@ class Notice(Contract):
 
 
 class _TrialEnvelope(Contract):
+    """S6 5.2: every trial frame names the trial's transcript version it was projected at (a synthesized frame
+    takes the trial's current version), which the client's complete-card rule reads (S6 4.5)."""
+
     v: Literal[1]
     scope: Literal["trial"]
     scope_id: Uuid
     ts: Timestamp
-    transcript_version: Version | None
+    transcript_version: Version
 
 
 class QuestionAcceptedFrame(_TrialEnvelope):
@@ -285,7 +289,7 @@ class CoachWorkingFrame(_TrialEnvelope):
     data: TurnRef
 
 
-def _card_version(frame_version: int | None, card_version: int) -> None:
+def _card_version(frame_version: int, card_version: int) -> None:
     """The envelope's `transcript_version` is the version the card was computed at (S6 4.5, SG4-23)."""
     if frame_version != card_version:
         msg = f"transcript_version: {frame_version} is not the card's {card_version}"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -14,9 +15,20 @@ from arena_core.contracts.referee import (
     RefSubjContext,
     apply_quote_check,
 )
+from arena_core.contracts.review import (
+    CaseFile,
+    FlagSubmission,
+    Gate,
+    LabelSubmission,
+    LabelVerdict,
+    LedgerFact,
+    RubricSubmission,
+    UncertaintyEntry,
+)
 from arena_core.contracts.subject import SubjectContext, SubjectTurn
 
 from .cards import judgment
+from .conftest import REPO_ROOT
 
 
 def _subject(**tag: object) -> dict[str, Any]:
@@ -218,3 +230,53 @@ def test_ref_asst_answers_each_submitted_item_exactly_once() -> None:
         RefereeAssistantReport.model_validate(_asst(subchecks=late), context=ASST_CTX)
     with pytest.raises(TypeError, match="RefAsstContext"):
         RefereeAssistantReport.model_validate(_asst(), context=ASST_CTX.flag_refs)
+
+
+# ---------------------------------------------------------------- rater submissions share the proxy's checks (S3 7.3)
+
+
+def test_a_rubric_rating_is_checked_like_the_proxys() -> None:
+    body = {k: v for k, v in _asst().items() if k in {"followups", "citations", "subchecks"}}
+    RubricSubmission.model_validate({"task": "T-RUB", **body}, context=ASST_CTX)
+    once = [{"id": "1a", "result": "pass", "turn_ids": []}]
+    with pytest.raises(ValidationError, match="answered per question"):
+        RubricSubmission.model_validate({"task": "T-RUB", **body, "subchecks": once})
+    with pytest.raises(ValidationError, match="listed twice"):
+        RubricSubmission.model_validate({"task": "T-RUB", **body, "followups": body["followups"] * 2})
+    with pytest.raises(ValidationError, match=r"subchecks: missing \['5e'\]"):
+        RubricSubmission.model_validate({"task": "T-RUB", **body, "subchecks": body["subchecks"][:1]}, context=ASST_CTX)
+
+
+def test_flag_and_label_ratings_judge_each_item_once() -> None:
+    verdict = _asst()["flags"][0]
+    FlagSubmission.model_validate({"task": "T-FLAG", "flags": [verdict]}, context=ASST_CTX)
+    with pytest.raises(ValidationError, match="listed twice"):
+        FlagSubmission.model_validate({"task": "T-FLAG", "flags": [verdict, verdict]})
+    with pytest.raises(ValidationError, match="missing"):
+        FlagSubmission.model_validate({"task": "T-FLAG", "flags": []}, context=ASST_CTX)
+    turn = {k: v for k, v in judgment("t01").items() if k in LabelVerdict.model_fields}
+    second = {**turn, "turn_id": "t02"}
+    LabelSubmission.model_validate({"task": "T-LAB", "turns": [turn, second]}, context=SUBJ_CTX)
+    with pytest.raises(ValidationError, match="in order"):
+        LabelSubmission.model_validate({"task": "T-LAB", "turns": [second, turn]})
+    with pytest.raises(ValidationError, match="must be exactly"):
+        LabelSubmission.model_validate({"task": "T-LAB", "turns": [turn]}, context=SUBJ_CTX)
+    with pytest.raises(TypeError, match="RefSubjContext"):
+        LabelSubmission.model_validate({"task": "T-LAB", "turns": [turn]}, context=ASST_CTX)
+
+
+SUBJ_CTX = RefSubjContext(("t01", "t02"), frozenset({"f:01"}), frozenset({"doc-01"}))
+
+
+@pytest.mark.parametrize("family", [f"F0{n}" for n in range(1, 10)])
+def test_review_items_carry_every_dev_case_as_s1_holds_it(family: str) -> None:
+    variants = json.loads((REPO_ROOT / "cases" / "dev" / f"{family}.json").read_text(encoding="utf-8"))["variants"]
+    for variant in variants.values():
+        CaseFile.from_public_packet(variant["public_packet"])
+        private = variant["private_packet"]
+        for fact in private["facts"]:
+            LedgerFact.model_validate(fact)
+        for entry in private["uncertainty"]:
+            UncertaintyEntry.model_validate(entry)
+        for gate in private["gates"]:
+            Gate.model_validate(gate)

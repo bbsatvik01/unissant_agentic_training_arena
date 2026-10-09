@@ -70,15 +70,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -148,15 +141,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -222,15 +208,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -277,15 +256,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "type": "null"
@@ -406,15 +378,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -589,15 +554,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -741,15 +699,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -893,15 +844,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "type": "null"
@@ -1054,15 +998,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -1605,6 +1542,7 @@
           "type": "integer"
         },
         "text": {
+          "maxBytes": 1800,
           "maxLength": 900,
           "minLength": 1,
           "type": "string"
@@ -1651,15 +1589,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -1706,15 +1637,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "type": "null"
@@ -1945,15 +1869,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "minimum": 1,
@@ -2035,15 +1952,8 @@
           "type": "string"
         },
         "transcript_version": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "minimum": 0,
+          "type": "integer"
         },
         "seq": {
           "anyOf": [

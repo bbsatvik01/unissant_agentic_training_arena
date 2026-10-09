@@ -20,6 +20,7 @@ from pydantic import Field, StringConstraints, model_validator
 
 from arena_core.contracts.common import (
     DATE,
+    Answer,
     ArtifactKind,
     Contract,
     Exchanges,
@@ -47,7 +48,7 @@ class SnapshotTurn(Contract):
     turn_no: TurnNo
     question: Text600
     source: QuestionSource
-    answer: Text900 | None
+    answer: Answer | None
     partial: bool
     committed_at: Timestamp | None
     answer_version: Version | None
@@ -65,7 +66,7 @@ class RequestableRecord(Contract):
     title: Annotated[str, StringConstraints(min_length=5, max_length=120)]
     description: Annotated[str, StringConstraints(min_length=10, max_length=300)]
     requestable_after_exchanges: Exchanges
-    date: Annotated[str, StringConstraints(pattern=DATE)] | None
+    date: Annotated[str, StringConstraints(pattern=DATE)] | None = None
 
 
 class VoiceLine(Contract):

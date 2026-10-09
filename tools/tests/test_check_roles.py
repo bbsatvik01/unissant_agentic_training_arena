@@ -239,6 +239,10 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
         # a container that carries frames builds them when validated
         "from arena_core.contracts.events import ReplayPage\npage = ReplayPage.model_validate({})\n",
         "from arena_core.contracts.events import TournamentPoll\nA = TypeAdapter(TournamentPoll)\n",
+        # a string annotation is resolved by Pydantic: the frame inside it is built too, under any alias
+        'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "NoticeFrame | None"\n',
+        'from arena_core.contracts.events import NoticeFrame as N\n\n\nclass W(BaseModel):\n    f: "list[N]"\n',
+        'from arena_core.contracts import events\n\n\nclass W(BaseModel):\n    f: "events.NoticeFrame"\n',
         # a model field annotated with a frame is built by the model's validation
         "from arena_core.contracts.events import NoticeFrame\n\n\nclass Wrapper(BaseModel):\n    frame: NoticeFrame\n",
     ],
@@ -266,6 +270,11 @@ def test_product_code_may_not_import_the_schema_export(source: str) -> None:
 def test_frame_carriers_are_read_from_the_contracts() -> None:
     assert {"ReplayPage", "TournamentEvents", "TournamentPoll"} <= FRAMES
     assert not {"TextTrialSnapshot", "CoachCard", "Content"} & FRAMES
+
+
+def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
+    assert frame_rules(ARENA_API_FILE, 'MESSAGE = "frames are built by the projection"\n') == []
+    assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == []
 
 
 def test_the_export_module_may_read_frame_schemas() -> None:

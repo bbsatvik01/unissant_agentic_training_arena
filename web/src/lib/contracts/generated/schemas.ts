@@ -77,15 +77,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -155,15 +148,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -229,15 +215,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -284,15 +263,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "type": "null"
@@ -413,15 +385,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -596,15 +561,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -748,15 +706,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -900,15 +851,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "type": "null"
@@ -1061,15 +1005,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -1612,6 +1549,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "integer"
           },
           "text": {
+            "maxBytes": 1800,
             "maxLength": 900,
             "minLength": 1,
             "type": "string"
@@ -1658,15 +1596,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -1713,15 +1644,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "type": "null"
@@ -1952,15 +1876,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -2042,15 +1959,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "anyOf": [
@@ -3960,7 +3870,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               {
                 "type": "null"
               }
-            ]
+            ],
+            "default": null
           }
         },
         "required": [
@@ -3968,8 +3879,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "kind",
           "title",
           "description",
-          "requestable_after_exchanges",
-          "date"
+          "requestable_after_exchanges"
         ],
         "title": "RequestableRecord",
         "type": "object"
@@ -4101,6 +4011,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "answer": {
             "anyOf": [
               {
+                "maxBytes": 1800,
                 "maxLength": 900,
                 "minLength": 1,
                 "type": "string"
@@ -6400,27 +6311,55 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "title": {
-            "maxLength": 160,
-            "minLength": 1,
+            "maxLength": 120,
+            "minLength": 5,
+            "type": "string"
+          },
+          "domain": {
+            "const": "facility_access",
             "type": "string"
           },
           "investigation_objective": {
             "maxLength": 600,
-            "minLength": 1,
+            "minLength": 20,
             "type": "string"
+          },
+          "interview_context": {
+            "$ref": "#/$defs/InterviewContext"
+          },
+          "known_timeline": {
+            "items": {
+              "$ref": "#/$defs/TimelineEntry"
+            },
+            "maxItems": 12,
+            "minItems": 2,
+            "type": "array"
           },
           "initial_documents": {
             "items": {
               "$ref": "#/$defs/InitialDocument"
             },
             "maxItems": 4,
+            "minItems": 1,
+            "type": "array"
+          },
+          "requestable_records": {
+            "items": {
+              "$ref": "#/$defs/RequestableRecord"
+            },
+            "maxItems": 6,
+            "minItems": 1,
             "type": "array"
           }
         },
         "required": [
           "title",
+          "domain",
           "investigation_objective",
-          "initial_documents"
+          "interview_context",
+          "known_timeline",
+          "initial_documents",
+          "requestable_records"
         ],
         "title": "CaseFile",
         "type": "object"
@@ -6605,6 +6544,93 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "InitialDocument",
         "type": "object"
       },
+      "InterviewContext": {
+        "additionalProperties": false,
+        "properties": {
+          "agency": {
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "facility": {
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 40,
+            "minLength": 3,
+            "type": "string"
+          },
+          "interview_date": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "type": "string"
+          },
+          "setting": {
+            "maxLength": 300,
+            "minLength": 10,
+            "type": "string"
+          },
+          "investigator_role": {
+            "maxLength": 160,
+            "minLength": 5,
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/$defs/InterviewSubject"
+          },
+          "purpose_statement": {
+            "maxLength": 400,
+            "minLength": 20,
+            "type": "string"
+          }
+        },
+        "required": [
+          "agency",
+          "facility",
+          "timezone",
+          "interview_date",
+          "setting",
+          "investigator_role",
+          "subject",
+          "purpose_statement"
+        ],
+        "title": "InterviewContext",
+        "type": "object"
+      },
+      "InterviewSubject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 3,
+            "type": "string"
+          },
+          "position": {
+            "maxLength": 80,
+            "minLength": 3,
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 3,
+            "type": "string"
+          },
+          "tenure_years": {
+            "maximum": 45,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "position",
+          "unit",
+          "tenure_years"
+        ],
+        "title": "InterviewSubject",
+        "type": "object"
+      },
       "LabelItem": {
         "additionalProperties": false,
         "properties": {
@@ -6771,6 +6797,81 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "LedgerFact",
         "type": "object"
       },
+      "RequestableRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "pattern": "^rec-0[1-6]$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "access_exception_report",
+              "badge_log",
+              "door_log",
+              "sensor_metadata",
+              "camera_metadata",
+              "camera_status",
+              "alarm_log",
+              "monitor_alert",
+              "dispatch_log",
+              "work_order",
+              "staffing_note",
+              "visitor_register",
+              "lockbox_log",
+              "credential_record",
+              "access_change_notice",
+              "incident_ticket",
+              "seal_audit",
+              "witness_statement",
+              "supervisor_statement",
+              "email",
+              "policy_excerpt",
+              "procedure_excerpt",
+              "facilities_notice",
+              "clarification",
+              "context_change"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 5,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 300,
+            "minLength": 10,
+            "type": "string"
+          },
+          "requestable_after_exchanges": {
+            "maximum": 12,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "record_id",
+          "kind",
+          "title",
+          "description",
+          "requestable_after_exchanges"
+        ],
+        "title": "RequestableRecord",
+        "type": "object"
+      },
       "ReviewRecord": {
         "additionalProperties": false,
         "properties": {
@@ -6864,6 +6965,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "answer": {
             "anyOf": [
               {
+                "maxBytes": 1800,
                 "maxLength": 900,
                 "minLength": 1,
                 "type": "string"
@@ -7454,6 +7556,31 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "TableContent",
         "type": "object"
       },
+      "TimelineEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "time": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "type": "string"
+          },
+          "event": {
+            "maxLength": 240,
+            "minLength": 5,
+            "type": "string"
+          },
+          "source": {
+            "pattern": "^doc-0[1-4]$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "time",
+          "event",
+          "source"
+        ],
+        "title": "TimelineEntry",
+        "type": "object"
+      },
       "TriggerEntry": {
         "additionalProperties": false,
         "properties": {
@@ -7867,6 +7994,31 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "RubricSubmission": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "subchecks": {
+                "items": {
+                  "properties": {
+                    "id": {
+                      "not": {
+                        "enum": [
+                          "1a",
+                          "1c",
+                          "1d",
+                          "2c",
+                          "2d"
+                        ]
+                      }
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            }
+          }
+        ],
         "properties": {
           "task": {
             "const": "T-RUB",
@@ -8491,15 +8643,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -8565,15 +8710,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -8809,15 +8947,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -8961,15 +9092,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -9197,15 +9321,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -9748,6 +9865,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "integer"
           },
           "text": {
+            "maxBytes": 1800,
             "maxLength": 900,
             "minLength": 1,
             "type": "string"
@@ -9794,15 +9912,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -9905,15 +10016,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -10118,15 +10222,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "minimum": 1,
@@ -10208,15 +10305,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "transcript_version": {
-            "anyOf": [
-              {
-                "minimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "minimum": 0,
+            "type": "integer"
           },
           "seq": {
             "anyOf": [

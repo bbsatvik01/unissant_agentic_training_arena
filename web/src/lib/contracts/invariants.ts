@@ -12,6 +12,8 @@
  * - snapshot (`snapshot`): `exchanges_used` within the cap; turns or exchanges numbered 1..n; the count is
  *   the answered turns (text) or the stored exchanges (voice).
  * - table (`events.TableContent`): every row has one cell per column.
+ * - review submissions (`review.RubricSubmission`, `FlagSubmission`, `LabelSubmission`): each question,
+ *   citation, sub-check, flag and turn judged once; turns in order.
  * - wrappers (`events.CoachCard`, `CoachUpdate`, `CoachCardFrame`): a `{turn_no, card}` pair names the card's
  *   own turn, a `{turn_no, update}` pair the update's `as_of_turn`, and a `coach.card` frame's
  *   `transcript_version` is the card's.
@@ -136,10 +138,32 @@ function walk(value: unknown, errors: string[]): void {
   for (const child of Object.values(value)) walk(child, errors);
 }
 
+function judgedOnce(items: unknown, key: string): string[] {
+  const ids = list(items)
+    .filter(isObject)
+    .map((item) => item[key]);
+  return new Set(ids).size === ids.length ? [] : [`review: a ${key} is judged twice`];
+}
+
+function submissionErrors(submission: Json): string[] {
+  const errors = [
+    ...judgedOnce(submission["followups"], "turn_id"),
+    ...judgedOnce(submission["citations"], "cite"),
+    ...judgedOnce(submission["subchecks"], "id"),
+    ...judgedOnce(submission["flags"], "flag_ref"),
+  ];
+  const turns = list(submission["turns"])
+    .filter(isObject)
+    .map((t) => turnOf(t["turn_id"]));
+  if (turns.some((t, i) => i > 0 && t <= (turns[i - 1] ?? 0))) errors.push("review: turns not in order");
+  return errors;
+}
+
 /** The invariant violations in a payload that already passed its wire schema; empty when it holds. */
 export function invariantErrors(name: string, value: unknown): readonly string[] {
   const errors: string[] = [];
   if (name === "snapshot" && isObject(value)) errors.push(...snapshotErrors(value));
+  if (name === "review-submission" && isObject(value)) errors.push(...submissionErrors(value));
   walk(value, errors);
   return errors;
 }

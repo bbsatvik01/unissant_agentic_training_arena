@@ -10,16 +10,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, StringConstraints, ValidationInfo, model_validator
+from pydantic import Field, ValidationInfo, model_validator
 
-from arena_core.contracts.common import ByteLimit, Contract, Distinct, FactId, GateId, UncertaintyId
+from arena_core.contracts.common import Answer, Contract, Distinct, FactId, GateId, UncertaintyId
 
 Behavior = Literal[
     "responsive", "omission", "deflection", "minimization", "explicit_uncertainty", "legitimate_non_disclosure"
 ]
 MAX_UTTERANCE_WORDS = 120
 
-Utterance = Annotated[str, StringConstraints(min_length=1, max_length=900), ByteLimit(1800)]
+Utterance = Answer
 
 
 @dataclass(frozen=True)

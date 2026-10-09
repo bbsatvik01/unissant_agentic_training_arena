@@ -35,6 +35,7 @@ SHA256 = r"^[0-9a-f]{64}$"
 GIT_SHA = r"^[0-9a-f]{40}$"
 CASE_ID = r"^C-[0-9A-HJKMNP-TV-Z]{8}$"
 DATE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+LOCAL_DATE_TIME = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$"
 # RFC 3339 with an explicit offset, the form Postgres `timestamptz` serializes to in JSON. A pattern, not
 # `format: date-time`: a format keyword is advisory in JSON Schema and unknown to a strict ajv without plugins.
 TIMESTAMP = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$"
@@ -211,6 +212,8 @@ Purpose = Annotated[str, StringConstraints(min_length=1, max_length=160), ByteLi
 Rationale = Annotated[str, StringConstraints(min_length=1, max_length=600), ByteLimit(1200)]
 Corroboration = Annotated[str, StringConstraints(min_length=3, max_length=120), ByteLimit(240)]
 AlternativeExplanation = Annotated[str, StringConstraints(min_length=3, max_length=160), ByteLimit(320)]
+# A subject's answer (S2 6.8 V1): 900 characters and 1,800 UTF-8 bytes, wherever it is carried.
+Answer = Annotated[str, StringConstraints(min_length=1, max_length=900), ByteLimit(1800)]
 # An exact span of one answer, which is at most 900 characters (S2 6.8 V1); empty when J1 gives none (S2 7.2).
 EvidenceQuote = Annotated[str, StringConstraints(max_length=900), ByteLimit(1800)]
 

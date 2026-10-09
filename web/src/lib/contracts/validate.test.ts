@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { parseTrialFrame } from "../sse/trial-stream";
 import { NEUTRALITY_ISSUES, QUESTION_TYPES } from "./card";
 import { WIRE_SCHEMAS } from "./generated/schemas";
 import { invariantErrors, isWire, wireErrors, wireSchemaNames, type WireSchemaName } from "./validate";
@@ -48,6 +49,18 @@ describe("wire fixtures against the exported schemas, through ajv (S6 12)", () =
 
   it("has negative fixtures in both layers", () => {
     expect(new Set(invalid.map((c) => c.layer))).toEqual(new Set(["schema", "invariant"]));
+  });
+
+  it("passes every valid trial frame through the stream's own envelope parser unchanged", () => {
+    const frames = valid.filter((c) => c.schema === "events");
+    expect(frames.length).toBeGreaterThanOrEqual(13);
+    for (const c of frames) {
+      const value = c.value as { scope_id: string };
+      const parsed = parseTrialFrame(JSON.stringify(c.value), value.scope_id);
+      expect(typeof parsed, c.id).toBe("object");
+      expect(parsed, c.id).toEqual(c.value);
+      expect(isWire("events", parsed), c.id).toBe(true);
+    }
   });
 
   it("refuses an unknown schema name", () => {

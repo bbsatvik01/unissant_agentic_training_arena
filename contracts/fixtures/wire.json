@@ -372,7 +372,7 @@
         "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
         "type": "notice",
         "ts": "2026-10-20T15:04:05.123Z",
-        "transcript_version": null,
+        "transcript_version": 12,
         "data": {
           "kind": "paused",
           "text": "The arena is paused by the operator."
@@ -1062,16 +1062,133 @@
         "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
         "instrument": "C-QQ",
         "case_file": {
-          "title": "Lab B after-hours entry",
-          "investigation_objective": "Establish why the subject entered Lab B after hours.",
+          "title": "Records vault entry during a busy shift",
+          "domain": "facility_access",
+          "investigation_objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+          "interview_context": {
+            "agency": "Brannock Administrative Services Agency",
+            "facility": "Halvern Street Annex",
+            "timezone": "America/New_York",
+            "interview_date": "2026-03-16",
+            "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+            "investigator_role": "Internal review officer, Office of Facility Security",
+            "subject": {
+              "name": "Jordan Pell",
+              "position": "Facilities Technician II",
+              "unit": "Facilities Operations",
+              "tenure_years": 4
+            },
+            "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Records Vault B-12 on 12 March 2026. No conclusion has been reached."
+          },
+          "known_timeline": [
+            {
+              "time": "2026-03-12T13:30",
+              "event": "Facilities shift began with two of four technicians absent.",
+              "source": "doc-03"
+            },
+            {
+              "time": "2026-03-12T14:07",
+              "event": "Jordan Pell's badge opened Records Vault B-12.",
+              "source": "doc-01"
+            },
+            {
+              "time": "2026-03-12T14:09",
+              "event": "B-12 door-held alarm raised.",
+              "source": "doc-01"
+            },
+            {
+              "time": "2026-03-12T14:12",
+              "event": "B-12 door closed and the alarm cleared.",
+              "source": "doc-01"
+            },
+            {
+              "time": "2026-03-12T16:00",
+              "event": "End-of-day roster check flagged the B-12 entry as an access exception.",
+              "source": "doc-01"
+            }
+          ],
           "initial_documents": [
             {
               "doc_id": "doc-01",
               "kind": "access_exception_report",
-              "title": "Access exception report",
+              "title": "Access exception report, Records Vault B-12, 12 March 2026",
               "content": {
-                "body": "Lab B door opened at 21:47 by badge 4471 without a work order."
+                "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
+                "table": {
+                  "columns": [
+                    "Time",
+                    "Door",
+                    "Credential",
+                    "Event"
+                  ],
+                  "rows": [
+                    [
+                      "14:07:12",
+                      "B-12 main door",
+                      "Badge 30418 (J. Pell)",
+                      "Access granted"
+                    ],
+                    [
+                      "14:09:40",
+                      "B-12 main door",
+                      "-",
+                      "Door held open, alarm raised"
+                    ],
+                    [
+                      "14:12:05",
+                      "B-12 main door",
+                      "-",
+                      "Door closed, alarm cleared"
+                    ]
+                  ]
+                }
               }
+            },
+            {
+              "doc_id": "doc-02",
+              "kind": "policy_excerpt",
+              "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+              "content": {
+                "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+              }
+            },
+            {
+              "doc_id": "doc-03",
+              "kind": "staffing_note",
+              "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+              "content": {
+                "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+              }
+            }
+          ],
+          "requestable_records": [
+            {
+              "record_id": "rec-01",
+              "kind": "work_order",
+              "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+              "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+              "requestable_after_exchanges": 2
+            },
+            {
+              "record_id": "rec-02",
+              "kind": "dispatch_log",
+              "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+              "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+              "requestable_after_exchanges": 3
+            },
+            {
+              "record_id": "rec-03",
+              "kind": "alarm_log",
+              "title": "Building environmental alarm history, B wing, 12 March 2026",
+              "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+              "requestable_after_exchanges": 3
+            },
+            {
+              "record_id": "rec-04",
+              "kind": "seal_audit",
+              "title": "Records Vault B-12 seal audit, 12 March 2026",
+              "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+              "requestable_after_exchanges": 6
             }
           ]
         },
@@ -2238,7 +2355,7 @@
         "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
         "type": "referee.labeled",
         "ts": "2026-10-20T15:04:05.123Z",
-        "transcript_version": null,
+        "transcript_version": 12,
         "data": {
           "kind": "paused",
           "text": "The arena is paused by the operator."
@@ -5295,6 +5412,452 @@
         ],
         "updates": [],
         "coach_failures": []
+      },
+      "layer": "invariant"
+    },
+    {
+      "id": "neg-67",
+      "why": "subject answer within 900 characters but over 1,800 UTF-8 bytes",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 2,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "subject.answer",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 2,
+        "data": {
+          "turn_no": 1,
+          "text": "\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac",
+          "channel": "text",
+          "partial": false,
+          "committed_at": "2026-10-20T15:04:05.123Z"
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-68",
+      "why": "snapshot answer over 1,800 UTF-8 bytes",
+      "schema": "snapshot",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            }
+          }
+        ],
+        "updates": [],
+        "coach_failures": []
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-69",
+      "why": "review transcript answer over 1,800 UTF-8 bytes",
+      "schema": "review-item",
+      "value": {
+        "task": "T-FLAG",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report",
+            "content": {
+              "body": "Lab B door opened at 21:47 by badge 4471 without a work order."
+            }
+          }
+        ],
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Panel",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "21:00-22:30",
+                    "Lab B",
+                    "no alarm events 21:00-22:30"
+                  ],
+                  [
+                    "22:31",
+                    "Lab C",
+                    "freezer alarm reset"
+                  ]
+                ]
+              }
+            },
+            "released_after_exchanges": 3
+          }
+        ],
+        "transcript": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "answer": "\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac",
+            "partial": false
+          }
+        ],
+        "flags": [
+          {
+            "kind": "non_responsive",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": "purpose of entry",
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": null,
+            "conflict_record_quote": null,
+            "flag_ref": "t01.f1"
+          },
+          {
+            "kind": "evidence_conflict",
+            "turn_id": "t01",
+            "quote": "It was a busy shift.",
+            "missing_fact": null,
+            "conflict_turn_id": null,
+            "conflict_quote": null,
+            "conflict_record_id": "doc-01",
+            "conflict_record_quote": "without a work order",
+            "flag_ref": "t01.f2"
+          }
+        ]
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-70",
+      "why": "frame without a transcript version",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "notice",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": null,
+        "data": {
+          "kind": "paused",
+          "text": "The arena is paused by the operator."
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-71",
+      "why": "rater answers a per-question sub-check once (S2 7.3)",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-RUB",
+        "followups": [
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          }
+        ],
+        "subchecks": [
+          {
+            "id": "1a",
+            "result": "pass",
+            "turn_ids": []
+          }
+        ],
+        "citations": [
+          {
+            "cite": "t02",
+            "supports_basis": true
+          }
+        ]
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-72",
+      "why": "rater judges the same question twice",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-RUB",
+        "followups": [
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          },
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          }
+        ],
+        "subchecks": [
+          {
+            "id": "1b",
+            "result": "pass",
+            "turn_ids": []
+          }
+        ],
+        "citations": [
+          {
+            "cite": "t02",
+            "supports_basis": true
+          }
+        ]
+      },
+      "layer": "invariant"
+    },
+    {
+      "id": "neg-73",
+      "why": "rater answers a sub-check twice",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-RUB",
+        "followups": [
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          }
+        ],
+        "subchecks": [
+          {
+            "id": "1b",
+            "result": "pass",
+            "turn_ids": []
+          },
+          {
+            "id": "1b",
+            "result": "pass",
+            "turn_ids": []
+          }
+        ],
+        "citations": [
+          {
+            "cite": "t02",
+            "supports_basis": true
+          }
+        ]
+      },
+      "layer": "invariant"
+    },
+    {
+      "id": "neg-74",
+      "why": "rater judges the same citation twice",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-RUB",
+        "followups": [
+          {
+            "turn_id": "t01",
+            "question_type": "probing",
+            "not_leading": true,
+            "well_framed": true,
+            "no_loaded_wording": true,
+            "on_objective": true,
+            "builds_on_previous": true
+          }
+        ],
+        "subchecks": [
+          {
+            "id": "1b",
+            "result": "pass",
+            "turn_ids": []
+          }
+        ],
+        "citations": [
+          {
+            "cite": "t02",
+            "supports_basis": true
+          },
+          {
+            "cite": "t02",
+            "supports_basis": true
+          }
+        ]
+      },
+      "layer": "invariant"
+    },
+    {
+      "id": "neg-75",
+      "why": "rater judges the same flag twice",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-FLAG",
+        "flags": [
+          {
+            "flag_ref": "t01.f1",
+            "quote_relevant": true,
+            "claim_holds": true,
+            "content_based": true,
+            "no_outside_facts": true
+          },
+          {
+            "flag_ref": "t01.f1",
+            "quote_relevant": true,
+            "claim_holds": true,
+            "content_based": true,
+            "no_outside_facts": true
+          }
+        ]
+      },
+      "layer": "invariant"
+    },
+    {
+      "id": "neg-76",
+      "why": "rater labels the same turn twice",
+      "schema": "review-submission",
+      "value": {
+        "task": "T-LAB",
+        "turns": [
+          {
+            "turn_id": "t01",
+            "label": "evasion",
+            "eva_subtype": "deflection",
+            "pfq_reason": null,
+            "no_contradiction": true,
+            "no_invention": true,
+            "uncertainty_respected": true,
+            "disclosure_policy_respected": true,
+            "in_character": true,
+            "platform_attack": false
+          },
+          {
+            "turn_id": "t01",
+            "label": "evasion",
+            "eva_subtype": "deflection",
+            "pfq_reason": null,
+            "no_contradiction": true,
+            "no_invention": true,
+            "uncertainty_respected": true,
+            "disclosure_policy_respected": true,
+            "in_character": true,
+            "platform_attack": false
+          }
+        ]
       },
       "layer": "invariant"
     }
