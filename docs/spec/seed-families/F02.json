@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "family_id": "F02",
   "split": "dev",
   "domain": "facility_access",
@@ -526,7 +526,7 @@
     "truthful": {
       "case_id": "C-K9TB2ZQF",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-K9TB2ZQF",
         "domain": "facility_access",
@@ -548,6 +548,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about a tailgate alert at the east staff door on the evening of 10 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-02",
+          "display_name": "Mara Quell",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+        "replay_topics": [
+          "your entry through the east staff door at 19:42",
+          "the tailgate sensor counting two people at the east staff door",
+          "where you went inside the building that evening"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-10T18:00",
@@ -1540,7 +1551,7 @@
     "deceptive": {
       "case_id": "C-4XVM7HPA",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-4XVM7HPA",
         "domain": "facility_access",
@@ -1562,6 +1573,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about a tailgate alert at the east staff door on the evening of 10 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-02",
+          "display_name": "Mara Quell",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+        "replay_topics": [
+          "your entry through the east staff door at 19:42",
+          "the tailgate sensor counting two people at the east staff door",
+          "where you went inside the building that evening"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-10T18:00",

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://unissant-arena.invalid/schemas/case-family.schema.json",
   "title": "Case family",
-  "description": "SCN-11. The storage and sealing unit: one canonical event graph, one matched truthful and one deceptive variant, each with its three packets (SCN-7, SCN-8, SCN-9). The whole file is evaluator-tier. The loader splits it into arena.public_packets, subject.private_packets and sealed.evaluator_packets; nothing reads the file itself at runtime. Hidden-split files never enter the repository (SCN-12).",
+  "description": "SCN-11, schema v1.1 (embeds public packets v1.1). The storage and sealing unit: one canonical event graph, one matched truthful and one deceptive variant, each with its three packets (SCN-7, SCN-8, SCN-9). The whole file is evaluator-tier. The loader splits it into arena.public_packets, subject.private_packets and sealed.evaluator_packets; nothing reads the file itself at runtime. Hidden-split files never enter the repository (SCN-12).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,7 +20,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "family_id": {
       "$ref": "evaluator-packet.schema.json#/$defs/familyId"

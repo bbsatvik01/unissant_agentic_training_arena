@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "family_id": "F03",
   "split": "dev",
   "domain": "facility_access",
@@ -478,7 +478,7 @@
     "truthful": {
       "case_id": "C-R6DJ3NWC",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-R6DJ3NWC",
         "domain": "facility_access",
@@ -500,6 +500,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about the use of card A-2291 at Network Room N-3 on the morning of 13 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-03",
+          "display_name": "Avery Lindqvist",
+          "voice_id": "Aoede"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+        "replay_topics": [
+          "the entry to Network Room N-3 at 07:12",
+          "the switch SW-2B outage that morning",
+          "the badge record for card A-2291"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-12T17:00",
@@ -624,7 +635,8 @@
             "kind": "incident_ticket",
             "title": "Incident ticket INC-0313-004",
             "description": "The IT incident ticket for the SW-2B outage, with its notes.",
-            "requestable_after_exchanges": 3
+            "requestable_after_exchanges": 3,
+            "date": "2026-03-13"
           },
           {
             "record_id": "rec-04",
@@ -1586,7 +1598,7 @@
     "deceptive": {
       "case_id": "C-PA8E5TKY",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-PA8E5TKY",
         "domain": "facility_access",
@@ -1608,6 +1620,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about the use of card A-2291 at Network Room N-3 on the morning of 13 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-03",
+          "display_name": "Avery Lindqvist",
+          "voice_id": "Aoede"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+        "replay_topics": [
+          "the entry to Network Room N-3 at 07:12",
+          "the switch SW-2B outage that morning",
+          "the badge record for card A-2291"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-12T17:00",
@@ -1732,7 +1755,8 @@
             "kind": "incident_ticket",
             "title": "Incident ticket INC-0313-004",
             "description": "The IT incident ticket for the SW-2B outage, with its notes.",
-            "requestable_after_exchanges": 3
+            "requestable_after_exchanges": 3,
+            "date": "2026-03-13"
           },
           {
             "record_id": "rec-04",

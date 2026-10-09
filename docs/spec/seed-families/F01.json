@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "family_id": "F01",
   "split": "dev",
   "domain": "facility_access",
@@ -682,7 +682,7 @@
     "truthful": {
       "case_id": "C-7Q2MXK4D",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-7Q2MXK4D",
         "domain": "facility_access",
@@ -704,6 +704,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Records Vault B-12 on 12 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-01",
+          "display_name": "Jordan Pell",
+          "voice_id": "Charon"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+        "replay_topics": [
+          "your entry to Records Vault B-12 at 14:07",
+          "the vault door being held open from 14:09 to 14:12",
+          "your tasks during the 12 March afternoon shift"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-12T13:30",
@@ -1948,7 +1959,7 @@
     "deceptive": {
       "case_id": "C-H3N8RW5B",
       "public_packet": {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "packet": "public",
         "case_id": "C-H3N8RW5B",
         "domain": "facility_access",
@@ -1970,6 +1981,17 @@
           },
           "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Records Vault B-12 on 12 March 2026. No conclusion has been reached."
         },
+        "presentation": {
+          "persona_id": "persona-01",
+          "display_name": "Jordan Pell",
+          "voice_id": "Charon"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+        "replay_topics": [
+          "your entry to Records Vault B-12 at 14:07",
+          "the vault door being held open from 14:09 to 14:12",
+          "your tasks during the 12 March afternoon shift"
+        ],
         "known_timeline": [
           {
             "time": "2026-03-12T13:30",

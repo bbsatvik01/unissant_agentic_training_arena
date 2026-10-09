@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://unissant-arena.invalid/schemas/public-packet.schema.json",
   "title": "Public case packet",
-  "description": "SCN-7. Everything an investigator, the interviewer harness and an assistant candidate may see before any record is released. Identical across the truthful and deceptive variants of a family except for case_id (S1 section 4.1, rule L1). Contains no role, no fact IDs, no release schedule and no scheduled-record contents.",
+  "description": "SCN-7, schema v1.1. Everything an investigator, the interviewer harness and an assistant candidate may see before any record is released. Identical across the truthful and deceptive variants of a family except for case_id (S1 section 4.1, rule L1), so the presentation, the opening question and the replay topics are shared by both variants. Contains no role, no fact IDs, no release schedule, no scheduled-record contents and no style or demeanor attribute (PRB-4, C-22).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,6 +14,9 @@
     "difficulty_level",
     "investigation_objective",
     "interview_context",
+    "presentation",
+    "opening_question",
+    "replay_topics",
     "known_timeline",
     "initial_documents",
     "requestable_records",
@@ -22,7 +25,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "packet": {
       "const": "public"
@@ -48,6 +51,52 @@
     },
     "interview_context": {
       "$ref": "#/$defs/interviewContext"
+    },
+    "presentation": {
+      "description": "How the subject appears in the room (S6 6.4) and sounds in a voice session (S2 9.2). Assigned per family, so both variants carry the same object and it cannot correlate with role. No demeanor or style attribute (C-22).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "persona_id",
+        "display_name",
+        "voice_id"
+      ],
+      "properties": {
+        "persona_id": {
+          "description": "Portrait from the art pool (S6 6.4, WP-21), drawn by the seed sampler (S1 8.1). The pool is made from neutral descriptions with no case content.",
+          "type": "string",
+          "pattern": "^persona-[0-9]{2,3}$"
+        },
+        "display_name": {
+          "description": "Equals interview_context.subject.name (validator V2).",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "voice_id": {
+          "description": "Prebuilt Gemini Live voice name (voice_name), drawn by the seed sampler. arena-subject checks it against the voices the day-1 Live probe confirms.",
+          "type": "string",
+          "pattern": "^[A-Z][a-z]{2,19}$"
+        }
+      }
+    },
+    "opening_question": {
+      "description": "BKO-7 common initial question, asked first in every trial of this case (S2 8.1). Written by the generator from public material only; passes S2 relay_test.v1 at generation (validator V1c).",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 300
+    },
+    "replay_topics": {
+      "description": "Exactly three noun phrases of at most 12 words, rendered into the replay script (S2 8.6). Public material only; every rendered script question passes S2 relay_test.v1 (validator V1c).",
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 120,
+        "pattern": "^[^\\s?]+( [^\\s?]+){0,11}$"
+      }
     },
     "known_timeline": {
       "type": "array",
@@ -349,7 +398,7 @@
       }
     },
     "requestableRecord": {
-      "description": "A record the investigator may request by ID once requestable_after_exchanges exchanges are complete. Title and description are role-neutral and identical across variants; contents are released only by release_evidence(). Scheduled records are not listed here until released.",
+      "description": "A record the investigator may request by ID once requestable_after_exchanges exchanges are complete. Title and description are role-neutral and identical across variants; contents are released only by release_evidence(). Scheduled records are never listed here; they appear when released.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -378,6 +427,10 @@
         },
         "requestable_after_exchanges": {
           "$ref": "#/$defs/completedExchanges"
+        },
+        "date": {
+          "description": "Optional date of the record, used by the replay evidence slot (S2 8.6) and the evidence board (S6). Set only when the title does not already carry it.",
+          "$ref": "#/$defs/date"
         }
       }
     },

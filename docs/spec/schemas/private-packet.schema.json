@@ -256,7 +256,7 @@
       }
     },
     "style": {
-      "description": "SCN-3 style axes, assigned per family by the factorial design (both variants share it, so style is independent of role). Axis names and levels match S2 section 6.6; S2 owns the wording. The hidden-split factorial uses two levels per axis (verbosity terse or expansive); 'moderate' is for practice cases. Whether language may take second_language in the hidden split is OWNER DECISION PENDING (S1 section 6.3).",
+      "description": "SCN-3 style axes, assigned per family by the factorial design (both variants share it, so style is independent of role). Axis names and levels match S2 section 6.6; S2 owns the wording. The hidden-split factorial uses two levels per axis (verbosity terse or expansive); 'moderate' is for practice cases. Whether language may take second_language in the hidden split is OWNER DECISION PENDING (S1 section 7.5, OD-1).",
       "type": "object",
       "additionalProperties": false,
       "required": ["verbosity", "fluency", "affect", "register", "language"],
