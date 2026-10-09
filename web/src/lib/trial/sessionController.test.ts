@@ -2065,6 +2065,7 @@ describe("session controller: a publication supersedes an older debrief read", (
     await h.clock.advance(60_000);
     expect(c.getState().connection).toBe("finished");
     expect(c.getState().debrief).toEqual(debrief);
+    expect(c.getState().error).toBeNull();
   });
 });
 
@@ -2175,5 +2176,68 @@ describe("session controller: dispose between a superseded snapshot read and the
     fail(new TypeError("down"));
     await flush();
     expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+});
+
+describe("session controller: Codex round 24 regressions", () => {
+  it("a gap whose only frame above it was refused still makes the room re-read the snapshot", async () => {
+    const covered = snapshot({
+      last_seq: 3,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask();
+    const [q, , , , card] = b.frames;
+    h.last().send(q);
+    h.last().send({ ...(card as TrialFrame), data: { turn_no: 1, card: { ...cardFor(1, 2), candidate_id: "x" } } });
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+
+  it("a lost debrief.ready: the debrief read after the terminal re-read is retried, and finishes once published", async () => {
+    let debriefReads = 0;
+    const b = new LogBuilder().ask().commit();
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: b.seq + 1 });
+    const h = harness({
+      snapshots: [snapshot(), ended],
+      debrief: () => {
+        debriefReads += 1;
+        return debriefReads === 1 ? new TypeError("blip") : (fixture("debrief:scored") as DebriefRead);
+      },
+    });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames) h.last().send(f);
+    h.last().raw("{lost debrief.ready");
+    await flush();
+    await h.clock.advance(CATCH_UP_MS);
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+  });
+
+  it("when those debrief reads keep failing, the stream stays and reconnect() reads the debrief again", async () => {
+    let healthy = false;
+    const b = new LogBuilder().ask().commit();
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: b.seq + 1 });
+    const h = harness({
+      snapshots: [snapshot(), ended],
+      debrief: () => (healthy ? (fixture("debrief:scored") as DebriefRead) : new TypeError("down")),
+    });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames) h.last().send(f);
+    h.last().raw("{lost debrief.ready");
+    await flush();
+    await h.clock.advance(60_000);
+    expect(c.getState().debrief).toBeNull();
+    expect(h.last().closed).toBe(false);
+    healthy = true;
+    c.reconnect();
+    await flush();
+    expect(c.getState().connection).toBe("finished");
   });
 });

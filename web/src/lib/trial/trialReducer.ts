@@ -111,7 +111,7 @@ export interface TrialView {
   readonly exchangesCap: number;
   /** The newest transcript version seen: the next question's `expected_version`. */
   readonly transcriptVersion: number;
-  /** The highest persisted `seq` folded (the snapshot's `last_seq` at least). */
+  /** The highest persisted `seq` folded or refused (the snapshot's `last_seq` at least). */
   readonly lastSeq: number;
   /** The end of the gap-free run of persisted `seq`s after the snapshot's `last_seq`. */
   readonly contiguousSeq: number;
@@ -374,7 +374,9 @@ function derive(state: TrialState): TrialState {
   let committedOnStream = false;
   let debriefReady: string | null = null;
   let version = Math.max(0, ...snapshot.turns.map((t) => t.answer_version ?? 0), ...snapshot.released.map((r) => r.transcript_version));
-  let lastSeq = snapshot.last_seq;
+  // A refused seq is known to exist: it counts toward the highest seq seen (so a gap below it is noticed), never
+  // toward the gap-free prefix's content.
+  let lastSeq = Math.max(snapshot.last_seq, ...state.skippedSeqs);
   let exchangesUsed = snapshot.exchanges_used;
 
   const turn = (n: number): MutableTurn => {

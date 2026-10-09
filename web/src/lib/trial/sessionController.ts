@@ -349,14 +349,6 @@ export function createSessionController(options: SessionControllerOptions): Sess
     set({ debrief });
   };
 
-  const loadDebrief = async () => {
-    if (isDisposed()) return;
-    try {
-      setDebrief(await api.readDebrief(sessionId));
-    } catch (error) {
-      set({ error });
-    }
-  };
 
   /** Read and fold the snapshot now (the room changed under a request); a failed read is kept as the error. */
   const reloadRoom = async () => {
@@ -371,8 +363,12 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** Read the debrief; a published one ends the stream (S6 5.1), a `scoring` answer keeps it open. */
   const finishIfPublished = async () => {
-    await loadDebrief();
-    if (state.debrief !== null && "schema_version" in state.debrief && stream !== null) await complete();
+    try {
+      setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
+    } catch {
+      // Kept as `error`; the stream stays open (debrief.ready may still come), and reconnect() reads again.
+    }
+    if (published() && stream !== null) await complete();
   };
 
   /**
@@ -389,23 +385,17 @@ export function createSessionController(options: SessionControllerOptions): Sess
         // A terminal snapshot already installed is the end state; it is not read again.
         if (options.snapshotLoaded !== true && !terminalLoaded()) {
           try {
-            const snapshot = await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded);
-            if (isDisposed()) return;
-            dispatch({ type: "snapshot", snapshot });
+            // (After dispose, dispatch changes nothing; the check below stops the rest.)
+            dispatch({ type: "snapshot", snapshot: await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded) });
           } catch (error) {
             // Another read installed the terminal snapshot meanwhile: go on to the debrief.
             if (!terminalLoaded()) throw error;
           }
         }
         if (isDisposed()) return;
-        if (!published()) {
-          try {
-            setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
-          } catch (error) {
-            // A publication that arrived meanwhile (the debrief POST) supersedes this read and its failure.
-            if (!published()) throw error;
-          }
-        }
+        // A publication arriving meanwhile (the debrief POST) supersedes this read; its failure is then harmless
+        // (the catch below finds the end state loaded).
+        if (!published()) setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
         if (isDisposed()) return;
         // Finished only with the published document; until then the debrief is being scored (S5 5.4): the page's
         // debrief request runs it, and reconnect() reads it again.
@@ -414,8 +404,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
         // Kept as `error`; `reconnect()` reads again. The stream stays closed for good. A read superseded by the end
         // state arriving another way (the debrief POST) changes nothing.
         if (isDisposed()) return;
-        if (terminalLoaded() && published()) set({ connection: "finished", error: null });
-        else set({ connection: "end_failed" });
+        // (The publication that loaded it already cleared the error.)
+        set({ connection: terminalLoaded() && published() ? "finished" : "end_failed" });
       }
     })().finally(() => {
       // Only the run in flight is shared: a later call (another debrief request) reads the REST state again.
@@ -780,6 +770,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
     reconnect() {
       if (state.connection === "end_failed" || state.connection === "scoring") {
         void complete();
+        return;
+      }
+      // The trial ended and its debrief could not be read yet: read it again (the stream stays until published).
+      if (stream !== null && terminalLoaded() && !published() && state.connection !== "gave_up") {
+        void finishIfPublished();
         return;
       }
       if (stream === null || state.connection !== "gave_up") return;
