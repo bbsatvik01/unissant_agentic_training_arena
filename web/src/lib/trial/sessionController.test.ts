@@ -2149,3 +2149,31 @@ describe("session controller: the debrief must be published to finish", () => {
     expect(c.getState().connection).toBe("finished");
   });
 });
+
+describe("session controller: dispose between a superseded snapshot read and the debrief", () => {
+  it("starts no debrief read after dispose", async () => {
+    let fail: (e: Error) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((_r, j) => (fail = j));
+          return Promise.resolve(snapshot({ status: "completed", last_seq: 5 }));
+        },
+        commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")),
+      },
+    });
+    await begin(c);
+    h.last().send(frame("debrief.ready", 1, 0, { session_id: SESSION_ID }));
+    await flush();
+    await c.submitFinding((fixture("finding-commit") as { finding: never }).finding).catch(() => undefined);
+    c.dispose();
+    fail(new TypeError("down"));
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+});

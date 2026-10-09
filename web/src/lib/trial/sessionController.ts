@@ -397,6 +397,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
             if (!terminalLoaded()) throw error;
           }
         }
+        if (isDisposed()) return;
         if (!published()) {
           try {
             setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
