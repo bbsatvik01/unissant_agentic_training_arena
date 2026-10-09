@@ -259,6 +259,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const setTrial = (incoming: TrialState) => {
+    // A closed room acknowledges, reports and shows nothing more.
+    if (isDisposed()) return;
     // Acknowledge before subscribers are told, so before any render (S6 5.6). This runs on an unchanged state too:
     // a streamed card the snapshot already showed is acknowledged when its frame arrives.
     const { trial, drops } = settleAcks(incoming);
@@ -390,6 +392,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * until now) and the debrief carry everything (S6 5.1, SG4-21).
    */
   const complete = (options: { readonly snapshotLoaded?: boolean } = {}): Promise<void> => {
+    // A ticket mint answered 409 after dispose lands here too: start nothing.
+    if (isDisposed()) return Promise.resolve();
     completing ??= (async () => {
       stopForGood();
       set({ connection: "ending" });
@@ -397,7 +401,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
         // A terminal snapshot already installed is the end state; it is not read again.
         if (options.snapshotLoaded !== true && !terminalLoaded()) {
           try {
-            // (After dispose, dispatch changes nothing; the check below stops the rest.)
+            // (After dispose, setTrial ignores it; the check below stops the rest.)
             dispatch({ type: "snapshot", snapshot: await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded) });
           } catch (error) {
             // Another read installed the terminal snapshot meanwhile: go on to the debrief.

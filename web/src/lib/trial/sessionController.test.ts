@@ -2290,3 +2290,56 @@ describe("session controller: a terminal snapshot from any read completes a publ
     expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
   });
 });
+
+describe("session controller: no side effect after dispose", () => {
+  it("a ticket answered 409 after dispose starts no recovery read", async () => {
+    let answer: (e: Error) => void = () => undefined;
+    const h = harness();
+    const c = h.make({ api: { ...h.api, mintStreamTicket: () => new Promise<string>((_r, j) => (answer = j)) } });
+    await c.start();
+    c.dispose();
+    const before = h.log.length;
+    answer(new ApiError(409, "stream_closed", "/x"));
+    await flush();
+    await h.clock.advance(60_000);
+    expect(h.log.length).toBe(before);
+  });
+
+  it("a completion snapshot that settles after dispose posts no acknowledgement and no report", async () => {
+    let answer: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>((r) => (answer = r));
+        },
+      },
+    });
+    await begin(c);
+    const b = new LogBuilder().ask();
+    const [q, , , , card] = b.frames;
+    // the answer (seq 2) is missing: the card (seq 3) waits above the gap; debrief.ready (seq 4) starts the completion
+    h.last().send(q);
+    h.last().send(card);
+    h.last().send(frame("debrief.ready", 4, b.version, { session_id: SESSION_ID }));
+    await flush();
+    expect(h.acks).toEqual([]);
+    c.dispose();
+    answer(
+      snapshot({
+        status: "completed",
+        last_seq: 4,
+        exchanges_used: 1,
+        turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
+        cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 3 }],
+      }),
+    );
+    await flush();
+    expect(h.acks).toEqual([]);
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+
+});
