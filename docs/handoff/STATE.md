@@ -7,7 +7,7 @@
 ## Where things stand
 - **Direction** v10.4 (D-013, D-014): 30 hidden cases baseline (~$44 / ~$66, complete), 34 pilot-gated; one global spend ceiling $74; case families authored offline by Claude agents + Codex.
 - **UI direction** v2.1: GREEN (Codex UI round 2). Awaits owner review and DESIGN.md.
-- **Spec** v2.1/v2.2 committed (1ad3222): S1 reconciled, X-02..X-17 resolved, D-013/D-014 applied; SQL re-applied on fresh PG16 with all smokes passing. Codex spec review round 1 running in 4 parallel sessions (G1 S1+schemas; G2 S2+S3; G3 S4+SQL+S5; G4 S6+S7+S8).
+- **Spec** v2.1/v2.2 committed (1ad3222): S1 reconciled, X-02..X-17 resolved, D-013/D-014 applied; SQL re-applied on fresh PG16 with all smokes passing. Codex spec review round 1: RED, RED, RED, YELLOW (4 blockers, ~60 majors; `docs/spec/review-codex-r1.md`). Fix workflow running with 11 shared decisions (D1-D11) so all parts implement one contract.
 - **Code:** WP-01 scaffold on branch `feat/wp01-scaffold` (7e484f4, pre-gate; make check green, 10 gateproofs). Main tree cleaned (backup in scratchpad `backup-wp01/`).
 - **Supabase:** project `fzjgcwkvveetegpngujr`, PostgreSQL 17.11, empty (no tables, no migrations); pgtap 1.3.3 and dblink available. Harness targets PG17.
 - **GCP:** no project yet (owner action); builds run against the fake model.
@@ -26,10 +26,10 @@
 | task `wznwlwvt8` / run `wf_0246738e-32c` | Dev case authoring F04-F09 (kit -> 3 authors at a time -> skeptic/fix -> final commit) | Opus | 22:15 EDT | ~01:00 EDT | `/private/tmp/wt-cases`, branch `data/dev-cases` |
 | task `wspgs42zb` / run `wf_20ff7f42-fb5` | WP-18 part 1 web foundation + independent verify | Opus | 22:18 EDT | ~00:00 EDT | `/private/tmp/wt-web`, branch `feat/web-foundation` |
 | task `wr15p0y5x` / run `wf_9aced0c9-52d` | Wave 2: WP-01 self Codex gate; WP-08 scenario engine port; WP-03 migrations + PG17 pgTAP harness + capability fixture; verifier per branch | Opus x3 (+3 verifiers) | 22:23 EDT | ~01:00 EDT | `/private/tmp/wt-wp01`, `wt-wp08`, `wt-wp03` |
-| bg `bwgb2ahdw` | Codex spec review round 1, 4 parallel sessions | gpt-6-astra | 22:18 EDT | ~23:00 EDT | scratchpad `codex/spec1/g1..g4.json` |
+| task `w389ifutb` / run `wf_09e6717a-210` | Spec fix round 1: fix:S1, fix:S2-S3, fix:S4-SQL-S5 in parallel, then fix:S6-S8 against the final backend | Opus x4 | 22:40 EDT | ~00:30 EDT | main tree `docs/spec/**` |
 
 ## Next dispatch queue
-1. Codex spec round 1 results -> red-to-root-cause fixes (spec fix agents) -> round 2 until GREEN.
+1. Spec fix round 1 running -> Codex spec round 2 (4 sessions) -> repeat until GREEN. Then delta-port SQL changes into WP-03 and S1 changes into WP-08; re-sync F01-F03 seeds into cases/dev.
 2. As each branch lands: cold Codex gate (independent) + re-run gates -> merge into main on CORRECT. Order: wp01 first, then wp03/wp08 (rebase onto main), web, cases.
 3. Wave 3 after spec GREEN: WP-02 contracts (Pydantic + exported schemas + S3 adapter), WP-04 pgTAP suite (2 agents), WP-15 scorer, WP-10 prompts/manifests, WP-11 guard/relay/replay, WP-05 agent port + global guard client (fake model until GCP), WP-07 observability.
 4. Apply migrations to Supabase after WP-03/WP-04 merge (role passwords are secret writes: owner authorization).

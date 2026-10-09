@@ -29,5 +29,9 @@
 - **Agents:** gate:WP-01 (wt-wp01; self Codex on 7e484f4, add gitleaks/osv-scanner pinned by SHA), build:WP-08 (wt-wp08; port reference kit into arena_core/scenario with byte-identical seed regeneration and the 29-mutant suite), build:WP-03 (wt-wp03; supabase/migrations, PG17 container harness on a high port, capability fixture, fail-closed tests, parity check, make db-test); then one verifier per committed branch.
 - **After:** orchestrator cold Codex per branch, merge into main.
 
-## Codex spec review round 1
-- **ID:** background shell `bwgb2ahdw`; prompts scratchpad `codex/spec1/g1..g4.md`; outputs `g1..g4.json`.
+## Spec fix round 1 workflow
+- **ID:** task `w389ifutb`, run `wf_09e6717a-210`; script `.../workflows/scripts/arena-spec-fix-r1-wf_09e6717a-210.js`.
+- **Dispatched:** 2026-10-08 ~22:40 EDT. **Expected:** ~1.5-2 h.
+- **Agents:** fix:S1 (S1, schemas, seeds; kit copy s1v23), fix:S2-S3, fix:S4-SQL-S5 (PG17 container on 127.0.0.1:55497, smokes in s4v23), then fix:S6-S8 (reads the final backend). Each returns per-finding dispositions (real or false positive with evidence, rule, change).
+- **Inputs:** Codex findings scratchpad `codex/spec1/g1..g4.json`; shared decisions D1-D11 in the script.
+- **After:** dispositions into `docs/spec/review-codex-r1.md`; Codex spec round 2.
