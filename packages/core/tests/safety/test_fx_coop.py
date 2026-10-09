@@ -118,6 +118,36 @@ def test_numbers_match_whole_tokens_and_spelled_out_numbers_count() -> None:
     assert cc.number_problems("I walk-tested it twice.", ["You walk-tested it two times."], []) == []
 
 
+@pytest.mark.parametrize(
+    ("phrase", "value"),
+    [("seventy", "70"), ("twenty-one", "21"), ("about ten", "10"), ("two hundred and five", "205"), ("twice", "2")],
+)
+def test_spelled_out_quantities_are_numbers(phrase: str, value: str) -> None:
+    assert cc.numbers(f"I loaded {phrase} binders.") == [value]
+
+
+@pytest.mark.parametrize("phrase", ["half past twelve", "ten to five", "eight o'clock", "after eight", "until ten"])
+def test_spoken_clock_times_are_not_quantities(phrase: str) -> None:
+    assert cc.numbers(f"It was {phrase}.") == []
+
+
+@pytest.mark.parametrize(
+    "replacement", ["seventy training binders", "twenty-one training binders", "about ten training binders"]
+)
+def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
+    """Transcript-level: F07's "thirty training binders" (cited against a record that says 30) changed to another
+    quantity, spelled any way, fails the number check."""
+    found = _mutate("TX-F07-C", "thirty training binders", replacement)
+    assert any("disagrees with the quote" in p or "is not in the cited ledger" in p for p in found), found
+
+
+@pytest.mark.parametrize("apostrophe", ["'", "\u2019", "\u2018", "\u02bc"])
+def test_a_contraction_negates_whatever_its_apostrophe(apostrophe: str) -> None:
+    assert cc.polarity_problems(f"My badge didn{apostrophe}t open S-2.", ["Access granted to badge 40562 at S-2."])
+    found = _mutate("TX-F07-C", "Then my badge opened S-2.", f"Then my badge didn{apostrophe}t open S-2.")
+    assert any(p.startswith("polarity differs") for p in found), found
+
+
 def test_no_time_on_the_wrong_row() -> None:
     assert cc.time_row_problems("The door opened at 19:38.", [], [DOOR]) == ["open goes with another time than 19:38"]
     assert cc.time_row_problems("The door opened at 19:12 and closed at 19:38.", [], [DOOR]) == []

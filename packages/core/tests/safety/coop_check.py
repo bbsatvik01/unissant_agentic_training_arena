@@ -55,34 +55,61 @@ TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
 SPAN = re.compile(r"\bfrom (\d{2}:\d{2})\b.{0,40}?\b(?:until|to|till)\b.{0,20}?(\d{2}:\d{2})\b")
 CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
-NUMBER_WORDS = {
-    w: str(i)
-    for i, w in enumerate(
-        [
-            "zero",
-            "one",
-            "two",
-            "three",
-            "four",
-            "five",
-            "six",
-            "seven",
-            "eight",
-            "nine",
-            "ten",
-            "eleven",
-            "twelve",
-            "thirteen",
-            "fourteen",
-            "fifteen",
-            "sixteen",
-            "seventeen",
-            "eighteen",
-            "nineteen",
-            "twenty",
-        ]
-    )
-} | {"thirty": "30", "forty": "40", "fifty": "50", "sixty": "60", "hundred": "100", "once": "1", "twice": "2"}
+_UNITS = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+]
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+THOUSAND = 1000
+_SCALES = {"hundred": 100, "thousand": THOUSAND}
+_UNIT = {w: n for n, w in enumerate(_UNITS)}
+_ONCE = {"once": 1, "twice": 2}
+_NUMBER_WORD = "(?:" + "|".join([*_UNITS, *_TENS, *_SCALES, *_ONCE]) + ")"
+# A spelled-out cardinal: "seventy", "twenty-one", "two hundred and five", "a hundred".
+CARDINAL = re.compile(rf"\b(?:a )?{_NUMBER_WORD}(?:(?:[ -]| and ){_NUMBER_WORD})*\b", re.IGNORECASE)
+APOSTROPHES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u02bc": "'", "\u2032": "'"})
+
+
+def fold(text: str) -> str:
+    """Typographic apostrophes as "'", so "didn\u2019t" is a negation like "didn't"."""
+    return text.translate(APOSTROPHES)
+
+
+def cardinal_value(phrase: str) -> int:
+    total, current = 0, 0
+    for word in re.split(r"[ -]+", phrase.lower().removeprefix("a ")):
+        if word == "and":
+            continue
+        if word in _ONCE:
+            current += _ONCE[word]
+        elif word in _UNIT:
+            current += _UNIT[word]
+        elif word in _TENS:
+            current += _TENS[word]
+        elif word in _SCALES:
+            current = max(current, 1) * _SCALES[word]
+            if _SCALES[word] >= THOUSAND:
+                total, current = total + current, 0
+    return total + current
+
 
 Problem = tuple[int, str, str]
 
@@ -138,26 +165,25 @@ def content(word: str) -> bool:
     return len(word) >= MIN_CONTENT_WORD and not any(c.isdigit() for c in word) and word.lower() not in FUNCTION_WORDS
 
 
-_NUMBER_WORD = "(?:" + "|".join(NUMBER_WORDS) + ")"
-# Spoken clock times ("half past twelve", "ten to five", "after eight", "nine o'clock") are times, not quantities; they
-# are approximate by nature, so code does not compare them (the review does).
-_LEAD = r"(?:(?:after|before|around|about|until|till|from|at|by|since) )"
+# Spoken clock times are times, not quantities; they are approximate by nature, so code does not compare them (the
+# review does): "half past twelve", "ten to five", "nine o'clock", and a lead word with a bare hour that ends the
+# phrase ("after eight", "until ten.", "at nine when"). A lead word followed by a noun is a quantity ("about ten
+# binders").
+_LEAD = r"(?:after|before|around|about|until|till|from|at|by|since)"
+_END = r"(?=\s*(?:[.,;:!?]|$|\b(?:and|but|in|on|that|when|while|I|we|he|she|they|the next|this|that)\b))"
 SPOKEN_TIME = re.compile(
-    rf"\b{_LEAD}?(?:(?:half|quarter|{_NUMBER_WORD}) (?:past|to) {_NUMBER_WORD}|{_NUMBER_WORD} o'clock)\b"
-    rf"|\b{_LEAD}{_NUMBER_WORD}\b",
+    rf"\b(?:{_LEAD} )?(?:(?:half|quarter|{_NUMBER_WORD}) (?:past|to) {_NUMBER_WORD}|{_NUMBER_WORD} o'clock)\b"
+    rf"|\b{_LEAD} {_NUMBER_WORD}\b{_END}",
     re.IGNORECASE,
 )
 
 
 def numbers(text: str) -> list[str]:
-    """Numbers, times and codes, with spelled-out quantities as digits; spoken clock times are left out."""
-    out = []
-    for w in WORD.findall(SPOKEN_TIME.sub(" ", text)):
-        if any(c.isdigit() for c in w):
-            out.append(w)
-        elif w.lower() in NUMBER_WORDS:
-            out.append(NUMBER_WORDS[w.lower()])
-    return out
+    """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21); spoken clock
+    times are left out."""
+    text = SPOKEN_TIME.sub(" ", fold(text))
+    out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
+    return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
 
 def number_in(token: str, text: str) -> bool:
@@ -188,7 +214,7 @@ def ledger_problems(cited: list[str], ledger: dict[str, str], sentence: str = ""
     """Every cited ID exists; a sentence cites at least one, except a plain statement of ignorance (IGNORANCE)."""
     if not set(cited) <= set(ledger):
         return ["cites an unknown ledger entry"]
-    if not cited and not (kind == "perception" and IGNORANCE.fullmatch(sentence)):
+    if not cited and not (kind == "perception" and IGNORANCE.fullmatch(fold(sentence))):
         return ["cites no ledger entry of the subject"]
     return []
 
@@ -205,8 +231,8 @@ def number_problems(sentence: str, known: Iterable[str], quotes: list[str]) -> l
 
 
 def polarity_problems(sentence: str, quotes: list[str]) -> list[str]:
-    negated = bool(NEGATORS.search(sentence))
-    return [f"polarity differs from the quote: {q[:60]!r}" for q in quotes if bool(NEGATORS.search(q)) != negated]
+    negated = bool(NEGATORS.search(fold(sentence)))
+    return [f"polarity differs from the quote: {q[:60]!r}" for q in quotes if bool(NEGATORS.search(fold(q))) != negated]
 
 
 def quote_problems(
@@ -303,6 +329,7 @@ def time_row_problems(sentence: str, quotes: list[str], all_records: Iterable[st
 
 
 def perception_problems(sentence: str, kind: str, records: list[Any]) -> list[str]:
+    sentence = fold(sentence)
     if kind == "perception":
         problems = [] if PERCEPTION.search(sentence) else ["a perception claim is not phrased as one"]
         return problems + (["a perception claim cites a record"] if records else [])
