@@ -272,10 +272,10 @@ Two layers, kept separate (F15):
 | --- | --- | --- | --- | --- |
 | 24 (12) | $39; everything completes | $60; everything completes | 22.1% | 22.1% |
 | 26 (13) | $41; everything completes | $62; everything completes | 20.6% | 20.6% |
-| **30 (15), recommended** | **$44; everything completes** | **$66; everything completes** | **18.1%** | **18.1%** |
-| 34 (17), pilot-gated target | $46; everything completes | $70; everything completes | 16.2% | 16.2% |
+| **30 (15), recommended** | **$44; everything completes** | **$70; 12 of 15 interactive blocks (spec v2.3 byte-bounded reservations)** | **18.1%** | **20.6% (13 families incl. dev-complete)** |
+| 34 (17), pilot-gated target | $46; everything completes | $69; 11 of 17 interactive blocks | 16.2% | 22.1% (12 families) |
 
-**Recommendation (local):** run 30 hidden cases as the baseline; move to 34 if the dev pilot's measured costs track the expected column. Per-test evaluation spend is deferred (D-013) and comes out of the same ceiling. The hosted table below applies only if GCP hosting returns.
+**Recommendation (local):** run 30 hidden cases as the baseline (spec v2.3 D11 made input reservations byte-bounded, so the conservative simulation now stops at 12 of 15 blocks; the guard never overshoots; reservation tuning is deferred by D-013 and revisited after the dev pilot measures real request sizes); move to 34 if the dev pilot's measured costs track the expected column. Per-test evaluation spend is deferred (D-013) and comes out of the same ceiling. The hosted table below applies only if GCP hosting returns.
 
 **Hosted (deferred):**
 

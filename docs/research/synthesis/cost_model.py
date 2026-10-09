@@ -35,13 +35,16 @@ ATTEMPTS = 1 + 1 + 2    # first try + one schema repair + two transient retries,
 
 # Enforceable request limits per call type (critique round 3, F01). thinking_level is qualitative, so the
 # only hard bound on thinking is max_output_tokens, which caps thinking + visible output together.
-# The agent port truncates input to input_limit and sets max_output_tokens = output_limit on every request.
-LIMITS = {  # call type: (input_limit, output_limit_including_thinking)
-    "subject": (6000, 1600),
-    "card": (6000, 1600),
-    "deep": (7000, 3000),
-    "final": (7000, 3000),
-    "referee": (12000, 4000),
+# Spec v2.3 D11: the input limit bounds the UTF-8 BYTES of the largest request including the repair allowance
+# (REPAIR_BYTES 5,200); tokens never exceed bytes, so a reservation on bytes is a true upper bound. The port
+# refuses any request whose bytes exceed the limit and sets max_output_tokens = output_limit. Values come from
+# S2 section 2's rendered-context budget at the input caps (600-character questions).
+LIMITS = {  # call type: (input_limit_bytes, output_limit_including_thinking)
+    "subject": (80000, 1600),
+    "card": (128000, 1600),
+    "deep": (128000, 3000),
+    "final": (128000, 3000),
+    "referee": (160000, 4000),
     "generate": (12000, 40000),
     "validate": (20000, 4000),
 }
