@@ -50,3 +50,4 @@
 - Codex spec round 6 GREEN (all sessions). b3e4fc5 dev cases merged.
 - 0237c86 WP-01 scaffold merged; WP-08 and WP-03 port agents dispatched.
 - web foundation merged (cold Codex CORRECT).
+- WP-03 merged; 579f327 deps-policy fix.
