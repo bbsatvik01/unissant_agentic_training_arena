@@ -10,8 +10,9 @@ from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
-from arena_core.contracts.common import Contract
+from arena_core.contracts.common import ByteLimit, Contract
 from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS
+from arena_core.contracts.rendered import rendered_overruns
 from arena_core.ids import read_json_text
 
 if TYPE_CHECKING:
@@ -23,13 +24,14 @@ MAX_SUBCHECKS = 30  # S2 7.4: at most 30 sub-checks in total
 
 class RubricSubcheck(Contract):
     id: Annotated[str, StringConstraints(pattern=r"^[1-5][a-e]$")]
-    text: Annotated[str, StringConstraints(min_length=1, max_length=400)]
+    # Rendered into J4's prompt: at most 400 bytes as rendered (D11), so the maximal-context check bounds it.
+    text: Annotated[str, StringConstraints(min_length=1, max_length=400), ByteLimit(400)]
     na_when: Annotated[str, StringConstraints(min_length=1, max_length=400)] | None
 
 
 class RubricDimension(Contract):
     dim_id: Literal["D1", "D2", "D3", "D4", "D5"]
-    name: Annotated[str, StringConstraints(min_length=1, max_length=80)]
+    name: Annotated[str, StringConstraints(min_length=1, max_length=80), ByteLimit(80)]
     anchors_0_to_4: Annotated[list[str], Field(min_length=5, max_length=5)]
     subchecks: Annotated[list[RubricSubcheck], Field(min_length=2, max_length=8)]
 
@@ -42,6 +44,9 @@ class Rubric(Contract):
 
     @model_validator(mode="after")
     def _ids(self) -> Self:
+        overruns = rendered_overruns(self)
+        if overruns:
+            raise ValueError("; ".join(overruns))
         ids = [s.id for d in self.dimensions for s in d.subchecks]
         if len(ids) > MAX_SUBCHECKS or len(set(ids)) != len(ids):
             msg = f"dimensions: at most {MAX_SUBCHECKS} distinct sub-check IDs"

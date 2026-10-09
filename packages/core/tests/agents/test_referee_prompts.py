@@ -392,3 +392,16 @@ def test_a_trial_without_a_committed_finding_still_reaches_r2() -> None:
     assert "untrusted_finding" not in user
     with pytest.raises(ValueError, match="no finding citations"):
         RefereeAssistantInput.model_validate({**assistant_input().model_dump(), "finding": None})
+
+
+def test_rubric_text_is_bounded_in_rendered_bytes() -> None:
+    raw = PLACEHOLDER_RUBRIC.model_dump()
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 100  # 100 characters, 400 bytes: the cap
+    raw["dimensions"][0]["name"] = "\U00020000" * 20
+    Rubric.model_validate(raw)
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 101
+    with pytest.raises(ValueError, match="longer than 400 UTF-8 bytes"):
+        Rubric.model_validate(raw)
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\\" * 300  # 300 bytes typed, 600 once escaped in a request
+    with pytest.raises(ValueError, match=r"subchecks\.1\.text: longer than 400 bytes as rendered"):
+        Rubric.model_validate(raw)
