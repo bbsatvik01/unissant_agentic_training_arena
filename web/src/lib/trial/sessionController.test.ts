@@ -2003,3 +2003,43 @@ describe("session controller: identical actions in flight share one request", ()
     expect(calls).toBe(4);
   });
 });
+
+describe("session controller: dispose during terminal recovery", () => {
+  it("during a retry wait: the waiting debrief request settles and nothing more is read", async () => {
+    const h = harness({ snapshots: [snapshot(), new TypeError("down")] });
+    const c = h.make({ api: { ...h.api, requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never) } });
+    await begin(c);
+    const requested = c.requestDebrief();
+    await flush();
+    const reads = h.log.filter((l) => l.startsWith("snapshot")).length;
+    c.dispose();
+    await requested;
+    await h.clock.advance(60_000);
+    expect(h.log.filter((l) => l.startsWith("snapshot")).length).toBe(reads);
+  });
+
+  it("during the terminal snapshot read: no debrief read starts after it settles", async () => {
+    let answer: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>((r) => (answer = r));
+        },
+        // an answer that is not the published document, so the end still needs the debrief read
+        requestDebrief: () => Promise.resolve({ status: "scoring" } as never),
+      },
+    });
+    await begin(c);
+    const requested = c.requestDebrief();
+    await flush();
+    c.dispose();
+    answer(snapshot({ status: "completed" }));
+    await requested;
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+});

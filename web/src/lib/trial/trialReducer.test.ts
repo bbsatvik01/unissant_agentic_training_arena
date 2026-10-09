@@ -661,3 +661,18 @@ describe("trialReducer: notices in any order", () => {
     expect(backward).toEqual(forward);
   });
 });
+
+describe("trialReducer: notice times are instants", () => {
+  const at = (ts: string, text: string) => ({ ...frame("notice", null, 0, { kind: "paused", text }), ts });
+
+  it.each([
+    [[at("2026-10-20T15:04:05.000Z", "A"), at("2026-10-20T15:04:06.000Z", "B"), at("2026-10-20T15:04:07.000Z", "A")], "A"],
+    [[at("2026-10-20T15:04:05.500Z", "Later"), at("2026-10-20T15:04:05Z", "Earlier")], "Later"],
+    [[at("2026-10-20T17:04:06+02:00", "Earlier by the clock"), at("2026-10-20T15:04:07Z", "Later")], "Later"],
+    [[at("2026-10-20T15:04:05.123457Z", "Later"), at("2026-10-20T15:04:05.123456Z", "Earlier")], "Later"],
+  ])("keeps the newest notice by instant in either order (%#)", (notes, text) => {
+    for (const order of [notes, [...notes].reverse()]) {
+      expect(view(fold(boot(), order)).notices).toEqual([{ kind: "paused", text }]);
+    }
+  });
+});

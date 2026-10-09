@@ -296,13 +296,20 @@ export function createSessionController(options: SessionControllerOptions): Sess
   /** The stream is closed for good: no stream is opened again (`ending`, `end_failed` or `finished`). */
   const over = (): boolean => state.connection === "ending" || state.connection === "end_failed" || state.connection === "finished";
 
+  /** Waits of the REST retries; dispose() ends them all at once, so nothing awaiting one hangs. */
+  const waits = new Set<() => void>();
   const delay = (ms: number) =>
     new Promise<void>((resolve) => {
+      const done = () => {
+        waits.delete(done);
+        resolve();
+      };
       const handle = scheduler.setTimeout(() => {
         catchUpTimers.delete(handle);
-        resolve();
+        done();
       }, ms);
       catchUpTimers.add(handle);
+      waits.add(done);
     });
 
   /** A REST read retried RESYNC_RETRIES times (1, 2, 4 s); each failure is kept as the error. */
@@ -314,6 +321,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
         set({ error });
         if (attempt >= RESYNC_RETRIES || isDisposed()) throw error;
         await delay(CATCH_UP_MS * 2 ** attempt);
+        if (isDisposed()) throw error;
       }
     }
   };
@@ -363,7 +371,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         if (options.snapshotLoaded !== true) {
           const snapshot = await readWithRetries(() => api.trialSnapshot(trialId));
-          if (!isDisposed()) dispatch({ type: "snapshot", snapshot });
+          if (isDisposed()) return;
+          dispatch({ type: "snapshot", snapshot });
         }
         if (state.debrief === null || !("schema_version" in state.debrief)) {
           setDebrief(await readWithRetries(() => api.readDebrief(sessionId)));
@@ -740,6 +749,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       clearHiddenTimer();
       for (const handle of catchUpTimers) scheduler.clearTimeout(handle);
       catchUpTimers.clear();
+      for (const done of [...waits]) done();
       unsubscribeVisibility?.();
       unsubscribeVisibility = null;
       set({ connection: "closed" });

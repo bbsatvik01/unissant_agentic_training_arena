@@ -208,7 +208,23 @@ function violationOf(snapshot: TrialSnapshot, frame: TrialFrame): ViolationReaso
 }
 
 function hintKey(frame: TrialFrame): string {
-  return `${frame.type}:${JSON.stringify(frame.data)}`;
+  // A notice repeated later is news (the newest one shows), so its time is part of its identity.
+  const when = frame.type === "notice" ? `@${frame.ts}` : "";
+  return `${frame.type}:${JSON.stringify(frame.data)}${when}`;
+}
+
+/** A frame time as an instant: milliseconds, then the digits beyond them, so offsets and precision compare right. */
+function instant(ts: string): readonly [number, string] {
+  const ms = Date.parse(ts);
+  const fraction = /\.(\d+)/.exec(ts)?.[1] ?? "";
+  return [Number.isNaN(ms) ? -Infinity : ms, fraction.slice(3).padEnd(9, "0")];
+}
+
+function later(a: string, b: string): number {
+  const [ams, arest] = instant(a);
+  const [bms, brest] = instant(b);
+  if (ams !== bms) return ams - bms;
+  return arest < brest ? -1 : arest > brest ? 1 : 0;
 }
 
 function withViolation(state: TrialState, violation: Violation): TrialState {
@@ -450,7 +466,8 @@ function derive(state: TrialState): TrialState {
     else if (hint.type === "trial.status") end(hint.data.status, hint.data.reason_code);
     else if (hint.type === "notice") {
       const held = notices.get(hint.data.kind);
-      const newer = held === undefined || hint.ts > held.ts || (hint.ts === held.ts && hint.data.text > held.notice.text);
+      const order = held === undefined ? 1 : later(hint.ts, held.ts);
+      const newer = held === undefined || order > 0 || (order === 0 && hint.data.text > held.notice.text);
       if (newer) notices.set(hint.data.kind, { ts: hint.ts, notice: hint.data });
     }
   }
