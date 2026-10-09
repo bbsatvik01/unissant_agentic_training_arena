@@ -21,3 +21,4 @@
 - Codex round 9 GREEN on direction v10; v10.1 wording fixes; D-010 recorded.
 - D-011 local-first recorded; direction v10.2; plan 30 cases (~$43/$66).
 - UI/UX research-harness dispatched (run wf_7304b52c-bcb, U1-U5).
+- UI research complete; UI direction v1 committed (c3ef79b); Codex UI critique round 1 started.

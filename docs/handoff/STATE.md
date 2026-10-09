@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- UI/UX research-harness complete (U1-U5: 69 web, 9 GDK, 17 Context7); UI direction v1 written (`docs/research/synthesis/03-ui-direction.md`): kin-style status pet, generated portrait avatars with amplitude mouths, Motion + GSAP + CSS, pill voice bar, rail-first agents view, no-jargon copy rules, Stitch/impeccable pipeline; Live Avatar out of scope. Codex UI critique running.
 - D-011 local-first (owner): hosting deferred; plan now 30 hidden cases (~$43 / ~$66), 34 pilot-gated. Owner also asked for a research-harness pass on UI/UX (animations, speaking avatars, pets, Claude skills); launching now.
 - **Direction GREEN** (Codex round 9: 0 majors; orchestrator green). `docs/research/synthesis/02-direction.md` v10.1 awaits owner review. Plan: 20 hidden cases baseline (~$37 / ~$63), 26 pilot-gated. $0 GCP spend so far.
 - Codex round 8: YELLOW (2 majors, 1 minor), fourth round on the non-model bound; v10 resolves the class by not claiming a hard non-model bound ($15 allowance, alerts, billing-disable at $70) and serving the web same-origin behind IAP. Plan: 20 hidden cases (~$37 / ~$63, complete in both); 26 after the pilot. Owner asked to front-load token-heavy design work now.
@@ -27,7 +28,7 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| task `w93j11g8w` / run `wf_7304b52c-bcb` | UI/UX research-harness, 5 routes, max 3 concurrent | Sonnet | 2026-10-08 ~20:05 | ~20:50-21:05 | `docs/research/ui/` |
+| codex exec (UI round 1) | Codex critique of `03-ui-direction.md` | gpt-6-astra xhigh | 2026-10-08 ~20:25 | ~20:40 | scratchpad `codex/ui1.json` |
 | task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8 (Opus x7, Sonnet x1) | Opus/Sonnet | 2026-10-08 ~21:00 EDT | ~21:45-22:30 EDT | `docs/spec/**` |
 
 ## Early signals from batch 1 (unverified until synthesis)
