@@ -1459,15 +1459,17 @@
           "decisive_support": [
             {
               "id": "r:01",
-              "description": "The lockbox sheet shows Lindqvist signed out spare card A-2291 at 07:09, and the badge office record shows A-2291 had moved to the spare pool on 1 March, matching her account.",
+              "description": "The lockbox sheet shows Lindqvist signed out spare card A-2291 at 07:09, the badge office record shows A-2291 had moved to the spare pool on 1 March, and her incident ticket notes the spare card under OP-7, matching her account.",
               "artifact_ids": [
                 "rec-01",
-                "rec-02"
+                "rec-02",
+                "rec-03"
               ],
               "fact_ids": [
                 "f:22",
                 "f:20",
-                "f:21"
+                "f:21",
+                "f:24"
               ],
               "requires_subject_account": true
             },
@@ -1564,7 +1566,7 @@
             "response_relevance": "Declining to discuss her performance plan is a legitimate boundary, and second-language phrasing is not evasion; credit pressing only on how she entered.",
             "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they are available (exchange 5) and asking about the sign-out against them.",
             "testing_alternatives": "Credit testing the spare-card explanation against rec-01 and rec-02, and the lent-badge explanation against rec-02 and rec-04, before closing.",
-            "supported_closure": "Truthful closure cites rec-01 with rec-02 or rec-03, together with her account. Before exchange 5 'insufficient evidence' is expected and should name rec-01 and rec-02 (EX-3)."
+            "supported_closure": "Truthful closure cites rec-01 with rec-03 (rec-02 explains the holder name), together with her account. Before exchange 5 'insufficient evidence' is expected and should name rec-01 and rec-02 (EX-3)."
           }
         },
         "turn_label_guide": [
@@ -1980,7 +1982,7 @@
         "forbidden_assertions": [
           {
             "id": "x:01",
-            "text": "I used a lockbox spare card.",
+            "text": "I signed a spare card out of the lockbox on 13 March.",
             "contradicts": "f:43"
           },
           {
@@ -2605,7 +2607,7 @@
           {
             "id": "c:02",
             "type": "statement_vs_evidence",
-            "description": "If Lindqvist suggests she used a lockbox spare card, the account conflicts with the sign-out sheet (forbidden assertion x:01).",
+            "description": "If Lindqvist suggests she signed out a lockbox spare card, the account conflicts with the sign-out sheet (forbidden assertion x:01).",
             "fact_ids": [
               "f:41",
               "f:43"
@@ -2653,7 +2655,7 @@
           "decisive_support": [
             {
               "id": "r:01",
-              "description": "The lockbox sheet has no 13 March entry and the badge office shows A-2291 is Haddad's active personal card, and Lindqvist does not explain how she entered N-3 when asked.",
+              "description": "The lockbox sheet has no 13 March entry and the badge office shows A-2291 is Haddad's own personal badge, which opened N-3 at 07:12; Lindqvist acknowledges that Haddad left his badge with her but does not explain how she entered N-3 when asked.",
               "artifact_ids": [
                 "rec-01",
                 "rec-02"
@@ -2661,6 +2663,7 @@
               "fact_ids": [
                 "f:43",
                 "f:44",
+                "f:40",
                 "f:41"
               ],
               "requires_subject_account": true
