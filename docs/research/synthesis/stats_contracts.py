@@ -97,7 +97,27 @@ def rank_sensitivity(cands: dict[str, tuple[int, int, int]], min_coverage: float
             "low_coverage": low_coverage}
 
 
+def planned_denominators(n_families: int, assistants: int = 3, subjects: int = 3, repeats: int = 1,
+                         exchanges: int = 12) -> dict[str, int]:
+    """Planned per-candidate counts for n hidden families (spec S3 5.2 table, C-01, X-17)."""
+    per_role = n_families * subjects * repeats
+    trials_per_subject = n_families * 2 * assistants * repeats
+    return {
+        "interactive_truthful_per_assistant": per_role,
+        "interactive_deceptive_per_assistant": per_role,
+        "replay_per_role_per_assistant": n_families,
+        "interactive_trials_per_subject": trials_per_subject,
+        "interactive_subject_turns_per_subject_max": trials_per_subject * exchanges,
+        "interactive_blocks": n_families,
+        "false_positives_passing_5pct_gate": per_role // 20,
+    }
+
+
 if __name__ == "__main__":
+    assert planned_denominators(15)["interactive_subject_turns_per_subject_max"] == 1080
+    assert planned_denominators(17)["interactive_truthful_per_assistant"] == 51
+    for n in (15, 17):
+        print(f"Planned denominators, n = {n} hidden families: {planned_denominators(n)}")
     assert abs(zero_event_upper_bound(60) - 0.048703) < 1e-5
     assert abs(zero_event_upper_bound(30) - 0.095034) < 1e-5
     print("Zero-false-positive bounds on family failure probability (a trial-FPR bound only for equal-size families):")
