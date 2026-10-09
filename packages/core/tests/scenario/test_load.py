@@ -26,6 +26,27 @@ MAX_SOURCE_BYTES = 524288  # sealed.family_ingests.source
 CODEX_RESULTS = {"rounds": 1, "review": "pass", "cx2_truthful": "pass", "cx2_deceptive": "pass", "cx3": "pass"}
 
 
+DEV_DIR = Path(__file__).resolve().parents[4] / "cases" / "dev"
+DEV = [load.read_family_file(path) for path in sorted(DEV_DIR.glob("F*.json"))]  # the comparison corpus
+
+
+def corpus_for(family_id: str) -> list[Family]:
+    """The development corpus without the family's committed file (for an edited copy of it)."""
+    return [f for f in DEV if f["family_id"] != family_id]
+
+
+def revised(family: Family, revision: int) -> Family:
+    """`family` as revision `revision`, with new case IDs (S1 8.6 step 1)."""
+    out: Family = json.loads(json.dumps(family))
+    out["revision"] = revision
+    for n, variant in enumerate(("truthful", "deceptive")):
+        case_id = f"C-RRRRRR{revision}{n}"
+        out["variants"][variant]["case_id"] = case_id
+        for packet in ("public_packet", "private_packet", "evaluator_packet"):
+            out["variants"][variant][packet]["case_id"] = case_id
+    return out
+
+
 def review_of(family: Family) -> CodexReview:
     """A passed Codex review of exactly this family file (its canonical-JSON sha256)."""
     return CodexReview.model_validate({**CODEX_RESULTS, "family_sha256": canonical_sha256(family)})
@@ -79,7 +100,7 @@ def _check_artifact(a: dict[str, Any], original: dict[str, Any]) -> None:
 @pytest.mark.parametrize("family_id", ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09"])
 def test_each_dev_bundle_meets_the_s4_ingest_contract(family_id: str, seed: Callable[[str], Family]) -> None:
     family = seed(family_id)
-    bundle = ingest_bundle(family, review_of(family)).as_json()
+    bundle = ingest_bundle(family, review_of(family), DEV).as_json()
     assert sql_pattern("family_code").match(bundle["family_code"])
     assert bundle["family_code"] == family_id
     assert "supersedes" not in bundle  # revision 1 names none (SG1-22)
@@ -105,7 +126,7 @@ def test_each_dev_bundle_meets_the_s4_ingest_contract(family_id: str, seed: Call
 def test_the_archive_is_the_family_file_and_its_attestation(seed: Callable[[str], Family]) -> None:
     """S1 10.5 and S4's SG1-19 checks: the source parses back to the family, the attestation hashes it."""
     family = seed("F01")
-    bundle = ingest_bundle(family, review_of(family)).as_json()
+    bundle = ingest_bundle(family, review_of(family), DEV).as_json()
     assert bundle["source"] == canonical_json(family)
     assert json.loads(bundle["source"]) == family
     assert len(bundle["source"].encode("utf-8")) <= MAX_SOURCE_BYTES
@@ -124,9 +145,9 @@ def test_a_revision_has_its_own_code_and_names_its_predecessor(
     revision: int, code: str, supersedes: str, seed: Callable[[str], Family]
 ) -> None:
     """S1 8.6 and 4.4: family code `Fnn.rN`; `supersedes` is `Fnn` for r2 and `Fnn.r(N-1)` after that."""
-    family = seed("F01")
-    family["revision"] = revision
-    bundle = ingest_bundle(family, review_of(family)).as_json()
+    family = revised(seed("F01"), revision)
+    corpus = [*DEV, *(revised(seed("F01"), r) for r in range(2, revision))]
+    bundle = ingest_bundle(family, review_of(family), corpus).as_json()
     found = (bundle["family_code"], bundle["supersedes"], bundle["attestation"]["revision"])
     assert found == (code, supersedes, revision)
     assert sql_pattern("family_code").match(code)
@@ -153,20 +174,20 @@ def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family
     edited = seed("F01")
     edited["variants"]["deceptive"]["evaluator_packet"]["synopsis"] += " Edited after the review."
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(edited, review)
+        ingest_bundle(edited, review, corpus_for("F01"))
     assert [i.rule for i in caught.value.issues] == ["CODEX.family_sha256"]
-    assert ingest_bundle(reviewed, review).attestation.family_sha256 == review.family_sha256
+    assert ingest_bundle(reviewed, review, DEV).attestation.family_sha256 == review.family_sha256
 
 
 def test_scheduled_clarifications_and_context_changes_keep_their_kind(seed: Callable[[str], Family]) -> None:
     """AC-S1-10 fixtures: F02 rec-05 is a context change after 3 exchanges, F03 rec-05 a clarification after 4."""
     for family_id, kind, after in (("F02", "context_change", 3), ("F03", "clarification", 4)):
-        bundle = ingest_bundle(seed(family_id), review_of(seed(family_id)))
+        bundle = ingest_bundle(seed(family_id), review_of(seed(family_id)), DEV)
         for variant in bundle.variants:
             rec05 = next(a for a in variant.artifacts if a.record_id == "rec-05")
             assert (rec05.kind, rec05.doc_kind, rec05.requestable) == (kind, kind, False)
             assert (rec05.scheduled_turn, rec05.request_after_turn) == (after, None)
-    f01 = ingest_bundle(seed("F01"), review_of(seed("F01"))).variants[0]
+    f01 = ingest_bundle(seed("F01"), review_of(seed("F01")), DEV).variants[0]
     assert {a.kind for a in f01.artifacts} == {"record"}
 
 
@@ -174,7 +195,7 @@ def test_variant_order_follows_the_opaque_code_not_the_role(seed: Callable[[str]
     """The public-tier insertion order of arena.case_variants must not reveal the truthful variant (L3)."""
     orders = {}
     for family_id in ("F01", "F02", "F03"):
-        variants = ingest_bundle(seed(family_id), review_of(seed(family_id))).variants
+        variants = ingest_bundle(seed(family_id), review_of(seed(family_id)), DEV).variants
         assert [v.variant_code for v in variants] == sorted(v.variant_code for v in variants)
         orders[family_id] = [v.role for v in variants]
     assert orders["F01"] == ["truthful", "deceptive"]
@@ -182,9 +203,9 @@ def test_variant_order_follows_the_opaque_code_not_the_role(seed: Callable[[str]
 
 
 def test_bundle_json_is_canonical_and_stable(seed: Callable[[str], Family]) -> None:
-    bundle = ingest_bundle(seed("F03"), review_of(seed("F03")))
+    bundle = ingest_bundle(seed("F03"), review_of(seed("F03")), DEV)
     text = bundle.to_json()
-    assert text == ingest_bundle(seed("F03"), review_of(seed("F03"))).to_json()
+    assert text == ingest_bundle(seed("F03"), review_of(seed("F03")), DEV).to_json()
     assert json.loads(text) == bundle.as_json()
     assert text.startswith('{"attestation":{"checks_passed":["V1",')
     assert IngestBundle.model_validate_json(canonical_json({**json.loads(text), "supersedes": None})) == bundle
@@ -194,14 +215,14 @@ def test_an_invalid_family_is_never_loaded(seed: Callable[[str], Family]) -> Non
     family = seed("F01")
     family["variants"]["deceptive"]["public_packet"]["presentation"]["voice_id"] = "Fenrir"
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family))
+        ingest_bundle(family, review_of(family), corpus_for("F01"))
     assert [i.rule for i in caught.value.issues] == ["V4a.L1"]
     assert str(caught.value) == '1 validator issue(s): {"V4a.L1":1}'  # codes and counts only (S1 L7)
     assert "presentation" in caught.value.issues[0].message
 
 
-def test_v5_runs_over_the_family_and_its_peers(seed: Callable[[str], Family]) -> None:
-    """The attestation says V5 passed, so V5 runs here: a peer that shares the persona refuses the load."""
+def test_v5_runs_over_the_family_and_its_corpus(seed: Callable[[str], Family]) -> None:
+    """The attestation says V5 passed, so V5 runs here: a corpus family that shares the persona refuses it."""
     family = seed("F02")
     assert ingest_bundle(family, review_of(family), [seed("F01"), seed("F03")]).family_code == "F02"
     clash = seed("F01")
@@ -209,3 +230,54 @@ def test_v5_runs_over_the_family_and_its_peers(seed: Callable[[str], Family]) ->
     with pytest.raises(FamilyLoadError) as caught:
         ingest_bundle(family, review_of(family), [clash])
     assert "V5.names" in {i.rule for i in caught.value.issues}
+
+
+def test_a_revision_needs_its_predecessors_in_the_corpus(seed: Callable[[str], Family]) -> None:
+    """Without r1 the reuse of r1's case IDs could not be seen; the load is refused, not attested."""
+    family = revised(seed("F01"), 3)
+    without_f01 = [f for f in DEV if f["family_id"] != "F01"]
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), without_f01)
+    assert [(i.rule, i.message) for i in caught.value.issues] == [
+        ("CORPUS.predecessor", "revisions [1, 2] of F01 are not in the corpus")
+    ]
+
+
+def test_a_revision_that_keeps_its_predecessors_case_ids_is_refused(seed: Callable[[str], Family]) -> None:
+    family = seed("F01")
+    family["revision"] = 2
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), DEV)
+    assert {i.rule for i in caught.value.issues} == {"V5.case_id"}
+
+
+@pytest.mark.parametrize("split", ["dev", "hidden"])
+def test_a_family_without_a_dev_baseline_is_refused(split: str, seed: Callable[[str], Family]) -> None:
+    """A hidden copy of F01 compared with nothing would be attested; the dev baseline is required."""
+    family = seed("F01")
+    if split == "hidden":
+        family.update(family_id="Hc00000000a", split="hidden")
+        family["provenance"].update(
+            method="generator",
+            generator_model="m",
+            prompt_sha256="0" * 64,
+            seed_spec_sha256="0" * 64,
+            few_shot_family_ids=["F02"],
+        )
+        for variant in ("truthful", "deceptive"):
+            family["variants"][variant]["evaluator_packet"]["family_id"] = "Hc00000000a"
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), [])
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]
+    if split == "hidden":
+        with pytest.raises(FamilyLoadError) as caught:
+            ingest_bundle(family, review_of(family), DEV)
+        assert {"V5.names", "V5.lexical", "V5.facility"} <= {i.rule for i in caught.value.issues}
+
+
+def test_a_revisions_own_predecessor_is_not_a_dev_baseline(seed: Callable[[str], Family]) -> None:
+    """Only another lineage gives V5 something to compare names, signatures and text with."""
+    family = revised(seed("F01"), 2)
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), [seed("F01")])
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]

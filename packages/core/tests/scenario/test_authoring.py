@@ -22,7 +22,7 @@ from arena_core.scenario import brief as br
 from arena_core.scenario import seed as sd
 from arena_core.scenario.assemble import assemble, assemble_file, draw_identifiers, dump_family
 from arena_core.scenario.cli import main
-from arena_core.scenario.load import CodexReview, FamilyLoadError, ingest_bundle
+from arena_core.scenario.load import CodexReview, FamilyLoadError, ingest_bundle, read_family_file
 from arena_core.scenario.source import SourceError, parse_source
 from arena_core.scenario.validators import validate_families, validate_family
 
@@ -131,13 +131,18 @@ def test_a_sampled_seed_becomes_a_valid_hidden_family_and_bundle(
     provenance = family["provenance"]
     assert provenance == authoring.provenance()
     assert (provenance["prompt_sha256"], provenance["seed_spec_sha256"]) == (authoring.brief.sha256, spec.sha256())
-    # V5 is a split check: alone, one hidden family cannot cover every difficulty level, so it is not loaded;
-    # with the rest of its split it is (S1 9.5, 10.3).
+    # The corpus is the dev baseline plus the rest of the hidden split (S1 9.5, 10.3). F01-F03 are left out of
+    # the baseline because this split re-authors them. Without a baseline nothing is attested; with the
+    # baseline alone one hidden family cannot cover every difficulty level; with its split it loads.
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family))
+        ingest_bundle(family, review_of(family), [])
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]
+    baseline = [read_family_file(p) for p in sorted(SEED_DIR.glob("F0[4-9].json"))]
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), baseline)
     assert [i.rule for i in caught.value.issues] == ["V5.coverage_levels"]
     split = [as_hidden(seeds[0], "Hc00000000a", "C-HHHHHHA"), as_hidden(seeds[2], "Hc00000000b", "C-HHHHHHB")]
-    bundle = ingest_bundle(family, review_of(family), split)
+    bundle = ingest_bundle(family, review_of(family), [*baseline, *split])
     assert (bundle.family_code, bundle.split) == (spec.family_id, "hidden")
 
 
@@ -158,6 +163,7 @@ def as_hidden(dev: Family, family_id: str, case_id_prefix: str) -> Family:
         for packet in ("public_packet", "private_packet", "evaluator_packet"):
             hidden["variants"][variant][packet]["case_id"] = case_id
         hidden["variants"][variant]["evaluator_packet"]["family_id"] = family_id
+        hidden["variants"][variant]["public_packet"]["interview_context"]["facility"] = f"Hidden Site {family_id}"
     return hidden
 
 

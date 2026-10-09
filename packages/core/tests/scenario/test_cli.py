@@ -20,6 +20,8 @@ from tools.tests.subprocess_support import run_role_module
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SEED_DIR = REPO_ROOT / "cases" / "dev"
 SOURCE_DIR = SEED_DIR / "sources"
+CORPUS = ["--corpus", *(str(p) for p in sorted(SEED_DIR.glob("F*.json")))]
+CORPUS_WITHOUT_F02 = ["--corpus", *(str(p) for p in sorted(SEED_DIR.glob("F*.json")) if p.stem != "F02")]
 CODEX = {"rounds": 1, "review": "pass", "cx2_truthful": "pass", "cx2_deceptive": "pass", "cx3": "pass"}
 ARGPARSE_USAGE_ERROR = 2
 SECOND_REVISION = 2
@@ -236,8 +238,22 @@ def test_counts_mode_covers_assembly_and_bundling(
     family["variants"]["truthful"]["evaluator_packet"]["role"] = "deceptive"
     family["variants"]["truthful"]["evaluator_packet"]["synopsis"] += " " + HIDDEN_TEXT
     path = write_json(tmp_path / "F02.json", family)
-    codex = review_file(tmp_path, path)
-    assert main(["bundle", "--counts", "--codex", str(codex), "--out", str(tmp_path / "bundle.json"), str(path)]) == 1
+    codex = review_file(tmp_path, path)  # the corpus leaves out the committed F02 this edits
+    assert (
+        main(
+            [
+                "bundle",
+                "--counts",
+                "--codex",
+                str(codex),
+                "--out",
+                str(tmp_path / "bundle.json"),
+                str(path),
+                *CORPUS_WITHOUT_F02,
+            ]
+        )
+        == 1
+    )
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == ({"V2.correct_finding": 1, "V2.labels": 1}, "")
     assert nothing_leaked(captured.out, captured.err)
@@ -247,9 +263,11 @@ def test_counts_mode_writes_results_only_to_out(
     tmp_path: Path, codex: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "bundle.json"
-    assert main(["bundle", "--counts", "--codex", str(codex), "--out", str(out), str(SEED_DIR / "F03.json")]) == 0
+    assert (
+        main(["bundle", "--counts", "--codex", str(codex), "--out", str(out), str(SEED_DIR / "F03.json"), *CORPUS]) == 0
+    )
     assert (capsys.readouterr().out, json.loads(out.read_text(encoding="utf-8"))["family_code"]) == ("{}\n", "F03")
-    for argv in (["bundle", "--codex", str(codex)], ["assemble"]):
+    for argv in (["bundle", "--codex", str(codex), *CORPUS], ["assemble"]):
         path = SEED_DIR / "F03.json" if argv[0] == "bundle" else source_copy(tmp_path, "F03")
         with pytest.raises(SystemExit) as caught:
             main([*argv, "--counts", str(path)])
@@ -257,8 +275,7 @@ def test_counts_mode_writes_results_only_to_out(
 
 
 def test_bundle_prints_the_ingest_bundle(codex: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    peers = [arg for i in (1, 2) for arg in ("--peer", str(SEED_DIR / f"F0{i}.json"))]
-    assert main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(codex), *peers]) == 0
+    assert main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(codex), *CORPUS]) == 0
     bundle = json.loads(capsys.readouterr().out)
     assert bundle["family_code"] == "F03"
     assert bundle["attestation"]["codex"] == CODEX
@@ -271,21 +288,32 @@ def test_bundle_refuses_an_invalid_family(
     family = seed("F02")
     family["variants"]["truthful"]["evaluator_packet"]["role"] = "deceptive"
     path = write_json(tmp_path / "F02.json", family)
-    assert main(["bundle", str(path), "--codex", str(codex)]) == 1
+    assert main(["bundle", str(path), "--codex", str(codex), *CORPUS_WITHOUT_F02]) == 1
     assert "V2.labels [F02/truthful]" in capsys.readouterr().out
     not_an_object = write_json(tmp_path / "list.json", [1, 2])
-    assert main(["bundle", str(not_an_object), "--codex", str(codex)]) == 1
+    assert main(["bundle", str(not_an_object), "--codex", str(codex), *CORPUS]) == 1
     assert "one JSON object" in capsys.readouterr().err
 
 
 def test_bundle_refuses_a_codex_review_that_did_not_pass(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     failed = review_file(tmp_path, SEED_DIR / "F03.json", cx3="fail")
     assert (
-        main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(failed), "--counts", "--out", str(tmp_path / "b")])
+        main(
+            [
+                "bundle",
+                str(SEED_DIR / "F03.json"),
+                "--codex",
+                str(failed),
+                "--counts",
+                "--out",
+                str(tmp_path / "b"),
+                *CORPUS,
+            ]
+        )
         == 1
     )
     assert json.loads(capsys.readouterr().out) == {"CODEX.model": 1}
-    assert main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(tmp_path / "missing.json")]) == 1
+    assert main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(tmp_path / "missing.json"), *CORPUS]) == 1
     assert "cannot read" in capsys.readouterr().err
 
 

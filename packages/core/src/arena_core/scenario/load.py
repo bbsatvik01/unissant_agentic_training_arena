@@ -24,7 +24,7 @@ any other file is refused (S1 8.5 step 3). S4 checks the two against each other 
 
 Variants are ordered by `variant_code`, so the insertion order of the public-tier `arena.case_variants`
 rows cannot reveal which variant is truthful (L3). The loader refuses a family with any validator issue
-(V1-V4 on the family, V5 over the family and the `peers` given), because the attestation states that every
+(V1-V4 on the family, V5 over the family and its comparison corpus), because the attestation states that every
 check passed and S4 stores packets immutably. The loader runs under `arena_referee`; the database call
 itself lives with the S4 wrappers (WP-03).
 """
@@ -192,15 +192,36 @@ def attestation(family: Mapping[str, Any], codex: CodexReview) -> Attestation:
     )
 
 
-def ingest_bundle(
-    family: Mapping[str, Any], codex: CodexReview, peers: Sequence[Mapping[str, Any]] = ()
-) -> IngestBundle:
+def corpus_issues(family: Mapping[str, Any], corpus: Sequence[Mapping[str, Any]]) -> list[Issue]:
+    """What the comparison corpus lacks for V5 to mean anything for this family (S1 9.5, 8.6, 10.3).
+
+    V5 compares a family with others, so an attestation that V5 passed needs the families it must be compared
+    with: every earlier revision of its lineage (a revision draws new case IDs, keeps its persona and
+    facility), and the development baseline, at least one development family of another lineage (names,
+    signatures, facilities and text are compared with it; for a hidden family that is the hidden-dev check
+    of L4). A hidden family's split peers are the caller's to add: V5's quota and level coverage need them."""
+    fid, revision = str(family["family_id"]), int(family["revision"])
+    present = {int(f["revision"]) for f in corpus if str(f["family_id"]) == fid}
+    issues: list[Issue] = []
+    missing = sorted(set(range(1, revision)) - present)
+    if missing:
+        issues.append(Issue("CORPUS.predecessor", f"revisions {missing} of {fid} are not in the corpus", fid))
+    if not any(f["split"] == "dev" and str(f["family_id"]) != fid for f in corpus):
+        issues.append(Issue("CORPUS.dev_baseline", "the corpus holds no development family of another lineage", fid))
+    return issues
+
+
+def ingest_bundle(family: Mapping[str, Any], codex: CodexReview, corpus: Sequence[Mapping[str, Any]]) -> IngestBundle:
     """The S4 ingest bundle of one valid family; FamilyLoadError lists the issues of an invalid one.
 
-    `peers` are the other families V5 compares it with (the development files, and for a hidden family the
-    rest of its split); every check runs here, so the attestation's `checks_passed` is true when it is written.
+    `corpus` is what V5 compares the family with: the development split (every revision, the family's own
+    predecessors included) and, for a hidden family, the rest of its split. A corpus without the family's
+    earlier revisions or without a development baseline is refused (`corpus_issues`), so the attestation's
+    `checks_passed` is true when it is written. A copy of the family itself in the corpus (a development
+    directory holds it) is compared once.
     """
-    issues = validate_families([*peers, family])
+    others = [f for f in corpus if canonical_json(f) != canonical_json(family)]
+    issues = corpus_issues(family, others) or validate_families([*others, family])
     if not issues and codex.family_sha256 != sha256_hex(family_source_text(family)):
         message = "the Codex review was run on a different family file (S1 8.5 step 3: same hash)"
         issues = [Issue("CODEX.family_sha256", message, str(family.get("family_id")))]

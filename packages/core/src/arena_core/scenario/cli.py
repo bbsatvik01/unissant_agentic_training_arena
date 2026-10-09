@@ -5,9 +5,10 @@
   seed (S1 8.3). Case IDs and canaries missing from the source are drawn (`draw_identifiers`) and recorded in
   the source file first; `--revise` makes the source the next revision with new ones (S1 8.6).
 - `validate FAMILY...`: run V1-V4 on each family file and V5 across them.
-- `bundle FAMILY --codex CODEX.json [--peer FAMILY]... [--out BUNDLE]`: the S4 `sealed.ingest_case_family`
+- `bundle FAMILY --codex CODEX.json --corpus FAMILY... [--out BUNDLE]`: the S4 `sealed.ingest_case_family`
   bundle of a valid family, with its source text and attestation (S1 10.5); CODEX.json is the passed Codex
-  review (`CodexReview`), and the peers are the families V5 compares it with.
+  review (`CodexReview`), and the corpus is what V5 compares it with: the development split with every
+  revision (`cases/dev/F*.json`), plus the rest of the split for a hidden family (`load.corpus_issues`).
 
 `--counts` (every command) prints one JSON object of outcome codes and counts and nothing else, on every
 path: validator rule IDs, `INPUT.*` for unreadable or non-strict files, `SOURCE.*` and `AUTHORING.*` for a
@@ -150,8 +151,8 @@ def _bundle(args: argparse.Namespace, report: Report) -> None:
         report.failure(exc, area="CODEX", where=str(args.codex))
         return
     try:
-        peers = [read_family_file(path) for path in args.peer]
-        bundle = ingest_bundle(read_family_file(args.family), codex, peers)
+        corpus = [read_family_file(path) for path in args.corpus]
+        bundle = ingest_bundle(read_family_file(args.family), codex, corpus)
     except (OSError, ValueError, TypeError) as exc:  # unreadable, not strict JSON, not an object, not loadable
         report.failure(exc, area="INPUT", where=str(args.family))
         return
@@ -201,7 +202,9 @@ def build_parser() -> argparse.ArgumentParser:
     bundle_cmd = sub.add_parser("bundle", help="print the S4 ingest bundle of a family file", allow_abbrev=False)
     bundle_cmd.add_argument("family", type=Path)
     bundle_cmd.add_argument("--codex", type=Path, required=True, help="the passed Codex review (JSON)")
-    bundle_cmd.add_argument("--peer", type=Path, action="append", default=[], help="a family V5 compares it with")
+    bundle_cmd.add_argument(
+        "--corpus", type=Path, nargs="+", required=True, help="the families V5 compares it with (dev split)"
+    )
     bundle_cmd.add_argument("--out", type=Path, default=None)
     bundle_cmd.add_argument("--counts", action="store_true", help=counts_help)
     bundle_cmd.set_defaults(run=_bundle, needs_out=True)
