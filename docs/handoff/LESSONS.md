@@ -34,3 +34,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** the cost model was built from the bake-off's call lists; training-side promises (KPI-1, EVL-7 debriefs, calibration) lived in prose and never became call lists. Same rule as critique round 2 F01 ("every promised experiment is costed"), broken on the training side.
 - **Fix:** `cost_model.py` adds `r3()`, `session_text()`, `training_bucket()`, `KPI1_EXTRA_DEV_FAMILIES` and a `training` bucket in `budget_plan()`; direction v10.3 re-plans to 24 hidden cases (complete in both, ~$47 / ~$71), 30 pilot-gated.
 - **Prevention pattern:** every requirement that implies a model call (each KPI, debrief, calibration, validation pass) maps to a named call list in `cost_model.py`; spec reviews check that every call type in the spec appears there (S8 C-15 is the template).
+
+### 2026-10-08 · Broad `git add docs` swept in-progress workflow output into unrelated commits
+- **Symptom:** spec drafts S1-S7 and the draft SQL landed in commits 2da6fa8 and ecd95e3 (research commits) before their secret scan; the later scan was clean and nothing left the machine.
+- **Root cause:** a background workflow was writing into `docs/spec/` while commits used `git add docs`.
+- **Fix:** none needed beyond the clean scan; spec v1 completed in a75b362.
+- **Prevention pattern:** while any workflow or agent writes into the tree, stage explicit paths only; scan workflow output before its first commit.

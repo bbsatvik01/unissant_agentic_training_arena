@@ -96,7 +96,7 @@ Every animation, caption, connector, highlight, pipeline detail and replay consu
 | finding, confidence | prediction, probability score |
 | practice, assessment | mode toggle names from the code |
 
-Tournament vocabulary (candidate, manifest, replay track) appears only on the arena, leaderboard and trust-center screens, never in the trainee's room. EX-4 carries three meanings and every surface keeps all three, worded to fit: "These cases are invented. An evasive answer alone does not prove wrongdoing. Simulation scores are not findings about real people." The evasion sentence also sits next to flags and findings in the room and debrief. Surfaces: onboarding, room footer, debrief header, leaderboard caption, methodology page; short and persistent, not a one-time interstitial.
+Tournament vocabulary (candidate, manifest, replay track) appears only on the arena, leaderboard and trust-center screens, never in the trainee's room. EX-4 carries three meanings and every surface shows the sponsor's exact text, which holds all three: "All cases are synthetic. Evasive wording alone does not prove a violation, and a simulated score is not a finding about a real person." (no paraphrase; spec S6 FE-ONB-2 tests it against REQUIREMENTS EX-4). The evasion sentence also sits next to flags and findings in the room and debrief. Surfaces: onboarding, room footer, debrief header, leaderboard caption, methodology page; short and persistent, not a one-time interstitial.
 
 **Anti-slop gate** (checked by `impeccable` audit and a checklist before each UI merge): no purple-to-blue gradient signature, no default glow shadows, no sparkle or "AI" badges, no robot or brain icons, no particle heroes, no stress-coded colors on avatars (also PRB-4), no generic stock illustration.
 
