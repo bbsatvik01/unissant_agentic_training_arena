@@ -105,8 +105,9 @@ def evasion_counts(
 @dataclass(frozen=True)
 class SupportCounts:
     unique: int  # M08 denominator
-    unsupported: Mapping[str, int]  # by reason: citation, demeanor, claim
-    demeanor_based: int  # FA-3: unique flags the lexicon marked
+    unsupported: Mapping[str, int]  # by reason: citation, demeanor, claim, over unique flags
+    emitted: int  # every emitted flag (the FA-3 denominator)
+    demeanor_based: int  # FA-3: emitted flags the lexicon marked (a re-emission is its own output)
 
     @property
     def unsupported_total(self) -> int:
@@ -114,11 +115,14 @@ class SupportCounts:
 
 
 def support_counts(cards: Iterable[Card], trial: TrialRows, verdicts: Mapping[Key, FlagVerdict]) -> SupportCounts:
-    """M08 over unique flags (a duplicate is counted once for support), with reasons split."""
+    """M08 over unique flags (a duplicate is counted once for support), with reasons split; FA-3 over every
+    emitted flag, since a re-emission can carry its own demeanor basis."""
+    cards = list(cards)
     reasons = dict.fromkeys(REASONS, 0)
     uniq = unique_flags(cards)
     for turn, _, f in uniq:
         ok, why = flag_status(f, turn, trial, verdicts)
         if not ok:
             reasons[why] += 1
-    return SupportCounts(len(uniq), reasons, sum(f.demeanor_based for _, _, f in uniq))
+    emitted = emitted_flags(cards)
+    return SupportCounts(len(uniq), reasons, len(emitted), sum(f.demeanor_based for _, _, f in emitted))

@@ -215,3 +215,13 @@ def test_a_re_emitted_flag_is_a_false_positive_even_when_its_first_occurrence_wa
     again = stored_card(2, [flag("possible_evasion", "t01", ANSWERS[1])])
     v = j3([first, again], verdict("t01.f1"))
     assert evasion_counts([first, again], LABELS, ROWS, v) == EvasionCounts(0, 2, 1)
+
+
+def test_fa3_counts_a_demeanor_re_emission_of_a_clean_flag() -> None:
+    """M08 counts the key once (first occurrence); FA-3 counts every emitted demeanor-based output."""
+    clean = stored_card(1, [flag("possible_evasion", "t01", ANSWERS[1])])
+    again = stored_card(
+        2, [flag("possible_evasion", "t01", ANSWERS[1], missing_fact="why they seemed nervous")], demeanor=(1,)
+    )
+    s = support_counts([clean, again], ROWS, j3([clean, again], verdict("t01.f1")))
+    assert (s.unique, s.unsupported_total, s.emitted, s.demeanor_based) == (1, 0, 2, 1)

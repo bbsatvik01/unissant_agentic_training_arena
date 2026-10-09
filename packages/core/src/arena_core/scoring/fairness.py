@@ -51,11 +51,12 @@ def _stratum(
 
 
 def _by_family(rows: Iterable[tuple[str, int, int]]) -> dict[str, tuple[int, int]]:
+    """Per-family sums; a family with no observation (denominator 0) is not part of the stratum."""
     out: dict[str, tuple[int, int]] = {}
     for f, n, d in rows:
         a, c = out.get(f, (0, 0))
         out[f] = (a + n, c + d)
-    return out
+    return {f: v for f, v in out.items() if v[1] > 0}
 
 
 @dataclass(frozen=True)
@@ -109,13 +110,13 @@ class DemeanorCount:
     """FA-3 per candidate: demeanor-based flags and committed findings failing 5c; any count above 0 is a
     published violation next to the rank."""
 
-    flags: int
-    findings: int
-    unique_flags: int
+    flags: int  # emitted flags marked demeanor_based
+    findings: int  # committed findings failing 5c
+    emitted_flags: int
 
     @property
     def per_100_flags(self) -> Fraction | None:
-        return Fraction(100 * self.flags, self.unique_flags) if self.unique_flags else None
+        return Fraction(100 * self.flags, self.emitted_flags) if self.emitted_flags else None
 
     @property
     def violation(self) -> bool:
@@ -155,7 +156,7 @@ def style_permutation_test(units: Sequence[StyleUnit], seed: int, b: int = B) ->
     """FA-5a and FA-5b: statistic max minus min rate across style levels; style labels are permuted across units
     (S3 8 reference `style_permutation_test`, in exact rationals). None (undefined, published as such) when fewer
     than two style levels have an estimable rate."""
-    ordered = sorted(units, key=lambda u: u.unit_id)
+    ordered = sorted((u for u in units if u.den > 0), key=lambda u: u.unit_id)  # empty units carry no observation
     labels = [u.style for u in ordered]
     if len(_rates(ordered, labels)) < MIN_LEVELS:
         return None

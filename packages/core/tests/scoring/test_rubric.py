@@ -644,3 +644,7 @@ def test_the_registry_has_22_checks_and_two_always_applicable_per_dimension() ->
 
 def test_records_helper_marks_initial_documents_citable_from_the_start() -> None:
     assert records(None)["doc-01"].released_after is None
+
+
+def test_the_rubric_hash_keeps_the_prompt_model_boundary() -> None:
+    assert rubric_sha256("lex", ["p1", "p2"], ["m"]) != rubric_sha256("lex", ["p1"], ["p2", "m"])

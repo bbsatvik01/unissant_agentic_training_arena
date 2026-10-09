@@ -180,17 +180,23 @@ def paired_difference(
     a: Mapping[str, Cluster], b_: Mapping[str, Cluster], seed: int, b: int = B
 ) -> tuple[Fraction | None, Interval]:
     """EVL-10 compare: candidates A and B on the cells both included, clustered by family (`a` and `b_` map family
-    to that family's common-cell cluster); families are resampled jointly; statistic metric(A) - metric(B)."""
-    fams = sorted(f for f in set(a) & set(b_) if a[f].den > 0 and b_[f].den > 0)
+    to that family's common-cell cluster); families are resampled jointly; statistic metric(A) - metric(B). A
+    family counts when either candidate has a denominator there; a draw where either metric is undefined is left
+    out of the percentiles."""
+    fams = sorted(f for f in set(a) & set(b_) if a[f].den > 0 or b_[f].den > 0)
     ra, rb = ratio([a[f] for f in fams]), ratio([b_[f] for f in fams])
     if ra is None or rb is None:
-        return None, Interval(None, None, "undefined", 0)
+        return None, Interval(None, None, "undefined", len(fams))
     rng = np.random.default_rng(seed)
-    na, da = (np.array([float(a[f].num) for f in fams]), np.array([float(a[f].den) for f in fams]))
-    nb, db = (np.array([float(b_[f].num) for f in fams]), np.array([float(b_[f].den) for f in fams]))
+    na, da = np.array([float(a[f].num) for f in fams]), np.array([float(a[f].den) for f in fams])
+    nb, db = np.array([float(b_[f].num) for f in fams]), np.array([float(b_[f].den) for f in fams])
     idx = rng.integers(0, len(fams), size=(b, len(fams)))
-    stats = np.sort(na[idx].sum(1) / da[idx].sum(1) - nb[idx].sum(1) / db[idx].sum(1))
-    lo_i, hi_i = ci_indices(b)
+    da_s, db_s = da[idx].sum(1), db[idx].sum(1)
+    ok = (da_s > 0) & (db_s > 0)
+    stats = np.sort(na[idx].sum(1)[ok] / da_s[ok] - nb[idx].sum(1)[ok] / db_s[ok])
+    if len(stats) == 0:
+        return ra - rb, Interval(None, None, "undefined", len(fams))
+    lo_i, hi_i = ci_indices(len(stats))
     lo, hi = float(stats[lo_i]), float(stats[hi_i])
     return ra - rb, Interval(lo, hi, "degenerate" if lo == hi else "ok", len(fams))
 

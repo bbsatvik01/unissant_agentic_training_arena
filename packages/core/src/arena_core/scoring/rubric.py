@@ -10,6 +10,7 @@ subject's role or whether a finding was correct (AC-S3-2.7): this module imports
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
@@ -117,13 +118,15 @@ LINEAGE: tuple[LineageEntry, ...] = (
 
 def rubric_sha256(lexicon_text: str, prompt_texts: Sequence[str], model_ids: Sequence[str]) -> str:
     """The rubric hash every score row stores (S3 2.11): the definition hash plus the demeanor lexicon file, the
-    referee prompt texts and the model IDs, each length-prefixed so no two inputs collide."""
-    h = hashlib.sha256()
-    for part in (definition_sha256(), lexicon_text, *prompt_texts, *model_ids):
-        data = part.encode("utf-8")
-        h.update(f"{len(data)}:".encode())
-        h.update(data)
-    return h.hexdigest()
+    referee prompt texts and the model IDs, hashed as one canonical JSON object so no field boundary can shift."""
+    doc = {
+        "definition_sha256": definition_sha256(),
+        "lexicon": lexicon_text,
+        "prompts": list(prompt_texts),
+        "model_ids": list(model_ids),
+    }
+    text = json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------- inputs

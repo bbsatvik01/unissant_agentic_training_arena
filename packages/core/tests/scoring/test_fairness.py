@@ -57,7 +57,7 @@ def _fa3(demeanor: bool) -> DemeanorCount:
         subchecks=[],
     )
     s = support_counts(cards, trial(answers), verdicts_by_key(cards, rep))
-    return DemeanorCount(flags=s.demeanor_based, findings=0, unique_flags=s.unique)
+    return DemeanorCount(flags=s.demeanor_based, findings=0, emitted_flags=s.emitted)
 
 
 def test_fx_f01_ac_s3_8_1_negative_control_is_flagged_and_significant() -> None:
@@ -152,7 +152,7 @@ def test_holm_step_down() -> None:
 
 
 def test_demeanor_count_with_no_flags() -> None:
-    d = DemeanorCount(flags=0, findings=1, unique_flags=0)
+    d = DemeanorCount(flags=0, findings=1, emitted_flags=0)
     assert (d.per_100_flags, d.violation) == (None, True)
 
 
@@ -179,3 +179,21 @@ def test_permutation_tests_are_undefined_without_two_estimable_levels() -> None:
     assert style_permutation_test([StyleUnit("F1", "plain", 1, 3), StyleUnit("F2", "plain", 0, 3)], seed=1) is None
     got = holm({"FA-5a": None, "FA-5c": 0.0002})
     assert got == {"FA-5a": (None, False), "FA-5c": (pytest.approx(0.0002), True)}
+
+
+def test_families_without_observations_do_not_count_toward_a_stratum() -> None:
+    units = [RateUnit("F0", "plain", 0, 12)] + [RateUnit(f"E{i}", "plain", 0, 0) for i in range(14)]
+    (s,) = stratified_rates(units, seed=1, b=200)
+    assert (s.families, s.interval) == (1, None)
+    assert s.bound is not None
+    assert (s.bound.n, s.bound.failed) == (1, 0)
+    (empty,) = stratified_rates([RateUnit("E1", "plain", 0, 0)], seed=1, b=200)
+    assert (empty.families, empty.point, empty.interval) == (0, None, None)
+    assert empty.bound is not None
+    assert empty.bound.bound is None
+
+
+def test_empty_units_cannot_change_a_style_permutation_p_value() -> None:
+    actual = [StyleUnit("F1", "a", 1, 1), StyleUnit("F2", "b", 0, 1)]
+    empty = [StyleUnit(f"Z{i}", "c", 0, 0) for i in range(13)]
+    assert style_permutation_test(actual + empty, seed=1) == style_permutation_test(actual, seed=1)

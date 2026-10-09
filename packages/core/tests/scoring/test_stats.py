@@ -245,3 +245,21 @@ def test_paired_difference_uses_common_families_only() -> None:
     assert iv.hi is not None
     assert iv.lo <= float(point) <= iv.hi
     assert paired_difference(a, {"F9": Cluster("F9", 0, 3)}, seed=5)[0] is None
+
+
+def test_paired_difference_keeps_a_family_only_one_candidate_can_score() -> None:
+    a = {"F1": Cluster("F1", 1, 1), "F2": Cluster("F2", 0, 0)}
+    b = {"F1": Cluster("F1", 0, 1), "F2": Cluster("F2", 2, 2)}
+    point, iv = paired_difference(a, b, seed=2, b=500)
+    assert point == 1 - Fraction(2, 3)
+    assert iv.pool == len(a)
+
+
+def test_paired_difference_with_every_draw_undefined_has_no_interval() -> None:
+    """A scores only in F1 and B only in F2: a draw of F1 alone or F2 alone leaves one metric undefined."""
+    a = {"F1": Cluster("F1", 1, 1), "F2": Cluster("F2", 0, 0)}
+    b = {"F1": Cluster("F1", 0, 0), "F2": Cluster("F2", 1, 2)}
+    seed = next(s for s in range(100) if len(set(np.random.default_rng(s).integers(0, 2, size=2))) == 1)
+    point, iv = paired_difference(a, b, seed=seed, b=1)
+    assert point == Fraction(1, 2)
+    assert (iv.lo, iv.hi, iv.status) == (None, None, "undefined")
