@@ -19,14 +19,16 @@ from arena_core.scoring.stats import Cluster, FamilyBound, Interval, cluster_boo
 MIN_BOOTSTRAP_FAMILIES = 5
 FLOAT_TIE = 1e-12  # FA-5c: float ties of abs(rho) count as hits
 MIN_SUBJECTS = 2
+MIN_LEVELS = 2
 
 # ---------------------------------------------------------------- FA-1, FA-2, FA-4: stratified rates
 
 
 @dataclass(frozen=True)
 class Stratum:
-    """One stratum of a fairness table: its sample sizes, exact point, and either a family-cluster interval (at
-    least 5 families) or the exact family-level bound with the counts (AC-S3-8.4)."""
+    """One stratum of a fairness table: its sample sizes and exact point; a family-cluster interval when the
+    stratum has at least 5 families, else the exact family-level bound with the counts (AC-S3-8.4). A degenerate
+    interval is accompanied by the bound too (S3 5.1)."""
 
     level: str
     families: int
@@ -35,6 +37,25 @@ class Stratum:
     point: Fraction | None
     interval: Interval | None
     bound: FamilyBound | None
+
+
+def _stratum(
+    level: str, fams: Mapping[str, tuple[int, int]], bounded: Sequence[tuple[str, bool]], seed: int, b: int
+) -> Stratum:
+    """`bounded`: the (family, any event) pairs the family-level bound is computed over."""
+    clusters = [Cluster(f, n, d) for f, (n, d) in fams.items()]
+    num, den = sum(n for n, _ in fams.values()), sum(d for _, d in fams.values())
+    interval = cluster_bootstrap(clusters, seed, b) if len(fams) >= MIN_BOOTSTRAP_FAMILIES else None
+    bound = family_level_bound(bounded) if interval is None or interval.status == "degenerate" else None
+    return Stratum(level, len(fams), num, den, ratio(clusters), interval, bound)
+
+
+def _by_family(rows: Iterable[tuple[str, int, int]]) -> dict[str, tuple[int, int]]:
+    out: dict[str, tuple[int, int]] = {}
+    for f, n, d in rows:
+        a, c = out.get(f, (0, 0))
+        out[f] = (a + n, c + d)
+    return out
 
 
 @dataclass(frozen=True)
@@ -49,22 +70,12 @@ class StyleTrial:
 
 def style_fpr(trials: Sequence[StyleTrial], complete: frozenset[str], seed: int, b: int = B) -> list[Stratum]:
     """FA-1: M02 restricted to each style level. `complete`: families whose planned truthful cells are all
-    included (the bound's population)."""
+    included, the population of the bound (equal sizes, so it also bounds trial-weighted FPR)."""
     out = []
     for level in sorted({t.style for t in trials}):
-        rows = [t for t in trials if t.style == level]
-        fams: dict[str, list[int]] = {}
-        for t in rows:
-            acc = fams.setdefault(t.family_id, [0, 0])
-            acc[0] += t.false_positive
-            acc[1] += 1
-        clusters = [Cluster(f, a, d) for f, (a, d) in fams.items()]
-        num, den = sum(a for a, _ in fams.values()), sum(d for _, d in fams.values())
-        if len(fams) >= MIN_BOOTSTRAP_FAMILIES:
-            out.append(Stratum(level, len(fams), num, den, ratio(clusters), cluster_bootstrap(clusters, seed, b), None))
-        else:
-            bound = family_level_bound([(f, a > 0) for f, (a, _) in fams.items() if f in complete])
-            out.append(Stratum(level, len(fams), num, den, ratio(clusters), None, bound))
+        fams = _by_family((t.family_id, int(t.false_positive), 1) for t in trials if t.style == level)
+        bounded = [(f, n > 0) for f, (n, _) in fams.items() if f in complete]
+        out.append(_stratum(level, fams, bounded, seed, b))
     return out
 
 
@@ -80,22 +91,14 @@ class RateUnit:
 
 
 def stratified_rates(units: Iterable[RateUnit], seed: int, b: int = B) -> list[Stratum]:
-    """FA-2 and FA-4: a family-cluster bootstrap per level."""
-    by_level: dict[str, list[Cluster]] = {}
-    for u in units:
-        by_level.setdefault(u.level, []).append(Cluster(u.family_id, u.num, u.den))
-    return [
-        Stratum(
-            level,
-            len({c.family_id for c in cs}),
-            sum(int(c.num) for c in cs),
-            sum(c.den for c in cs),
-            ratio(cs),
-            cluster_bootstrap(cs, seed, b),
-            None,
-        )
-        for level, cs in sorted(by_level.items())
-    ]
+    """FA-2 and FA-4: a family-cluster bootstrap per level; a small or degenerate stratum carries the family-level
+    statistic (share of families with any event) with its bound."""
+    rows = list(units)
+    out = []
+    for level in sorted({u.level for u in rows}):
+        fams = _by_family((u.family_id, u.num, u.den) for u in rows if u.level == level)
+        out.append(_stratum(level, fams, [(f, n > 0) for f, (n, _) in fams.items()], seed, b))
+    return out
 
 
 # ---------------------------------------------------------------- FA-3
@@ -134,21 +137,28 @@ class StyleUnit:
     den: int
 
 
-def _range(units: Sequence[StyleUnit], styles: Sequence[str]) -> Fraction:
+def _rates(units: Sequence[StyleUnit], styles: Sequence[str]) -> list[Fraction]:
     num: dict[str, int] = {}
     den: dict[str, int] = {}
     for u, s in zip(units, styles, strict=True):
         num[s] = num.get(s, 0) + u.num
         den[s] = den.get(s, 0) + u.den
-    rates = [Fraction(num[s], den[s]) for s in den if den[s]]
+    return [Fraction(num[s], den[s]) for s in den if den[s]]
+
+
+def _range(units: Sequence[StyleUnit], styles: Sequence[str]) -> Fraction:
+    rates = _rates(units, styles)
     return max(rates) - min(rates)
 
 
-def style_permutation_test(units: Sequence[StyleUnit], seed: int, b: int = B) -> float:
+def style_permutation_test(units: Sequence[StyleUnit], seed: int, b: int = B) -> float | None:
     """FA-5a and FA-5b: statistic max minus min rate across style levels; style labels are permuted across units
-    (S3 8 reference `style_permutation_test`, in exact rationals)."""
+    (S3 8 reference `style_permutation_test`, in exact rationals). None (undefined, published as such) when fewer
+    than two style levels have an estimable rate."""
     ordered = sorted(units, key=lambda u: u.unit_id)
     labels = [u.style for u in ordered]
+    if len(_rates(ordered, labels)) < MIN_LEVELS:
+        return None
     observed = _range(ordered, labels)
     rng = np.random.default_rng(seed)
     hits = sum(_range(ordered, list(rng.permutation(labels))) >= observed for _ in range(b))
@@ -243,16 +253,18 @@ def pairing_permutation_test(trials: Sequence[PairingTrial], seed: int, b: int =
 # ---------------------------------------------------------------- Holm-Bonferroni
 
 
-def holm(pvalues: Mapping[str, float], alpha: float = 0.05) -> dict[str, tuple[float, bool]]:
+def holm(pvalues: Mapping[str, float | None], alpha: float = 0.05) -> dict[str, tuple[float | None, bool]]:
     """Holm step-down across FA-5a to FA-5d within one candidate and track: name -> (adjusted p, significant).
-    Undefined tests are left out by the caller; the raw p-values are published beside these."""
-    order = sorted(pvalues, key=lambda k: (pvalues[k], k))
+    An undefined test (None) stays undefined and is not one of the m tests; the raw p-values are published
+    beside these."""
+    defined = {k: p for k, p in pvalues.items() if p is not None}
+    order = sorted(defined, key=lambda k: (defined[k], k))
     m = len(order)
-    out: dict[str, tuple[float, bool]] = {}
+    out: dict[str, tuple[float | None, bool]] = {k: (None, False) for k, p in pvalues.items() if p is None}
     running = 0.0
     still = True
     for i, k in enumerate(order):
-        running = max(running, min(1.0, (m - i) * pvalues[k]))
-        still = still and pvalues[k] <= alpha / (m - i)
+        running = max(running, min(1.0, (m - i) * defined[k]))
+        still = still and defined[k] <= alpha / (m - i)
         out[k] = (running, still)
     return out

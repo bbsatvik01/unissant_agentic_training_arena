@@ -144,3 +144,29 @@ def test_fx_k03_ac_s3_6_2_share_at_least_95_percent_iff_nearest_rank_p95_within_
 def test_nearest_rank() -> None:
     values = [Fraction(i) for i in range(1, 21)]
     assert (nearest_rank(values, Fraction(95, 100)), nearest_rank(values, Fraction(1, 2))) == (19, 10)
+
+
+def test_every_kpi1_estimand_has_a_participant_bootstrap_interval() -> None:
+    pre = {"p1": [40], "p2": [50], "p3": [60], "p4": [0]}
+    post = {"p1": [50], "p2": [55], "p3": [80], "p4": [20]}
+    r = kpi1(pre, post, seed=3, b=500)
+    assert set(r.cis) == {"mean_rel", "median_rel", "share_ge_20pct", "mean_abs", "ratio_of_means"}
+    for name, point in (("mean_rel", r.mean_rel), ("mean_abs", r.mean_abs), ("ratio_of_means", r.ratio_of_means)):
+        ci = r.cis[name]
+        assert ci is not None
+        assert point is not None
+        assert ci[0] <= float(point) <= ci[1], name
+    assert r.ci == r.cis["mean_rel"]
+
+
+def test_with_every_pre_score_zero_the_absolute_estimand_keeps_its_interval() -> None:
+    r = kpi1({"p1": [0], "p2": [0]}, {"p1": [10], "p2": [30]}, seed=3, b=300)
+    assert (r.mean_rel, r.cis["mean_rel"], r.cis["ratio_of_means"]) == (None, None, None)
+    assert r.mean_abs == Fraction(20)
+    assert r.cis["mean_abs"] == (10.0, 30.0)
+
+
+def test_kpi1_with_no_paired_participant_has_no_estimand() -> None:
+    r = kpi1({"p1": [40]}, {}, seed=3, b=100)
+    assert (r.mean_rel, r.mean_abs, r.attrition) == (None, None, ["p1"])
+    assert set(r.cis.values()) == {None}

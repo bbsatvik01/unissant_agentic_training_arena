@@ -81,16 +81,20 @@ def evasion_counts(
     kinds: frozenset[str] = STRICT,
 ) -> EvasionCounts:
     """S3 5.3: a flag is a true positive when supported, it cites an evasion event (a turn labeled `evasion`;
-    PFQ turns never are), and it is the first such flag on that event; every other emitted flag of an evasion
-    kind is a false positive (unsupported, non-event, second flag on a matched event, or duplicate)."""
+    PFQ turns never are), it is the first such flag on that event, and it is not a re-emission of an earlier
+    flag; every other emitted flag of an evasion kind is a false positive (unsupported, non-event, second flag on
+    a matched event, or duplicate, whether or not its first occurrence matched an event; C-05)."""
     events = {t for t, lab in labels.items() if lab == "evasion"}
     matched: set[int] = set()
+    seen: set[Key] = set()
     tp = fp = 0
     for turn, _, f in emitted_flags(cards):
         if f.kind not in kinds:
             continue
+        duplicate = flag_key(f) in seen
+        seen.add(flag_key(f))
         ok, _ = flag_status(f, turn, trial, verdicts)
-        if ok and f.turn_no in events and f.turn_no not in matched:
+        if ok and not duplicate and f.turn_no in events and f.turn_no not in matched:
             matched.add(f.turn_no)
             tp += 1
         else:

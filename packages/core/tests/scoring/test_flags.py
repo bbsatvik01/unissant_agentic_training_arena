@@ -204,3 +204,14 @@ def test_ac_s3_1_7_a_replay_card_t01_citing_t12_fails_citation_on_its_own_copied
     copied = trial({1: ANSWERS[1]}, rec02_after=None)  # the replay trial's own copy so far
     f = stored_card(12, [flag("possible_evasion", "t12", "a busy shift at the end")]).flags[0]
     assert flag_status(f, 1, copied, {}) == (False, "citation")
+
+
+def test_a_re_emitted_flag_is_a_false_positive_even_when_its_first_occurrence_was_unsupported() -> None:
+    """C-05, S3 5.3: a duplicate is a false positive whether or not its first occurrence matched an event. Here
+    the first occurrence is a lexicon hit (unsupported) and the re-emission's claim is clean."""
+    first = stored_card(
+        1, [flag("possible_evasion", "t01", ANSWERS[1], missing_fact="why the subject was nervous")], demeanor=(1,)
+    )
+    again = stored_card(2, [flag("possible_evasion", "t01", ANSWERS[1])])
+    v = j3([first, again], verdict("t01.f1"))
+    assert evasion_counts([first, again], LABELS, ROWS, v) == EvasionCounts(0, 2, 1)

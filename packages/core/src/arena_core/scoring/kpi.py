@@ -24,10 +24,15 @@ MISSES = ("timeout", "repair_failed", "client_invalid", "unmeasured_timeout")
 # ---------------------------------------------------------------- KPI-1, 6.1, M18
 
 
+Ci = tuple[float, float]
+KPI1_ESTIMANDS = ("mean_rel", "median_rel", "share_ge_20pct", "mean_abs", "ratio_of_means")
+
+
 @dataclass(frozen=True)
 class Kpi1:
     mean_rel: Fraction | None  # primary: mean of r_i over participants with pre_i > 0
-    ci: tuple[float, float] | None  # participant bootstrap of the primary estimand
+    ci: Ci | None  # the primary estimand's interval (cis["mean_rel"])
+    cis: dict[str, Ci | None]  # participant bootstrap of every estimand (S3 6.1)
     excluded_pre_zero: list[str]
     mean_abs: Fraction | None  # mean of a_i = post_i - pre_i, every paired participant
     median_rel: Fraction | None
@@ -43,6 +48,45 @@ def _median(values: Sequence[Fraction]) -> Fraction:
     return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
 
 
+def _percentiles(stats: np.ndarray) -> Ci | None:
+    """The 1.4 percentile interval over the defined resamples (a resample can be undefined, e.g. every resampled
+    pre-score zero for the ratio of means); None when none is defined."""
+    defined = np.sort(stats[np.isfinite(stats)])
+    if len(defined) == 0:
+        return None
+    lo_i, hi_i = ci_indices(len(defined))
+    return float(defined[lo_i]), float(defined[hi_i])
+
+
+def _kpi1_intervals(
+    rel: Mapping[str, Fraction], pre_m: Mapping[str, Fraction], post_m: Mapping[str, Fraction], seed: int, b: int
+) -> dict[str, Ci | None]:
+    """Participant bootstrap per estimand: the relative estimands resample the participants with pre > 0, the
+    absolute and ratio-of-means estimands every paired participant; each estimand has its own seeded stream."""
+    out: dict[str, Ci | None] = dict.fromkeys(KPI1_ESTIMANDS)
+    rel_ids, ids = sorted(rel), sorted(pre_m)
+    if not ids:
+        return out
+    if rel_ids:
+        r = np.array([float(rel[i]) for i in rel_ids])
+        hit = np.array([float(rel[i] >= KPI1_TARGET) for i in rel_ids])
+        idx = np.random.default_rng([seed, 0]).integers(0, len(rel_ids), size=(b, len(rel_ids)))
+        out["mean_rel"] = _percentiles(r[idx].mean(axis=1))
+        idx = np.random.default_rng([seed, 1]).integers(0, len(rel_ids), size=(b, len(rel_ids)))
+        out["median_rel"] = _percentiles(np.median(r[idx], axis=1))
+        idx = np.random.default_rng([seed, 2]).integers(0, len(rel_ids), size=(b, len(rel_ids)))
+        out["share_ge_20pct"] = _percentiles(hit[idx].mean(axis=1))
+    pre = np.array([float(pre_m[i]) for i in ids])
+    post = np.array([float(post_m[i]) for i in ids])
+    idx = np.random.default_rng([seed, 3]).integers(0, len(ids), size=(b, len(ids)))
+    out["mean_abs"] = _percentiles((post - pre)[idx].mean(axis=1))
+    idx = np.random.default_rng([seed, 4]).integers(0, len(ids), size=(b, len(ids)))
+    pre_s, post_s = pre[idx].sum(axis=1), post[idx].sum(axis=1)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out["ratio_of_means"] = _percentiles(np.where(pre_s > 0, post_s / pre_s - 1, np.nan))
+    return out
+
+
 def kpi1(pre: Mapping[str, Sequence[int]], post: Mapping[str, Sequence[int]], seed: int, b: int = B) -> Kpi1:
     """`pre`, `post`: participant -> the scores of their scorable test sessions in that phase (an unscorable
     session has no score and is left out; a participant with none in a phase is attrition, SG2-38)."""
@@ -53,19 +97,13 @@ def kpi1(pre: Mapping[str, Sequence[int]], post: Mapping[str, Sequence[int]], se
     rel = {i: (post_m[i] - pre_m[i]) / pre_m[i] for i in ids if pre_m[i] > 0}
     absd = {i: post_m[i] - pre_m[i] for i in ids}
     point = sum(rel.values(), Fraction(0)) / len(rel) if rel else None
-    keys = sorted(rel)
-    ci = None
-    if keys:
-        rng = np.random.default_rng(seed)
-        vals = np.array([float(rel[k]) for k in keys])
-        boot = np.sort(vals[rng.integers(0, len(keys), size=(b, len(keys)))].mean(axis=1))
-        lo_i, hi_i = ci_indices(b)
-        ci = (float(boot[lo_i]), float(boot[hi_i]))
     mean_pre = sum(pre_m.values(), Fraction(0)) / len(ids) if ids else None
     mean_post = sum(post_m.values(), Fraction(0)) / len(ids) if ids else None
+    cis = _kpi1_intervals(rel, pre_m, post_m, seed, b)
     return Kpi1(
         mean_rel=point,
-        ci=ci,
+        ci=cis["mean_rel"],
+        cis=cis,
         excluded_pre_zero=[i for i in ids if pre_m[i] == 0],
         mean_abs=sum(absd.values(), Fraction(0)) / len(absd) if absd else None,
         median_rel=_median(list(rel.values())) if rel else None,

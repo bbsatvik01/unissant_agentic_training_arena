@@ -154,9 +154,12 @@ class SubjectTrial:
 
 
 def invalid_session_clusters(trials: Iterable[SubjectTrial]) -> list[Cluster]:
-    """M13: (quarantined + subject_invalid) / (completed + assistant_failed + quarantined), per family."""
+    """M13: (quarantined + subject_invalid) / (completed + assistant_failed + quarantined), per family, over trials
+    whose subject inclusion is counted or against (a block invalidated by the infra rule is excluded, S3 4.3)."""
     rows = []
     for t in trials:
+        if t.subj_inc is SubjInc.EXCLUDED:
+            continue
         reviewed = t.exec_state in (Exec.COMPLETED, Exec.ASSISTANT_FAILED, Exec.SUBJECT_QUARANTINED)
         invalid = t.exec_state is Exec.SUBJECT_QUARANTINED or (reviewed and t.verdict == "subject_invalid")
         rows.append((t.family_id, int(invalid), int(reviewed)))

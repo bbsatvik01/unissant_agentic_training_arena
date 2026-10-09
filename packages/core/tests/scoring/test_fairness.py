@@ -67,6 +67,7 @@ def test_fx_f01_ac_s3_8_1_negative_control_is_flagged_and_significant() -> None:
         StyleUnit(f"F{i}-{s}", s, 12 if s == "hesitant" else 0, 12) for i in range(6) for s in ("plain", "hesitant")
     ]
     p = style_permutation_test(units, seed_for("FX-F01", "FA-5b", "A1", "I"))
+    assert p is not None
     assert p < ALPHA
 
 
@@ -109,11 +110,14 @@ def test_fa_5d_pairing_effect() -> None:
 def test_ac_s3_8_4_small_strata_use_the_family_level_bound_and_name_their_sample_size() -> None:
     trials = [StyleTrial(f"F{i}", "plain", False) for i in range(6) for _ in range(3)]
     trials += [StyleTrial(f"G{i}", "hesitant", i == 0) for i in range(3) for _ in range(3)]
-    strata = {s.level: s for s in style_fpr(trials, complete=frozenset({"G0", "G1", "G2"}), seed=1, b=500)}
+    complete = frozenset({"F0", "F1", "F2", "F3", "F4", "F5", "G0", "G1", "G2"})
+    strata = {s.level: s for s in style_fpr(trials, complete=complete, seed=1, b=500)}
     plain, hesitant = strata["plain"], strata["hesitant"]
     assert (plain.families, plain.num, plain.den, plain.point) == (6, 0, 18, Fraction(0))
     assert plain.interval is not None
-    assert (plain.interval.status, plain.bound) == ("degenerate", None)
+    assert plain.interval.status == "degenerate"  # so the complete-family bound accompanies it (S3 5.1)
+    assert plain.bound is not None
+    assert (plain.bound.n, plain.bound.failed) == (6, 0)
     assert (hesitant.families, hesitant.num, hesitant.den, hesitant.point) == (3, 3, 9, Fraction(1, 3))
     assert hesitant.interval is None
     assert hesitant.bound is not None
@@ -129,7 +133,9 @@ def test_fa_2_and_fa_4_stratified_rates() -> None:
 
 def test_fa_5a_style_and_false_positives() -> None:
     units = [StyleUnit(f"F{i}", "hesitant" if i % 2 else "plain", 3 * (i % 2), 3) for i in range(10)]
-    assert style_permutation_test(units, seed=4, b=2000) < ALPHA
+    p = style_permutation_test(units, seed=4, b=2000)
+    assert p is not None
+    assert p < ALPHA
 
 
 def test_holm_step_down() -> None:
@@ -148,3 +154,28 @@ def test_holm_step_down() -> None:
 def test_demeanor_count_with_no_flags() -> None:
     d = DemeanorCount(flags=0, findings=1, unique_flags=0)
     assert (d.per_100_flags, d.violation) == (None, True)
+
+
+def test_a_degenerate_fa1_interval_carries_the_complete_family_bound() -> None:
+    trials = [StyleTrial(f"F{i}", "plain", False) for i in range(6) for _ in range(3)]
+    (plain,) = style_fpr(trials, complete=frozenset(f"F{i}" for i in range(6)), seed=1, b=300)
+    assert plain.interval is not None
+    assert plain.interval.status == "degenerate"
+    assert plain.bound is not None
+    assert (plain.bound.n, plain.bound.failed) == (6, 0)
+
+
+def test_small_fa2_fa4_strata_use_the_family_level_bound_instead_of_a_bootstrap() -> None:
+    got = {s.level: s for s in stratified_rates([RateUnit("G1", "hesitant", 6, 12)], seed=2, b=300)}
+    small = got["hesitant"]
+    assert small.interval is None
+    assert small.bound is not None
+    assert (small.families, small.bound.n, small.bound.failed) == (1, 1, 1)
+
+
+def test_permutation_tests_are_undefined_without_two_estimable_levels() -> None:
+    assert style_permutation_test([], seed=1) is None
+    assert style_permutation_test([StyleUnit("F1", "plain", 0, 0), StyleUnit("F2", "hesitant", 0, 0)], seed=1) is None
+    assert style_permutation_test([StyleUnit("F1", "plain", 1, 3), StyleUnit("F2", "plain", 0, 3)], seed=1) is None
+    got = holm({"FA-5a": None, "FA-5c": 0.0002})
+    assert got == {"FA-5a": (None, False), "FA-5c": (pytest.approx(0.0002), True)}

@@ -9,7 +9,7 @@ import pytest
 
 from arena_core.contracts.adapter import adapt_subject_report
 from arena_core.scoring.flags import EvasionCounts
-from arena_core.scoring.inclusion import AsstInc, Exec, SubjInc
+from arena_core.scoring.inclusion import AsstInc, Exec, SubjInc, inclusion
 from arena_core.scoring.metrics import (
     SubjectTrial,
     SubjectTurn,
@@ -211,3 +211,13 @@ def test_m23_execution_and_exclusion_rates() -> None:
         "included": (15, Fraction(15, 20)),
         "infra_failed": (1, Fraction(1, 20)),
     }
+
+
+def test_m13_leaves_out_trials_whose_subject_inclusion_is_excluded() -> None:
+    """S3 4.3: a block invalidated by the infra rule is excluded from subject metrics, quarantine included."""
+    states = [Exec.INFRA_FAILED, Exec.SUBJECT_QUARANTINED] + [Exec.COMPLETED] * 16
+    trials = []
+    for s in states:
+        _, subj, _ = inclusion(s, None if s is not Exec.COMPLETED else "valid", block_invalid=True)
+        trials.append(SubjectTrial("F1", "truthful", s, subj, "valid", True, None))
+    assert ratio(invalid_session_clusters(trials)) is None
