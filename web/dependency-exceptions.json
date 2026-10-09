@@ -1,0 +1,26 @@
+{
+  "policy": "Every exception in pnpm-workspace.yaml to the release-age gate, the trust gate or normal resolution is listed here: one exact version, the reason with its evidence, the date the evidence was checked, and the date it must be re-decided (at most 92 days later). tools/dependency-exceptions.test.ts, part of pnpm check, fails when this file and pnpm-workspace.yaml disagree and from the expiry date on, until the exception is re-verified or removed.",
+  "exceptions": [
+    {
+      "setting": "minimumReleaseAgeExclude",
+      "spec": "source-map-js@1.2.2",
+      "reason": "Security release younger than the 14-day cooldown: 1.2.2 (published 2026-09-30 by 7rulnik, the sole maintainer, who also published 1.2.0 and 1.2.1) is the first patched version for GHSA-68fv-2mgg-jv7q (CVE-2026-93749, high: event-loop denial of service through indexed source-map section offsets; every version from 1.0.0 to 1.2.1 is affected). Reached through postcss (vite), @tailwindcss/node, css-tree (jsdom) and magicast (@vitest/coverage-v8). Unneeded once 1.2.2 is 14 days old: remove this entry and its pnpm-workspace.yaml line on the expiry date.",
+      "verified": "2026-10-08",
+      "expires": "2026-10-15"
+    },
+    {
+      "setting": "overrides",
+      "spec": "source-map-js@<1.2.2: 1.2.2",
+      "reason": "Floor for the same advisory (GHSA-68fv-2mgg-jv7q): every dependent asks for ^1.2.1, so without the override a fresh resolution may keep the vulnerable 1.2.1, which pnpm audit then fails. Remove once no dependent can resolve below 1.2.2.",
+      "verified": "2026-10-08",
+      "expires": "2027-01-06"
+    },
+    {
+      "setting": "trustPolicyExclude",
+      "spec": "semver@6.3.1",
+      "reason": "Verified trust-downgrade false positive: semver 6.3.1 (published 2023-07-10, gitHead b717044) is the 6.x backport of the CVE-2022-25883 fix, published without provenance by npm CLI team member lukekarrys three days after the npm-cli-ops bot published 7.5.4 with provenance; pnpm orders trust by publish date across major lines. Checked with npm view semver@6.3.0, 6.3.1, 7.5.3, 7.5.4 and 7.6.0 (_npmUser, dist.attestations). Required as ^6.3.1 by @babel/core through eslint-plugin-react-hooks 7.1.1; every release of that plugin supporting ESLint 10 depends on @babel/core.",
+      "verified": "2026-10-08",
+      "expires": "2027-01-06"
+    }
+  ]
+}

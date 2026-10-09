@@ -1,0 +1,26 @@
+# pnpm settings for arena-web (single-package project; pnpm 11 reads settings from this file only).
+#
+# Exception policy: every exclusion or override below names one exact version and is listed in
+# dependency-exceptions.json with its reason, evidence date and expiry (at most 92 days). The test
+# tools/dependency-exceptions.test.ts (part of `pnpm check`) fails when the two files disagree, when
+# an exception is not version-exact, and from an exception's expiry date on.
+#
+# Supply-chain cooldown (S6 1.2): every resolved version, direct or transitive, must be at least
+# 14 days old (20160 minutes). Strict: resolution fails instead of falling back to a younger version.
+minimumReleaseAge: 20160
+minimumReleaseAgeStrict: true
+# Security release younger than the cooldown: source-map-js 1.2.2 fixes GHSA-68fv-2mgg-jv7q (high).
+minimumReleaseAgeExclude:
+  - 'source-map-js@1.2.2'
+# Floor for the same advisory: its dependents ask for ^1.2.1.
+overrides:
+  'source-map-js@<1.2.2': '1.2.2'
+# Fail if a package's publish trust evidence (provenance, trusted publisher) ever downgrades.
+trustPolicy: no-downgrade
+# Verified false positive: semver 6.3.1, the 6.x security backport published after 7.5.4 (with provenance).
+trustPolicyExclude:
+  - 'semver@6.3.1'
+# Dependency engine ranges are checked against the pinned runtime (package.json devEngines.runtime).
+engineStrict: true
+# Exact versions only when adding a dependency.
+saveExact: true
