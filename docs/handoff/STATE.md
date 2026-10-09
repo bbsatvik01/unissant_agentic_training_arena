@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- Codex UI round 1 YELLOW (3 majors, 8 minors, all real); UI direction v2 applies them (ecd95e3): one server-authorized event projection for all motion, complete-card reveal only, ranged UI matrices with GSAP and avatar choices provisional, frame-interval measurement, playback-driven voice state, 62-image art cap in the D-009 simulation (30 cases ~$46 / ~$70, complete). Codex UI round 2 running. Spec workflow: S1-S7 written, S8 build plan in progress.
 - UI/UX research-harness complete (U1-U5: 69 web, 9 GDK, 17 Context7); UI direction v1 written (`docs/research/synthesis/03-ui-direction.md`): kin-style status pet, generated portrait avatars with amplitude mouths, Motion + GSAP + CSS, pill voice bar, rail-first agents view, no-jargon copy rules, Stitch/impeccable pipeline; Live Avatar out of scope. Codex UI critique running.
 - D-011 local-first (owner): hosting deferred; plan now 30 hidden cases (~$43 / ~$66), 34 pilot-gated. Owner also asked for a research-harness pass on UI/UX (animations, speaking avatars, pets, Claude skills); launching now.
 - **Direction GREEN** (Codex round 9: 0 majors; orchestrator green). `docs/research/synthesis/02-direction.md` v10.1 awaits owner review. Plan: 20 hidden cases baseline (~$37 / ~$63), 26 pilot-gated. $0 GCP spend so far.
@@ -28,8 +29,8 @@
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| codex exec (UI round 1) | Codex critique of `03-ui-direction.md` | gpt-6-astra xhigh | 2026-10-08 ~20:25 | ~20:40 | scratchpad `codex/ui1.json` |
-| task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8 (Opus x7, Sonnet x1) | Opus/Sonnet | 2026-10-08 ~21:00 EDT | ~21:45-22:30 EDT | `docs/spec/**` |
+| bg `b06kabicr` codex exec (UI round 2) | Codex critique of `03-ui-direction.md` v2 | gpt-6-astra xhigh | 2026-10-08 20:31 EDT | ~20:50 EDT (30 min timeout) | scratchpad `codex/ui2.json` |
+| task `wvney9kpk` / run `wf_7986355a-2f8` | Spec-package workflow S1-S8; S1-S7 done, S8 running | Opus/Sonnet | 2026-10-08 19:40 EDT | ~21:00 EDT | `docs/spec/**` |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
@@ -48,9 +49,10 @@
 - Supabase project details, DESIGN.md, GitHub repo destination, team members, any Challenge X rubric or submission rules.
 
 ## Next dispatch queue
-1. Spec-package workflow S1-S8 running; then Codex review of the spec package (`codex exec` in the foreground, TechnoMile lesson) until green x green.
-2. Apply findings, re-run until green x green; record rounds in `docs/research/synthesis/critique-round-N.md`.
-3. Present direction to the owner.
+1. Codex UI round 2 -> fix until green x green; record `critique-ui-round-2.md`.
+2. Spec-package workflow S8 running; then secret scan, commit `docs/spec/**`, Codex review of the spec package (`codex exec` in the foreground, TechnoMile lesson) until green x green.
+3. Apply spec findings, re-run until green x green.
+4. Present direction to the owner.
 
 ## Local commits ahead of origin
 - No remote configured.
