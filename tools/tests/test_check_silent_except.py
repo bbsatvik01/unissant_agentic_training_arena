@@ -33,6 +33,16 @@ SILENT = [
     "try:\n    f()\nexcept OSError as exc:\n    if exc.errno == 2:\n        return None\n    raise\n",
     "try:\n    f()\nexcept ValueError:\n    with lock:\n        if strict:\n            raise\n",
     "try:\n    f()\nexcept ValueError:\n    for item in items:\n        raise\n",
+    # Codex round 10: a report inside a conditional expression, a short-circuit operand, a comprehension or
+    # a lambda may never run; a nested try whose handler returns, and a match without a wildcard, can leave.
+    "try:\n    f()\nexcept ValueError:\n    logger.exception('bad') if debug else None\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    debug and logger.warning('bad')\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    [logger.warning(x) for x in extra]\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    later = lambda: logger.warning('bad')\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    try:\n        cleanup()\n"
+    "    except OSError:  # silent-ok: probe, outer path\n        return None\n    raise\n",
+    "try:\n    f()\nexcept ValueError:\n    match mode:\n        case 'strict':\n            raise\n",
+    "try:\n    f()\nexcept ValueError:\n    try:\n        cleanup()\n    finally:\n        tidy()\n",
 ]
 HANDLED = [
     "try:\n    f()\n# silent-ok: ENOENT means the file is gone, which is the answer\nexcept OSError as exc:\n"
@@ -41,6 +51,13 @@ HANDLED = [
     "try:\n    f()\nexcept ValueError:\n    if strict:\n        raise\n    else:\n        logger.warning('bad')\n",
     "try:\n    f()\nexcept ValueError:\n    for item in items:\n        continue\n    raise\n",
     "try:\n    f()\nexcept ValueError:\n    with lock:\n        raise\n",
+    "try:\n    f()\nexcept ValueError:\n    try:\n        cleanup()\n    finally:\n        raise\n",
+    "try:\n    f()\nexcept ValueError:\n    try:\n        return None\n    finally:\n        logger.warning('bad')\n",
+    "try:\n    f()\nexcept ValueError:\n    try:\n        cleanup()\n    except OSError:\n        raise\n    raise\n",
+    "try:\n    f()\nexcept ValueError:\n    match mode:\n        case 'strict':\n            raise\n"
+    "        case _:\n            logger.warning('bad')\n",
+    "try:\n    f()\nexcept ValueError:\n    logger.warning('bad') if debug else logger.info('bad')\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    logger.warning('bad') or retry()\n    return None\n",
     "try:\n    f()\nexcept ValueError as exc:\n    def later() -> None:\n        return None\n"
     "    raise RuntimeError('x') from exc\n",
     "try:\n    f()\nexcept ValueError as exc:\n    self.last_error: object = exc\n",

@@ -11,6 +11,7 @@ import ast
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -73,6 +74,33 @@ def _tainted_names(nodes: list[ast.AST], name: str) -> set[str]:
     return tainted
 
 
+COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)
+
+
+def _always_children(node: ast.AST) -> list[ast.AST]:
+    """The children that always run when ``node`` runs (a conditional expression is handled by the caller)."""
+    if isinstance(node, ast.Lambda | ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+        return []
+    if isinstance(node, ast.BoolOp):
+        return [node.values[0]]
+    if isinstance(node, COMPREHENSIONS):
+        return [node.generators[0].iter]
+    if isinstance(node, ast.Assert):
+        return [node.test]
+    return list(ast.iter_child_nodes(node))
+
+
+def _always(node: ast.AST, holds: Callable[[ast.AST], bool]) -> bool:
+    """True when ``holds`` is true of a node that always runs when ``node`` runs: only the test of a
+    conditional expression (or both of its branches), only the first operand of ``and``/``or``, only the
+    first iterable of a comprehension, never a lambda or nested definition body, never an assert message."""
+    if holds(node):
+        return True
+    if isinstance(node, ast.IfExp):
+        return _always(node.test, holds) or (_always(node.body, holds) and _always(node.orelse, holds))
+    return any(_always(child, holds) for child in _always_children(node))
+
+
 def _escapes(node: ast.AST, tainted: set[str]) -> bool:
     """True when a value derived from the caught exception leaves the handler.
 
@@ -83,7 +111,7 @@ def _escapes(node: ast.AST, tainted: set[str]) -> bool:
     """
 
     def refs(expr: object) -> bool:
-        return isinstance(expr, ast.AST) and any(_references(expr, t) for t in tainted)
+        return isinstance(expr, ast.AST) and _always(expr, lambda n: isinstance(n, ast.Name) and n.id in tainted)
 
     if isinstance(node, ast.Return | ast.Yield | ast.YieldFrom | ast.Await):
         return refs(node.value)
@@ -111,13 +139,15 @@ EXITS = (ast.Return, ast.Continue, ast.Break)
 
 
 def _handles(stmt: ast.stmt, tainted: set[str]) -> bool:
-    """A simple statement that raises, reports, or hands a value derived from the exception on."""
-    for node in ast.walk(stmt):
+    """A simple statement that always raises, reports, or hands a value derived from the exception on (a
+    report under a conditional expression, a short-circuit operand or a comprehension may never run)."""
+
+    def handles(node: ast.AST) -> bool:
         if isinstance(node, ast.Raise) or (isinstance(node, ast.Call) and _is_reporting_call(node)):
             return True
-        if _escapes(node, tainted):
-            return True
-    return False
+        return _escapes(node, tainted)
+
+    return _always(stmt, handles)
 
 
 def _flow(stmts: list[ast.stmt], tainted: set[str], *, in_loop: bool) -> Flow:
@@ -141,10 +171,13 @@ def _flow(stmts: list[ast.stmt], tainted: set[str], *, in_loop: bool) -> Flow:
         elif isinstance(stmt, ast.With | ast.AsyncWith):
             inner_with = _flow(stmt.body, tainted, in_loop=in_loop)
             exits, falls = exits or inner_with.exits_silently, inner_with.falls_through
-        elif isinstance(stmt, ast.Try | ast.TryStar | ast.Match):
-            blocks = [*_child_blocks(stmt)]
-            flows = [_flow(block, tainted, in_loop=in_loop) for block in blocks]
-            exits = exits or any(f.exits_silently for f in flows)
+        elif isinstance(stmt, ast.Try | ast.TryStar):
+            inner_try = _try_flow(stmt, tainted, in_loop=in_loop)
+            exits, falls = exits or inner_try.exits_silently, inner_try.falls_through
+        elif isinstance(stmt, ast.Match):
+            cases = [_flow(case.body, tainted, in_loop=in_loop) for case in stmt.cases]
+            exits = exits or any(f.exits_silently for f in cases)
+            falls = not _exhaustive(stmt) or any(f.falls_through for f in cases)
         elif _handles(stmt, tainted):
             falls = False
         elif isinstance(stmt, EXITS):
@@ -154,10 +187,29 @@ def _flow(stmts: list[ast.stmt], tainted: set[str], *, in_loop: bool) -> Flow:
     return Flow(exits, falls)
 
 
-def _child_blocks(stmt: ast.Try | ast.TryStar | ast.Match) -> list[list[ast.stmt]]:
-    if isinstance(stmt, ast.Match):
-        return [case.body for case in stmt.cases]
-    return [stmt.body, *(h.body for h in stmt.handlers), stmt.orelse, stmt.finalbody]
+def _try_flow(stmt: ast.Try | ast.TryStar, tainted: set[str], *, in_loop: bool) -> Flow:
+    """A ``finally`` that handles every path covers the whole statement (a return in the body still runs
+    it); otherwise the body (then ``else``) and each handler are paths of their own."""
+    final = _flow(stmt.finalbody, tainted, in_loop=in_loop)
+    if stmt.finalbody and not final.falls_through and not final.exits_silently:
+        return Flow(exits_silently=False, falls_through=False)
+    body = _flow(stmt.body, tainted, in_loop=in_loop)
+    orelse = _flow(stmt.orelse, tainted, in_loop=in_loop)
+    handlers = [_flow(handler.body, tainted, in_loop=in_loop) for handler in stmt.handlers]
+    exits = body.exits_silently or orelse.exits_silently or any(h.exits_silently for h in handlers)
+    falls = (body.falls_through and orelse.falls_through) or any(h.falls_through for h in handlers)
+    return Flow(exits or final.exits_silently, falls)
+
+
+def _exhaustive(stmt: ast.Match) -> bool:
+    """The last case is an unguarded wildcard (``case _:``), so some case always runs."""
+    last = stmt.cases[-1] if stmt.cases else None
+    return (
+        last is not None
+        and last.guard is None
+        and isinstance(last.pattern, ast.MatchAs)
+        and last.pattern.pattern is None
+    )
 
 
 def handler_is_silent(handler: ast.ExceptHandler) -> bool:
