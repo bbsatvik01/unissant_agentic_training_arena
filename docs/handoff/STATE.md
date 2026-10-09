@@ -8,6 +8,7 @@
 - Usage limit may hit. Do NOT stop anything running. Do NOT dispatch anything new until ~00:45 EDT (2 hours); after that, full force.
 - Running at hold time (all keep running): spec fix r1 (`wf_09e6717a-210`), build wave 2 (`wf_9aced0c9-52d`), dev case authoring (`wf_0246738e-32c`), web foundation (`wf_20ff7f42-fb5`).
 - If a session ends mid-run: relaunch each with `Workflow({scriptPath, resumeFromRunId})` (paths in SUBAGENTS.md); completed agents replay from cache. Agent edits live in: main tree `docs/spec/**` (spec fixers, uncommitted), worktrees `/private/tmp/wt-wp01`, `wt-wp08`, `wt-wp03`, `wt-cases`, `wt-web` (branches). Never delete a worktree or reset a branch before its work is committed and gated.
+- Durable copy (outside /tmp, survives reboot): `~/arena-checkpoint/2026-10-08-2335/` holds wt-cases, wt-web, wt-wp01/03/08 working files (no node_modules/.venv) with their branch commit lists, and the scratchpad (minus venv). At checkpoint: wt-wp01 e54329a (gate fixes committed), wt-wp03 b869245, wt-wp08 1d6dc06 (both committed, still iterating), wt-cases and wt-web uncommitted in progress.
 - Scratch state worth keeping: scratchpad `codex/spec1/` (round-1 findings), `authoring/` (case kit), `backup-wp01/` (scaffold copy), `s1v21`/`s4v21` reference kits, `v21_result.json`, `reconcile_result.json`.
 
 ## Where things stand
