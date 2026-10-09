@@ -24,7 +24,7 @@ from arena_core.scenario.validators.v4 import check_invariance
 
 Family = dict[str, Any]
 Mutation = Callable[[Family], None]
-S1_SUITE_SIZE = 42  # S1 9: "a mutation suite of 42 deliberate defects plus one clean control"
+S1_SUITE_SIZE = 43  # S1 9.8 v2.8: MU-01 to MU-43 plus one clean control
 VARIANTS = ("truthful", "deceptive")
 
 
@@ -334,6 +334,19 @@ REFERENCE_MUTANTS: tuple[Mutant, ...] = (
     ),
     Mutant("MU-35 revision missing", revision_missing, "V1.schema", "'revision' is a required property"),
     Mutant("MU-36 hidden family with revision 2", hidden_family_revised, "V1.schema", "revision: 1 was expected"),
+)
+
+
+def decisive_fact_not_material(f: Family) -> None:
+    """f:41 (the deceptive r:01 dispatch fact) marked material: false in the graph and its projection alike."""
+    for fact in [*f["event_graph"]["facts"], *(x for v in VARIANTS for x in ev(f, v)["canonical_facts"])]:
+        if fact["id"] == "f:41":
+            fact["material"] = False
+
+
+# S1 9.8 v2.8 adds MU-43 on F01 after the split-level MU-37 to MU-42.
+MU_43 = Mutant(
+    "MU-43 decisive item names a non-material fact", decisive_fact_not_material, "V2.material_decisive", "f:41"
 )
 
 
@@ -935,8 +948,9 @@ def test_the_unmutated_base_is_clean(seed: Callable[[str], Family]) -> None:
     assert validate_family(seed("F01")) == []
 
 
-def test_the_suite_is_s1_9_8_mu_01_to_mu_42() -> None:
-    ids = [m.name[:5] for m in REFERENCE_MUTANTS] + [m.name[:5] for m in SPLIT_MUTANTS]
+def test_the_suite_is_s1_9_8_mu_01_to_mu_43() -> None:
+    names = [m.name for m in REFERENCE_MUTANTS] + [m.name for m in SPLIT_MUTANTS] + [MU_43.name]
+    ids = [name[:5] for name in names]
     assert ids == [f"MU-{n:02d}" for n in range(1, S1_SUITE_SIZE + 1)]
 
 
@@ -951,7 +965,7 @@ def test_the_control_is_clean(seed: SeedReader) -> None:
     assert validate_split(control(seed)) == []
 
 
-@pytest.mark.parametrize("mutant", REFERENCE_MUTANTS, ids=lambda m: m.name)
+@pytest.mark.parametrize("mutant", [*REFERENCE_MUTANTS, MU_43], ids=lambda m: m.name)
 def test_reference_mutant_is_caught_by_its_rule(mutant: Mutant, seed: Callable[[str], Family]) -> None:
     family = seed("F01")
     mutant.mutate(family)
@@ -984,7 +998,7 @@ def emitted_rules() -> set[str]:
 
 def test_every_validator_rule_has_a_mutant() -> None:
     """A rule without a seeded defect is a rule nobody has proven can fire."""
-    covered = {m.rule for m in REFERENCE_MUTANTS + EXTRA_MUTANTS}
+    covered = {m.rule for m in (*REFERENCE_MUTANTS, MU_43, *EXTRA_MUTANTS)}
     assert emitted_rules() == covered, (sorted(emitted_rules() - covered), sorted(covered - emitted_rules()))
     expected = {
         "V1.schema",
@@ -1038,6 +1052,7 @@ def test_every_validator_rule_has_a_mutant() -> None:
         "V2.decisive_refs",
         "V2.corroboration_refs",
         "V2.rubric_refs",
+        "V2.material_decisive",
         "V2.knobs_matched",
         "V2.knobs_stored",
         "V2.knobs_band",

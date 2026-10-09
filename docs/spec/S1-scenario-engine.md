@@ -684,7 +684,7 @@ Public packet fields added in v1.1 and unchanged in v1.2 (shared by both variant
 
 Portrait IDs are placeholders until the art pool exists (WP-21); voice names are from the Live voice list (Vertex "Configure language and voice", fetched 2026-10-08) and are confirmed by the day-1 Live probe.
 
-Repository hashes (canonical JSON, sha256) after the v2.5 seed fixes (SG1-30, SG1-27, CX-1 under the v2.5 rules): F01 `a87851bc803ab4e38aab88d1ae980033b3cc739013d73cefa8e2f77eb65e9467`; F02 `5c55433715772b8f64754352d9ea59b68b770e6918ab03897320cbb4674ecb71`; F03 `1c0caea56b4c580cf58ab0ffc6c66d6f4e09c2ab89e4160ed8e3fee973095d0d`. Any edit changes them; CI recomputes.
+Repository hashes (canonical JSON, sha256) after the v2.8 F4 fix (F01 f:08 and F02 f:05, named by truthful r:02, are `material: true`; earlier: the v2.5 seed fixes SG1-30, SG1-27, CX-1 under the v2.5 rules): F01 `162e3f264a1317bcc9a93fb2925c541011bceac217d2e01de46ca23dbb3ddcdb`; F02 `f9e8b052924473e4c50bf4292c5338a912b74c9cec07b74cabab4f4e20f52346`; F03 `1c0caea56b4c580cf58ab0ffc6c66d6f4e09c2ab89e4160ed8e3fee973095d0d`. Any edit changes them; CI recomputes.
 
 ### 11.1 F01 and the slide-8 situation (EX-1 to EX-3)
 
