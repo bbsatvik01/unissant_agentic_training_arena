@@ -13,6 +13,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, ValidationInfo, model_validator
 
 from arena_core.contracts.common import Answer, Contract, Distinct, FactId, GateId, UncertaintyId
+from arena_core.contracts.rendered import clean
 
 Behavior = Literal[
     "responsive", "omission", "deflection", "minimization", "explicit_uncertainty", "legitimate_non_disclosure"
@@ -48,7 +49,8 @@ class SubjectTurn(Contract):
     @model_validator(mode="after")
     def _rules(self, info: ValidationInfo) -> Self:
         errors: list[str] = []
-        if len(self.utterance.split()) > MAX_UTTERANCE_WORDS:
+        # V1 on the text as typed and as a prompt renders it (normalization can split one character into words).
+        if max(len(self.utterance.split()), len(clean(self.utterance).split())) > MAX_UTTERANCE_WORDS:
             errors.append(f"utterance: more than {MAX_UTTERANCE_WORDS} words (V1)")
         if overlap := sorted(set(self.tag.disclosed) & set(self.tag.withheld)):
             errors.append(f"tag: {overlap} both disclosed and withheld (V3)")

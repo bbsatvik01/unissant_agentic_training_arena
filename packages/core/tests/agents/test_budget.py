@@ -12,9 +12,9 @@ import pytest
 from arena_core.agents.budget import (
     INPUT_LIMITS,
     REPAIR_BYTES,
-    fill,
     max_context,
     over_limit,
+    question_fill,
     request_bytes,
     worst_view,
 )
@@ -31,7 +31,7 @@ from arena_core.agents.untrusted import (
     rendered_bytes,
 )
 from arena_core.agents.views import TranscriptTurn, public_case
-from arena_core.contracts.coaching import CoachingCard
+from arena_core.contracts.coaching import CoachingCard, FinalFinding
 from arena_core.contracts.findings import InvestigatorFinding
 from arena_core.contracts.routes import TurnSubmit
 from arena_core.contracts.subject import SubjectTurn
@@ -47,7 +47,7 @@ EXPANDING = "ﷺ" * 599 + "?"  # 600 characters, 19,768 UTF-8 bytes once NFKC-no
 
 def test_an_expanding_question_is_refused_before_it_reaches_a_prompt() -> None:
     assert len(EXPANDING) == QUESTION_MAX_CHARS
-    assert rendered_bytes(EXPANDING) > 10 * QUESTION_MAX_BYTES
+    assert rendered_bytes(EXPANDING) > 8 * QUESTION_MAX_BYTES
     with pytest.raises(TextTooLongError, match="question: 10783 characters as rendered"):
         check_question(EXPANDING)
     with pytest.raises(ValueError, match="as rendered"):
@@ -63,12 +63,13 @@ def test_an_expanding_question_is_refused_before_it_reaches_a_prompt() -> None:
         check_question("\u200b")
 
 
-def test_the_question_bounds_are_600_characters_and_1800_normalized_bytes() -> None:
-    assert check_question(fill(1_800)) == fill(1_800)
+def test_the_question_bounds_are_600_characters_and_2400_bytes_as_rendered() -> None:
+    # S2 1, 2: 600 characters of 4 bytes is a valid question.
+    assert check_question("\U00020000" * 599 + "?")
+    assert rendered_bytes(question_fill()) == QUESTION_MAX_BYTES
+    assert check_question(question_fill()) == question_fill()
     with pytest.raises(TextTooLongError, match="601 characters"):
         check_question("a" * 601)
-    with pytest.raises(TextTooLongError, match="1804 bytes as rendered"):
-        check_question("\U0001f600" * 451)  # 451 characters of 4 bytes
 
 
 def test_an_expanding_answer_is_refused() -> None:
@@ -158,11 +159,11 @@ def test_json_escapes_count_toward_the_bound() -> None:
 
 
 def test_the_turn_submission_refuses_what_a_prompt_could_not_carry() -> None:
-    body = {"question": "\U0001f600" * 451, "release_ids": [], "expected_version": 0}
+    body = {"question": "\u2167" * 200 + "?", "release_ids": [], "expected_version": 0}
     body["idem_key"] = "00000000-0000-4000-8000-000000000001"
-    with pytest.raises(ValueError, match="1804 bytes as rendered"):
+    with pytest.raises(ValueError, match="801 characters as rendered"):
         TurnSubmit.model_validate(body)
-    ok = TurnSubmit.model_validate({**body, "question": fill(QUESTION_MAX_BYTES)})
+    ok = TurnSubmit.model_validate({**body, "question": question_fill()})
     SubjectTurnState(n=1, transcript=[], question=ok.question, released={}, opened_gates={}, first_disclosed={})
 
 
@@ -212,3 +213,30 @@ def test_final_and_deep_count_the_current_card() -> None:
     case = public_case(variant["public_packet"])
     flags = {call: len(worst_view(case, variant, call).earlier.flags) for call in ("card", "deep", "final")}
     assert flags == {"card": 33, "deep": 36, "final": 36}
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [(("flags", 0, "missing_fact"), "  x  "), (("finding", "corroboration_needed", 0), "  y  ")],
+)
+def test_a_field_shorter_than_its_minimum_as_rendered_is_repaired(path: tuple[Any, ...], value: str) -> None:
+    card = copy.deepcopy(good_card())
+    node: Any = card
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = value
+    _, errors = output_errors(CoachingCard, json.dumps(card), CTX7)
+    assert errors == [f"{'.'.join(str(p) for p in path)}: shorter than 3 characters as rendered"]
+
+
+def test_an_alternative_explanation_shorter_than_three_characters_as_rendered_is_repaired() -> None:
+    final = {"schema_version": "final.v1", "finding": good_card()["finding"], "alternative_explanations": [" z "]}
+    _, errors = output_errors(FinalFinding, json.dumps(final), CTX7)
+    assert errors == ["alternative_explanations.0: shorter than 3 characters as rendered"]
+
+
+def test_the_word_limit_applies_to_the_rendered_answer() -> None:
+    utterance = "\ufdfa " * 31  # 31 words as typed, 124 once normalized
+    tag = {"disclosed": [], "withheld": [], "uncertainty_used": [], "behavior": "responsive", "gates_opened": []}
+    _, errors = output_errors(SubjectTurn, json.dumps({"utterance": utterance.strip(), "tag": tag}))
+    assert errors == ["utterance: more than 120 words (V1)"]

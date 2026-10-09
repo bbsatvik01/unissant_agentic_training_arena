@@ -11,7 +11,7 @@ loses its angle and square brackets, after which no marker can form.
 (U+FDFA) and escaping doubles a quote, so neither a character cap nor a raw byte cap bounds a prompt; every byte
 bound S2 sets on a field is checked on this measure (`check_rendered`, `rendered_overruns`):
 
-- an investigator or harness question: at most 600 characters and `QUESTION_MAX_BYTES` (1,800) rendered bytes
+- an investigator or harness question: at most 600 characters and `QUESTION_MAX_BYTES` (2,400) rendered bytes
   (`check_question`; S5's turn submission refuses a longer one before commit, and S6's form states the same bound);
 - a subject answer: `ANSWER_MAX_BYTES` (1,800) rendered bytes;
 - every model-written or `Finding` field with a `ByteLimit`: that limit, rendered.
@@ -32,7 +32,7 @@ from arena_core.agents.fence import sanitize_untrusted_text
 from arena_core.contracts.common import ByteLimit
 
 QUESTION_MAX_CHARS = 600
-QUESTION_MAX_BYTES = 1800
+QUESTION_MAX_BYTES = 2400  # S2 1, 2: 600 characters counted at 4 bytes each
 ANSWER_MAX_BYTES = 1800
 ANSWER_MAX_CHARS = 900
 _WHITESPACE = re.compile(r"\s+")
@@ -85,7 +85,7 @@ def check_rendered(text: str, max_bytes: int, what: str, max_chars: int | None =
 
 
 def check_question(text: str) -> str:
-    """A question as it may be committed: 600 characters as typed and as rendered, 1,800 rendered bytes (D11).
+    """A question as it may be committed: 600 characters as typed and as rendered, 2,400 rendered bytes (D11).
     Nothing is ever cut."""
     if len(text) > QUESTION_MAX_CHARS:
         msg = f"question: {len(text)} characters, more than {QUESTION_MAX_CHARS}"
@@ -168,8 +168,10 @@ def rendered_overruns(value: BaseModel, path: str = "") -> list[str]:
 
 def _string_overruns(text: str, limits: _Limits, at: str) -> list[str]:
     cleaned = clean(text)
-    if limits.min_chars and not cleaned:
-        return [f"{at}: empty as rendered"]
+    if limits.min_chars and len(cleaned) < limits.min_chars:
+        return [
+            f"{at}: shorter than {limits.min_chars} characters as rendered" if cleaned else f"{at}: empty as rendered"
+        ]
     if limits.max_chars is not None and len(cleaned) > limits.max_chars:
         return [f"{at}: longer than {limits.max_chars} characters as rendered"]
     if limits.max_bytes is not None and rendered_bytes(text) > limits.max_bytes:

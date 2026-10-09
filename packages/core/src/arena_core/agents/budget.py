@@ -5,7 +5,7 @@ The input bound is bytes (D11). `request_bytes` is the one measure: the serializ
 contents, and the generation config with the `response_json_schema` a request carries, `providers.structured.
 sent_schema`) as UTF-8 JSON; the agent port measures the same function (WP-05). `max_context(family, role)` renders
 the worst case S2 2 fixes for one variant of an authored family: 12 exchanges; every investigator question at 600
-characters and 1,800 normalized bytes (`untrusted.QUESTION_MAX_BYTES`); every answer at 1,800 bytes; every model or
+characters of 4 bytes (`QUESTION_MAX_BYTES`, 2,400); every answer at 1,800 bytes; every model or
 finding field at its byte cap; every releasable record released; 33 earlier flags, the running finding and A1's deep
 update; 36 flags, 12 follow-ups or investigator questions, the finding projection, 22 citations and every trigger
 for the referee. Filler text is a CJK ideograph (3 bytes, NFKC-stable): it reaches each byte cap within each
@@ -89,6 +89,14 @@ _IDEOGRAPH = "一"
 SALT = "0" * 8
 
 
+_FOUR_BYTE = "\U00020000"  # a CJK Extension B ideograph: 4 UTF-8 bytes, NFKC-stable
+
+
+def question_fill() -> str:
+    """The largest question: 600 characters of 4 bytes, `QUESTION_MAX_BYTES` (S2 1, 2)."""
+    return _FOUR_BYTE * (QUESTION_MAX_BYTES // 4)
+
+
 def fill(n_bytes: int) -> str:
     """Text of exactly `n_bytes` UTF-8 bytes, stable under the renderer's normalization."""
     return _IDEOGRAPH * (n_bytes // 3) + "a" * (n_bytes % 3)
@@ -119,7 +127,7 @@ def _sized(prompts: PromptSet, key: str, prompt: Prompt) -> int:
 
 
 def _turns(n: int) -> list[TranscriptTurn]:
-    return [TranscriptTurn(turn_no=i, question=fill(QUESTION_MAX_BYTES), answer=fill(1_800)) for i in range(1, n + 1)]
+    return [TranscriptTurn(turn_no=i, question=question_fill(), answer=fill(1_800)) for i in range(1, n + 1)]
 
 
 def _released(variant: Mapping[str, Any], through: int) -> list[Any]:
@@ -251,7 +259,7 @@ def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
     state = SubjectTurnState(
         n=MAX_TURNS,
         transcript=_turns(MAX_TURNS - 1),
-        question=fill(QUESTION_MAX_BYTES),
+        question=question_fill(),
         released={r.record_id: 0 for r in _released(variant, 0)},
         opened_gates={g.id: 1 for g in packet.gates},
         first_disclosed={f.id: 1 for f in packet.facts},
@@ -278,7 +286,7 @@ def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
             FollowUpLine(
                 turn_id=f"t{n:02d}",
                 tactic="funnel_probe" if mode == "assistant" else None,
-                question=fill(600) if mode == "assistant" else fill(QUESTION_MAX_BYTES),
+                question=fill(600) if mode == "assistant" else question_fill(),
             )
             for n in range(1, MAX_TURNS + 1)
         ]

@@ -35,7 +35,7 @@ from arena_core.contracts.rendered import check_answer, check_question
 Text = Annotated[str, StringConstraints(min_length=1, max_length=4096)]
 Cell = Annotated[str, StringConstraints(max_length=400)]
 DocId = Annotated[str, StringConstraints(pattern=r"^doc-0[1-4]$")]
-# Investigator questions: 600 characters and 1,800 normalized bytes (D11, `untrusted.check_question`).
+# Investigator questions: 600 characters and 2,400 bytes as rendered (D11, `untrusted.check_question`).
 Question = Annotated[str, StringConstraints(min_length=1, max_length=600), AfterValidator(check_question)]
 # A subject answer as rendered: 1,800 normalized bytes (S2 6.8 V1 bounds the raw text; NFKC may expand it).
 RenderedAnswer = Annotated[Answer, AfterValidator(check_answer)]
