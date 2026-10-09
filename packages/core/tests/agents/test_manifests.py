@@ -345,3 +345,26 @@ def test_a_subject_needs_its_live_assembly(official: dict[str, m.CandidateManife
     del raw["prompt"]["assembly"]["live"]
     with pytest.raises(ValidationError, match=r"prompt\.assembly"):
         m.CandidateManifest.model_validate(raw)
+
+
+def test_a_manifest_without_its_hash_is_not_verifiable(official: dict[str, m.CandidateManifest]) -> None:
+    unhashed = official["A2"].model_copy(update={"sha256": None, "display_name": "Changed"})
+    with pytest.raises(m.ManifestMismatchError, match="manifest sha256 missing"):
+        m.load_prompts(unhashed)
+
+
+def test_user_templates_are_found_wherever_the_manifest_keeps_them(prompt_copy: Path) -> None:
+    (prompt_copy / "prompts" / "custom").mkdir()
+    for name in ("user.card.v1.txt", "user.final.v1.txt"):
+        (prompt_copy / m.COACH_DIR / name).rename(prompt_copy / "prompts" / "custom" / name)
+    raw = m.assistant_manifest(
+        m.CoachSpec("A2", "Cognitive-Load Prober", f"{m.COACH_DIR}a2.strategy.v1.txt", "gemini-3.5-flash-lite", False),
+        REPO_ROOT,
+    )
+    raw["prompt"]["user_templates"] = [
+        {**t, "path": t["path"].replace("prompts/coach/", "prompts/custom/")} for t in raw["prompt"]["user_templates"]
+    ]
+    prompts = m.load_prompts(m.with_hash(raw), prompt_copy)
+    assert prompts.user_template("user.card.v1.txt").startswith("Exchange {{n}} of 12.")
+    with pytest.raises(m.ManifestMismatchError, match=r"no single user template user\.deep\.v1\.txt"):
+        prompts.user_template("user.deep.v1.txt")

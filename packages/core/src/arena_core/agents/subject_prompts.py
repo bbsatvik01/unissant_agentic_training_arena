@@ -34,7 +34,6 @@ from arena_core.agents.manifests import (
     STYLE,
     SUBJECT_LIVE,
     SUBJECT_SYSTEM,
-    SUBJECT_USER,
     ManifestMismatchError,
     PromptSet,
 )
@@ -298,6 +297,9 @@ class LedgerView:
 
     status: Mapping[str, tuple[GateStatus, int | None]] | None
     openable_after: bool = False
+    # Live (S2 9.3) and the referee (7.2) never show a gate OPEN (the Live model tracks openings itself; the referee
+    # decides them), so a HOLD fact's range must be stated with its condition rather than withheld for good.
+    tracks_openings: bool = False
 
 
 def _fact_line(fact: LedgerFact) -> str:
@@ -317,11 +319,13 @@ def _uncertainty_line(entry: UncertaintyEntry, packet: SubjectPacket, view: Ledg
         )
     elif fact.fact_class == "HOLD":
         open_now = view.status is not None and view.status.get(fact.gate_id or "", ("LOCKED", None))[0] == "OPEN"
-        suffix = (
-            say
-            if open_now
-            else (f" Applies only after {fact.gate_id} opens; until then it does not let you speak about {fact.id}.")
-        )
+        gate = f" Applies only after {fact.gate_id} opens; until then it does not let you speak about {fact.id}."
+        if open_now:
+            suffix = say
+        elif view.tracks_openings and say:
+            suffix = f'{gate} Once {fact.gate_id} is open, if asked, say: "{clean(entry.range_text or "")}"'
+        else:
+            suffix = gate
     else:
         suffix = say
     return f"{entry.id} on {entry.fact_id} {clean(entry.text)}{suffix}"
@@ -397,7 +401,7 @@ def build_subject_prompt(
         for fid, t in sorted(state.first_disclosed.items(), key=lambda x: (x[1], x[0]))
     ]
     user = render(
-        prompts.text(SUBJECT_USER),
+        prompts.user_template("user.turn.v1.txt"),
         {
             **_persona(packet),
             "persona.background": clean(packet.persona.background),
@@ -445,7 +449,7 @@ def build_live_instruction(packet: SubjectPacket, released: frozenset[str], prom
         {
             **_persona(packet),
             "behavior_blocks": behavior_blocks(packet, prompts),
-            "ledger": ledger(packet, LedgerView(status)),
+            "ledger": ledger(packet, LedgerView(status, tracks_openings=True)),
         },
     )
 

@@ -15,6 +15,7 @@ from arena_core.agents.post_checks import card_validation, j3_flags, lexicon_pat
 from arena_core.agents.repair import (
     MAX_ERROR_BYTES,
     MAX_ERRORS,
+    SALT_LEAK,
     UNKNOWN_KEY,
     error_items,
     field_names,
@@ -388,3 +389,16 @@ def test_a_key_the_reply_invented_is_never_echoed_in_the_repair() -> None:
 def test_field_names_cover_the_nested_output_models() -> None:
     names = field_names(CoachingCard)
     assert {"flags", "conflict_record_quote", "follow_up", "record_request", "finding", "rationale"} <= names
+
+
+def test_a_reply_that_echoes_the_salt_is_repaired_and_never_accepted() -> None:
+    prompt = build_coach_prompt(fx.coach_view(3), fx.prompts("A2"), "card")
+    leaked = _set(good_card(), "finding.rationale", f"The tag untrusted_transcript_{prompt.salt} says so.")
+    model = ScriptedModel([json.dumps(leaked), json.dumps(good_card())])
+    outcome = call_with_one_repair(model, prompt, CoachingCard, CTX7)
+    assert outcome.attempts == ONE_REPAIR
+    assert outcome.value is not None
+    assert prompt.salt not in outcome.value.model_dump_json()
+    assert model.requests[1][1][-1][1].startswith(SALT_LEAK)
+    twice = ScriptedModel([json.dumps(leaked), json.dumps(leaked)])
+    assert call_with_one_repair(twice, prompt, CoachingCard, CTX7).value is None

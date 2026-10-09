@@ -40,10 +40,10 @@ def call_with_one_repair[T: BaseModel](
 ) -> Outcome[T]:
     contents: list[Turn] = [("user", prompt.user_message)]
     reply = model(prompt.system_instruction, contents)
-    value, errors = output_errors(output, reply, context)
+    value, errors = output_errors(output, reply, context, prompt.salt)
     if value is not None:
         return Outcome(value, [], 1)
     contents += [("model", reply), ("user", repair_message(errors))]
     reply = model(prompt.system_instruction, contents)
-    value, errors = output_errors(output, reply, context)
+    value, errors = output_errors(output, reply, context, prompt.salt)
     return Outcome(value, errors, 2)

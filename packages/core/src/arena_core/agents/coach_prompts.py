@@ -81,13 +81,6 @@ def earlier_values(earlier: EarlierOutput) -> dict[str, str]:
     }
 
 
-def _user_template(prompts: PromptSet, call: CoachCall) -> str:
-    prompt = prompts.manifest.prompt
-    suffix = f"/user.{call}.v1.txt"
-    paths = [t.path for t in prompt.user_templates if t.path.endswith(suffix)] if prompt else []
-    return prompts.text(paths[0] if paths else suffix)
-
-
 def build_coach_prompt(view: PublicTrialView, prompts: PromptSet, call: CoachCall, salt: str | None = None) -> Prompt:
     """The `card`, `deep` or `final` request of one coach for one trial (S2 5.2-5.4)."""
     view = require(view, PublicTrialView, "coach prompt builder (S5 1.2)")
@@ -102,5 +95,5 @@ def build_coach_prompt(view: PublicTrialView, prompts: PromptSet, call: CoachCal
         **earlier_values(view.earlier),
     }
     system = join_blocks(prompts.assembly(call))
-    user = render(_user_template(prompts, call), values)
+    user = render(prompts.user_template(f"user.{call}.v1.txt"), values)
     return Prompt(system_instruction=system, user_message=user, salt=salt)

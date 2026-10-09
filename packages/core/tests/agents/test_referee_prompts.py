@@ -28,6 +28,7 @@ from arena_core.agents.referee_prompts import (
     build_referee_subject_prompt,
 )
 from arena_core.agents.rubric import Rubric
+from arena_core.agents.subject_prompts import SubjectPacket
 from arena_core.agents.templates import REPO_ROOT
 from arena_core.agents.views import public_case
 from arena_core.contracts.coaching import Tactic
@@ -368,3 +369,16 @@ def test_rubric_shape_rules(change: typing.Callable[[dict[str, typing.Any]], obj
     change(raw)
     with pytest.raises(ValueError, match=message):
         Rubric.model_validate(raw)
+
+
+def test_r1_sees_a_hold_range_with_its_gate_condition() -> None:
+    raw = fx.variant("F01", "deceptive")["private_packet"]
+    entry = {"id": "u:03", "fact_id": "f:44", "text": "You are not sure when the list printed.", "answer_form": "range"}
+    entry["range_text"] = "Some time that morning."
+    packet = SubjectPacket.from_private_packet({**raw, "uncertainty": [*raw["uncertainty"], entry]}, split="dev")
+    user = build_referee_subject_prompt(subject_input().model_copy(update={"packet": packet}), REFEREE).user_message
+    line = next(x for x in user.splitlines() if x.startswith("u:03 on f:44 "))
+    assert line.endswith(
+        "Applies only after g:01 opens; until then it does not let you speak about f:44."
+        ' Once g:01 is open, if asked, say: "Some time that morning."'
+    )

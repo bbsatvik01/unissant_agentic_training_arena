@@ -305,6 +305,15 @@ class PromptSet:
             raise ManifestMismatchError(msg)
         return self.texts[path]
 
+    def user_template(self, name: str) -> str:
+        """The manifest's user template whose file name is `name`, wherever the manifest keeps it."""
+        prompt = self.manifest.prompt
+        paths = [t.path for t in prompt.user_templates if t.path.rsplit("/", 1)[-1] == name] if prompt else []
+        if len(paths) != 1:
+            msg = f"manifest {self.manifest.candidate_id} has no single user template {name}"
+            raise ManifestMismatchError(msg)
+        return self.text(paths[0])
+
     def assembly(self, key: str) -> list[str]:
         prompt = self.manifest.prompt
         if prompt is None or key not in prompt.assembly:
@@ -319,7 +328,10 @@ def load_prompts(manifest: CandidateManifest, root: Path = REPO_ROOT) -> PromptS
         msg = f"manifest_mismatch for {manifest.candidate_id}: no prompt"
         raise ManifestMismatchError(msg)
     problems: list[str] = []
-    if manifest.sha256 is not None and manifest.sha256 != manifest_sha256(manifest):
+    # S2 3.3: the recorded manifest hash is compared every time; a manifest without one is not verifiable.
+    if manifest.sha256 is None:
+        problems.append("manifest sha256 missing")
+    elif manifest.sha256 != manifest_sha256(manifest):
         problems.append("manifest sha256")
     texts: dict[str, str] = {}
     for ref in [*manifest.prompt.files, *manifest.prompt.user_templates]:

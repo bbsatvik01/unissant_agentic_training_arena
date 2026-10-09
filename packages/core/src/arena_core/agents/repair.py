@@ -21,6 +21,7 @@ from pydantic import BaseModel, ValidationError
 MAX_ERRORS = 10
 MAX_ERROR_BYTES = 100
 UNKNOWN_KEY = "(unexpected key)"
+SALT_LEAK = "reply: repeats the request's data-tag identifier; never copy tag names or identifiers"
 REPAIR_SUFFIX = "Reply again with only the corrected JSON object."
 MAX_TOKENS_REPAIR = (
     "Your reply was cut off at the output limit. Reply again with only the corrected JSON object, shorter."
@@ -90,13 +91,17 @@ def error_items(exc: ValidationError, known: frozenset[str]) -> list[str]:
 
 
 def output_errors[T: BaseModel](
-    model: type[T], reply: str, context: object | None = None
+    model: type[T], reply: str, context: object | None = None, salt: str | None = None
 ) -> tuple[T | None, list[str]]:
-    """The validated output, or None and the repair items (S2 10, first row)."""
+    """The validated output, or None and the repair items (S2 10, first row). A reply that carries the request's
+    salt is refused like a schema failure: the salt is never written to any output (S2 1)."""
     try:
-        return model.model_validate_json(reply, context=context), []
+        value = model.model_validate_json(reply, context=context)
     except ValidationError as exc:
         return None, error_items(exc, field_names(model))
+    if salt is not None and salt in reply:
+        return None, [SALT_LEAK]
+    return value, []
 
 
 def repair_message(errors: list[str]) -> str:

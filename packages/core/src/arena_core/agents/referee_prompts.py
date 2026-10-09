@@ -23,7 +23,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, StringConstraints, model_validator
 
 from arena_core.agents.coach_prompts import Prompt
-from arena_core.agents.manifests import REFEREE_ASSISTANT_USER, REFEREE_SUBJECT_USER, ManifestMismatchError, PromptSet
+from arena_core.agents.manifests import ManifestMismatchError, PromptSet
 from arena_core.agents.render import (
     NONE,
     case_values,
@@ -212,10 +212,10 @@ def build_referee_subject_prompt(inp: RefereeSubjectInput, prompts: PromptSet, s
     packet = inp.packet
     documents = [f"{d.doc_id} | {d.kind} | {clean(d.title)}\n{record_text(d.content)}" for d in inp.initial_documents]
     user = render(
-        prompts.text(REFEREE_SUBJECT_USER),
+        prompts.user_template("subject.user.v1.txt"),
         {
             "canonical_facts": "\n".join(f"{f.id} | {clean(f.statement)}" for f in inp.canonical_facts),
-            "ledger": ledger(packet, LedgerView(status=None, openable_after=True)),
+            "ledger": ledger(packet, LedgerView(status=None, openable_after=True, tracks_openings=True)),
             "permitted_behaviors": ", ".join(packet.permitted_behaviors) or NONE,
             "style": ", ".join(f"{axis} {packet.style.level(axis)}" for axis in STYLE_AXES),
             "salt": salt,
@@ -246,7 +246,7 @@ def build_referee_assistant_prompt(
         raise ManifestMismatchError(msg)
     system = render(join_blocks(prompts.assembly("referee_assistant")), {"rubric_subchecks": rubric_subchecks(rubric)})
     user = render(
-        prompts.text(REFEREE_ASSISTANT_USER),
+        prompts.user_template("assistant.user.v1.txt"),
         {
             "salt": salt,
             **case_values(inp.case),

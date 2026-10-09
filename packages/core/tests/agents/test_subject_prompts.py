@@ -296,8 +296,11 @@ def test_uncertainty_on_a_hold_fact_follows_its_gate() -> None:
     gate_suffix = "Applies only after g:01 opens; until then it does not let you speak about f:44."
     assert _uncertainty_line(closed.user_message, "u:03").endswith(gate_suffix)
     assert _uncertainty_line(opened.user_message, "u:03").endswith('If asked, say: "Some time that morning."')
+    # Live never shows a gate OPEN (the model tracks openings, S2 9.3), so its line keeps the gate condition and
+    # states the range for after the opening; the text subject sees the range only once the ledger shows it OPEN.
     live = build_live_instruction(packet, frozenset({"rec-01"}), fx.prompts("S1"))
-    assert _uncertainty_line(live, "u:03") == _uncertainty_line(closed.user_message, "u:03")
+    once = ' Once g:01 is open, if asked, say: "Some time that morning."'
+    assert _uncertainty_line(live, "u:03") == _uncertainty_line(closed.user_message, "u:03") + once
 
 
 # ---------------------------------------------------------------- AT-VOICE (S2 9.6)
