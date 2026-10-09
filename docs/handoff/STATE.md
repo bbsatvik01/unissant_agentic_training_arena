@@ -4,6 +4,10 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## Owner directives 2026-10-09 ~01:20 EDT
+- D-015: GCP project `cna-guardian` for Vertex (API enabled, ADC present; billing status unreadable here). Pass it explicitly; never touch the gcloud default.
+- No new workflows until tomorrow's usage refresh; do not stop anything running. Only record results and commit finished work until then.
+
 ## Resumed 2026-10-09 01:15 EDT (usage limit reset 01:10)
 - The limit stopped: fix:S6-S8, web build, authors F06-F09 + final, and all three wave-2 agents. All four workflows relaunched with resumeFromRunId (completed agents cached): spec fix `widpqyalk`, cases `waitahbsj`, wave 2 `w8o2onnit`, web `wyuftupho`. Web and wave-2 prompts carry a resume note.
 - Spec v2.3 for S1-S5, schemas, seeds, SQL committed (a3ca7e9) before resuming.
@@ -16,7 +20,7 @@
 - **Spec** v2.1/v2.2 committed (1ad3222): S1 reconciled, X-02..X-17 resolved, D-013/D-014 applied; SQL re-applied on fresh PG16 with all smokes passing. Codex spec review round 1: RED, RED, RED, YELLOW (4 blockers, ~60 majors; `docs/spec/review-codex-r1.md`). Fix workflow running with 11 shared decisions (D1-D11) so all parts implement one contract.
 - **Code:** WP-01 scaffold on branch `feat/wp01-scaffold` (7e484f4, pre-gate; make check green, 10 gateproofs). Main tree cleaned (backup in scratchpad `backup-wp01/`).
 - **Supabase:** project `fzjgcwkvveetegpngujr`, PostgreSQL 17.11, empty (no tables, no migrations); pgtap 1.3.3 and dblink available. Harness targets PG17.
-- **GCP:** no project yet (owner action); builds run against the fake model.
+- **GCP:** `cna-guardian` (D-015); no Vertex call made yet; GCP spend $0.
 
 ## Owner directive (2026-10-08 ~21:50, D-013)
 - Build the pipeline end to end first; cost tuning later; one global $74 ceiling keeps the $75 cap; keep it simple; get Codex to GREEN on the spec.

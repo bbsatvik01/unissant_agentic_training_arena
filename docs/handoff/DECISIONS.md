@@ -100,3 +100,8 @@
 - **Exception to D-001:** Claude and Codex are used only as build-time authoring tools, like writing code; no non-Gemini model runs in the product.
 - **Files affected:** S1 (generation section becomes the authoring pipeline), S8 WP-09, `cost_model.py` (generation calls removed), direction model table.
 - **Reversibility:** cheap.
+
+## 2026-10-09 · D-015 GCP project for Vertex calls: `cna-guardian`
+- **Decision:** owner directive ("use cna project"). Arena Vertex calls go to project `cna-guardian` (CNA Guardian, number 908717341962). Verified read-only: `aiplatform.googleapis.com`, `run.googleapis.com` and `billingbudgets.googleapis.com` are enabled; ADC exists. Billing status could not be read from this workstation (describe returned nothing). Not chosen: `gen-lang-client-0635695834` (an AI Studio project).
+- **Rules:** the workstation gcloud default stays `kbg-production` and is never changed or used; every arena call passes `cna-guardian` explicitly (`ARENA_GCP_PROJECT`); boot checks refuse any other project. The project is shared with CNA Guardian, so every arena request carries the label `app=unissant-arena` and the D-009 $75 cap is enforced by the arena's own spend guard, not by the project budget. A billing budget alert for arena spend is still recommended (owner action).
+- **Reversibility:** cheap.
