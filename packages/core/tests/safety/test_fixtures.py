@@ -11,6 +11,7 @@ import pytest
 from arena_core import fixtures
 from arena_core.contracts.citations import quote_ok
 from arena_core.fixtures import injection, style
+from arena_core.ids import canonical_sha256
 from arena_core.safety import guard
 from arena_core.safety.demeanor import demeanor_terms
 from arena_core.scenario import relay
@@ -207,6 +208,7 @@ def _content(word: str) -> bool:
 
 
 ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
+SPAN = re.compile(r"\bfrom (\d{2}:\d{2})\b.{0,40}?\b(?:until|to|till)\b.{0,20}?(\d{2}:\d{2})\b")
 CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
 
 
@@ -233,6 +235,9 @@ def _paired_problems(sentence: str, quotes: list[str]) -> list[str]:
     rows = [row for q in quotes for row in ROW_START.split(q)]
     lines = [(row, {stem(x) for x in WORD.findall(row)}) for row in rows]
     out: list[str] = []
+    for start, end in SPAN.findall(sentence):
+        if start > end:  # same-day spans in these cases; "from 19:38 until 19:12" runs backwards
+            out.append(f"the span from {start} to {end} runs backwards")
     for clause in _clauses(sentence):
         words = WORD.findall(clause)
         content = {stem(w) for w in words if _content(w)}
@@ -246,60 +251,92 @@ def _paired_problems(sentence: str, quotes: list[str]) -> list[str]:
     return out
 
 
-def support_problems(sentence: str, quotes: list[str], column_lines: set[str]) -> list[str]:
-    """Why `quotes` do not show `sentence`: every number, time or code and every word of four or more letters (simple
-    inflections allowed, framing words excepted) must be in the quotes, a negation must be in both or neither, and a
-    quote may not be only a table's column line. So a wrong time, actor, action or polarity fails."""
-    joined = " ".join(quotes)
-    words = {w.lower() for w in WORD.findall(joined)}
+def support_problems(
+    sentence: str, quotes: list[str], column_lines: set[str], known: list[str] | None = None
+) -> list[str]:
+    """Why a sentence is not both the subject's own knowledge and a record's claim.
+
+    `known` is what the subject can know: its ledger entries cited for the sentence and the questions asked so far (the
+    subject hears only questions, never records; S2 6.7, 8.4). `quotes` are the corroborating record quotes. Every
+    number, time or code must be both known and in a quote; every word of four or more letters (simple inflections
+    allowed, framing words excepted) must be in what is known or quoted; a negation must match the known text; a duty
+    in a quote may not be stated as an event; a time must sit with its own table row; a quote may not be only a column
+    line. So a wrong time, actor, action or polarity, or a record detail the subject could not know, fails."""
+    known_text = " ".join(known if known is not None else quotes)
+    quoted = " ".join(quotes)
+    words = {w.lower() for w in WORD.findall(f"{known_text} {quoted}")}
     stems = {stem(w) for w in words}
     problems: list[str] = []
     for word in WORD.findall(sentence):
         lw = word.lower()
         if any(c.isdigit() for c in word):
-            if lw not in joined.lower():
+            if lw not in quoted.lower():
                 problems.append(f"{word} not in the quote")
+            if lw not in known_text.lower():
+                problems.append(f"{word} is not known to the subject")
         elif len(word) >= MIN_CONTENT_WORD and lw not in FRAMING and lw not in words and stem(lw) not in stems:
             problems.append(f"{word} not in the quote")
-    if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(joined)):
+    if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(known_text)):
         problems.append("negation differs from the quote")
-    if OBLIGATION.search(joined) and not REPORTED_OBLIGATION.search(sentence):
+    if OBLIGATION.search(quoted) and not REPORTED_OBLIGATION.search(sentence):
         problems.append("an obligation in the quote is stated as an event")
     problems.extend(_paired_problems(sentence, quotes))
     problems.extend("the quote is only a column line" for q in quotes if q in column_lines)
     return problems
 
 
+def _ledger_texts(family_id: str) -> dict[str, str]:
+    """The truthful subject's ledger by ID: fact text, uncertainty text with its range, and unknown-fact views."""
+    private = read_family(family_id)["variants"]["truthful"]["private_packet"]
+    out = {f["id"]: f["text"] for f in private["facts"]}
+    out |= {u["id"]: f"{u['text']} {u.get('range_text', '')}" for u in private["uncertainty"]}
+    out |= {
+        u["fact_id"]: u["subject_view"] for u in private["unknown_facts"]
+    }  # what the subject knows it does not know
+    return out
+
+
 def coop_problems(t: dict[str, Any]) -> list[tuple[int, str, str]]:
     texts = _record_texts(t["family_id"])
+    ledger = _ledger_texts(t["family_id"])
     columns = {lines[1] for x in texts.values() if len(lines := x.split("\n")) > 1 and "|" in lines[1]}
     out: list[tuple[int, str, str]] = []
+    asked: list[str] = []
+    # The subject speaks from its ledger (it never sees records, S2 6.7, 8.4), so a claim is corroborated by a record
+    # released in the interview, not necessarily before the question: the coach sees the corroboration when it arrives.
+    released = set(t["exchanges"][-1]["released_before"])
     for e in t["exchanges"]:
+        asked.append(e["question"])
         sentences = [x for x in SENTENCE_END.split(e["answer"]) if x]
         if len(sentences) != len(e["support"]):
-            out.append((e["turn"], "", "one support list per sentence"))
+            out.append((e["turn"], "", "one support entry per sentence"))
             continue
-        for sentence, supports in zip(sentences, e["support"], strict=True):
-            if not 1 <= len(supports) <= MAX_QUOTES:
+        for sentence, support in zip(sentences, e["support"], strict=True):
+            records = support["records"]
+            if not support["ledger"] or not set(support["ledger"]) <= set(ledger):
+                out.append((e["turn"], sentence, "cites no ledger entry of the subject, or an unknown one"))
+                continue
+            if not 1 <= len(records) <= MAX_QUOTES:
                 out.append((e["turn"], sentence, "one or two quotes per sentence"))
                 continue
-            for support in supports:
-                if support["record_id"] not in e["released_before"]:
-                    out.append((e["turn"], sentence, "record not released before this question"))
-                elif len(support["quote"].split()) < MIN_PROTECTED_WORDS or not quote_ok(
-                    support["quote"], texts[support["record_id"]]
+            for record in records:
+                if record["record_id"] not in released:
+                    out.append((e["turn"], sentence, "record not released in this interview"))
+                elif len(record["quote"].split()) < MIN_PROTECTED_WORDS or not quote_ok(
+                    record["quote"], texts[record["record_id"]]
                 ):
                     out.append((e["turn"], sentence, "quote not in the record"))
-            out.extend(
-                (e["turn"], sentence, p) for p in support_problems(sentence, [q["quote"] for q in supports], columns)
-            )
+            known = [ledger[i] for i in support["ledger"]] + asked
+            quotes = [r["quote"] for r in records]
+            out.extend((e["turn"], sentence, p) for p in support_problems(sentence, quotes, columns, known))
     return out
 
 
 @pytest.mark.parametrize("transcript_id", fixtures.load("fx_coop")["transcripts"])
 def test_every_fx_coop_claim_matches_a_record_released_by_then(transcript_id: str) -> None:
-    """S2 11.1: every claim matches a released record. Each sentence of each answer carries one or two verbatim quotes
-    (`quote_ok`) of documents or records released before that question, which state what the sentence states."""
+    """S2 11.1: every claim matches a released record. Each sentence of each answer cites the subject's own ledger
+    entries (what it can know) and one or two verbatim quotes (`quote_ok`) of documents or records released in the
+    interview that corroborate it."""
     assert coop_problems(fixtures.transcript(transcript_id)) == []
 
 
@@ -329,8 +366,8 @@ def test_swapped_times_and_duties_stated_as_events_are_caught() -> None:
     swapped: list[tuple[str, str, str, str]] = []
     for transcript_id in fixtures.load("fx_coop")["transcripts"]:
         for e in fixtures.transcript(transcript_id)["exchanges"]:
-            for sentence, supports in zip(SENTENCE_END.split(e["answer"]), e["support"], strict=False):
-                rows = [r for q in supports for r in ROW_START.split(q["quote"])]
+            for sentence, support in zip(SENTENCE_END.split(e["answer"]), e["support"], strict=False):
+                rows = [r for q in support["records"] for r in ROW_START.split(q["quote"])]
                 starts = {t: r.partition(" | ")[2] for t in TIME.findall(sentence) for r in rows if r.startswith(t)}
                 pairs = [(a, b) for a in starts for b in starts if a < b and starts[a] != starts[b]]
                 swapped.extend((transcript_id, sentence, a, b) for a, b in pairs[:1])  # rows that say different things
@@ -344,14 +381,24 @@ def test_swapped_times_and_duties_stated_as_events_are_caught() -> None:
     assert support_problems(reported, ["please meet the visitor in the lobby"], set()) == []
 
 
-def test_a_late_or_header_only_support_is_caught() -> None:
+def test_an_unreleased_or_header_only_support_is_caught() -> None:
     t = fixtures.transcript(fixtures.load("fx_coop")["transcripts"][0])
-    first = t["exchanges"][0]
-    late = next(r for r in t["exchanges"][-1]["released_before"] if r not in first["released_before"])
-    first["support"][0][0]["record_id"] = late
-    assert "record not released before this question" in {p for _t, _s, p in coop_problems(t)}
+    t["exchanges"][0]["support"][0]["records"][0]["record_id"] = "rec-09"  # no such record is released
+    assert "record not released in this interview" in {p for _t, _s, p in coop_problems(t)}
     header = "Date | Name | Card | Reason | Out | In"
     assert "the quote is only a column line" in support_problems("Date name card reason.", [header], {header})
+
+
+def test_a_record_detail_the_subject_could_not_know_is_caught() -> None:
+    """The subject hears questions, never records: a time only a record shows fails even when the record has it."""
+    row = "14:12:03 | B-12 door | Door closed, alarm cleared"
+    known = ["The door was held open for a few minutes and the alarm went off."]
+    assert "14:12 is not known to the subject" in support_problems("The door closed at 14:12.", [row], set(), known)
+    asked = [*known, "Can you tell me about the vault door being held open from 14:09 to 14:12?"]
+    assert support_problems("The door closed at 14:12.", [row], set(), asked) == []
+    t = fixtures.transcript(fixtures.load("fx_coop")["transcripts"][0])
+    t["exchanges"][0]["support"][0]["ledger"] = ["f:99"]
+    assert "cites no ledger entry of the subject, or an unknown one" in {p for _t, _s, p in coop_problems(t)}
 
 
 def test_fx_style_pairs_has_ten_transcripts_of_both_variants() -> None:
@@ -494,8 +541,17 @@ def test_every_scripted_transcript_has_a_current_independent_review(transcript_i
     review = {r["id"]: r for r in REVIEW["transcripts"]}[transcript_id]
     t = fixtures.transcript(transcript_id)
     assert review["reviewed_text_sha256"] == fixtures.reviewed_text_sha256(t)
+    assert review["case_sha256"] == canonical_sha256(read_family(t["family_id"]))
     assert [e["turn"] for e in review["exchanges"]] == [e["turn"] for e in t["exchanges"]]
-    assert [e for e in review["exchanges"] if not (e["consistent"] and e["responsive"])] == []
+    failing = [e for e in review["exchanges"] if not (e["consistent"] and e["responsive"] and e["visible"])]
+    assert failing == []
+
+
+def test_the_review_binding_detects_an_edited_case() -> None:
+    family = read_family("F01")
+    before = canonical_sha256(family)
+    family["variants"]["truthful"]["private_packet"]["facts"][0]["text"] += " Then I went home."
+    assert canonical_sha256(family) != before
 
 
 def test_the_review_binding_detects_an_edited_answer() -> None:

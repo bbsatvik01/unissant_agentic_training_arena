@@ -196,67 +196,67 @@
       "source": "authored near miss"
     },
     {
-      "text": "We were two technicians down that shift. Around two, Ines radioed me about a humidity alarm in the B wing and said B-12. I went to the vault, reset the tripped dehumidifier, and emptied its full condensate tank.",
+      "text": "We were two technicians down that shift, and Ines radioed me about a humidity alarm in the B wing. She said B-12, and the panel by the vault door showed the alarm for B-12, so my badge opened the vault a little after two.",
       "source": "TX-F01-T t01"
     },
     {
-      "text": "That matches what I remember. Ines named B-12 at 14:01 and I answered that I was on my way. The 14:25 call is me reporting the reset and the emptied tank. I wasn't sure that call went through, so it's good to see it logged.",
+      "text": "That would have Ines's call about the humidity alarm, where she said B-12. I think I radioed her when I was done, but I'm not sure that call went through or what time it was.",
       "source": "TX-F01-T t04"
     },
     {
-      "text": "That fits. I didn't open or handle any sealed box, and the audit shows every seal matching the register and no seals issued that day. I didn't know anything about the audit until now.",
+      "text": "I don't know anything about a seal audit. What I can tell you is that I did not touch any of the records boxes while I was in the vault. I was there for the dehumidifier and the tank.",
       "source": "TX-F01-T t07"
     },
     {
-      "text": "The purpose was the humidity alarm. Ines dispatched me on the radio at 14:01, the panel showed it for B-12, and the dehumidifier was tripped. I reset it and emptied the full condensate tank. I didn't go in for anything else.",
+      "text": "The purpose was the humidity alarm Ines radioed me about. The dehumidifier had tripped, so I reset it and emptied its full condensate tank. I did not touch any of the records boxes.",
       "source": "TX-F01-T t10"
     },
     {
-      "text": "It was pouring that evening. I had left my medication in my desk drawer when I went home at five, so Evan, my partner, drove me back. I badged in at the east staff door a little before quarter to eight, and went up to the records floor.",
+      "text": "I went back to the Annex that evening to collect my medication, which I had left in my desk drawer when I went home at five. It was pouring, and Evan, my partner, drove me. I badged in at the east staff door a little before quarter to eight, by myself, while Evan stayed in the car.",
       "source": "TX-F02-T t01"
     },
     {
-      "text": "I had not seen those trip records before today. They show one person on each trip, which fits my account, since I rode alone. I do not know whose 20:31 trip it is, because I had left the building by then.",
+      "text": "I haven't seen the elevator records, so I can't tell you what they show. What I can say is that I went in by myself, and Evan stayed in the car while I was inside.",
       "source": "TX-F02-T t04"
     },
     {
-      "text": "I had not seen Bram's statement, and it matches my account. He was cleaning near the elevators when I came in, and I came in alone. I do not remember exactly what I said to him, but forgetting something upstairs is accurate.",
+      "text": "I don't know what Bram has said. He was cleaning near the elevators when I came in, and I was by myself. Evan stayed in the car.",
       "source": "TX-F02-T t07"
     },
     {
-      "text": "I came back only to collect my medication. I had left it in my desk drawer when I went home at five. It is a personal matter, so I would rather not discuss what it is for, but it was the only reason I came in.",
+      "text": "I came back only to collect my medication, which I had left in my desk drawer when I went home at five. What it is for is a personal matter, so I would rather not go into that.",
       "source": "TX-F02-T t10"
     },
     {
-      "text": "The monitor paged me at five to seven because switch SW-2B was down. I was on call, so I came in through the lobby just after seven. My own access to Network Room N-3 had been removed the evening before, so I signed out a spare card from the IT lockbox under the outage procedure and went in.",
+      "text": "The monitor paged me at five to seven that SW-2B was down, and I was on call that day. I came in through the lobby just after seven. My own N-3 access had been taken off the evening before because my recertification training is overdue, so I signed out spare card A-2291 from the lockbox under OP-7.",
       "source": "TX-F03-T t01"
     },
     {
-      "text": "That is my ticket, opened about half past seven. It says SW-2B was unreachable since 06:55 and that I entered N-3 at 07:12 with spare card A-2291 under OP-7, because my own access was pending recertification. It also says I power-cycled the switch and it was reachable at 07:26.",
+      "text": "That is the incident ticket I opened at about half past seven for the SW-2B outage. In it I wrote that I used lockbox spare card A-2291 under OP-7.",
       "source": "TX-F03-T t04"
     },
     {
-      "text": "I had not seen this before. It shows the card was issued to Rafael Haddad in 2023, deactivated for him on 28 February, and reassigned on 1 March to the IT lockbox spare pool. I did not know it had ever been anyone's personal card.",
+      "text": "I don't know the history of card A-2291 or how the badge office keeps its records. To me it was a lockbox spare card, and I did not know it had ever been anyone's personal card.",
       "source": "TX-F03-T t07"
     },
     {
-      "text": "The purpose was to restore SW-2B. It was down, I was on call, and the switch needed a power cycle from inside N-3. My own access was off because my recertification training is overdue, so under OP-7 I used the lockbox spare card. I was inside only to fix the outage.",
+      "text": "The purpose was to bring SW-2B back after the monitor paged me that it was down. I was on call, so I went into N-3, power-cycled SW-2B, and it came back.",
       "source": "TX-F03-T t10"
     },
     {
-      "text": "We were two technicians down. Around two Ines radioed me about a humidity alarm in the B wing, in B-10, the supply room next to the vault. I reset the dehumidifier there, and the alarm cleared a few minutes later. I radioed that B-10 was done.",
+      "text": "We were two technicians down that shift. Ines radioed me about a humidity alarm in the B wing, and she said B-10, the supply room next to the vault. I reset the B-10 dehumidifier, the alarm cleared a few minutes later, and I radioed that B-10 was done.",
       "source": "TX-F01-D t01"
     },
     {
-      "text": "That matches what I remember. Ines named B-10 at 14:01 and I said I was on my way. At 14:05 I reported that B-10 was done. Everything I did on that call was in B-10.",
+      "text": "That would have Ines's call about the humidity alarm, where she said B-10, and my call saying B-10 was done when I finished. I don't know what Ines remembers about the call.",
       "source": "TX-F01-D t04"
     },
     {
-      "text": "The drawer log shows seal 55419 was taken at 14:15. I took it from the supply drawer and put it on box ACQ-117. I have no custodian release for that. I'm not going to say more about it right now.",
+      "text": "I don't know about any seal audit, so I can't tell you what it shows. I was in B-12 for a while that afternoon, and I left sometime after quarter past two, before half past.",
       "source": "TX-F01-D t07"
     },
     {
-      "text": "I had no assigned task in B-12. My dispatch and the work order were both for B-10. I don't have anything further to say about the reason I went in.",
+      "text": "I went in during a gap after the B-10 job. It was done early, and with the shift short nobody expected to hear from me for a while. My vault access comes through the Environmental Response group.",
       "source": "TX-F01-D t10"
     },
     {
@@ -264,31 +264,31 @@
       "source": "TX-F04-T t01"
     },
     {
-      "text": "I did not know Theo had parked there. What he describes matches what I did. I was at the dock door pushing the two bins in one at a time, on my own, and nobody else was on the dock.",
+      "text": "I cannot say what Mr Marsh wrote. What I can say is that I was alone at the dock door, and I held it open only while I pushed the two bins through, one at a time, without leaving the door.",
       "source": "TX-F04-T t04"
     },
     {
-      "text": "Working back, Felix was repairing the meter with Ruth when I returned at about half past eight. Before that I was on the mail round from just before eight. Before that I sorted the overnight mail, after bringing two bins in at about 7:41.",
+      "text": "Working back, Felix Arno was working on the meter with Ruth when I came back at about half past eight. Before that I was on the mail round from just before eight. Before that I sorted the overnight mail, after going out for the two bins at about twenty to eight.",
       "source": "TX-F04-T t07"
     },
     {
-      "text": "I was the only mail room staff member at work before eight, and nobody else came into the mail room between my bringing the bins in and leaving on the round. Theo Marsh says he saw me at the dock door pushing the bins in alone. Ruth Delacroix and Felix Arno can speak to what happened after I left.",
+      "text": "Nobody else was at the dock door with me, and I was the only mail room staff member at work before eight. Nobody came into the mail room after I brought the bins in until I left on the round. Ruth Delacroix and Felix Arno can speak to what happened after that.",
       "source": "TX-F04-T t10"
     },
     {
-      "text": "Tobias and I were rostered on the evening shift. The backup finished late at 20:41, so at 20:45 Hester phoned from the annex and asked me to get the fourteen courier tapes out of TV-1. I released spare card SP-3 at 21:08, the vault opened at 21:14, and I pulled the tapes.",
+      "text": "Tobias and I were the two operators rostered on the 14:00 to 22:30 shift. The weekly backup did not finish until 20:41 because a tape drive failed that morning, and at 20:45 Hester phoned from the annex and asked me to get the fourteen courier tapes out of TV-1 before the ten o'clock pickup.",
       "source": "TX-F05-D t01"
     },
     {
-      "text": "That is right. His renewal was not entered before the quarterly review, so his vault access came off his badge at six that evening. I do not know why it had not been entered. His vault-handling certification is still current, the same as mine.",
+      "text": "That concerns Tobias's vault access, which came off his badge at six that evening in the quarterly review. I do not know why his renewal had not been entered. He and I both hold current vault-handling certification for TV-1.",
       "source": "TX-F05-D t04"
     },
     {
-      "text": "Yes, one person went in at 21:14 and one came out at 21:51. That was me. I worked in the vault alone until I left by the exit button, and I pulled the fourteen tapes for the courier.",
+      "text": "I have not seen any camera counts. I went into the vault when the door opened at 21:14, pulled the fourteen courier tapes, and left by the exit button at about ten to ten.",
       "source": "TX-F05-D t07"
     },
     {
-      "text": "I released SP-3 from the NOC key cabinet on my PIN at 21:08. The cabinet only releases a spare card to the PIN of someone whose badge opens the vault, and it logs the card against that PIN. I returned it at 22:05.",
+      "text": "I released SP-3 from the NOC key cabinet on my PIN at 21:08. The cabinet only releases a spare card to the PIN of someone whose badge opens TV-1, and it logs the card against that PIN. I returned it at 22:05.",
       "source": "TX-F05-D t10"
     },
     {
@@ -296,63 +296,63 @@
       "source": "TX-F06-T t01"
     },
     {
-      "text": "That matches what I remember. The night custodian reported the water first, Gail Fenwick sent me the request, and Marcus Ebdon's approval of K-14 is logged at 18:49. My own call reported the leak over 417, the closed valve and the six boxes, at about a quarter to eight.",
+      "text": "That log would cover the leak that evening. The desk told me the night custodian had called in water on the corridor, though I do not know exactly what was said, and Gail Fenwick sent me the request at 18:44. I phoned the desk at about a quarter to eight about the leak over 417, the closed valve and the six boxes.",
       "source": "TX-F06-T t04"
     },
     {
-      "text": "I did not use that copier and made no copies in Room 417. I know nothing about the job at 16:52, which was long before my service request. I did not open any file box or touch the papers on the desks.",
+      "text": "I made no copies in Room 417. I was there to deal with the water, and I did not open any file box or touch the papers on the desks.",
       "source": "TX-F06-T t07"
     },
     {
-      "text": "The request did not say which room. I found the cracked drain line leaking above 417, with water coming through the ceiling onto the shelves, so I went in to deal with it and protect the boxes from the water.",
+      "text": "I went into 417 to deal with the water coming through its ceiling onto the shelves. The request only gave the corridor between 417 and 419 and did not say which room, and the leak was a cracked drain line above the 417 ceiling.",
       "source": "TX-F06-T t10"
     },
     {
-      "text": "I worked the morning, then took personal leave from half past twelve. That evening Celia had asked me to collect the Corbel Lane training kit and get it there before the morning session, so I came back in through the loading dock with my badge and went into the store.",
+      "text": "On 7 April I took personal leave from half past twelve. At about ten to five Celia phoned and asked me to collect the Corbel Lane training kit from the store that evening, so I came back, let myself in through the loading dock door with my badge, and my badge opened the store.",
       "source": "TX-F07-D t01"
     },
     {
-      "text": "I booked the afternoon of 7 April as personal leave on 30 March, and Celia approved it. Giving a reason is optional under the policy, so I would rather keep the reason to myself. It has nothing to do with the kit.",
+      "text": "That covers my afternoon off on 7 April. I booked it on 30 March and Celia approved it the same day. I took the leave from half past twelve and left the reason blank, as it was a personal matter and nothing to do with the kit.",
       "source": "TX-F07-D t04"
     },
     {
-      "text": "The bin shows two short and I can't dispute that. At about five to eight I packed two cordless drill kits from the tool bin into a second carton. I had not seen those stock counts before today.",
+      "text": "I have not seen any stock counts. What I can tell you is that I went into the store that evening for the projector kit Celia had left on the dispatch shelf for the Corbel Lane session.",
       "source": "TX-F07-D t07"
     },
     {
-      "text": "My badge opened the store door at 19:52, and I went to the dispatch shelf for the projector kit Celia had left. I packed the second carton from the tool bin before I left, as I have said.",
+      "text": "At 19:52 my badge opened the store, and I went in for the training kit. My badge opens the store and the loading dock door at any hour, and I had come in through the dock. Celia had left the kit on the dispatch shelf for me.",
       "source": "TX-F07-D t10"
     },
     {
-      "text": "At about ten to nine Marisol radioed me about an alarm fault by R-6 and put ticket SR-3051 in my queue. A bit after nine I went into R-6 and worked on motion detector MS-6A. Then I ordered a new detector head and updated the ticket.",
+      "text": "Marisol radioed me about an alarm fault by R-6 and put ticket SR-3051 in my queue. The ticket was for motion detector MS-6A inside R-6, with motion alarms and nobody in the room. My badge opened R-6 a bit after nine, and I walk-tested MS-6A twice.",
       "source": "TX-F08-T t01"
     },
     {
-      "text": "Marisol raised it for the fault alarm and assigned it to me. It was for MS-6A inside R-6, with repeated motion alarms and nobody in the room. The updates are mine. The detector head was failing, I could not repair it on site, and I left it in service.",
+      "text": "SR-3051 is the ticket Marisol put in my queue. It was for motion detector MS-6A inside R-6, and the fault was motion alarms with nobody in the room. I updated it at WB-2 to say the head was failing, that I had ordered a new one, and that MS-6A was left in service.",
       "source": "TX-F08-T t04"
     },
     {
-      "text": "I have not seen this log. I do not know how the new panel reports tampering. Calder put that panel in on 3 March, and I did not open it. I only worked on the detector MS-6A that night.",
+      "text": "I have not seen the new panel's log, and I do not know how it reports tampering. Calder put that panel in R-6 on 3 March. I did not open the new access panel; I was in R-6 only to work on MS-6A.",
       "source": "TX-F08-T t07"
     },
     {
-      "text": "I went in to work on the faulty motion detector MS-6A, which was named on my ticket SR-3051. I walk-tested it twice and saw the head was failing. When that work stopped, I left R-6 by the push bar.",
+      "text": "I went into R-6 to work on MS-6A for ticket SR-3051. The fault was motion alarms with nobody in the room, and after eight I was the only security systems tech on duty, so the job was mine. That was my only reason for going in.",
       "source": "TX-F08-T t10"
     },
     {
-      "text": "I drove in and came through the north staff door on my badge. Then I got Room 2-07 and the projector ready for nine, as Ms Ashby had asked me the day before. Mr Keable was with me when she came in around five to nine.",
+      "text": "I drove in, and my badge opened the north staff door when I came in from the car park. Ms Ashby had asked me on 14 April to meet the visitor from Penwick Document Services and set up Room 2-07 for nine. When she came in at about five to nine, Mr Keable and I were already there.",
       "source": "TX-F09-D t01"
     },
     {
-      "text": "I did not know the north staff door camera was down. Nobody told me about the fault, and I cannot say when it was or was not recording. That ticket is the first I have heard of it.",
+      "text": "I did not know the north staff door camera wasn't recording that morning. I do not know anything about a fault with the camera, or when it was or wasn't recording.",
       "source": "TX-F09-D t04"
     },
     {
-      "text": "I do not know what calls the desk made that morning. The log shows one call, at 09:38 to Facilities. I cannot tell you more about the desk phone than what is printed there.",
+      "text": "I do not know what calls the lobby desk made to other extensions that morning. I work in Procurement and Contracts, and the desk telephone is not something I use or keep track of.",
       "source": "TX-F09-D t07"
     },
     {
-      "text": "I use that door every day when I drive in. That morning I also had to meet Mr Keable and ready Room 2-07 for nine, as Ms Ashby had asked me on 14 April.",
+      "text": "I drive to work, and I come in from the staff car park through the north staff door. That morning I was also there to meet the visitor from Penwick Document Services and set up Room 2-07 for the nine o'clock review, as Ms Ashby had asked.",
       "source": "TX-F09-D t10"
     }
   ]
