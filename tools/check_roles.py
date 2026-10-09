@@ -103,6 +103,7 @@ LOADER_FUNCTIONS = frozenset({"import_module", "__import__"})
 DYNAMIC_RULE = "dynamic import machinery {what} in product code (S5 1.2 item 2: imports must be static)"
 STRING_RULE = "{package} names {module} in a string; a load-by-name API would import it (S5 1.2 item 2)"
 # A dotted (`a.b`) or colon (`a:attr`) module reference, optionally `ext://`-prefixed (logging.config).
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 MODULE_REFERENCE = re.compile(r"(?:ext://)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|[A-Za-z_]\w*(?=:))(?::[\w.]+)?")
 
 
@@ -366,20 +367,11 @@ def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[
 
 
 def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
-    """Frame names a string carries: the whole string (`getattr(events, "NoticeFrame")`) or any name in it read
-    as an expression (a string annotation such as `"NoticeFrame | None"`, which Pydantic resolves)."""
-    if text.strip() in names:
-        return [text.strip()]
-    try:
-        expression = ast.parse(text.strip(), mode="eval")
-    except SyntaxError:
-        return []
-    named = {n.id for n in ast.walk(expression) if isinstance(n, ast.Name)}
-    named |= {n.attr for n in ast.walk(expression) if isinstance(n, ast.Attribute)}
-    nested = [n.value for n in ast.walk(expression) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
-    for inner in nested:  # a forward reference inside a forward reference: "list['N']"
-        named.update(_named_in_string(inner, names))
-    return sorted(named & set(names))
+    """Frame names a string carries as identifiers: the whole string (`getattr(events, "NoticeFrame")`), or any
+    identifier in it (a string annotation such as `"NoticeFrame | None"` or `"list['N']"`, which Pydantic
+    resolves, nested quotes included). Prose that names a frame model is flagged too: product code has no
+    reason to spell one outside the projection."""
+    return sorted(set(_IDENTIFIER.findall(text)) & set(names))
 
 
 def _imports_export(path: str, node: ast.AST) -> bool:

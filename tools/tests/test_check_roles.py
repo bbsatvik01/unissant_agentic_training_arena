@@ -306,7 +306,8 @@ def test_a_decorated_functions_annotations_are_value_uses(source: str) -> None:
 
 def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
     assert frame_rules(ARENA_API_FILE, 'MESSAGE = "frames are built by the projection"\n') == []
-    assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == []
+    assert frame_rules(ARENA_API_FILE, 'TEXT = "the NoticeFrames table"\n') == []
+    assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == [lint.FRAME_RULE.format(name="NoticeFrame")]
 
 
 def test_the_export_module_may_read_frame_schemas() -> None:
