@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Wave 2 landed (2026-10-09)
+- WP-01 `feat/wp01-scaffold` 218fb65: Codex self-gate CORRECT after 11 rounds (gates hardened against every bypass found); make check green (743 tests, 95.76%); verifier PASS (4 lows). Cold Codex gate running; merge on CORRECT.
+- WP-08 `feat/wp08-scenario` 05eb56e and WP-03 `feat/wp03-db` 4093286: both Codex CORRECT and gates green, but verifiers FAIL (blocker): built on spec v2.1/v2.2; main is v2.6. Need a port to v2.6 (after Codex round 5), plus WP-08 findings (case IDs derivable from the sampler seed; canaries computable without a secret; untested load/validator branches) and WP-03 findings (plain-PG path really runs the Supabase image; db_test.sh untested; skip/todo regex misses qualified calls). Spec should record CM-14..CM-19.
+- Spec v2.6 committed (5ceb21b); Codex spec round 5 running.
+
 ## Spec v2.5 (2026-10-09)
 - 5e54a22: Codex round 3 fixed (24/25); voice is display-only (exchanges stored by arena-subject, no turns or work items); debrief envelope one function; 87 SQL smoke assertions green. Codex spec round 4 running (scratchpad codex/spec4).
 - Sent back: web agent rebuilds the voice machine to v2.5; seed agent fixes F02 r:02 (SG1-30) and re-checks all nine families under v2.5 rules.
