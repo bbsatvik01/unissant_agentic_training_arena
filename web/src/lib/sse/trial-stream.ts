@@ -11,7 +11,8 @@
  *   trial-scope envelope for this trial. The parsed object is handed on whole, unknown keys included, so the
  *   caller's schema validation sees exactly what the server sent. A frame failing either check, or rejected by the caller's
  *   validator and reducer, is dropped and counted, never rendered (S6 5.2, FE-SSE-6).
- * - The `after=` cursor is the highest persisted `seq` the caller accepted. Synthesized frames
+ * - The `after=` cursor is the highest persisted `seq` the caller accepted (or, with `resumeCursor`, the end of the
+ *   caller's gap-free prefix). Synthesized frames
  *   (`seq: null`: the snapshot, `subject.thinking`, `coach.working`, `trial.status`, `notice`) and
  *   replayed duplicates are handed to the caller but never move the cursor and never refill the
  *   retry budget, so a stream that only ever re-sends its snapshot still gives up (FE-SSE-1).
@@ -108,6 +109,11 @@ export interface TrialStreamOptions extends PassThroughOptions {
   onDrop?: (reason: TrialDropReason) => void;
   /** Resume point carried over from an earlier handle (the reducer already holds frames up to it). */
   initialLastSeq?: number | null;
+  /**
+   * Where an accepted persisted frame moves the cursor to, when that is not the frame's own seq: the caller's
+   * gap-free prefix, so a resume replays a frame that is still missing below it. Defaults to the frame's seq.
+   */
+  resumeCursor?: (frame: TrialFrame & { readonly seq: number }) => number;
 }
 
 export interface TrialStreamHandle extends TicketedStreamHandle {
@@ -118,7 +124,7 @@ export interface TrialStreamHandle extends TicketedStreamHandle {
 }
 
 export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle {
-  const { trialId, mintTicket, onFrame, onDrop, initialLastSeq = null, ...passThrough } = options;
+  const { trialId, mintTicket, onFrame, onDrop, initialLastSeq = null, resumeCursor, ...passThrough } = options;
   let lastSeq = initialLastSeq;
   let dropped = 0;
 
@@ -137,9 +143,11 @@ export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle 
       const frame = parseTrialFrame(event.data, trialId);
       if (typeof frame === "string") return drop(frame);
       if (!onFrame(frame)) return drop("rejected");
-      if (frame.seq === null || (lastSeq !== null && frame.seq <= lastSeq)) return false;
-      lastSeq = frame.seq;
-      return { cursor: String(frame.seq) };
+      if (frame.seq === null) return false;
+      const next = resumeCursor === undefined ? frame.seq : resumeCursor({ ...frame, seq: frame.seq });
+      if (lastSeq !== null && next <= lastSeq) return false;
+      lastSeq = next;
+      return { cursor: String(next) };
     },
   });
 

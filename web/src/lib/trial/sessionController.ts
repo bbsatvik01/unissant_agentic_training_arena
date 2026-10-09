@@ -162,6 +162,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let pendingTurn: TurnSubmit | null = null;
   const pendingKeys = new Map<"evidence" | "finding", { readonly match: string; readonly key: string }>();
   let completing: Promise<void> | null = null;
+  /** The gap-free prefix a gap check was last scheduled for. */
+  let gapChecked: number | null = null;
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
@@ -259,8 +261,28 @@ export function createSessionController(options: SessionControllerOptions): Sess
         set({ error });
       }
       if (state.debrief === null || !("schema_version" in state.debrief)) await loadDebrief();
-    })();
+    })().finally(() => {
+      // Only the run in flight is shared: a later call (another debrief request) reads the REST state again.
+      completing = null;
+    });
     return completing;
+  };
+
+  /** Practice text streams are gap-free (S5 6.1): there the cursor stops at the gap-free prefix. */
+  const resumePoint = (): number => {
+    const v = view();
+    if (v === null) return cursor;
+    return v.mode === "practice" && v.channel === "text" ? v.contiguousSeq : v.lastSeq;
+  };
+
+  /** A missing frame below a held one: if it has not arrived 1 s later, resume from the prefix (once per gap). */
+  const checkGap = () => {
+    const v = view();
+    if (v === null || v.mode !== "practice" || v.channel !== "text" || v.lastSeq <= v.contiguousSeq) return;
+    if (gapChecked === v.contiguousSeq) return;
+    gapChecked = v.contiguousSeq;
+    const at = v.contiguousSeq;
+    catchUp(() => view()?.contiguousSeq === at);
   };
 
   const onFrame = (frame: TrialFrame): boolean => {
@@ -279,6 +301,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     const counted = result.outcome === "applied" || result.outcome === "duplicate";
     if (counted && wire.type === "coach.card") streamCards.add(wire.data.turn_no);
     setTrial(result.state);
+    checkGap();
     if (result.state.view?.debriefReady != null && stream !== null) void complete();
     // A refused card is dropped and counted (S6 4.5); it never moves the cursor.
     if (counted && wire.type === "coach.card") return !(result.state.view?.rejectedCards.includes(wire.data.turn_no) ?? true);
@@ -301,6 +324,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       mintTicket,
       initialLastSeq: cursor,
       onFrame,
+      resumeCursor: () => resumePoint(),
       onDrop: () => {
         set({ dropped: state.dropped + 1 });
       },
@@ -361,6 +385,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return key;
   };
 
+  /** Forget a key once its own request settled; a newer request's key stays. */
+  const settleKey = (kind: "evidence" | "finding", key: string) => {
+    if (pendingKeys.get(kind)?.key === key) pendingKeys.delete(kind);
+  };
+
   const requireView = () => {
     const v = view();
     if (v === null) throw new Error("the room cannot act before the snapshot is read");
@@ -410,10 +439,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
       pendingTurn = body;
       try {
         const answer = await api.submitTurn(trialId, body);
-        pendingTurn = null;
+        if (pendingTurn === body) pendingTurn = null;
         afterPost(answer);
       } catch (error) {
-        if (refused(error)) pendingTurn = null;
+        if (refused(error) && pendingTurn === body) pendingTurn = null;
         throw error;
       }
     },
@@ -423,11 +452,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
       const idem = keyFor("evidence", JSON.stringify(ids));
       try {
         const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
-        pendingKeys.delete("evidence");
+        settleKey("evidence", idem);
         catchUp(() => (view()?.transcriptVersion ?? 0) < result.transcript_version);
         return result;
       } catch (error) {
-        if (refused(error)) pendingKeys.delete("evidence");
+        if (refused(error)) settleKey("evidence", idem);
         throw error;
       }
     },
@@ -437,10 +466,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
       dispatch({ type: "finding_submitted" });
       try {
         const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
-        pendingKeys.delete("finding");
+        settleKey("finding", idem);
         afterPost(answer);
       } catch (error) {
-        if (refused(error)) pendingKeys.delete("finding");
+        if (refused(error)) settleKey("finding", idem);
         dispatch({ type: "finding_failed" });
         throw error;
       }

@@ -27,7 +27,10 @@
  * the end overtakes it. The snapshot carries no event order between a card and the releases of its exchange, so
  * there a card is kept when it was read at its answer or at a release of the same exchange made after the answer
  * (`released_at_turn` is the exchange count at release, S4 `released_after_exchanges`), and is stale otherwise.
- * A card that failed the schema is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
+ * In a practice text trial every event row is live, so the owner's stream is gap-free (S5 6.1): a streamed card
+ * with a `seq` above the contiguous prefix (`contiguousSeq`) is pending whatever it reads, since a frame below it
+ * is still missing; the session controller resumes the stream from that prefix. A card that failed the schema
+ * is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
  * pending or refused card still closes its turn (the server closed it on the card row) and never reaches
  * `cards`.
  *
@@ -106,6 +109,8 @@ export interface TrialView {
   readonly transcriptVersion: number;
   /** The highest persisted `seq` folded (the snapshot's `last_seq` at least). */
   readonly lastSeq: number;
+  /** The end of the gap-free run of persisted `seq`s after the snapshot's `last_seq`. */
+  readonly contiguousSeq: number;
   readonly turns: readonly TurnView[];
   readonly voiceExchanges: readonly VoiceExchange[];
   readonly released: readonly SnapshotRelease[];
@@ -324,6 +329,10 @@ function derive(state: TrialState): TrialState {
   };
 
   let askedUpTo = Math.max(0, ...snapshot.turns.map((t) => t.turn_no));
+  let contiguousSeq = snapshot.last_seq;
+  while (state.log.has(contiguousSeq + 1)) contiguousSeq += 1;
+  /** The seq of each card that came on the stream, by turn. */
+  const cardSeq = new Map<number, number>();
   for (const frame of byKey(state.log)) {
     const v = frame.transcript_version;
     version = Math.max(version, v);
@@ -351,6 +360,7 @@ function derive(state: TrialState): TrialState {
       case "coach.card": {
         const n = frame.data.turn_no;
         if (cards.has(n)) break;
+        cardSeq.set(n, frame.seq);
         const answerVersion = turns.get(n)?.answerVersion ?? null;
         // The context version: the answer, or the newest release folded after it (all of them precede this card).
         const context =
@@ -401,9 +411,19 @@ function derive(state: TrialState): TrialState {
     else if (hint.type === "notice") notices.set(hint.data.kind, hint.data);
   }
 
+  // Practice text: a card above a gap was judged without a frame before it; it waits for the gap to fill.
+  const gapFree = snapshot.mode === "practice" && snapshot.channel === "text";
+  const aboveGap = (n: number) => gapFree && (cardSeq.get(n) ?? 0) > contiguousSeq;
+  for (const n of cardSeq.keys()) {
+    if (aboveGap(n)) {
+      cards.delete(n);
+      rejected.delete(n);
+      pending.add(n);
+    }
+  }
   // A pending card overtaken by a later turn or by the end will never become current.
   for (const n of pending) {
-    if (askedUpTo > n || isTerminal(serverStatus)) {
+    if (!aboveGap(n) && (askedUpTo > n || isTerminal(serverStatus))) {
       pending.delete(n);
       rejected.add(n);
     }
@@ -444,6 +464,7 @@ function derive(state: TrialState): TrialState {
     exchangesCap: snapshot.exchanges_cap,
     transcriptVersion: version,
     lastSeq,
+    contiguousSeq,
     turns: turnList.map((t) => ({
       turn_no: t.turn_no,
       question: t.question,

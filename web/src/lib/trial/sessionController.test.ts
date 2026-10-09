@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createArenaApi, type ArenaApi, type ContractViolationReport } from "../api/arena";
 import { ApiError, ContractError, createApiClient } from "../api/client";
-import type { CardAck, DebriefRead, TrialFrame, TrialSnapshot, TurnSubmit } from "../contracts/generated/types";
+import type { CardAck, DebriefRead, EvidenceResult, TrialFrame, TrialSnapshot, TurnSubmit } from "../contracts/generated/types";
 import type { EventSourceLike } from "../sse/ticketed-stream";
 import { fixture } from "../../test/wire-fixtures";
 import { COMMITMENT_HASH, LogBuilder, SESSION_ID, TRIAL_ID, cardFor, frame, snapshot, voiceSnapshot } from "../../test/trial-log";
@@ -967,5 +967,151 @@ describe("session controller: Codex round 1 regressions", () => {
     });
     for (const f of new LogBuilder().ask().frames) h.last().send(f);
     expect(order.slice(-2)).toEqual(["POST /api/telemetry/kpi4", "render"]);
+  });
+});
+
+describe("session controller: Codex round 2 regressions", () => {
+  function deferred<T>() {
+    let resolve: (v: T) => void = () => undefined;
+    let reject: (e: Error) => void = () => undefined;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  it("an older turn settling never clears a newer turn's retry identity", async () => {
+    let n = 0;
+    const sent: TurnSubmit[] = [];
+    const answers = [deferred<{ last_seq: null }>(), deferred<{ last_seq: null }>(), deferred<{ last_seq: null }>()];
+    const h = harness();
+    const c = h.make({
+      newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          return (answers[sent.length - 1] as (typeof answers)[number]).promise;
+        },
+      },
+    });
+    await begin(c);
+    const first = c.submitTurn("One?");
+    const second = c.submitTurn("Two?");
+    answers[0]?.resolve({ last_seq: null });
+    await first;
+    answers[1]?.reject(new TypeError("lost"));
+    await expect(second).rejects.toBeInstanceOf(TypeError);
+    const retry = c.submitTurn("Two?");
+    answers[2]?.resolve({ last_seq: null });
+    await retry;
+    expect(sent[2]).toEqual(sent[1]);
+  });
+
+  it("an older evidence request settling never clears a newer one's key", async () => {
+    const keysSent: string[] = [];
+    let n = 0;
+    const gates = [deferred<EvidenceResult>(), deferred<EvidenceResult>(), deferred<EvidenceResult>()];
+    const result: EvidenceResult = { released: [], already_released: [], denied: [], transcript_version: 0 };
+    const h = harness();
+    const c = h.make({
+      newKey: () => `k${String((n += 1))}`,
+      api: {
+        ...h.api,
+        requestEvidence: (_id, body) => {
+          keysSent.push(body.idem_key);
+          return (gates[keysSent.length - 1] as (typeof gates)[number]).promise;
+        },
+      },
+    });
+    await begin(c);
+    const a = c.requestEvidence(["rec-01"]);
+    const b = c.requestEvidence(["rec-02"]);
+    gates[0]?.resolve(result);
+    await a;
+    gates[1]?.reject(new TypeError("lost"));
+    await expect(b).rejects.toBeInstanceOf(TypeError);
+    const retry = c.requestEvidence(["rec-02"]);
+    gates[2]?.resolve(result);
+    await retry;
+    expect(keysSent).toEqual(["k1", "k2", "k2"]);
+  });
+
+  it("a terminal snapshot that failed to load is read again by a later debrief request", async () => {
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 9 });
+    const debrief = fixture("debrief:scored");
+    const h = harness({
+      snapshots: [snapshot(), new TypeError("network"), ended],
+      tickets: [new ApiError(409, "stream_closed", "/x")],
+    });
+    const c = h.make({ api: { ...h.api, requestDebrief: () => Promise.resolve(debrief as never) } });
+    await begin(c);
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(trialView(c).commitmentHash).toBeNull();
+    await c.requestDebrief();
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+    expect(roomStatus(c.getState().trial)).toBe("ended");
+  });
+
+  it("a card above a missing frame neither shows nor is acknowledged, and the resume replays the gap", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    h.last().open();
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02" });
+    const [q, , answer, release, , card] = b.frames;
+    expect(release?.type).toBe("evidence.released");
+    h.last().send(q);
+    h.last().send(answer);
+    h.last().send(card);
+    await flush();
+    expect(trialView(c).cards).toEqual([]);
+    expect(trialView(c).pendingCards).toEqual([1]);
+    expect(h.acks).toEqual([]);
+    // the gap is still there 1 s later: resume from the gap-free prefix
+    await h.clock.advance(CATCH_UP_MS);
+    expect(h.sources).toHaveLength(2);
+    expect(h.last().url).toContain(`after=${String(answer?.seq ?? -1)}`);
+    for (const f of [release, card]) h.last().send(f);
+    await flush();
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
+  });
+
+  it("a card judged before an earlier release arrives is never shown or acknowledged valid", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const shown: number[] = [];
+    c.subscribe(() => shown.push(trialView(c).cards.length));
+    // answer at v2 (seq 2), release at v3 (seq 3), card read at v2 (seq 4): stale once seq 3 is known
+    const b = new LogBuilder().ask({ coach: "none" });
+    b.release("rec-02");
+    const card = frame("coach.card", b.seq + 1, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const [q, , answer, release] = b.frames;
+    for (const f of [q, answer, card]) h.last().send(f);
+    expect(h.acks).toEqual([]);
+    h.last().send(release);
+    await flush();
+    expect(shown.every((count) => count === 0)).toBe(true);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+    expect(trialView(c).rejectedCards).toEqual([1]);
+  });
+
+  it("an assessment stream's legitimate gaps (withheld coaching rows) move the cursor and trigger no resume", async () => {
+    const h = harness({ snapshots: [snapshot({ mode: "assessment" })] });
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder("assessment").ask();
+    h.last().send(b.frames[0]);
+    h.last().send({ ...b.frames[2], seq: 5 });
+    await h.clock.advance(5_000);
+    expect(h.sources).toHaveLength(1);
+    h.last().fail();
+    await h.clock.advance(250);
+    expect(h.last().url).toContain("after=5");
+    expect(trialView(c).turns.map((t) => t.answer)).toEqual(["Answer 1."]);
   });
 });
