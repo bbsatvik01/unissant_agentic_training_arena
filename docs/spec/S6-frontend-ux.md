@@ -1,8 +1,8 @@
 # S6: Frontend and UX
 
-Part S6 of the build specification for the Investigative AI Training Arena. **Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** Version 1 (same date) was written against direction v10 (hosted, 20 cases).
+Part S6 of the build specification for the Investigative AI Training Arena. **Version 2.1, 2026-10-08: S1 reconciled, cross-check X-01..X-17 resolved, D-013 applied.** Version 1 (same date) was written against direction v10 (hosted, 20 cases).
 
-Governing inputs: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.3 (cited as "direction") with D-011 local-first, `docs/research/synthesis/03-ui-direction.md` v2.1 (cited as "UI direction"), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-012; D-007 superseded by D-009), `docs/handoff/PATTERNS.md`, S8 section 2 (owner decisions OD-0 to OD-14) and section 9 (C-01 to C-48), research routes X5, I6, I7 and U1-U5. Lift sources were read directly on 2026-10-08 and are cited by path and line range. Dollar figures come from `docs/research/synthesis/cost_model.py` and statistical bounds from `docs/research/synthesis/stats_contracts.py`; each names the function that printed it.
+Governing inputs: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (cited as "direction") with D-011 local-first, `docs/research/synthesis/03-ui-direction.md` v2.1 (cited as "UI direction"), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-014; D-007 superseded by D-009; D-013 one global spend ceiling; D-014 case families authored offline), `docs/handoff/PATTERNS.md`, S8 section 2 (owner decisions OD-0 to OD-14) and section 9 (C-01 to C-48), research routes X5, I6, I7 and U1-U5. Lift sources were read directly on 2026-10-08 and are cited by path and line range. Dollar figures come from `docs/research/synthesis/cost_model.py` and statistical bounds from `docs/research/synthesis/stats_contracts.py`; each names the function that printed it.
 
 Scope: the browser application only. Server routes, SQL functions, the voice relay and the scorer are specified elsewhere; where this document needs something from them, it says so in section 15 and designs so the frontend works with the stated contract.
 
@@ -177,7 +177,7 @@ Local default (OD-10 unanswered): the presenter runs onboarding, one practice se
 `/review`, on the referee process origin (S5 10.1), lists assigned blinded items; each shows a transcript with participant, pre/post label, dates and coach output removed; the trainer scores five dimensions 0-4 against the frozen anchors and submits once.
 
 ### 3.7 Admin (BKO-9)
-Admin uses the console served by the local `arena-referee` process (4.13): tournament lifecycle, budget ledger, subject validity review queue, reveal with precondition checklist, kill switch.
+Admin uses the console served by the local `arena-referee` process (4.13): tournament lifecycle, budget ledger, subject validity review queue, reveal with precondition checklist, kill-switch status (read-only; the owner runs `scripts/kill_switch.sh`).
 
 ---
 
@@ -187,12 +187,12 @@ Each component lists its data source and acceptance criteria. Layout and visual 
 
 ### 4.1 Onboarding (EX-4)
 - Regions: EX-4 statement (the sponsor's exact text, section 8), what the coach does and does not do, what is recorded, the voice disclosure, a link to methodology.
-- Acknowledge button calls `POST /api/me/ack-ex4`.
+- Acknowledge button calls `POST /api/me/ack-ex4` (stored once per user by `training.acknowledge`, S4; X-15); `GET /api/me` returns `ex4_acknowledged` as the stored time or null.
 - FE-ONB-1: no session-start control in the app is enabled while `ex4_acknowledged = false` (Playwright).
 - FE-ONB-2: `EX4_TEXT` equals, character for character, the sponsor's sentence after the "Ground rule:" label on slide 8 (`docs/challenge/unissant-use-case.txt` line 99; REQUIREMENTS EX-4); the unit test reads that file.
 
 ### 4.2 Case library (PRB-1, PRB-2)
-- Data: `GET /api/cases` (development cases only; hidden cases are never listed, SCN-12). The server lists **one case per family per user**, the variant chosen by a seeded per-user draw; once a family's debrief has been shown to a user, its sibling variant is never offered to that user; KPI-1 case sets come only from families the participant has not seen (C-37; enforced in S5). The client renders the list it receives and has no control that chooses or switches a variant.
+- Data: `GET /api/cases` (development cases only; hidden cases are never listed, SCN-12). The server lists **one case per family per user**, the variant chosen by a seeded per-user draw; once a family's debrief has been shown to a user, its sibling variant is never offered to that user; KPI-1 case-set families are never listed for practice, and a participant receives their assigned set whole for the pre-test and post-test (C-37, X-08; enforced in S5 and S4). The client renders the list it receives and has no control that chooses or switches a variant.
 - Card fields: case ID, domain, investigation objective (one line), difficulty, completion status for this user, available channels. **Not shown: communication style, role, family ID, matched-variant relationships** (style shown before an interview primes demeanor reasoning, PRB-4; family ID lets a user pair matched variants).
 - Study participants see their assigned step ("Pre-test", "Practice", "Post-test") with the server-assigned case set (counterbalanced, direction 7.2 KPI-1 protocol).
 - FE-LIB-1: a contract test asserts the case-list schema has no `style`, `role`, `family_id` or `variant` fields; the client schema rejects a payload containing them. (Server side, S5 adds a route test that no investigator or assistant route returns style before reveal, C-26.)
@@ -218,7 +218,7 @@ Regions:
 
 Behavior:
 - One open turn at a time (S4 5.3, S5 5.1). Send is disabled from `question.accepted` until the turn closes: in practice, until `coach.card` or `coach.failed` for that turn; in assessment, the client cannot see coaching events, so Send re-enables on `subject.answer`, and a `409 turn_in_progress` keeps the draft and shows "One moment: the previous turn is still being saved." (section 16, item 1).
-- Question length limit from `GET /api/config`, displayed as a counter.
+- Question length limit from `GET /api/config` (`question_max_chars`), displayed as a counter.
 - Subject and coach text are untrusted (SUB-7): rendered as plain text nodes, never `dangerouslySetInnerHTML`, never markdown. Quoted spans are highlighted by offset, not by HTML injection.
 - Transcript region is `role="log"` with `aria-live="polite"`, mounted from the start and never unmounted (gokbase `Transcript.tsx` lines 15-18, 472-473); voice captions batch announcements at clause boundaries or every 400 ms (same file, lines 310-325). Transcript text never types out character by character.
 - Mobile (< 768 px): regions become tabs (Transcript, Evidence, Coach); composer, voice bar and EX-4 footer stay pinned and do not obscure focused content (WCAG 2.4.11).
@@ -324,7 +324,7 @@ Regions:
 
 ### 4.9 Arena: tournament matrix and pipeline rail (CH-4, BKO-1..BKO-7, BKO-10)
 
-- Tournament list: state (draft, frozen, running, sealed, scoring, revealed), split (dev or hidden), seed, roster manifest hash, budget used against the tournament's buckets (server values from the `ops` projection).
+- Tournament list: state (draft, frozen, running, sealed, scoring, revealed), split (dev or hidden), seed, roster manifest hash, reserved and settled spend against the one `global` ceiling (server values from the `ops` projection; D-013).
 - Matrix: rows assistants A1-A3, columns subjects S1-S3 (BKO-4). Each cell: planned trials, counts by execution state (`completed`, `subject_quarantined`, `assistant_failed`, `infra_failed`, `budget_skipped`, `budget_truncated`, and `source_unavailable` for the replay assistant, C-35), the current trial's progress `turn n/12`, and a caption line. Selecting a cell makes the pipeline rail (6.5) follow that pairing's current trial.
 - Track tabs: Replay track (BKO-6) and Interactive track (BKO-7), shown in the sponsor's order (BKO-2).
 - Data (C-17): no tournament stream. In the slice the view polls `GET /api/tournaments/{id}` (states and counts); afterwards it also polls `GET /api/tournaments/{id}/events?after=<seq>` for frames the server derives from `arena.v_trial_events` and `ledger.v_events` (5.3), every 2 s while the tournament is running and the tab is visible (S5 6.2); finished tournaments are read once.
@@ -340,7 +340,7 @@ All numbers are read from `arena.leaderboards` through `arena-api` after reveal;
 
 **Assistant leaderboard, in this order on the page:**
 1. Header: tournament, track, "bound to inclusion manifest `<hash>`" (copyable full hash), roster manifest hash, reveal time, EX-4 statement, EVL-10 sentence "A tournament rank is not certification for real investigations.", and a "Corrected leaderboard" label with a link to the original when the manifest is a later one (direction 7.1).
-2. Eligibility gate panel per candidate, shown before any rank (EVL-6, KPI-5, PRB-3): FPR point estimate with its interval and the sponsor gate (`<= 5%`, pass or fail); for zero events, the complete-family one-sided bound and its family count as provided by the server (for example, at the 24-case baseline's 12 truthful families: "0 of 12 truthful families; one-sided 95% upper bound 22.1%", from `stats_contracts.zero_event_upper_bound(12)`; the page prints the server's value for the actual count); isolation gate pass or fail with a link to `/trust/isolation`; "insufficient" when the candidate has no included truthful trials.
+2. Eligibility gate panel per candidate, shown before any rank (EVL-6, KPI-5, PRB-3): FPR point estimate with its interval and the sponsor gate (`<= 5%`, pass or fail); for zero events, the complete-family one-sided bound and its family count as provided by the server (for example, at the 30-case baseline's 15 truthful families: "0 of 15 truthful families; one-sided 95% upper bound 18.1%", from `stats_contracts.zero_event_upper_bound(15)`; the page prints the server's value for the actual count); isolation gate pass or fail with a link to `/trust/isolation`; "insufficient" when the candidate has no included truthful trials.
 3. Ranked eligible candidates: rank interval (best to worst from the bootstrap, X5 LMArena rank-spread pattern), deceptive-role recall with interval, questioning quality with interval, provisional marker with the server's reason (attrition sensitivity, own deceptive coverage below 90%).
 4. Ineligible candidates listed below, unranked, each with the failing gate stated.
 5. Detail per candidate: PPV, the 2x3 count matrix with raw counts, unresolved rate by role (EVL-9), evasion-event precision and recall ("undefined" for zero denominators), unsupported-flag rate, cost per trial, p95 coaching latency with interval (KPI-4), coverage and attrition per role, exclusions by execution state.
@@ -369,7 +369,7 @@ Acceptance:
 | Commitments | For a revealed tournament: per trial, commitment hash, transcript and evidence hashes, and after reveal the nonce; a "Verify in browser" button recomputes the commitment with WebCrypto SHA-256 using the ledger spec's construction and shows match or mismatch | ledger projections |
 | Fairness audit | FPR and flag rates by communication style with intervals, unsupported style-based flags per assistant, the permutation test result, and the demeanor-driven negative-control fixtures with their detection result (PRB-4, SCN-3) | server |
 | Methodology | Every metric's estimand, unit and interval method (direction 7.2), attrition rules, the zero-event bound explanation, judge calibration results, the NIST AI RMF MEASURE mapping, and the EVL-12 statement that NIST has not validated these thresholds | static content plus server values |
-| Budget | D-009 cap ($75, `cost_model.CAP`) and target ($50, D-009); the applied bucket tree with each ceiling and spend to date from the reservation ledger; the planned case count n printed from the server (24 baseline, 30 only if OD-8 approves after the dev pilot). Ceilings are whatever the operator applied from `cost_model.budget_plan()` (D-012); before the plan is applied every bucket reads $0 and the section states "Budget plan not applied: no model spend is possible." The client never holds a ceiling of its own. | `ops.*` projection |
+| Budget | D-009 cap ($75, `cost_model.CAP`) and target ($50, D-009); the applied `global` ceiling and spend to date from the reservation ledger, grouped by purpose label (D-013); the planned case count n printed from the server (30 baseline, 34 only if OD-8 approves after the dev pilot). The ceiling is whatever the operator applied from `cost_model.budget_plan()` (D-012); before the plan is applied it reads $0 and the section states "Budget plan not applied: no model spend is possible." The client never holds a ceiling of its own. | `ops.*` projection |
 | Observability | Local default: Phoenix runs locally (D-011); the section shows a dated static p95 latency panel image captured from local Phoenix and says so; operators get the local Phoenix link from `config.phoenix_url`. Hosted Phoenix belongs to the hosted variant (S5 D-P3, OD-10). | config |
 
 - FE-TRUST-1: commitment verification test: a fixture with known inputs shows "match"; one altered byte shows "mismatch".
@@ -390,7 +390,7 @@ Acceptance:
 
 The capability matrix routes admin operations through `arena-referee` (direction 4.3). Locally the referee process serves the same static bundle on its own local port (S5 10: 8082) next to its `/api/admin/*` routes; an admin opens that origin directly, and the app, being origin-relative, talks to the referee's admin routes. `arena-api` serves no admin routes and its build shows no admin entry point (`/api/me` never returns `admin` on the `arena-api` origin). The hosted path is decided in WP-33 (1.4).
 
-- Screens: tournament lifecycle with allowed transitions; budget ledger (reservations, settled spend, buckets with applied ceilings, cap); kill switch with a typed confirmation; subject validity review queue (blinded: candidate IDs hidden) recording `valid` or `subject_invalid` with reason; reveal page listing each precondition (roster frozen, one execution record per planned trial, every subject review resolved, replay corpus sealed, commitments verified) as computed by the server, with Reveal enabled only when all pass; inclusion manifest view.
+- Screens: tournament lifecycle with allowed transitions; budget ledger (reservations, settled spend, the applied `global` ceiling, cap); kill-switch state, read-only, with the owner's command `scripts/kill_switch.sh on|off` printed beside it (`ops.set_kill_switch` is owner-only and the console runs on the `arena_referee` credential, X-14); subject validity review queue (blinded: candidate IDs hidden) recording `valid` or `subject_invalid` with reason; reveal page listing each precondition (roster frozen, one execution record per planned trial, every subject review resolved, replay corpus sealed, commitments verified) as computed by the server, with Reveal enabled only when all pass; inclusion manifest view.
 - No infra controls (workers, instances, timeouts, health checks) and no bucket-ceiling editor appear in any UI (global owner-approval gate; ceilings are applied by the operator from `budget_plan()`, D-012).
 - FE-ADM-1: on the `arena-api` origin, `/admin` renders "Not available here" and the bundle makes no `/api/admin/*` request.
 - FE-ADM-2: Reveal is disabled while any precondition is false (fixture).
@@ -443,16 +443,16 @@ Trial scope:
 | `coach.working` | synthesized after `subject_turn`, practice only | `{turn_no}` | Coach call started |
 | `coach.card` | `coach_card` | `{turn_no, card}`: S2 card.v1 as stored, with S2's code-filled fields, without `candidate_sha256` in training views (5.4) | Card validated server-side |
 | `coach.update` | `coach_deep` | `{turn_no, update}`: S2 deep.v1 | Candidate A1 deeper update |
-| `coach.failed` | `coach_unavailable` | `{turn_no, reason: timeout \| invalid}` | Card missed |
+| `coach.failed` | `coach_unavailable` | `{turn_no, reason: timeout \| repair_failed}` | Card missed (X-11) |
 | `finding.committed` | `finding_committed` | `{by: investigator \| assistant, finding, committed_at}`; `finding` is the shared `Finding` (C-27) | Finding submitted |
 | `trial.status` | synthesized in the snapshot and on `trial_ended`; derived from trial status and the terminal record (C-45) | `{status, reason_code?}`; `status` in `running, completed, subject_quarantined, assistant_failed, infra_failed, budget_skipped, budget_truncated` | State known at connect; trial ends |
 | `trial.finalized` | `trial_ended` with `completed` | `{commitment_hash}` | `finalize_trial()` committed |
 | `debrief.ready` | `debrief_ready` (one added persisted kind, emitted by a referee-granted function; C-17) | `{session_id}` | Debrief projection written |
 | `notice` | synthesized | `{kind: paused \| quota, text}` | Kill switch, quota (the voice time warning arrives on the voice socket as `warning`, 6.2) |
 
-Exchanges used are counted from turns. `finalizing` is not a wire status: the client shows it between its own finding submit and the terminal `trial.status` (C-45, 6.1).
+The `trial_ended` row's `seq` (SSE `id`) rides on `trial.finalized` when the trial completed and on `trial.status` otherwise; the other frame has no `id` (S5 6.2, X-15), so the client's `after=` cursor advances once per row. Exchanges used are counted from turns. `finalizing` is not a wire status: the client shows it between its own finding submit and the terminal `trial.status` (C-45, 6.1).
 
-Tournament scope (polled, derived from `arena.v_trial_events` and `ledger.v_events`; no new tables, C-17, S5 6.2): `tournament.status {state}`, `block.started {block_index, pairings[]}`, `trial.started {trial_ref, pairing, track}`, `harness.question {trial_ref, turn_no, text?}`, `evidence.released {trial_ref, turn_no, record?}`, `subject.answer {trial_ref, turn_no, latency_ms?, text?}`, `coach.card {trial_ref, turn_no, latency_ms, card}` (dev or revealed tournaments only: coaching is not a ledger event), `trial.finalized {trial_ref, commitment_hash}`, `trial.execution {trial_ref, state}`. `latency_ms` is the recorded model-call duration that drives motion (6.5) where the projection provides it; before reveal, frames carry only tournament-level progress and execution states, and beats are instantaneous markers. `trial_ref` is an opaque per-tournament ordinal, not a case ID. Budget figures come from the tournament `GET` (server values), never from frames; v1's `referee.labeled` and `budget.*` frames are dropped because no derivable source exists.
+Tournament scope (polled, derived from `arena.v_trial_events` and `ledger.v_events`; no new tables, C-17, S5 6.2): `tournament.status {state}`, `trial.started {trial_ref, pairing, track}`, `harness.question {trial_ref, turn_no, text?}`, `evidence.released {trial_ref, turn_no, record?}`, `subject.answer {trial_ref, turn_no, latency_ms?, text?}`, `coach.card {trial_ref, turn_no, latency_ms, card}` (dev or revealed tournaments only: coaching is not a ledger event), `trial.finalized {trial_ref, commitment_hash}`, `trial.execution {trial_ref, state}`. `latency_ms` is the recorded model-call duration that drives motion (6.5) where the projection provides it; before reveal, frames carry only tournament-level progress and execution states, and beats are instantaneous markers. `trial_ref` is an opaque per-tournament ordinal, not a case ID. Budget figures come from the tournament `GET` (server values), never from frames; v1's `referee.labeled` and `budget.*` frames are dropped because no derivable source exists.
 
 ### 5.4 One visibility rule (UI direction 2a)
 
@@ -502,12 +502,12 @@ This section no longer defines routes. The frontend consumes S5 5.5's route tabl
 
 ### 5.6 KPI-4 acknowledgement (C-28; S3 6.4 is canonical)
 
-KPI-4 is measured on the server clock: start = `subject_commit_at` (`clock_timestamp()` inside `record_subject_turn()`), end = `client_ack_at` (`clock_timestamp()` when `ops.ack_card(trial, turn_no)` inserts the client's acknowledgement). The measure includes one uplink transit, so it is conservative. The client's only job is to acknowledge promptly and honestly:
+KPI-4 is measured on the server clock: start = `subject_commit_at` (`clock_timestamp()` inside `record_subject_turn()`), end = `client_ack_at` (`clock_timestamp()` when `ops.ack_card(trial, turn_no, client_valid)` records the client's acknowledgement; X-11). The measure includes one uplink transit, so it is conservative. The client's only job is to acknowledge promptly and honestly:
 
-- On a `coach.card` frame (practice mode, the only population that receives live cards, S3 6.4), the client runs the acceptance check of 4.5 and immediately, before rendering, posts `{trial_id, turn_no, card_outcome: "ok" | "client_invalid"}` to `POST /api/telemetry/kpi4` (S5 8.7) with `keepalive: true`. One acknowledgement per turn; the server keeps the first and ignores later ones, so a retry is safe.
+- On a `coach.card` frame (practice mode, the only population that receives live cards, S3 6.4), the client runs the acceptance check of 4.5 and immediately, before rendering, posts `{trial_id, turn_no, client_valid: true | false}` to `POST /api/telemetry/kpi4` (S5 8.7) with `keepalive: true`. One acknowledgement per turn; the server keeps the first and ignores later ones, so a retry is safe.
 - No client clock value, duration or round trip is sent. The v1 `GET /api/ping` RTT measurement and `card_minus_answer_ms` arithmetic are removed.
 - A card that fails acceptance is acknowledged `client_invalid` and counts as a miss; a card never acknowledged (tab closed) is unmeasured (S3 6.4). `coach.failed` is a server-side miss with nothing to acknowledge.
-- FE-KPI4-1: unit test with a fake transport: a valid card posts exactly one acknowledgement with `card_outcome: "ok"` before the card's render effect runs; an invalid or stale card posts `client_invalid` and renders nothing; a duplicate frame posts nothing new; the body has no timing field.
+- FE-KPI4-1: unit test with a fake transport: a valid card posts exactly one acknowledgement with `client_valid: true` before the card's render effect runs; an invalid or stale card posts `client_valid: false` (stored as `client_invalid`) and renders nothing; a duplicate frame posts nothing new; the body has no timing field.
 - FE-KPI4-2: render budget (outside the KPI-4 measure): the card renders within 100 ms of frame receipt at the 95th percentile in the Playwright fixture run (performance marks around the reducer dispatch and the card's commit effect).
 
 ---
@@ -545,7 +545,7 @@ Arena changes:
 | `mode: 'live' \| 'push_to_talk'`; under push-to-talk `listening` becomes `recording` while the talk control is held | OD-6 voice branch (3.3) |
 | Frames accepted (S5 7.3): `utterance_start`, `utterance_end`, `transcription {role, text, partial}`, `interrupted {utterance}`, `turn_committed {turn_no, version}`, `exchange_count {used, cap}` (S5 adds it, C-29), `timer_tick`, `warning`, `ended`, `resume {token, expires_in}`; turn text arrives on SSE, so the transcript shows committed turns plus at most one live caption line | Text is the scored artifact (SOL-1); live fragments are captions only (I6 section 4: one answer arrives as many fragments) |
 | Controls sent (S5 7.3): binary PCM16 audio (16 kHz mono, at most 3,200 bytes per frame), `stop`, `interrupt`, and `played {utterance, samples}` carrying the utterance's cumulative played samples, every 250 ms while playing and on barge-in (within S5's 8 per second cap). The v1 `playback_ack` control is replaced by `played` | Playback-grounded transcripts (direction 9, F10). The gokbase playback worklet does not report played samples (`public/worklets/playback-processor.js` lines 21-77); the arena worklet posts `{type:'played', samples}` from `process()` every 250 ms of output and `{type:'cleared', dropped}` on `clear`, and the client accumulates per utterance |
-| Close codes (S5 7.5, canonical, plus 4410 from C-29): terminal `1000` normal, `4400` protocol violation, `4401` ticket or binding, `4403` origin, `4404` not found, `4408` idle, `4410` exchange cap reached, `4413` cost shutoff or reservation refused (replaces v1's `4429`), `4423` kill switch, `4503` resume failed. Any other code (`1006`, `1011`) is transient and drives resume with `["voice-resume", token]`, backoff 500/1000/2000 ms, 3 attempts (S5 7.2 caps resumes at 3; gokbase `useVoiceSession.ts` lines 17, 37-38, 278-300) | One protocol, owned by S5 |
+| Close codes (S5 7.5, canonical, plus 4410 from C-29): terminal `1000` normal, `4400` protocol violation, `4401` ticket or binding, `4403` origin, `4404` not found, `4408` idle, `4409` subject guard hit (the session is invalid; S2 9.4, X-15), `4410` exchange cap reached, `4413` cost shutoff or reservation refused (replaces v1's `4429`), `4423` kill switch, `4503` resume failed. Any other code (`1006`, `1011`) is transient and drives resume with `["voice-resume", token]`, backoff 500/1000/2000 ms, 3 attempts (S5 7.2 caps resumes at 3; gokbase `useVoiceSession.ts` lines 17, 37-38, 278-300) | One protocol, owned by S5 |
 | Timer and `warning` kept (lines 214-224); the room shows "Voice ends in 60 s; you can continue in text" | WCAG 2.2.1 (time limit with warning and an untimed alternative) |
 
 **Voice bar state (UI direction 3).** A pill-shaped bar docked at the bottom of the room, never a full-screen takeover. Its state combines four inputs: connection (the machine and its close-code taxonomy), microphone capture (the capture tap's level against a silence floor), server activity (S5's `utterance_start`, `utterance_end`, `interrupted`, investigator `transcription`) and actual playback (queued audio can keep playing after `utterance_end`).
@@ -625,7 +625,7 @@ Forbidden inputs (type-enforced): answer category, flags, running finding, commi
 
 Art pipeline and budget (WP-21, after the slice gate):
 - **Production test first:** one character goes through generate, vectorize (VTracer), clean up, rig and speak in the first build days after the 2026-10-18 gate. If it fails, portraits are hand-authored SVG with the same playback-driven rig; no new animation runtime (UI direction 1.2). The remaining portraits are generated only after the test passes.
-- **Art sub-budget:** every generation call runs through the agent port and reserves against the spend guard's `art` leaf: ceiling $6.20 (`cost_model.budget_plan()["art"]`, which is `PORTRAITS[0] * PORTRAITS[2]`, 62 images at $0.10 high), cap 62 images (`PORTRAITS[0]`; C-46), expected $4.34 (`PORTRAITS[0] * PORTRAITS[1]`). Reference-image input and text or thinking tokens count against the leaf. When the leaf is spent, approved assets are reused and nothing else is generated.
+- **Art sub-budget:** every portrait call runs through the agent port as call kind `portrait` and reserves its worst case against the one `global` ceiling (D-013); the hard limit is the count cap of 62 images (`PORTRAITS[0]`; C-46), enforced in code. For reading only: 62 images cost $6.20 high (`cost_model.demo_bucket(True)["portraits"]`) and $4.34 expected (`demo_bucket(False)["portraits"]`). When the cap is reached, approved assets are reused and nothing else is generated.
 - Each original PNG is kept as the provenance record (Gemini 3 Pro Image supports C2PA content credentials; vectorizing strips them).
 
 Gemini Live Avatar is out of scope (UI direction TL;DR 4; C-38b).
@@ -900,7 +900,7 @@ Effort: S up to 2 h, M 2-6 h, L over 6 h. All sources are read-only (D-002); cod
 | **2026-10-18 slice gate** | Nothing presentational before this line | |
 | Oct 19-24 (WP-20a) | Debrief, progress, trainer console, admin console on the referee process; in the first days after the gate, the motion spike (6.6) and the one-character production test (6.4); DESIGN.md applied when it lands | E2E-7, E2E-8 |
 | Oct 21-28 (WP-20b) | Arena matrix and pipeline rail, trial replay, leaderboards in full, trust center | E2E-5, E2E-6 |
-| Oct 24-30 (WP-21) | Design pass, companion, portraits within the `art` leaf, signature moments, voice pill bar, pause control | E2E-9, E2E-10, E2E-12, E2E-13 |
+| Oct 24-30 (WP-21) | Design pass, companion, portraits within the 62-image cap, signature moments, voice pill bar, pause control | E2E-9, E2E-10, E2E-12, E2E-13 |
 | Oct 31-Nov 2 | Accessibility pass, REL-1 frame pacing, recordings for S7 | All FE criteria green |
 
 Cut order follows S8 section 7: the A2A exhibition section goes first (item 1); then the office theater toggle and extra motion (item 3; ship the pipeline rail with the reduced-motion rendering); then companion and portrait art (item 4; ship the status words and the coach activity line). Live Avatar is out of scope, not a cut item. Never cut: mode projections and leak tests, EX-4 placements, the gate-before-rank leaderboard, citation chips, the trust center's isolation and fairness sections.
@@ -917,14 +917,14 @@ Cut order follows S8 section 7: the A2A exhibition section goes first (item 1); 
 | S1 (scenario) | `presentation {persona_id, display_name, voice_id}` per family, no `baseline_demeanor`; optional record `date` (C-21); `doc_kind` (C-24) |
 | S2 (agents) | card.v1, deep.v1 and the stored finding object (4.8); the 4.5 templates; section 1 quote-match normalization |
 | S3 (metrics) | KPI-4 definition (6.4) |
-| `cost_model.py` | `budget_plan()` (the `art` leaf), `PORTRAITS` |
+| `cost_model.py` | `budget_plan()` (the `global` ceiling), `demo_bucket()` (portrait figures), `PORTRAITS` |
 
 ---
 
 ## 16. Open questions (each with a proposed fix)
 
 1. **Turn closure in assessment mode.** The turn stays open until the coaching event commits (S4 5.3, S5 5.1), but assessment withholds every coaching event, so the client cannot see when Send is allowed. Fix: the projection emits a content-free synthesized `turn.closed {turn_no}` in assessment mode (every turn has a card or a miss, so its existence reveals nothing). Until then the client handles the `409` as in 4.3.
-2. **`GET /api/config` keys.** S5 5.5 lists voice available, exhibition enabled, quotas and planned n; this part also reads `voice_scored` (3.3), `phoenix_url` (4.11) and the question length limit (4.3). Fix: S5 adds the three keys to the config response.
+2. **`GET /api/config` keys.** Resolved (X-15): S5 5.5 returns `voice_scored` (3.3), `phoenix_url` (4.11) and `question_max_chars` (4.3) beside `voice_available`, `exhibition_enabled`, `quotas` and `planned_n`.
 3. **Hosted only:** WebSocket through IAP and IAP latency (1.4, probes before enabling).
 
 Resolved since version 1: browser Supabase session (C-03), admin path (C-39 locally; WP-33 hosted), the `playback_ack` control (C-29: S5's `played`), the KPI-4 composition (C-28: S3 6.4), the route list (C-18: S5 5.5). Resolved during this reconciliation by S2 and S5 version 2: investigator findings carry empty `basis_flag_refs` (S2 4.8); `expected_version` on the turn route (S5 5.2); per-person identity locally is one acting user per run (S5 10.3); the trainer console's process (S5 5.5).
@@ -970,3 +970,14 @@ No GCP, Vertex or paid API calls were made.
 | C-46 | Portrait cap 62 images (`PORTRAITS[0]`) inside the $6.20 `art` leaf (`budget_plan()["art"]`). |
 
 Also aligned with UI direction v2.1 (no C-ID): the 2a visibility rule (5.4, FE-SSE-7), complete-card reveal (4.5, FE-COACH-7), voice-bar state from four inputs with amplitude from the playback node (6.2, FE-VOICE-6), avatar states `idle`, `speaking`, `pausing` (6.4), signature moments, reduced motion and the pause control (6.6, FE-MOT-1..3), frame-interval measurement on the combined workload (section 10), art sub-budget and production-test fallback (6.4), copy rules and the anti-slop checklist (7.2), motion token names (section 11), and presentational work only after the 2026-10-18 slice gate (preamble, section 14).
+
+## 19. Changes in v2.1
+
+| ID | What changed in S6 |
+| --- | --- |
+| D-013 | One `global` ceiling: the trust-center budget (4.11), tournament list (4.9) and admin ledger (4.13) show the applied `global` ceiling and spend grouped by purpose, not a bucket tree; portraits reserve against `global` under the 62-image count cap, with the $6.20 high and $4.34 expected figures named from `demo_bucket()` (6.4, 14, 15). |
+| D-014 | Planned n reads 30 baseline, 34 pilot-gated (4.11); governing decisions now D-001 to D-014. |
+| X-08 | 4.2: KPI-1 case-set families are never listed for practice; a participant receives the assigned set whole for pre-test and post-test. |
+| X-11 | 5.3, 5.6: `ops.ack_card(trial, turn_no, client_valid)`; the client posts `client_valid: true | false` (stored as `delivered` or `client_invalid`); `coach.failed` reasons `timeout` and `repair_failed`; FE-KPI4-1 restated. |
+| X-14 | 3.7, 4.13: the admin console shows the kill-switch state read-only with the owner's `scripts/kill_switch.sh` command; no control. |
+| X-15 | 4.1: EX-4 acknowledgement stored by `training.acknowledge` and read back through `GET /api/me`; 4.3, 16: `GET /api/config` keys `voice_scored`, `phoenix_url`, `question_max_chars`; 5.3: `block.started` dropped (no ledger event backs it; progress comes from `trial.started`), and the `trial_ended` seq rule stated; 6.2: close code 4409 for a subject guard hit; `played.samples` is cumulative. |

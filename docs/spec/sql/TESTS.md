@@ -1,6 +1,6 @@
 # S4 pgTAP test plan
 
-Spec part S4 (`../S4-data-layer.md`). **Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** Every test below is a pgTAP assertion in `supabase/tests/NNN_*.sql`, one transaction per file, ending in `ROLLBACK` (concurrency files clean up their committed rows). Requirement IDs refer to `docs/challenge/REQUIREMENTS.md`; F- and R- IDs refer to the direction's critique findings.
+Spec part S4 (`../S4-data-layer.md`). **Version 2.1, 2026-10-08: S1 reconciled, cross-check X-01..X-17 resolved, D-013 applied.** Every test below is a pgTAP assertion in `supabase/tests/NNN_*.sql`, one transaction per file, ending in `ROLLBACK` (concurrency files clean up their committed rows). Requirement IDs refer to `docs/challenge/REQUIREMENTS.md`; F- and R- IDs refer to the direction's critique findings.
 
 ## 0. Harness
 
@@ -13,7 +13,7 @@ Spec part S4 (`../S4-data-layer.md`). **Version 2, 2026-10-08: reconciled to dir
 | Concurrency | Real sessions through `dblink` (`dblink_send_query`, `dblink_is_busy`, `dblink_get_result`); each concurrent case opens fresh connections | TechnoMile `007_checkpoint_fence_concurrency.sql` lines 10-40 |
 | Gate | Part of `make check`; CI fails on any failing or skipped test. No `skip`, no `todo` (global never-rig rule) | `docs/handoff/PATTERNS.md` |
 | Plan counts | Each file states `plan(n)` equal to its rows below; a changed count is reviewed like code | |
-| Budget plan | `014_budget.sql` reads the output of `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` into a psql variable (the runner passes it with `-v plan=...`). Until S4 Q10 is fixed the runner takes the last top-level JSON object on stdout. Tests that need ceilings take them from the applied plan, never from typed numbers | D-012 |
+| Budget plan | `014_budget.sql` reads the output of `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` (pure JSON, `{"global": {"parent": null, "ceiling_usd": ...}}`) into a psql variable (the runner passes it with `-v plan=...`). Tests that need the ceiling take it from the applied plan, never from a typed number. A test that needs a small cap lowers `global` to its current liability plus the room it needs and restores the plan value afterwards | D-012, D-013 |
 
 Expected errors use SQLSTATE: `42501` permission denied; `AR001` wrong state; `AR002` stale transcript version; `AR003` work item or key mismatch; `AR004` no open question or turn in progress; `AR005` not requestable; `AR006` release limit; `AR007` invalid input; `AR010` append-only; `AR020` reveal precondition; `AR021` seal or hash mismatch; `AR031` open child reservations; `AR040` caller, ticket or quota refused; `23505`, `23514` constraint.
 
@@ -21,7 +21,9 @@ Expected errors use SQLSTATE: `42501` permission denied; `AR001` wrong state; `A
 
 Version 2 was applied in order to a fresh throwaway PostgreSQL 16.13 cluster in the session scratchpad (`initdb -U postgres -A trust`, port 55491, unix socket only, the Supabase shim and `dblink`; no Supabase project, no network, no model calls). The v1 smoke scripts were re-run in order on one database, adapted to the v2 shapes (opaque case-id variant codes, `rec-NN` record ids, manifest.v1 candidates, the Finding object, `decided_by`, and the plan's leaf buckets in place of the old `build` leaf), plus two new scripts. Covered: role denials on base tables and on other roles' functions; forged, replayed and cross-trial work items; stale versions; turn in progress; release predicates; quarantine; finalize idempotency and commitment verification; BKO-2 ordering; reveal preconditions, manifest completeness and the manifest rules for completed, replay and quarantined trials; corrected manifest; ledger append-only and chain verification; caller separation; the SSE projection; budget caps on a leaf, on an ancestor and per user; non-leaf refusal; unit admission; voice totals and concurrency; overrun and the kill switch; trace-mirror idempotency and single export; two dblink concurrency cases (concurrent finalize: the second session waits on the trial lock and then fails; reservation race on a fresh test leaf that holds one `generate` worst case: the second waits on the bucket lock and is refused, liability 2.016 of 2.10).
 
-New in v2: the $0 seed has the ten buckets of `budget_plan()` with matching parents; before the plan every leaf refuses a model call with reason `cap`, a voice reservation is refused, `admit_unit` skips and no reservation row is written; a child cannot be raised above its $0 parent; the `--plan-json` output applied top-down makes the bucket table equal to it exactly (names, parents, ceilings), and re-applying changes nothing; the generation and experiments leaves refuse at floor(ceiling / 2.016) + 1 `generate` reservations; and every v2 SQL change (C-16, C-17, C-22, C-24, C-25, C-27, C-28, C-31, C-33, C-34, C-47) behaves as the rows below state. All passed. The privilege allowlist in S4 section 10 was regenerated from that database and checked to expand back to the live privilege set exactly. This shows the drafts are coherent; it does not replace this suite.
+New in v2: every v2 SQL change (C-16, C-17, C-22, C-24, C-25, C-27, C-28, C-31, C-33, C-34, C-47) behaves as the rows below state.
+
+Version 2.1 was applied the same way to a fresh PostgreSQL 16.13 cluster (port 55493, unix socket only, `listen_addresses = ''`, the Supabase shim and `dblink`), with the smoke scripts adapted to D-013 and D-014 and one new script, and re-run on a fresh cluster after the D-014 change. Results: the seed is the one `global` bucket at $0; before the plan it refuses a model call (`cap`), a voice reservation (`cap`) and a unit (`skip`), and writes no reservation row; the `--plan-json` output (pure JSON) applied makes the bucket table equal to it, and re-applying changes nothing; the tree rules still hold for a later split (a bucket holding reservations cannot become a parent; `global` keeps no parent); with `global` lowered to liability + 0.12 the third `referee` reservation (0.054400 on 3.5-flash-lite) is refused at `global`; the dblink race (fresh connections) against `global` lowered to liability + 0.08 admits one `referee` reservation and refuses the second with `cap` after it waits on the bucket lock; `ops.call_limits` holds exactly `subject`, `card`, `deep`, `final`, `referee`, `retranscribe` and `portrait`, there is no `gemini-3.1-pro-preview` price, and a `generate` call kind or a 3.1-pro-preview model is refused with `AR007` (D-014); the voice shutoff is 1.090480 (`VOICE_SHUTOFF`); `r3_subject` and `r3_investigator` reserve on call kind `referee` (X-02); `retranscribe` is refused while its model has no audio-input price and then reserves 4 x (15860 x audio_in + 2000 x text_out) / 1e6, and `portrait` reserves from its row (X-09); the EX-4 acknowledgement is stored once per user and read only by its owner (X-15); a KPI-1 case-set family is refused in practice and runs as the participant's pre-test set (X-08); the manifest is S3's canonical text, hashed as text, version 2 names version 1 as parent, an unchanged correction writes no new version, and one infra failure in a block excludes both of its trials with `block_invalid_infra` (X-07). An independent Python rebuild of the manifest text from the raw rows (S3 4.3 `inclusion()` and the 4.4 line format) matched every stored manifest byte for byte and hash for hash. All passed. The privilege allowlist in S4 section 10 was regenerated from that database (207 role, object, privilege triples) and checked to expand back to the live set exactly. This shows the drafts are coherent; it does not replace this suite.
 
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
@@ -72,7 +74,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | --- | --- | --- | --- |
 | RR-01..RR-15 | `arena_public` | each table in `sealed` (10) and `subject` (1); `ledger.events`; `arena.trials`; `arena.turns`; `ops.budget_reservations` | `42501` each |
 | RR-16 | `arena_public` | `subject.turn_context(...)` | `42501` |
-| RR-17 | `arena_public` | `ledger.verify_commitment(...)`, `ledger.build_manifest(...)` | `42501` each |
+| RR-17 | `arena_public` | `ledger.verify_commitment(...)`, `ledger.build_manifest(...)`, `training.acknowledgements` | `42501` each |
 | RR-18..RR-21 | `arena_subject` | `subject.private_packets`, `sealed.evaluator_packets`, `arena.v_transcripts`, `arena.trials` | `42501` each |
 | RR-22 | `arena_subject` | `arena.trial_context(...)`, `arena.finalize_trial(...)`, `arena.open_work_item(...)` | `42501` each |
 | RR-23 | `arena_subject` | `subject.turn_context` with a `coaching` item, a done item, or an item at an old version | `AR003` |
@@ -216,9 +218,9 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | CO-02 | Concurrent finalize with the same item X in both | Both return the same commitment; one row |
 | CO-03 | Concurrent `submit_question`, different keys, same version | One succeeds; the other `AR002` after the lock |
 | CO-04 | Concurrent `record_subject_turn`, same item, different utterances | One `recorded`; the other `AR003` |
-| CO-05 | Reservation race in a fresh test leaf that holds one `generate` worst case but not two (the owner lowers a sibling, then creates the leaf at, for example, 2.10 against 2 x 2.016) | First `reserved`; second waits on the bucket lock, then `refused` (`cap`); liability <= ceiling |
+| CO-05 | Reservation race on `global` lowered by the owner to its liability + 0.08 (room for one BU-03 `referee` worst case of 0.054400, not two) | First `reserved`; second waits on the bucket lock, then `refused` (`cap`); liability <= ceiling; the plan value is restored |
 | CO-06 | 20 parallel reservations (4 sessions x 5) against the per-user cap | Liability of the user's reservations <= `per_user_daily_usd` |
-| CO-07 | Two reservations racing in sibling leaf buckets for the last room in their parent | Exactly one admitted; parent liability <= parent ceiling |
+| CO-07 | Two `reserve_voice` calls racing for the last room in `global` | Exactly one admitted; liability <= ceiling |
 | CO-08 | `adjudicate_validity` in A holds the tournament share lock; `reveal` in B | B waits; the manifest contains A's adjudication |
 | CO-09 | `ledger.events.seq` after CO-01..CO-08 | `max(seq) = count(*)` |
 
@@ -251,15 +253,16 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RV-07 | Broken ledger chain (owner edits an event with the trigger disabled) | `AR021` |
 | RV-08 | Hidden tournament whose seal no longer verifies | `AR021` |
 | RV-09 | Roster row tampered after freeze | `AR021` |
-| RV-10 | Successful reveal: status `revealed`; manifest version 1; `manifest_sha256 = hash_jsonb(manifest)`; ledger `tournament_revealed` with the same hash | Holds |
-| RV-11 | Manifest completeness: `jsonb_array_length(manifest->'trials')` equals the planned trials and each `planned_trial_id` appears once | Holds |
-| RV-12 | Manifest rules, one fixture per row of the table in S4 section 7.5 (completed+valid, assistant_failed+valid, completed+subject_invalid, quarantined, infra_failed, budget_skipped, budget_truncated, source_unavailable, replay on an invalid corpus, corpus rows) | Each entry's `assistant`, `subject`, `reason` match |
+| RV-10 | Successful reveal: status `revealed`; manifest version 1 in S3 4.4's canonical text (header `arena-inclusion-manifest\|v1\|...` with version 1 and an empty parent, LF endings, trailing newline); `manifest_sha256 = hash_text(manifest)`; ledger `tournament_revealed` with the same hash (X-07) | Holds |
+| RV-11 | Manifest completeness: the trial lines equal the planned trials, each `planned_trial_id` appears once, and lines are sorted by `planned_trial_id` in byte order | Holds |
+| RV-12 | Manifest rules, one fixture per row of the table in S4 section 7.5 (completed+valid, assistant_failed+valid, completed+subject_invalid, quarantined, infra_failed, budget_skipped, budget_truncated, source_unavailable, replay on an invalid corpus, corpus rows, a block with one `infra_failed` of its planned trials) | Each line's `asst_inclusion`, `subj_inclusion` and `reason` equal S3 4.3 `inclusion()`, including `against_subject` and `block_invalid_infra` |
+| RV-12a | S3 FX-M01 parity: the Python verifier (S3 4.4) rebuilds the text from the raw rows | Byte-equal text and equal hash |
 | RV-13 | Every adjudication id in force appears in the manifest | Holds |
 | RV-14 | `ledger.revealed_nonces` holds one row per commitment of the tournament, equal to the sealed nonce in hex | Holds |
 | RV-15 | Second reveal | Same manifest id and hash |
 | RV-16 | Leaderboard insert before reveal; with another tournament's manifest; `original` on manifest v2; `corrected` on v1 | `AR020` each |
-| RV-17 | Later adjudication, then `seal_corrected_manifest`: version 2 with `supersedes_id` = v1; v1 unchanged byte for byte | Holds |
-| RV-18 | `seal_corrected_manifest` with nothing changed | Returns the latest version; no new row |
+| RV-17 | Later adjudication, then `seal_corrected_manifest`: version 2 with `supersedes_id` = v1 and v1's hash as the header's parent; v1 unchanged byte for byte | Holds |
+| RV-18 | `seal_corrected_manifest` with no trial line changed | Returns the latest version; no new row |
 | RV-19 | Before reveal, as `arena_public`: hidden trials in `v_transcripts`, `v_findings`, `v_trial_events`, `v_adjudications`; `v_commitments.payload` | 0 rows; payload null while the commitment hash is visible |
 | RV-20 | After reveal: the same views return the rows | Holds |
 
@@ -280,10 +283,10 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| BU-01 | Seeds: the bucket tree has exactly the names and parents of the `--plan-json` output (ten buckets) and every ceiling is 0 (D-012); voice amounts equal `VOICE_RESERVATION` rounded up to 6 dp and `PROBE_RESERVATION`; `attempts_per_call` = `ATTEMPTS`; call limits equal `cost_model.LIMITS` (S5 parity script checks the same from Python) | Holds |
+| BU-01 | Seeds: the bucket table has exactly the names and parents of the `--plan-json` output (the one `global` bucket, D-013) and its ceiling is 0 (D-012); voice amounts equal `VOICE_RESERVATION` rounded up to 6 dp and `PROBE_RESERVATION`; `attempts_per_call` = `ATTEMPTS`; the five runtime call kinds of `cost_model.LIMITS` (`subject`, `card`, `deep`, `final`, `referee`) equal it, its `generate` and `validate` rows and `gemini-3.1-pro-preview` are absent (D-014), and `retranscribe` (15860, 2000) and `portrait` (2000, 2000) carry S5 3.3's initial values (S5 parity script checks the same from Python) | Holds |
 | BU-02 | Worst case `card` on `gemini-3.5-flash-lite`: 4 x (6000 x 0.30 + 1600 x 2.50) / 1e6 (`liab_reservation`) | 0.023200 |
-| BU-03 | Worst case `generate` on `gemini-3.1-pro-preview`: 4 x (12000 x 2.00 + 40000 x 12.00) / 1e6 | 2.016000 |
-| BU-04 | After the plan (BU-28), fill the `generation` leaf with `generate` reservations until refused | Refused at reservation floor(ceiling / 2.016) + 1 with reason `cap` at `generation`; liability <= ceiling |
+| BU-03 | Worst case `referee` (purpose `referee_assistant`) on `gemini-3.5-flash-lite`: 4 x (12000 x 0.30 + 4000 x 2.50) / 1e6 (`liab_reservation`); a `generate` or `validate` call kind, or model `gemini-3.1-pro-preview` (D-014: no runtime generator) | 0.054400; `AR007` each |
+| BU-04 | After the plan (BU-28), the owner lowers `global` to its liability + 0.12; fill it with the BU-03 `referee` reservations until refused; restore the plan value | Refused at reservation floor(0.12 / 0.0544) + 1 = 3 with reason `cap` at `global`; liability <= ceiling |
 | BU-05 | Invariant after every step of this file: for every bucket, subtree liability <= ceiling | Holds |
 | BU-06 | Per-user cap (seeded proposal `per_user_daily_usd`): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations (129 at the 3.00 proposal), reason `per_user_cap` |
 | BU-07 | Unknown model or call kind | `AR007` |
@@ -300,23 +303,23 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-18 | `set_kill_switch` and `set_bucket_ceiling` by any runtime role | `42501` |
 | BU-19 | Settled rows: any update; identity change on an open row | `AR010` each |
 | BU-20 | `ops.model_prices`, `ops.call_limits` updates | `AR010` |
-| BU-21 | After the plan, raising `generation` by 0.01 (the leaves of `build` sum to `build`) | `AR007` (children above parent) |
-| BU-22 | Reservation into the non-leaf `build` | `AR007` |
-| BU-23 | `experiments` refuses the `generate` reservation number floor(ceiling / 2.016) + 1, with the cap at `experiments` | Holds |
-| BU-24 | `set_bucket_ceiling` below current liability; changing a bucket's parent; making a bucket with reservations a parent | `AR007` each |
-| BU-25 | `admit_unit`: admit when every bucket on the path has >= 1.5 x the high cost free (`ADMIT_FACTOR`), else skip; with F = the least headroom on the `interactive` path, units of F / 1.5 - 0.01 and F / 1.5 + 0.01 | admit; skip |
+| BU-21 | A child above its $0 parent (`set_bucket_ceiling('demo', 'global', 1.00)` before the plan) | `AR007` (children above parent) |
+| BU-22 | Reservation into a bucket outside the plan (`demo`) | `AR007` |
+| BU-23 | Every reservation, voice reservation and unit admission in the runtime code names bucket `global` (D-013); a reservation row with any other bucket after the plan | None exists |
+| BU-24 | `set_bucket_ceiling` below current liability; giving `global` a parent; adding a child under `global` once it holds reservations (the tree rules kept for a later per-phase split, D-013) | `AR007` each |
+| BU-25 | `admit_unit('global', ...)`: admit when `global` has >= 1.5 x the high cost free (`ADMIT_FACTOR`), else skip; with F = the headroom of `global`, units of F / 1.5 - 0.01 and F / 1.5 + 0.01 | admit; skip |
 | BU-26 | `ops.budget_status` reports subtree liability per bucket, released at 0, open and unknown at reserved, committed at settled | Holds |
-| BU-27 | Fail-closed before any plan is applied (D-012): a model-call reservation into every leaf; a `voice_session` reservation; `admit_unit` on a leaf | `refused` with reason `cap` (ceiling 0) each, no reservation row written; `refused` (`cap`); `skip` |
-| BU-28 | Plan application (D-012): apply the `--plan-json` entries with `ops.set_bucket_ceiling` top-down (root, its children, then `build`'s leaves); compare `{name: {parent, ceiling_usd}}` from `ops.budget_buckets` with the JSON | Equal: same names, same parents, every ceiling equal; re-applying changes nothing; a `card` reservation into `demo` is then `reserved` |
-| BU-29 | Order: raising a child above its parent while the parent is still 0; lowering a parent below its children's sum before lowering them | `AR007` each |
-| BU-30 | Referee purposes (C-31): `reserve_model_call` with call kind `referee` and purpose other than `referee_subject` or `referee_assistant`; with `referee_subject` | `AR007`; `reserved` |
-| BU-31 | Call kinds `retranscribe` and `portrait` while `cost_model.LIMITS` has no row for them (C-31, S4 Q7) | `AR007` each |
+| BU-27 | Fail-closed before any plan is applied (D-012): a model-call reservation into `global`; a `voice_session` reservation; `admit_unit('global', ...)` | `refused` with reason `cap` (ceiling 0), no reservation row written; `refused` (`cap`); `skip` |
+| BU-28 | Plan application (D-012, D-013): apply the `--plan-json` entry with `ops.set_bucket_ceiling`; compare `{name: {parent, ceiling_usd}}` from `ops.budget_buckets` with the JSON | Equal: one bucket `global`, no parent, ceiling equal to the JSON; re-applying changes nothing; a `card` reservation into `global` is then `reserved`; gateproof: a one-cent change to the applied ceiling fails the comparison |
+| BU-29 | The bucket table still equals `--plan-json` at the end of the file (every temporary lowering restored) | Equal |
+| BU-30 | Referee purposes (C-31, X-02): `reserve_model_call` with call kind `referee` and a purpose outside S2 section 2's four (`referee_subject`, `referee_assistant`, `r3_subject`, `r3_investigator`); with each of the four | `AR007`; `reserved` each (0.036000 on 3.1-flash-lite, 0.054400 on 3.5-flash-lite) |
+| BU-31 | X-09: `retranscribe` on a model whose price row has no `audio_in`; on a model with one (test row, audio_in 1.00); `portrait` on a priced model; either kind on a model with no price row | `AR007`; 4 x (15860 x audio_in + 2000 x text_out) / 1e6 = 0.083440; 4 x (2000 x text_in + 2000 x text_out) / 1e6; `AR007` |
 
 ## 15. `015_voice.sql` (D-006, D-009, direction 8.3 and 9; S5 section 7)
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (1.635720) and returns shutoff = round(reservation x `voice_shutoff_fraction`, 6) (1.090481) | Holds |
+| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (1.635720) and returns shutoff = round(reservation x 2 / 3, 6), equal to `cost_model.VOICE_SHUTOFF` (1.090480; X-17) | Holds |
 | VB-02 | `voice_probe` reserves the seeded `PROBE_RESERVATION` (0.132140) | Holds |
 | VB-03 | Third open voice reservation with `max_open_voice_sessions` 2 | `voice_concurrency` |
 | VB-04 | Ninth voice session (`voice_sessions_total` 8); 31st probe | `voice_total_cap` each |
@@ -340,7 +343,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | --- | --- | --- |
 | TT-01 | `start_session` on a hidden variant | `AR001` |
 | TT-02 | Same key twice | Same session |
-| TT-03 | `pre`/`post` outside the participant's counterbalanced set; `pre` in practice mode | `AR007` each |
+| TT-03 | `pre`/`post` outside the participant's counterbalanced set; `pre` in practice mode; a `practice` session on any variant of a family that holds a case-set member (X-08); the participant's `pre` on their set | `AR007` each; accepted |
 | TT-04 | Sixth session in a day with `text_sessions_per_user_day` 5 | `AR040` |
 | TT-05 | Ticket for another actor's trial; for a finalized trial; unknown kind | `AR040` each |
 | TT-06 | Voice ticket with an open voice session on the trial; above `voice_sessions_per_user_day`; on a session without the voice flag | `AR040` each |
@@ -351,6 +354,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | TT-11 | `v_my_scores` hides scores until the session's trial ends | Holds |
 | TT-12 | `v_my_sessions`, `v_my_voice_fragments` return only the actor's rows; no actor returns none | Holds |
 | TT-13 | `record_voice_fragment` on a closed session | `AR001` |
+| TT-14 | EX-4 acknowledgement (X-15): `training.acknowledge('ex4')` with no actor; with kind `terms`; twice by one actor; `training.v_my_acknowledgements` for that actor and another | `AR040`; `AR007`; one row, the first time kept; one row and none |
 
 ## 17. `017_trace_mirror.sql` (EVL-5, KPI-4, direction 10, R3-03; S5 section 8)
 
@@ -377,3 +381,17 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | KA-04 | Freeze a hidden tournament before the seal | `AR021` |
 | KA-05 | `add_planned_trials` after freeze | `AR001` |
 | KA-06 | Replay row referencing a corpus row of another variant | `AR007` |
+
+## Changes in v2.1
+
+| ID | What changed |
+| --- | --- |
+| D-013 | One `global` bucket: BU-01, BU-04, BU-21 to BU-25, BU-27 to BU-29 and CO-05, CO-07 restated for the root-only seed; the harness reads `--plan-json` as pure JSON (S4 Q10 closed). |
+| X-02 | BU-30 accepts S2's four referee purposes, including `r3_subject` and `r3_investigator`. |
+| X-07 | RV-10 to RV-12, RV-17, RV-18 use S3's canonical manifest text and hash; RV-12 adds the block infra rule; RV-12a adds the FX-M01 Python parity check. |
+| X-08 | TT-03 adds the case-set family rule. |
+| X-09 | BU-01 and BU-31 cover the `retranscribe` and `portrait` rows and the audio-input price rule. |
+| X-15 | TT-14 and RR-17 cover the EX-4 acknowledgement storage. |
+| X-17 | VB-01 checks the shutoff against `VOICE_SHUTOFF` (1.090480). |
+| D-014 | No runtime generator: BU-01 checks that `generate`, `validate` and `gemini-3.1-pro-preview` are not seeded; BU-03, BU-04 and CO-05 use a `referee` reservation in place of `generate`. |
+| 0.1 | The v2.1 smoke run on a fresh cluster is recorded. |

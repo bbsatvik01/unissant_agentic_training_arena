@@ -1,8 +1,8 @@
 # S8: Build plan
 
-Spec part S8 of the build-ready specification for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** Build window 2026-10-08 to 2026-11-02.
+Spec part S8 of the build-ready specification for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.1, 2026-10-08: S1 reconciled, cross-check X-01..X-17 resolved, D-013 applied.** Build window 2026-10-08 to 2026-11-02.
 
-Governing inputs: `docs/spec/README.md` (baseline facts; it wins over any part), `docs/research/synthesis/02-direction.md` v10.3 (cited as "direction"; section 3.2 sets the windows used here), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-012; D-007 superseded by D-009; D-011 local-first; D-012 generated and applied budget ceilings), `docs/handoff/PATTERNS.md`, `docs/handoff/LESSONS.md`, `docs/research/synthesis/03-ui-direction.md` v2.1, and spec parts S1 to S7 with their `schemas/`, `seed-families/` and `sql/` folders. Every dollar figure below is printed by `docs/research/synthesis/cost_model.py` (run 2026-10-08, `HOSTING = "local"`, `PLAN = {"sealed": 24, "dev": 10}`), either directly or by calling its functions with no arithmetic beyond grouping; each figure names the function. Statistical bounds come from `stats_contracts.py`.
+Governing inputs: `docs/spec/README.md` (baseline facts; it wins over any part), `docs/research/synthesis/02-direction.md` v10.4 (cited as "direction"; section 3.2 sets the windows used here), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-014; D-007 superseded by D-009; D-011 local-first; D-012 generated and applied budget ceilings; D-013 build first, one global spend ceiling, cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review), `docs/handoff/PATTERNS.md`, `docs/handoff/LESSONS.md`, `docs/research/synthesis/03-ui-direction.md` v2.1, and spec parts S1 to S7 with their `schemas/`, `seed-families/` and `sql/` folders. Every dollar figure below is printed by `docs/research/synthesis/cost_model.py` (run 2026-10-08, `HOSTING = "local"`, `PLAN = {"sealed": 30, "dev": 10}`), either directly or by calling its functions with no arithmetic beyond grouping; each figure names the function. Statistical bounds come from `stats_contracts.py`.
 
 Markers: **OWNER DECISION PENDING** marks a choice only the owner makes; each work package (WP) is written so either answer works. **C-nn** refers to a consistency finding in section 9.
 
@@ -16,9 +16,9 @@ Markers: **OWNER DECISION PENDING** marks a choice only the owner makes; each wo
 | 2 | Nothing is built until gate G0 passes: owner approval of the direction (D-010 is "pending owner review") and a green Codex review of the spec package (S1-S8). | SUBAGENTS.md gate; global pre-push bar item 6. | all |
 | 3 | WP-02 (contract reconciliation) runs before any service code. Spec v2 already carries the spec-level resolutions in section 9 (column "Spec v2"); WP-02 checks each against the parts, completes the build-time ones and generates the shared contracts (Pydantic models exported to JSON Schema). | The parts disagree on the coaching card, the finding, label vocabulary, event names, routes and the KPI-4 formula; code written against two shapes is rework. | AST-7, EVL-8, KPI-4, SCN-7 |
 | 4 | Local-first (D-011) is the build default: separate local processes per credential (`arena-api` and the tournament job on `arena_public`, `arena-subject` on `arena_subject`, `arena-referee` on `arena_referee`), local Phoenix, the owner's Supabase project (local `supabase start` for development), Vertex for models. Cloud Run, IAP, the billing guard and the hosted judge link are one deferred package (WP-33; section 1.4). | D-011; D-008's hosted-link format is then an owner call (section 2, OD-10). | D-003, D-008, D-011 |
-| 5 | Budget plan for the local 24-case baseline (`budget_plan()`, applied by the owner per D-012; the migrations seed $0 ceilings): global $74.00; demo $10.55, art $6.20, training $6.19, build $51.06 split into phase leaves. `simulate_d009(24, 10, high)`: $46.91 expected, $71.23 conservative, both complete in its single-pool simulation (per-leaf caveat in section 10 item 8). 30 cases if the dev pilot tracks the expected column (OD-8). | `cost_model.py` local mode; direction v10.3 TL;DR 6 and 8.2; D-012. | D-009, BKO-8 |
-| 6 | Day-1 experiments start the morning the owner provides the GCP project. Before the database spend guard exists and its plan is applied, probes reserve their worst case in an in-process ledger seeded from `cost_model.py` (single process, so the in-memory ledger is sound), capped at `budget_plan()["experiments"]` ($6.96). | D-009: every call reserves its worst case before running; probes cannot wait for WP-05. | D-009, KPI-4 |
-| 7 | Critical path to the 2026-10-18 slice: G0, WP-01, WP-02, WP-03, WP-05, WP-10, WP-12, WP-13, WP-14, WP-19, WP-24. Slack about one day. Critical path to 2026-11-02: slice, dev pilot, calibration freeze, hidden generation and seal, sealed run, adjudication and reveal, demo recording. Slack about one day, held in the Oct 31-Nov 2 window. | Direction 3.1, 3.2. | BKO-2, BKO-9 |
+| 5 | One global spend ceiling (D-013): `budget_plan()` is `global` $74.00, applied by the owner (D-012; the migrations seed it at $0). Plan: 30 hidden cases (15 families) baseline, 34 (17) if the dev pilot tracks the expected column (OD-8). `simulate_d009(30, 10, high)`: $43.64 expected, $66.36 conservative; 34 cases $46.43 / $70.35; every unit completes in both. Per-phase ceilings and per-test cost lines are deferred until the pipeline runs end to end. | `cost_model.py` local mode; direction v10.4; D-012, D-013. | D-009, BKO-8 |
+| 6 | Day-1 probe scripts are written from day 1, but no paid probe runs until WP-05's database guard exists and the owner has applied the plan; each probe then reserves its worst case against `global` like every other call (X-05). There is no in-process probe ledger. | D-009: every call reserves its worst case in the one ledger before running; a second ledger would count spend twice. | D-009, KPI-4 |
+| 7 | Critical path to the 2026-10-18 slice: G0, WP-01, WP-02, WP-03, WP-05, WP-10, WP-12, WP-13, WP-14, WP-19, WP-24. Slack about one day. Critical path to 2026-11-02: slice, dev pilot, calibration freeze, hidden authoring and seal, sealed run, adjudication and reveal, demo recording. Slack about one day, held in the Oct 31-Nov 2 window. | Direction 3.1, 3.2. | BKO-2, BKO-9 |
 | 8 | Every code WP passes `make check`, the double Codex gate and, for major chunks, an Opus deep review before merge. Gates are never softened. | Global hard gates; PATTERNS verification gates. | P9 |
 
 ---
@@ -46,38 +46,25 @@ Markers: **OWNER DECISION PENDING** marks a choice only the owner makes; each wo
 - Humans are needed for: owner decisions, calibration raters (2 minimum, 3 preferred), subject validity reviewers, KPI-1 volunteers, demo rehearsal. The team roster is **OWNER DECISION PENDING**; every human step works with one person and records the reviewer ID (S3 4.2).
 - Commits land on local feature branches and merge to local `main` after gates. No push until the owner names the repo destination and authorizes each push to `main` (global rules).
 
-### 1.3 Budget plan (local 24-case baseline, D-012)
+### 1.3 Budget plan (one global ceiling, D-012, D-013)
 
-The migrations seed the spend-guard bucket tree with $0 ceilings, so nothing spends until the plan is applied (fail-closed). The owner applies `cost_model.budget_plan()`, printed by `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`, through `ops.set_bucket_ceiling`; a test asserts the applied ceilings equal that output (WP-05). No ceiling is typed into SQL, code or tests.
+The migrations seed the spend guard's one bucket, `global`, at $0, so nothing spends until the plan is applied (fail-closed). The owner applies `cost_model.budget_plan()`, printed by `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` as `{"global": ...}`, through `ops.set_bucket_ceiling`; a test asserts the applied ceiling equals that output (WP-05). No ceiling is typed into SQL, code or tests. Every model call reserves its worst case and every voice session its whole-session worst case against `global` before it runs, so spend cannot pass the D-009 cap.
 
-Ceiling column: `--plan-json`, run 2026-10-08. Expected and conservative columns: `simulate_d009(24, 10, high)["phase_spend"]` for the build leaves, `demo_bucket(high)` for demo and art, `training_bucket(high)` for training. Each build leaf is its conservative phase spend rounded up to the cent; `interactive` takes the remainder of `build`.
+| Bucket | Parent | Holds | Ceiling |
+| --- | --- | --- | --- |
+| `global` | none | every model call and voice session: day-1 probes, dev pilot, replay, interactive blocks, demo and team sessions, KPI-1 and calibration (R3), portraits; D-009 $75 cap (`CAP`) minus `NON_MODEL_ALLOWANCE_LOCAL` $1.00 | $74.00 (`budget_plan()`) |
 
-| Bucket | Parent | Holds | Expected | Conservative | Ceiling |
-| --- | --- | --- | --- | --- | --- |
-| `global` | none | D-009 $75 cap (`CAP`) minus `NON_MODEL_ALLOWANCE_LOCAL` $1.00 | | | $74.00 |
-| `demo` | global | 40 text sessions with R3 (`TEXT_SESSIONS`), 8 voice sessions (`VOICE_SESSIONS`), plus one in-flight voice reservation of $1.64 (`VOICE_RESERVATION`) | $5.18 | $8.91 | $10.55 (`demo_ceiling()` minus the art conservative cost) |
-| `art` | global | 62 character images (`PORTRAITS`) | $4.34 | $6.20 | $6.20 |
-| `training` | global | KPI-1, 10 volunteers x 7 sessions with R3, and 20 calibration transcripts with R3 (`TRAINING`, `r3()`) | $4.48 | $6.18 | $6.19 |
-| `build` | global | phase leaves below | | | $51.06 (global minus demo, art, training) |
-| `experiments` | build | latency benchmark, case-generation and fidelity pilots (`experiment_calls`), 30 Live probes reserving $0.13 each (`PROBE_RESERVATION`) | $3.63 | $6.95 | $6.96 |
-| `generation` | build | 21 families: 5 dev-pilot, 4 KPI-1 dev (`KPI1_EXTRA_DEV_FAMILIES`), 12 hidden | $6.82 | $9.92 | $9.92 |
-| `dev_pilot` | build | 5 dev blocks, 10 cases | $5.66 | $8.07 | $8.07 |
-| `replay` | build | corpus $0.65 / $0.91, scoring 24 transcripts $2.57 / $3.73 | $3.22 | $4.64 | $4.64 |
-| `interactive` | build | 12 blocks | $13.58 | $19.36 | $21.47 (remainder) |
+Case authoring makes no Vertex call (D-014), so it reserves nothing. Spend per activity is reported from `ops.model_calls` by purpose label; per-phase ceilings, leaf sizing and per-test cost lines are deferred until the pipeline runs end to end (D-013).
 
-Spend routing: KPI-1 and calibration sessions reserve in `training`; demo, judge and team sessions in `demo`; character images in `art` (C-46).
+Whole-project simulation, for reading only (`simulate_d009(n, 10, high)["total"]`): 30 cases $43.64 expected, $66.36 conservative (model $29.65 / $44.07; demo, art and training $13.99 / $21.29; allowance $0.00 / $1.00); 34 cases $46.43 expected, $70.35 conservative; every unit completes in both. One interactive block is $1.61 conservative (`block_calls` at `liab_cost` x `RETRY_FACTOR`); admission needs $2.42 free in `global` (`ADMIT_FACTOR` 1.5).
 
-Whole-project simulation (`simulate_d009(n, 10, high)`): 24 cases $46.91 expected, $71.23 conservative (model $32.91 / $48.94; demo, art and training $13.99 / $21.29; allowance $0.00 / $1.00), every unit complete. 30 cases $52.08 expected, complete; $72.19 conservative, 11 of 15 interactive blocks. One interactive block is $1.61 conservative (`block_calls` at `liab_cost` x `RETRY_FACTOR`); admission needs $2.42 free (`ADMIT_FACTOR` 1.5).
-
-**Plan size (OD-8).** Moving to 30 cases keeps the applied ceilings: the D-012 test pins them to `--plan-json`, and `budget_plan(30)` raises because 30 cases do not complete at conservative usage. At expected usage each 30-case phase fits its 24-case leaf (`simulate_d009(30, 10, False)["phase_spend"]` against `budget_plan()`: generation $7.79 of $9.92, dev_pilot $5.66 of $8.07, replay $4.03 of $4.64, interactive $16.98 of $21.47). Any unit a leaf cannot admit is recorded `budget_skipped`; the guard never overshoots.
-
-**Leaf headroom (section 10 item 8).** `simulate_d009` runs all build work against one pool; the guard enforces each leaf (S4 8, S5 4.5). The leaves hold only rounding headroom above their conservative spend, so at conservative usage the last units of `generation`, `dev_pilot` and `replay` fail the 1.5x admission rule or cannot reserve their worst case (a family's generate call reserves $2.02, `liab_reservation`). Until `budget_plan()` adds that headroom, the conservative column is a single-pool figure, not a per-leaf guarantee; expected usage completes inside every leaf.
+**Plan size (OD-8).** The ceiling does not depend on the case count: 30 or 34 hidden cases run under the same applied `global` ceiling. Any unit the guard cannot admit is recorded `budget_skipped`; the guard never overshoots.
 
 ### 1.4 Hosted variant (deferred, WP-33, owner decision OD-10)
 
 Kept so the build can switch without redesign; none of it is on the default path.
 
-- **Budget.** Hosting from day 1 does not fit the baseline: `budget_plan(hosting="hosted")` raises for 24 cases (and for 20) under a $60.00 global (`CAP - NON_MODEL_ALLOWANCE`; allowance $15.00, itemized non-model estimate $2.88 expected and $9.67 high, summed from `NON_MODEL`). Switching later requires that committed liability leaves the remaining work under $60.00, checked by re-applying the hosted plan, which `ops.set_bucket_ceiling` refuses below current liability (spec README). The direction's hosted table (20 baseline, 26 pilot-gated, $12.43 demo; direction 8.2) predates the v10.3 art and training set-asides and is no longer reproduced by the script.
+- **Budget.** The hosted ceiling is `budget_plan(hosting="hosted")`: `global` $60.00 (`CAP - NON_MODEL_ALLOWANCE`; allowance $15.00, itemized non-model estimate $2.88 expected and $9.67 high, summed from `NON_MODEL`). Switching requires that committed liability leaves the remaining work under $60.00, checked by re-applying the hosted plan, which `ops.set_bucket_ceiling` refuses below current liability (spec README). Whether a plan size completes under it is not sized here (D-013).
 - **Scope (WP-33).** Cloud Run deployables at min-instances 0 with no CPU always allocated and no traffic tags; static web served same-origin by `arena-api` behind IAP, with the IAP identity mapped to an allowlisted app user (C-03); IAM-private `arena-subject` and `arena-referee`; billing guard with budget alerts at $25/$50/$65 and a billing-disable function at $70; the hosted judge link and walkthrough (S7 2.3); hosted Phoenix only with its own sign-off; the hosted probes (section 5.2, last row); teardown on 2026-11-09.
 - **Gate.** Every infrastructure value is approved by the owner before apply (global infra gate); the scale-to-zero audit exits 0.
 
@@ -87,19 +74,19 @@ Kept so the build can switch without redesign; none of it is on the default path
 
 | ID | Decision | Blocks | Needed by | Default if unanswered (design works either way) |
 | --- | --- | --- | --- | --- |
-| OD-0 | Approve direction v10.3 and the spec package v2 (D-010 pending owner review) | Every WP (gate G0) | 2026-10-09 | No build starts |
-| OD-1 | Dedicated GCP project with billing and a budget alert at $25/$50/$65; never `kbg-production` (direction 13.2 item 2) | WP-06, WP-09, WP-12 live evals, WP-22, WP-24 onward | 2026-10-09 | Build continues in fake-model mode (`ARENA_MODEL_MODE=fake`, S5 10); day-1 probes slip day for day and the slice moves with them |
+| OD-0 | Approve direction v10.4 and the spec package v2.1 (D-010 pending owner review; D-013 started the build in parallel) | Every WP (gate G0) | 2026-10-09 | No build starts |
+| OD-1 | Dedicated GCP project with billing and a budget alert at $25/$50/$65; never `kbg-production` (direction 13.2 item 2) | WP-06, WP-12 live evals, WP-22, WP-24 onward | 2026-10-09 | Build continues in fake-model mode (`ARENA_MODEL_MODE=fake`, S5 10); day-1 probes slip day for day and the slice moves with them |
 | OD-2 | Supabase project and plan; LOGIN and passwords for the three roles (secret writes, S4-D4) | WP-03 smoke on the owner's project, WP-06 isolation smoke, WP-12 onward on the real database | 2026-10-10 | Local `supabase start` for development (S5 10); the isolation smoke and keep-alive wait |
 | OD-3 | Repo destination (private GitHub) and CI deploy identity (S5 D-P4) | Pushes and GitHub Actions in WP-01, WP-31 | 2026-10-12 | Local commits only; CI workflows written and run locally through `make check` |
 | OD-4 | DESIGN.md and its format (Stitch design-md or impeccable; UI direction 7.2) | WP-21 | 2026-10-20 | Unstyled placeholder theme, never shipped (S6 11) |
 | OD-5 | Character direction, pet name, plugin installs (UI direction 7.1, 7.3, 7.4) | WP-21 | 2026-10-20 | Status words and coach activity line instead of art (cut-order fallback) |
 | OD-6 | Voice exception rule at the Oct 15 and Oct 18 decision points: keep Live in a parallel lane, push-to-talk (D-006 exception), Developer API (D-001 exception), or drop (direction 3.2) | WP-22, WP-23 | 2026-10-15 and 2026-10-18 | Voice dropped from the slice gate; text path unaffected (S2 9.5, S6 3.3) |
 | OD-7 | Team roster: calibration raters and validity reviewers; KPI-1 volunteers (6-10) | WP-25, WP-29, WP-30 | 2026-10-14 (raters), 2026-10-20 (volunteers) | One rater: calibration reported as single-rater, instruments marked provisional (S3 7.5); KPI-1 shown as a dev-pilot measurement (S7 1.10) |
-| OD-8 | Plan size: 24 hidden cases (12 families), or 30 (15 families) if the dev pilot's measured costs track the expected column; ceilings stay as applied from `budget_plan()` either way (section 1.3) | WP-27 | 2026-10-22 | 24 |
+| OD-8 | Plan size: 30 hidden cases (15 families), or 34 (17 families) if the dev pilot's measured costs track the expected column; the `global` ceiling stays as applied from `budget_plan()` either way (section 1.3) | WP-27 | 2026-10-22 | 30 |
 | OD-9 | `second_language` style level in the hidden split (S1 OD-1) | WP-27 | 2026-10-21 | Language fixed to `native`; four axes balanced |
 | OD-10 | Hosted judge link at all (D-008 lists it; D-011 defers hosting), and if so Phoenix hosting (direction 13.2 item 6), infra values and quotas (S5 D-P7, S4-D3), billing-guard role (S5 D-P6), judge accounts (S5 D-P8); switching requires committed liability to leave the remaining work under $60.00 (section 1.4) | WP-33 | 2026-10-27 | Local only: the demo runs from the local stack by screen share; judges get video, deck and repo (S7 2.2, C-02) |
 | OD-11 | A2A exhibition track (direction 13.2 item 8) | WP-34 | 2026-10-22 | No |
-| OD-12 | Hidden-case steward allowed to inspect hidden families (S1 OD-2) | WP-27 | 2026-10-21 | No: validator output is codes, IDs and counts only |
+| OD-12 | Hidden-case steward allowed to inspect hidden families (S1 OD-2) | WP-27 | 2026-10-21 | No: hidden families are authored by isolated agents and sealed unread; validator and Codex output is codes and counts only (D-014, S1 L7) |
 | OD-13 | Pangea code copy (S5 D-P5) | WP-01, WP-07 | 2026-10-09 | Patterns only, through TechnoMile's rewrite |
 | OD-14 | Attrition imputation of never-started blocks and the block infra rule (S3 OQ-2, OQ-3; C-36) | WP-27 (predeclared in the tournament manifest) | 2026-10-22 | Direction 7.1 literally: impute every exclusion; one infra failure invalidates an 18-trial block |
 
@@ -118,10 +105,10 @@ Window = target dates (direction 3.2). Model: S = Sonnet, O = Opus. "Owner" list
 | WP-03 | Database migrations, harness, capability fixture | Foundation | M | S | WP-01, WP-02 | OD-2 (smoke only) | Oct 10 |
 | WP-04 | pgTAP suite (two halves) | Foundation | 2 x M | S | WP-03 | none | Oct 10-12 |
 | WP-05 | Agent port and spend-guard client | Foundation | L | O | WP-01, WP-02, WP-03 | OD-1 (live smoke) | Oct 10-11 |
-| WP-06 | Day-1 probe kit and probe report | Foundation | M | S | WP-01 | OD-1, OD-2 | Oct 9-12 |
+| WP-06 | Day-1 probe kit and probe report | Foundation | M | S | WP-01 (scripts); WP-05 and the applied plan (paid probes, X-05) | OD-1, OD-2 | Oct 9-12 |
 | WP-07 | Observability: tracing, redaction, mirror, local Phoenix | Foundation | M | S | WP-01, WP-03 | OD-13 | Oct 11-12 |
 | WP-08 | Scenario engine (deterministic) | Scenario | L | O | WP-01, WP-02 | OD-9 (factorial input) | Oct 10-11 |
-| WP-09 | Generator, model validators, case-generation pilot | Scenario | M | O | WP-05, WP-08, WP-03 | OD-1 | Oct 12 |
+| WP-09 | Case authoring pipeline and case-authoring pilot (D-014) | Scenario | M | O | WP-08, WP-03 | none | Oct 11-12 |
 | WP-10 | Prompts, output models, manifests | Agents | L | S | WP-02 | none | Oct 11 |
 | WP-11 | Guard, harness relay, lexicons, replay script, fixtures | Agents | M | S | WP-02 | none | Oct 11-12 |
 | WP-12 | `arena-subject` service and fidelity pilot | Agents | M | S | WP-03, WP-05, WP-10, WP-11 | OD-1 (pilot) | Oct 12-13 |
@@ -140,7 +127,7 @@ Window = target dates (direction 3.2). Model: S = Sonnet, O = Opus. "Owner" list
 | WP-24 | Vertical slice integration and gate | Runs | M | O | WP-04, WP-07, WP-09, WP-13, WP-14, WP-15, WP-19; WP-22 if voice | OD-1, OD-2 | Oct 16-18 |
 | WP-25 | Calibration: tooling, human rating, freeze | Runs | M | S + humans | WP-14, WP-15, WP-24 | OD-7 | Oct 15-22 |
 | WP-26 | Dev pilot (10 cases) and plan-size recommendation | Runs | M | O | WP-17, WP-24 | OD-1 | Oct 19-22 |
-| WP-27 | Hidden generation, seal, roster freeze | Runs | M | S (operator) | WP-09, WP-25, WP-26 | OD-8, OD-9, OD-12, OD-14 | Oct 21-22 |
+| WP-27 | Hidden authoring, seal, roster freeze | Runs | M | S (operator) | WP-09, WP-25, WP-26 | OD-8, OD-9, OD-12, OD-14 | Oct 21-22 |
 | WP-28 | Sealed run | Runs | M | S (operator) | WP-27, WP-16, WP-17 | none | Oct 22-26 |
 | WP-29 | Adjudication, reveal, publication | Runs | M | S + reviewer | WP-28 | OD-7 | Oct 27-30 |
 | WP-30 | KPI-1 study operations | Runs | M | S + volunteers | WP-19, WP-14, WP-15, WP-25 | OD-7 | Oct 22-30 |
@@ -161,17 +148,17 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Sonnet, M.
 
 #### WP-02 Contract reconciliation and shared contracts
-- **Scope:** check that every section 9 resolution marked "applied" is present in S1-S7 v2 as written (each part lists its C-IDs under "Changes in v2"); fix any part that drifted; write `arena_core/contracts/` Pydantic models: `Finding` (C-27), `CoachingCard` card.v1 plus code-filled fields, `DeepUpdate`, `FinalFinding`, `SubjectTurn`, `RefereeSubjectReport` ref_subj.v2 (C-11), `RefereeAssistantReport`, event envelope and wire types (C-17), REST route table (C-18); export to `contracts/*.schema.json` deterministically; the S2-to-S3 scorer adapter (C-04, C-05) with unit tests; S1 schema v1.1 (C-21, C-22) and re-hashed seeds F01-F03.
+- **Scope:** check that every section 9 resolution marked "applied" is present in S1-S7 v2 as written (each part lists its C-IDs under "Changes in v2"); fix any part that drifted; write `arena_core/contracts/` Pydantic models: `Finding` (C-27), `CoachingCard` card.v1 plus code-filled fields, `DeepUpdate`, `FinalFinding`, `SubjectTurn`, `RefereeSubjectReport` ref_subj.v3 (C-11, X-16), `RefereeAssistantReport` ref_asst.v2 (per-question and per-citation verdicts, X-06), one shared quote `normalize()` (X-16), event envelope and wire types (C-17), REST route table (C-18); export to `contracts/*.schema.json` deterministically; the S2-to-S3 scorer adapter (C-04, C-05) with unit tests; S1 schema v1.1 (C-21, C-22) and re-hashed seeds F01-F03.
 - **Inputs:** section 9 of this part; S1 4, 13, 14; S2 1, 4, 6.8, 7, 13; S3 1.3, 3.8, 13; S4 4, 12; S5 5, 6, 7, 13; S6 5, 15, 16.
 - **Outputs:** updated spec files; contracts package and exported schemas; mapping tests.
 - **Acceptance:** every C-item is resolved in the spec text or listed as owner-pending; `lint_schema` (TechnoMile `structured.py:73-80`) passes on every model-facing schema; exporting twice gives byte-identical files; S6 event fixtures validate with ajv against the exported schema; the adapter maps the S3 2.10.4 trial fixture to the same flag outcomes S3 tables (1 TP, F3 duplicate FP, F4 demeanor FP); F01-F03 validate against schema v1.1 and AC-S1-01..26 still pass.
 - **Agent:** Opus, L (about 4 h). Deep review required (it fixes every later interface).
 
 #### WP-03 Database migrations, harness, capability fixture
-- **Scope:** S4 WI-S4-01, 02, 04, 08 with the deltas from section 9: the bucket tree (global; demo, art, training, build; build leaves experiments, generation, dev_pilot, replay, interactive) seeded with $0 ceilings, fail-closed, no dollar figure in any migration (D-012, C-01), `debrief_ready` event kind and its referee function (C-17), `doc_kind` on artifacts (C-24), `variant_code` check (C-25), finding columns (C-27), `ops.ack_card` and latency columns (C-28), `retranscribe` and `portrait` limits (C-31), `decided_by` on adjudications (C-33), rater-keyed human labels (C-34), candidate kinds and manifest keys (C-47).
+- **Scope:** S4 WI-S4-01, 02, 04, 08 with the deltas from section 9: the one `global` bucket seeded at $0, fail-closed, no dollar figure in any migration (D-012, D-013), no `generate` or `validate` call limit and no `gemini-3.1-pro-preview` price (D-014), `debrief_ready` event kind and its referee function (C-17), `doc_kind` on artifacts (C-24), `variant_code` check (C-25), finding columns (C-27), `ops.ack_card` and latency columns (C-28), `retranscribe` and `portrait` limits (C-31), `decided_by` on adjudications (C-33), rater-keyed human labels (C-34), candidate kinds and manifest keys (C-47).
 - **Inputs:** S4 (all), `sql/0001-0006`, `sql/TESTS.md` section 0; section 9.
 - **Outputs:** `supabase/migrations/*.sql`, `supabase/config.toml` with no arena schema exposed, `run_pgtap.sh`, capability fixture CSV regenerated for the deltas, `make db-test`.
-- **Acceptance:** S4 WI-S4-01, 02, 04, 08 criteria; `supabase db reset` applies cleanly on local Supabase and on plain Postgres 16 with pgTAP; with only the seeds applied, every reservation is refused (fail-closed, D-012); capability fixture exact-equality test green; CM-13 gate-proof fails as designed.
+- **Acceptance:** S4 WI-S4-01, 02, 04, 08 criteria; `supabase db reset` applies cleanly on local Supabase and on plain Postgres 16 with pgTAP; with only the seeds applied, every reservation is refused (fail-closed, D-012) and the bucket table is the one `global` row; capability fixture exact-equality test green; CM-13 gate-proof fails as designed.
 - **Agent:** Sonnet, M. **Owner:** OD-2 only for the hosted smoke (moved to WP-06).
 
 #### WP-04 pgTAP suite
@@ -180,17 +167,17 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Sonnet, 2 x M, in parallel after WP-03.
 
 #### WP-05 Agent port and spend-guard client
-- **Scope:** `arena_core.providers` (port, Vertex adapter with `max_output_tokens` = call-type limit and SDK retries 1, structured parse with one repair, retry with 4-attempt total, telemetry span per attempt, fake adapter) and `arena_core.spend` (database reservation client against S4 names, voice reservation client, in-memory `RunBudget` test double that also serves the day-1 probes, the plan-apply step `scripts/budget_plan.py` (S5 4.4: reads `cost_model.py --plan-json` and applies each row with `ops.set_bucket_ceiling` under the owner credential; it computes and stores no figure), `limits.py` parity with `cost_model.py`).
-- **Inputs:** S5 2.1 T1-T10, 3, 4; S2 1, 2, 10; S4 8; `cost_model.py`; D-012.
+- **Scope:** `arena_core.providers` (port, Vertex adapter with `max_output_tokens` = call-type limit and SDK retries 1, structured parse with one repair, retry with 4-attempt total, telemetry span per attempt, fake adapter) and `arena_core.spend` (database reservation client against S4 names, voice reservation client, in-memory `RunBudget` test double for unit tests only (no runtime call reserves outside the database, X-05), the plan-apply step `scripts/budget_plan.py` (S5 4.4: reads `cost_model.py --plan-json` and applies its one `global` entry with `ops.set_bucket_ceiling` under the owner credential; it computes and stores no figure), `limits.py` parity with `cost_model.py`).
+- **Inputs:** S5 2.1 T1-T10, 3, 4; S2 1, 2, 10; S4 8; `cost_model.py`; D-012, D-013.
 - **Outputs:** port and guard packages; parity check and ceiling-parity test wired into `make check`.
-- **Acceptance:** S5 3.6 (all seven), 4.10 (all; the simulation test replays `simulate_d009(24, 10, high)`'s call sequence, the `PLAN` baseline, through the real guard with the applied `budget_plan()` ceilings: the expected sequence completes every unit, and the conservative sequence never exceeds any leaf, `build` or `global` ceiling, with every unit it does not complete recorded `budget_skipped` or `budget_truncated`; with 30 sealed cases the same holds), ceiling-parity test (applied ceilings equal `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`, D-012) and its gateproof (a one-cent change to an applied ceiling fails), S2 AT-PORT-1..4; `check_cost_parity.py` gateproof.
+- **Acceptance:** S5 3.6 (all seven), 4.10 (all; the cap test replays `simulate_d009(PLAN["sealed"], PLAN["dev"], high=True)`'s call sequence through the real guard with the applied `global` ceiling: liability never exceeds it, and every unit the guard does not admit is recorded `budget_skipped` or `budget_truncated`; per-phase completeness is not asserted, D-013), ceiling-parity test (the applied `global` ceiling equals `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`, D-012) and its gateproof (a one-cent change to the applied ceiling fails), S2 AT-PORT-1..4; `check_cost_parity.py` gateproof.
 - **Agent:** Opus, L. Deep review required.
 
 #### WP-06 Day-1 probe kit and probe report
-- **Scope:** `scripts/probes/` with an in-process reservation ledger (worst case from `cost_model.liab_reservation`, cap = `budget_plan()["experiments"]`; see section 10 item 5 for the hand-over to the database guard): latency benchmark (direction 13.1 item 1; S2 EV-COACH-5), Vertex Live matrix with usage-metadata check (S5 P4, P5; direction 13.1 item 2), Supabase isolation smoke (S4 WI-S4-05, 06), LISTEN through the session pooler from the workstation (S5 P3, local variant), OpenInference google-genai instrumentation check (S5 P7), Gemini audio-input price and image-model ID lookups (S5 Q7; UI direction 1.2) through the Google Developer Knowledge MCP. Probe report at `docs/probes/2026-10-probe-report.md`.
+- **Scope:** `scripts/probes/`, whose paid probes call the agent port and reserve through the database guard against `global` (`ops.reserve_model_call`, and `ops.reserve_voice` with kind `voice_probe` for Live), so they run only after WP-05 and the owner's plan application (X-05; no in-process ledger): latency benchmark (direction 13.1 item 1; S2 EV-COACH-5), Vertex Live matrix with usage-metadata check (S5 P4, P5; direction 13.1 item 2), Supabase isolation smoke (S4 WI-S4-05, 06), LISTEN through the session pooler from the workstation (S5 P3, local variant), OpenInference google-genai instrumentation check (S5 P7), Gemini audio-input price and image-model ID lookups (S5 Q7; UI direction 1.2) through the Google Developer Knowledge MCP. Probe report at `docs/probes/2026-10-probe-report.md`.
 - **Inputs:** direction 13.1; S5 12; S2 2, 5.2 (card prompt text, usable verbatim before WP-10); S4 13.
 - **Outputs:** probe scripts with tests (fake mode), the report, the card-model recommendation, the Live verdict for OD-6.
-- **Acceptance:** every probe in section 5.2 has a recorded pass or classified failure (IAM, region, SDK, feature, allowlist); total settled spend at or below the experiments ceiling, read from the probe ledger; no call ran without a reservation; every command passes the arena project explicitly.
+- **Acceptance:** every probe in section 5.2 has a recorded pass or classified failure (IAM, region, SDK, feature, allowlist); probe spend read from `ops.model_calls` by purpose label; every paid call has a reservation row in `ops.budget_reservations`; every command passes the arena project explicitly.
 - **Agent:** Sonnet, M (scripts); the orchestrator runs the probes. **Owner:** OD-1, OD-2.
 
 #### WP-07 Observability
@@ -199,18 +186,19 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Sonnet, M.
 
 #### WP-08 Scenario engine (deterministic)
-- **Scope:** S1 schemas v1.1 (from WP-02), `seed.py` sampler with the style factorial (7.5, takes n and the OD-9 answer), `assemble.py`, validators V1, V2, V3a, V4a, V4b, V4c, V5, the 21-defect mutation suite, `load.py` to the S4 ingest bundle, the few-shot brief renderer (dev-only, L5).
+- **Scope:** S1 schemas v1.1 (from WP-02), `seed.py` sampler with the style factorial (7.5, takes n and the OD-9 answer), `assemble.py`, validators V1, V2, V3a, V4a, V4b, V4c, V5, the 21-defect mutation suite, `load.py` to the S4 ingest bundle, the authoring-brief renderer (dev-only example, L5).
 - **Inputs:** S1 3-11; `case-family.schema.json` and packet schemas; F01-F03.
 - **Acceptance:** AC-S1-01..03, 05..07, 09, 12..20, 25, 26; mutation suite 21 of 21.
 - **Agent:** Opus, L (the reference implementation from the spec session lived in a scratchpad and may be gone; budget for a rewrite).
 
-#### WP-09 Generator, model validators, case-generation pilot
-- **Scope:** `prompts/scenario/generator.system.v1.txt`, `FamilySource` model, generation job (dev mode writes files; hidden mode ingests only, L6), V3b and V3c calls; the day-3/4 case-generation pilot: V3b and V3c on F01-F03, two new dev families F04 and F05 through every validator, one model-based role-guesser demonstration on a public packet (V4a note).
-- **Acceptance:** AC-S1-04, 21 (dev part), 24; F04 and F05 pass V1-V5 and ingest; pilot rejection rate recorded for `cost_model.py` (S1 open question 6).
-- **Agent:** Opus, M. **Owner:** OD-1.
+#### WP-09 Case authoring pipeline and case-authoring pilot (D-014)
+- **Scope:** the offline authoring pipeline of S1 8 and 9.7: seed sampler and authoring brief from WP-08, `FamilySource` model and assembler, the authoring rules file (`prompts/scenario/authoring.rules.v1.txt`), the authoring loop (Claude agents write each family against S1 schema v1.1; S1's deterministic validators V1, V2, V3a, V4, V5 run in code; Codex cross-reviews CX-1 to CX-4 in two sessions; revise until both pass on the same family-file hash, at most 5 rounds, initial value tuned in the dev pilot), the authoring report, the loader into S4 `sealed.ingest_case_family`, and `cases/hidden/` in `.gitignore`. No Vertex call: no generator service, no `generate` or `validate` call kind, no `gemini-3.1-pro-preview`. Then the case-authoring pilot (direction 13.1 item 3): the Codex review on F01-F03 and two new development families F04 and F05 through the whole loop. Hidden families are authored later, in WP-27, by isolated agents into the git-ignored directory and sealed unread.
+- **Inputs:** S1 8, 9, 10.3, 12; WP-08 code; F01-F03.
+- **Acceptance:** AC-S1-04 (Codex review), 16 and 18 (authoring report), 20 (brief renderer), 21 (git-ignored directory), 24 (codes-and-counts report, no Vertex call); F01-F05 pass V1-V5 and CX-1 to CX-4 and ingest; rounds per family and failure codes recorded.
+- **Agent:** Opus, M (pipeline code); Claude authoring agents and Codex run the pilot, driven by the orchestrator.
 
 #### WP-10 Prompts, output models, manifests
-- **Scope:** every prompt file and user template in S2 3-7 (coach common, A1-A3 strategy, deep, final; subject base, role, policy, style, turn; referee subject and assistant; Live instruction text), with the WP-02 edits (J1 decision order C-10, ref_subj.v2 C-11, LOCKED gates C-20, rule 9 likelihood sentence C-08, R2 trigger pairs C-12); prompt builders typed on `PublicTrialView` and `SubjectPacket`; manifest model, hash rule, freeze checks.
+- **Scope:** every prompt file and user template in S2 3-7 (coach common, A1-A3 strategy, deep, final; subject base, role, policy, style, turn; referee subject and assistant; Live instruction text), with the WP-02 edits (J1 decision order C-10, ref_subj.v3 C-11 and X-16, ref_asst.v2 X-06, LOCKED gates C-20, rule 9 likelihood sentence C-08, R2 trigger pairs C-12); prompt builders typed on `PublicTrialView` and `SubjectPacket`; manifest model, hash rule, freeze checks.
 - **Acceptance:** S2 AT-MAN-1..6, AT-COACH-1..8 (fake model), AT-SUBJ-1..4, AT-REF-1 (as amended by C-12), AT-VOICE-1, 2, 4.
 - **Agent:** Sonnet, L.
 
@@ -230,7 +218,7 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Opus, L (about 5 h). Deep review required.
 
 #### WP-14 Referee calls, label pipeline, adjudication queue
-- **Scope:** `referee_subject` (J1, J2) then `referee_assistant` (J3, J4) per trial with code checks and derived values (S2 7.2, 7.3), storage in `sealed.independent_labels` and `sealed.judgments`, automatic validity proposal (S3 4.2), blinded review-queue API, development debrief projection and `debrief_ready` event, training-session scoring (R3 as the two referee calls, `cost_model.r3()`, C-15; reserved in `training` for KPI-1 and calibration sessions and in `demo` otherwise, section 1.3).
+- **Scope:** `referee_subject` (J1, J2) then `referee_assistant` (J3, J4) per trial with code checks and derived values (S2 7.2, 7.3), storage in `sealed.independent_labels` and `sealed.judgments`, automatic validity proposal (S3 4.2), blinded review-queue API, development debrief projection and `debrief_ready` event, training-session scoring (R3 as the two referee calls, purposes `r3_subject` and `r3_investigator`, `cost_model.r3()`, C-15, X-02; reserved against `global`, section 1.3).
 - **Acceptance:** S2 AT-REF-1, 7, 8 (fake and dev), AT-REF-2..6 run in WP-25; S3 AC-S3-4.4; R2 never runs before R1 for a trial (ordering test).
 - **Agent:** Sonnet, L.
 
@@ -265,8 +253,8 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Sonnet, L each.
 
 #### WP-21 Design pass, characters, portraits, signature motion, accessibility
-- **Scope:** DESIGN.md tokens through Stitch and `impeccable`; companion art and wiring; 62 portraits (C-46, `PORTRAITS`) through the port and the `art` bucket; Motion for state-driven UI and a GSAP spike only for the evidence-released sequence (UI direction 2); voice pill bar; anti-slop checklist; WCAG 2.2 AA pass; REL-1 frame pacing.
-- **Acceptance:** FE-A11Y-1..4, FE-PET-3..5, FE-AV-3, 4, FE-TOK-1, E2E-10, REL-1 recorded; portrait spend read from `ops.model_calls` at or below the `art` ceiling (`budget_plan()["art"]`).
+- **Scope:** DESIGN.md tokens through Stitch and `impeccable`; companion art and wiring; 62 portraits (C-46, `PORTRAITS`) through the port as call kind `portrait`, each reserved against `global` and capped at 62 in code; Motion for state-driven UI and a GSAP spike only for the evidence-released sequence (UI direction 2); voice pill bar; anti-slop checklist; WCAG 2.2 AA pass; REL-1 frame pacing.
+- **Acceptance:** FE-A11Y-1..4, FE-PET-3..5, FE-AV-3, 4, FE-TOK-1, E2E-10, REL-1 recorded; portrait count at or below 62 and portrait spend read from `ops.model_calls` by purpose `portrait.image`.
 - **Agent:** Opus, L. **Owner:** OD-4, OD-5.
 
 #### WP-22 Minimal voice session
@@ -281,27 +269,27 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 
 #### WP-24 Vertical slice integration and gate (2026-10-18)
 - **Scope:** wire the services; ingest F01-F05; run real text practice trials and a two-block dev tournament through every S4 5.3 step; referee scoring; plain leaderboard on dev data; Phoenix trace of a full trial; voice verdict; rubric anchors calibrated on slice transcripts (first WP-25 round).
-- **Acceptance (direction 3.1 exit):** one domain, four or more dev families, generator and validators, text subject through `arena-subject`, one single-call assistant, harness, `finalize_trial`, referee scoring, plain leaderboard, Phoenix trace all demonstrated on the real stack; KPI-4 samples recorded; if voice is in, ticket auth, reconnect, transcript finalization and cost-cap tests pass on real Live; spend to date read from the ledger.
+- **Acceptance (direction 3.1 exit):** one domain, four or more dev families, the authoring pipeline and validators, text subject through `arena-subject`, one single-call assistant, harness, `finalize_trial`, referee scoring, plain leaderboard, Phoenix trace all demonstrated on the real stack; KPI-4 samples recorded; if voice is in, ticket auth, reconnect, transcript finalization and cost-cap tests pass on real Live; spend to date read from the ledger.
 - **Agent:** Opus, M plus orchestrator. Deep review and double Codex gate on the integration branch.
 
 #### WP-25 Calibration
-- **Scope:** samplers C-RUB, C-QQ, C-LAB and flags (S3 7.2; strata never from R1 or R2 outputs), R3 on the calibration transcripts (`TRAINING["calibration_transcripts"]`, reserved in `training`), rater UI via the trainer console or a sheet export, statistics (WP-16), at most two revision rounds on development data, freeze of referee prompts, rubric hash and lexicons before roster freeze.
+- **Scope:** samplers C-RUB, C-QQ, C-LAB and flags (S3 7.2; strata never from R1 or R2 outputs), R3 on the calibration transcripts (`TRAINING["calibration_transcripts"]`, reserved against `global`), rater UI via the trainer console or a sheet export, statistics (WP-16), at most two revision rounds on development data, freeze of referee prompts, rubric hash and lexicons before roster freeze.
 - **Acceptance:** S3 7.6; S2 AT-REF-2..6 and AC-S3-3.2 (R1 at least 17 of 20 on E1-E20); calibration report hash recorded for the tournament manifest. A missed threshold ships as "provisional", never as a lowered threshold.
 - **Agent:** Sonnet, M plus raters. **Owner:** OD-7.
 
 #### WP-26 Dev pilot
-- **Scope:** generate dev families to 5 for the pilot plus 4 for KPI-1 (`KPI1_EXTRA_DEV_FAMILIES`, already in `budget_plan()["generation"]`; WP-09 job); run 5 dev blocks with the full lineup; measure settled cost per call type, card latency, subject fidelity, request maxima, referee output sizes (S2 O-1, S3 OQ-5), difficulty bands (S1 V6); tighten manifest limits from maxima; hand the measured inputs to the research owner, who updates `cost_model.py` and reruns it; recommend 24 or 30 (OD-8). If the rerun changes `--plan-json`, the owner re-applies it (D-012).
-- **Acceptance:** dev pilot report with per-phase spend from `ops.model_calls` against the expected and conservative columns of section 1.3, KPI-4 screening p95, EV-SUBJ-1 on pilot data, V6 band check, rerun cost-model output pasted from the script; manifests re-hashed and frozen-ready.
+- **Scope:** author the 4 KPI-1 development families (`KPI1_EXTRA_DEV_FAMILIES`) through the WP-09 pipeline (no Vertex call, D-014); with F01-F05 the pilot has 5 families; run 5 dev blocks with the full lineup; measure settled cost per call type, card latency, subject fidelity, request maxima, referee output sizes (S2 O-1, S3 OQ-5), difficulty bands (S1 V6); tighten manifest limits from maxima; hand the measured inputs to the research owner, who updates `cost_model.py` and reruns it; recommend 30 or 34 (OD-8). If the rerun changes `--plan-json`, the owner re-applies it (D-012).
+- **Acceptance:** dev pilot report with spend per purpose label from `ops.model_calls` against the `simulate_d009` expected and conservative figures of section 1.3 (reported, not enforced per phase, D-013), KPI-4 screening p95, EV-SUBJ-1 on pilot data, V6 band check, rerun cost-model output pasted from the script; manifests re-hashed and frozen-ready.
 - **Agent:** Opus, M. **Owner:** OD-8 decided from the report.
 
-#### WP-27 Hidden generation, seal, roster freeze
-- **Scope:** seed sampler for n = 12 or 15 hidden families (OD-8: 24 or 30 cases) with the factorial (OD-9), generate, validate, ingest, `seal_hidden_split`, commit the seal hash to the repo, register frozen candidates, referee 8-gram scan and canary placement, predeclare OD-14 rules in the tournament manifest, `add_planned_trials`, `freeze_tournament`.
-- **Acceptance:** AC-S1-16, 18, 21, 22; S4 CS-07..CS-10; roster hash recorded; ledger event order shows seal before freeze.
+#### WP-27 Hidden authoring, seal, roster freeze
+- **Scope:** the S1 10.3 sealing sequence: an isolated authoring session (Claude agents with Codex review, whose transcripts the team and the orchestrator do not read) samples n = 15 or 17 hidden seeds (OD-8: 30 or 34 cases) with the factorial (OD-9), authors each family through the WP-09 loop into the git-ignored `cases/hidden/`, returns only the codes-and-counts authoring report, and ingests the accepted families; then `seal_hidden_split`, commit the seal hash, count and report to the repo, delete `cases/hidden/` and the session transcripts (S1 L6), register frozen candidates, referee 8-gram scan and canary placement, predeclare OD-14 rules in the tournament manifest, `add_planned_trials`, `freeze_tournament`.
+- **Acceptance:** AC-S1-16, 18, 21, 22, 24; S4 CS-07..CS-10; no hidden content in the repository, CI artifacts or logs; roster hash recorded; ledger event order shows seal before freeze.
 - **Agent:** Sonnet, M (operator-driven). **Owner:** OD-8, OD-9, OD-12, OD-14.
 
 #### WP-28 Sealed run
 - **Scope:** BKO-2 order: replay corpus, corpus adjudication, corpus seal, replay scoring, interactive blocks with the referee scoring each block online; monitoring of spend and anomalies; budget states recorded.
-- **Acceptance:** one execution record per planned trial (S4 `ledger.planned_execution`); corpus sealed before any replay trial (EF-09..EF-11); spend at or below bucket ceilings; no hidden span exported (S5 8.9 hidden gating).
+- **Acceptance:** one execution record per planned trial (S4 `ledger.planned_execution`); corpus sealed before any replay trial (EF-09..EF-11); liability at or below the `global` ceiling; no hidden span exported (S5 8.9 hidden gating).
 - **Agent:** Sonnet, M (mostly supervising runs that take hours).
 
 #### WP-29 Adjudication, reveal, publication
@@ -310,7 +298,7 @@ Acceptance tests cite the owning spec's IDs; a WP is done only when all of them 
 - **Agent:** Sonnet, M plus reviewer. **Owner:** OD-7.
 
 #### WP-30 KPI-1 study operations
-- **Scope:** participants and consent (up to 10 volunteers x 7 sessions, `TRAINING`; spend reserved in `training`), case sets A and B from families each participant has not seen (C-37), counterbalancing, assessment-mode pre and post tests, practice sessions, blinded export, proxy and human scoring, report.
+- **Scope:** participants and consent (up to 10 volunteers x 7 sessions, `TRAINING`; spend reserved against `global`), case sets A and B from the KPI-1 case-set families, which are excluded from every user's practice draw and assigned whole to each participant (C-37, X-08), counterbalancing, assessment-mode pre and post tests, practice sessions, blinded export, proxy and human scoring, report.
 - **Acceptance:** AC-S3-6.1, 6.3, 6.4; S4 TT tests; report states "demonstration of the instrument, not a causal claim".
 - **Agent:** Sonnet, M plus volunteers. **Owner:** OD-7.
 
@@ -359,11 +347,12 @@ flowchart LR
   W02 --> W05["WP-05 port + guard"]
   W03 --> W05
   W01 --> W06["WP-06 probes"]
+  W05 -. "paid probes after plan applied" .-> W06
   OD1 --> W06
   OD2 --> W06
   W03 --> W07["WP-07 observability"]
   W02 --> W08["WP-08 scenario engine"]
-  W05 --> W09["WP-09 generator + pilot"]
+  W03 --> W09["WP-09 authoring pipeline + pilot"]
   W08 --> W09
   W02 --> W10["WP-10 prompts + manifests"]
   W02 --> W11["WP-11 guard + harness"]
@@ -396,7 +385,7 @@ flowchart LR
   OD7 --> W25
   W24 --> W26["WP-26 dev pilot"]
   W17 --> W26
-  W26 --> W27["WP-27 hidden gen + seal + freeze"]
+  W26 --> W27["WP-27 hidden authoring + seal + freeze"]
   W25 --> W27
   OD8 --> W27
   W27 --> W28["WP-28 sealed run"]
@@ -435,7 +424,7 @@ flowchart LR
 | 10 | WP-19 slice UI (starts on the fake port Oct 14) | ~3 h | 1.5 days | Oct 16 |
 | 11 | WP-24 slice integration and gate | ~3 h + runs | 2 days | Oct 18 |
 
-Slack: about one day, from running WP-14 and WP-19 against the fake port while WP-13 finishes. If G0 or OD-1 slips by more than one day, the slice gate slips with it (section 8, R-01). Applying the budget plan (D-012) sits between WP-05 and the first live database-guarded call (WP-09, Oct 12); it is a short owner action, not a WP, and moves no date.
+Slack: about one day, from running WP-14 and WP-19 against the fake port while WP-13 finishes. If G0 or OD-1 slips by more than one day, the slice gate slips with it (section 8, R-01). Applying the budget plan (D-012) sits right after WP-05 (Oct 11) and before the first paid call, the day-1 probes included (X-05); it is a short owner action, not a WP, and moves no date. Case authoring (WP-09) makes no paid call (D-014).
 
 ### 4.3 Critical path to 2026-11-02 (direction 3.2)
 
@@ -443,8 +432,8 @@ Slack: about one day, from running WP-14 and WP-19 against the fake port while W
 | --- | --- | --- |
 | Oct 8-12 | WP-01..WP-08, WP-10, WP-11, WP-15, WP-18 start; WP-06 probes | Probe report; `make check` green |
 | Oct 13-18 | WP-12, WP-13, WP-14, WP-19, WP-22, WP-24 | Slice passes; anchors calibrated on dev data; voice verdict |
-| Oct 19-22 | WP-26 dev pilot; WP-25 calibration freeze; WP-27 hidden generation, seal, freeze (sealed list starts Oct 21 once V6 bands hold) | Pilot report; sealed split hash; frozen roster |
-| Oct 22-26 | WP-28 sealed run (12 interactive blocks at the 24-case baseline, 15 at 30); WP-20a/b in parallel | One execution record per planned trial |
+| Oct 19-22 | WP-26 dev pilot; WP-25 calibration freeze; WP-27 hidden authoring, seal, freeze (hidden authoring starts Oct 21 once V6 bands hold) | Pilot report; sealed split hash; frozen roster |
+| Oct 22-26 | WP-28 sealed run (15 interactive blocks at the 30-case baseline, 17 at 34); WP-20a/b in parallel | One execution record per planned trial |
 | Oct 22-29 | WP-30 KPI-1 sessions | Counterbalanced sessions scored blind |
 | Oct 27-30 | WP-29 adjudication and reveal; WP-20b trust center and leaderboards on real data; WP-21; WP-23 | Commitments and snapshot verified before reveal |
 | Oct 31-Nov 2 | WP-31 hardening; WP-32 recording and rehearsal; WP-33 only if approved | Pre-push quality bar green |
@@ -495,17 +484,17 @@ gantt
 | Day | Date | Dispatch (max 6 concurrent agents) | Orchestrator and owner | Exit |
 | --- | --- | --- | --- | --- |
 | 0 | Thu Oct 8 | none (spec package only) | Reconcile S1-S8 to v2; Codex review of v2 in the foreground until green x green; send the owner the G0 list (OD-0..OD-3, OD-13, budget alert) | Spec package GREEN, or findings applied |
-| 1 | Fri Oct 9 | WP-01 (S); WP-06 probe scripts (S); WP-02 starts after WP-01's skeleton lands (O) | Owner: approve direction, create GCP project with budget alert, Supabase project, repo destination. Run the Live probe matrix and the latency benchmark as soon as ADC works on the arena project | WP-01 merged; Live verdict draft; latency numbers for 3 configurations |
+| 1 | Fri Oct 9 | WP-01 (S); WP-06 probe scripts (S); WP-02 starts after WP-01's skeleton lands (O) | Owner: approve direction, create GCP project with budget alert, Supabase project, repo destination. Confirm ADC on the arena project with a call that costs nothing (model listing); paid probes wait for the guard (X-05) | WP-01 merged; probe scripts in fake mode |
 | 2 | Sat Oct 10 | WP-02 (O, cont.); WP-03 (S) after WP-02's SQL deltas; WP-08 (O); WP-18 (S); WP-10 (S) on the WP-02 draft models | Owner sets LOGIN and passwords for the three roles (secret write, explicit authorization); run Supabase isolation smoke and LISTEN probe | WP-02 merged; migrations apply locally and on the owner's project; isolation smoke 001 and 003 green |
-| 3 | Sun Oct 11 | WP-04a, WP-04b (S); WP-05 (O); WP-11 (S); WP-15 (O); WP-10 (cont.) | Probe report v1 written; card-model recommendation (lineup unchanged unless a configuration misses badly; Priority tier measured on the best) | WP-05, WP-10, WP-11 merged or in gate |
-| 4 | Mon Oct 12 | WP-07 (S); WP-09 (O) case-generation pilot; WP-12 (S); WP-15 (cont.); WP-18 (cont.) | Owner applies `budget_plan()` through `ops.set_bucket_ceiling` once WP-05's apply step and ceiling-parity test are green, before WP-09's first live call (D-012: the $0 seeds refuse every reservation until then); probe-ledger spend handed over per section 10 item 5. Window-1 exit review: probe report final, `make check` green on `main` | Probe report; `make check` green; plan applied and ceiling-parity test green on the owner's project; F04, F05 generated and validated |
+| 3 | Sun Oct 11 | WP-04a, WP-04b (S); WP-05 (O); WP-08 (cont.); WP-11 (S); WP-15 (O); WP-10 (cont.) | Owner applies `budget_plan()` through `ops.set_bucket_ceiling` once WP-05's apply step and ceiling-parity test are green (D-012: the $0 seed refuses every reservation until then); then run the Live probe matrix and the latency benchmark through the guard (X-05) | WP-05, WP-10, WP-11 merged or in gate; plan applied; Live verdict draft; latency numbers for 3 configurations |
+| 4 | Mon Oct 12 | WP-07 (S); WP-09 (O) authoring pipeline and case-authoring pilot (Claude agents and Codex, no Vertex call); WP-12 (S); WP-15 (cont.); WP-18 (cont.) | Probe report written; card-model recommendation (lineup unchanged unless a configuration misses badly; Priority tier measured on the best). Window-1 exit review: probe report final, `make check` green on `main` | Probe report; `make check` green; ceiling-parity test green on the owner's project; F04, F05 authored, validated, Codex-reviewed and ingested |
 | 5 | Tue Oct 13 | WP-13 (O); WP-14 (S); WP-22 (O) if Live connected; WP-12 fidelity pilot run | Read fidelity pilot; revise subject prompts on dev data if EV-SUBJ-1 < 95% | Fidelity pilot report; first text turn through `arena-subject` |
 | 6 | Wed Oct 14 | WP-13 (cont.); WP-19 (S) on the fake port; WP-25 calibration kit (S); WP-16 (S) | Recruit raters and volunteers (OD-7) | First full practice trial in fake mode end to end |
 | 7 | Thu Oct 15 | WP-14 (cont.); WP-17 (S); WP-22 (cont.); WP-19 (cont.) | **Owner decision point 1:** if neither Live model is usable, owner picks a voice branch (OD-6). First real-model dev trial through the full stack | Decision recorded in DECISIONS.md; one real dev trial finalized with a commitment |
 
 ### 5.2 Day-1 experiments and probes that need the owner's projects
 
-Costs are the cost model's experiment line: day-1 experiments including the Live probe, $3.63 expected and $6.95 conservative (`simulate_d009(24, 10, high)["phase_spend"]["experiments"]`), inside the $6.96 experiments ceiling (`budget_plan()["experiments"]`); each Live probe reserves $0.13 (`PROBE_RESERVATION`), at most 30 (`LIVE_PROBE`).
+Every paid probe runs after WP-05 and the plan application and reserves its worst case against `global` through the database guard (X-05); each Live probe reserves $0.13 (`PROBE_RESERVATION`), at most 30 (`LIVE_PROBE`). For reading only, the cost model's experiment line is $2.98 expected and $6.01 conservative (`simulate_d009(30, 10, high)["phase_spend"]["experiments"]`); no per-phase ceiling applies (D-013).
 
 | Probe | Needs | Pass condition | If it fails |
 | --- | --- | --- | --- |
@@ -514,7 +503,7 @@ Costs are the cost model's experiment line: day-1 experiments including the Live
 | Supabase isolation smoke: migrations on the owner's project, pgTAP 001 and 003, Data API cannot reach any arena schema (S4 WI-S4-05, 06, Q9) | OD-2 | Green | Fix migrations; never expose a schema to pass |
 | LISTEN/NOTIFY through the Supavisor session-mode port (S5 P3, local variant) | OD-2 | Notification within 100 ms | Rely on the 1 s re-poll (S5 6.4) |
 | OpenInference google-genai instrumentation: package, pinned version, span shape (S5 P7) | OD-1 (one real call, shared with the benchmark) | LLM spans with token counts | Manual `llm.<call_type>` spans only |
-| Case-generation pilot: V3b and V3c on F01-F03; two new families through every validator (direction 13.1 item 3) | OD-1 | All pass; rejection rate recorded | Fix the seed or prompt on dev data; never relax a check |
+| Case-authoring pilot (WP-09, D-014; no Vertex call): Codex review CX-1 to CX-4 on F01-F03; F04 and F05 authored by Claude agents through every validator and the Codex review (direction 13.1 item 3) | none | All pass; rounds and failure codes recorded | Revise the family or the authoring brief on dev data; never relax a check |
 | Fidelity pilot: 3 subjects x 2 roles x 2 cases x 12 turns plus attack scripts (direction 13.1 item 4; S2 11.4) | OD-1 | EV-SUBJ-1..7 | Revise subject prompts on dev data |
 | Gemini audio-input price for retranscription and the Vertex image model for portraits (S5 Q7; UI direction 1.2) | none (documentation lookup through Google Developer Knowledge MCP) | Prices recorded as new rows for `ops.model_prices` | Keep the cost model's lines as reservations |
 | Deferred to WP-33 (hosted only): IAP with SSE and WebSocket, service-account ID token through IAP, cold start on Cloud Run, billing guard dry run (direction 13.1 item 6; S5 P1, P2, P6, P8, P9) | OD-10 | n/a until hosting is approved | n/a |
@@ -546,7 +535,7 @@ Costs are the cost model's experiment line: day-1 experiments including the Live
 | WP-06 | yes | n/a | yes | no | probes | project use (OD-1, OD-2) | Window-1 exit |
 | WP-07 | yes | yes | yes | no | no | | |
 | WP-08 | yes | n/a | yes | yes | no | | |
-| WP-09 | yes | yes | yes | no | case-gen pilot | | |
+| WP-09 | yes | yes | yes | no | case-authoring pilot (Codex review, no Vertex call) | | |
 | WP-10, WP-11 | yes | n/a | yes | no (WP-12 review covers them) | no | | |
 | WP-12 | yes | yes | yes | yes (with WP-10, WP-11) | fidelity pilot | | |
 | WP-13 | yes | yes | yes | yes | no | | |
@@ -559,7 +548,7 @@ Costs are the cost model's experiment line: day-1 experiments including the Live
 | WP-24 | yes | yes | yes | yes | yes | | Slice |
 | WP-25 | yes | n/a | yes | no | calibration | raters (OD-7) | Freeze before roster |
 | WP-26 | yes | yes | yes | no | dev pilot | plan size (OD-8) | Pilot report |
-| WP-27 | yes | yes | yes | no | generation | OD-8, OD-9, OD-12, OD-14 | Seal before freeze |
+| WP-27 | yes | yes | yes | no | hidden authoring (codes and counts only) | OD-8, OD-9, OD-12, OD-14 | Seal before freeze |
 | WP-28, WP-29 | n/a (operations) | n/a | report review | no | sealed run | reviewers (OD-7) | Reveal preconditions |
 | WP-30 | yes | yes | yes | no | sessions | volunteers (OD-7) | |
 | WP-31 | yes | yes | Codex push-readiness | yes | no | every push | Pre-push bar |
@@ -579,11 +568,11 @@ Cut in this order when a window is at risk; each cut keeps every never-cut item 
 | 1 | WP-34 A2A exhibition | Nothing (not on the official leaderboard anyway) | M |
 | 2 | WP-33 hosted deployment | Local stack by screen share; video, deck, repo for judges | L plus probes |
 | 3 | Agents-at-work theater toggle and extra motion (WP-20b, WP-21) | Pipeline rail with the reduced-motion rendering (S6 6.5) | M |
-| 4 | Companion and portrait art (WP-21) | Status words and the coach activity line (S6 14) | M; the `art` bucket, $4.34 expected (`demo_bucket(False)["portraits"]`), $6.20 ceiling |
+| 4 | Companion and portrait art (WP-21) | Status words and the coach activity line (S6 14) | M; 62 portraits, $4.34 expected (`demo_bucket(False)["portraits"]`), $6.20 high (`demo_bucket(True)["portraits"]`) |
 | 5 | WP-23 voice completion | Voice stays practice-only and unscored | M |
 | 6 | Extra domains beyond facility access | One domain | n/a (never planned) |
 | 7 | WP-22 voice (owner decision OD-6) | Text only | L |
-| 8 | 30-case plan | 24 cases | $5.17 expected (`simulate_d009(30, 10, False)["total"]` minus `simulate_d009(24, 10, False)["total"]`) |
+| 8 | 34-case plan | 30 cases | $2.80 expected (`simulate_d009(34, 10, False)["total"]` minus `simulate_d009(30, 10, False)["total"]`) |
 | 9 | KPI-1 volunteer count below 6 | Dev-pilot-labeled instrument demonstration (S7 1.10) | humans |
 
 Never cut (direction 3.3): the 9N metrics, the isolation gate, the fairness audit, the EX-4 statements, assessment-mode projections; also the gate-before-rank leaderboard, citation chips, commit-before-reveal and the trust center's isolation and fairness sections (S6 14).
@@ -600,8 +589,8 @@ Never cut (direction 3.3): the 9N metrics, the isolation gate, the fairness audi
 | R-04 | Spec contract drift reappears during build | M | H | Any Codex finding on an interface mismatch | WP-02 contracts are the only source; a mismatch is fixed in `arena_core/contracts` and re-exported, never patched locally |
 | R-05 | Calibration misses thresholds after two rounds | M | H | WP-25 by Oct 21 | Ship "provisional" per S3 7.5; leaderboard order decided by QQ is marked provisional |
 | R-06 | Subject fidelity below 95% on the all-turn denominator | M | H | Fidelity pilot Oct 13, dev pilot | Revise subject prompts on dev data before freeze; publish the measured value |
-| R-07 | Dev pilot costs above the expected column | L | M | WP-26 report | Stay at 24 cases (OD-8); the guard prevents overshoot; blocks beyond the cap become `budget_skipped` |
-| R-08 | Hidden generation rejection rate high | M | M | WP-09 pilot rate, WP-27 | Start WP-27 on Oct 21 morning; seeds that fail twice are discarded (S1 8.5); regenerations draw only on the `generation` leaf's headroom at expected usage ($9.92 ceiling minus $6.82 expected, section 1.3), less the $2.02 generate-call reservation each family holds in flight (`liab_reservation`); never on another bucket |
+| R-07 | Dev pilot costs above the expected column | L | M | WP-26 report | Stay at 30 cases (OD-8); the guard prevents overshoot; blocks beyond the cap become `budget_skipped` |
+| R-08 | Hidden authoring rejection rate high | M | M | WP-09 pilot rounds and codes, WP-27 | Start WP-27 on Oct 21 morning; a seed that has not passed after 5 rounds (initial value, tuned in the dev pilot) is discarded and the sampler draws the next under the same quotas (S1 8.5); authoring costs no Vertex spend (D-014), so the limit is agent time, not budget |
 | R-09 | Sealed run slips past Oct 26 | M | H | Block throughput in the first day of WP-28 | Run interactive blocks in parallel pairings within the 8-agent and Vertex quota limits; reveal no later than Oct 30; if it slips further, S7 open question 1 fallback (dev-pilot numbers clearly labeled) |
 | R-10 | DESIGN.md late | M | M | Not received by Oct 20 | Ship the unstyled theme plus status words; WP-21 shrinks to accessibility and REL-1 |
 | R-11 | Supabase Free plan pauses near the demo | M | H | Plan answer (OD-2) | Keep-alive job (S4 2.4) or Pro |
@@ -614,6 +603,8 @@ Never cut (direction 3.3): the 9N metrics, the isolation gate, the fairness audi
 ## 9. Consistency check across S1-S7
 
 Every conflict or gap found between the parts, with the resolution and the WP that implements it. "Canonical" names the version that wins. Column "Spec v2": **applied** means the resolved contract is written into the owning parts' v2 text (and their SQL, schemas or seeds where the resolution names them), and each owning part lists the C-ID under "Changes in v2"; the WPs build it as written and WP-02 checks it. **build-time** means the resolution can only be completed during the build (an owner decision or a run); the spec states the rule and the default.
+
+Superseded in v2.1: the bucket tree in C-01 is one `global` ceiling (D-013); C-15's `training` bucket and C-43's `generation` leaf no longer exist (R3 and KPI-1 spend reserve against `global`; the KPI-1 families are authored offline, D-014); C-28's `ops.ack_card` takes `client_valid` (X-11); C-37 is refined by X-08 (KPI-1 case-set families are excluded from the draw and assigned whole). C-01's 24-case denominators are now 30 and 34 (S3 5.2). The cross-check findings X-01 to X-17 are resolved in each part's "Changes in v2.1".
 
 | ID | Parts | Conflict or gap | Resolution | Applied in | Spec v2 |
 | --- | --- | --- | --- | --- | --- |
@@ -672,25 +663,25 @@ Every conflict or gap found between the parts, with the resolution and the WP th
 
 | # | Finding | Proposed fix |
 | --- | --- | --- |
-| 1 | Spec v1 was written against direction v10 (hosted, 20 cases) and predated D-011, v10.3 (local, 24 cases baseline, 30 pilot-gated, $1 allowance, art and training set-asides) and D-012. | Resolved in spec v2: every part is reconciled (C-01, C-02, C-40; section 9 column "Spec v2"); the migrations seed $0 ceilings and the owner applies `budget_plan()`, so no ceiling is typed anywhere (D-012). WP-02 checks the parts against section 9. |
+| 1 | Spec v1 was written against direction v10 (hosted, 20 cases) and predated D-011, v10.3-v10.4 (local, 30 cases baseline, 34 pilot-gated, $1 allowance), D-012, D-013 and D-014. | Resolved in spec v2 and v2.1: every part is reconciled (C-01, C-02, C-40; X-01 to X-17); the migrations seed the one `global` bucket at $0 and the owner applies `budget_plan()`, so no ceiling is typed anywhere (D-012, D-013). WP-02 checks the parts against section 9. |
 | 2 | Coaching card, finding, labels, events, routes and KPI-4 each have two to four incompatible shapes across S2, S3, S4, S5 and S6. | One contracts package generated from Pydantic (WP-02) is the only source; S3 reads through an adapter (C-04 to C-18, C-27, C-28). |
 | 3 | Dev debriefs plus identical sibling public packets let a user deduce the other variant's role, which also breaks KPI-1's unseen-case rule (not raised in any part). | One variant per family per user; siblings hidden after a debrief; KPI-1 sets from unseen families (C-37). |
 | 4 | D-008 (hosted link judges use themselves) and D-011 (hosting deferred) conflict for the judging package. | OD-10 by Oct 27; default local demo by screen share plus video, deck and repo; WP-33 if approved. |
-| 5 | The day-1 benchmark is due before the database spend guard exists and before its plan is applied (D-012 seeds $0, so the database refuses every reservation until Oct 12), yet D-009 requires a reservation before every call. The probe ledger's spend is not in `ops.model_calls`, so once the plan is applied the `experiments` leaf would grant its whole $6.96 again. | Probes reserve in an in-process ledger seeded from `cost_model.liab_reservation`, capped at `budget_plan()["experiments"]` (section 0 item 6, WP-06). Proposed: immediately after the plan is applied and before any other guarded call, the probe ledger's records are replayed into the `experiments` leaf through the guard's existing reserve and settle functions with their recorded usage, so the leaf and `global` count them once. |
+| 5 | The day-1 benchmark was due before the database spend guard existed, and v2's in-process probe ledger kept spend outside `ops.model_calls` (cross-check X-05). | Resolved in v2.1: the in-process ledger is deleted; paid probes run after WP-05 and the owner's plan application (day 3) and reserve through the database guard against `global` like every other call (section 0 item 6, WP-06, 5.1, 5.2). |
 | 6 | The S1 reference implementation of the assembler and validators lived in a session scratchpad and may be gone. | WP-08 is sized as an Opus rewrite against S1's tables and mutation list. |
 | 7 | `cost_model.py` printed a stale $15 allowance in local mode. | Resolved in `cost_model.py` by the research owner (C-41): the summary prints the active allowance. |
-| 8 | `budget_plan()` sizes each build leaf at its conservative phase spend rounded up to the cent, from `simulate_d009`, which checks admission and reservations against one pool. The guard checks them per leaf (S4 8, S5 4.5), so at conservative usage the last units of a leaf cannot pass the 1.5x admission rule or reserve their worst case: a family's generate call reserves $2.02 (`liab_reservation`) against a leaf that keeps only rounding headroom. Replaying the 24-case conservative sequence against the applied leaves stops generation at 17 of 21 families, the dev pilot at 4 of 5 blocks and replay scoring at 23 of 24 transcripts (scratch check with `cost_model` functions only). Expected usage completes in every leaf. | Research owner: `budget_plan()` adds per-leaf headroom of at least the larger of the phase's largest worst-case reservation and (`ADMIT_FACTOR` - 1) x its largest unit's conservative cost, and its completeness check replays the sequence against the leaves, not one pool. The interactive remainder shrinks accordingly; if 24 cases then no longer complete at conservative usage, the direction's baseline claim is restated from the new output. Until then the spec treats the conservative column as a single-pool figure (section 1.3). |
+| 8 | v2's per-phase leaves could not complete the conservative sequence when the guard checked each leaf (cross-check X-03), and section 11 evaluations had no cost line (X-04). | Deferred (D-013): one `global` ceiling replaces the leaves, so no leaf can starve; per-phase sizing and evaluation cost lines wait until the pipeline runs end to end. If per-phase limits return, X-03's headroom rule applies. |
 
 ---
 
 ## 11. Sources
 
-- Direction: `docs/research/synthesis/02-direction.md` v10.3 sections 0, 3.1-3.3, 4, 7, 8, 9, 12, 13; spec baseline facts in `docs/spec/README.md`.
+- Direction: `docs/research/synthesis/02-direction.md` v10.4 sections 0, 3.1-3.3, 4, 7, 8, 9, 12, 13; spec baseline facts in `docs/spec/README.md`.
 - UI direction: `docs/research/synthesis/03-ui-direction.md` v2.1 sections 0-7.
 - Requirements: `docs/challenge/REQUIREMENTS.md` (all IDs cited above).
-- Decisions and habits: `docs/handoff/DECISIONS.md` D-001 to D-012; `PATTERNS.md`; `LESSONS.md`; `SUBAGENTS.md` (G0 gate).
+- Decisions and habits: `docs/handoff/DECISIONS.md` D-001 to D-014; `PATTERNS.md`; `LESSONS.md`; `SUBAGENTS.md` (G0 gate).
 - Spec parts: `S1-scenario-engine.md` (sections 4, 6, 7, 10-15), `S2-agents-and-prompts.md` (sections 1-13), `S3-scoring-rubrics-metrics.md` (sections 1-13), `S4-data-layer.md` (sections 2-16), `S5-backend-and-lift.md` (sections 1-14), `S6-frontend-ux.md` (sections 1-16), `S7-demo-and-judging.md` (sections 1-6, open questions); `schemas/public-packet.schema.json` (properties and `additionalProperties: false` checked), `schemas/private-packet.schema.json`, `schemas/evaluator-packet.schema.json`; `sql/0002_cases.sql` lines 81 and 110-122, `sql/0003_tournament_ledger.sql` lines 171, 285, 318-326, 336-344, 385-398, `sql/0004_privileged_functions.sql` lines 401-452, `sql/0006_ops_budget_traces.sql` lines 19-20, 75, 91-93; `sql/TESTS.md` file list.
-- Numbers: `python3 -I -B docs/research/synthesis/cost_model.py` and `--plan-json`, run on 2026-10-08 with `HOSTING = "local"` and `PLAN = {"sealed": 24, "dev": 10}`; per-bucket columns read from `simulate_d009(n, 10, high)["phase_spend"]` (n = 24, 30), `demo_bucket(high)`, `training_bucket(high)`, `demo_ceiling()`, `budget_plan()` (local, and `hosting="hosted"` for section 1.4), `VOICE_RESERVATION`, `PROBE_RESERVATION`, `liab_reservation`, `block_calls`; the leaf replay in section 10 item 8 and the 30-in-24-leaves comparison in section 1.3 come from a session scratch script that calls these functions only. Bounds: `stats_contracts.zero_event_upper_bound`, `families_needed`.
+- Numbers: `python3 -I -B docs/research/synthesis/cost_model.py` and `--plan-json`, run on 2026-10-08 with `HOSTING = "local"` and `PLAN = {"sealed": 30, "dev": 10}`; figures read from `budget_plan()` (local, and `hosting="hosted"` for section 1.4), `simulate_d009(n, 10, high)` (n = 30, 34; `total`, `model_spend`, `demo`, `phase_spend["experiments"]`), `demo_bucket(high)`, `VOICE_RESERVATION`, `PROBE_RESERVATION`, `block_calls`, `liab_cost`. Bounds: `stats_contracts.zero_event_upper_bound`, `families_needed`.
 - No GCP, Vertex or paid API calls were made. No reference repository was opened for this part; lift sources are cited through S1-S7, which give the exact paths and line ranges.
 
 ---
@@ -707,3 +698,14 @@ Every conflict or gap found between the parts, with the resolution and the WP th
 | C-43 | Recorded as resolved in `cost_model.py` (`KPI1_EXTRA_DEV_FAMILIES` in `budget_plan()["generation"]`); WP-26 generates the four families. |
 | C-46 | WP-21 draws the 62 portraits from the `art` bucket and checks spend against its ceiling. |
 | Section 9 (all) | Section 9 gains the column "Spec v2": 47 rows applied in spec v2, C-36 build-time (OD-14 pending, the direction's literal rule as default); WP-02 now checks the applied rows instead of writing them. Section 10 items 1, 5 and 7 updated and item 8 added (leaf headroom); day 4 adds the owner's plan application before the first guarded call. |
+
+## Changes in v2.1
+
+| ID | What changed |
+| --- | --- |
+| D-013 | One global ceiling: summary row 5, section 1.3 (one `global` row, simulation figures for reading only, per-phase sizing deferred), 1.4 (hosted ceiling without a fit claim), WP-03 (one `global` seed), WP-05 (plan-apply step, ceiling-parity test and cap test against `global`), WP-14, WP-21, WP-25, WP-28, WP-30 (spend reserved against `global`), cut item 4, section 10 item 8 deferred; X-03 and X-04 deferred. |
+| D-014 | WP-09 is the offline authoring pipeline (Claude agents write families against S1 schema v1.1; S1 validators in code; Codex cross-review; hidden families by isolated agents into git-ignored `cases/hidden/`, sealed unread); no generator, no `generate` or `validate` call, no `gemini-3.1-pro-preview`. WP-09 no longer depends on WP-05 or OD-1; WP-26 authors the 4 KPI-1 families; WP-27 is hidden authoring, seal and freeze; 5.2, gate matrix, R-08, OD-12 and the graph follow. Plan size 30 baseline, 34 pilot-gated (summary, 1.3, OD-8, 4.3, cut item 8, R-07). |
+| X-05 | The in-process probe ledger is deleted; paid probes run after WP-05 and the plan application (day 3) and reserve through the database guard; WP-06 depends on WP-05 for paid probes (summary row 6, 3.1, WP-05, WP-06, 4.1, 4.2, 5.1, 5.2, section 10 item 5). |
+| X-08 | WP-30: KPI-1 case-set families are excluded from every user's practice draw and assigned whole. |
+| X-13 | OD-8 and 1.3 state that the ceiling does not depend on the case count; `scripts/budget_plan.py` only applies `--plan-json` (WP-05). |
+| Section 9 | A note lists the v2 resolutions that v2.1 supersedes (C-01, C-15, C-28, C-37, C-43). |

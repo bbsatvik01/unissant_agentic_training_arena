@@ -1,6 +1,6 @@
 # S4: Data layer (Supabase Postgres)
 
-Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2, 2026-10-08: reconciled to direction v10.3, UI direction v2.1, D-012 and S8 C-01..C-48.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.3; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-012 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings). Today is 2026-10-08; the build runs to 2026-11-02.
+Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.1, 2026-10-08: S1 reconciled, cross-check X-01..X-17 resolved, D-013 applied.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.4; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-014 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings; D-013 build first, one global spend ceiling, per-phase cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review, no runtime generator). Today is 2026-10-08; the build runs to 2026-11-02.
 
 Deliverables of this part:
 
@@ -15,7 +15,7 @@ Deliverables of this part:
 | `docs/spec/sql/0006_ops_budget_traces.sql` | Spend guard, cost ledger, kill switch, latency samples, trace mirror, keep-alive |
 | `docs/spec/sql/TESTS.md` | pgTAP test plan (every test, expected result) |
 
-The migrations are drafts: never applied to any Supabase project. Version 2 was applied to a fresh throwaway local PostgreSQL 16 cluster in the session scratchpad to check that it parses and behaves, including the $0 seed and the application of `budget_plan()`; results are in `sql/TESTS.md` section 0.1.
+The migrations are drafts: never applied to any Supabase project. Version 2.1 was applied to a fresh throwaway local PostgreSQL 16 cluster in the session scratchpad to check that it parses and behaves, including the $0 seed of the one `global` bucket and the application of `budget_plan()`; results are in `sql/TESTS.md` section 0.1.
 
 **Run mode.** Local-first is the default path (D-011): `arena-api`, `arena-subject`, `arena-referee` and the tournament job run as separate local processes, each with its own database role and credential; Phoenix runs locally; the database is the owner's Supabase project (a local `supabase start` is allowed for development); Vertex AI is the only billed GCP service. The hosted design (Cloud Run, IAP, billing guard, hosted judge link) is kept in section 2.5 as a deferred variant.
 
@@ -31,7 +31,7 @@ The migrations are drafts: never applied to any Supabase project. Version 2 was 
 | 4 | The six privileged functions of direction 4.2 are implemented with the direction's grantees; four supporting turn functions (`submit_question`, `open_work_item`, `record_coaching_event`, `start_trial`) close gaps the direction left open. | direction 4.2 |
 | 5 | One global hash-chained ledger; commitments are `sha256(nonce || payload)` with a 32-byte nonce in `sealed`; reveal checks every precondition, seals a hashed inclusion manifest and publishes the nonces. | BKO-9, EVL-10, F15 |
 | 6 | Hidden-case material is reachable from `arena_public` only through `arena.trial_context` with an open work item on a running trial; every projection view hides hidden trials until reveal. | SCN-12, R3-03 |
-| 7 | Spend guard (D-012): the migration seeds the ten-bucket tree of `cost_model.budget_plan()` with $0 ceilings, so nothing can spend until the operator applies the plan through `ops.set_bucket_ceiling`; a test asserts the applied ceilings equal `cost_model.py --plan-json`. Every model call reserves its worst case, every voice session its whole-session worst case, before running; overrun trips the kill switch. No ceiling is typed in SQL. | D-009, D-012, BKO-1, BKO-8 |
+| 7 | Spend guard (D-012, D-013): one global ceiling. The migration seeds the one bucket of `cost_model.budget_plan()`, `global`, at $0, so nothing can spend until the operator applies the plan through `ops.set_bucket_ceiling`; a test asserts the applied ceiling equals `cost_model.py --plan-json`. Every model call reserves its worst case, every voice session its whole-session worst case, against `global` before running; overrun trips the kill switch. No ceiling is typed in SQL. Per-phase buckets are deferred; the tree functions stay. | D-009, D-012, D-013, BKO-1, BKO-8 |
 | 8 | A per-trial event store with a gap-free sequence feeds SSE (S5 section 6); assessment-mode coaching is held until the trial ends; the referee adds one persisted `debrief_ready` event (C-17); KPI-4 is the client acknowledgement time minus the subject-turn commit time, both server clock (C-28). | SOL-6, KPI-4 |
 | 9 | The capability matrix is an executable fixture: the test asserts the actual privilege set equals the allowlist exactly. | KPI-5, EVL-10 |
 | 10 | Free plan pausing is handled by a keep-alive or the Pro plan: OWNER DECISION PENDING; the schema works either way. | direction 12, 13.2 item 3 |
@@ -60,7 +60,8 @@ The migrations are drafts: never applied to any Supabase project. Version 2 was 
 | SOL-6 | Event visibility `debrief` for assessment coaching; persisted `debrief_ready` (C-17) | CC-07..CC-09, CC-19 |
 | KPI-4 | Sample opened at the coach commit; `ops.ack_card` stamps the client acknowledgement; KPI-4 = acknowledgement minus subject commit, server clock (S3 6.4, C-28) | CC-11, CC-12, CC-18 |
 | SOL-5, AST-3 | One Finding object for assistants and investigators (C-27) | FC-04, FC-16 |
-| D-009, D-012 | Bucket tree seeded at $0, plan applied by the operator, reservations, voice reservations, unit admission, kill switch | BU-*, VB-* |
+| D-009, D-012, D-013 | One `global` bucket seeded at $0, plan applied by the operator, reservations, voice reservations, unit admission, kill switch | BU-*, VB-* |
+| EX-4 | EX-4 acknowledgement stored once per user (`training.acknowledgements`, X-15) | TT-14 |
 
 ---
 
@@ -77,7 +78,7 @@ The migrations are drafts: never applied to any Supabase project. Version 2 was 
 
 | Role | Used by (local processes, D-011) | Connects as | Reads | Writes |
 | --- | --- | --- | --- | --- |
-| `arena_public` | `arena-api` (:8080) and the tournament job (`python -m arena_tournament`) | Its own DSN from the gitignored `.env.local`: `arena_public.<project-ref>` on the Supavisor shared pooler, transaction mode, port 6543 (owner's project), or a direct connection to `supabase start` | 24 projection views; `arena.trial_context` | 27 functions (section 6.3) |
+| `arena_public` | `arena-api` (:8080) and the tournament job (`python -m arena_tournament`) | Its own DSN from the gitignored `.env.local`: `arena_public.<project-ref>` on the Supavisor shared pooler, transaction mode, port 6543 (owner's project), or a direct connection to `supabase start` | 25 projection views; `arena.trial_context` | 28 functions (section 6.3) |
 | `arena_subject` | `arena-subject` (:8081) | Its own DSN, same pooler | `subject.turn_context` only | 18 functions (`record_subject_turn`, voice, budget, spans) |
 | `arena_referee` | `arena-referee` (:8082); operator CLI for case ingest and reveal | Its own DSN, same pooler | Every table and view except `training.voice_resumes` | 8 tables (labels, judgments, scores, leaderboards, isolation checks, participants, case sets, rubric scores); 34 functions |
 | `postgres` (owner) | Migrations; owner-only controls (`ops.set_kill_switch`, `ops.set_bucket_ceiling`) and plan application (section 8.1) | Session mode, port 5432, or the SQL editor | All | All |
@@ -99,7 +100,7 @@ The migrations are drafts: never applied to any Supabase project. Version 2 was 
 - **If Pro:** nothing to do; the keep-alive function stays unused.
 - **If Free:** call `ops.keepalive('<source>')` (granted to `arena_public`; inserts one row, prunes rows older than 14 days) four times a day from a scheduled runner. Local default: a GitHub Actions cron holding an `arena_public` DSN as a repository secret (no GCP cost; the secret is an owner-authorized write). The Cloud Scheduler runner belongs to the hosted variant (2.5).
 - Either way: a check in the operator page shows the last ping time; the Nov 2 rehearsal confirms the project is active the day before the demo.
-- Size: the Free plan database limit is 500 MB (X10 Q2). The trace mirror is the only table that grows with span volume (section 11). S5 Q2 estimated about 120 MB for 20 hidden cases; scaled to the planned count it is about 120 x n / 20 MB, with n = `cost_model.PLAN["sealed"]` (formula, not a script output; S5 owns the estimate). Pruning of verified non-hidden spans keeps it bounded.
+- Size: the Free plan database limit is 500 MB (X10 Q2). The trace mirror is the only table that grows with span volume (section 11). No script produces its size; S5 8.4 gives an initial estimate, and the dev pilot measures spans per turn and mirror bytes (X-17). Pruning of verified non-hidden spans keeps it bounded.
 
 ### 2.5 Hosted variant (deferred, WP-33, owner decision OD-10)
 
@@ -109,7 +110,7 @@ Kept so the design is ready if the owner approves hosting; nothing below is on t
 - **Deployables and secrets.** Each Cloud Run service (`arena-api`, `arena-subject`, `arena-referee`) and the `arena-tournament` job mounts only its own DSN secret (S5 section 9.4); same roles, same functions, same grants.
 - **Keep-alive runner.** Cloud Scheduler triggering the `arena-tournament` job image with a `keepalive` command (scales to zero; adds a scheduler job and a few job executions a day to the non-model itemization in `cost_model.py` before use).
 - **Non-model costs.** Not in the ledger; minimized and backstopped by GCP budget alerts and the billing-disable function (direction 8.3, S5 9.6).
-- **Plan switch.** The hosted plan is `cost_model.budget_plan(hosting="hosted")`, whose global ceiling is `CAP - NON_MODEL_ALLOWANCE` ($60.00). On 2026-10-08 it raises for the 24-case baseline (hosting from day 1 does not fit). Switching later means re-applying the hosted plan with `ops.set_bucket_ceiling`, which refuses any ceiling below current liability, so the switch succeeds only if committed liability leaves the remaining work inside the hosted ceilings (README baseline facts).
+- **Plan switch.** The hosted plan is `cost_model.budget_plan(hosting="hosted")`, one global ceiling of `CAP - NON_MODEL_ALLOWANCE` ($60.00). Switching means re-applying it with `ops.set_bucket_ceiling`, which refuses a ceiling below current liability, so the switch succeeds only if committed liability is at or below $60.00 (README baseline facts).
 
 ---
 
@@ -140,7 +141,7 @@ Columns are listed in full in the SQL; this section gives keys and purpose. "App
 | `case_variants` | `id`, `family_id`, `variant_code` (the opaque `case_id`, checked `^C-[0-9A-HJKMNP-TV-Z]{8}$`, C-25), `style` jsonb, `difficulty` 1-5 | A variant; no role column (SCN-5); style stays here for the fairness audit and is not projected to `arena_public` (C-26) | ingest | Immutable |
 | `public_packets` | `variant_id`, `packet` (case id, objective, timeline, documents, context, requestable record list), `sha256` | Dev public packet (SCN-7); trigger refuses hidden variants | ingest | Immutable |
 | `candidates` | `id`, `kind` (assistant, subject, referee, negative_control; C-47), `name` (= manifest `candidate_id`), `version`, `manifest` (S2 3.1 manifest.v1, every key present), `sha256` | Frozen candidate versions (AST-5, BKO-5); only assistant and subject kinds fill tournament slots and training sessions | `register_candidate` | Immutable |
-| `tournaments` | `id`, `name`, `split`, `status` (draft, frozen, running, sealed, scoring, revealed), `seed`, `budget_bucket`, `max_exchanges`, `hidden_seal_id`, `roster_sha256` | A dev pilot or sealed run; `budget_bucket` names the plan bucket the run draws from (dev pilot `dev_pilot`; sealed run `build`, whose leaves `replay` and `interactive` take its reservations) | Lifecycle functions | Status only via functions; no delete |
+| `tournaments` | `id`, `name`, `split`, `status` (draft, frozen, running, sealed, scoring, revealed), `seed`, `budget_bucket`, `max_exchanges`, `hidden_seal_id`, `roster_sha256` | A dev pilot or sealed run; `budget_bucket` names the bucket its reservations use: `global` for every run (D-013) | Lifecycle functions | Status only via functions; no delete |
 | `blocks` | `id`, `tournament_id`, `block_no`, `family_id` | One family x nine pairings x one repeat (direction 7.2) | `add_planned_trials` | Immutable |
 | `planned_trials` | `id`, `tournament_id`, `position` (seeded order), `track` (replay_corpus, replay, interactive), `variant_id`, candidates, `repeat`, `source_planned_trial_id` | The frozen roster (BKO-7, BKO-10) | `add_planned_trials` (draft only) | Immutable |
 | `trials` | `id`, `kind` (training, interactive, replay_corpus, replay), `planned_trial_id`, `attempt` 1-3, `variant_id`, candidates, `source_trial_id`, `mode` (practice, assessment, harness), `owner_user_id`, `status` (planned, running, finalized, terminated), `transcript_version`, `exchanges`, `max_exchanges`, `coaching_pending` | One execution attempt or practice session | Functions only | No delete |
@@ -181,7 +182,7 @@ All are append-only.
 | `finding_commitments` | `trial_id`, `payload`, `payload_sha256`, `commitment_sha256`, `event_seq` | Commit before reveal |
 | `validity_adjudications` | `id`, `adj_seq`, `trial_id`, `verdict` (valid, subject_invalid), `reason` (S3 `reason_code`), `evidence_ref`, `decided_by` (`auto_rule` or a reviewer ID, C-33), `idempotency_key`, `after_reveal` | Subject validity, append-only, latest in force |
 | `corpus_seals` | `tournament_id`, `corpus_sha256`, `n_transcripts` | Replay corpus seal (BKO-6) |
-| `inclusion_manifests` | `id`, `tournament_id`, `version`, `manifest`, `manifest_sha256`, `supersedes_id` | Version 1 sealed at reveal; later versions are corrections |
+| `inclusion_manifests` | `id`, `tournament_id`, `version`, `manifest` (S3 4.4 canonical text), `manifest_sha256`, `supersedes_id` | Version 1 sealed at reveal; later versions are corrections (section 7.5) |
 | `revealed_nonces` | `trial_id`, `nonce_hex` | Published at reveal so anyone can verify |
 
 All are append-only.
@@ -191,7 +192,8 @@ All are append-only.
 | Table | Key columns | Purpose |
 | --- | --- | --- |
 | `participants` | `user_id`, `code` (P01), `counterbalance` (AB, BA), `consented_at` | KPI-1 volunteers (pseudonymous in reports) |
-| `case_set_members` | (`set_code` A or B, `variant_id`) | Matched pre and post sets |
+| `case_set_members` | (`set_code` A or B, `variant_id`) | Matched pre and post sets, each one truthful and one deceptive variant from different families. Families holding a member are excluded from the C-37 draw for every user and refused in practice by `start_session` (X-08) |
+| `acknowledgements` | (`user_id`, `kind` `ex4`), `acknowledged_at` | The EX-4 acknowledgement, once per user, written by `training.acknowledge` (S5 `POST /api/me/ack-ex4`, X-15) |
 | `sessions` | `id`, `trial_id`, `user_id`, `participant_id`, `phase` (practice, pre, post; S3's `free` maps to `practice`, C-44), `voice`, `idempotency_key` | One investigator session = one training trial |
 | `rubric_scores` | `session_id`, `scorer` (proxy, human), `scorer_ref`, five 0-4 dimensions, `total` = 5 x sum, `rationale` | EVL-7, KPI-1 |
 | `access_tickets` | `ticket_sha256`, `kind` (sse, voice), `user_id`, `trial_id`, `mode`, `expires_at` (60 s), `redeemed_at`, `subject_checked_at` | Single-use tickets bound to user, trial, split (dev) and mode |
@@ -204,11 +206,11 @@ All are append-only.
 
 | Table | Key columns | Purpose |
 | --- | --- | --- |
-| `config` | one row: `kill_switch`, attempts, voice amounts and caps, per-user quotas | Spend and quota parameters |
+| `config` | one row: `kill_switch`, attempts, voice amounts and caps, per-user quotas | Spend and quota parameters (voice shutoff = two thirds of the reservation, computed, X-17) |
 | `kill_switch_events` | `turned_on`, `reason`, `actor` | History of every flip (append-only) |
-| `budget_buckets` | `name`, `parent`, `ceiling_usd` | The ten-bucket tree of `budget_plan()`, seeded at $0 (D-012, section 8.1) |
+| `budget_buckets` | `name`, `parent`, `ceiling_usd` | The bucket of `budget_plan()`: `global`, seeded at $0 (D-012, D-013, section 8.1) |
 | `model_prices` | (`model`, `effective_from`), text and audio rates per 1M tokens | Liability rates (immutable) |
-| `call_limits` | `call_kind`, `input_limit`, `output_limit` | Enforced request limits, equal to `cost_model.LIMITS` (immutable) |
+| `call_limits` | `call_kind`, `input_limit`, `output_limit` | Enforced request limits: the five runtime `cost_model.LIMITS` rows (no `generate` or `validate`, D-014), plus `retranscribe` and `portrait` at S5 3.3's initial values (immutable; X-09) |
 | `budget_reservations` | `id`, `idempotency_key`, `bucket`, `kind`, `parent_id`, `model`, `call_kind`, `trial_id`, `actor_user_id`, `caller_role`, `reserved_usd`, `state`, `settled_usd`, `overrun`, timestamps | Worst case held before any spend |
 | `model_calls` | (`reservation_id`, `seq`), tokens by kind, `cost_usd`, `status`, `latency_ms`, trace ids | The single cost source (direction 10); append-only |
 | `latency_samples` | (`trial_id`, `turn_no`), `subject_commit_at`, `card_validated_server_at`, `client_ack_at`, `card_outcome`, `population`, `instance_cold`; derived `server_ms`, `kpi4_ms`, `miss` | KPI-4 samples in S3 6.4's field names (C-28) |
@@ -362,7 +364,7 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | --- | --- |
 | Grantee | `arena_referee` |
 | Preconditions (`ledger.check_reveal_preconditions`) | Status `scoring` (AR020); roster hash recomputes (AR021); every planned trial has an execution record (AR020); every trial needing subject review has an adjudication (AR020); corpus sealed and its digest recomputes, when the tournament has a replay track (AR021); every commitment of the tournament verifies (AR021); hidden seal verifies for a hidden tournament (AR021); ledger chain verifies (AR021) |
-| Effects | Builds the inclusion manifest (section 7.5); `manifest_sha256`; status `revealed`; ledger event with the manifest hash; `ledger.inclusion_manifests` version 1; copies every nonce of the tournament into `ledger.revealed_nonces` |
+| Effects | Builds the inclusion manifest in S3's canonical text (section 7.5); `manifest_sha256` = sha256 of that text; status `revealed`; ledger event with the manifest hash; `ledger.inclusion_manifests` version 1; copies every nonce of the tournament into `ledger.revealed_nonces` |
 | Returns | `{manifest_id, manifest_sha256}`; a second call returns the same |
 | After reveal | Hidden trials become visible in the projections; held spans become exportable; scores and leaderboards can be inserted, each naming a manifest; `ledger.seal_corrected_manifest` creates version n+1 after a later adjudication; version 1 never changes |
 | Tests | RV-01..RV-20 |
@@ -381,9 +383,10 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | `arena.events_after(trial, after_seq, limit)` | `arena_public` | SSE projection |
 | `arena.trial_visible(trial)`, `arena.actor_id()` | `arena_public` | Used inside projection views |
 | `subject.turn_context(trial, item)` | `arena_subject` | Private packet, public packet, transcript, evidence, subject manifest for one open `subject_answer` item |
-| `training.start_session`, `issue_access_ticket`, `redeem_access_ticket`, `redeem_voice_resume` | `arena_public` | Sessions and tickets (section 4.4) |
+| `training.start_session`, `issue_access_ticket`, `redeem_access_ticket`, `redeem_voice_resume` | `arena_public` | Sessions and tickets (section 4.4); `start_session` refuses practice on a KPI-1 case-set family (X-08) |
+| `training.acknowledge(kind)` | `arena_public` | Records the actor's EX-4 acknowledgement once and returns its time; `training.v_my_acknowledgements` reads it (X-15) |
 | `training.claim_voice_ticket`, `open_voice_session`, `close_voice_session`, `record_voice_question`, `record_voice_fragment`, `record_voice_utterance`, `issue_voice_resume`, `take_voice_handle` | `arena_subject` | Voice session lifecycle |
-| `ops.reserve_model_call`, `mark_dispatched`, `record_usage`, `settle_reservation`, `budget_status`, `mirror_spans`, `record_trace_summary` | all three runtime roles | Metering and tracing (section 8.7) |
+| `ops.reserve_model_call`, `mark_dispatched`, `record_usage`, `settle_reservation`, `budget_status`, `mirror_spans`, `record_trace_summary` | all three runtime roles | Metering and tracing (section 8.7); every reservation names bucket `global` (D-013) |
 | `ops.reserve_voice` | `arena_subject` | Whole-session voice reservation |
 | `ops.admit_unit`, `ops.set_export_state` | `arena_public`, `arena_referee` | Soft unit admission; span export state |
 | `ops.keepalive`, `ops.ack_card` | `arena_public` | Keep-alive; KPI-4 client acknowledgement (C-28) |
@@ -412,7 +415,7 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | AR003 | Unknown, cross-trial or wrong-kind work item; key reused with different input | Defect or retry bug |
 | AR004 | No open question, or turn in progress | HTTP 409 `turn_in_progress` |
 | AR005 | Requested id not requestable | HTTP 422 |
-| AR006 | Release limit | Generator defect (it enforces 6) |
+| AR006 | Release limit | Authoring defect (S1's validator enforces 6) |
 | AR007 | Invalid input | HTTP 422 |
 | AR010 | Append-only or immutable row | Defect |
 | AR020, AR021 | Reveal precondition; seal or hash mismatch | Operator investigates; never forced |
@@ -452,27 +455,35 @@ One terminal record per trial attempt, immutable: `completed`, `subject_quaranti
 | Hidden-split seal | Per hidden variant: family code, variant code, public, private and evaluator packet hashes, artifacts hash; lines sorted by code point | Once, before any hidden tournament freezes | `freeze_tournament`, `reveal` |
 | Roster | Tournament id, split, seed, cap; per planned trial: position, id, track, block, variant, candidate manifest hashes, repeat, source position | `freeze_tournament` | `reveal` |
 | Corpus | Per corpus planned trial: id, execution state, committed transcript and evidence hashes; sorted | `seal_replay_corpus` (before any replay trial starts) | `reveal` |
-| Manifest | The manifest jsonb | `reveal`, `seal_corrected_manifest` | Bound to every leaderboard |
+| Manifest | S3 4.4's canonical manifest text (UTF-8, LF, trailing newline), hashed with `ledger.hash_text`; S3's Python verifier recomputes the same bytes (X-07) | `reveal`, `seal_corrected_manifest` | Bound to every leaderboard |
 
-### 7.5 Inclusion manifest (direction 7.1, F14, F15)
+### 7.5 Inclusion manifest (direction 7.1, F14, F15; S3 4.3-4.4 canonical, X-07)
 
-`ledger.build_manifest` emits one entry per planned trial: planned trial id, position, track, trial id, attempt, execution state, adjudication id and verdict in force, `assistant` and `subject` inclusion, reason. Rules:
+`ledger.build_manifest(tournament)` returns S3 4.4's canonical text for the next version (1 at reveal, n + 1 for a correction), and `reveal` and `seal_corrected_manifest` store that text and its sha256 (`ledger.hash_text`). S3 owns the format, the labels and the reasons; this section states how the SQL fills them.
 
-| Track | Execution state, verdict | `assistant` | `subject` | Reason |
-| --- | --- | --- | --- | --- |
-| interactive | completed, valid | included | included | included |
-| interactive | assistant_failed, valid | included_as_insufficient | included | counted as insufficient evidence |
-| interactive | completed or assistant_failed, subject_invalid | excluded | included | counts against the subject |
-| interactive | subject_quarantined | excluded | included | counts against the subject |
-| any | infra_failed | excluded | excluded | infra_failed |
-| any | budget_skipped, budget_truncated | excluded | excluded | budget state |
-| replay_corpus | completed, valid | n/a | included | included (corpus usable) |
-| replay_corpus | completed, subject_invalid; or subject_quarantined | n/a | included | counts against the subject (corpus unusable) |
-| replay | source corpus not completed-and-valid (includes source_unavailable) | excluded | n/a | source transcript invalid |
-| replay | completed | included | n/a | included |
-| replay | assistant_failed | included_as_insufficient | n/a | counted as insufficient evidence |
+```
+arena-inclusion-manifest|v1|{tournament_id}|{version}|{parent_manifest_sha256 or empty}|{roster_sha256}|{corpus_sha256 or empty}|{hidden_seal_sha256 or empty}
+{planned_trial_id}|{track}|{assistant_id}|{subject_id}|{family_id}|{variant_id}|{role}|{repeat}|{exec_state}|{adjudication_id or empty}|{verdict or empty}|{asst_inclusion}|{subj_inclusion}|{reason}
+```
 
-Each candidate's metrics use its own included trials (F14); S3 computes metrics from the manifest and labels, never from raw trial lists. The manifest also carries the roster, corpus and hidden-seal hashes.
+- Lines after the header are sorted by `planned_trial_id` in byte order (`collate "C"`); every field is a UUID, an integer or an enum token. `assistant_id` and `subject_id` are candidate ids (empty where the track has none); `role` comes from `sealed.evaluator_packets` and is published only because the manifest exists only after reveal.
+- `exec_state` is the planned trial's latest attempt (`ledger.planned_execution`). The adjudication in force is the trial's own, and for a `replay` row its source corpus transcript's (S3 4.3).
+- Inclusion is S3's `inclusion(state, verdict, block_invalid)`: `asst_inclusion` is `included`, `included_as_insufficient` or `excluded` (empty on `replay_corpus` rows); `subj_inclusion` is `counted`, `against_subject` or `excluded` (empty on `replay` rows).
+- Block infra rule (the default until OD-14 decides, C-36): a block is invalid when 20 x its `infra_failed` planned trials exceeds its planned trials (more than 5%), and every trial of an invalid block is excluded with reason `block_invalid_infra`.
+- A reviewed trial without a verdict, or a planned trial without an execution record, raises AR020 (S3's `RevealBlocked`); `reveal` checks the same through its preconditions first.
+
+| Execution state, verdict | `asst_inclusion` | `subj_inclusion` | `reason` |
+| --- | --- | --- | --- |
+| `source_unavailable` (replay) | excluded | (empty) | `source_unavailable` |
+| any state in an invalid block | excluded | excluded | `block_invalid_infra` |
+| `infra_failed` | excluded | excluded | `infra_failed` |
+| `budget_skipped`, `budget_truncated` | excluded | excluded | the state |
+| `subject_quarantined` | excluded | against_subject | `subject_quarantined` |
+| `completed` or `assistant_failed`, `subject_invalid` (a replay row: its corpus transcript's verdict) | excluded | against_subject | `subject_invalid` |
+| `completed`, `valid` | included | counted | `included` |
+| `assistant_failed`, `valid` | included_as_insufficient | counted | `assistant_failed_as_insufficient` |
+
+Each candidate's metrics use its own included trials (F14); S3 computes metrics from the manifest and labels, never from raw trial lists. A correction compares the trial lines with the last version's; if none changed, no new version is written.
 
 ### 7.6 Reveal and corrections
 
@@ -480,59 +491,50 @@ Reveal is the only route from `scoring` to `revealed` and checks every precondit
 
 ---
 
-## 8. Budget (D-009, D-012, direction 8.2-8.3)
+## 8. Budget (D-009, D-012, D-013, direction 8.2-8.3)
 
-### 8.1 Bucket tree, $0 seed and plan application (D-012)
+### 8.1 One global ceiling, $0 seed and plan application (D-012, D-013)
 
-The migration (`0006_ops_budget_traces.sql`) creates the tree of `cost_model.budget_plan()` with every ceiling at $0. Fail-closed: until the operator applies the plan, every reservation and every voice reservation is refused with reason `cap`, and `admit_unit` answers `skip` (BU-27). No dollar ceiling appears in SQL.
+The migration (`0006_ops_budget_traces.sql`) seeds one bucket, `global`, the only entry of `cost_model.budget_plan()`, at $0. Fail-closed: until the operator applies the plan, every reservation and every voice reservation is refused with reason `cap`, and `admit_unit` answers `skip` (BU-27). No dollar ceiling appears in SQL. Every model call, voice session and unit admission names bucket `global` (the agent port passes it; no request chooses a bucket).
 
 | Bucket | Parent | What reserves into it | Ceiling source (applied by the operator) |
 | --- | --- | --- | --- |
-| `global` | none | (parent only) | `budget_plan()["global"]` = `CAP` - `NON_MODEL_ALLOWANCE_LOCAL` |
-| `demo` | `global` | Demo text sessions (cards, subject, R3 referee calls), voice sessions and their child calls | `budget_plan()["demo"]` = `demo_ceiling()` - art, rounded up |
-| `art` | `global` | Character portraits (blocked until the `portrait` call kind exists, 8.2) | `budget_plan()["art"]` = `PORTRAITS` count x high $/image |
-| `training` | `global` | KPI-1 sessions and calibration transcripts, each with R3 (C-15) | `budget_plan()["training"]` = `training_bucket(True)`, rounded up |
-| `build` | `global` | (parent only) | `budget_plan()["build"]` = global - demo - art - training |
-| `experiments` | `build` | Day-1 benchmark, generation and fidelity pilots, metered Live probes | `budget_plan()["experiments"]` (phase spend of `simulate_d009(..., high=True)`, rounded up) |
-| `generation` | `build` | Family generation and validation: dev, the 4 KPI-1 dev families (C-43) and hidden | `budget_plan()["generation"]` |
-| `dev_pilot` | `build` | Dev pilot blocks | `budget_plan()["dev_pilot"]` |
-| `replay` | `build` | Replay corpus and replay scoring | `budget_plan()["replay"]` |
-| `interactive` | `build` | Interactive blocks | `budget_plan()["interactive"]` = build minus the other four leaves |
+| `global` | none | Every model call and voice session: experiments, dev pilot, replay, interactive, demo, training and art (no generation calls, D-014) | `budget_plan()["global"]` = `CAP` - `NON_MODEL_ALLOWANCE_LOCAL` |
 
-For reading only (the SQL never contains these numbers, and the plan test compares against the live script output): on 2026-10-08 `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` prints global 74.00, demo 10.55, art 6.20, training 6.19, build 51.06, experiments 6.96, generation 9.92, dev_pilot 8.07, replay 4.64, interactive 21.47, for `PLAN` = 24 hidden cases and 10 dev cases, `HOSTING = "local"`.
+For reading only (the SQL never contains this number, and the plan test compares against the live script output): on 2026-10-08 `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` prints `{"global": {"parent": null, "ceiling_usd": 74.0}}` (`HOSTING = "local"`).
 
-**Applying the plan.** The operator (owner role) runs the script and calls `ops.set_bucket_ceiling(name, parent, ceiling, note)` once per entry, top-down: `global`, then its children, then `build`'s leaves (each raise must fit its parent, which the constraint trigger checks). Lowering goes bottom-up: leaves first. The test BU-28 applies the `--plan-json` output this way and asserts that the bucket table equals it exactly (names, parents, ceilings). `set_bucket_ceiling` refuses: a ceiling below the bucket's current liability, a change of parent, making a bucket that already holds reservations into a parent, and children whose ceilings sum above their parent (trigger, checked on every change; to move money between siblings, lower one first). Reservations go to leaf buckets only.
+**Applying the plan.** The operator (owner role) runs `scripts/budget_plan.py --apply` (S5 4.4), which calls `ops.set_bucket_ceiling(name, parent, ceiling, note)` for each `--plan-json` entry. The test BU-28 applies the output this way and asserts that the bucket table equals it exactly (name, parent, ceiling). `set_bucket_ceiling` refuses a ceiling below the bucket's current liability and a change of parent. The tree rules stay for a later per-phase split (D-013 defers it): children's ceilings never sum above their parent (trigger), a bucket holding reservations cannot become a parent, and reservations go to leaf buckets only; with the root alone, `global` is the leaf.
 
-**Plan size (OD-8).** The applied plan is the 24-case baseline. Moving to 30 hidden cases is gated on the dev pilot: `budget_plan(sealed_cases=30)` raises on 2026-10-08 (30 cases do not complete at conservative usage), so the research owner re-runs the cost model with measured costs and the operator re-applies the new output; the liability check keeps any lowered ceiling above what is already committed. The hosted plan switch is in section 2.5.
+**Plan size (OD-8).** The ceiling does not depend on the case count: 30 or 34 hidden cases run under the same `global` ceiling, and any unit the guard cannot admit is recorded `budget_skipped` (8.5). If the cost model's output changes, the operator re-applies it; the liability check keeps any lowered ceiling at or above what is already committed. Per-phase sizing and per-test cost lines are deferred (D-013). The hosted plan switch is in section 2.5.
 
 ### 8.2 Prices and limits
 
-`ops.model_prices` holds liability rates per 1M tokens, effective 2026-10-08, equal to `cost_model.LIABILITY_PRICES`: `gemini-3.1-flash-lite` 0.25/1.50, `gemini-3.5-flash-lite` 0.30/2.50, `gemini-3.1-pro-preview` 2.00/12.00, `gemini-3.8-flash` 1.50/7.50 (undiscounted), and the two Live models at the `cost_model.py` `VOICE` rates x1.5 (text 1.125/6.75, audio 4.50/18.00) until the Vertex Live price is confirmed. `ops.call_limits` holds `cost_model.LIMITS`: subject and card 6000/1600, deep and final 7000/3000, referee 12000/4000, generate 12000/40000, validate 20000/4000. Both tables are immutable: a price or limit change is a new row or a new migration, checked against `cost_model.py` by S5's parity script.
+`ops.model_prices` holds liability rates per 1M tokens, effective 2026-10-08, equal to the runtime entries of `cost_model.LIABILITY_PRICES`: `gemini-3.1-flash-lite` 0.25/1.50, `gemini-3.5-flash-lite` 0.30/2.50, `gemini-3.8-flash` 1.50/7.50 (undiscounted), and the two Live models at the `cost_model.py` `VOICE` rates x1.5 (text 1.125/6.75, audio 4.50/18.00) until the Vertex Live price is confirmed. `ops.call_limits` holds the five runtime `cost_model.LIMITS` rows: subject and card 6000/1600, deep and final 7000/3000, referee 12000/4000. D-014: case families are authored offline, so `LIMITS`' `generate` and `validate` rows and the `gemini-3.1-pro-preview` price are not seeded and a reservation naming them is refused (AR007); plus two rows at S5 3.3's initial values, tuned in the dev pilot (X-09): `retranscribe` 15860/2000 (`VOICE_LIMITS["audio_seconds"]` x `VOICE["tok_per_s"]` + a 500-token prompt allowance) and `portrait` 2000/2000. Both tables are immutable: a price or limit change is a new row or a new migration, checked by S5's parity script.
 
-Call kinds (C-31): S5's call-type table holds the call-kind ceilings and S2 manifest values must be at or below them. S2's two referee call types are `purpose` labels on call kind `referee`: `reserve_model_call` refuses a `referee` call whose purpose is not `referee_subject` or `referee_assistant` (AR007); R3 uses the same two purposes on a training trial. The `retranscribe` and `portrait` rows are added to `ops.call_limits` in the same change that adds them to `cost_model.LIMITS`. No script produces their limits yet (retranscribe input = `VOICE_LIMITS["audio_seconds"]` x `VOICE["tok_per_s"]` + a prompt allowance, priced on audio input; a portrait is priced per image), so until then `reserve_model_call` refuses both call kinds (AR007), voice sessions stay `scored = false` and the `art` bucket cannot be spent (Q7).
+Call kinds (C-31, X-02): S5's call-type table holds the call-kind ceilings and S2 manifest values must be at or below them. S2's four referee calls are `purpose` labels on call kind `referee`: `reserve_model_call` refuses a `referee` call whose purpose is not `referee_subject`, `referee_assistant`, `r3_subject` or `r3_investigator` (AR007). A `retranscribe` or `portrait` call reserves only once its model has an `ops.model_prices` row (the day-1 price lookup appends it, S8 5.2); a `retranscribe` call also needs that row's `audio_in` rate, which its reservation uses for the input side. Until then both are refused (AR007), so voice sessions stay `scored = false` and no portrait is generated.
 
 ### 8.3 Model-call reservation lifecycle
 
 | Step | Function | Rule |
 | --- | --- | --- |
-| Reserve | `ops.reserve_model_call(key, bucket, model, call_kind, purpose, trial, actor, parent)` | Worst case = `ATTEMPTS` (4) x (input_limit x text_in + output_limit x text_out) / 1e6, rounded up to 6 dp, derived in the database (the formula of `cost_model.liab_reservation`). Kill switch off. Locks the leaf and every ancestor, root first; admits only if each subtree's liability plus the amount stays at or under its ceiling; then the actor's daily cap (OWNER DECISION PENDING, proposed $3.00; S4-D3). Refusals are returned, not raised. Idempotent on `key` |
+| Reserve | `ops.reserve_model_call(key, 'global', model, call_kind, purpose, trial, actor, parent)` | Worst case = `ATTEMPTS` (4) x (input_limit x input rate + output_limit x text_out) / 1e6, rounded up to 6 dp, derived in the database (the formula of `cost_model.liab_reservation`; the input rate is `text_in`, or `audio_in` for `retranscribe`). Kill switch off. Locks the bucket (and any ancestors, root first); admits only if liability plus the amount stays at or under the ceiling; then the actor's daily cap (OWNER DECISION PENDING, initial value $3.00; S4-D3). Refusals are returned, not raised. Idempotent on `key` |
 | Dispatch | `ops.mark_dispatched(reservation)` | Before the Vertex call; kill switch read again; a reservation that was never dispatched can be released |
 | Receipts | `ops.record_usage(reservation, attempt, model, tokens...)` | One row per attempt (at most 4) in `ops.model_calls`; cost computed from the price row; idempotent on (reservation, seq) |
 | Settle | `ops.settle_reservation(reservation, outcome)` | `committed` = sum of receipts; `usage_unknown` keeps the full reservation (direction 8.3: missing usage keeps the reservation); `released` only if never dispatched |
 
-`purpose` is a label from the agent port's fixed list (for example `coach.card`, `subject.answer`, `generate.family`, and `referee_subject` or `referee_assistant` for call kind `referee`), never a case or family code, because `ops.v_call_costs` shows it for calls with no trial; the link to a case is `trial_id`.
+`purpose` is a label from the agent port's fixed list (S2 section 2 and S5 3.3: for example `coach.card`, `subject.answer`, and the four referee purposes for call kind `referee`), never a case or family code, because `ops.v_call_costs` shows it for calls with no trial; the link to a case is `trial_id`. With one bucket, `purpose` and `trial_id` are how spend is grouped by activity.
 
-Liability in every cap check: open and `usage_unknown` reservations at the reserved amount, committed at the settled amount, released at 0 (TechnoMile `20260927000600_run_ledger_rpcs.sql` lines 806-833). Worked values from the reservation formula: a `card` on 3.5-flash-lite reserves 4 x (6000 x 0.30 + 1600 x 2.50) / 1e6 = $0.023200; a `generate` on 3.1-pro-preview 4 x (12000 x 2.00 + 40000 x 12.00) / 1e6 = $2.016000 (BU-02, BU-03).
+Liability in every cap check: open and `usage_unknown` reservations at the reserved amount, committed at the settled amount, released at 0 (TechnoMile `20260927000600_run_ledger_rpcs.sql` lines 806-833). Worked values from the reservation formula: a `card` on 3.5-flash-lite reserves 4 x (6000 x 0.30 + 1600 x 2.50) / 1e6 = $0.023200; a `referee` on 3.5-flash-lite 4 x (12000 x 0.30 + 4000 x 2.50) / 1e6 = $0.054400 (BU-02, BU-03).
 
 **Overrun.** If receipts exceed the reservation (a limit or price assumption is wrong), the receipt is still recorded, the reservation is flagged `overrun`, the kill switch turns on and a history row is written. Every new reservation then fails until the owner reviews and turns it off. This is a fail-safe, not an expected path (BU-16).
 
 ### 8.4 Voice whole-session reservation
 
-`ops.reserve_voice(key, bucket, kind, purpose, trial, actor)` (`arena_subject`) reserves `voice_session` = `cost_model.VOICE_RESERVATION` rounded up to 6 dp ($1.635720) or `voice_probe` = `PROBE_RESERVATION` ($0.132140), seeded in `ops.config`, before the Live session opens, after bucket admission, with three counts serialized by the bucket lock: open voice reservations at most `max_open_voice_sessions` (proposed 2), voice sessions in total at most `VOICE_SESSIONS` (8), probes at most `LIVE_PROBE[0]` (30). Usage reports (`record_usage` with audio tokens) return `shutoff = true` once session spend reaches two thirds of the reservation (`VOICE_SHUTOFF`, $1.090481 at the seeded fraction) or the kill switch is on; S5's safety loop closes the socket (4413). Coaching and retranscription calls during the session reserve as children (`parent`), bounded by the session's remaining room, not by the bucket; the session cannot settle while a child is open (AR031); a committed session settles at its receipts plus its children.
+`ops.reserve_voice(key, 'global', kind, purpose, trial, actor)` (`arena_subject`) reserves `voice_session` = `cost_model.VOICE_RESERVATION` rounded up to 6 dp ($1.635720) or `voice_probe` = `PROBE_RESERVATION` ($0.132140), seeded in `ops.config`, before the Live session opens, after bucket admission, with three counts serialized by the bucket lock: open voice reservations at most `max_open_voice_sessions` (initial value 2), voice sessions in total at most `VOICE_SESSIONS` (8), probes at most `LIVE_PROBE[0]` (30). Usage reports (`record_usage` with audio tokens) return `shutoff = true` once session spend reaches two thirds of the reservation (the script's rule; for a session that is `VOICE_SHUTOFF`, $1.090480, computed in the database, never seeded, X-17) or the kill switch is on; S5's safety loop closes the socket (4413). Coaching and retranscription calls during the session reserve as children (`parent`), bounded by the session's remaining room, not by the bucket; the session cannot settle while a child is open (AR031); a committed session settles at its receipts plus its children.
 
 ### 8.5 Unit admission (soft completeness)
 
-`ops.admit_unit(bucket, high_cost)` answers `admit` only if every bucket on the path has at least 1.5 x the unit's high cost free; it holds nothing. A skipped unit's planned trials get `budget_skipped`; a unit the per-call guard stops mid-way gets `budget_truncated` (direction 8.3).
+`ops.admit_unit('global', high_cost)` answers `admit` only if every bucket on the path (today `global` alone) has at least 1.5 x the unit's high cost free; it holds nothing. A skipped unit's planned trials get `budget_skipped`; a unit the per-call guard stops mid-way gets `budget_truncated` (direction 8.3).
 
 ### 8.6 Kill switch
 
@@ -566,7 +568,7 @@ All views are `security_barrier`, owned by the migration owner, and read through
 | `ledger.v_commitments` | Every commitment hash; payload and payload text for visible trials |
 | `ledger.v_revealed_nonces`, `v_manifests`, `v_corpus_seals` | All rows (exist only when published) |
 | `ledger.v_adjudications` | Visible trials (with `decided_by`; no evidence reference) |
-| `training.v_my_sessions`, `v_my_scores` (after the trial ends), `v_my_voice_fragments` | The actor's rows |
+| `training.v_my_sessions`, `v_my_scores` (after the trial ends), `v_my_voice_fragments`, `v_my_acknowledgements` | The actor's rows |
 | `ops.v_budget_status`, `v_call_costs` (visible trials), `v_latency` (visible trials; S3 6.4 field names), `v_exportable_spans` | Operator page, exporter |
 
 ### 9.2 RLS
@@ -577,16 +579,16 @@ RLS is enabled on every table in the six schemas (CM-04) with no policy for `ano
 
 | Role | USAGE | Tables | Views | Functions |
 | --- | --- | --- | --- | --- |
-| `arena_public` | arena, ledger, training, ops | none | all 24 (SELECT) | 27 |
+| `arena_public` | arena, ledger, training, ops | none | all 25 (SELECT) | 28 |
 | `arena_subject` | arena, subject, training, ops | none | none | 18 |
-| `arena_referee` | all six | SELECT on 54 of 55 (all but `training.voice_resumes`); INSERT on 8 | SELECT on all 24 | 34 |
+| `arena_referee` | all six | SELECT on 55 of 56 (all but `training.voice_resumes`); INSERT on 8 | SELECT on all 25 | 34 |
 | `anon`, `authenticated`, `service_role` | none | none | none | none |
 
 ---
 
 ## 10. Capability matrix as a test fixture (KPI-5, EVL-10)
 
-Copy this block verbatim to `supabase/tests/fixtures/capability_matrix.csv`. `001_capability_matrix.sql` (CM-01, CM-02) expands the pattern rows (`table+view`, `<schema>.*`), applies `deny` rows last, and asserts that the actual privilege set of the six roles over the six schemas equals the result exactly, in both directions. Any new grant, function or view therefore fails CI until the fixture is updated in the same change, and that diff is reviewed like code. Version 2 rows were regenerated from the v2 drafts applied to a fresh local Postgres 16 database (TESTS.md section 0.1): the live privilege set (203 role, object, privilege triples) was read with `has_function_privilege`, `has_schema_privilege` and `has_table_privilege`, collapsed into the rows below, and the rows were expanded again and checked equal to the live set. Against v1 the diff is exactly `ops.ack_card` replacing `ops.record_client_latency` (C-28), the new `arena.record_debrief_ready` (C-17) and the six-argument `ledger.adjudicate_validity` (C-33).
+Copy this block verbatim to `supabase/tests/fixtures/capability_matrix.csv`. `001_capability_matrix.sql` (CM-01, CM-02) expands the pattern rows (`table+view`, `<schema>.*`), applies `deny` rows last, and asserts that the actual privilege set of the six roles over the six schemas equals the result exactly, in both directions. Any new grant, function or view therefore fails CI until the fixture is updated in the same change, and that diff is reviewed like code. Version 2.1 rows were regenerated from the v2.1 drafts applied to a fresh local Postgres 16 database (TESTS.md section 0.1): the live privilege set (207 role, object, privilege triples) was read with `has_function_privilege`, `has_schema_privilege` and `has_table_privilege`, collapsed into the rows below, and the rows were expanded again and checked equal to the live set. Against v2 the diff is exactly `training.acknowledge(text)` and `training.v_my_acknowledgements` for `arena_public` (X-15); `arena_referee` reads the new `training.acknowledgements` table and view through its `training.*` pattern row.
 
 ```csv
 role,object_type,object,privilege,expect
@@ -613,6 +615,7 @@ arena_public,function,"ops.record_usage(uuid,integer,text,bigint,bigint,bigint,b
 arena_public,function,"ops.reserve_model_call(text,text,text,text,text,uuid,uuid,uuid)",EXECUTE,allow
 arena_public,function,"ops.set_export_state(jsonb,text)",EXECUTE,allow
 arena_public,function,"ops.settle_reservation(uuid,text)",EXECUTE,allow
+arena_public,function,training.acknowledge(text),EXECUTE,allow
 arena_public,function,"training.issue_access_ticket(text,uuid)",EXECUTE,allow
 arena_public,function,"training.redeem_access_ticket(text,text)",EXECUTE,allow
 arena_public,function,training.redeem_voice_resume(text),EXECUTE,allow
@@ -642,6 +645,7 @@ arena_public,view,ops.v_budget_status,SELECT,allow
 arena_public,view,ops.v_call_costs,SELECT,allow
 arena_public,view,ops.v_exportable_spans,SELECT,allow
 arena_public,view,ops.v_latency,SELECT,allow
+arena_public,view,training.v_my_acknowledgements,SELECT,allow
 arena_public,view,training.v_my_scores,SELECT,allow
 arena_public,view,training.v_my_sessions,SELECT,allow
 arena_public,view,training.v_my_voice_fragments,SELECT,allow
@@ -758,7 +762,9 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | `ops.admit_unit`, `ops.set_kill_switch`, `ops.set_bucket_ceiling`, `ops.latency_samples`, `ops.trace_mirror`, `ops.trace_summaries` | Same | Kill switch and buckets are owner-only; buckets start at $0 and the operator applies `budget_plan()` (D-012) |
 | `POST /api/telemetry/kpi4` (client difference) | `ops.ack_card(trial, turn_no, client_valid)` | The acknowledgement time is stamped by the database; no client clock arithmetic (C-28) |
 | Call type `referee` (one type); S2 `referee_subject`, `referee_assistant` | Call kind `referee` with `purpose` `referee_subject` or `referee_assistant` | Enforced in `reserve_model_call` (C-31) |
-| Call types `retranscribe`, `portrait` | No `ops.call_limits` row until `cost_model.LIMITS` has one | Refused (AR007) until then (C-31, Q7) |
+| Call types `retranscribe`, `portrait` | `ops.call_limits` rows at S5 3.3's initial values (X-09) | Reserve once the model has a price row (and, for `retranscribe`, an `audio_in` rate); refused (AR007) before |
+| `POST /api/me/ack-ex4`, `GET /api/me` `ex4_acknowledged` | `training.acknowledge('ex4')`, `training.v_my_acknowledgements` | X-15 |
+| S5 bucket selection | None: every reservation names `global` (D-013) | `tournaments.budget_bucket` is `global` |
 | S6 `debrief.ready` | Persisted `debrief_ready`, written by `arena.record_debrief_ready` (`arena_referee`) | Other S6 wire names are mapped or synthesized by `events/projections.py` (C-17) |
 | S3 `reason_code`, `decided_by` | `ledger.validity_adjudications.reason`, `decided_by` | C-33 |
 | `ops.sse_tickets`, `ops.voice_tickets` | `training.access_tickets` (kind `sse` or `voice`) | |
@@ -767,7 +773,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | `training.voice_sessions.metered_usd` | `ops.session_spend(reservation)`, returned by `record_usage` as `spend_usd` | |
 | `relay_pending` row at ticket mint | Ticket at mint; the session row is created at claim (`claim_voice_ticket`, `reserve_voice`, `open_voice_session` in one transaction) | |
 | `record_voice_question` (S5 Q8) | `training.record_voice_question` | Granted to `arena_subject` |
-| Per-user quotas (2 voice sessions/day, 5 text sessions/day) | `ops.config.voice_sessions_per_user_day`, `text_sessions_per_user_day` | OWNER DECISION PENDING (S5 D-P7) |
+| Per-user quotas (2 voice sessions/day, 5 text sessions/day) | `ops.config.voice_sessions_per_user_day`, `text_sessions_per_user_day` | Initial values; OWNER DECISION PENDING (S5 D-P7, S4-D3) |
 
 ---
 
@@ -782,7 +788,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | WI-S4-05 | Owner setup (owner-gated): LOGIN and passwords for the three roles; Data API exposure off; three DSNs in the gitignored `.env.local`, one per local process (hosted variant: three DSN secrets, 2.5) | A connection as each role through the shared pooler (transaction mode) runs `select 1`; a request to the Data API for any arena schema fails | S |
 | WI-S4-06 | Isolation smoke on the owner's project (direction 13.1 item 5) | Files 001 and 003 green against the hosted project from a throwaway branch or the dev project, never production data | S |
 | WI-S4-07 | Keep-alive (only if the Free plan is chosen) | Last ping within 8 h on the operator page for 7 consecutive days before Nov 2 | S |
-| WI-S4-08 | Parity seeds and plan (D-012): S5 `check_cost_parity.py` reads `ops.config`, `ops.model_prices`, `ops.call_limits` from a migrated database; BU-27 and BU-28 run the $0 seed and the `--plan-json` application | A one-cent change in a seed fails `make check`; a ceiling that differs from `cost_model.py --plan-json` after application fails BU-28 | S |
+| WI-S4-08 | Parity seeds and plan (D-012, D-013): S5 `check_cost_parity.py` reads `ops.config`, `ops.model_prices`, `ops.call_limits` from a migrated database (the five runtime `LIMITS` rows and the runtime `LIABILITY_PRICES` entries against `cost_model.py`, `retranscribe` and `portrait` against S5 3.3); BU-27 and BU-28 run the $0 seed of `global` and the `--plan-json` application | A one-cent change in a seed fails `make check`; a ceiling that differs from `cost_model.py --plan-json` after application fails BU-28 | S |
 | WI-S4-09 | Seed dev data: one development family through `ingest_case_family` for the Oct 18 slice | Slice runs a full trial through every section 5.3 step with real functions | S |
 | WI-S4-10 | Teardown plan for 2026-11-09 (direction 8.3) | Export of ledger, manifests, scores and leaderboards to the repo; roles set NOLOGIN; documented | S |
 
@@ -810,9 +816,9 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | --- | --- | --- | --- |
 | S4-D1 | Supabase plan: Pro, or Free with a keep-alive (direction 13.2 item 3) | Free with keep-alive until told | `ops.keepalive` is unused on Pro; nothing else depends on the plan. If hosted Phoenix is chosen (S5 D-P3), Pro is recommended for the 500 MB limit |
 | S4-D2 | Keep-alive runner if Free: a GitHub Actions cron holding an `arena_public` DSN (local default), or Cloud Scheduler plus the job image (hosted variant, 2.5) | GitHub Actions cron; its repository secret is an owner-authorized write | Both call the same function |
-| S4-D3 | Per-user and concurrency values: `per_user_daily_usd` $3.00, `text_sessions_per_user_day` 5, `voice_sessions_per_user_day` 2, `max_open_voice_sessions` 2 (rate-limit class: global owner-approval gate). These are proposals, not cost-model outputs | Proposed values seeded for local development; confirmed by the owner before any hosted deploy | Each is a config column; null disables a check |
+| S4-D3 | Per-user and concurrency values: `per_user_daily_usd` $3.00, `text_sessions_per_user_day` 5, `voice_sessions_per_user_day` 2, `max_open_voice_sessions` 2 (rate-limit class: global owner-approval gate). These are initial values, tuned in the dev pilot, not cost-model outputs. As seeded they conflict: a user's second voice session in a day needs 2 x `VOICE_RESERVATION` = $3.27 of reservations, above $3.00, so it is refused with `per_user_cap` (X-17). The owner raises the cap, lowers the voice quota, or accepts it | Initial values seeded for local development; confirmed by the owner before any hosted deploy | Each is a config column; null disables a check |
 | S4-D4 | LOGIN and passwords for the three roles; DSNs in `.env.local` (secret writes) | Not done until authorized | Migrations create the roles NOLOGIN |
-| S4-D5 | Plan size (OD-8): 24 hidden cases baseline, 30 if the dev pilot's measured costs track the expected column | 24 (`cost_model.PLAN`) | The operator re-applies whatever `--plan-json` prints; `set_bucket_ceiling` refuses any ceiling below current liability |
+| S4-D5 | Plan size (OD-8): 30 hidden cases baseline, 34 if the dev pilot's measured costs track the expected column | 30 (`cost_model.PLAN`) | One `global` ceiling serves either size (D-013); units the guard cannot admit are `budget_skipped` |
 
 ---
 
@@ -826,10 +832,10 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | Q4 | Direction 4.5 order (question, release, answer) means a subject work item created with the question would go stale on release. | The `subject_answer` item is opened after the release step, so the subject answers in light of the released evidence (RE-16). |
 | Q5 | Both investigator routes and the harness use `arena_public`; the database cannot tell them apart by credential. | `arena._check_caller` keyed on `arena.actor_id` (section 5.5). Residual: a compromised `arena-api` could omit the actor; that is within the direction's accepted model for this credential. |
 | Q6 | `ops.config.per_user_daily_usd` and the voice quotas are rate-limit-class settings that the global gate requires the owner to approve before use. | Seeded as proposals; S4-D3. |
-| Q7 | Retranscription (direction 9) and portraits have no call type in `cost_model.py` `LIMITS`, so `reserve_model_call` cannot reserve them yet; S5 Q7 prices retranscription on Gemini audio input, and a portrait is priced per image. | Not implemented (C-31 resolution needs figures no script produces): add `retranscribe` and `portrait` rows to `LIMITS` and to `ops.call_limits` in the same change, with whatever price shape the research owner chooses (audio input limit; per-image price). Until then both call kinds are refused (AR007), voice sessions stay `scored = false` and the `art` bucket cannot be spent. |
+| Q7 | Retranscription (direction 9) and portraits have no call type in `cost_model.py` `LIMITS`. | Resolved in v2.1 (X-09): `ops.call_limits` carries both rows at S5 3.3's initial values, tuned in the dev pilot; no cost line is added (D-013). A call reserves only once its model has a price row from the day-1 lookup, and `retranscribe` reserves its input at the row's `audio_in` rate, so an unknown audio price refuses the call instead of under-reserving it. |
 | Q8 | Live model IDs and their Vertex prices are unconfirmed (direction 5, 9; PROBE P4). | Seeds use the direction's IDs and VOICE x1.5; correct by a new price row (prices are append-only by date) after the day-1 probe. |
 | Q9 | Supabase Data API disablement is a dashboard setting not visible in migrations. | WI-S4-01 adds a CI check on `config.toml` and WI-S4-06 a live check that the Data API cannot reach any arena schema. |
-| Q10 | `cost_model.py --plan-json` prints the module's lineup report before the JSON object (the first `__main__` block runs too), so its stdout is not pure JSON. | Until the research owner guards that block, BU-28 parses the last top-level JSON object on stdout (the text from the last line that starts with `{`). |
+| Q10 | `cost_model.py --plan-json` printed the module's lineup report before the JSON object, so its stdout was not pure JSON. | Resolved: the research owner guarded the report block (`"--plan-json" not in sys.argv`); stdout is one JSON object and BU-28 parses it directly. |
 
 ---
 
@@ -847,8 +853,8 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | TechnoMile `supabase/tests/001_security_rls.sql` lines 63-126; `011_holdout_scoring.sql` lines 1-140; `007_checkpoint_fence_concurrency.sql` lines 10-40; `harness/*` | Test patterns |
 | `docs/research/external/X10-judge-hosting-phoenix-supabase-cloudrun.md` Q2 | Free plan pause, exposure rules, Pro plan |
 | Supabase docs via Context7 `/websites/supabase_guides`, fetched 2026-10-08 | Custom-role pooler usernames, transaction mode limits, default-privilege revokes, project pausing |
-| `docs/research/synthesis/cost_model.py` (run 2026-10-08): `budget_plan()`, `--plan-json`, `demo_ceiling()`, `training_bucket()`, `PLAN`, `LIMITS`, `LIABILITY_PRICES`, `VOICE_RESERVATION`, `PROBE_RESERVATION`, `VOICE_SESSIONS`, `LIVE_PROBE`, `ATTEMPTS`, `liab_reservation` | Every dollar figure, ceiling source and limit in sections 2.5 and 8 |
-| `docs/handoff/DECISIONS.md` D-011, D-012; `docs/spec/README.md` baseline facts; `docs/spec/S8-build-plan.md` sections 2 and 9 | Local-first run mode, $0 seed and plan application, owner decisions, C-01 to C-48 |
+| `docs/research/synthesis/cost_model.py` (run 2026-10-08): `budget_plan()`, `--plan-json`, `PLAN`, `LIMITS`, `LIABILITY_PRICES`, `VOICE_RESERVATION`, `VOICE_SHUTOFF`, `PROBE_RESERVATION`, `VOICE_LIMITS`, `VOICE`, `VOICE_SESSIONS`, `LIVE_PROBE`, `ATTEMPTS`, `liab_reservation` | Every dollar figure, ceiling source and limit in sections 2.5 and 8 |
+| `docs/handoff/DECISIONS.md` D-011, D-012, D-013; `docs/spec/README.md` baseline facts; `docs/spec/S8-build-plan.md` sections 2 and 9; `docs/spec/review-v2-crosscheck.md` | Local-first run mode, $0 seed and plan application, one global ceiling, owner decisions, C-01 to C-48, X-01 to X-17 |
 | `docs/spec/S2-agents-and-prompts.md` 2, 3.1, 4.1-4.2, 4.7; `S3-scoring-rubrics-metrics.md` 1.3, 4.2-4.3, 6.4, 7.1-7.3; `S1-scenario-engine.md` 4.4 and `schemas/public-packet.schema.json` (`caseId`, `artifactKind`) | Manifest.v1, Finding, referee purposes, adjudication fields, KPI-4 fields, calibration storage, case-id and document-kind enums |
 | `docs/spec/S5-backend-and-lift.md` sections 3-8 and 10 (parallel part) | Interface names mapped in section 12; dev identity middleware |
 
@@ -880,3 +886,19 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | C-43 | The `generation` leaf covers the 4 extra KPI-1 development families. |
 | C-44 | `training.sessions.phase`: S3's `free` maps to `practice`. |
 | C-47 | `arena.candidates.kind` widened to assistant, subject, referee, negative_control; manifest.v1 keys checked by the constraint and by `register_candidate` (AR007); slots and sessions still take only assistants and subjects. |
+
+## 19. Changes in v2.1
+
+| ID | What changed in S4 and `sql/` |
+| --- | --- |
+| D-013 | `0006` seeds one bucket, `global`, at $0 (the nine other seed rows removed); every reservation, voice reservation and unit admission names `global`; `tournaments.budget_bucket` is `global`; `set_bucket_ceiling` and the tree rules stay for a later per-phase split. Sections 0, 1, 4, 8, 12, 15 and TESTS BU-01, BU-04, BU-21 to BU-29, CO-05, CO-07 restated. |
+| X-02 | `reserve_model_call` accepts S2's four referee purposes (`referee_subject`, `referee_assistant`, `r3_subject`, `r3_investigator`) on call kind `referee`; 8.2, 8.3, TESTS BU-30. |
+| X-03, X-04 | Deferred (D-013): no per-leaf sizing and no evaluation cost lines; the single ceiling bounds all spend. |
+| X-07 | `ledger.build_manifest` returns S3 4.4's canonical text (labels `counted`, `against_subject`, `excluded`; reasons including `block_invalid_infra` with the default block infra rule); `inclusion_manifests.manifest` is text and its hash is sha256 of the text; corrections compare trial lines. An independent Python rebuild matched the SQL bytes and hashes (TESTS 0.1). Sections 4.3, 6.2, 7.4, 7.5. |
+| X-08 | `case_set_members` families are excluded from the C-37 draw; `start_session` refuses practice on them (4.4, 6.3, TESTS TT-03). |
+| X-09 | `ops.call_limits` adds `retranscribe` (15860, 2000) and `portrait` (2000, 2000) at S5 3.3's initial values; `retranscribe` reserves at the model's `audio_in` rate and is refused without one; no cost line added (8.2, Q7, TESTS BU-31). |
+| X-11 | No change needed: `ops.ack_card(trial, turn_no, client_valid)`, populations `practice_client`, `harness`, `assessment`, and `coach_unavailable` outcomes `timeout` and `repair_failed` are the one set, which S3, S5 and S6 now use. |
+| X-15 | `training.acknowledgements`, `training.acknowledge(kind)` and `training.v_my_acknowledgements` store the EX-4 acknowledgement (4.4, 6.3, 9.1, 12; TESTS TT-14). The privilege allowlist (section 10) was regenerated from the live database: 207 triples, two new `arena_public` rows. |
+| X-17 | The voice shutoff is computed as two thirds of the reservation (the script's rule), giving `VOICE_SHUTOFF` $1.090480; the `voice_shutoff_fraction` column is removed. Trace-mirror size is an initial estimate to be measured (2.4). `per_user_daily_usd` and the quotas are labeled initial values and their voice conflict is stated (S4-D3). |
+| Q10 | Closed: `--plan-json` stdout is pure JSON. |
+| D-014 | No runtime generator: `0006` no longer seeds the `generate` and `validate` call limits or the `gemini-3.1-pro-preview` price, so such a reservation is refused (AR007); worked values and TESTS BU-01, BU-03, BU-04, CO-05 use a `referee` reservation; AR006 is an authoring defect; plan size 30 or 34 (8.1, 8.2, 13, S4-D5). Re-applied on a fresh PostgreSQL 16 cluster, smokes pass; grants unchanged, so the section 10 allowlist still equals the live set. |

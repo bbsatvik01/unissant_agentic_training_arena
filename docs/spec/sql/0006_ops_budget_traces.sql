@@ -1,6 +1,7 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
--- Spend guard (D-009): a bucket tree under one global ceiling, liability prices, per-call-type
+-- 0006_ops_budget_traces.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
+-- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
 -- unit admission, the single cost ledger (ops.model_calls), kill switch with history, KPI-4 latency
 -- samples, the trace mirror and its summaries, keep-alive.
@@ -15,16 +16,24 @@
 -- 20260927001000_trace_mirror.sql lines 57-115 (span rows, trace summaries with derived
 -- telemetry_incomplete).
 --
--- Bucket ceilings (D-012): this migration seeds the bucket tree with $0 ceilings, so nothing can
+-- Bucket ceilings (D-012, D-013): this migration seeds one bucket, `global`, at $0, so nothing can
 -- reserve until the operator applies cost_model.budget_plan() (printed by
--- `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`) through ops.set_bucket_ceiling.
--- No ceiling is typed here; a test asserts the applied ceilings equal the --plan-json output.
+-- `python3 -I -B docs/research/synthesis/cost_model.py --plan-json`, which is {"global": ...})
+-- through ops.set_bucket_ceiling. No ceiling is typed here; a test asserts the applied ceiling equals
+-- the --plan-json output. Every reservation names bucket 'global'. Per-phase buckets are deferred
+-- (D-013); the tree functions below stay so they can be added later without a schema change.
 -- Other seeds come from docs/research/synthesis/cost_model.py (run 2026-10-08):
---   voice whole-session reservation VOICE_RESERVATION (1.635720 rounded up to 6 dp, shutoff 2/3);
---   probe PROBE_RESERVATION (0.132140); VOICE_SESSIONS 8, LIVE_PROBE[0] 30, LIMITS per call type,
---   ATTEMPTS 4, LIABILITY_PRICES (3.8 Flash undiscounted; Live = VOICE rates x 1.5)
--- S5's tools/check_cost_parity.py asserts these seeds equal cost_model.py. Change them with a new
--- migration after re-running cost_model.py, never by hand.
+--   voice whole-session reservation VOICE_RESERVATION (1.635720 rounded up to 6 dp; the shutoff is
+--   two thirds of the reservation, VOICE_SHUTOFF = 1.090480); probe PROBE_RESERVATION (0.132140);
+--   VOICE_SESSIONS 8, LIVE_PROBE[0] 30, LIMITS per runtime call type, ATTEMPTS 4, LIABILITY_PRICES (3.8 Flash
+--   undiscounted; Live = VOICE rates x 1.5).
+-- D-014: case families are authored offline (Claude agents, Codex review), so no runtime call generates or
+-- validates a case: the 'generate' and 'validate' LIMITS rows and the gemini-3.1-pro-preview price are not
+-- seeded, and a reservation for them is refused (AR007, unknown call kind or model).
+-- Two call_limits rows are not in cost_model.LIMITS: 'retranscribe' and 'portrait' carry initial
+-- values, tuned in the dev pilot (S5 3.3); their prices arrive as new ops.model_prices rows.
+-- S5's tools/check_cost_parity.py asserts these seeds equal cost_model.py (and S5 3.3 for the two
+-- initial-value rows). Change them with a new migration, never by hand.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -37,21 +46,21 @@ create table ops.config (
   attempts_per_call             smallint not null check (attempts_per_call between 1 and 10),
   voice_session_reservation_usd ops.usd not null,
   voice_probe_reservation_usd   ops.usd not null,
-  voice_shutoff_fraction        numeric(7, 6) not null check (voice_shutoff_fraction > 0 and voice_shutoff_fraction < 1),
   voice_sessions_total          smallint not null check (voice_sessions_total >= 0),
   voice_probes_total            smallint not null check (voice_probes_total >= 0),
   max_open_voice_sessions       smallint not null check (max_open_voice_sessions >= 1),
-  -- OWNER DECISION PENDING (rate-limit class; global gate requires approval before use). Proposed
-  -- values below; null disables the check.
+  -- OWNER DECISION PENDING (S4-D3; rate-limit class; global gate requires approval before use).
+  -- Initial values below, tuned in the dev pilot; null disables a check. With these values a second
+  -- voice session in one day is refused (2 x VOICE_RESERVATION = 3.27 > 3.00): the owner sets either.
   per_user_daily_usd            ops.usd,
   text_sessions_per_user_day    smallint check (text_sessions_per_user_day >= 1),
   voice_sessions_per_user_day   smallint check (voice_sessions_per_user_day >= 1),
   updated_at                    timestamptz not null default now()
 );
 insert into ops.config (attempts_per_call, voice_session_reservation_usd, voice_probe_reservation_usd,
-                        voice_shutoff_fraction, voice_sessions_total, voice_probes_total, max_open_voice_sessions,
+                        voice_sessions_total, voice_probes_total, max_open_voice_sessions,
                         per_user_daily_usd, text_sessions_per_user_day, voice_sessions_per_user_day)
-  values (4, 1.635720, 0.132140, 0.666667, 8, 30, 2, 3.00, 5, 2);
+  values (4, 1.635720, 0.132140, 8, 30, 2, 3.00, 5, 2);
 
 create table ops.kill_switch_events (
   id         bigint generated always as identity primary key,
@@ -64,12 +73,12 @@ create trigger kill_switch_events_append_only before update or delete on ops.kil
   for each row execute function arena.tg_forbid_mutation();
 
 -- -----------------------------------------------------------------------------
--- Bucket tree (D-012). Reservations go to leaf buckets only. A reservation is admitted when it fits
--- the leaf and every ancestor (subtree liability + amount <= ceiling). Children's ceilings never sum
--- above their parent (checked on every change; to move money between children, lower one first).
--- The tree is the shape of cost_model.budget_plan(): global with children demo, art, training and
--- build; build with leaves experiments, generation, dev_pilot, replay and interactive. Every ceiling
--- starts at $0 (fail-closed); the operator raises them top-down with ops.set_bucket_ceiling.
+-- Buckets (D-012, D-013). The seed is the root alone: `global`, the shape of cost_model.budget_plan().
+-- Reservations go to leaf buckets only; with the root alone, `global` is the leaf every reservation
+-- names. A reservation is admitted when it fits the leaf and every ancestor (subtree liability +
+-- amount <= ceiling). If per-phase limits are wanted later, ops.set_bucket_ceiling adds children
+-- (children's ceilings never sum above their parent; a bucket holding reservations cannot become a
+-- parent). The ceiling starts at $0 (fail-closed); the operator applies the plan.
 -- -----------------------------------------------------------------------------
 create table ops.budget_buckets (
   name        text primary key check (name ~ '^[a-z][a-z0-9_]{0,31}$'),
@@ -92,16 +101,7 @@ create constraint trigger budget_buckets_sum after insert or update on ops.budge
 create trigger budget_buckets_no_delete before delete on ops.budget_buckets
   for each row execute function arena.tg_forbid_mutation();
 insert into ops.budget_buckets (name, parent, ceiling_usd, note) values
-  ('global', null, 0, 'budget_plan()["global"]: CAP minus the non-model allowance of the hosting mode'),
-  ('demo', 'global', 0, 'budget_plan()["demo"]: demo text sessions with R3, voice sessions, one in-flight voice reservation'),
-  ('art', 'global', 0, 'budget_plan()["art"]: character-art sub-budget, PORTRAITS count x high price'),
-  ('training', 'global', 0, 'budget_plan()["training"]: KPI-1 sessions and calibration transcripts with R3'),
-  ('build', 'global', 0, 'budget_plan()["build"]: global minus demo, art and training'),
-  ('experiments', 'build', 0, 'budget_plan()["experiments"]: day-1 experiments and metered Live probes'),
-  ('generation', 'build', 0, 'budget_plan()["generation"]: dev, KPI-1 and hidden family generation and validation'),
-  ('dev_pilot', 'build', 0, 'budget_plan()["dev_pilot"]: dev pilot blocks'),
-  ('replay', 'build', 0, 'budget_plan()["replay"]: replay corpus and replay scoring'),
-  ('interactive', 'build', 0, 'budget_plan()["interactive"]: interactive blocks (remainder of build)');
+  ('global', null, 0, 'budget_plan()["global"]: CAP minus the non-model allowance of the hosting mode');
 
 alter table arena.tournaments
   add constraint tournaments_bucket_fk foreign key (budget_bucket) references ops.budget_buckets(name) on delete restrict;
@@ -122,18 +122,17 @@ create trigger model_prices_immutable before update or delete on ops.model_price
 insert into ops.model_prices (model, effective_from, text_in, text_out, audio_in, audio_out, source) values
   ('gemini-3.1-flash-lite', '2026-10-08', 0.25, 1.50, null, null, 'cost_model.py LIABILITY_PRICES'),
   ('gemini-3.5-flash-lite', '2026-10-08', 0.30, 2.50, null, null, 'cost_model.py LIABILITY_PRICES'),
-  ('gemini-3.1-pro-preview', '2026-10-08', 2.00, 12.00, null, null, 'cost_model.py LIABILITY_PRICES'),
   ('gemini-3.8-flash', '2026-10-08', 1.50, 7.50, null, null, 'cost_model.py LIABILITY_PRICES (undiscounted)'),
   ('gemini-3.8-live', '2026-10-08', 1.125, 6.75, 4.50, 18.00, 'cost_model.py VOICE x 1.5 (Vertex price unconfirmed)'),
   ('gemini-live-2.5-flash-native-audio', '2026-10-08', 1.125, 6.75, 4.50, 18.00, 'cost_model.py VOICE x 1.5 (unconfirmed)');
 
 -- Request limits per call type: the agent port truncates input to input_limit and sets
--- max_output_tokens = output_limit (bounds thinking plus visible output). Rows equal
--- cost_model.LIMITS exactly. C-31 adds 'retranscribe' and 'portrait' rows in the same change that
--- adds them to cost_model.LIMITS (no script produces their limits yet: retranscribe input =
--- VOICE_LIMITS["audio_seconds"] x VOICE["tok_per_s"] + prompt allowance, priced on audio input;
--- portrait is priced per image). Until then reserve_model_call refuses both call kinds (AR007),
--- voice sessions stay scored = false and no portrait can reserve.
+-- max_output_tokens = output_limit (bounds thinking plus visible output). The first five rows equal
+-- cost_model.LIMITS exactly (its 'generate' and 'validate' rows are not runtime calls, D-014).
+-- 'retranscribe' and 'portrait' (C-31, X-09) are initial values, tuned in the dev pilot (S5 3.3): retranscribe input = VOICE_LIMITS["audio_seconds"] x VOICE["tok_per_s"]
+-- (480 x 32) plus a 500-token prompt allowance, output 2000; portrait input 2000 (prompt), output
+-- 2000 (one image's output tokens). Neither call can reserve until its model has an ops.model_prices
+-- row (the day-1 price lookup adds it); a retranscribe call also needs that row's audio_in rate.
 create table ops.call_limits (
   call_kind    text primary key check (call_kind ~ '^[a-z][a-z0-9_]{0,31}$'),
   input_limit  integer not null check (input_limit > 0),
@@ -143,7 +142,7 @@ create trigger call_limits_immutable before update or delete on ops.call_limits
   for each row execute function arena.tg_forbid_mutation();
 insert into ops.call_limits (call_kind, input_limit, output_limit) values
   ('subject', 6000, 1600), ('card', 6000, 1600), ('deep', 7000, 3000), ('final', 7000, 3000),
-  ('referee', 12000, 4000), ('generate', 12000, 40000), ('validate', 20000, 4000);
+  ('referee', 12000, 4000), ('retranscribe', 15860, 2000), ('portrait', 2000, 2000);
 
 -- -----------------------------------------------------------------------------
 -- Reservations
@@ -318,7 +317,8 @@ end $$;
 
 -- -----------------------------------------------------------------------------
 -- reserve_model_call (all runtime roles; S5 "reserve_spend"). The worst case is derived here:
--- attempts x (input_limit x text_in + output_limit x text_out) / 1e6, rounded up to 6 dp.
+-- attempts x (input_limit x input rate + output_limit x text_out) / 1e6, rounded up to 6 dp. The input
+-- rate is text_in, except audio_in for a retranscribe call (refused while the model has no audio rate).
 -- A refusal is returned (not raised). Idempotent per key; key reuse with other inputs is refused.
 -- -----------------------------------------------------------------------------
 create or replace function ops.reserve_model_call(p_idempotency_key text, p_bucket text, p_model text, p_call_kind text,
@@ -350,12 +350,18 @@ begin
   if v_price.model is null or v_lim.call_kind is null then
     raise exception using errcode = 'AR007', message = 'unknown model price or call kind: the call is refused';
   end if;
-  -- C-31: S2's two referee call types are purpose labels on call kind referee (R3 uses the same two).
-  if p_call_kind = 'referee' and p_purpose not in ('referee_subject', 'referee_assistant') then
-    raise exception using errcode = 'AR007', message = 'a referee call has purpose referee_subject or referee_assistant';
+  -- C-31, X-02: the four referee calls are purpose labels on call kind referee (S2 section 2).
+  if p_call_kind = 'referee'
+     and p_purpose not in ('referee_subject', 'referee_assistant', 'r3_subject', 'r3_investigator') then
+    raise exception using errcode = 'AR007',
+      message = 'a referee call has purpose referee_subject, referee_assistant, r3_subject or r3_investigator';
+  end if;
+  if p_call_kind = 'retranscribe' and v_price.audio_in is null then
+    raise exception using errcode = 'AR007', message = 'no audio-input price for this model: retranscription is refused';
   end if;
   v_worst := (ceil((select attempts_per_call from ops.config where id)
-                   * (v_lim.input_limit * v_price.text_in + v_lim.output_limit * v_price.text_out)) / 1000000)::numeric(14, 6);
+                   * (v_lim.input_limit * case when p_call_kind = 'retranscribe' then v_price.audio_in else v_price.text_in end
+                      + v_lim.output_limit * v_price.text_out)) / 1000000)::numeric(14, 6);
 
   if p_parent is not null then
     select * into v_parent from ops.budget_reservations where id = p_parent for update;
@@ -411,8 +417,8 @@ end $$;
 -- usage report (voice). Cost computed from the price row. Receipts beyond the reservation are still
 -- recorded (the money is spent), the reservation is flagged overrun and the kill switch engages:
 -- an overrun means a limit or price assumption is wrong, so all spending stops until the owner looks.
--- For voice reservations the result carries shutoff = spend >= reservation x shutoff fraction, or
--- the kill switch is on.
+-- For voice reservations the result carries shutoff = spend >= two thirds of the reservation
+-- (cost_model.VOICE_SHUTOFF = VOICE_RESERVATION * 2 / 3), or the kill switch is on.
 create or replace function ops.record_usage(p_reservation uuid, p_seq integer, p_model text, p_input_tokens bigint,
                                             p_output_tokens bigint, p_thinking_tokens bigint, p_audio_input_tokens bigint,
                                             p_audio_output_tokens bigint, p_status text, p_latency_ms integer,
@@ -470,7 +476,7 @@ begin
   end if;
   return jsonb_build_object('outcome', 'recorded', 'cost_usd', v_cost, 'spend_usd', v_spend, 'reserved_usd', v.reserved_usd,
                             'shutoff', v.kind <> 'model_call'
-                                       and (v_spend >= v.reserved_usd * v_cfg.voice_shutoff_fraction or v_cfg.kill_switch));
+                                       and (v_spend >= v.reserved_usd * 2 / 3 or v_cfg.kill_switch));
 end $$;
 
 -- settle_reservation (S5 "settle_spend", "settle_voice_session"): committed = receipts (+ children
@@ -589,7 +595,7 @@ begin
   insert into ops.budget_reservations (idempotency_key, bucket, kind, purpose, trial_id, actor_user_id, reserved_usd)
     values (p_idempotency_key, p_bucket, p_kind, p_purpose, p_trial, p_actor, v_amt) returning id into v_id;
   return jsonb_build_object('outcome', 'reserved', 'id', v_id, 'reserved_usd', v_amt,
-                            'shutoff_usd', round(v_amt * v_cfg.voice_shutoff_fraction, 6));
+                            'shutoff_usd', round(v_amt * 2 / 3, 6));
 end $$;
 
 -- open_voice_session (arena_subject): after claim_voice_ticket and reserve_voice succeed, in the
@@ -638,8 +644,8 @@ begin
   insert into ops.kill_switch_events (turned_on, reason) values (p_on, p_reason);
 end $$;
 
--- Create or change a bucket (owner only). Applying budget_plan() from the $0 seed raises ceilings
--- top-down (global, then its children, then build's leaves); lowering goes bottom-up (leaves first).
+-- Create or change a bucket (owner only). Applying budget_plan() from the $0 seed sets the one
+-- `global` ceiling (D-013). If children are added later, raises go top-down and lowering bottom-up.
 -- Refuses a ceiling below the subtree's current liability, a change of parent, and making a bucket
 -- that holds reservations into a parent; the constraint trigger refuses children above their parent.
 create or replace function ops.set_bucket_ceiling(p_name text, p_parent text, p_ceiling numeric, p_note text)

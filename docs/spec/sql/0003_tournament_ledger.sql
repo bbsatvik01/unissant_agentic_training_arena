@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0003_tournament_ledger.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -110,7 +110,7 @@ create table arena.tournaments (
   status         text not null default 'draft'
                    check (status in ('draft', 'frozen', 'running', 'sealed', 'scoring', 'revealed')),
   seed           bigint not null,
-  budget_bucket  text not null,               -- FK to ops.budget_buckets added in 0006
+  budget_bucket  text not null,               -- FK to ops.budget_buckets added in 0006; 'global' under D-013
   max_exchanges  smallint not null default 12 check (max_exchanges between 1 and 12),
   hidden_seal_id uuid references sealed.hidden_split_seals(id) on delete restrict,
   roster_sha256  text check (roster_sha256 ~ '^[0-9a-f]{64}$'),
@@ -493,7 +493,8 @@ create table ledger.inclusion_manifests (
   id              uuid primary key default gen_random_uuid(),
   tournament_id   uuid not null references arena.tournaments(id) on delete restrict,
   version         integer not null check (version >= 1),       -- 1 = the result sealed at reveal
-  manifest        jsonb not null check (jsonb_typeof(manifest) = 'object'),
+  -- S3 4.4 canonical text (header line, then one line per planned trial); hashed as text (X-07)
+  manifest        text not null check (manifest like 'arena-inclusion-manifest|v1|%' and right(manifest, 1) = E'\n'),
   manifest_sha256 text not null check (manifest_sha256 ~ '^[0-9a-f]{64}$'),
   supersedes_id   uuid references ledger.inclusion_manifests(id) on delete restrict,
   event_seq       bigint not null references ledger.events(seq) on delete restrict,

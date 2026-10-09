@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0005_training.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets, blinded rubric scores, single-use access tickets for SSE and voice, voice
 -- sessions, transcript fragments, utterance playback counts and resume credentials.
@@ -22,7 +22,9 @@ create table training.participants (
   created_at     timestamptz not null default now()
 );
 
--- Two matched development case sets for KPI-1 pre and post tests.
+-- Two matched development case sets for KPI-1 pre and post tests (each one truthful and one deceptive
+-- variant from different families). Families holding a member are excluded from the C-37 seeded draw
+-- for every user and never run in practice (X-08); a participant meets them only as a whole set.
 create table training.case_set_members (
   set_code   text not null check (set_code in ('A', 'B')),
   variant_id uuid not null references arena.case_variants(id) on delete restrict,
@@ -42,6 +44,16 @@ create table training.sessions (
 );
 create index sessions_user_idx on training.sessions (user_id, created_at desc);
 create trigger sessions_immutable before update or delete on training.sessions
+  for each row execute function arena.tg_forbid_mutation();
+
+-- User acknowledgements (X-15): the EX-4 statement, recorded once per user by POST /api/me/ack-ex4.
+create table training.acknowledgements (
+  user_id         uuid not null references auth.users(id) on delete restrict,
+  kind            text not null check (kind in ('ex4')),
+  acknowledged_at timestamptz not null default now(),
+  primary key (user_id, kind)
+);
+create trigger acknowledgements_append_only before update or delete on training.acknowledgements
   for each row execute function arena.tg_forbid_mutation();
 
 -- EVL-7: five dimensions 0-4, total = 5 x sum (0-100). Proxy (calibrated model) or human rater,
@@ -179,6 +191,11 @@ begin
   end if;
   if p_phase in ('pre', 'post') and p_mode <> 'assessment' then
     raise exception using errcode = 'AR007', message = 'pre and post tests run in assessment mode';
+  end if;
+  if p_phase = 'practice' and exists (
+       select 1 from training.case_set_members m join arena.case_variants cv on cv.id = m.variant_id
+        where cv.family_id = (select family_id from arena.case_variants where id = p_variant)) then
+    raise exception using errcode = 'AR007', message = 'KPI-1 case-set families are used only for pre and post tests';
   end if;
   insert into arena.trials (kind, variant_id, assistant_candidate_id, subject_candidate_id, mode, owner_user_id,
                             status, started_at)
@@ -391,9 +408,32 @@ begin
   return v.live_handle;
 end $$;
 
+-- acknowledge (arena_public): records the actor's acknowledgement once and returns its time.
+create or replace function training.acknowledge(p_kind text)
+returns timestamptz
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_actor uuid := arena.actor_id();
+  v_at    timestamptz;
+begin
+  perform ledger.require_read_committed();
+  if v_actor is null then
+    raise exception using errcode = 'AR040', message = 'no investigator identity on this request';
+  end if;
+  if p_kind is distinct from 'ex4' then
+    raise exception using errcode = 'AR007', message = 'unknown acknowledgement';
+  end if;
+  insert into training.acknowledgements (user_id, kind) values (v_actor, p_kind) on conflict (user_id, kind) do nothing;
+  select acknowledged_at into v_at from training.acknowledgements where user_id = v_actor and kind = p_kind;
+  return v_at;
+end $$;
+
 -- -----------------------------------------------------------------------------
 -- Projections for arena_public (the actor's own rows only)
 -- -----------------------------------------------------------------------------
+create view training.v_my_acknowledgements with (security_barrier = true) as
+  select a.kind, a.acknowledged_at from training.acknowledgements a where a.user_id = arena.actor_id();
+
 create view training.v_my_sessions with (security_barrier = true) as
   select s.id, s.trial_id, s.phase, s.voice, s.created_at, t.mode, t.status, t.exchanges, t.variant_id, t.ended_at
     from training.sessions s join arena.trials t on t.id = s.trial_id
@@ -425,6 +465,7 @@ alter table training.voice_sessions enable row level security;
 alter table training.voice_fragments enable row level security;
 alter table training.voice_utterances enable row level security;
 alter table training.voice_resumes enable row level security;
+alter table training.acknowledgements enable row level security;
 
 revoke all on all tables in schema training from public, anon, authenticated, service_role,
   arena_public, arena_subject, arena_referee;
@@ -437,9 +478,11 @@ grant execute on function
   training.start_session(uuid, text, text, uuid, uuid, boolean, text),
   training.issue_access_ticket(text, uuid),
   training.redeem_access_ticket(text, text),
-  training.redeem_voice_resume(text)
+  training.redeem_voice_resume(text),
+  training.acknowledge(text)
   to arena_public;
-grant select on training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments to arena_public;
+grant select on training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments,
+  training.v_my_acknowledgements to arena_public;
 
 grant execute on function
   training.claim_voice_ticket(uuid, uuid, uuid, text),
@@ -453,7 +496,8 @@ grant execute on function
 -- arena_referee: reads training rows except resume handles; writes participants, case sets, scores.
 grant select on training.participants, training.case_set_members, training.sessions, training.rubric_scores,
   training.access_tickets, training.voice_sessions, training.voice_fragments, training.voice_utterances,
-  training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments
+  training.acknowledgements, training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments,
+  training.v_my_acknowledgements
   to arena_referee;
 grant insert on training.participants, training.case_set_members, training.rubric_scores to arena_referee;
 create policy participants_referee on training.participants for all to arena_referee using (true) with check (true);
@@ -464,3 +508,4 @@ create policy access_tickets_referee on training.access_tickets for select to ar
 create policy voice_sessions_referee on training.voice_sessions for select to arena_referee using (true);
 create policy voice_fragments_referee on training.voice_fragments for select to arena_referee using (true);
 create policy voice_utterances_referee on training.voice_utterances for select to arena_referee using (true);
+create policy acknowledgements_referee on training.acknowledgements for select to arena_referee using (true);

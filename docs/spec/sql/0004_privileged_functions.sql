@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0004_privileged_functions.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event), the
 -- per-trial event store writer, the two context readers (arena.trial_context,
@@ -787,63 +787,97 @@ begin
 end $$;
 
 -- -----------------------------------------------------------------------------
--- Inclusion manifest (F14, F15; direction 7.1 table). One entry per planned trial.
--- assistant / subject: 'included' | 'included_as_insufficient' | 'excluded' | null (not applicable)
+-- Inclusion manifest (F14, F15; direction 7.1; S3 4.3-4.4 canonical text, X-07). UTF-8, LF line
+-- endings, trailing newline; a header line, then one line per planned trial sorted by
+-- planned_trial_id in byte order:
+--   arena-inclusion-manifest|v1|{tournament_id}|{version}|{parent_sha256 or empty}|{roster_sha256}|
+--     {corpus_sha256 or empty}|{hidden_seal_sha256 or empty}
+--   {planned_trial_id}|{track}|{assistant_id}|{subject_id}|{family_id}|{variant_id}|{role}|{repeat}|
+--     {exec_state}|{adjudication_id}|{verdict}|{asst_inclusion}|{subj_inclusion}|{reason}
+-- Inclusion is S3's inclusion() exactly: assistant included | included_as_insufficient | excluded;
+-- subject counted | against_subject | excluded; reasons source_unavailable, block_invalid_infra,
+-- infra_failed, budget_skipped, budget_truncated, subject_quarantined, subject_invalid, included,
+-- assistant_failed_as_insufficient. asst_inclusion is empty on replay_corpus rows and subj_inclusion
+-- on replay rows (not applicable). A replay row carries its source corpus transcript's adjudication.
+-- Block infra rule (the default until OD-14 decides; S3 4.3): a block is invalid when more than 5%
+-- of its planned trials end infra_failed (20 x infra_failed > planned). The text is built for the
+-- next version (1 at reveal, n + 1 for a correction); the hash is ledger.hash_text of the text, which
+-- S3's Python verifier recomputes byte for byte. A reviewed trial without a verdict, or a planned
+-- trial without an execution record, raises AR020 (S3 RevealBlocked).
 -- -----------------------------------------------------------------------------
 create or replace function ledger.build_manifest(p_tournament uuid)
-returns jsonb
-language sql stable security definer set search_path = '' as $$
-  with e as (
-    select p.id as planned_trial_id, p.position, p.track, p.source_planned_trial_id, x.trial_id, x.attempt, x.state,
-           (select a.id from ledger.validity_adjudications a where a.trial_id = x.trial_id
-             order by a.adj_seq desc limit 1) as adjudication_id
+returns text
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_last   ledger.inclusion_manifests;
+  v_header text;
+  v_body   text;
+  v_open   integer;
+begin
+  select * into v_last from ledger.inclusion_manifests
+   where tournament_id = p_tournament order by version desc limit 1;
+  with x as (
+    select * from ledger.planned_execution(p_tournament)
+  ), e as (
+    select p.id as planned_trial_id, p.track, p.block_id, p.assistant_candidate_id, p.subject_candidate_id,
+           p.variant_id, p.repeat, x.state,
+           case when p.track = 'replay' then src.trial_id else x.trial_id end as reviewed_trial_id
       from arena.planned_trials p
-      join ledger.planned_execution(p_tournament) x on x.planned_trial_id = p.id
-  ), v as (
-    select e.*, (select a.verdict from ledger.validity_adjudications a where a.id = e.adjudication_id) as verdict
+      join x on x.planned_trial_id = p.id
+      left join x src on src.planned_trial_id = p.source_planned_trial_id
+     where p.tournament_id = p_tournament
+  ), blocks as (
+    select bp.block_id, 20 * count(*) filter (where x.state = 'infra_failed') > count(*) as invalid
+      from arena.planned_trials bp join x on x.planned_trial_id = bp.id
+     where bp.tournament_id = p_tournament and bp.block_id is not null
+     group by bp.block_id
+  ), a as (
+    select e.*, adj.id as adjudication_id, adj.verdict, coalesce(b.invalid, false) as block_invalid
       from e
-  ), src as (
-    -- corpus usable: completed and adjudicated valid
-    select v.planned_trial_id, (v.state = 'completed' and v.verdict = 'valid') as usable from v where v.track = 'replay_corpus'
-  ), rows as (
-    select v.*,
+      left join blocks b on b.block_id = e.block_id
+      left join lateral (select v.id, v.verdict from ledger.validity_adjudications v
+                          where v.trial_id = e.reviewed_trial_id order by v.adj_seq desc limit 1) adj on true
+  ), i as (
+    select a.*,
       case
-        when v.track = 'replay_corpus' then null
-        when v.track = 'replay' and not coalesce((select s.usable from src s where s.planned_trial_id = v.source_planned_trial_id), false)
-          then 'excluded'
-        when v.state in ('infra_failed', 'budget_skipped', 'budget_truncated', 'source_unavailable', 'subject_quarantined') then 'excluded'
-        when v.track = 'interactive' and v.verdict = 'subject_invalid' then 'excluded'
-        when v.state = 'assistant_failed' then 'included_as_insufficient'
-        when v.state = 'completed' then 'included'
-      end as assistant,
-      case
-        when v.track = 'replay' then null
-        when v.state in ('completed', 'assistant_failed', 'subject_quarantined') then 'included'
-        else 'excluded'
-      end as subject,
-      case
-        when v.track = 'replay' and not coalesce((select s.usable from src s where s.planned_trial_id = v.source_planned_trial_id), false)
-          then 'source_transcript_invalid'
-        when v.state in ('infra_failed', 'budget_skipped', 'budget_truncated', 'source_unavailable') then v.state
-        when v.state = 'subject_quarantined' then 'subject_quarantined: counts against the subject'
-        when v.verdict = 'subject_invalid' then 'subject_invalid: counts against the subject'
-        when v.state = 'assistant_failed' then 'assistant_failed: counted as insufficient evidence'
-        else 'included'
-      end as reason
-    from v
+        when a.state = 'source_unavailable' then 'excluded|excluded|source_unavailable'
+        when a.block_invalid then 'excluded|excluded|block_invalid_infra'
+        when a.state = 'infra_failed' then 'excluded|excluded|infra_failed'
+        when a.state in ('budget_skipped', 'budget_truncated') then 'excluded|excluded|' || a.state
+        when a.state = 'subject_quarantined' then 'excluded|against_subject|subject_quarantined'
+        when a.state not in ('completed', 'assistant_failed') or a.verdict is null then null
+        when a.verdict = 'subject_invalid' then 'excluded|against_subject|subject_invalid'
+        when a.state = 'completed' then 'included|counted|included'
+        else 'included_as_insufficient|counted|assistant_failed_as_insufficient'
+      end as inc
+      from a
+  ), l as (
+    select i.planned_trial_id::text as sort_key, i.inc,
+           concat_ws('|', i.planned_trial_id, i.track, coalesce(i.assistant_candidate_id::text, ''),
+                     coalesce(i.subject_candidate_id::text, ''), v.family_id, i.variant_id, ep.role, i.repeat,
+                     coalesce(i.state, ''), coalesce(i.adjudication_id::text, ''), coalesce(i.verdict, ''),
+                     case when i.track = 'replay_corpus' then '' else split_part(i.inc, '|', 1) end,
+                     case when i.track = 'replay' then '' else split_part(i.inc, '|', 2) end,
+                     split_part(i.inc, '|', 3)) as line
+      from i
+      join arena.case_variants v on v.id = i.variant_id
+      join sealed.evaluator_packets ep on ep.variant_id = i.variant_id
   )
-  select jsonb_build_object(
-    'tournament', p_tournament,
-    'roster_sha256', (select roster_sha256 from arena.tournaments where id = p_tournament),
-    'corpus_sha256', (select corpus_sha256 from ledger.corpus_seals where tournament_id = p_tournament),
-    'hidden_seal_sha256', (select s.seal_sha256 from arena.tournaments t join sealed.hidden_split_seals s on s.id = t.hidden_seal_id
-                            where t.id = p_tournament),
-    'trials', coalesce(jsonb_agg(jsonb_build_object(
-        'planned_trial_id', r.planned_trial_id, 'position', r.position, 'track', r.track, 'trial_id', r.trial_id,
-        'attempt', r.attempt, 'execution_state', r.state, 'adjudication_id', r.adjudication_id, 'verdict', r.verdict,
-        'assistant', r.assistant, 'subject', r.subject, 'reason', r.reason) order by r.position), '[]'::jsonb))
-  from rows r
-$$;
+  select count(*) filter (where l.inc is null),
+         coalesce(string_agg(l.line || E'\n', '' order by l.sort_key collate "C"), '')
+    into v_open, v_body
+    from l;
+  if v_open > 0 then
+    raise exception using errcode = 'AR020',
+      message = format('%s planned trials lack an execution record or a subject review', v_open);
+  end if;
+  select concat_ws('|', 'arena-inclusion-manifest', 'v1', t.id, coalesce(v_last.version, 0) + 1,
+                   coalesce(v_last.manifest_sha256, ''), t.roster_sha256,
+                   coalesce((select c.corpus_sha256 from ledger.corpus_seals c where c.tournament_id = t.id), ''),
+                   coalesce((select h.seal_sha256 from sealed.hidden_split_seals h where h.id = t.hidden_seal_id), ''))
+    into v_header from arena.tournaments t where t.id = p_tournament;
+  return v_header || E'\n' || v_body;
+end $$;
 
 -- Shared preconditions of reveal and corrected manifests. Raises AR020/AR021 on the first failure.
 create or replace function ledger.check_reveal_preconditions(p_tournament uuid)
@@ -895,7 +929,8 @@ returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_status   text;
-  v_manifest jsonb;
+  v_result   jsonb;
+  v_manifest text;
   v_sha      text;
   v_id       uuid;
   v_seq      bigint;
@@ -903,16 +938,16 @@ begin
   perform ledger.require_read_committed();
   select status into v_status from arena.tournaments where id = p_tournament for update;
   if v_status = 'revealed' then
-    select jsonb_build_object('manifest_id', id, 'manifest_sha256', manifest_sha256) into v_manifest
+    select jsonb_build_object('manifest_id', id, 'manifest_sha256', manifest_sha256) into v_result
       from ledger.inclusion_manifests where tournament_id = p_tournament and version = 1;
-    return v_manifest;
+    return v_result;
   end if;
   if v_status is distinct from 'scoring' then
     raise exception using errcode = 'AR020', message = 'reveal follows scoring (draft/frozen/running/sealed refused)';
   end if;
   perform ledger.check_reveal_preconditions(p_tournament);
   v_manifest := ledger.build_manifest(p_tournament);
-  v_sha := ledger.hash_jsonb(v_manifest);
+  v_sha := ledger.hash_text(v_manifest);
   update arena.tournaments set status = 'revealed', revealed_at = now() where id = p_tournament;
   v_seq := ledger.append_event('tournament_revealed', p_tournament, null,
              jsonb_build_object('manifest_sha256', v_sha, 'manifest_version', 1));
@@ -932,7 +967,7 @@ language plpgsql security definer set search_path = '' as $$
 declare
   v_status   text;
   v_last     ledger.inclusion_manifests;
-  v_manifest jsonb;
+  v_manifest text;
   v_sha      text;
   v_id       uuid;
   v_seq      bigint;
@@ -945,10 +980,11 @@ begin
   perform ledger.check_reveal_preconditions(p_tournament);
   select * into v_last from ledger.inclusion_manifests where tournament_id = p_tournament order by version desc limit 1;
   v_manifest := ledger.build_manifest(p_tournament);
-  v_sha := ledger.hash_jsonb(v_manifest);
-  if v_sha = v_last.manifest_sha256 then
-    return jsonb_build_object('manifest_id', v_last.id, 'manifest_sha256', v_sha, 'version', v_last.version);
+  -- unchanged trial lines: the last version stands (the header always differs)
+  if substr(v_manifest, strpos(v_manifest, E'\n') + 1) = substr(v_last.manifest, strpos(v_last.manifest, E'\n') + 1) then
+    return jsonb_build_object('manifest_id', v_last.id, 'manifest_sha256', v_last.manifest_sha256, 'version', v_last.version);
   end if;
+  v_sha := ledger.hash_text(v_manifest);
   v_seq := ledger.append_event('manifest_corrected', p_tournament, null,
              jsonb_build_object('manifest_sha256', v_sha, 'manifest_version', v_last.version + 1, 'supersedes', v_last.id));
   insert into ledger.inclusion_manifests (tournament_id, version, manifest, manifest_sha256, supersedes_id, event_seq)
