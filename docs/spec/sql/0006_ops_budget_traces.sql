@@ -54,10 +54,12 @@ create table ops.config (
   voice_sessions_total          smallint not null check (voice_sessions_total >= 0),
   voice_probes_total            smallint not null check (voice_probes_total >= 0),
   max_open_voice_sessions       smallint not null check (max_open_voice_sessions >= 1),
-  -- OWNER DECISION PENDING (S4-D3; rate-limit class; global gate requires approval before use).
-  -- Initial values below, tuned in the dev pilot; null disables a check. With these values every voice
-  -- session is refused per user (VOICE_RESERVATION = 3.39 > per_user_daily_usd 3.00): voice needs the owner
-  -- to set per_user_daily_usd to at least 3.40 (one session a day) or null before any voice session.
+  -- S4-D3 (rate-limit class; global gate requires owner approval). per_user_daily_usd is the owner's $5.00
+  -- (D-017): one voice session's hold (VOICE_RESERVATION = 3.39) fits per user per day with room for text; a
+  -- further voice hold is admitted only while the actor's daily liability (open and usage_unknown holds at
+  -- their amount, settled ones at their receipts) plus 3.39 stays within 5.00, so a second is refused
+  -- per_user_cap while the first hold is open (5.00 - 3.39 < 3.39). The quotas are initial values, tuned in
+  -- the dev pilot; null disables a check.
   per_user_daily_usd            ops.usd,
   text_sessions_per_user_day    smallint check (text_sessions_per_user_day >= 1),
   voice_sessions_per_user_day   smallint check (voice_sessions_per_user_day >= 1),
@@ -66,7 +68,7 @@ create table ops.config (
 insert into ops.config (attempts_per_call, voice_session_reservation_usd, voice_probe_reservation_usd,
                         voice_sessions_total, voice_probes_total, max_open_voice_sessions,
                         per_user_daily_usd, text_sessions_per_user_day, voice_sessions_per_user_day)
-  values (4, 3.392520, 0.424940, 8, 30, 2, 3.00, 5, 2);
+  values (4, 3.392520, 0.424940, 8, 30, 2, 5.00, 5, 2);
 
 create table ops.kill_switch_events (
   id         bigint generated always as identity primary key,

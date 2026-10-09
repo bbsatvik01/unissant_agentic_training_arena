@@ -10,7 +10,7 @@
 -- Numeric parity of the seeds with cost_model.py (prices, limits, voice amounts) is tools/check_cost_parity.py.
 begin;
 \ir harness/fixtures.psql
-select plan(12);
+select plan(13);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -190,6 +190,55 @@ select is(array[tests.error(format('select ops.set_bucket_ceiling(%L, null, %s, 
                 'AR007: a bucket holding reservations cannot become a parent'],
   'BU-24 set_bucket_ceiling refuses a ceiling below liability, a parent for global, and a child under global once '
   || 'it holds reservations');
+
+-- BU-42 (D-017): the per-user daily cap is $5.00, against the actor's whole daily liability (holds reserved or
+-- usage_unknown at their amount, settled holds at their receipts). Actor D: one voice hold ($3.392520) fits; a second
+-- is refused per_user_cap while the first is reserved; a 6,000-byte card ($0.023200) still fits; after the first
+-- hold settles committed at $1.800000 of receipts, a second voice hold is still refused (1.80 + 0.0232 + 3.392520 >
+-- 5.00). Actor C: a hold settled committed at $0.315000 leaves room for a second (0.315 + 3.392520 <= 5.00). Runs
+-- before the other voice rows (the open-voice concurrency count is 2); every hold it leaves open is released.
+create temp table bu42 (step integer, val text) on commit drop;
+create function pg_temp.bu42_voice(p_key text, p_actor text) returns text
+language sql as $$
+  select concat_ws('/', r ->> 'outcome', coalesce(r ->> 'reserved_usd', r ->> 'reason'), r ->> 'id')
+    from tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, null, %L)',
+           p_key, 'global', 'voice_session', 'voice.session', tests.uid(p_actor))) r
+$$;
+-- dispatch a voice hold, record one usage report of p_audio audio-input tokens on the Live model, settle committed
+create function pg_temp.bu42_use(p_step integer, p_audio bigint) returns jsonb
+language plpgsql as $$
+declare
+  v_id text := split_part((select val from bu42 where step = p_step), '/', 3);
+begin
+  perform tests.as_role('arena_subject', format('select ops.mark_dispatched(%L)', v_id));
+  perform tests.as_role('arena_subject', format('select ops.record_usage(%L, 1, %L, 0, 0, 0, %s, 0, %L, 100, null, null)',
+                                                v_id, 'gemini-3.8-live', p_audio, 'usage'));
+  return tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', v_id, 'committed'));
+end $$;
+create function pg_temp.bu42_release(p_step integer) returns jsonb
+language sql as $$
+  select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)',
+                                               split_part((select val from bu42 where step = p_step), '/', 3), 'released'))
+$$;
+insert into bu42 select 0, (select per_user_daily_usd from ops.config)::text;
+insert into bu42 select 1, pg_temp.bu42_voice('bu42-voice-key-1', 'D');
+insert into bu42 select 2, pg_temp.bu42_voice('bu42-voice-key-2', 'D');
+insert into bu42 select 3, concat_ws('/', r ->> 'outcome', r ->> 'reserved_usd')
+  from tests.as_role('arena_public', format('select ops.reserve_model_call(%L, %L, %L, %L, %L, null, %L, 6000)',
+         'bu42-card-key-1', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card', tests.uid('D'))) r;
+insert into bu42 select 4, pg_temp.bu42_use(1, 400000) ->> 'settled_usd';
+insert into bu42 select 5, pg_temp.bu42_voice('bu42-voice-key-3', 'D');
+insert into bu42 select 6, pg_temp.bu42_voice('bu42-voice-key-4', 'C');
+insert into bu42 select 7, pg_temp.bu42_use(6, 70000) ->> 'settled_usd';
+insert into bu42 select 8, pg_temp.bu42_voice('bu42-voice-key-5', 'C');
+select pg_temp.bu42_release(8);
+select is((select array_agg(case when step in (1, 5, 6, 8) then split_part(val, '/', 1) || '/' || split_part(val, '/', 2)
+                                 else val end order by step) from bu42),
+          array['5.000000', 'reserved/3.392520', 'refused/per_user_cap', 'reserved/0.023200', '1.800000',
+                'refused/per_user_cap', 'reserved/3.392520', '0.315000', 'reserved/3.392520'],
+  'BU-42 D-017: the $5.00 per-user cap admits one voice hold, refuses a second while the first is reserved and while '
+  || 'settled spend plus other liability leaves no room for $3.392520, admits a text card, and admits a second hold '
+  || 'when settled spend leaves room');
 
 -- BU-38: four receipts at the reservation's maximum (6,001 input tokens, 1,600 output on a 6,001-byte card) are
 -- within the reservation: no overrun, kill switch off. The draft's single rounding reserved $0.023202 for $0.023204.

@@ -3,7 +3,7 @@
 -- issued before the daily voice quota was reached cannot open sessions beyond it, VB-23 one actor's session
 -- openings serialize on the quota, VB-24 a 13th exchange is AR004. WP-04 adds the TESTS.md section 15 rows (VB-01..VB-20) to this file.
 -- Quota and cap values are the seeded ones (voice_sessions_per_user_day 2); reservations name no actor, so the
--- seeded per-user dollar cap (owner decision pending, S4-D3) does not apply.
+-- per-user dollar cap ($5.00, D-017) does not apply.
 begin;
 \ir harness/fixtures.psql
 select plan(4);
