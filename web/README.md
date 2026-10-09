@@ -15,7 +15,7 @@ Run from this directory:
 | `pnpm test` | Vitest |
 | `pnpm coverage` | Vitest with v8 coverage on `src/lib/**`: 90% lines, branches, functions and statements |
 | `pnpm build` | `vite build` to `dist/` |
-| `pnpm gen:validators` | Compile the wire validators ahead of time into `src/lib/contracts/generated/validators.{js,d.ts}` (run after `python -m tools.export_contracts`; a test fails on drift) |
+| `pnpm gen:validators` | Compile the wire validators ahead of time into `src/lib/contracts/compiled/validators.{js,d.ts}` (run after `python -m tools.export_contracts`; a test fails on drift) |
 | `pnpm dev` | Dev server on 127.0.0.1, proxying `/api` (WebSocket included) to `arena-api` on 127.0.0.1:8080 |
 
 ## Runtime
@@ -32,7 +32,7 @@ Run from this directory:
 
 WP-18 part 1: scaffold, the ticketed SSE client and trial stream (`src/lib/sse`), the voice machine and voice bar state (`src/lib/voice`; playback progress stays in the browser, S5 7.3), the companion FSM and registry stub (`src/lib/companion`). No visual design before DESIGN.md and the 2026-10-18 slice gate: the only screen is an unstyled placeholder.
 
-WP-02 added `src/lib/contracts`: the wire types and schemas generated from `contracts/` (`generated/`, written by `python -m tools.export_contracts` at the repository root and checked for drift by its tests; never edited by hand), the ajv validators compiled from them at build time (`generated/validators.js`, written by `pnpm gen:validators`, because the page's CSP forbids compiling them at run time; used through `validate.ts`) and the browser port of the shared quote predicate (`quote.ts`), both tested against the shared fixtures in `contracts/fixtures/`. WP-18 part 2 added the room's state layer, still with nothing presentational:
+WP-02 added `src/lib/contracts`: the wire types and schemas generated from `contracts/` (`generated/`, written by `python -m tools.export_contracts` at the repository root and checked for drift by its tests; never edited by hand), the ajv validators compiled from them at build time (`compiled/validators.js`, written by `pnpm gen:validators`, because the page's CSP forbids compiling them at run time; used through `validate.ts`) and the browser port of the shared quote predicate (`quote.ts`), both tested against the shared fixtures in `contracts/fixtures/`. WP-18 part 2 added the room's state layer, still with nothing presentational:
 
 - `src/lib/api`: the one fetch wrapper (`client.ts`: same-origin `/api/` paths only, `X-Arena-CSRF` from `GET /api/me` on every POST, one `/api/me` re-read and one retry on a 403; FE-TECH-5) and the typed routes the room uses (`arena.ts`: request bodies checked against their wire schemas before sending, responses validated before use).
 - `src/lib/trial/trialReducer.ts`: the pure trial lifecycle reducer (S6 6.1): snapshot then deltas, folded in `seq` order, duplicate- and order-safe (FE-SSE-2, property test), the completion pair (FE-SSE-8), the complete-card rule (S6 4.5) and the client's visibility re-check (S6 5.4).

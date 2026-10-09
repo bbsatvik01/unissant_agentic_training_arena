@@ -17,10 +17,10 @@ export default mergeConfig(
       coverage: {
         provider: "v8",
         include: ["src/lib/**"],
-        // Test files are not source. The build-time compiled validators (generated/validators.js, about 1.7 MB of
+        // Test files are not source. The build-time compiled validators (compiled/validators.js, about 1.7 MB of
         // ajv output) are machine-written: drift-checked against a fresh generation (tools/validators-codegen.test.ts)
         // and exercised by every valid and invalid wire fixture (validate.test.ts); their generator is covered.
-        exclude: ["src/**/*.test.{ts,tsx}", "src/lib/contracts/generated/validators.js"],
+        exclude: ["src/**/*.test.{ts,tsx}", "src/lib/contracts/compiled/validators.js"],
         reporter: ["text", "json-summary"],
         thresholds: {
           lines: 90,

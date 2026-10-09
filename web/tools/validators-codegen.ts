@@ -5,7 +5,7 @@
  * same `maxBytes` keyword the run-time compile used, one exported function per wire schema.
  *
  * `generateValidators` is pure; `tools/generate-validators.ts` writes its output to
- * `src/lib/contracts/generated/validators.{js,d.ts}`, and `validators-codegen.test.ts` fails when the committed
+ * `src/lib/contracts/compiled/validators.{js,d.ts}`, and `validators-codegen.test.ts` fails when the committed
  * files differ from a fresh generation (run `pnpm gen:validators` after `python -m tools.export_contracts`).
  */
 

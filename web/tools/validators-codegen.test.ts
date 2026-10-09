@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { WIRE_SCHEMAS } from "../src/lib/contracts/generated/schemas.ts";
 import { exportName, generateValidators } from "./validators-codegen.ts";
 
-const dir = new URL("../src/lib/contracts/generated/", import.meta.url);
+const dir = new URL("../src/lib/contracts/compiled/", import.meta.url);
 
 describe("compiled wire validators (S6 1.3: no run-time code generation)", () => {
   it("are exactly what the generator makes from the committed schemas", () => {

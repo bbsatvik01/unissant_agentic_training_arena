@@ -6,14 +6,14 @@
  * The stored-card schema is never compiled here: the browser only ever receives the
  * wire cards.
  *
- * The validators are compiled at build time (`generated/validators.js`, `web/tools/validators-codegen.ts`): the
+ * The validators are compiled at build time (`compiled/validators.js`, `web/tools/validators-codegen.ts`): the
  * page's CSP (`script-src 'self'`, S6 1.3) forbids the code generation a run-time ajv compile needs, so nothing
  * here generates code.
  */
 
 import type { ErrorObject, ValidateFunction } from "ajv/dist/2020";
 
-import { WIRE_VALIDATORS } from "./generated/validators.js";
+import { WIRE_VALIDATORS } from "./compiled/validators.js";
 import type { WireTypes } from "./generated/types";
 import { invariantErrors } from "./invariants";
 
