@@ -1,8 +1,9 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0005_training.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
--- matched case sets, blinded rubric scores, single-use access tickets for SSE and voice, voice
--- sessions, transcript fragments, utterance playback counts and resume credentials.
+-- matched case sets with the session phase derived from committed state, blinded rubric scores, the
+-- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,
+-- D7) and resume credentials.
 -- Requirements: CH-1, SOL-6, EVL-2, EVL-7, KPI-1, PRB-1, SCN-12, EX-4; voice: D-006, direction 4.3, 9.
 --
 -- A training session is an arena.trials row of kind 'training', so it runs through the same
@@ -93,14 +94,14 @@ create table training.access_tickets (
 );
 create index access_tickets_user_idx on training.access_tickets (user_id, kind, created_at);
 
+-- One Live session (D-006). Voice sessions are unscored development practice (D7): their turns enter
+-- arena.turns with channel 'voice' for display and coaching, never for scoring.
 create table training.voice_sessions (
   id             uuid primary key default gen_random_uuid(),
   session_id     uuid not null references training.sessions(id) on delete restrict,
   ticket_id      uuid not null unique references training.access_tickets(id) on delete restrict,
   reservation_id uuid not null,              -- FK to ops.budget_reservations added in 0006
   status         text not null default 'open' check (status in ('open', 'closed')),
-  -- false until the playback-grounding tests pass (direction 9); a later migration flips the default
-  scored         boolean not null default false,
   close_code     text check (length(close_code) between 1 and 64),
   opened_at      timestamptz not null default now(),
   closed_at      timestamptz,
@@ -108,30 +109,25 @@ create table training.voice_sessions (
 );
 create unique index voice_sessions_one_open on training.voice_sessions (session_id) where status = 'open';
 
--- Live transcription fragments, persisted as written (S5 lift G5).
-create table training.voice_fragments (
-  voice_session_id uuid not null references training.voice_sessions(id) on delete restrict,
-  seq              integer not null check (seq >= 1),
-  speaker          text not null check (speaker in ('investigator', 'subject')),
-  text             text not null check (length(text) between 1 and 8000),
-  partial          boolean not null default false,
-  created_at       timestamptz not null default now(),
-  primary key (voice_session_id, seq)
+-- The published debrief (D8, SG3-14): one per session, written only by training.publish_debrief
+-- (arena_referee) after the session's trial ended, read by its owner through training.v_my_debrief.
+-- payload (debrief.v1, validated in code by the referee): {schema, scored, outcome (the development
+-- case's role and the session's own result, shown only after the session ends: the explicit exception
+-- in S6's visibility matrix), resolution (the case resolution summary), rubric (the rubric cards),
+-- scorecards (the three scorecards), provenance (rubric version, prompt and model hashes, scored_at)}.
+-- A voice session (unscored, D7) has scored = false and null rubric and scorecards.
+create table training.debriefs (
+  session_id   uuid primary key references training.sessions(id) on delete restrict,
+  payload      jsonb not null check (jsonb_typeof(payload) = 'object' and octet_length(payload::text) <= 65536
+                                     and payload ->> 'schema' = 'debrief.v1'
+                                     and payload ?& array['schema', 'scored', 'outcome', 'resolution', 'rubric',
+                                                          'scorecards', 'provenance']
+                                     and jsonb_typeof(payload -> 'scored') = 'boolean'),
+  sha256       text not null generated always as (ledger.hash_jsonb(payload)) stored,
+  published_at timestamptz not null default now()
 );
-create trigger voice_fragments_append_only before update or delete on training.voice_fragments
+create trigger debriefs_append_only before update or delete on training.debriefs
   for each row execute function arena.tg_forbid_mutation();
-
--- Playback acknowledgement per subject utterance (F10). An utterance that ended with fewer played
--- than received samples is partial and never cited in scoring.
-create table training.voice_utterances (
-  voice_session_id uuid not null references training.voice_sessions(id) on delete restrict,
-  utterance_no     integer not null check (utterance_no >= 1),
-  received_samples integer not null default 0 check (received_samples >= 0),
-  played_samples   integer not null default 0 check (played_samples >= 0),
-  ended            boolean not null default false,
-  partial          boolean generated always as (ended and played_samples < received_samples) stored,
-  primary key (voice_session_id, utterance_no)
-);
 
 -- Resume credentials (S5 7.2 step 4): token sha256 only; the Live resumption handle never leaves
 -- arena-subject (take_voice_handle is granted to arena_subject alone). At most 3 per session.
@@ -152,16 +148,30 @@ create table training.voice_resumes (
 -- assessment interview on a development variant. Idempotent per (actor, key). Daily session
 -- quota from ops.config (OWNER DECISION PENDING value). The coach must be an assistant candidate
 -- and the subject a subject candidate (referee and negative_control kinds never run sessions).
+-- The phase is derived from committed state, never sent (SG3-13, SG4-10; S3 6.1 protocol: two pre-tests,
+-- three practice sessions, two post-tests): a variant of the participant's pre-test set is phase pre; of
+-- the post-test set, phase post once both pre-tests and three practice sessions have ended; anything
+-- else is practice, which a participant starts only after both pre-tests ended. Tests run in assessment
+-- mode, in text (voice is unscored, D7), each test variant once. A KPI-1 case-set variant runs only as a
+-- participant's test (X-08), and a retired family never starts a session (SG1-11).
 -- -----------------------------------------------------------------------------
-create or replace function training.start_session(p_variant uuid, p_mode text, p_phase text, p_coach_candidate uuid,
+create or replace function training._ended_sessions(p_participant uuid, p_phase text)
+returns integer
+language sql stable security definer set search_path = '' as $$
+  select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
+   where s.participant_id = p_participant and s.phase = p_phase and t.status in ('finalized', 'terminated')
+$$;
+
+create or replace function training.start_session(p_variant uuid, p_mode text, p_coach_candidate uuid,
                                                   p_subject_candidate uuid, p_voice boolean, p_idempotency_key text)
 returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_actor uuid := arena.actor_id();
   v_s     training.sessions;
-  v_trial uuid;
-  v_part  uuid;
+  v_part  training.participants;
+  v_set   text;
+  v_phase text := 'practice';
   v_quota smallint;
   v_t     arena.trials;
 begin
@@ -169,9 +179,11 @@ begin
   if v_actor is null then
     raise exception using errcode = 'AR040', message = 'no investigator identity on this request';
   end if;
+  -- one actor's starts serialize: the quota and the study state are read, then written
+  perform pg_advisory_xact_lock(hashtextextended('training.start_session:' || v_actor::text, 0));
   select * into v_s from training.sessions where user_id = v_actor and idempotency_key = p_idempotency_key;
   if found then
-    return jsonb_build_object('session_id', v_s.id, 'trial_id', v_s.trial_id);
+    return jsonb_build_object('session_id', v_s.id, 'trial_id', v_s.trial_id, 'phase', v_s.phase);
   end if;
   select text_sessions_per_user_day into v_quota from ops.config where id;
   if v_quota is not null and (select count(*) from training.sessions
@@ -182,36 +194,63 @@ begin
      or (select kind from arena.candidates where id = p_subject_candidate) is distinct from 'subject' then
     raise exception using errcode = 'AR007', message = 'coach must be an assistant candidate and subject a subject candidate';
   end if;
-  select id into v_part from training.participants where user_id = v_actor;
-  if p_phase in ('pre', 'post') and (v_part is null or not exists (
-       select 1 from training.case_set_members m join training.participants p on p.id = v_part
-        where m.variant_id = p_variant
-          and m.set_code = case when p_phase = 'pre' then left(p.counterbalance, 1) else right(p.counterbalance, 1) end)) then
-    raise exception using errcode = 'AR007', message = 'pre and post sessions use the participant''s counterbalanced case set';
+  if p_mode is null or p_mode not in ('practice', 'assessment') then
+    raise exception using errcode = 'AR007', message = 'mode is practice or assessment';
   end if;
-  if p_phase in ('pre', 'post') and p_mode <> 'assessment' then
-    raise exception using errcode = 'AR007', message = 'pre and post tests run in assessment mode';
+  if exists (select 1 from arena.case_variants cv join arena.family_retirements r on r.family_id = cv.family_id
+              where cv.id = p_variant) then
+    raise exception using errcode = 'AR007', message = 'a retired family starts no session (SG1-11)';
   end if;
-  if p_phase = 'practice' and exists (
-       select 1 from training.case_set_members m join arena.case_variants cv on cv.id = m.variant_id
-        where cv.family_id = (select family_id from arena.case_variants where id = p_variant)) then
-    raise exception using errcode = 'AR007', message = 'KPI-1 case-set families are used only for pre and post tests';
+  select * into v_part from training.participants where user_id = v_actor;
+  select m.set_code into v_set from training.case_set_members m where m.variant_id = p_variant;
+  if v_set is not null then
+    if v_part.id is null then
+      raise exception using errcode = 'AR007', message = 'KPI-1 case-set variants are test cases for participants only';
+    end if;
+    if v_set = left(v_part.counterbalance, 1) then
+      v_phase := 'pre';
+    else
+      v_phase := 'post';
+      if training._ended_sessions(v_part.id, 'pre')
+           < (select count(*) from training.case_set_members m where m.set_code = left(v_part.counterbalance, 1))
+         or training._ended_sessions(v_part.id, 'practice') < 3 then
+        raise exception using errcode = 'AR007', message = 'the post-test follows both pre-tests and three practice sessions';
+      end if;
+    end if;
+    if p_mode <> 'assessment' or coalesce(p_voice, false) then
+      raise exception using errcode = 'AR007', message = 'pre and post tests run in assessment mode, in text';
+    end if;
+    if exists (select 1 from training.sessions s join arena.trials t on t.id = s.trial_id
+                where s.participant_id = v_part.id and t.variant_id = p_variant) then
+      raise exception using errcode = 'AR007', message = 'each test case runs once';
+    end if;
+  else
+    if exists (select 1 from training.case_set_members m join arena.case_variants cv on cv.id = m.variant_id
+                where cv.family_id = (select family_id from arena.case_variants where id = p_variant)) then
+      raise exception using errcode = 'AR007', message = 'KPI-1 case-set families are used only for pre and post tests';
+    end if;
+    if v_part.id is not null and training._ended_sessions(v_part.id, 'pre')
+         < (select count(*) from training.case_set_members m where m.set_code = left(v_part.counterbalance, 1)) then
+      raise exception using errcode = 'AR007', message = 'a participant practises after both pre-tests';
+    end if;
   end if;
   insert into arena.trials (kind, variant_id, assistant_candidate_id, subject_candidate_id, mode, owner_user_id,
                             status, started_at)
     values ('training', p_variant, p_coach_candidate, p_subject_candidate, p_mode, v_actor, 'running', now())
     returning * into v_t;
-  v_trial := v_t.id;
   insert into training.sessions (trial_id, user_id, participant_id, phase, voice, idempotency_key)
-    values (v_trial, v_actor, v_part, p_phase, coalesce(p_voice, false), p_idempotency_key)
+    values (v_t.id, v_actor, v_part.id, v_phase, coalesce(p_voice, false), p_idempotency_key)
     returning * into v_s;
-  perform ledger.append_event('training_started', null, v_trial, jsonb_build_object('session_id', v_s.id, 'mode', p_mode));
-  return jsonb_build_object('session_id', v_s.id, 'trial_id', v_trial);
+  perform ledger.append_event('training_started', null, v_t.id,
+    jsonb_build_object('session_id', v_s.id, 'mode', p_mode, 'phase', v_phase));
+  return jsonb_build_object('session_id', v_s.id, 'trial_id', v_t.id, 'phase', v_phase);
 end $$;
 
--- issue_access_ticket (arena_public): a 60-second single-use token for the actor's own running
--- training trial. Voice also needs a voice session flag, no open voice session on the trial, and
--- the per-user daily voice quota (OWNER DECISION PENDING value in ops.config).
+-- issue_access_ticket (arena_public): a 60-second single-use token for the actor's own training trial.
+-- SSE: while the trial runs, and after it ended until its debrief is published, so a client that lost its
+-- stream just before the end can catch up (D9, SG3-18). Voice: running trials only, with the session's
+-- voice flag, no open voice session on the trial, and the per-user daily voice quota (OWNER DECISION
+-- PENDING value in ops.config).
 create or replace function training.issue_access_ticket(p_kind text, p_trial uuid)
 returns text
 language plpgsql security definer set search_path = '' as $$
@@ -223,7 +262,12 @@ declare
 begin
   select * into v_t from arena.trials where id = p_trial;
   if v_actor is null or v_t.id is null or v_t.kind <> 'training' or v_t.owner_user_id <> v_actor
-     or v_t.status <> 'running' or p_kind not in ('sse', 'voice') then
+     or p_kind is null or p_kind not in ('sse', 'voice')
+     or (p_kind = 'voice' and v_t.status <> 'running')
+     or (p_kind = 'sse' and v_t.status <> 'running'
+         and (v_t.status not in ('finalized', 'terminated')
+              or exists (select 1 from training.debriefs d join training.sessions s on s.id = d.session_id
+                          where s.trial_id = p_trial))) then
     raise exception using errcode = 'AR040', message = 'ticket refused';
   end if;
   if p_kind = 'voice' then
@@ -278,9 +322,10 @@ begin
 end $$;
 
 -- record_voice_question (arena_subject): the investigator's spoken question exists only as a Live
--- input transcription inside arena-subject (S5 Q8). Records Q(t) on the voice session's own
--- training trial and returns the subject_answer work item for the same turn (no release step
--- mid-utterance; releases are REST actions between turns).
+-- input transcription inside arena-subject (S5 Q8). Records Q(t) on the voice session's own training
+-- trial with channel 'voice' and opens the subject_answer work item for the same turn under the request
+-- key sha256('voice:' || key); a repeated key returns the same turn and item (D3). Due scheduled releases
+-- are applied at each voice turn boundary by arena-api (S5 7.4), not here.
 create or replace function training.record_voice_question(p_trial uuid, p_voice_session uuid, p_question text,
                                                           p_idempotency_key text)
 returns jsonb
@@ -289,7 +334,8 @@ declare
   v     arena.trials;
   v_t   arena.turns;
   v_res jsonb;
-  v_wi  uuid;
+  v_wi  arena.work_items;
+  v_key text := ledger.hash_text('voice:' || coalesce(p_idempotency_key, ''));
 begin
   perform ledger.require_read_committed();
   v := arena._lock_trial(p_trial);
@@ -300,57 +346,17 @@ begin
   end if;
   select * into v_t from arena.turns where trial_id = p_trial and idempotency_key = p_idempotency_key;
   if found then
-    if v_t.question is distinct from p_question then
+    if v_t.question is distinct from p_question or v_t.channel <> 'voice' then
       raise exception using errcode = 'AR003', message = 'idempotency key reused with a different question';
     end if;
-    select id into v_wi from arena.work_items
-     where trial_id = p_trial and kind = 'subject_answer' and turn_no = v_t.turn_no and status = 'open'
-     order by created_at desc limit 1;
-    return jsonb_build_object('turn_no', v_t.turn_no, 'transcript_version', v_t.question_version, 'work_item_id', v_wi);
+    select * into v_wi from arena.work_items where trial_id = p_trial and idempotency_key = v_key;
+    return jsonb_build_object('turn_no', v_t.turn_no, 'transcript_version', v_t.question_version, 'work_item_id', v_wi.id);
   end if;
-  v_res := arena._record_question(v, p_question, 'investigator', p_idempotency_key);
-  insert into arena.work_items (trial_id, kind, transcript_version, turn_no)
-    values (p_trial, 'subject_answer', (v_res ->> 'transcript_version')::integer, (v_res ->> 'turn_no')::smallint)
-    returning id into v_wi;
-  return v_res || jsonb_build_object('work_item_id', v_wi);
-end $$;
-
--- record_voice_fragment (arena_subject): append one transcript fragment of an open voice session.
-create or replace function training.record_voice_fragment(p_voice_session uuid, p_seq integer, p_speaker text, p_text text,
-                                                          p_partial boolean)
-returns void
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_status text;
-begin
-  select status into v_status from training.voice_sessions where id = p_voice_session for share;
-  if v_status is distinct from 'open' then
-    raise exception using errcode = 'AR001', message = 'voice session is not open';
-  end if;
-  insert into training.voice_fragments (voice_session_id, seq, speaker, text, partial)
-    values (p_voice_session, p_seq, p_speaker, p_text, coalesce(p_partial, false))
-    on conflict (voice_session_id, seq) do nothing;
-end $$;
-
--- record_voice_utterance (arena_subject): monotonic received and played sample counts.
-create or replace function training.record_voice_utterance(p_voice_session uuid, p_utterance integer, p_received integer,
-                                                           p_played integer, p_ended boolean)
-returns boolean
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_partial boolean;
-begin
-  if (select status from training.voice_sessions where id = p_voice_session for share) is distinct from 'open' then
-    raise exception using errcode = 'AR001', message = 'voice session is not open';
-  end if;
-  insert into training.voice_utterances (voice_session_id, utterance_no, received_samples, played_samples, ended)
-    values (p_voice_session, p_utterance, greatest(p_received, 0), greatest(p_played, 0), coalesce(p_ended, false))
-    on conflict (voice_session_id, utterance_no) do update
-      set received_samples = greatest(training.voice_utterances.received_samples, excluded.received_samples),
-          played_samples = greatest(training.voice_utterances.played_samples, excluded.played_samples),
-          ended = training.voice_utterances.ended or excluded.ended
-    returning partial into v_partial;
-  return v_partial;
+  v_res := arena._record_question(v, p_question, 'investigator', null, null, 'voice', p_idempotency_key);
+  insert into arena.work_items (trial_id, kind, transcript_version, turn_no, idempotency_key)
+    values (p_trial, 'subject_answer', (v_res ->> 'transcript_version')::integer, (v_res ->> 'turn_no')::smallint, v_key)
+    returning * into v_wi;
+  return v_res || jsonb_build_object('work_item_id', v_wi.id);
 end $$;
 
 -- Resume: arena-subject stores the Live handle and gets a token for the browser; arena-api redeems
@@ -429,8 +435,62 @@ begin
 end $$;
 
 -- -----------------------------------------------------------------------------
--- Projections for arena_public (the actor's own rows only)
+-- publish_debrief (arena_referee; D8, SG3-14, C-17): stores a session's debrief once, after its trial
+-- ended, and in the same transaction appends the persisted debrief_ready event, so readiness is never
+-- visible before the projection commits. A repeat with the same payload returns the stored one; a
+-- different payload is refused (one debrief per session). The referee validates the payload in code
+-- (debrief.v1) before calling; the table checks its envelope.
 -- -----------------------------------------------------------------------------
+create or replace function training.publish_debrief(p_session uuid, p_payload jsonb)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_s   training.sessions;
+  v     arena.trials;
+  v_d   training.debriefs;
+  v_seq integer;
+begin
+  perform ledger.require_read_committed();
+  select * into v_s from training.sessions where id = p_session;
+  if not found then
+    raise exception using errcode = 'AR001', message = 'session not found';
+  end if;
+  v := arena._lock_trial(v_s.trial_id);
+  if v.status not in ('finalized', 'terminated') then
+    raise exception using errcode = 'AR001', message = 'a debrief follows the end of the session';
+  end if;
+  if jsonb_typeof(p_payload) is distinct from 'object' or p_payload ->> 'schema' is distinct from 'debrief.v1'
+     or not (p_payload ?& array['schema', 'scored', 'outcome', 'resolution', 'rubric', 'scorecards', 'provenance'])
+     or jsonb_typeof(p_payload -> 'scored') is distinct from 'boolean' or octet_length(p_payload::text) > 65536 then
+    raise exception using errcode = 'AR007', message = 'debrief payload must be debrief.v1 with every key';
+  end if;
+  select * into v_d from training.debriefs where session_id = p_session;
+  if found then
+    if v_d.payload = p_payload then
+      return jsonb_build_object('outcome', 'exists', 'sha256', v_d.sha256,
+                                'seq', (select e.seq from arena.trial_events e where e.trial_id = v.id and e.kind = 'debrief_ready'));
+    end if;
+    raise exception using errcode = 'AR003', message = 'a session has one debrief';
+  end if;
+  insert into training.debriefs (session_id, payload) values (p_session, p_payload) returning * into v_d;
+  v_seq := arena._emit(v, 'debrief_ready', null, jsonb_build_object('session_id', p_session, 'sha256', v_d.sha256));
+  return jsonb_build_object('outcome', 'published', 'sha256', v_d.sha256, 'seq', v_seq);
+end $$;
+
+-- -----------------------------------------------------------------------------
+-- Projections for arena_public (the actor's own rows only, and the case library)
+-- -----------------------------------------------------------------------------
+-- The case library: development variants with public packets, no style column (C-22, C-26). Retired
+-- families are absent (SG1-11); kpi1_set marks a family that holds a KPI-1 case-set member, which the
+-- C-37 draw excludes for every user (X-08).
+create view arena.v_dev_cases with (security_barrier = true) as
+  select v.id as variant_id, f.family_code, f.domain, v.variant_code, v.difficulty, p.packet as public_packet,
+         exists (select 1 from training.case_set_members m join arena.case_variants mv on mv.id = m.variant_id
+                  where mv.family_id = f.id) as kpi1_set
+    from arena.case_variants v join arena.case_families f on f.id = v.family_id
+    join arena.public_packets p on p.variant_id = v.id
+   where f.split = 'dev' and not exists (select 1 from arena.family_retirements r where r.family_id = f.id);
+
 create view training.v_my_acknowledgements with (security_barrier = true) as
   select a.kind, a.acknowledged_at from training.acknowledgements a where a.user_id = arena.actor_id();
 
@@ -447,11 +507,30 @@ create view training.v_my_scores with (security_barrier = true) as
     join arena.trials t on t.id = s.trial_id
    where s.user_id = arena.actor_id() and t.status in ('finalized', 'terminated');
 
-create view training.v_my_voice_fragments with (security_barrier = true) as
-  select f.voice_session_id, f.seq, f.speaker, f.text, f.partial, f.created_at
-    from training.voice_fragments f join training.voice_sessions v on v.id = f.voice_session_id
-    join training.sessions s on s.id = v.session_id
+-- The actor's published debriefs (D8). Publication happens only after the session ended.
+create view training.v_my_debrief with (security_barrier = true) as
+  select d.session_id, d.payload, d.sha256, d.published_at
+    from training.debriefs d join training.sessions s on s.id = d.session_id
    where s.user_id = arena.actor_id();
+
+-- The actor's KPI-1 study state (SG3-13): counterbalance, ended sessions per phase, the two test sets
+-- and the variants already tested. GET /api/me and GET /api/cases read it; no other participant's row
+-- and no participant table is exposed.
+create view training.v_my_study with (security_barrier = true) as
+  select p.code, p.counterbalance,
+         (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
+           where s.participant_id = p.id and s.phase = 'pre' and t.status in ('finalized', 'terminated')) as pre_ended,
+         (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
+           where s.participant_id = p.id and s.phase = 'practice' and t.status in ('finalized', 'terminated')) as practice_ended,
+         (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
+           where s.participant_id = p.id and s.phase = 'post' and t.status in ('finalized', 'terminated')) as post_ended,
+         array(select m.variant_id from training.case_set_members m
+                where m.set_code = left(p.counterbalance, 1) order by m.variant_id) as pre_variant_ids,
+         array(select m.variant_id from training.case_set_members m
+                where m.set_code = right(p.counterbalance, 1) order by m.variant_id) as post_variant_ids,
+         array(select t.variant_id from training.sessions s join arena.trials t on t.id = s.trial_id
+                where s.participant_id = p.id and s.phase in ('pre', 'post') order by t.variant_id) as tested_variant_ids
+    from training.participants p where p.user_id = arena.actor_id();
 
 -- -----------------------------------------------------------------------------
 -- RLS and privileges
@@ -462,50 +541,49 @@ alter table training.sessions enable row level security;
 alter table training.rubric_scores enable row level security;
 alter table training.access_tickets enable row level security;
 alter table training.voice_sessions enable row level security;
-alter table training.voice_fragments enable row level security;
-alter table training.voice_utterances enable row level security;
 alter table training.voice_resumes enable row level security;
 alter table training.acknowledgements enable row level security;
+alter table training.debriefs enable row level security;
 
 revoke all on all tables in schema training from public, anon, authenticated, service_role,
   arena_public, arena_subject, arena_referee;
 revoke all on all functions in schema training from public, anon, authenticated, service_role,
   arena_public, arena_subject, arena_referee;
+revoke all on arena.v_dev_cases from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 
 grant usage on schema training to arena_public, arena_subject, arena_referee;
 
 grant execute on function
-  training.start_session(uuid, text, text, uuid, uuid, boolean, text),
+  training.start_session(uuid, text, uuid, uuid, boolean, text),
   training.issue_access_ticket(text, uuid),
   training.redeem_access_ticket(text, text),
   training.redeem_voice_resume(text),
   training.acknowledge(text)
   to arena_public;
-grant select on training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments,
-  training.v_my_acknowledgements to arena_public;
+grant select on arena.v_dev_cases, training.v_my_sessions, training.v_my_scores, training.v_my_debrief,
+  training.v_my_study, training.v_my_acknowledgements to arena_public;
 
 grant execute on function
   training.claim_voice_ticket(uuid, uuid, uuid, text),
   training.record_voice_question(uuid, uuid, text, text),
-  training.record_voice_fragment(uuid, integer, text, text, boolean),
-  training.record_voice_utterance(uuid, integer, integer, integer, boolean),
   training.issue_voice_resume(uuid, text),
   training.take_voice_handle(uuid)
   to arena_subject;
 
--- arena_referee: reads training rows except resume handles; writes participants, case sets, scores.
+-- arena_referee: reads training rows except resume handles; writes participants, case sets and scores
+-- directly, and debriefs only through publish_debrief.
 grant select on training.participants, training.case_set_members, training.sessions, training.rubric_scores,
-  training.access_tickets, training.voice_sessions, training.voice_fragments, training.voice_utterances,
-  training.acknowledgements, training.v_my_sessions, training.v_my_scores, training.v_my_voice_fragments,
-  training.v_my_acknowledgements
+  training.access_tickets, training.voice_sessions, training.acknowledgements, training.debriefs,
+  training.v_my_sessions, training.v_my_scores, training.v_my_debrief, training.v_my_study,
+  training.v_my_acknowledgements, arena.v_dev_cases
   to arena_referee;
 grant insert on training.participants, training.case_set_members, training.rubric_scores to arena_referee;
+grant execute on function training.publish_debrief(uuid, jsonb) to arena_referee;
 create policy participants_referee on training.participants for all to arena_referee using (true) with check (true);
 create policy case_set_members_referee on training.case_set_members for all to arena_referee using (true) with check (true);
 create policy rubric_scores_referee on training.rubric_scores for all to arena_referee using (true) with check (true);
 create policy sessions_referee on training.sessions for select to arena_referee using (true);
 create policy access_tickets_referee on training.access_tickets for select to arena_referee using (true);
 create policy voice_sessions_referee on training.voice_sessions for select to arena_referee using (true);
-create policy voice_fragments_referee on training.voice_fragments for select to arena_referee using (true);
-create policy voice_utterances_referee on training.voice_utterances for select to arena_referee using (true);
 create policy acknowledgements_referee on training.acknowledgements for select to arena_referee using (true);
+create policy debriefs_referee on training.debriefs for select to arena_referee using (true);

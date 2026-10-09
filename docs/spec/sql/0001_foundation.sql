@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0001_foundation.sql  (DRAFT v2, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0001_foundation.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Schemas, runtime roles, revoke-all, shared helpers, append-only trigger.
 -- Requirements: SCN-5, SCN-9, SCN-12, BKO-9, EVL-10, KPI-5 (isolation by construction).
 --
@@ -20,8 +20,7 @@
 --   AR001 wrong state            AR002 stale transcript version   AR003 work item / key mismatch
 --   AR004 no open question       AR005 not a requestable record   AR006 release limit
 --   AR007 invalid payload        AR010 append-only / immutable     AR020 reveal precondition
---   AR021 seal mismatch          AR030 budget overrun (receipt)    AR031 open child reservations
---   AR040 ticket refused
+--   AR021 seal mismatch          AR040 caller, ticket, quota or resume refused
 -- =============================================================================
 
 create extension if not exists pgcrypto with schema extensions;
@@ -54,12 +53,14 @@ create schema if not exists ops;       -- budget, prices, model calls, trace mir
 revoke all on schema arena, subject, sealed, ledger, training, ops
   from public, anon, authenticated, service_role;
 
-alter default privileges in schema arena, subject, sealed, ledger, training, ops
-  revoke execute on functions from public;
-alter default privileges in schema arena, subject, sealed, ledger, training, ops
-  revoke all on tables from public;
-alter default privileges in schema arena, subject, sealed, ledger, training, ops
-  revoke all on sequences from public;
+-- Default privileges (SG3-20). PostgreSQL gives PUBLIC EXECUTE on every new function, and a per-schema
+-- ALTER DEFAULT PRIVILEGES cannot subtract that global default (PostgreSQL 17 docs, ALTER DEFAULT
+-- PRIVILEGES). This global form covers every function the migration owner creates from now on, in any
+-- schema, so a helper added later is executable by no one until it is granted. PUBLIC has no default
+-- privilege on tables or sequences, so nothing else needs revoking; the capability test (S4 section 10)
+-- catches any grant that is not on the allowlist. Extensions the tests need (pgtap, dblink) are created
+-- before the migrations.
+alter default privileges revoke execute on functions from public;
 
 -- -----------------------------------------------------------------------------
 -- Money: numeric, never float. The CHECK rejects NaN (it compares greater than every

@@ -90,7 +90,7 @@
       }
     },
     "uncertainty": {
-      "description": "S2 uncertainty entries. Every ledger fact with certainty 'approximate' has exactly one entry.",
+      "description": "S2 uncertainty entries. Every ledger fact with certainty 'approximate' has exactly one entry. An entry takes the class of its fact: for a HOLD or CORE fact it applies only once that fact may be spoken about (S1 7.3).",
       "type": "array",
       "maxItems": 4,
       "items": { "$ref": "#/$defs/uncertaintyEntry" }

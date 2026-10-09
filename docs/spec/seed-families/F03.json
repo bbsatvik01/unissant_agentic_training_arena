@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F03",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Network room entry on another person's card",
@@ -478,7 +479,7 @@
     "truthful": {
       "case_id": "C-R6DJ3NWC",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-R6DJ3NWC",
         "domain": "facility_access",
@@ -1598,7 +1599,7 @@
     "deceptive": {
       "case_id": "C-PA8E5TKY",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-PA8E5TKY",
         "domain": "facility_access",

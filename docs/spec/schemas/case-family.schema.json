@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://unissant-arena.invalid/schemas/case-family.schema.json",
   "title": "Case family",
-  "description": "SCN-11, schema v1.1 (embeds public packets v1.1). The storage and sealing unit: one canonical event graph, one matched truthful and one deceptive variant, each with its three packets (SCN-7, SCN-8, SCN-9). The whole file is evaluator-tier. The loader splits it into arena.public_packets, subject.private_packets and sealed.evaluator_packets; nothing reads the file itself at runtime. Hidden-split files never enter the repository (SCN-12).",
+  "description": "SCN-11, schema v1.2 (embeds public packets v1.2; adds revision and four violation types, S1 v2.3). The storage and sealing unit: one canonical event graph, one matched truthful and one deceptive variant, each with its three packets (SCN-7, SCN-8, SCN-9). The whole file is evaluator-tier. The loader splits it into arena.public_packets, subject.private_packets and sealed.evaluator_packets; nothing reads the file itself at runtime. Hidden-split files never enter the repository (SCN-12).",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "family_id",
+    "revision",
     "split",
     "domain",
     "title",
@@ -20,10 +21,16 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "family_id": {
       "$ref": "evaluator-packet.schema.json#/$defs/familyId"
+    },
+    "revision": {
+      "description": "1 for the first ingested version. A development family changed after ingest is re-ingested as the next revision, with new case IDs, and the previous revision is retired (S1 8.6). Hidden families are never revised.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99
     },
     "split": {
       "enum": [
@@ -257,6 +264,9 @@
           "family_id": {
             "pattern": "^H[0-9a-f]{10}$"
           },
+          "revision": {
+            "const": 1
+          },
           "provenance": {
             "properties": {
               "method": {
@@ -274,6 +284,7 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "violationType": {
+      "description": "Catalog of 12 types (S1 8.1). A hidden split has at most 2 families per type, so a split of n families covers at least ceil(n/2) types (8 for n = 15, 9 for n = 17).",
       "enum": [
         "unauthorized_area_entry",
         "sealed_material_access",
@@ -282,7 +293,11 @@
         "badge_sharing",
         "spare_credential_misuse",
         "key_misuse",
-        "after_hours_property_removal"
+        "after_hours_property_removal",
+        "alarm_bypass",
+        "secured_door_propping",
+        "escort_duty_breach",
+        "access_record_alteration"
       ]
     },
     "misleadingType": {

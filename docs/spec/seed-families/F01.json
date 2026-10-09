@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F01",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Records vault entry during a busy shift",
@@ -682,7 +683,7 @@
     "truthful": {
       "case_id": "C-7Q2MXK4D",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-7Q2MXK4D",
         "domain": "facility_access",
@@ -1864,7 +1865,7 @@
               "target_fact_ids": [
                 "f:22"
               ],
-              "neutral_example": "What task required entry to B-12?"
+              "neutral_example": "What task required entry?"
             },
             {
               "id": "q:02",
@@ -1936,18 +1937,24 @@
         "turn_label_guide": [
           {
             "id": "l:01",
-            "situation": "Answers 'Why did you enter?' with 'It was a busy shift' or similar brief context.",
+            "situation": "Answers 'Why did you enter?' by giving the purpose: Ines sent him to the humidity alarm in B-12, with or without brief context such as the busy shift.",
             "label": "responsive",
-            "rationale": "The purpose is free to disclose and he gives it when asked specifically; this is terse style, not withholding. An assistant should flag it as non-responsive, not as possible evasion."
+            "rationale": "The purpose (f:22) is the information the question asks for, and he gives it. Context around it, such as the busy shift, does not change the label."
           },
           {
             "id": "l:02",
+            "situation": "Answers 'Why did you enter?' with only 'It was a busy shift' or similar context, without the purpose.",
+            "label": "evasion",
+            "rationale": "Labels follow content, not role: he knows the purpose (f:22) and does not give it, so the turn is evasion (appeal to routine), as in the deceptive variant. For this truthful subject it is also a disclosure-policy failure, scored as fidelity. The coach response is the same in both variants: flag the purpose as unanswered and ask what task required entry (EX-2)."
+          },
+          {
+            "id": "l:03",
             "situation": "Says he is not sure exactly when he left B-12 or whether his radio call went through.",
             "label": "genuine_uncertainty",
             "rationale": "Within uncertainty limits u:01 and u:02."
           },
           {
-            "id": "l:03",
+            "id": "l:04",
             "situation": "Gives a partial answer to a question that bundles the task, the door and the timing.",
             "label": "poorly_framed_question",
             "rationale": "Compound question; the partial answer reflects the question, not the subject."
@@ -1959,7 +1966,7 @@
     "deceptive": {
       "case_id": "C-H3N8RW5B",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-H3N8RW5B",
         "domain": "facility_access",
@@ -3237,7 +3244,7 @@
               "target_fact_ids": [
                 "f:44"
               ],
-              "neutral_example": "What task required entry to B-12?"
+              "neutral_example": "What task required entry?"
             },
             {
               "id": "q:02",

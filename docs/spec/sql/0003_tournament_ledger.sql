@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2.1, spec S4; applied only to throwaway local PostgreSQL 16 clusters)
+-- 0003_tournament_ledger.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -175,7 +175,10 @@ create table arena.trials (
   variant_id             uuid not null references arena.case_variants(id) on delete restrict,
   assistant_candidate_id uuid references arena.candidates(id) on delete restrict,
   subject_candidate_id   uuid references arena.candidates(id) on delete restrict,
-  source_trial_id        uuid references arena.trials(id) on delete restrict,   -- replay: the corpus transcript
+  -- replay: the corpus transcript. A replay trial owns its transcript: arena.advance_replay copies source turn n
+  -- (question, answer, and the releases made before that answer) into this trial as turn n with the same
+  -- record ids, so (source_trial_id, turn_no) and (source_trial_id, record_id) are the source references (D2).
+  source_trial_id        uuid references arena.trials(id) on delete restrict,
   mode                   text not null check (mode in ('practice', 'assessment', 'harness')),
   owner_user_id          uuid references auth.users(id) on delete restrict,
   status                 text not null default 'planned'
@@ -230,20 +233,36 @@ create trigger trials_split before insert on arena.trials
 create table arena.turns (
   trial_id         uuid not null references arena.trials(id) on delete restrict,
   turn_no          smallint not null check (turn_no between 1 and 12),
-  question         text not null check (length(question) between 1 and 2000),
-  question_source  text not null check (question_source in ('investigator', 'harness')),
+  question         text not null check (length(question) between 1 and 600),          -- D11: 600 characters
+  -- who asked (SG2-09; S3 1.3): the investigator (text or voice), or the harness with its fixed or scripted
+  -- question, a fallback question, or an assistant proposal it relayed
+  question_source  text not null check (question_source in ('investigator', 'harness_fixed', 'harness_fallback',
+                                                             'assistant_relay')),
+  -- harness relay outcome (S2 8.2): relayed, fallback_failed_test:<reason> or fallback_no_card; null otherwise
+  relay_outcome    text check (relay_outcome ~ '^(relayed|fallback_no_card|fallback_failed_test:[a-z0-9_]{1,40})$'),
+  -- the coach_card event (same trial, previous turn) whose proposal was relayed or failed the relay test
+  proposal_seq     integer,
+  channel          text not null default 'text' check (channel in ('text', 'voice')),
   question_version integer not null,
   idempotency_key  text not null check (length(idempotency_key) between 8 and 200),
   asked_at         timestamptz not null default now(),
-  answer           text check (length(answer) between 1 and 8000),
-  answer_partial   boolean not null default false,   -- voice: interrupted before fully played (F10)
+  answer           text check (length(answer) between 1 and 900),     -- S2 V1 and G7: 900 characters
+  answer_partial   boolean not null default false,   -- voice: Live reported the utterance interrupted
   answered_at      timestamptz,
   primary key (trial_id, turn_no),
   unique (trial_id, idempotency_key),
-  constraint turn_answer_shape check ((answer is null) = (answered_at is null))
+  constraint turn_answer_shape check ((answer is null) = (answered_at is null)),
+  constraint turn_origin_shape check (case question_source
+    when 'assistant_relay'  then relay_outcome = 'relayed' and proposal_seq is not null
+    when 'harness_fallback' then relay_outcome like 'fallback\_%'
+                                 and (proposal_seq is not null) = (relay_outcome like 'fallback\_failed\_test:%')
+    else relay_outcome is null and proposal_seq is null
+  end),
+  constraint turn_voice_shape check (channel = 'text' or question_source = 'investigator')
 );
 
--- Turns are append-only except that the answer is written once.
+-- Turns are append-only except that the answer (with its partial flag and time) is written once; every
+-- other column is immutable.
 create or replace function arena.tg_turn_answer_once() returns trigger
 language plpgsql set search_path = '' as $$
 begin
@@ -251,9 +270,8 @@ begin
     raise exception using errcode = 'AR010', message = 'arena.turns is append-only (DELETE refused)';
   end if;
   if old.answer is not null
-     or (new.trial_id, new.turn_no, new.question, new.question_source, new.question_version, new.idempotency_key, new.asked_at)
-        is distinct from (old.trial_id, old.turn_no, old.question, old.question_source, old.question_version, old.idempotency_key,
-                          old.asked_at) then
+     or (to_jsonb(new) - array['answer', 'answer_partial', 'answered_at'])
+        is distinct from (to_jsonb(old) - array['answer', 'answer_partial', 'answered_at']) then
     raise exception using errcode = 'AR010', message = 'a turn''s question is immutable and its answer is written once';
   end if;
   return new;
@@ -267,10 +285,11 @@ create table arena.released_evidence (
   release_seq              smallint not null check (release_seq between 1 and 6),
   released_after_exchanges smallint not null check (released_after_exchanges between 0 and 12),
   kind                     text not null,
-  doc_kind                 text,                    -- copied from sealed.evidence_artifacts (C-24)
+  doc_kind                 text not null,           -- copied from sealed.evidence_artifacts (C-24)
   title                    text not null,
   content                  jsonb not null,
-  content_sha256           text not null check (content_sha256 ~ '^[0-9a-f]{64}$'),
+  -- derived, never supplied (SG3-08); commitments recompute it from content anyway
+  content_sha256           text not null generated always as (ledger.hash_jsonb(content)) stored,
   released_at              timestamptz not null default now(),
   event_seq                bigint not null references ledger.events(seq) on delete restrict,
   primary key (trial_id, record_id),
@@ -279,14 +298,18 @@ create table arena.released_evidence (
 create trigger released_evidence_append_only before update or delete on arena.released_evidence
   for each row execute function arena.tg_forbid_mutation();
 
--- Work items (F07): server-created, bound to the transcript version current at creation.
+-- Work items (F07, D3): server-created, one per step (release, subject answer, coach card, deep update,
+-- final finding, failure, replay turn), bound to the transcript version current at creation. The caller's
+-- request key (a hash of trial, turn, step kind and purpose) is idempotency_key: open_work_item with a
+-- repeated key returns the same item and its stored result, so a restarted orchestrator resumes.
 create table arena.work_items (
   id                 uuid primary key default gen_random_uuid(),
   trial_id           uuid not null references arena.trials(id) on delete restrict,
-  kind               text not null check (kind in ('subject_answer', 'release', 'coaching', 'finalize', 'failure')),
+  kind               text not null check (kind in ('subject_answer', 'release', 'coaching', 'finalize', 'failure',
+                                                   'replay_turn')),
   transcript_version integer not null,
   turn_no            smallint not null,
-  idempotency_key    text check (length(idempotency_key) between 8 and 200),
+  idempotency_key    text not null check (length(idempotency_key) between 8 and 200),
   request_sha256     text check (request_sha256 ~ '^[0-9a-f]{64}$'),
   status             text not null default 'open' check (status in ('open', 'done')),
   result             jsonb,
@@ -316,8 +339,9 @@ create trigger work_items_once before update or delete on arena.work_items
 -- visibility: live (stream now), debrief (stream after the trial ends: assessment coaching),
 -- internal (tournament trials: never streamed; readable in projections after reveal or on dev).
 -- Persisted kinds only; arena_core/events/projections.py maps them to S6 wire names and synthesizes
--- snapshot, notice, subject.thinking and coach.working (C-17). debrief_ready is written by the
--- referee (arena.record_debrief_ready) once a training trial's debrief scores exist.
+-- notice, subject.thinking and coach.working (C-17). debrief_ready is written by training.publish_debrief
+-- (arena_referee) in the transaction that stores the debrief (D8). A payload is at most 14,336 bytes
+-- serialized, so every SSE delta with its envelope stays under 16 KiB (D9).
 create table arena.trial_events (
   trial_id           uuid not null references arena.trials(id) on delete restrict,
   seq                integer not null check (seq >= 1),
@@ -329,24 +353,27 @@ create table arena.trial_events (
   turn_no            smallint not null,
   work_item_id       uuid unique references arena.work_items(id) on delete restrict,   -- coach events only
   candidate_id       uuid references arena.candidates(id) on delete restrict,
-  -- coach events: the complete card (direction 6.1; AST-1..8). Other kinds: ids, text and states only.
-  payload            jsonb not null check (jsonb_typeof(payload) = 'object' and pg_column_size(payload) <= 16384),
+  -- coach events: the complete stored card (direction 6.1; AST-1..8). Other kinds: ids, text and states only.
+  payload            jsonb not null check (jsonb_typeof(payload) = 'object' and octet_length(payload::text) <= 14336),
   created_at         timestamptz not null default clock_timestamp(),
   primary key (trial_id, seq)
 );
 create trigger trial_events_append_only before update or delete on arena.trial_events
   for each row execute function arena.tg_forbid_mutation();
+alter table arena.turns add constraint turns_proposal_fk foreign key (trial_id, proposal_seq)
+  references arena.trial_events (trial_id, seq) on delete restrict;
 
--- One Finding object for assistants and investigators (C-27): S2 $defs.Finding plus the derived
--- cited_turns and cited_records and optional alternative_explanations. classification holds the
--- Finding's label; likelihood is the ICD 203 term; confidence is the analytic confidence.
+-- One Finding object for assistants and investigators (C-27, D5): S2 $defs.Finding (label, likelihood,
+-- confidence, basis_flag_refs, corroboration_needed, rationale of at most 600 characters) plus cited_turns
+-- and cited_records and optional alternative_explanations. classification holds the Finding's label;
+-- likelihood is the ICD 203 term; confidence is the analytic confidence.
 create table arena.final_findings (
   trial_id       uuid primary key references arena.trials(id) on delete restrict,
   classification text not null check (classification in ('deceptive', 'truthful', 'insufficient_evidence')),
   likelihood     text not null check (likelihood in ('almost_no_chance', 'very_unlikely', 'unlikely', 'roughly_even_chance',
                                                      'likely', 'very_likely', 'almost_certain')),
   confidence     text not null check (confidence in ('low', 'moderate', 'high')),
-  finding        jsonb not null check (jsonb_typeof(finding) = 'object' and pg_column_size(finding) <= 16384),
+  finding        jsonb not null check (jsonb_typeof(finding) = 'object' and octet_length(finding::text) <= 8192),
   committed_at   timestamptz not null default now()
 );
 create trigger final_findings_append_only before update or delete on arena.final_findings
@@ -401,7 +428,8 @@ create table sealed.independent_labels (
   label         text not null check (label in ('evasion', 'genuine_uncertainty', 'legitimate_non_disclosure',
                                                 'poorly_framed_question', 'responsive')),
   compliant     boolean not null,            -- subject fidelity: obeys packet and canonical facts
-  rationale     text not null check (length(rationale) between 1 and 4000),
+  -- R1's evidence_quote; empty when the label needs no quote or the quote check failed (SG2-08)
+  rationale     text not null check (length(rationale) <= 4000),
   prompt_sha256 text check (prompt_sha256 ~ '^[0-9a-f]{64}$'),
   created_at    timestamptz not null default now(),
   primary key (trial_id, turn_no, labeler)
@@ -416,8 +444,11 @@ create table sealed.judgments (
   trial_id      uuid not null references arena.trials(id) on delete restrict,
   kind          text not null check (kind in ('flag_support', 'questioning_quality', 'fidelity_detail', 'calibration')),
   rater_id      text check (rater_id ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'),   -- calibration rows only
-  payload       jsonb not null check (jsonb_typeof(payload) = 'object' and pg_column_size(payload) <= 65536),
+  payload       jsonb not null check (jsonb_typeof(payload) = 'object' and octet_length(payload::text) <= 65536),
   prompt_sha256 text check (prompt_sha256 ~ '^[0-9a-f]{64}$'),
+  -- referee stage key (D3, D8), for example '<trial or session>:r3_subject': an interrupted R1, R2 or R3
+  -- stage re-runs and inserts with ON CONFLICT DO NOTHING, so no stage is stored twice
+  idempotency_key text unique check (length(idempotency_key) between 8 and 200),
   created_at    timestamptz not null default now(),
   constraint judgment_rater_shape check ((kind = 'calibration') = (rater_id is not null))
 );
@@ -546,20 +577,19 @@ create table arena.leaderboards (
 create trigger leaderboards_append_only before update or delete on arena.leaderboards
   for each row execute function arena.tg_forbid_mutation();
 
+-- Scores and leaderboards bind to a revealed tournament's own manifest. The leaderboard label rule is a
+-- separate trigger: arena.scores has no label column, and PL/pgSQL resolves NEW.label when it prepares an
+-- expression, before any short-circuit (SG3-01, reproduced on PostgreSQL 17.11).
 create or replace function arena.tg_bound_to_revealed_manifest() returns trigger
 language plpgsql set search_path = '' as $$
 declare
-  v_status  text;
-  v_mt      uuid;
-  v_version integer;
+  v_status text;
+  v_mt     uuid;
 begin
   select status into v_status from arena.tournaments where id = new.tournament_id;
-  select tournament_id, version into v_mt, v_version from ledger.inclusion_manifests where id = new.manifest_id;
-  if v_status <> 'revealed' or v_mt is distinct from new.tournament_id then
+  select tournament_id into v_mt from ledger.inclusion_manifests where id = new.manifest_id;
+  if v_status is distinct from 'revealed' or v_mt is distinct from new.tournament_id then
     raise exception using errcode = 'AR020', message = 'scores and leaderboards need a revealed tournament and its own manifest';
-  end if;
-  if tg_table_name = 'leaderboards' and (new.label = 'original') <> (v_version = 1) then
-    raise exception using errcode = 'AR020', message = 'only the manifest sealed at reveal yields the original leaderboard';
   end if;
   return new;
 end $$;
@@ -567,6 +597,19 @@ create trigger scores_revealed before insert on arena.scores
   for each row execute function arena.tg_bound_to_revealed_manifest();
 create trigger leaderboards_revealed before insert on arena.leaderboards
   for each row execute function arena.tg_bound_to_revealed_manifest();
+
+-- original boards only on manifest version 1, corrected boards only on later versions (RV-16)
+create or replace function arena.tg_leaderboard_label() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if (new.label = 'original') is distinct from
+     ((select m.version from ledger.inclusion_manifests m where m.id = new.manifest_id) = 1) then
+    raise exception using errcode = 'AR020', message = 'only the manifest sealed at reveal yields the original leaderboard';
+  end if;
+  return new;
+end $$;
+create trigger leaderboards_label before insert on arena.leaderboards
+  for each row execute function arena.tg_leaderboard_label();
 
 create table arena.isolation_checks (
   id           uuid primary key default gen_random_uuid(),
@@ -659,6 +702,9 @@ begin
   -- non-replay rows first so replay rows can reference their corpus row by position
   for r in select x from jsonb_array_elements(p_rows) x order by (x ->> 'track' = 'replay'), (x ->> 'position')::integer loop
     select v.family_id into v_fam from arena.case_variants v where v.id = (r ->> 'variant_id')::uuid;
+    if exists (select 1 from arena.family_retirements fr where fr.family_id = v_fam) then
+      raise exception using errcode = 'AR007', message = 'a retired family takes no new trials (SG1-11)';
+    end if;
     v_block := null;
     if r ? 'block_no' and r ->> 'block_no' is not null then
       insert into arena.blocks (tournament_id, block_no, family_id)
