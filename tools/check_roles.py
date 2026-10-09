@@ -36,8 +36,9 @@ data boundary, as S5's threat model states.
      `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and builds no frame);
      product code may not import that export module, which hands out every wire type. Absolute and relative
      imports both resolve. An undecorated function's annotations stay free, so a function may accept or return
-     a frame it never builds; a decorated function's annotations (a decorator such as `validate_call` or a
-     route decorator may build them from raw data), a class-body annotation (a field, built when the class is
+     a frame it never builds, and so do a function's local annotations; a decorated function's annotations (a
+     decorator such as `validate_call` or a route decorator may build them from raw data), any annotation
+     outside a function (a class field, at any depth of the class body's blocks, is built when the class is
      validated) and a call inside any annotation are value uses.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
@@ -290,23 +291,34 @@ def _signature_annotations(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[a
     return found
 
 
+def _local_annotations(node: ast.AST, in_function: bool, out: list[ast.AST]) -> None:
+    """Collect the annotations of annotated assignments whose nearest enclosing scope is a function, at any
+    depth of control flow (`if`, `for`, `with`, `try`, `match` blocks do not open a scope)."""
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
+            _local_annotations(child, in_function=True, out=out)
+        elif isinstance(child, ast.ClassDef):
+            _local_annotations(child, in_function=False, out=out)
+        else:
+            if in_function and isinstance(child, ast.AnnAssign):
+                out.append(child.annotation)
+            _local_annotations(child, in_function, out)
+
+
 def _annotation_nodes(tree: ast.AST) -> set[int]:
     """ids of the nodes of the type annotations the rule leaves free: an undecorated function's parameters and
-    return, and an annotated assignment outside a class body; never the nodes of a call inside one
+    return, and a function's local annotated assignments; never the nodes of a call inside one
     (`def f(x: NoticeFrame(v=1))` runs that call when the function is defined).
 
     Not free: a decorated function's annotations, because a decorator may read them at run time and build
-    the values (`@validate_call`, a web framework's route decorator, under any alias); and a class-body
-    annotation, which is a field (validating the class builds its value)."""
-    fields = {
-        id(s) for c in ast.walk(tree) if isinstance(c, ast.ClassDef) for s in c.body if isinstance(s, ast.AnnAssign)
-    }
+    the values (`@validate_call`, a web framework's route decorator, under any alias); and every annotation
+    outside a function (a class field, however deeply nested in the class body's blocks, is built when the
+    class is validated; a module annotation has no reason to name a frame)."""
     roots: list[ast.AST] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.decorator_list:
             roots.extend(_signature_annotations(node))
-        elif isinstance(node, ast.AnnAssign) and id(node) not in fields:
-            roots.append(node.annotation)
+    _local_annotations(tree, in_function=False, out=roots)
     inside = {id(n) for root in roots for n in ast.walk(root)}
     calls = {id(n) for root in roots for c in ast.walk(root) if isinstance(c, ast.Call) for n in ast.walk(c)}
     return inside - calls

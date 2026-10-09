@@ -246,6 +246,16 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
         "from arena_core.contracts.events import NoticeFrame\n"
         "\n\nclass W(BaseModel):\n    f: \"dict[str, 'NoticeFrame']\"\n",
         'from arena_core.contracts import events\n\n\nclass W(BaseModel):\n    f: "events.NoticeFrame"\n',
+        # a field inside a block of the class body is still a field
+        "from arena_core.contracts.events import NoticeFrame\n\n\n"
+        "class W(BaseModel):\n    if FLAG:\n        f: NoticeFrame\n",
+        "from arena_core.contracts.events import NoticeFrame\n\n\n"
+        "class W(BaseModel):\n    try:\n        f: NoticeFrame\n    except KeyError:\n        raise\n",
+        # a class defined inside a function is a class: its fields are built too
+        "from arena_core.contracts.events import NoticeFrame\n\n\ndef make() -> None:\n    class W(BaseModel):\n"
+        "        f: NoticeFrame\n",
+        # a module-level annotation has no reason to name a frame
+        "from arena_core.contracts.events import NoticeFrame\n\nCURRENT: NoticeFrame\n",
         # a model field annotated with a frame is built by the model's validation
         "from arena_core.contracts.events import NoticeFrame\n\n\nclass Wrapper(BaseModel):\n    frame: NoticeFrame\n",
     ],
@@ -310,7 +320,8 @@ def test_the_projection_and_annotations_may_name_frame_models() -> None:
     assert frame_rules(lint.FRAME_SOURCE, build) == []
     annotated = (
         "from arena_core.contracts.events import TrialFrame\n\n"
-        "def send(frame: TrialFrame) -> TrialFrame:\n    last: TrialFrame = frame\n    return last\n"
+        "def send(frame: TrialFrame) -> TrialFrame:\n    last: TrialFrame = frame\n"
+        "    if frame:\n        again: TrialFrame = last\n    return last\n"
     )
     assert frame_rules(ARENA_API_FILE, annotated) == []
     assert frame_rules("packages/core/tests/contracts/test_x.py", build) == []
