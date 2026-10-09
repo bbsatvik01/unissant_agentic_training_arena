@@ -19,7 +19,6 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import AfterValidator, Field, StringConstraints, model_validator
 
-from arena_core.agents.untrusted import ANSWER_MAX_BYTES, check_question, check_rendered
 from arena_core.contracts.coaching import StoredDeepUpdate, StoredFlag
 from arena_core.contracts.common import (
     MAX_TURNS,
@@ -31,6 +30,7 @@ from arena_core.contracts.common import (
     TurnNo,
 )
 from arena_core.contracts.findings import StoredFinding
+from arena_core.contracts.rendered import check_answer, check_question
 
 Text = Annotated[str, StringConstraints(min_length=1, max_length=4096)]
 Cell = Annotated[str, StringConstraints(max_length=400)]
@@ -38,7 +38,7 @@ DocId = Annotated[str, StringConstraints(pattern=r"^doc-0[1-4]$")]
 # Investigator questions: 600 characters and 1,800 normalized bytes (D11, `untrusted.check_question`).
 Question = Annotated[str, StringConstraints(min_length=1, max_length=600), AfterValidator(check_question)]
 # A subject answer as rendered: 1,800 normalized bytes (S2 6.8 V1 bounds the raw text; NFKC may expand it).
-RenderedAnswer = Annotated[Answer, AfterValidator(lambda a: check_rendered(a, ANSWER_MAX_BYTES, "answer"))]
+RenderedAnswer = Annotated[Answer, AfterValidator(check_answer)]
 
 
 class Table(Contract):

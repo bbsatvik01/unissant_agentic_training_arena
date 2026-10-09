@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from functools import cache
 from typing import Any, Literal
 
 from arena_core.agents.coach_prompts import Prompt, build_coach_prompt
@@ -43,7 +44,9 @@ from arena_core.agents.rubric import Rubric
 from arena_core.agents.subject_prompts import SubjectPacket, SubjectTurnState, build_subject_prompt
 from arena_core.agents.untrusted import QUESTION_MAX_BYTES
 from arena_core.agents.views import (
+    CoachCall,
     EarlierOutput,
+    PublicCase,
     PublicTrialView,
     TranscriptTurn,
     public_case,
@@ -157,16 +160,21 @@ def _flags(cards: int) -> list[StoredFlag]:
     ]
 
 
-def _deep() -> StoredDeepUpdate:
+def _deep(as_of: int) -> StoredDeepUpdate:
+    last_four = [f"t{t:02d}" for t in range(as_of - 3, as_of + 1)]
     return StoredDeepUpdate(
         schema_version="deep.v1",
-        as_of_turn="t11",
-        finding=_finding(MAX_TURNS - 1),
+        as_of_turn=f"t{as_of:02d}",
+        finding=_finding(as_of),
         evidence_coverage=[
-            CoverageEntry(record_id=f"rec-0{k}", status="conflicts_with_account", turn_ids=["t08", "t09", "t10", "t11"])
+            CoverageEntry(
+                record_id=f"rec-0{k}",
+                status="conflicts_with_account",
+                turn_ids=last_four,
+            )
             for k in range(1, 7)
         ],
-        open_gaps=[OpenGap(missing_fact=fill(240), first_seen_turn="t11") for _ in range(4)],
+        open_gaps=[OpenGap(missing_fact=fill(240), first_seen_turn=f"t{as_of:02d}") for _ in range(4)],
         disclosure_plan=DisclosurePlan(record_id="rec-06", step="evidence_source_vague"),
     )
 
@@ -199,23 +207,41 @@ def _triggers() -> list[TriggerEntry]:
 # ---------------------------------------------------------------- per call kind
 
 
+def worst_view(case: PublicCase, variant: Mapping[str, Any], call: CoachCall) -> PublicTrialView:
+    """The largest coach input at exchange 12. A card sees the 11 earlier cards; the deep update and the final
+    finding also see card 12's flags and finding (S2 4.6, 4.7)."""
+    seen = MAX_TURNS - 1 if call == "card" else MAX_TURNS
+    return PublicTrialView(
+        call=call,
+        case=case,
+        released=_released(variant, MAX_TURNS - 1),
+        transcript=_turns(MAX_TURNS),
+        earlier=EarlierOutput(running_finding=_finding(seen), flags=_flags(seen), deep_update=_deep(seen)),
+        exchange=MAX_TURNS,
+    )
+
+
+@cache
+def _official(kind: str) -> tuple[PromptSet, ...]:
+    """The official candidates' verified prompts (read and hashed once per process)."""
+    return tuple(load_prompts(m) for m in official_manifests().values() if m.kind == kind)
+
+
+@cache
+def _referee() -> PromptSet:
+    return load_prompts(with_hash(referee_manifest()))
+
+
 def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
     """Worst-case request bytes (before the repair allowance) for every call kind on one variant, the largest over
     the official candidates of that kind."""
     variant = family["variants"][role]
     case = public_case(variant["public_packet"])
     sizes: dict[str, int] = {}
-    coaches = [load_prompts(m) for m in official_manifests().values() if m.kind == "assistant"]
-    subjects = [load_prompts(m) for m in official_manifests().values() if m.kind == "subject"]
+    coaches = _official("assistant")
+    subjects = _official("subject")
     for call in ("card", "deep", "final"):
-        view = PublicTrialView(
-            call=call,
-            case=case,
-            released=_released(variant, MAX_TURNS - 1),
-            transcript=_turns(MAX_TURNS),
-            earlier=EarlierOutput(running_finding=_finding(MAX_TURNS - 1), flags=_flags(11), deep_update=_deep()),
-            exchange=MAX_TURNS,
-        )
+        view = worst_view(case, variant, call)
         sizes[call] = max(
             _sized(p, call, build_coach_prompt(view, p, call, salt=SALT))
             for p in coaches
@@ -231,7 +257,7 @@ def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
         first_disclosed={f.id: 1 for f in packet.facts},
     )
     sizes["subject"] = max(_sized(p, "subject", build_subject_prompt(packet, state, p, salt=SALT)) for p in subjects)
-    referee = load_prompts(with_hash(referee_manifest()))
+    referee = _referee()
     r1 = RefereeSubjectInput(
         canonical_facts=[
             CanonicalFact(id=f["id"], statement=f["statement"]) for f in variant["evaluator_packet"]["canonical_facts"]

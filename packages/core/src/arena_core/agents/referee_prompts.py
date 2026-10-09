@@ -56,6 +56,7 @@ from arena_core.contracts.common import (
 )
 from arena_core.contracts.findings import Finding, StoredFinding
 from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS
+from arena_core.contracts.rendered import rendered_overruns
 from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
 
 # ICD 203 terms and ranges (S2 4.2), rendered for the finding projection; the model never types numbers.
@@ -103,6 +104,13 @@ class FindingProjection(Contract):
     rationale: Rationale
     corroboration_needed: Annotated[list[Corroboration], Field(max_length=3)]
     alternative_explanations: Annotated[list[AlternativeExplanation], Field(max_length=3)]
+
+    @model_validator(mode="after")
+    def _rendered(self) -> Self:
+        overruns = rendered_overruns(self)
+        if overruns:
+            raise ValueError("; ".join(overruns))
+        return self
 
     @classmethod
     def of(cls, finding: StoredFinding | Finding, alternatives: list[str] | None = None) -> FindingProjection:

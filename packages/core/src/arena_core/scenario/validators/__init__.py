@@ -12,6 +12,7 @@ from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from arena_core.agents.budget import over_limit
 from arena_core.scenario.difficulty import compute_knobs
 from arena_core.scenario.validators._common import Family, Issue
 from arena_core.scenario.validators.v1 import check_real_agencies, check_relay, check_schema, check_storage
@@ -46,7 +47,20 @@ def validate_family(family: object) -> list[Issue]:
         *check_invariance(valid),
         *check_lexical(valid),
         *check_guard_vocabulary(valid),
+        *check_context(valid),
     ]
+
+
+def check_context(family: Family) -> list[Issue]:
+    """V1d.context (S2 2, O-10; D-014): every call kind, rendered with S2's prompt builders at the input caps,
+    fits its input limit with the repair allowance (`arena_core.agents.budget`). A family that does not fit goes
+    back to its author."""
+    fid = str(family.get("family_id"))
+    try:
+        problems = over_limit(family)
+    except ValueError as exc:
+        return [Issue("V1d.context", f"the family cannot be rendered by the S2 builders ({type(exc).__name__})", fid)]
+    return [Issue("V1d.context", p, fid, p.split(" ", 1)[0]) for p in problems]
 
 
 def validate_split(families: Sequence[Family]) -> list[Issue]:
