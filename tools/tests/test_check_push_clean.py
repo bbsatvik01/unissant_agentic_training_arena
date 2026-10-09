@@ -103,7 +103,7 @@ def test_a_file_renamed_into_hidden_cases_then_deleted_fails(tmp_path: Path) -> 
     git_commit_all(tmp_path, "move into hidden")
     (tmp_path / "cases" / "hidden" / "F10.json").unlink()
     git_commit_all(tmp_path, "delete")
-    assert pc.history_paths(tmp_path, "main") == ["cases/hidden/F10.json", "notes.json"]
+    assert [path for path, _ in pc.history_entries(tmp_path, "main")] == ["cases/hidden/F10.json", "notes.json"]
     assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
 
 
@@ -120,7 +120,54 @@ def test_a_non_ascii_path_in_history_is_read_unquoted(tmp_path: Path) -> None:
     git_commit_all(tmp_path, "add")
     hidden.unlink()
     git_commit_all(tmp_path, "delete")
-    assert pc.history_paths(tmp_path, "main") == ["cases/hidden/caf\u00e9.json"]
+    assert [path for path, _ in pc.history_entries(tmp_path, "main")] == ["cases/hidden/caf\u00e9.json"]
+    assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
+
+
+def _feature_branch(root: Path) -> None:
+    git_init(root)
+    (root / "ok.py").write_text("x = 1\n")
+    git_commit_all(root, "base")
+    proc.run("git", ["-C", str(root), "checkout", "-q", "-b", "feature"], check=True)
+
+
+@pytest.mark.gateproof
+def test_an_oversized_file_committed_then_deleted_fails(tmp_path: Path) -> None:
+    """Codex round 3, finding 2: history paths were checked with size 0, so the pushed blob escaped the cap."""
+    _feature_branch(tmp_path)
+    (tmp_path / "big.bin").write_bytes(b"\0" * (pc.MAX_BYTES + 1))
+    git_commit_all(tmp_path, "add big")
+    (tmp_path / "big.bin").unlink()
+    git_commit_all(tmp_path, "delete big")
+    assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
+    assert pc.main(["--root", str(tmp_path), "--base", "feature"]) == 0
+
+
+@pytest.mark.gateproof
+def test_a_file_grown_past_the_cap_then_shrunk_fails(tmp_path: Path) -> None:
+    _feature_branch(tmp_path)
+    (tmp_path / "data.bin").write_bytes(b"small")
+    git_commit_all(tmp_path, "add small")
+    (tmp_path / "data.bin").write_bytes(b"\0" * (pc.MAX_BYTES + 1))
+    git_commit_all(tmp_path, "grow")
+    (tmp_path / "data.bin").write_bytes(b"small again")
+    git_commit_all(tmp_path, "shrink")
+    assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
+
+
+@pytest.mark.gateproof
+def test_a_home_path_committed_then_removed_fails(tmp_path: Path) -> None:
+    _feature_branch(tmp_path)
+    (tmp_path / "cfg.py").write_text('ROOT = "/' + 'Users/someone/project"\n')
+    git_commit_all(tmp_path, "add home path")
+    (tmp_path / "cfg.py").write_text('ROOT = "."\n')
+    git_commit_all(tmp_path, "fix")
+    (tmp_path / "ok.py").write_text('ROOT = "/' + 'home/someone/x"\n')
+    git_commit_all(tmp_path, "modify an existing file")
+    (tmp_path / "ok.py").write_text("x = 1\n")
+    git_commit_all(tmp_path, "revert")
+    errors = pc.check({}, pc.history_blobs(tmp_path, "main"))
+    assert [e.split(": absolute")[0] for e in errors] == ["cfg.py:1", "ok.py:1"], errors
     assert pc.main(["--root", str(tmp_path), "--base", "main"]) == 1
 
 

@@ -23,6 +23,7 @@ FIRST = dict(reversed(SEEDED))  # first seeded line per marker id
 NOQA = FIRST["noqa"]
 TYPE_IGNORE = FIRST["type-ignore"]
 CONTINUE = FIRST["continue-on-error"]
+APPROVED = f"run(argv)  {NOQA.split('  ', 1)[1].replace('E501', 'S603')}"  # one allowlisted line
 
 
 MARKERS = nr.load_markers((REPO_ROOT / nr.MARKERS_PATH).read_text())
@@ -45,18 +46,39 @@ def test_each_forbidden_marker_is_caught(tmp_path: Path, marker: str, line: str)
 
 
 def test_allowance_covers_only_its_file_marker_and_line(tmp_path: Path) -> None:
-    body = f"run(argv)  {NOQA.split('  ', 1)[1].replace('E501', 'S603')}\n{NOQA}\n"
+    body = f"    {APPROVED}\n{NOQA}\n"
     for name in ("a.py", "b.py"):
         (tmp_path / name).write_text(body)
-    errors = nr.check(["a.py", "b.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", "S603")], MARKERS)
+    errors = nr.check(["a.py", "b.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", APPROVED)], MARKERS)
     assert [e.split(": forbidden")[0] for e in errors] == ["a.py:2", "b.py:1", "b.py:2"]
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "edited",
+    [
+        APPROVED + ", F821",
+        f"{APPROVED}  {TYPE_IGNORE.split('  ', 1)[1]}",
+        APPROVED.replace(": S603", ""),
+        "x = 0; " + APPROVED,
+    ],
+)
+def test_an_allowance_covers_only_its_exact_line(tmp_path: Path, edited: str) -> None:
+    """Codex round 3, finding 1: a substring match let `S603` widen to `S603, F821` (or gain a second
+    directive) under the unchanged allowlist entry. The entry now names the whole line."""
+    (tmp_path / "a.py").write_text(edited + "\n")
+    errors = nr.check(["a.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", APPROVED)], MARKERS)
+    assert any(e.startswith("a.py:1: forbidden suppression [noqa]") for e in errors), errors
+    assert any("stale allowlist entry" in e for e in errors), errors
+    (tmp_path / "a.py").write_text(APPROVED + "\n")
+    assert nr.check(["a.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", APPROVED)], MARKERS) == []
 
 
 @pytest.mark.gateproof
 def test_stale_allowance_fails(tmp_path: Path) -> None:
     (tmp_path / "a.py").write_text("x = 1\n")
-    errors = nr.check(["a.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", "S603")], MARKERS)
-    assert errors == ["a.py: stale allowlist entry [noqa] 'S603' matches nothing"]
+    errors = nr.check(["a.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", APPROVED)], MARKERS)
+    assert errors == [f"a.py: stale allowlist entry [noqa] {APPROVED!r} matches nothing"]
 
 
 def test_makefile_and_hooks_are_scanned_but_images_are_not(tmp_path: Path) -> None:
@@ -71,12 +93,13 @@ def test_non_utf8_file_fails_closed(tmp_path: Path) -> None:
 
 
 def test_allowlist_requires_match_reason_and_known_marker() -> None:
-    good = '[[allow]]\npath="a"\nmarker="noqa"\nmatch="S603"\nreason="verified"\n'
-    assert nr.load_allowlist(good, MARKERS) == [nr.Allowance("a", "noqa", "S603")]
+    good = '[[allow]]\npath="a"\nmarker="noqa"\nline="  run(argv)  "\nreason="verified"\n'
+    assert nr.load_allowlist(good, MARKERS) == [nr.Allowance("a", "noqa", "run(argv)")]
     for bad, problem in (
-        ('[[allow]]\npath="a"\nmarker="noqa"\nreason="verified"\n', "match"),
-        ('[[allow]]\npath="a"\nmarker="noqa"\nmatch="x"\nreason=" "\n', "reason"),
-        ('[[allow]]\npath="a"\nmarker="whatever"\nmatch="x"\nreason="r"\n', "unknown marker"),
+        ('[[allow]]\npath="a"\nmarker="noqa"\nreason="verified"\n', "line"),
+        ('[[allow]]\npath="a"\nmarker="noqa"\nmatch="x"\nreason="verified"\n', "line"),
+        ('[[allow]]\npath="a"\nmarker="noqa"\nline="x"\nreason=" "\n', "reason"),
+        ('[[allow]]\npath="a"\nmarker="whatever"\nline="x"\nreason="r"\n', "unknown marker"),
     ):
         with pytest.raises(ValueError, match=problem):
             nr.load_allowlist(bad, MARKERS)

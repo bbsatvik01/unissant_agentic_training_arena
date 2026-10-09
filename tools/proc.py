@@ -82,21 +82,32 @@ def index_files(root: Path) -> list[str]:
     return sorted({p for p in listed.stdout.split("\0") if p})
 
 
-def index_blobs(root: Path, paths: Sequence[str]) -> dict[str, bytes]:
-    """Staged content of ``paths`` in one ``git cat-file --batch`` call."""
-    if not paths:
+def _cat_file_batch(root: Path, names: Sequence[str]) -> dict[str, bytes]:
+    """Content of each object name (``:<path>`` for the index, a sha for a blob) in one ``git cat-file --batch``."""
+    if not names:
         return {}
-    request = "".join(f":{path}\n" for path in paths).encode()
+    request = "".join(f"{name}\n" for name in names).encode()
     out = run_bytes("git", ["-C", str(root), "cat-file", "--batch"], stdin=request, check=True).stdout
     blobs: dict[str, bytes] = {}
     offset = 0
-    for path in paths:
+    for name in names:
         header_end = out.index(b"\n", offset)
         header = out[offset:header_end].split()
         if len(header) != BATCH_HEADER_FIELDS:
-            msg = f"git cat-file could not read :{path}: {out[offset:header_end]!r}"
+            msg = f"git cat-file could not read {name}: {out[offset:header_end]!r}"
             raise LookupError(msg)
         size = int(header[2])
-        blobs[path] = out[header_end + 1 : header_end + 1 + size]
+        blobs[name] = out[header_end + 1 : header_end + 1 + size]
         offset = header_end + 1 + size + 1
     return blobs
+
+
+def index_blobs(root: Path, paths: Sequence[str]) -> dict[str, bytes]:
+    """Staged content of ``paths``."""
+    found = _cat_file_batch(root, [f":{path}" for path in paths])
+    return {path: found[f":{path}"] for path in paths}
+
+
+def object_blobs(root: Path, shas: Sequence[str]) -> dict[str, bytes]:
+    """Content of the blobs named by full object ids."""
+    return _cat_file_batch(root, shas)

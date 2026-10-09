@@ -3,9 +3,11 @@ suppressions and hidden code paths fail the build.
 
 Scans every tracked or new (not git-ignored) source and config file for the suppression markers
 this gate forbids. A marker passes only when tools/gates/suppressions-allowlist.toml names that file,
-that marker and a substring of that exact line (``match``), with a reason: a verified false positive,
-narrowest scope. Allowlist entries that match nothing fail. Python under docs/ (which the linters
-skip as frozen research evidence) must stay inside the one archive root. A file that is itself a
+that marker and the whole line, stripped of surrounding whitespace (``line``), with a reason: a verified
+false positive, narrowest scope. The line is compared for equality, never as a substring, so widening an
+approved directive (an extra rule code, a second directive, a bare form) no longer matches its entry.
+Allowlist entries that match nothing fail. Python under docs/ (which the linters skip as frozen research
+evidence) must stay inside the one archive root. A file that is itself a
 suppression list counts every entry line as a finding under the matching inline marker, so it needs the
 same reviewed allowlist entry: ``.gitleaksignore`` (fingerprints gitleaks skips, locally and in CI) and a
 gitleaks config (``.gitleaks.toml`` / ``gitleaks.toml``, loaded automatically by the CLI and the Action;
@@ -70,28 +72,28 @@ class Finding:
 
 @dataclass(frozen=True)
 class Allowance:
-    """One verified exception: a marker in one file, only on lines containing ``match``."""
+    """One verified exception: a marker in one file, only on a line whose stripped text equals ``line``."""
 
     path: str
     marker: str
-    match: str
+    line: str
 
     def covers(self, finding: Finding) -> bool:
-        return finding.path == self.path and finding.marker == self.marker and self.match in finding.text
+        return finding.path == self.path and finding.marker == self.marker and finding.text == self.line
 
 
 def load_allowlist(text: str, markers: dict[str, re.Pattern[str]]) -> list[Allowance]:
-    """Every entry needs path, a known marker, a non-empty line ``match`` and a reason."""
+    """Every entry needs path, a known marker, the exact stripped ``line`` and a reason."""
     allowed: list[Allowance] = []
     for entry in tomllib.loads(text).get("allow", []):
-        path, marker, match, reason = (entry.get(k) for k in ("path", "marker", "match", "reason"))
-        if not all(isinstance(v, str) and v.strip() for v in (path, marker, match, reason)):
-            msg = f"allowlist entry needs non-empty path, marker, match and reason: {entry!r}"
+        path, marker, line, reason = (entry.get(k) for k in ("path", "marker", "line", "reason"))
+        if not all(isinstance(v, str) and v.strip() for v in (path, marker, line, reason)):
+            msg = f"allowlist entry needs non-empty path, marker, line and reason: {entry!r}"
             raise ValueError(msg)
         if marker not in markers:
             msg = f"allowlist entry names unknown marker {marker!r}"
             raise ValueError(msg)
-        allowed.append(Allowance(str(path), str(marker), str(match)))
+        allowed.append(Allowance(str(path), str(marker), str(line).strip()))
     return allowed
 
 
@@ -107,10 +109,10 @@ def scan_text(path: str, text: str, markers: dict[str, re.Pattern[str]]) -> list
     whole_file_marker = SUPPRESSION_FILES.get(path.rsplit("/", 1)[-1])
     for number, line in enumerate(text.splitlines(), start=1):
         if whole_file_marker is not None and line.strip() and not line.lstrip().startswith("#"):
-            findings.append(Finding(path, number, whole_file_marker, line.strip()[:160]))
+            findings.append(Finding(path, number, whole_file_marker, line.strip()))
         for marker, pattern in markers.items():
             if pattern.search(line):
-                findings.append(Finding(path, number, marker, line.strip()[:160]))
+                findings.append(Finding(path, number, marker, line.strip()))
     return findings
 
 
@@ -134,7 +136,7 @@ def yaml_findings(path: str, text: str) -> list[Finding]:
                 for key, value in node.value:
                     if isinstance(key, yaml.ScalarNode) and key.value == CONTINUE_ON_ERROR and not _plain_false(value):
                         row = key.start_mark.line
-                        findings.append(Finding(path, row + 1, CONTINUE_ON_ERROR, lines[row].strip()[:160]))
+                        findings.append(Finding(path, row + 1, CONTINUE_ON_ERROR, lines[row].strip()))
                     stack.extend((key, value))
             elif isinstance(node, yaml.SequenceNode):
                 stack.extend(node.value)
@@ -178,9 +180,10 @@ def check(
             covering = [a for a in allowed if a.covers(finding)]
             used.update(covering)
             if not covering:
-                errors.append(f"{finding.path}:{finding.line}: forbidden suppression [{finding.marker}] {finding.text}")
+                where = f"{finding.path}:{finding.line}"
+                errors.append(f"{where}: forbidden suppression [{finding.marker}] {finding.text[:160]}")
     errors.extend(
-        f"{a.path}: stale allowlist entry [{a.marker}] {a.match!r} matches nothing" for a in allowed if a not in used
+        f"{a.path}: stale allowlist entry [{a.marker}] {a.line!r} matches nothing" for a in allowed if a not in used
     )
     errors.extend(docs_python_errors(paths))
     return errors

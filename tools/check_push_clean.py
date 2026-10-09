@@ -8,10 +8,13 @@ paths in code or config (docs/ is research prose and may cite local file paths; 
 one person's machine).
 
 Default mode reads every index entry from the index (so a file deleted only in the working tree is
-still checked), untracked-but-not-ignored files from disk, and every path added in ``BASE..HEAD``
-(a file committed then deleted is still pushed). History is read with rename detection off, so a move
-into a forbidden path counts as the add it is, and NUL-separated, so git never quotes or escapes a
-path. ``--snapshot`` checks a plain exported directory.
+still checked), untracked-but-not-ignored files from disk, and every blob version written in
+``BASE..HEAD``: each path added, modified or retyped by any commit (merges against each parent), with
+that version's real content and size. A file committed then deleted, or grown past the cap then shrunk,
+is still pushed, so it still fails. History is read with rename detection off, so a move into a
+forbidden path counts as the add it is, and NUL-separated, so git never quotes or escapes a path.
+Submodule entries (gitlinks) name a commit, not a blob, and are not read. ``--snapshot`` checks a plain
+exported directory.
 """
 
 import argparse
@@ -60,16 +63,23 @@ def content_errors(path: str, text: str) -> list[str]:
     ]
 
 
-def check(contents: dict[str, bytes], history_paths: list[str]) -> list[str]:
+def file_errors(path: str, data: bytes) -> list[str]:
+    errors = path_errors(path, len(data))
+    try:
+        text = data.decode("utf-8")
+    # silent-ok: a binary file has no text lines to search for home paths; its path and size checks ran above
+    except UnicodeDecodeError:
+        return errors
+    return [*errors, *content_errors(path, text)]
+
+
+def check(contents: dict[str, bytes], history: list[tuple[str, bytes]]) -> list[str]:
+    """Current files, then every historical blob version (``history`` from :func:`history_blobs`)."""
     errors: list[str] = []
     for path, data in sorted(contents.items()):
-        errors.extend(path_errors(path, len(data)))
-        try:
-            errors.extend(content_errors(path, data.decode("utf-8")))
-        # silent-ok: a binary file has no text lines to search for home paths; its path checks ran above
-        except UnicodeDecodeError:
-            continue
-    errors.extend(f"{error} (added in branch history)" for path in history_paths for error in path_errors(path, 0))
+        errors.extend(file_errors(path, data))
+    for path, data in history:
+        errors.extend(f"{error} (in branch history)" for error in file_errors(path, data))
     return errors
 
 
@@ -81,24 +91,36 @@ def repo_contents(root: Path) -> dict[str, bytes]:
     return contents
 
 
-def history_paths(root: Path, base: str) -> list[str]:
+GITLINK_MODE = "160000"
+NULL_SHA = "0" * 40
+RAW_FIELDS = 5  # ":<old mode> <new mode> <old sha> <new sha> <status>"
+
+
+def history_entries(root: Path, base: str) -> list[tuple[str, str]]:
+    """``(path, blob sha)`` for every version written in ``base..HEAD``, sorted and de-duplicated."""
     if proc.run("git", ["-C", str(root), "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"]).returncode:
         msg = f"base ref {base!r} does not resolve to a commit"
         raise LookupError(msg)
-    args = [
-        "-C",
-        str(root),
-        "log",
-        "-z",
-        "--no-renames",
-        "--diff-filter=A",
-        "--name-only",
-        "--format=",
-        f"{base}..HEAD",
-    ]
-    log = proc.run_bytes("git", args, check=True)
-    names = (part.strip(b"\n") for part in log.stdout.split(b"\0"))
-    return sorted({name.decode("utf-8", errors="surrogateescape") for name in names if name})
+    args = ["-C", str(root), "log", "-z", "-m", "--no-renames", "--no-abbrev", "--raw", "--diff-filter=AMT"]
+    log = proc.run_bytes("git", [*args, "--format=", f"{base}..HEAD"], check=True).stdout
+    parts = log.split(b"\0")
+    entries: set[tuple[str, str]] = set()
+    for index in range(0, len(parts) - 1, 2):
+        meta = parts[index].strip(b"\n").decode("ascii").lstrip(":").split()
+        if len(meta) != RAW_FIELDS:
+            msg = f"unexpected git log --raw record: {parts[index]!r}"
+            raise LookupError(msg)
+        _, new_mode, _, new_sha, _ = meta
+        if new_mode != GITLINK_MODE and new_sha != NULL_SHA:
+            entries.add((parts[index + 1].decode("utf-8", errors="surrogateescape"), new_sha))
+    return sorted(entries)
+
+
+def history_blobs(root: Path, base: str) -> list[tuple[str, bytes]]:
+    """The content of every blob version :func:`history_entries` lists, read in one ``git cat-file``."""
+    entries = history_entries(root, base)
+    blobs = proc.object_blobs(root, sorted({sha for _, sha in entries}))
+    return [(path, blobs[sha]) for path, sha in entries]
 
 
 def snapshot_contents(root: Path) -> dict[str, bytes]:
@@ -116,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.snapshot:
             errors = check(snapshot_contents(root), [])
         else:
-            errors = check(repo_contents(root), history_paths(root, args.base))
+            errors = check(repo_contents(root), history_blobs(root, args.base))
     except (OSError, LookupError, ValueError, subprocess.CalledProcessError) as exc:
         sys.stderr.write(f"push-clean: FAIL: {exc}\n")
         return 1
