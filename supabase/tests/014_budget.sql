@@ -1,15 +1,16 @@
 -- 014_budget.sql (S4 section 8; sql/TESTS.md section 14; D-009, D-012, D-013, D-014; WI-S4-08)
 -- WP-03 rows: the $0 seed of the one global bucket and its fail-closed behavior (BU-01, BU-27), the operator's
 -- plan application and its gate-proof (BU-28, BU-29), the tree rules kept for a later per-phase split (BU-21,
--- BU-22, BU-24), and the D-014 and D7 refusals with the referee worst case (BU-03). BU-38..BU-40 are WP-03 additions
--- for the reservation fixes in migration 0800 (proposed for the spec): receipts never overrun a reservation through
--- rounding, the purpose is part of a reservation's identity, and same-key calls are serialized. WP-04b adds the remaining rows of
+-- BU-22, BU-24), and the D-014 and D7 refusals with the referee worst case (BU-03). BU-38..BU-41 are WP-03 additions
+-- for the fixes in migration 0800 (proposed for the spec): receipts never overrun a reservation through rounding,
+-- the purpose is part of a reservation's identity, same-key calls are serialized, and a repeated usage report is the
+-- same report and returns the full metering answer. WP-04b adds the remaining rows of
 -- TESTS.md section 14 to this file. No ceiling is typed here: every expected ceiling comes from the psql
 -- variable plan, the stdout of `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` (run_pgtap.sh).
 -- Numeric parity of the seeds with cost_model.py (prices, limits, voice amounts) is tools/check_cost_parity.py.
 begin;
 \ir harness/fixtures.psql
-select plan(11);
+select plan(12);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -27,11 +28,23 @@ select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = 1 whe
 insert into bu40 select 1, r from dblink('bu40a',
   $q$select ops.reserve_model_call('bu40-race-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
                                    null, null, 1000)::text$q$) as t(r text);
+create temp table bu40_pid on commit drop as
+  select pid from dblink('bu40b', 'select pg_backend_pid()') as t(pid integer);
 select dblink_send_query('bu40b',
   $q$select ops.reserve_model_call('bu40-race-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
                                    null, null, 1000)::text$q$);
-select pg_sleep(0.5);
-insert into bu40 values (2, dblink_is_busy('bu40b')::text);
+-- A commits only once B is waiting on a lock A holds (bounded at 10 s), so B's lookup cannot run after the commit.
+do $$
+begin
+  for i in 1..200 loop
+    if exists (select 1 from pg_stat_activity a join bu40_pid b on b.pid = a.pid where a.wait_event_type = 'Lock') then
+      insert into bu40 values (2, 'blocked');
+      return;
+    end if;
+    perform pg_sleep(0.05);
+  end loop;
+  insert into bu40 values (2, 'not blocked');
+end $$;
 select dblink_exec('bu40a', 'commit');
 insert into bu40 select 3, coalesce((select r from dblink_get_result('bu40b', false) as t(r text)),
                                     'error: ' || dblink_error_message('bu40b'));
@@ -49,7 +62,7 @@ select is(array[(select val::jsonb ->> 'outcome' from bu40 where step = 1),
                    = (select case when val not like 'error: %' then val::jsonb ->> 'id' end from bu40 where step = 3))::text,
                 (select count(*) from ops.budget_reservations)::text,
                 (select ceiling_usd from ops.budget_buckets where name = 'global')::text],
-          array['reserved', '1', 'exists', 'true', '0', '0.000000'],
+          array['reserved', 'blocked', 'exists', 'true', '0', '0.000000'],
   'BU-40 a same-key reservation made while the first is uncommitted waits on the key and returns the first '
   || 'reservation (exists, same id); the committed rows are removed again');
 
@@ -209,6 +222,28 @@ select is((select array_agg(val order by step) from bu39),
           array['reserved', 'AR003: reservation key reused with different inputs',
                 'reserved', 'AR003: reservation key reused with different inputs'],
   'BU-39 a reservation key reused with another purpose is refused (model call and voice), not returned as exists');
+
+-- BU-41: a voice usage report past two thirds of its hold answers shutoff; the same report repeated (its first
+-- response lost) answers exists with the same spend and shutoff; the same report number with other usage is AR003.
+create temp table bu41 (step integer, val text) on commit drop;
+insert into bu41 select 1, tests.as_role('arena_subject',
+  $$ select ops.reserve_voice('bu41-probe-key-1', 'global', 'voice_probe', 'voice.probe', null, null) $$) ->> 'id';
+select tests.as_role('arena_subject', format('select ops.mark_dispatched(%L)', (select val from bu41 where step = 1)));
+create function pg_temp.bu41_report(p_input_audio bigint) returns text
+language sql as $$
+  select format('select ops.record_usage(%L, 1, %L, 0, 0, 0, %s, 0, %L, 100, null, null)',
+                (select val from bu41 where step = 1), 'gemini-3.8-live', p_input_audio, 'usage')
+$$;
+insert into bu41 select 2, (select concat_ws('/', r ->> 'outcome', r ->> 'spend_usd', r ->> 'shutoff')
+                              from tests.as_role('arena_subject', pg_temp.bu41_report(70000)) r);
+insert into bu41 select 3, (select concat_ws('/', r ->> 'outcome', r ->> 'spend_usd', r ->> 'shutoff')
+                              from tests.as_role('arena_subject', pg_temp.bu41_report(70000)) r);
+insert into bu41 select 4, tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
+                                              pg_temp.bu41_report(70001)));
+select is((select array_agg(val order by step) from bu41 where step > 1),
+          array['recorded/0.315000/true', 'exists/0.315000/true',
+                'AR003: usage report number reused with different usage'],
+  'BU-41 a repeated usage report returns the same spend and shutoff (exists); other usage under its number is AR003');
 
 select is_empty($$ select * from tests.plan_mismatches((select plan from t_plan), false) $$,
   'BU-29 at the end of the file the bucket table still equals --plan-json (the gate-proof change was restored)');

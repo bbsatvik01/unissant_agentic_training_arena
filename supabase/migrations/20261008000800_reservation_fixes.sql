@@ -9,7 +9,10 @@
 --   Fix 2: a transaction-level advisory lock on the reservation key serializes calls with the same key, so a
 --          concurrent retry returns the first reservation (`exists`) instead of 23505 or a cap refusal.
 --   Fix 3: the purpose is part of a reservation's identity: a key reused with another purpose is AR003.
--- Gates: supabase/tests/014_budget.sql BU-38, BU-39, BU-40.
+--   Fix 4: ops.record_usage: a repeated report number with different usage is AR003 (the draft returned `exists`
+--          and dropped the conflicting usage), and a repeat returns spend, reservation and shutoff as they stand,
+--          so a voice caller whose first response was lost still learns to stop (S4 8.4, 8.6).
+-- Gates: supabase/tests/014_budget.sql BU-38, BU-39, BU-40, BU-41.
 
 create or replace function ops.reserve_model_call(p_idempotency_key text, p_bucket text, p_model text, p_call_kind text,
                                                   p_purpose text, p_trial uuid, p_actor uuid, p_input_bytes integer)
@@ -123,4 +126,75 @@ begin
     values (p_idempotency_key, p_bucket, p_kind, p_purpose, p_trial, p_actor, ops.invoker_role(), v_amt) returning id into v_id;
   return jsonb_build_object('outcome', 'reserved', 'id', v_id, 'reserved_usd', v_amt,
                             'shutoff_usd', round(v_amt * 2 / 3, 6));
+end $$;
+
+create or replace function ops.record_usage(p_reservation uuid, p_seq integer, p_model text, p_input_tokens bigint,
+                                            p_output_tokens bigint, p_thinking_tokens bigint, p_audio_input_tokens bigint,
+                                            p_audio_output_tokens bigint, p_status text, p_latency_ms integer,
+                                            p_trace_id text, p_span_id text)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v       ops.budget_reservations;
+  v_cfg   ops.config;
+  v_price ops.model_prices;
+  v_cost  numeric;
+  v_spend numeric;
+  v_ex    ops.model_calls;
+begin
+  perform ledger.require_read_committed();
+  v := ops._own_reservation(p_reservation);
+  if v.dispatched_at is null then
+    raise exception using errcode = 'AR001', message = 'usage for a reservation that was never dispatched';
+  end if;
+  select * into v_ex from ops.model_calls where reservation_id = p_reservation and seq = p_seq;
+  if found then
+    -- Fix 4: a repeated report must be the same report (else AR003), and it returns the full metering answer as it
+    -- stands now (spend, reservation, shutoff), so a caller whose first response was lost still learns to stop.
+    if (v_ex.model, v_ex.input_tokens, v_ex.output_tokens, v_ex.thinking_tokens, v_ex.audio_input_tokens,
+        v_ex.audio_output_tokens)
+       is distinct from (p_model, coalesce(p_input_tokens, 0), coalesce(p_output_tokens, 0), coalesce(p_thinking_tokens, 0),
+                         coalesce(p_audio_input_tokens, 0), coalesce(p_audio_output_tokens, 0)) then
+      raise exception using errcode = 'AR003', message = 'usage report number reused with different usage';
+    end if;
+    select * into v_cfg from ops.config where id;
+    v_spend := ops.receipts_usd(p_reservation);
+    return jsonb_build_object('outcome', 'exists', 'cost_usd', v_ex.cost_usd, 'spend_usd', v_spend,
+                              'reserved_usd', v.reserved_usd,
+                              'shutoff', v.overrun or (v.kind <> 'model_call'
+                                                       and (v_spend >= v.reserved_usd * 2 / 3 or v_cfg.kill_switch)));
+  end if;
+  if v.state <> 'reserved' then
+    raise exception using errcode = 'AR001', message = 'reservation already settled: receipts are sealed';
+  end if;
+  select * into v_cfg from ops.config where id;
+  if v.kind = 'model_call' and (p_seq > v_cfg.attempts_per_call or p_model <> v.model) then
+    raise exception using errcode = 'AR007', message = 'attempt beyond the allowed count, or a different model';
+  end if;
+  v_price := ops.price_row(p_model);
+  if v_price.model is null then
+    raise exception using errcode = 'AR007', message = 'unknown model price';
+  end if;
+  v_cost := (ceil(coalesce(p_input_tokens, 0) * v_price.text_in + coalesce(p_output_tokens, 0) * v_price.text_out
+                  + coalesce(p_audio_input_tokens, 0) * coalesce(v_price.audio_in, v_price.text_in)
+                  + coalesce(p_audio_output_tokens, 0) * coalesce(v_price.audio_out, v_price.text_out)) / 1000000)::numeric(14, 6);
+  insert into ops.model_calls (reservation_id, seq, model, price_from, input_tokens, output_tokens, thinking_tokens,
+                               audio_input_tokens, audio_output_tokens, cost_usd, status, latency_ms, trace_id, span_id)
+    values (p_reservation, p_seq, p_model, v_price.effective_from, coalesce(p_input_tokens, 0), coalesce(p_output_tokens, 0),
+            coalesce(p_thinking_tokens, 0), coalesce(p_audio_input_tokens, 0), coalesce(p_audio_output_tokens, 0), v_cost,
+            p_status, greatest(p_latency_ms, 0),
+            case when p_trace_id ~ '^[0-9a-f]{32}$' then p_trace_id end,
+            case when p_span_id ~ '^[0-9a-f]{16}$' then p_span_id end);
+  v_spend := ops.receipts_usd(p_reservation);
+  if v_spend > v.reserved_usd then
+    update ops.budget_reservations set overrun = true where id = p_reservation and not overrun;
+    update ops.config set kill_switch = true, kill_reason = format('reservation %s overrun', p_reservation),
+                          updated_at = now() where id;
+    insert into ops.kill_switch_events (turned_on, reason) values (true, format('reservation %s overrun', p_reservation));
+    return jsonb_build_object('outcome', 'overrun', 'cost_usd', v_cost, 'spend_usd', v_spend,
+                              'reserved_usd', v.reserved_usd, 'shutoff', true);
+  end if;
+  return jsonb_build_object('outcome', 'recorded', 'cost_usd', v_cost, 'spend_usd', v_spend, 'reserved_usd', v.reserved_usd,
+                            'shutoff', v.kind <> 'model_call'
+                                       and (v_spend >= v.reserved_usd * 2 / 3 or v_cfg.kill_switch));
 end $$;
