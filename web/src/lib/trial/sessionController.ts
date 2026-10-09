@@ -276,6 +276,12 @@ export function createSessionController(options: SessionControllerOptions): Sess
     }
   };
 
+  /** Read the debrief; a published one ends the stream (S6 5.1), a `scoring` answer keeps it open. */
+  const finishIfPublished = async () => {
+    await loadDebrief();
+    if (state.debrief !== null && "schema_version" in state.debrief && stream !== null) await complete();
+  };
+
   /**
    * The session is over and its stream closed for good (`debrief.ready`, a published debrief, or a ticket answered
    * 409 `stream_closed`): the terminal snapshot (the commitment hash, and in an assessment the coaching withheld
@@ -329,7 +335,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         const snapshot = await api.trialSnapshot(trialId);
         resyncFailures = 0;
-        if (!disposed && state.connection !== "finished") dispatch({ type: "snapshot", snapshot });
+        if (!disposed && state.connection !== "finished") {
+          dispatch({ type: "snapshot", snapshot });
+          // The trial ended: a lost debrief.ready is not in any snapshot, so ask the debrief route directly.
+          if (snapshot.status !== "running") await finishIfPublished();
+        }
       } catch (error) {
         failed = true;
         set({ error });
@@ -388,9 +398,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const onDrop = (reason: TrialDropReason, raw: unknown) => {
     set({ dropped: state.dropped + 1 });
     if (reason === "rejected") return;
-    const parsed = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : null;
-    if (parsed !== null && parsed["scope_id"] === trialId) refuseIdentified({ seq: parsed["seq"], type: parsed["type"], data: parsed["data"] });
-    else if (parsed === null && streaming()) resync();
+    const parsed = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+    const scope = parsed?.["scope_id"];
+    if (parsed !== null && scope === trialId) refuseIdentified({ seq: parsed["seq"], type: parsed["type"], data: parsed["data"] });
+    // A frame naming another trial is that trial's, never this one's; anything else could be this trial's: re-read.
+    else if (!(typeof scope === "string" && scope !== "") && streaming()) resync();
     checkGap();
   };
 

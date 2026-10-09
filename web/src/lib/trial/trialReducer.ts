@@ -242,7 +242,9 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
   switch (action.type) {
     case "snapshot": {
       const { snapshot } = action;
-      const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
+      // Frames at or below the new last_seq stay held: the snapshot has their content, but they still say in what
+      // order a card and the releases before it arrived, which the snapshot cannot (see snapshotCardCurrent).
+      const log = state.log;
       const skippedSeqs = new Set([...state.skippedSeqs].filter((seq) => seq > snapshot.last_seq));
       // Hints, the client's own submit and refused cards stay: they are facts a newer snapshot does not undo.
       let next: TrialState = { ...state, snapshot, log, skippedSeqs };
@@ -282,11 +284,33 @@ function byKey<T>(map: ReadonlyMap<number, T>): T[] {
   return [...map.entries()].sort(([a], [b]) => a - b).map(([, value]) => value);
 }
 
-/** Snapshot rule for a card (see the header): read at its answer, or at a later release of the same exchange. */
-function snapshotCardCurrent(card: CoachCard, turns: ReadonlyMap<number, MutableTurn>, released: readonly SnapshotRelease[]): boolean {
+/**
+ * Snapshot rule for a card (see the header). When this client holds the card's own frame from the stream, the
+ * frames it held before that card are its ordering evidence: a later turn's question, or a release after the
+ * answer read at a newer version, makes it stale; read at that context version, it is current. Otherwise (or when
+ * the card reads a version the held frames do not reach), it is current when read at its answer, or at a release
+ * of the same exchange made after the answer.
+ */
+function snapshotCardCurrent(
+  card: CoachCard,
+  turns: ReadonlyMap<number, MutableTurn>,
+  released: readonly SnapshotRelease[],
+  held: readonly TrialFrame[],
+): boolean {
   const answerVersion = turns.get(card.turn_no)?.answerVersion ?? null;
   if (answerVersion === null) return false;
   const version = card.card.transcript_version;
+  const own = held.find((f) => f.type === "coach.card" && f.data.turn_no === card.turn_no);
+  if (own?.seq != null) {
+    const before = held.filter((f) => f.seq !== null && f.seq < (own.seq ?? 0));
+    if (before.some((f) => f.type === "question.accepted" && f.data.turn_no > card.turn_no)) return false;
+    const context = Math.max(
+      answerVersion,
+      ...before.filter((f) => f.type === "evidence.released" && f.transcript_version > answerVersion).map((f) => f.transcript_version),
+    );
+    if (version < context) return false;
+    if (version === context) return true;
+  }
   if (version === answerVersion) return true;
   return released.some((r) => r.released_at_turn === card.turn_no && r.transcript_version > answerVersion && r.transcript_version === version);
 }
@@ -306,9 +330,10 @@ function derive(state: TrialState): TrialState {
   const pending = new Set<number>();
   const updates = new Map<number, CoachUpdate>();
   const failures = new Map<number, CoachFailed>();
+  const held = byKey(state.log);
   if (snapshotCoachingVisible(snapshot)) {
     for (const c of snapshot.cards) {
-      if (snapshotCardCurrent(c, turns, snapshot.released)) cards.set(c.turn_no, c);
+      if (snapshotCardCurrent(c, turns, snapshot.released, held)) cards.set(c.turn_no, c);
       else rejected.add(c.turn_no);
     }
     for (const u of snapshot.updates) updates.set(u.turn_no, u);
@@ -346,10 +371,12 @@ function derive(state: TrialState): TrialState {
   while (state.log.has(contiguousSeq + 1) || state.skippedSeqs.has(contiguousSeq + 1)) contiguousSeq += 1;
   /** The seq of each card that came on the stream, by turn. */
   const cardSeq = new Map<number, number>();
-  for (const frame of byKey(state.log)) {
+  for (const frame of held) {
+    // At or below last_seq the snapshot already has it (held only as ordering evidence for its cards).
+    if (frame.seq === null || frame.seq <= snapshot.last_seq) continue;
     const v = frame.transcript_version;
     version = Math.max(version, v);
-    lastSeq = Math.max(lastSeq, frame.seq ?? 0);
+    lastSeq = Math.max(lastSeq, frame.seq);
     switch (frame.type) {
       case "question.accepted": {
         const t = turn(frame.data.turn_no);

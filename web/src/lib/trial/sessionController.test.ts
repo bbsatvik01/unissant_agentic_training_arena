@@ -1503,3 +1503,89 @@ describe("session controller: lost frames outside practice text", () => {
     expect(trialView(c).released.map((r) => r.record_id)).toEqual(["rec-02"]);
   });
 });
+
+describe("session controller: Codex round 7 regressions", () => {
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+
+  it.each([
+    [2, false],
+    [3, true],
+  ] as const)("a snapshot covering a held card at %i keeps the release-before-card order the stream showed (shown: %s)", async (version, shown) => {
+    const b = new LogBuilder().ask({ coach: "none" });
+    b.release("rec-02");
+    const [q, , answer, release] = b.frames;
+    const card = frame("coach.card", b.seq + 1, version, { turn_no: 1, card: cardFor(1, version) });
+    const covered = snapshot({
+      last_seq: card.seq ?? 0,
+      exchanges_used: 1,
+      turns: [turn1],
+      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, version) }],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    expect(q?.seq).toBe(1);
+    for (const f of [answer, release, card]) h.last().send(f);
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
+    expect(trialView(c).cards.length).toBe(shown ? 1 : 0);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: shown }]);
+  });
+
+  it.each([
+    ["no scope", (f: TrialFrame) => ({ ...f, scope_id: undefined, data: { ...f.data, partial: "x" } })],
+    ["a numeric scope", (f: TrialFrame) => ({ ...f, scope_id: 5 })],
+    ["an array", () => [1, 2]],
+  ])("an assessment frame with %s is not taken as another trial's: the snapshot is re-read", async (_why, broken) => {
+    const b = new LogBuilder("assessment").ask();
+    const answer = b.frames.find((f) => f.type === "subject.answer") as TrialFrame;
+    const covered = snapshot({ mode: "assessment", last_seq: answer.seq ?? 0, exchanges_used: 1, turns: [turn1] });
+    const h = harness({ snapshots: [snapshot({ mode: "assessment" }), covered] });
+    const c = h.make();
+    await begin(c);
+    h.last().send(b.frames[0]);
+    h.last().send(broken(answer));
+    await flush();
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+
+  it.each([
+    ["fails validation", (f: TrialFrame) => h0(f)],
+    ["cannot be parsed", () => "{broken"],
+  ])("a debrief.ready that %s is recovered through the snapshot and the debrief route", async (_why, broken) => {
+    const b = new LogBuilder().ask().commit().debriefReady();
+    const ready = b.frames.at(-1) as TrialFrame;
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: (ready.seq ?? 1) - 1 });
+    const h = harness({ snapshots: [snapshot(), ended] });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames.slice(0, -1)) h.last().send(f);
+    const payload = broken(ready);
+    if (typeof payload === "string") h.last().raw(payload);
+    else h.last().send(payload);
+    await flush();
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+    expect(h.sources[0]?.closed).toBe(true);
+  });
+
+  it("a terminal re-read whose debrief is still scoring keeps the stream", async () => {
+    const b = new LogBuilder().ask().commit();
+    const h = harness({ snapshots: [snapshot(), snapshot({ status: "completed" })], debrief: { status: "scoring" } });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames) h.last().send(f);
+    h.last().raw("{broken");
+    await flush();
+    await flush();
+    expect(c.getState().debrief).toEqual({ status: "scoring" });
+    expect(c.getState().connection).not.toBe("finished");
+    expect(h.last().closed).toBe(false);
+  });
+});
+
+function h0(f: TrialFrame): unknown {
+  return { ...f, data: { session_id: 7 } };
+}
