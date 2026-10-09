@@ -30,3 +30,5 @@ Run from this directory:
 ## Status
 
 WP-18 part 1: scaffold, the ticketed SSE client and trial stream (`src/lib/sse`), the voice machine and voice bar state (`src/lib/voice`; playback progress stays in the browser, S5 7.3), the companion FSM and registry stub (`src/lib/companion`). No visual design before DESIGN.md and the 2026-10-18 slice gate: the only screen is an unstyled placeholder.
+
+WP-18 part 2 owns `trialReducer`, the session controller and snapshot bootstrap, the API wrapper and the compiled wire-schema validation; they depend on the WP-02 generated contracts and are not in this branch.

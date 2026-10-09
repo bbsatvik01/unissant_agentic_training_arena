@@ -27,5 +27,5 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "tools"]
+  "include": ["vite.config.ts", "vitest.config.ts", "eslint.restrictions.d.ts", "tools"]
 }

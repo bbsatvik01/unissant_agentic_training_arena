@@ -15,11 +15,10 @@ minimumReleaseAgeExclude:
 # Floor for the same advisory: its dependents ask for ^1.2.1.
 overrides:
   'source-map-js@<1.2.2': '1.2.2'
+  # semver 6.3.1 (the 6.x backport) is a trust-policy downgrade after 7.5.4; 7.8.5 passes the policy.
+  'semver@6.3.1': '7.8.5'
 # Fail if a package's publish trust evidence (provenance, trusted publisher) ever downgrades.
 trustPolicy: no-downgrade
-# Verified false positive: semver 6.3.1, the 6.x security backport published after 7.5.4 (with provenance).
-trustPolicyExclude:
-  - 'semver@6.3.1'
 # Dependency engine ranges are checked against the pinned runtime (package.json devEngines.runtime).
 engineStrict: true
 # Exact versions only when adding a dependency.
