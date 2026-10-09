@@ -7,7 +7,7 @@ ids = [
   "noqa", "type-ignore", "pyright-ignore", "nosec", "nosemgrep", "gitleaks-allow", "pragma-no-cover",
   "pytest-skip", "unittest-skip", "mypy-ignore-errors", "eslint-disable", "ts-suppress", "coverage-ignore",
   "test-skip-or-focus", "continue-on-error", "trufflehog-ignore", "osv-ignore", "no-type-check",
-  "warnings-ignore", "isort-skip", "pip-audit-ignore", "pnpm-audit-ignore",
+  "warnings-ignore", "isort-skip", "pip-audit-ignore", "pnpm-audit-ignore", "fmt-skip", "test-disable",
 ]
 
 [patterns]
@@ -49,3 +49,8 @@ isort-skip = '#\s*isort:\s*(skip_file|skip|off)\b'
 pip-audit-ignore = '--ignore-vuln\b'
 # pnpm audit's advisory skips (web/pnpm-workspace.yaml auditConfig, WP-18).
 pnpm-audit-ignore = '\b(ignoreGhsas|ignoreCves)\b'
+# Ruff's formatter directives that leave a line or a block unformatted (`ruff format --check` then passes).
+fmt-skip = '(?i)#\s*fmt:\s*(skip|off)\b'
+# pytest skips collecting any class, module or function whose __test__ attribute is false, so its tests
+# vanish while their siblings in the same file still run (the full-gate collection check is per file).
+test-disable = '\b__test__\b'

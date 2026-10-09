@@ -41,3 +41,9 @@ warnings-ignore	pytest -W always::UserWarning
 warnings-ignore	PYTHONWARNINGS=default make test
 warnings-ignore	python -Wi -m pytest
 warnings-ignore	warnings.filterwarnings('once')
+fmt-skip	VALUE =    1  # fmt: skip
+fmt-skip	# fmt: off
+fmt-skip	#fmt:skip
+test-disable	    __test__ = False
+test-disable	__test__: bool = False
+test-disable	setattr(TestThing, "__test__", False)

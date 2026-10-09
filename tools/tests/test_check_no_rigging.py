@@ -23,6 +23,8 @@ FIRST = dict(reversed(SEEDED))  # first seeded line per marker id
 NOQA = FIRST["noqa"]
 TYPE_IGNORE = FIRST["type-ignore"]
 CONTINUE = FIRST["continue-on-error"]
+TEST_DISABLE = FIRST["test-disable"]
+FMT_SKIP = FIRST["fmt-skip"]
 APPROVED = f"run(argv)  {NOQA.split('  ', 1)[1].replace('E501', 'S603')}"  # one allowlisted line
 
 
@@ -262,6 +264,27 @@ def test_ordinary_python_passes_the_syntax_tree_scan(tmp_path: Path, source: str
 def test_unparseable_python_fails_closed(tmp_path: Path) -> None:
     (tmp_path / "broken.py").write_text("def f(:\n")
     assert "not valid Python" in nr.check(["broken.py"], reader(tmp_path), [], MARKERS)[0]
+
+
+@pytest.mark.gateproof
+def test_a_disabled_failing_test_class_beside_a_passing_sibling_fails(tmp_path: Path) -> None:
+    """Codex round 8: the full-gate collection check is per file, so a class switched off for collection
+    beside a passing test in the same file must fail here."""
+    body = (
+        f"class TestBroken:\n{TEST_DISABLE}\n\n    def test_broken(self) -> None:\n        raise AssertionError\n\n\n"
+    )
+    (tmp_path / "test_probe.py").write_text(body + "def test_sibling() -> None:\n    assert True\n")
+    errors = nr.check(["test_probe.py"], reader(tmp_path), [], MARKERS)
+    assert [e.split(": forbidden")[0] for e in errors] == ["test_probe.py:2"], errors
+    assert "[test-disable]" in errors[0]
+
+
+@pytest.mark.gateproof
+def test_a_formatter_skip_fails(tmp_path: Path) -> None:
+    (tmp_path / "values.py").write_text(FMT_SKIP + "\n")
+    errors = nr.check(["values.py"], reader(tmp_path), [], MARKERS)
+    assert len(errors) == 1
+    assert "[fmt-skip]" in errors[0]
 
 
 # ---------------------------------------------------------------- competing tool configuration (Codex round 6)
