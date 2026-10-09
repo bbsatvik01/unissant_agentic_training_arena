@@ -369,10 +369,15 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
     expect(view(refused).rejectedCards).toEqual([1]);
     expect(trialReducer(refused, { type: "card_refused", turn_no: 1 })).toBe(refused);
     expect(trialReducer(initialTrialState(), { type: "card_refused", turn_no: 1 }).view).toBeNull();
-    // a valid copy of the card, if one arrives, still shows
-    const shown = fold(refused, frames.slice(-1));
-    expect(view(shown).cards.map((c) => c.turn_no)).toEqual([1]);
-    expect(view(shown).rejectedCards).toEqual([]);
+    // it was acknowledged invalid: a valid-looking copy, on the stream or in a snapshot, never shows
+    const copy = fold(refused, frames.slice(-1));
+    expect(view(copy).cards).toEqual([]);
+    expect(view(copy).rejectedCards).toEqual([1]);
+    const snap = trialReducer(refused, {
+      type: "snapshot",
+      snapshot: snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1, 2)], cards: [{ turn_no: 1, card: cardFor(1, 2) }] }),
+    });
+    expect(view(snap).cards).toEqual([]);
   });
 
   it("on the snapshot: keeps a card read at its answer or at a release after it in the same exchange, drops any other", () => {

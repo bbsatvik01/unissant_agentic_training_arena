@@ -14,6 +14,11 @@
  *   evidence request, which answers no `last_seq`, its `transcript_version`) 1 s later, the stream reconnects
  *   with `after=<lastSeq>`.
  * - Hidden tab: the stream closes after 60 s hidden and resumes with `after=<lastSeq>` when visible.
+ * - A practice text stream is gap-free (S5 6.1): the cursor stops at the gap-free prefix, a card above a gap waits,
+ *   and a gap, or a frame too broken to identify, makes the controller re-read the snapshot (the absolute state).
+ *   A refused frame it can identify (this trial, a seq) counts toward the prefix; a refused card closes its turn.
+ * - Retries: an action retried after a failure that may have been applied resends the same request and
+ *   idempotency key (S5 5.2); only its own answer or an outright refusal (4xx) forgets it.
  * - The end: after a terminal status the stream stays open (catch-up tickets) until `debrief.ready` or a
  *   published debrief from `POST /api/sessions/{id}/debrief`; then `finish()`. A ticket answered 409
  *   `stream_closed`, and any visit to an ended trial, read the snapshot and `GET /api/sessions/{id}/debrief`
@@ -24,7 +29,7 @@ import type { ArenaApi, PostAck } from "../api/arena";
 import { ApiError } from "../api/client";
 import type { DebriefRead, EvidenceResult, InvestigatorFinding, TrialFrame as WireFrame, TurnSubmit } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
-import { openTrialStream, type TrialFrame, type TrialStreamHandle, type TrialStreamOptions } from "../sse/trial-stream";
+import { openTrialStream, type TrialDropReason, type TrialFrame, type TrialStreamHandle, type TrialStreamOptions } from "../sse/trial-stream";
 import type { EventSourceLike } from "../sse/ticketed-stream";
 import { applyFrame, initialTrialState, trialReducer, type TrialAction, type TrialState } from "./trialReducer";
 
@@ -135,9 +140,9 @@ function refused(error: unknown): boolean {
 }
 
 /** The turn a broken `coach.card` frame names, when it names one (1..12), for its `client_invalid` acknowledgement. */
-function brokenCardTurn(frame: TrialFrame): number | null {
-  if (frame.type !== "coach.card") return null;
-  const turn = frame.data["turn_no"];
+function brokenCardTurn(frame: { readonly type: unknown; readonly data: unknown }): number | null {
+  if (frame.type !== "coach.card" || typeof frame.data !== "object" || frame.data === null) return null;
+  const turn = (frame.data as Record<string, unknown>)["turn_no"];
   return typeof turn === "number" && Number.isInteger(turn) && turn >= 1 && turn <= 12 ? turn : null;
 }
 
@@ -160,12 +165,18 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const streamCards = new Set<number>();
   /** Streamed card turns already counted as dropped. */
   const droppedCards = new Set<number>();
-  /** The last unsettled request per action, so a retry resends it with the same idempotency key (S5 5.2). */
-  let pendingTurn: TurnSubmit | null = null;
-  const pendingKeys = new Map<"evidence" | "finding", { readonly match: string; readonly key: string }>();
+  /**
+   * Unsettled requests by action and content, so a retry of the same action resends the same request with the same
+   * idempotency key (S5 5.2) even after other actions ran in between. Each is forgotten only when its own request
+   * settles: answered, or refused outright (4xx).
+   */
+  const pendingTurns = new Map<string, TurnSubmit>();
+  const pendingKeys = new Map<string, string>();
   let completing: Promise<void> | null = null;
-  /** The gap-free prefix a gap check was last scheduled for. */
-  let gapChecked: number | null = null;
+  /** The gap-free prefix a snapshot re-read was last made for. */
+  let gapResynced: number | null = null;
+  let resyncing = false;
+  let resyncAgain = false;
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
@@ -184,37 +195,41 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /**
    * One acknowledgement per streamed card, once its verdict is known: shown, or refused (stale or failing the
-   * schema). A pending card (reading a frame not folded yet) waits; it is shown or refused by a later frame.
-   * Practice text trials only: no other population receives live cards (S6 5.6).
+   * schema). A pending card (reading a frame not folded yet) waits; a later frame shows or refuses it. A refused
+   * card is pinned refused (`card_refused`), so nothing later, a snapshot included, shows what was acknowledged
+   * invalid. Practice text trials only: no other population receives live cards (S6 5.6).
    */
-  const settleAcks = (trial: TrialState, countDrop: () => void) => {
-    const v = trial.view;
-    if (v === null || v.mode !== "practice" || v.channel !== "text") return;
+  const settleAcks = (incoming: TrialState): { trial: TrialState; drops: number } => {
+    let trial = incoming;
+    let drops = 0;
+    const v = incoming.view;
+    if (v === null || v.mode !== "practice" || v.channel !== "text") return { trial, drops };
     for (const turn of streamCards) {
       if (acked.has(turn)) continue;
       if (v.cards.some((c) => c.turn_no === turn)) ack(turn, true);
       else if (v.rejectedCards.includes(turn)) {
         ack(turn, false);
+        trial = trialReducer(trial, { type: "card_refused", turn_no: turn });
         // Refused after it was taken as pending: dropped and counted now, once (S6 4.5).
         if (!droppedCards.has(turn)) {
           droppedCards.add(turn);
-          countDrop();
+          drops += 1;
         }
       }
     }
+    return { trial, drops };
   };
 
-  const setTrial = (trial: TrialState) => {
-    if (trial === state.trial) return;
+  const setTrial = (incoming: TrialState) => {
+    if (incoming === state.trial) return;
+    // Acknowledge before subscribers are told, so before any render (S6 5.6).
+    const { trial, drops } = settleAcks(incoming);
     // Report each new violation once (S6 5.4); a report that fails is not retried and never breaks the room.
     for (const v of trial.violations.slice(reported)) {
       api.reportContractViolation({ trial_id: trialId, frame_type: v.frame_type, seq: v.seq, reason: v.reason }).catch(() => undefined);
     }
     reported = trial.violations.length;
-    // Acknowledge before subscribers are told, so before any render (S6 5.6).
-    let dropped = state.dropped;
-    settleAcks(trial, () => (dropped += 1));
-    set({ trial, dropped });
+    set({ trial, dropped: state.dropped + drops });
   };
 
   const dispatch = (action: TrialAction) => {
@@ -285,50 +300,75 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return v.mode === "practice" && v.channel === "text" ? v.contiguousSeq : v.lastSeq;
   };
 
-  const gapAt = (): number | null => {
+  const gapFreeRunning = (): boolean => {
     const v = view();
-    if (v === null || v.mode !== "practice" || v.channel !== "text" || v.lastSeq <= v.contiguousSeq) return null;
-    return v.contiguousSeq;
+    return v !== null && v.mode === "practice" && v.channel === "text" && v.status !== "ended";
   };
 
   /**
-   * A missing frame below a held one. If it has not arrived 1 s later, resume from the prefix so the server replays
-   * it; if it is still missing 1 s after that, the server has nothing to send for it (a frame this client could
-   * not parse): skip that seq so later frames are judged, rather than waiting for ever.
+   * Re-read the snapshot, the trial's absolute state, to cover frames this client could not use: a gap in a
+   * gap-free stream, or a frame it could not even parse. One read at a time; a request during a read runs once
+   * more after it, so a frame committed after the first read began is covered too.
    */
-  const checkGap = () => {
-    const at = gapAt();
-    if (at === null || gapChecked === at) return;
-    gapChecked = at;
-    const watch = (resumed: boolean) => {
-      const handle = scheduler.setTimeout(() => {
-        catchUpTimers.delete(handle);
-        if (gapAt() !== at || stream === null) return;
-        if (!resumed) {
-          stream.reconnect();
-          watch(true);
-          return;
+  const resync = () => {
+    if (resyncing) {
+      resyncAgain = true;
+      return;
+    }
+    resyncing = true;
+    void (async () => {
+      try {
+        const snapshot = await api.trialSnapshot(trialId);
+        if (!disposed && state.connection !== "finished") dispatch({ type: "snapshot", snapshot });
+      } catch (error) {
+        set({ error });
+      } finally {
+        resyncing = false;
+        if (resyncAgain) {
+          resyncAgain = false;
+          resync();
         }
-        dispatch({ type: "seq_skipped", seq: at + 1 });
-        checkGap();
-      }, CATCH_UP_MS);
-      catchUpTimers.add(handle);
-    };
-    watch(false);
+      }
+    })();
+  };
+
+  /** A missing frame below a held one in a gap-free stream: re-read the snapshot, once per gap. */
+  const checkGap = () => {
+    const v = view();
+    if (v === null || !gapFreeRunning() || v.lastSeq <= v.contiguousSeq || gapResynced === v.contiguousSeq) return;
+    gapResynced = v.contiguousSeq;
+    resync();
+  };
+
+  /**
+   * A frame this client refuses but can identify (this trial, a persisted seq): its seq will never fold, so it
+   * counts toward the gap-free prefix; a card closes its turn and is acknowledged invalid. Nothing of it is kept.
+   */
+  const refuseIdentified = (frame: { readonly seq: unknown; readonly type: unknown; readonly data: unknown }) => {
+    const turn = brokenCardTurn(frame);
+    const v = view();
+    if (turn !== null && v?.mode === "practice" && v.channel === "text") {
+      streamCards.add(turn);
+      droppedCards.add(turn);
+      dispatch({ type: "card_refused", turn_no: turn });
+    }
+    if (typeof frame.seq === "number" && Number.isSafeInteger(frame.seq)) dispatch({ type: "seq_skipped", seq: frame.seq });
+  };
+
+  /** A frame dropped before validation (S6 5.2): identify it if it can be, else re-read the snapshot. */
+  const onDrop = (reason: TrialDropReason, raw: unknown) => {
+    set({ dropped: state.dropped + 1 });
+    if (reason === "rejected") return;
+    const parsed = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : null;
+    if (parsed !== null && parsed["scope_id"] === trialId) refuseIdentified({ seq: parsed["seq"], type: parsed["type"], data: parsed["data"] });
+    else if (gapFreeRunning()) resync();
+    checkGap();
   };
 
   const onFrame = (frame: TrialFrame): boolean => {
-    const trialView = view();
     if (!isWire("events", frame)) {
-      const turn = brokenCardTurn(frame);
-      if (turn !== null && trialView?.mode === "practice" && trialView.channel === "text") {
-        // The server closed the turn on this card: close it here too, keeping nothing of the card.
-        streamCards.add(turn);
-        droppedCards.add(turn);
-        dispatch({ type: "card_refused", turn_no: turn });
-      }
-      // Its seq is known and will never fold: it counts toward the gap-free prefix (nothing of it is kept).
-      if (frame.seq !== null) dispatch({ type: "seq_skipped", seq: frame.seq });
+      // The server closed the turn on a card like this: close it here too, keeping nothing of it.
+      refuseIdentified(frame);
       checkGap();
       return false;
     }
@@ -364,9 +404,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       initialLastSeq: cursor,
       onFrame,
       resumeCursor: () => resumePoint(),
-      onDrop: () => {
-        set({ dropped: state.dropped + 1 });
-      },
+      onDrop,
       onOpen: () => {
         if (stream === handle) set({ connection: "live" });
       },
@@ -417,16 +455,18 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** The same action retried reuses its key; a different one gets a fresh key. */
   const keyFor = (kind: "evidence" | "finding", match: string): string => {
-    const held = pendingKeys.get(kind);
-    if (held?.match === match) return held.key;
+    const id = `${kind}:${match}`;
+    const held = pendingKeys.get(id);
+    if (held !== undefined) return held;
     const key = newKey();
-    pendingKeys.set(kind, { match, key });
+    pendingKeys.set(id, key);
     return key;
   };
 
   /** Forget a key once its own request settled; a newer request's key stays. */
-  const settleKey = (kind: "evidence" | "finding", key: string) => {
-    if (pendingKeys.get(kind)?.key === key) pendingKeys.delete(kind);
+  const settleKey = (kind: "evidence" | "finding", match: string, key: string) => {
+    const id = `${kind}:${match}`;
+    if (pendingKeys.get(id) === key) pendingKeys.delete(id);
   };
 
   const requireView = () => {
@@ -471,27 +511,33 @@ export function createSessionController(options: SessionControllerOptions): Sess
     async submitTurn(question) {
       const v = requireView();
       // A retry of the same question resends the same request, key and version included, so the server resumes it.
-      const body: TurnSubmit =
-        pendingTurn?.question === question
-          ? pendingTurn
-          : { question, release_ids: [], expected_version: v.transcriptVersion, idem_key: newKey() };
-      pendingTurn = body;
+      const body: TurnSubmit = pendingTurns.get(question) ?? {
+        question,
+        release_ids: [],
+        expected_version: v.transcriptVersion,
+        idem_key: newKey(),
+      };
+      pendingTurns.set(question, body);
+      const settle = () => {
+        if (pendingTurns.get(question) === body) pendingTurns.delete(question);
+      };
       try {
         const answer = await api.submitTurn(trialId, body);
-        if (pendingTurn === body) pendingTurn = null;
+        settle();
         afterPost(answer);
       } catch (error) {
-        if (refused(error) && pendingTurn === body) pendingTurn = null;
+        if (refused(error)) settle();
         throw error;
       }
     },
     async requestEvidence(recordIds) {
       requireView();
       const ids = [...recordIds];
-      const idem = keyFor("evidence", JSON.stringify(ids));
+      const match = JSON.stringify(ids);
+      const idem = keyFor("evidence", match);
       try {
         const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
-        settleKey("evidence", idem);
+        settleKey("evidence", match, idem);
         // Records released in one call share one transcript version: wait for each record, not only the version.
         const expected = [...result.released.map((r) => r.record_id), ...result.already_released];
         catchUp(() => {
@@ -501,20 +547,21 @@ export function createSessionController(options: SessionControllerOptions): Sess
         });
         return result;
       } catch (error) {
-        if (refused(error)) settleKey("evidence", idem);
+        if (refused(error)) settleKey("evidence", match, idem);
         throw error;
       }
     },
     async submitFinding(finding) {
       requireView();
-      const idem = keyFor("finding", JSON.stringify(finding));
+      const match = JSON.stringify(finding);
+      const idem = keyFor("finding", match);
       dispatch({ type: "finding_submitted" });
       try {
         const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
-        settleKey("finding", idem);
+        settleKey("finding", match, idem);
         afterPost(answer);
       } catch (error) {
-        if (refused(error)) settleKey("finding", idem);
+        if (refused(error)) settleKey("finding", match, idem);
         dispatch({ type: "finding_failed" });
         throw error;
       }

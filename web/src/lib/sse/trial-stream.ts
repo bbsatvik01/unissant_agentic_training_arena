@@ -86,6 +86,15 @@ export function parseTrialFrame(raw: unknown, trialId: string): TrialFrame | Exc
   return value as unknown as TrialFrame;
 }
 
+function parsedOrUndefined(data: unknown): unknown {
+  if (typeof data !== "string") return undefined;
+  try {
+    return JSON.parse(data) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 /** `GET /api/trials/{id}/events?ticket=..&after=..` (S5 5.5, 6.3). */
 export function trialEventsUrl(trialId: string, ticket: string, after: string | null): string {
   const query = new URLSearchParams({ ticket });
@@ -105,8 +114,11 @@ export interface TrialStreamOptions extends PassThroughOptions {
   mintTicket: (trialId: string) => Promise<string>;
   /** Validate and fold one well-formed frame; return true only when it was accepted. */
   onFrame: (frame: TrialFrame) => boolean;
-  /** One frame was dropped (S6 5.2: dropped and counted, never rendered). */
-  onDrop?: (reason: TrialDropReason) => void;
+  /**
+   * One frame was dropped (S6 5.2: dropped and counted, never rendered). `raw` is the payload parsed as JSON when it
+   * parses (for the caller to identify what it lost, never to render), else undefined.
+   */
+  onDrop?: (reason: TrialDropReason, raw: unknown) => void;
   /** Resume point carried over from an earlier handle (the reducer already holds frames up to it). */
   initialLastSeq?: number | null;
   /**
@@ -128,9 +140,9 @@ export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle 
   let lastSeq = initialLastSeq;
   let dropped = 0;
 
-  const drop = (reason: TrialDropReason): MessageVerdict => {
+  const drop = (reason: TrialDropReason, data: unknown): MessageVerdict => {
     dropped += 1;
-    onDrop?.(reason);
+    onDrop?.(reason, parsedOrUndefined(data));
     return false;
   };
 
@@ -141,8 +153,8 @@ export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle 
     resolveUrl: async ({ lastEventId }) => trialEventsUrl(trialId, await mintTicket(trialId), lastEventId),
     onMessage: (event) => {
       const frame = parseTrialFrame(event.data, trialId);
-      if (typeof frame === "string") return drop(frame);
-      if (!onFrame(frame)) return drop("rejected");
+      if (typeof frame === "string") return drop(frame, event.data);
+      if (!onFrame(frame)) return drop("rejected", event.data);
       if (frame.seq === null) return false;
       const next = resumeCursor === undefined ? frame.seq : resumeCursor({ ...frame, seq: frame.seq });
       if (lastSeq !== null && next <= lastSeq) return false;

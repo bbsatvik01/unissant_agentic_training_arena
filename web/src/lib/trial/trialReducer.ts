@@ -29,8 +29,10 @@
  * (`released_at_turn` is the exchange count at release, S4 `released_after_exchanges`), and is stale otherwise.
  * In a practice text trial every event row is live, so the owner's stream is gap-free (S5 6.1): a streamed card
  * with a `seq` above the contiguous prefix (`contiguousSeq`) is pending whatever it reads, since a frame below it
- * is still missing; the session controller resumes the stream from that prefix. A `seq` the controller refused
- * (its frame failed validation) or gave up on (`seq_skipped`) counts toward the prefix without being folded. A card that failed the schema
+ * is still missing; the session controller re-reads the snapshot to cover it. A `seq` the controller refused (its
+ * frame failed validation, `seq_skipped`) counts toward the prefix without being folded. Hints, the client's own
+ * submit and refused cards survive a newer snapshot; a refused card never shows again (it was acknowledged
+ * invalid). A card that failed the schema
  * is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
  * pending or refused card still closes its turn (the server closed it on the card row) and never reaches
  * `cards`.
@@ -242,7 +244,8 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
       const { snapshot } = action;
       const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
       const skippedSeqs = new Set([...state.skippedSeqs].filter((seq) => seq > snapshot.last_seq));
-      let next: TrialState = { ...state, snapshot, log, hints: new Map(), findingSubmitted: false, refusedCards: new Set(), skippedSeqs };
+      // Hints, the client's own submit and refused cards stay: they are facts a newer snapshot does not undo.
+      let next: TrialState = { ...state, snapshot, log, skippedSeqs };
       if (snapshotLeaks(snapshot)) {
         next = withViolation(next, { key: "snapshot:assessment_coaching", frame_type: "snapshot", seq: null, reason: "assessment_coaching" });
       }
@@ -438,8 +441,11 @@ function derive(state: TrialState): TrialState {
       rejected.add(n);
     }
   }
+  // A refused card stays refused, from the stream or the snapshot: it was acknowledged invalid (S6 5.6).
   for (const n of state.refusedCards) {
-    if (!cards.has(n) && !pending.has(n)) rejected.add(n);
+    cards.delete(n);
+    pending.delete(n);
+    rejected.add(n);
   }
 
   const turnList = byKey(turns);

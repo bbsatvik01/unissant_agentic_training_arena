@@ -1055,14 +1055,29 @@ describe("session controller: Codex round 2 regressions", () => {
     expect(roomStatus(c.getState().trial)).toBe("ended");
   });
 
-  it("a card above a missing frame neither shows nor is acknowledged, and the resume replays the gap", async () => {
-    const h = harness();
-    const c = h.make();
-    await begin(c);
-    h.last().open();
+  it("a card above a missing frame neither shows nor is acknowledged until the snapshot re-read covers the gap", async () => {
     const b = new LogBuilder().ask({ releaseAfter: "rec-02" });
     const [q, , answer, release, , card] = b.frames;
     expect(release?.type).toBe("evidence.released");
+    const covered = snapshot({
+      last_seq: release?.seq ?? 0,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+      released: [{ ...(release?.data as never as object), transcript_version: 3 } as never],
+    });
+    let answerSnapshot: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>((r) => (answerSnapshot = r));
+        },
+      },
+    });
+    await begin(c);
     h.last().send(q);
     h.last().send(answer);
     h.last().send(card);
@@ -1070,11 +1085,8 @@ describe("session controller: Codex round 2 regressions", () => {
     expect(trialView(c).cards).toEqual([]);
     expect(trialView(c).pendingCards).toEqual([1]);
     expect(h.acks).toEqual([]);
-    // the gap is still there 1 s later: resume from the gap-free prefix
-    await h.clock.advance(CATCH_UP_MS);
-    expect(h.sources).toHaveLength(2);
-    expect(h.last().url).toContain(`after=${String(answer?.seq ?? -1)}`);
-    for (const f of [release, card]) h.last().send(f);
+    expect(reads).toBe(2);
+    answerSnapshot(covered);
     await flush();
     expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
     expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
@@ -1135,25 +1147,55 @@ describe("session controller: Codex round 3 regressions", () => {
     expect(h.sources).toHaveLength(1);
   });
 
-  it("a gap the replay does not fill is skipped after one resume, so later cards are judged", async () => {
+  it("an unparseable frame makes the room re-read the snapshot, which closes the turn it carried", async () => {
+    const b = new LogBuilder().ask();
+    const card = b.frames.at(-1);
+    const after = snapshot({
+      last_seq: card?.seq ?? 0,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+    });
+    const h = harness({ snapshots: [snapshot(), after] });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames.slice(0, -1)) h.last().send(f);
+    expect(roomStatus(c.getState().trial)).toBe("coach_working");
+    h.last().raw("{broken");
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    // shown from the snapshot, never acknowledged: only streamed cards are
+    expect(h.acks).toEqual([]);
+  });
+
+  it("an identifiable frame that fails parsing (a card with a bad envelope field) closes its turn and is acknowledged invalid", async () => {
     const h = harness();
     const c = h.make();
     await begin(c);
     const b = new LogBuilder().ask().ask();
-    const missing = b.frames.find((f) => f.type === "coach.card" && f.data.turn_no === 1);
-    const rest = b.frames.filter((f) => f !== missing);
-    for (const f of rest) h.last().send(f);
-    expect(trialView(c).pendingCards).toEqual([2]);
-    await h.clock.advance(CATCH_UP_MS);
-    expect(h.sources).toHaveLength(2);
-    expect(h.last().url).toContain(`after=${String((missing?.seq ?? 0) - 1)}`);
-    // the replay sends everything after the prefix except the frame this client cannot read
-    h.last().raw("{broken");
-    for (const f of rest.filter((f) => (f.seq ?? 0) > (missing?.seq ?? 0))) h.last().send(f);
-    await h.clock.advance(CATCH_UP_MS);
+    const firstCard = b.frames.find((f) => f.type === "coach.card" && f.data.turn_no === 1);
+    for (const f of b.frames) h.last().send(f === firstCard ? { ...f, ts: 42 } : f);
+    await flush();
+    expect(h.acks).toEqual([
+      { trial_id: TRIAL_ID, turn_no: 1, client_valid: false },
+      { trial_id: TRIAL_ID, turn_no: 2, client_valid: true },
+    ]);
     expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([2]);
-    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 2, client_valid: true }]);
-    expect(h.sources).toHaveLength(2);
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(1);
+  });
+
+  it("a dropped frame of another trial is never taken for this one's", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask({ coach: "none" });
+    for (const f of b.frames) h.last().send(f);
+    h.last().send({ ...frame("coach.card", b.seq + 1, b.version, { turn_no: 1, card: cardFor(1, b.version) }), scope_id: "00000000-0000-4000-8000-000000000000" });
+    await flush();
+    expect(h.acks).toEqual([]);
+    expect(roomStatus(c.getState().trial)).toBe("coach_working");
   });
 
   it("an evidence request whose records share one version waits for every record", async () => {
@@ -1194,5 +1236,112 @@ describe("session controller: Codex round 3 regressions", () => {
     expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
     // once when it was refused, once more for the replayed copy the stream itself drops
     expect(c.getState().dropped).toBe(2);
+  });
+});
+
+describe("session controller: Codex round 4 regressions", () => {
+  it("a different question in between does not lose an unresolved turn's identity", async () => {
+    let n = 0;
+    const sent: TurnSubmit[] = [];
+    const answers: (Error | { last_seq: null })[] = [new TypeError("lost"), new ApiError(409, "turn_in_progress", "/x"), { last_seq: null }];
+    const h = harness();
+    const c = h.make({
+      newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          const a = answers.shift();
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: null });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.submitTurn("A?")).rejects.toBeInstanceOf(TypeError);
+    await expect(c.submitTurn("B?")).rejects.toBeInstanceOf(ApiError);
+    await c.submitTurn("A?");
+    expect(sent[2]).toEqual(sent[0]);
+  });
+
+  it("snapshot re-reads run one at a time, and a request during one runs once more after it", async () => {
+    const gates: ((s: TrialSnapshot) => void)[] = [];
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>((r) => gates.push(r));
+        },
+      },
+    });
+    await begin(c);
+    h.last().raw("{a");
+    h.last().raw("{b");
+    h.last().raw("{c");
+    await flush();
+    expect(reads).toBe(2);
+    gates.shift()?.(snapshot());
+    await flush();
+    expect(reads).toBe(3);
+    gates.shift()?.(snapshot());
+    await flush();
+    expect(reads).toBe(3);
+    expect(c.getState().dropped).toBe(3);
+  });
+
+  it("a failed snapshot re-read keeps the room and records the error", async () => {
+    const h = harness({ snapshots: [snapshot(), new TypeError("network"), snapshot()] });
+    const c = h.make();
+    await begin(c);
+    h.last().raw("{broken");
+    await flush();
+    expect(c.getState().error).toBeInstanceOf(TypeError);
+    expect(c.getState().connection).toBe("connecting");
+  });
+});
+
+describe("session controller: gap cursor and pinned refusals", () => {
+  it("while a gap is open, a dropped connection resumes from the gap-free prefix", async () => {
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>(() => undefined);
+        },
+      },
+    });
+    await begin(c);
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02" });
+    const [q, , answer, , , card] = b.frames;
+    for (const f of [q, answer, card]) h.last().send(f);
+    h.last().fail();
+    await h.clock.advance(250);
+    expect(h.last().url).toContain(`after=${String(answer?.seq ?? -1)}`);
+  });
+
+  it("a card acknowledged invalid never shows, even when a later snapshot carries it", async () => {
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02", coach: "none" });
+    const stale = frame("coach.card", b.seq + 1, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const resynced = snapshot({
+      last_seq: b.seq + 1,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+    });
+    const h = harness({ snapshots: [snapshot(), resynced] });
+    const c = h.make();
+    await begin(c);
+    for (const f of [...b.frames, stale]) h.last().send(f);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+    h.last().raw("{broken");
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
+    expect(trialView(c).cards).toEqual([]);
+    expect(trialView(c).rejectedCards).toEqual([1]);
   });
 });
