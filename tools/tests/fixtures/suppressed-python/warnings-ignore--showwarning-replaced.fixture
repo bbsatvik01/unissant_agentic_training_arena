@@ -1,0 +1,3 @@
+import warnings
+
+warnings.showwarning = lambda *args, **kwargs: None

@@ -27,6 +27,10 @@ override DIFF_COVER_MIN := 90
 override PYTEST_WARNINGS := error
 override BANDIT_FLAGS := -ll -ii
 override BANDIT_SECRET_TESTS := B105,B106,B107
+# Every Python gate reads its configuration from this one file, named explicitly: a mypy.ini, ruff.toml,
+# pytest.ini, setup.cfg, tox.ini or .coveragerc would otherwise outrank it through each tool's own discovery
+# (tools/check_no_rigging.py also refuses those files).
+override PY_CONFIG := pyproject.toml
 
 BASE_REF ?= main
 PY_SOURCES := packages services tools scripts
@@ -77,13 +81,13 @@ py-check: lint format-check typecheck no-rigging silent-except roles cost-parity
 	test scope-coverage diff-cover
 
 lint:
-	$(UV_RUN) ruff check .
+	$(UV_RUN) ruff check --config $(PY_CONFIG) .
 
 format-check:
-	$(UV_RUN) ruff format --check .
+	$(UV_RUN) ruff format --config $(PY_CONFIG) --check .
 
 typecheck:
-	$(UV_RUN) mypy
+	$(UV_RUN) mypy --config-file $(PY_CONFIG)
 
 no-rigging:
 	$(UV_RUN) python -m tools.check_no_rigging
@@ -112,7 +116,7 @@ test:
 	@# A stale report from an earlier run must never satisfy diff-cover or the scope check.
 	rm -f coverage.xml .coverage $(GATES_DIR)/coverage.json
 	@mkdir -p $(GATES_DIR)
-	$(UV_RUN) pytest -W $(PYTEST_WARNINGS) --cov --cov-fail-under=$(COVERAGE_MIN) --cov-report=term-missing:skip-covered \
+	$(UV_RUN) pytest -c $(PY_CONFIG) --rootdir . -W $(PYTEST_WARNINGS) --cov --cov-config=$(PY_CONFIG) --cov-fail-under=$(COVERAGE_MIN) --cov-report=term-missing:skip-covered \
 		--cov-report=xml --cov-report=json:$(GATES_DIR)/coverage.json
 
 # Every measured-scope Python file must appear in the coverage report (omit/namespace/source drift, or a

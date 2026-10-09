@@ -19,12 +19,21 @@ file the parser cannot read fails closed. Python is also read as Python: a warni
 ``pytest.mark.filterwarnings`` filter) and a pytest or unittest skip are judged on the syntax tree, with
 import aliases resolved and a module reached through another (``unittest.case.warnings``) seen as itself,
 so a keyword argument, a call across lines, an alias, the function taken as a value or fetched through
-``getattr`` all count. Both checks are allow-lists, never deny-lists: the only filter action that passes is
+``getattr`` all count. The checks are allow-lists, never deny-lists: the only filter action that passes is
 a literal ``error`` (``ignore``, ``default``, ``always``, ``module``, ``once``, any abbreviation and any
-non-literal action weaken -W error and fail), and a guarded module (``warnings``, ``pytest``,
-``pytest.mark``, ``unittest``) may only be used as the base of an attribute access or as getattr's object;
-assigning it, passing it or returning it is an escape the scan cannot follow, and fails. Python the
-parser cannot read fails closed.
+non-literal action weaken -W error and fail); of the ``warnings`` module only the emitting functions and
+the judged filter calls may be used (``resetwarnings``, ``filters``, ``showwarning``, ... fail); a guarded
+module (``warnings``, ``pytest``, ``pytest.mark``, ``unittest``) may only be the base of a non-dunder
+attribute access or getattr's object, so assigning, passing or returning it, ``__dict__`` and ``vars()``
+fail, and so does loading one by name (``__import__``, ``import_module``, ``sys.modules[...]``). Import
+bindings are not told apart by scope: a name bound to a guarded module anywhere in the file is judged as
+that module everywhere. pytest's ``recwarn`` fixture, which records every warning so none fails the test,
+is refused too. Python the parser cannot read fails closed.
+
+Every Python gate reads ``pyproject.toml``, named explicitly in the Makefile; a competing configuration
+file a tool would discover on its own (``mypy.ini``, ``setup.cfg``, ``tox.ini``, ``pytest.ini``,
+``ruff.toml``, ``.coveragerc``, ...) anywhere outside docs/, or a gate ``[tool.*]`` table in a nested
+``pyproject.toml``, fails.
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
@@ -162,7 +171,11 @@ WARNING_FILTER_CALLS = {"warnings.filterwarnings", "warnings.simplefilter"}
 PYTEST_FILTER_MARK = "pytest.mark.filterwarnings"
 CATCH_WARNINGS = "warnings.catch_warnings"
 GETATTR_ARGS = 2  # getattr(object, name)
-WARNINGS_FILTER_LIST = "warnings.filters"
+KEPT_ACTION = "error"  # the one warning-filter action that keeps -W error intact
+# The warnings module is an allow-list: emitting warnings is fine, the filter calls are judged, and every
+# other attribute (resetwarnings, filters, showwarning, defaultaction, __dict__, ...) can drop a warning.
+WARNINGS_EMIT = {"warnings.warn", "warnings.warn_explicit", "warnings.WarningMessage", "warnings.deprecated"}
+JUDGED_WARNING_CALLS = {*WARNING_FILTER_CALLS, CATCH_WARNINGS}
 # Any reference to one of these (a call, a decorator, a value) skips or expects failure.
 SKIP_NAMES = {
     **{f"pytest.{n}": PYTEST_SKIP for n in ("skip", "xfail", "importorskip")},
@@ -173,56 +186,55 @@ SKIP_NAMES = {
         for n in ("skip", "skipIf", "skipUnless", "expectedFailure")
     },  # the skip exception is caught by name in every form, so the line scan suffices for it
 }
-# Modules used only as an attribute base or getattr's object; getattr is judged by the name it fetches (a
-# non-literal name fails closed), any other use is an escape.
+# Modules used only as an attribute base or getattr's object, never through a dunder attribute; getattr is
+# judged by the name it fetches (a non-literal name fails closed), any other use is an escape.
 GUARDED_MODULES = {"warnings": WARNINGS_IGNORE, "pytest": PYTEST_SKIP, "pytest.mark": PYTEST_SKIP}
 GUARDED_MODULES |= {"unittest": UNITTEST_SKIP, "unittest.case": UNITTEST_SKIP}
-GUARDED_NAMES = {
-    **SKIP_NAMES,
-    **dict.fromkeys((*WARNING_FILTER_CALLS, PYTEST_FILTER_MARK, CATCH_WARNINGS, WARNINGS_FILTER_LIST), WARNINGS_IGNORE),
-}
+GUARDED_NAMES = {**SKIP_NAMES, PYTEST_FILTER_MARK: WARNINGS_IGNORE}
+GUARDED_NAMES |= dict.fromkeys(JUDGED_WARNING_CALLS, WARNINGS_IGNORE)
+# Loading a module by name: builtins and importlib functions, and the loaded-module table.
+REFLECTIVE_NAMES = {"__import__", "__builtins__"}
+LOADER_CALLS = {"__import__", "import_module", "reload"}
+MODULE_TABLE = "sys.modules"
+# pytest's recwarn fixture records every warning a test raises, so none of them fails it.
+RECORDING_FIXTURES = {"recwarn"}
 
 
-def _bindings(tree: ast.AST) -> dict[str, str]:
-    """Local name -> the module or module attribute it is bound to by an import anywhere in the file."""
-    bound: dict[str, str] = {}
+def _bindings(tree: ast.AST) -> dict[str, set[str]]:
+    """Local name -> every module or attribute an import anywhere in the file binds it to. Scopes are not
+    told apart: a name bound to a guarded module anywhere is judged as that module everywhere."""
+    bound: dict[str, set[str]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.asname:
-                    bound[alias.asname] = alias.name
-                else:
-                    head = alias.name.split(".", 1)[0]
-                    bound[head] = head
+                head = alias.name.split(".", 1)[0]
+                bound.setdefault(alias.asname or head, set()).add(alias.name if alias.asname else head)
         elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
             for alias in node.names:
-                bound[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+                bound.setdefault(alias.asname or alias.name, set()).add(f"{node.module}.{alias.name}")
     return bound
 
 
-def _resolve(node: ast.expr, bound: dict[str, str]) -> str | None:
-    """The canonical dotted name of a Name/Attribute chain rooted in an imported name, else None."""
+def _canonical(name: str) -> str:
+    """The longest dotted suffix of ``name`` that is a guarded module or a ``warnings.*`` name, else
+    ``name``: a guarded module reached through another (``unittest.case.warnings``) is still itself."""
+    parts = name.split(".")
+    for start in range(len(parts)):
+        suffix = ".".join(parts[start:])
+        if suffix in GUARDED_NAMES or suffix in GUARDED_MODULES or suffix.startswith("warnings."):
+            return suffix
+    return name
+
+
+def _resolve(node: ast.expr, bound: dict[str, set[str]]) -> set[str]:
+    """Every canonical dotted name a Name/Attribute chain rooted in an imported name can denote."""
     parts: list[str] = []
     while isinstance(node, ast.Attribute):
         parts.append(node.attr)
         node = node.value
-    if not isinstance(node, ast.Name) or node.id not in bound:
-        return None
-    return ".".join([bound[node.id], *reversed(parts)])
-
-
-KEPT_ACTION = "error"  # the one warning-filter action that keeps -W error intact
-
-
-def _canonical(name: str) -> str:
-    """The longest dotted suffix of ``name`` that is a guarded module or name (``a.warnings.filters`` ->
-    ``warnings.filters``), else ``name``: a guarded module reached through another is still itself."""
-    parts = name.split(".")
-    for start in range(len(parts)):
-        suffix = ".".join(parts[start:])
-        if suffix in GUARDED_NAMES or suffix in GUARDED_MODULES:
-            return suffix
-    return name
+    if not isinstance(node, ast.Name):
+        return set()
+    return {_canonical(".".join([base, *reversed(parts)])) for base in bound.get(node.id, ())}
 
 
 def _weakens(expr: ast.expr | None) -> bool:
@@ -246,22 +258,48 @@ def _call_suppresses(name: str, call: ast.Call) -> bool:
     return _weakens(action) or _weakens(first)
 
 
+def _attribute_marker(name: str) -> str | None:
+    """The marker for a guarded module's attribute that is never allowed, or None."""
+    module, _, attribute = name.rpartition(".")
+    if module in GUARDED_MODULES and attribute.startswith("__"):
+        return GUARDED_MODULES[module]
+    if name in SKIP_NAMES:
+        return SKIP_NAMES[name]
+    if module == "warnings" and name not in WARNINGS_EMIT and name not in JUDGED_WARNING_CALLS:
+        return WARNINGS_IGNORE
+    return None
+
+
 def _is_getattr(call: ast.Call) -> bool:
     return isinstance(call.func, ast.Name) and call.func.id == "getattr" and len(call.args) >= GETATTR_ARGS
 
 
-def _getattr_marker(call: ast.Call, bound: dict[str, str]) -> str | None:
-    """``getattr(<guarded module>, name)``: the marker when the name is guarded or not a literal."""
-    if not _is_getattr(call):
+def _literal_module(expr: ast.expr | None) -> str | None:
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        name = _canonical(expr.value)
+        return name if name in GUARDED_MODULES else None
+    return None
+
+
+def _call_marker(call: ast.Call, bound: dict[str, set[str]]) -> str | None:
+    """getattr on a guarded module (by the name it fetches; a non-literal name fails closed), or a guarded
+    module loaded by name."""
+    if _is_getattr(call):
+        for module in _resolve(call.args[0], bound) & GUARDED_MODULES.keys():
+            name = call.args[1]
+            if not (isinstance(name, ast.Constant) and isinstance(name.value, str)):
+                return GUARDED_MODULES[module]
+            fetched = _canonical(f"{module}.{name.value}")
+            marker = _attribute_marker(fetched) or GUARDED_NAMES.get(fetched)
+            if marker is not None:
+                return marker
         return None
-    resolved = _resolve(call.args[0], bound)
-    module = None if resolved is None else _canonical(resolved)
-    if module is None or module not in GUARDED_MODULES:
-        return None
-    name = call.args[1]
-    if isinstance(name, ast.Constant) and isinstance(name.value, str):
-        return GUARDED_NAMES.get(f"{module}.{name.value}")
-    return GUARDED_MODULES[module]
+    func = call.func
+    loader = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else None
+    loaded = _literal_module(call.args[0] if call.args else None)
+    if loader in LOADER_CALLS and loaded is not None:
+        return GUARDED_MODULES[loaded]
+    return None
 
 
 def _module_use_is_followed(node: ast.AST, parent: ast.AST | None) -> bool:
@@ -285,22 +323,63 @@ def python_findings(path: str, text: str) -> list[Finding]:
         findings.append(Finding(path, row, marker, lines[row - 1].strip()))
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and (marker := _getattr_marker(node, bound)) is not None:
+        if isinstance(node, ast.Call) and (marker := _call_marker(node, bound)) is not None:
             found(node, marker)
+        elif isinstance(node, ast.Name) and node.id in REFLECTIVE_NAMES:
+            found(node, WARNINGS_IGNORE)
+        elif isinstance(node, ast.Subscript) and MODULE_TABLE in _resolve(node.value, bound):
+            if (module := _literal_module(node.slice)) is not None:
+                found(node, GUARDED_MODULES[module])
+        elif isinstance(node, ast.arg) and node.arg in RECORDING_FIXTURES:
+            found(node, WARNINGS_IGNORE)
         if not isinstance(node, ast.Name | ast.Attribute):
             continue
-        resolved = _resolve(node, bound)
-        name = None if resolved is None else _canonical(resolved)
-        if name in GUARDED_MODULES:
-            if not _module_use_is_followed(node, parents.get(id(node))):
-                found(node, GUARDED_MODULES[name])
-            continue
-        if name is None or name not in GUARDED_NAMES:
-            continue
-        call = called.get(id(node))
-        if name in SKIP_NAMES or name == WARNINGS_FILTER_LIST or call is None or _call_suppresses(name, call):
-            found(call or node, GUARDED_NAMES[name])
+        for name in _resolve(node, bound):
+            call = called.get(id(node))
+            if name in GUARDED_MODULES:
+                if not _module_use_is_followed(node, parents.get(id(node))):
+                    found(node, GUARDED_MODULES[name])
+            elif (attribute_marker := _attribute_marker(name)) is not None:
+                found(call or node, attribute_marker)
+            elif name in GUARDED_NAMES and (call is None or _call_suppresses(name, call)):
+                found(call or node, GUARDED_NAMES[name])
     return findings
+
+
+ROOT_CONFIG = "pyproject.toml"
+# Files a gate tool's own discovery prefers to pyproject.toml (mypy, pytest, ruff, coverage, bandit, flake8-era
+# setup.cfg/tox.ini sections); the Makefile names ROOT_CONFIG explicitly and none of these may exist.
+COMPETING_CONFIGS = {
+    "mypy.ini",
+    ".mypy.ini",
+    "setup.cfg",
+    "tox.ini",
+    "pytest.ini",
+    ".pytest.ini",
+    "ruff.toml",
+    ".ruff.toml",
+    ".coveragerc",
+    ".bandit",
+}
+# [tool.*] tables that configure a gate; in a nested pyproject.toml they would split the gate configuration.
+GATE_TOOL_TABLES = {"ruff", "mypy", "pytest", "coverage", "bandit"}
+
+
+def config_errors(path: str, read: Callable[[str], bytes]) -> list[str]:
+    """A competing gate configuration file, or a gate [tool.*] table in a nested pyproject.toml."""
+    name = path.rsplit("/", 1)[-1]
+    if name in COMPETING_CONFIGS:
+        return [f"{path}: competing gate configuration; the gates read only {ROOT_CONFIG}"]
+    if name != ROOT_CONFIG or path == ROOT_CONFIG:
+        return []
+    try:
+        tables = tomllib.loads(read(path).decode("utf-8")).get("tool", {})
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        return [f"{path}: not valid TOML ({exc}); the configuration scan cannot read it"]
+    return [
+        f"{path}: [tool.{table}] in a nested pyproject.toml; gate configuration lives only in {ROOT_CONFIG}"
+        for table in sorted(GATE_TOOL_TABLES & set(tables))
+    ]
 
 
 def docs_python_errors(paths: list[str]) -> list[str]:
@@ -321,6 +400,8 @@ def check(
     errors: list[str] = []
     used: set[Allowance] = set()
     for path in paths:
+        if not path.startswith("docs/"):
+            errors.extend(config_errors(path, read))
         if not is_scanned(path):
             continue
         try:

@@ -162,3 +162,43 @@ def test_semgrep_recipe_fails_on_raw_http_in_a_service(tmp_path: Path) -> None:
     (tmp_path / "services" / "api" / "leak.py").write_text("VALUE = 1\n")
     clean = make("semgrep", tmp_path, SEMGREP=SEMGREP)
     assert clean.returncode == 0, clean.stdout + clean.stderr
+
+
+# ---------------------------------------------------------------- explicit gate configuration (Codex round 6)
+def _dry_run(target: str) -> str:
+    result = proc.run("make", ["-n", "-f", str(MAKEFILE), target], cwd=REPO_ROOT)
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+@pytest.mark.parametrize(
+    ("target", "tool", "flag"),
+    [
+        ("lint", "ruff check", "--config pyproject.toml"),
+        ("format-check", "ruff format", "--config pyproject.toml"),
+        ("typecheck", "mypy", "--config-file pyproject.toml"),
+        ("test", "pytest", "-c pyproject.toml"),
+        ("test", "pytest", "--cov-config=pyproject.toml"),
+    ],
+)
+def test_each_python_gate_names_its_configuration(target: str, tool: str, flag: str) -> None:
+    lines = [line for line in _dry_run(target).splitlines() if f" {tool} " in f" {line} "]
+    assert lines, (target, tool)
+    assert all(flag in line for line in lines), lines
+
+
+@pytest.mark.gateproof
+def test_the_real_typecheck_recipe_ignores_a_competing_mypy_ini(tmp_path: Path) -> None:
+    """A mypy.ini that narrows checking to one clean file must not change what the recipe checks."""
+    shutil.copy(REPO_ROOT / "pyproject.toml", tmp_path / "pyproject.toml")
+    for directory in ("packages", "services", "tools"):
+        (tmp_path / directory).mkdir()
+        (tmp_path / directory / f"{directory}_ok.py").write_text("X = 1\n")
+    (tmp_path / "tools" / "ok.py").write_text("X = 1\n")
+    (tmp_path / "packages" / "untyped.py").write_text("def add(a, b):\n    return a + b\n")
+    (tmp_path / "mypy.ini").write_text("[mypy]\nfiles = tools/ok.py\n")
+    recipe = next(line for line in _dry_run("typecheck").splitlines() if " mypy" in f" {line}")
+    args = shlex.split(recipe.split(" mypy", 1)[1])
+    result = proc.run("mypy", args, cwd=tmp_path)
+    assert result.returncode == 1, result.stdout
+    assert "packages/untyped.py" in result.stdout

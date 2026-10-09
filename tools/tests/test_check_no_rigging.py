@@ -188,41 +188,47 @@ def test_ordinary_code_and_data_never_match(tmp_path: Path, line: str) -> None:
 SUPPRESSED_PYTHON = sorted((Path(__file__).parent / "fixtures" / "suppressed-python").glob("*.fixture"))
 
 
-def test_the_python_fixtures_cover_each_ast_marker() -> None:
-    cases = {p.stem for p in SUPPRESSED_PYTHON}
-    assert {c for c in cases if c.startswith("pytest-skip--")} == {
-        f"pytest-skip--{c}" for c in ("from-import", "mark-assigned", "mark-import", "module-alias")
+def test_the_python_fixtures_exist() -> None:
+    assert {p.stem for p in SUPPRESSED_PYTHON} == {
+        "pytest-skip--from-import",
+        "pytest-skip--mark-assigned",
+        "pytest-skip--mark-import",
+        "pytest-skip--module-alias",
+        "pytest-skip--module-dict",
+        "unittest-skip--from-import",
+        "unittest-skip--module-alias",
+        "warnings-ignore--abbreviated-action",
+        "warnings-ignore--always-action",
+        "warnings-ignore--catch-warnings-action",
+        "warnings-ignore--catch-warnings-default",
+        "warnings-ignore--computed-action",
+        "warnings-ignore--default-action-mark",
+        "warnings-ignore--dunder-import",
+        "warnings-ignore--filters-list",
+        "warnings-ignore--function-as-value",
+        "warnings-ignore--getattr",
+        "warnings-ignore--getattr-reset",
+        "warnings-ignore--import-alias",
+        "warnings-ignore--import-module",
+        "warnings-ignore--keyword-action",
+        "warnings-ignore--keyword-always",
+        "warnings-ignore--kwargs-action",
+        "warnings-ignore--local-rebinding",
+        "warnings-ignore--module-alias",
+        "warnings-ignore--module-assigned",
+        "warnings-ignore--module-dict",
+        "warnings-ignore--module-passed",
+        "warnings-ignore--multiline-abbreviated-mark",
+        "warnings-ignore--multiline-positional",
+        "warnings-ignore--pytest-mark-multiline",
+        "warnings-ignore--pytest-mark-second-filter",
+        "warnings-ignore--recwarn-fixture",
+        "warnings-ignore--resetwarnings",
+        "warnings-ignore--showwarning-replaced",
+        "warnings-ignore--submodule-path",
+        "warnings-ignore--sys-modules",
+        "warnings-ignore--vars-of-module",
     }
-    assert {c for c in cases if c.startswith("unittest-skip--")} == {
-        f"unittest-skip--{c}" for c in ("from-import", "module-alias")
-    }
-    assert {c for c in cases if c.startswith("warnings-ignore--")} == {
-        f"warnings-ignore--{c}"
-        for c in (
-            "abbreviated-action",
-            "always-action",
-            "catch-warnings-action",
-            "catch-warnings-default",
-            "computed-action",
-            "default-action-mark",
-            "filters-list",
-            "function-as-value",
-            "getattr",
-            "import-alias",
-            "keyword-action",
-            "keyword-always",
-            "kwargs-action",
-            "module-alias",
-            "module-assigned",
-            "module-passed",
-            "multiline-abbreviated-mark",
-            "multiline-positional",
-            "pytest-mark-multiline",
-            "pytest-mark-second-filter",
-            "submodule-path",
-        )
-    }
-    assert len(cases) == len(list(SUPPRESSED_PYTHON))
 
 
 @pytest.mark.gateproof
@@ -256,6 +262,54 @@ def test_ordinary_python_passes_the_syntax_tree_scan(tmp_path: Path, source: str
 def test_unparseable_python_fails_closed(tmp_path: Path) -> None:
     (tmp_path / "broken.py").write_text("def f(:\n")
     assert "not valid Python" in nr.check(["broken.py"], reader(tmp_path), [], MARKERS)[0]
+
+
+# ---------------------------------------------------------------- competing tool configuration (Codex round 6)
+# Each Python gate reads pyproject.toml, named explicitly in the Makefile; a file that a tool's own discovery
+# would prefer (or a [tool.*] table in a nested pyproject.toml) is refused, so the gate config cannot be
+# swapped out from beside it.
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "path",
+    [
+        "mypy.ini",
+        ".mypy.ini",
+        "setup.cfg",
+        "tox.ini",
+        "pytest.ini",
+        ".pytest.ini",
+        "ruff.toml",
+        ".ruff.toml",
+        ".coveragerc",
+        "services/api/ruff.toml",
+        "packages/core/.coveragerc",
+    ],
+)
+def test_a_competing_tool_config_fails(tmp_path: Path, path: str) -> None:
+    target = tmp_path / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("[mypy]\nfiles = packages/core/src/arena_core/config.py\n")
+    errors = nr.check([path], reader(tmp_path), [], MARKERS)
+    assert errors == [f"{path}: competing gate configuration; the gates read only {nr.ROOT_CONFIG}"], errors
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("table", ["ruff", "mypy", "pytest.ini_options", "coverage.run", "bandit", "ruff.lint"])
+def test_a_tool_table_in_a_nested_pyproject_fails(tmp_path: Path, table: str) -> None:
+    (tmp_path / "services" / "api").mkdir(parents=True)
+    (tmp_path / "services" / "api" / "pyproject.toml").write_text(f'[project]\nname = "x"\n\n[tool.{table}]\nx = 1\n')
+    errors = nr.check(["services/api/pyproject.toml"], reader(tmp_path), [], MARKERS)
+    assert errors == [
+        f"services/api/pyproject.toml: [tool.{table.partition('.')[0]}] in a nested pyproject.toml; gate configuration"
+        f" lives only in {nr.ROOT_CONFIG}"
+    ], errors
+
+
+def test_the_root_pyproject_and_a_plain_nested_one_pass(tmp_path: Path) -> None:
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pyproject.toml").write_text("[tool.mypy]\nstrict = true\n")
+    (tmp_path / "pkg" / "pyproject.toml").write_text('[project]\nname = "x"\n\n[tool.uv]\npackage = false\n')
+    assert nr.check(["pyproject.toml", "pkg/pyproject.toml"], reader(tmp_path), [], MARKERS) == []
 
 
 # ---------------------------------------------------------------- YAML read as YAML (Codex round 2, finding 2)

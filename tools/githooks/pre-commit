@@ -30,8 +30,8 @@ while IFS= read -r -d '' f; do
 done < <(git diff --cached --name-only --no-renames -z)
 
 if ((${#PY[@]} > 0)); then
-  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff check -- "${PY[@]}")
-  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff format --check -- "${PY[@]}")
+  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff check --config pyproject.toml -- "${PY[@]}")
+  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff format --config pyproject.toml --check -- "${PY[@]}")
 fi
 
 (cd "$STAGE" && uv run --project "$ROOT" --locked python -m tools.check_no_rigging --snapshot --root "$STAGE")
