@@ -9,6 +9,9 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Dev cases (2026-10-09 ~02:55 EDT)
+- Case workflow done (18/18 agents). F04-F09 green on validators + Codex CX + skeptic (F04 and F09 fixed after skeptic findings); committed on branch `data/dev-cases` (9fd1dd2) as a checkpoint. F01-F03 copies held back: Codex CX-1 still finds seed defects (F01 doc-02 vs f:24, l:01 label; F02 f:14 timing and HOLD leak; F03 x:03, FREE f:03/f:04 leak g:02). Spec v2.3 (a3ca7e9) already changed the seeds for some of these; after 07:00 re-sync seeds, fix the rest in the spec, re-run check.py, then cold Codex gate and merge.
+
 ## Codex spec round 2 (2026-10-09 ~02:30 EDT)
 - YELLOW, RED, RED, RED: 4 blockers, 35 majors (down from ~60). Recorded in `docs/spec/review-codex-r2.md`. Fixes queued for after 07:00 (hold).
 
