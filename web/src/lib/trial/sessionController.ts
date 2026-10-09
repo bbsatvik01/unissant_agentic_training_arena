@@ -22,7 +22,7 @@
 
 import type { ArenaApi, PostAck } from "../api/arena";
 import { ApiError } from "../api/client";
-import type { DebriefRead, EvidenceResult, InvestigatorFinding, TrialFrame as WireFrame } from "../contracts/generated/types";
+import type { DebriefRead, EvidenceResult, InvestigatorFinding, TrialFrame as WireFrame, TurnSubmit } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
 import { openTrialStream, type TrialFrame, type TrialStreamHandle, type TrialStreamOptions } from "../sse/trial-stream";
 import type { EventSourceLike } from "../sse/ticketed-stream";
@@ -126,6 +126,14 @@ const globalScheduler: Scheduler = {
   },
 };
 
+/**
+ * The server refused the request outright (4xx: nothing was written), so a later attempt is a new action. Any
+ * other failure (network, 5xx, a lost answer) may have been applied: the retry must reuse the key.
+ */
+function refused(error: unknown): boolean {
+  return error instanceof ApiError && error.status >= 400 && error.status < 500;
+}
+
 /** The turn a broken `coach.card` frame names, when it names one (1..12), for its `client_invalid` acknowledgement. */
 function brokenCardTurn(frame: TrialFrame): number | null {
   if (frame.type !== "coach.card") return null;
@@ -148,6 +156,12 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let hiddenTimer: number | null = null;
   const catchUpTimers = new Set<number>();
   const acked = new Set<number>();
+  /** Turns whose `coach.card` arrived on the stream: only these are acknowledged (S6 5.6). */
+  const streamCards = new Set<number>();
+  /** The last unsettled request per action, so a retry resends it with the same idempotency key (S5 5.2). */
+  let pendingTurn: TurnSubmit | null = null;
+  const pendingKeys = new Map<"evidence" | "finding", { readonly match: string; readonly key: string }>();
+  let completing: Promise<void> | null = null;
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
@@ -159,6 +173,26 @@ export function createSessionController(options: SessionControllerOptions): Sess
     for (const listener of [...listeners]) listener();
   };
 
+  const ack = (turn: number, valid: boolean) => {
+    acked.add(turn);
+    api.ackCard({ trial_id: trialId, turn_no: turn, client_valid: valid }).catch(() => undefined);
+  };
+
+  /**
+   * One acknowledgement per streamed card, once its verdict is known: shown, or refused (stale or failing the
+   * schema). A pending card (reading a frame not folded yet) waits; it is shown or refused by a later frame.
+   * Practice text trials only: no other population receives live cards (S6 5.6).
+   */
+  const settleAcks = (trial: TrialState) => {
+    const v = trial.view;
+    if (v === null || v.mode !== "practice" || v.channel !== "text") return;
+    for (const turn of streamCards) {
+      if (acked.has(turn)) continue;
+      if (v.cards.some((c) => c.turn_no === turn)) ack(turn, true);
+      else if (v.rejectedCards.includes(turn)) ack(turn, false);
+    }
+  };
+
   const setTrial = (trial: TrialState) => {
     if (trial === state.trial) return;
     // Report each new violation once (S6 5.4); a report that fails is not retried and never breaks the room.
@@ -166,6 +200,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
       api.reportContractViolation({ trial_id: trialId, frame_type: v.frame_type, seq: v.seq, reason: v.reason }).catch(() => undefined);
     }
     reported = trial.violations.length;
+    // Acknowledge before subscribers are told, so before any render (S6 5.6).
+    settleAcks(trial);
     set({ trial });
   };
 
@@ -174,12 +210,6 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const view = () => state.trial.view;
-
-  const ack = (turn: number, valid: boolean) => {
-    if (acked.has(turn)) return;
-    acked.add(turn);
-    api.ackCard({ trial_id: trialId, turn_no: turn, client_valid: valid }).catch(() => undefined);
-  };
 
   const clearHiddenTimer = () => {
     if (hiddenTimer !== null) scheduler.clearTimeout(hiddenTimer);
@@ -200,53 +230,66 @@ export function createSessionController(options: SessionControllerOptions): Sess
     set({ connection: "finished" });
   };
 
+  /** A published debrief is never replaced by an older `scoring` answer. */
+  const setDebrief = (debrief: DebriefRead) => {
+    if (state.debrief !== null && "schema_version" in state.debrief && !("schema_version" in debrief)) return;
+    set({ debrief });
+  };
+
   const loadDebrief = async () => {
     try {
-      const debrief = await api.readDebrief(sessionId);
-      set({ debrief });
+      setDebrief(await api.readDebrief(sessionId));
     } catch (error) {
       set({ error });
     }
   };
 
-  /** The trial is over and its stream closed for good: the snapshot and the debrief carry everything (SG4-21). */
-  const endFromRest = async () => {
-    finish();
-    try {
-      const snapshot = await api.trialSnapshot(trialId);
-      if (!disposed) dispatch({ type: "snapshot", snapshot });
-    } catch (error) {
-      set({ error });
-    }
-    await loadDebrief();
+  /**
+   * The session is over and its stream closed for good (`debrief.ready`, a published debrief, or a ticket answered
+   * 409 `stream_closed`): the terminal snapshot (the commitment hash, and in an assessment the coaching withheld
+   * until now) and the debrief carry everything (S6 5.1, SG4-21).
+   */
+  const complete = (): Promise<void> => {
+    completing ??= (async () => {
+      finish();
+      try {
+        const snapshot = await api.trialSnapshot(trialId);
+        if (!disposed) dispatch({ type: "snapshot", snapshot });
+      } catch (error) {
+        set({ error });
+      }
+      if (state.debrief === null || !("schema_version" in state.debrief)) await loadDebrief();
+    })();
+    return completing;
   };
 
   const onFrame = (frame: TrialFrame): boolean => {
     const trialView = view();
     if (!isWire("events", frame)) {
       const turn = brokenCardTurn(frame);
-      if (turn !== null && trialView?.mode === "practice" && trialView.channel === "text") ack(turn, false);
+      if (turn !== null && trialView?.mode === "practice" && trialView.channel === "text") {
+        // The server closed the turn on this card: close it here too, keeping nothing of the card.
+        streamCards.add(turn);
+        dispatch({ type: "card_refused", turn_no: turn });
+      }
       return false;
     }
     const wire: WireFrame = frame;
     const result = applyFrame(state.trial, wire);
-    if (result.outcome === "applied" && wire.type === "coach.card") {
-      // Acknowledge before subscribers are told, so before any render (S6 5.6).
-      ack(wire.data.turn_no, result.state.view?.cards.some((c) => c.turn_no === wire.data.turn_no) ?? false);
-    }
+    const counted = result.outcome === "applied" || result.outcome === "duplicate";
+    if (counted && wire.type === "coach.card") streamCards.add(wire.data.turn_no);
     setTrial(result.state);
-    if (result.state.view?.debriefReady != null && stream !== null) {
-      finish();
-      void loadDebrief();
-    }
-    return result.outcome === "applied" || result.outcome === "duplicate";
+    if (result.state.view?.debriefReady != null && stream !== null) void complete();
+    // A refused card is dropped and counted (S6 4.5); it never moves the cursor.
+    if (counted && wire.type === "coach.card") return !(result.state.view?.rejectedCards.includes(wire.data.turn_no) ?? true);
+    return counted;
   };
 
   const mintTicket = async (id: string): Promise<string> => {
     try {
       return await api.mintStreamTicket(id);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409 && error.code === "stream_closed") void endFromRest();
+      if (error instanceof ApiError && error.status === 409 && error.code === "stream_closed") void complete();
       throw error;
     }
   };
@@ -273,7 +316,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       scheduler,
       ...(options.eventSourceFactory === undefined ? {} : { eventSourceFactory: options.eventSourceFactory }),
     });
-    // The first ticket mint can settle before this assignment only as a 409 handled by endFromRest, which
+    // The first ticket mint can settle before this assignment only as a 409 handled by complete(), which
     // finished the session; never keep a handle after that.
     if (state.connection === "finished" || disposed) handle.close();
     else stream = handle;
@@ -307,6 +350,15 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const afterPost = (answer: PostAck) => {
     const target = answer.last_seq;
     if (target !== null) catchUp(() => (stream?.lastSeq ?? cursor) < target);
+  };
+
+  /** The same action retried reuses its key; a different one gets a fresh key. */
+  const keyFor = (kind: "evidence" | "finding", match: string): string => {
+    const held = pendingKeys.get(kind);
+    if (held?.match === match) return held.key;
+    const key = newKey();
+    pendingKeys.set(kind, { match, key });
+    return key;
   };
 
   const requireView = () => {
@@ -350,30 +402,53 @@ export function createSessionController(options: SessionControllerOptions): Sess
     },
     async submitTurn(question) {
       const v = requireView();
-      afterPost(
-        await api.submitTurn(trialId, { question, release_ids: [], expected_version: v.transcriptVersion, idem_key: newKey() }),
-      );
+      // A retry of the same question resends the same request, key and version included, so the server resumes it.
+      const body: TurnSubmit =
+        pendingTurn?.question === question
+          ? pendingTurn
+          : { question, release_ids: [], expected_version: v.transcriptVersion, idem_key: newKey() };
+      pendingTurn = body;
+      try {
+        const answer = await api.submitTurn(trialId, body);
+        pendingTurn = null;
+        afterPost(answer);
+      } catch (error) {
+        if (refused(error)) pendingTurn = null;
+        throw error;
+      }
     },
     async requestEvidence(recordIds) {
       requireView();
-      const result = await api.requestEvidence(trialId, { record_ids: [...recordIds], idem_key: newKey() });
-      catchUp(() => (view()?.transcriptVersion ?? 0) < result.transcript_version);
-      return result;
+      const ids = [...recordIds];
+      const idem = keyFor("evidence", JSON.stringify(ids));
+      try {
+        const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
+        pendingKeys.delete("evidence");
+        catchUp(() => (view()?.transcriptVersion ?? 0) < result.transcript_version);
+        return result;
+      } catch (error) {
+        if (refused(error)) pendingKeys.delete("evidence");
+        throw error;
+      }
     },
     async submitFinding(finding) {
       requireView();
+      const idem = keyFor("finding", JSON.stringify(finding));
       dispatch({ type: "finding_submitted" });
       try {
-        afterPost(await api.commitFinding(trialId, { finding, idem_key: newKey() }));
+        const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
+        pendingKeys.delete("finding");
+        afterPost(answer);
       } catch (error) {
+        if (refused(error)) pendingKeys.delete("finding");
         dispatch({ type: "finding_failed" });
         throw error;
       }
     },
     async requestDebrief() {
       const debrief = await api.requestDebrief(sessionId);
-      set({ debrief });
-      if (state.connection !== "finished") finish();
+      setDebrief(debrief);
+      await complete();
     },
     reconnect() {
       if (stream === null || state.connection !== "gave_up") return;

@@ -196,3 +196,25 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
     expect(calls).toEqual(["/api/config"]);
   });
 });
+
+describe("fetch wrapper: dispatch timing (S6 5.6)", () => {
+  it("with the token known, a POST reaches the transport within the call", async () => {
+    const t = transport({ "GET /api/me": [() => json(200, ME)], "POST /api/x": [() => json(200, {})] });
+    const api = createApiClient({ fetch: t.fetch });
+    await api.me();
+    const pending = api.post("/api/x", { a: 1 });
+    expect(t.sent.map((s) => s.url)).toEqual(["/api/me", "/api/x"]);
+    await pending;
+  });
+});
+
+describe("fetch wrapper: a transport that throws", () => {
+  it("turns a synchronous throw into a rejection", async () => {
+    const api = createApiClient({
+      fetch: () => {
+        throw new TypeError("blocked");
+      },
+    });
+    await expect(api.get("/api/config")).rejects.toBeInstanceOf(TypeError);
+  });
+});

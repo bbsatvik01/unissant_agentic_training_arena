@@ -69,12 +69,13 @@ export interface ApiClientOptions {
 
 const API_PATH = /^\/api\/[^\\]*$/;
 
-/** Refuse anything but a relative path under `/api/` on this origin. */
-function checkPath(path: string): void {
+/** The refusal for anything but a relative path under `/api/` on this origin, or null. */
+function pathError(path: string): Error | null {
   const route = path.split(/[?#]/, 1)[0] ?? "";
   if (!API_PATH.test(path) || route.split("/").some((segment) => segment === ".." || segment === ".")) {
-    throw new Error(`not a same-origin /api/ path: ${JSON.stringify(path)}`);
+    return new Error(`not a same-origin /api/ path: ${JSON.stringify(path)}`);
   }
+  return null;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -116,7 +117,7 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   let token: string | null = null;
   let meInFlight: Promise<Me> | null = null;
 
-  const send = (method: "GET" | "POST", path: string, body: unknown, keepalive: boolean, csrf: string | null) => {
+  const send = (method: "GET" | "POST", path: string, body: unknown, keepalive: boolean, csrf: string | null): Promise<Response> => {
     const headers: Record<string, string> = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
     if (csrf !== null) headers["X-Arena-CSRF"] = csrf;
     const init: RequestInit = { method, headers, credentials: "same-origin", redirect: "error", cache: "no-store" };
@@ -125,7 +126,10 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
       init.body = JSON.stringify(body);
     }
     if (keepalive) init.keepalive = true;
-    return transport(path, init);
+    // The executor runs now, so the request leaves in this call; a transport that throws becomes a rejection.
+    return new Promise<Response>((resolve) => {
+      resolve(transport(path, init));
+    });
   };
 
   const settle = async (path: string, response: Response): Promise<unknown> => {
@@ -151,22 +155,28 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     return meInFlight;
   };
 
-  const csrfToken = async (): Promise<string> => token ?? (await me()).csrf_token;
 
   return {
     me,
     async get(path) {
-      checkPath(path);
+      const refused = pathError(path);
+      if (refused !== null) throw refused;
       return settle(path, await send("GET", path, undefined, false, null));
     },
-    async post(path, body, postOptions = {}) {
-      checkPath(path);
+    post(path, body, postOptions = {}) {
+      const refused = pathError(path);
+      if (refused !== null) return Promise.reject(refused);
       const keepalive = postOptions.keepalive === true;
-      const first = await send("POST", path, body, keepalive, await csrfToken());
-      if (first.status !== 403) return settle(path, first);
-      // A stale token (the cookie rotated, another tab re-read /api/me): re-read once, retry once.
-      const fresh = (await me()).csrf_token;
-      return settle(path, await send("POST", path, body, keepalive, fresh));
+      // With the token known the request leaves now, in this call (an acknowledgement goes out before the caller
+      // renders, S6 5.6); otherwise after /api/me answered, and never without it.
+      const known = token;
+      const first = known === null ? me().then((m) => send("POST", path, body, keepalive, m.csrf_token)) : send("POST", path, body, keepalive, known);
+      return first.then(async (response) => {
+        if (response.status !== 403) return settle(path, response);
+        // A stale token (the cookie rotated, another tab re-read /api/me): re-read once, retry once.
+        const fresh = (await me()).csrf_token;
+        return settle(path, await send("POST", path, body, keepalive, fresh));
+      });
     },
   };
 }

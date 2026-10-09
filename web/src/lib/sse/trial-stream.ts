@@ -8,7 +8,8 @@
  * - Reconnects follow `[250, 1000, 2000, 4000, 8000]` ms: the donor's 2 s first retry alone would
  *   break the 3 s KPI-4 budget on any reconnect (S6 5.1).
  * - Each payload is checked before the reducer sees it: at most 16 KB of UTF-8 (S6 5.2) and a
- *   trial-scope envelope for this trial. A frame failing either check, or rejected by the caller's
+ *   trial-scope envelope for this trial. The parsed object is handed on whole, unknown keys included, so the
+ *   caller's schema validation sees exactly what the server sent. A frame failing either check, or rejected by the caller's
  *   validator and reducer, is dropped and counted, never rendered (S6 5.2, FE-SSE-6).
  * - The `after=` cursor is the highest persisted `seq` the caller accepted. Synthesized frames
  *   (`seq: null`: the snapshot, `subject.thinking`, `coach.working`, `trial.status`, `notice`) and
@@ -80,8 +81,8 @@ export function parseTrialFrame(raw: unknown, trialId: string): TrialFrame | Exc
   if (seq !== null && !isCount(seq)) return "envelope";
   if (typeof type !== "string" || type === "" || typeof ts !== "string" || !isRecord(data)) return "envelope";
   if (version !== undefined && !isCount(version)) return "envelope";
-  const frame: TrialFrame = { v: 1, seq, scope: "trial", scope_id: trialId, type, ts, data };
-  return version === undefined ? frame : { ...frame, transcript_version: version };
+  // The checks above make `value` a trial envelope; any other key stays for the schema validator to refuse.
+  return value as unknown as TrialFrame;
 }
 
 /** `GET /api/trials/{id}/events?ticket=..&after=..` (S5 5.5, 6.3). */

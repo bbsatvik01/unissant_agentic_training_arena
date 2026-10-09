@@ -312,11 +312,67 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
     expect(view(s).cards).toHaveLength(1);
   });
 
-  it("drops a card for a turn with no answer", () => {
+  it("holds a card for a turn with no answer as pending, still closing nothing that is open", () => {
     const b = new LogBuilder().ask({ coach: "none" });
     const card = frame("coach.card", b.seq + 1, b.version, { turn_no: 2, card: cardFor(2, b.version) });
     const s = fold(boot(), [...b.frames, card]);
-    expect(view(s).rejectedCards).toEqual([2]);
+    expect(view(s).pendingCards).toEqual([2]);
+    expect(view(s).cards.map((c) => c.turn_no)).toEqual([]);
+    // the end overtakes it: it will never become current
+    expect(view(fold(s, new LogBuilder("practice", { seq: b.seq + 1 }).end("infra_failed").frames)).rejectedCards).toEqual([2]);
+  });
+
+  it("a card that arrives before its answer is pending, and shown once the answer is folded", () => {
+    const frames = new LogBuilder().ask().frames;
+    const card = frames.at(-1) as TrialFrame;
+    const early = fold(boot(), [frames[0] as TrialFrame, card]);
+    expect(view(early).pendingCards).toEqual([1]);
+    expect(view(early).cards).toEqual([]);
+    expect(view(fold(early, frames)).cards.map((c) => c.turn_no)).toEqual([1]);
+  });
+
+  it("a card read at a release not folded yet is pending until that release arrives", () => {
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02" });
+    const release = b.frames.find((f) => f.type === "evidence.released") as TrialFrame;
+    const without = fold(boot(), b.frames.filter((f) => f !== release));
+    expect(view(without).pendingCards).toEqual([1]);
+    expect(view(fold(without, [release])).cards.map((c) => c.turn_no)).toEqual([1]);
+  });
+
+  it("a card after a later turn's question is stale, even at its answer's version", () => {
+    const b = new LogBuilder().ask({ coach: "none" });
+    const answerVersion = b.version;
+    b.ask({ coach: "none" });
+    const late = frame("coach.card", b.seq + 1, answerVersion, { turn_no: 1, card: cardFor(1, answerVersion) });
+    const s = fold(boot(), [...b.frames, late]);
+    expect(view(s).rejectedCards).toEqual([1]);
+    expect(view(s).cards).toEqual([]);
+  });
+
+  it("a pending card overtaken by a later question becomes stale", () => {
+    const b = new LogBuilder().ask({ coach: "none" });
+    const ahead = frame("coach.card", b.seq + 1, b.version + 5, { turn_no: 1, card: cardFor(1, b.version + 5) });
+    const s = fold(boot(), [...b.frames, ahead]);
+    expect(view(s).pendingCards).toEqual([1]);
+    const next = new LogBuilder("practice", { seq: b.seq + 1, version: b.version, turn: 1 }).ask({ coach: "none" });
+    const after = fold(s, next.frames.slice(0, 1));
+    expect(view(after).pendingCards).toEqual([]);
+    expect(view(after).rejectedCards).toEqual([1]);
+  });
+
+  it("a card refused by the schema closes its turn without keeping anything of it", () => {
+    const frames = new LogBuilder().ask().frames;
+    const open = fold(boot(), frames.slice(0, -1));
+    expect(roomStatus(open)).toBe("coach_working");
+    const refused = trialReducer(open, { type: "card_refused", turn_no: 1 });
+    expect(roomStatus(refused)).toBe("awaiting_question");
+    expect(view(refused).rejectedCards).toEqual([1]);
+    expect(trialReducer(refused, { type: "card_refused", turn_no: 1 })).toBe(refused);
+    expect(trialReducer(initialTrialState(), { type: "card_refused", turn_no: 1 }).view).toBeNull();
+    // a valid copy of the card, if one arrives, still shows
+    const shown = fold(refused, frames.slice(-1));
+    expect(view(shown).cards.map((c) => c.turn_no)).toEqual([1]);
+    expect(view(shown).rejectedCards).toEqual([]);
   });
 
   it("on the snapshot: keeps a card read at its answer or at a release after it in the same exchange, drops any other", () => {

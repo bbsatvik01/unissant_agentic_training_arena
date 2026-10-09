@@ -21,11 +21,15 @@
  *
  * Complete-card reveal (S6 4.5, SG4-23): a card is shown only when its `transcript_version` is the turn's
  * context version, the version of the last frame applied for the turn: its answer, or a release after the
- * answer and before the card. On the stream that is decided in `seq` order. The snapshot carries no event order
- * between a card and the releases of its exchange, so there a card is kept when it was read at its answer or at
- * a release of the same exchange made after the answer (`released_at_turn` is the exchange count at release,
- * S4 `released_after_exchanges`). A refused card still closes its turn (the server closed it on the card row)
- * and is listed in `rejectedCards`, never in `cards`.
+ * answer and before any next question. On the stream that is decided in `seq` order: a card read at an older
+ * version, or arriving after a later turn's question, is stale; a card read at a version this client has not
+ * folded yet (or before its answer) is pending until the missing frame arrives, and stale once a later turn or
+ * the end overtakes it. The snapshot carries no event order between a card and the releases of its exchange, so
+ * there a card is kept when it was read at its answer or at a release of the same exchange made after the answer
+ * (`released_at_turn` is the exchange count at release, S4 `released_after_exchanges`), and is stale otherwise.
+ * A card that failed the schema is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
+ * pending or refused card still closes its turn (the server closed it on the card row) and never reaches
+ * `cards`.
  *
  * Derived room status (C-45): `connecting` before the snapshot; `ended` on any terminal status;
  * `finalizing` from the client's own finding submit, or a `finding.committed` frame, until then; in a text trial
@@ -108,8 +112,10 @@ export interface TrialView {
   readonly requestable: readonly RequestableRecord[];
   /** Accepted cards only, by turn. */
   readonly cards: readonly CoachCard[];
-  /** Turns whose card arrived and was refused by the complete-card rule. */
+  /** Turns whose card was refused: stale by the complete-card rule, or failing the schema. */
   readonly rejectedCards: readonly number[];
+  /** Turns whose card reads a version not folded yet (S6 4.5); neither shown nor refused yet. */
+  readonly pendingCards: readonly number[];
   readonly updates: readonly CoachUpdate[];
   readonly coachFailures: readonly CoachFailed[];
   /** The turn the coach is reading ("Coach is reading T5"), between `coach.working` and its card. */
@@ -130,6 +136,8 @@ export interface TrialState {
   /** Synthesized frames, one per distinct (type, data). */
   readonly hints: ReadonlyMap<string, TrialFrame>;
   readonly findingSubmitted: boolean;
+  /** Turns whose `coach.card` frame failed the schema (no payload kept). */
+  readonly refusedCards: ReadonlySet<number>;
   readonly violations: readonly Violation[];
   readonly view: TrialView | null;
 }
@@ -137,6 +145,7 @@ export interface TrialState {
 export type TrialAction =
   | { readonly type: "snapshot"; readonly snapshot: TrialSnapshot }
   | { readonly type: "frame"; readonly frame: TrialFrame }
+  | { readonly type: "card_refused"; readonly turn_no: number }
   | { readonly type: "finding_submitted" }
   | { readonly type: "finding_failed" };
 
@@ -156,7 +165,7 @@ const COACHING: ReadonlySet<TrialFrame["type"]> = new Set(["coach.working", "coa
 const TEXT_TURN: ReadonlySet<TrialFrame["type"]> = new Set(["question.accepted", "subject.thinking", "subject.answer", ...COACHING]);
 
 export function initialTrialState(): TrialState {
-  return { snapshot: null, log: new Map(), hints: new Map(), findingSubmitted: false, violations: [], view: null };
+  return { snapshot: null, log: new Map(), hints: new Map(), findingSubmitted: false, refusedCards: new Set(), violations: [], view: null };
 }
 
 export function roomStatus(state: TrialState): RoomStatus {
@@ -223,7 +232,7 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
     case "snapshot": {
       const { snapshot } = action;
       const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
-      let next: TrialState = { ...state, snapshot, log, hints: new Map(), findingSubmitted: false };
+      let next: TrialState = { ...state, snapshot, log, hints: new Map(), findingSubmitted: false, refusedCards: new Set() };
       if (snapshotLeaks(snapshot)) {
         next = withViolation(next, { key: "snapshot:assessment_coaching", frame_type: "snapshot", seq: null, reason: "assessment_coaching" });
       }
@@ -231,6 +240,9 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
     }
     case "frame":
       return applyFrame(state, action.frame).state;
+    case "card_refused":
+      if (state.snapshot === null || state.refusedCards.has(action.turn_no)) return state;
+      return derive({ ...state, refusedCards: new Set(state.refusedCards).add(action.turn_no) });
     case "finding_submitted":
       return state.findingSubmitted ? state : derive({ ...state, findingSubmitted: true });
     case "finding_failed":
@@ -273,6 +285,7 @@ function derive(state: TrialState): TrialState {
   const released = new Map<string, SnapshotRelease>(snapshot.released.map((r) => [r.record_id, r]));
   const cards = new Map<number, CoachCard>();
   const rejected = new Set<number>();
+  const pending = new Set<number>();
   const updates = new Map<number, CoachUpdate>();
   const failures = new Map<number, CoachFailed>();
   if (snapshotCoachingVisible(snapshot)) {
@@ -310,6 +323,7 @@ function derive(state: TrialState): TrialState {
     }
   };
 
+  let askedUpTo = Math.max(0, ...snapshot.turns.map((t) => t.turn_no));
   for (const frame of byKey(state.log)) {
     const v = frame.transcript_version;
     version = Math.max(version, v);
@@ -319,6 +333,7 @@ function derive(state: TrialState): TrialState {
         const t = turn(frame.data.turn_no);
         t.question = frame.data.text;
         t.source = frame.data.source;
+        askedUpTo = Math.max(askedUpTo, frame.data.turn_no);
         break;
       }
       case "subject.answer": {
@@ -335,18 +350,18 @@ function derive(state: TrialState): TrialState {
         break;
       case "coach.card": {
         const n = frame.data.turn_no;
+        if (cards.has(n)) break;
         const answerVersion = turns.get(n)?.answerVersion ?? null;
         // The context version: the answer, or the newest release folded after it (all of them precede this card).
         const context =
           answerVersion === null
             ? null
             : Math.max(answerVersion, ...[...released.values()].map((r) => r.transcript_version).filter((rv) => rv > answerVersion));
-        if (context !== null && v === context) {
-          cards.set(n, frame.data);
-          rejected.delete(n);
-        } else if (!cards.has(n)) {
-          rejected.add(n);
-        }
+        rejected.delete(n);
+        pending.delete(n);
+        if (askedUpTo > n || (context !== null && v < context)) rejected.add(n);
+        else if (context === null || v > context) pending.add(n);
+        else cards.set(n, frame.data);
         break;
       }
       case "coach.update":
@@ -386,10 +401,21 @@ function derive(state: TrialState): TrialState {
     else if (hint.type === "notice") notices.set(hint.data.kind, hint.data);
   }
 
+  // A pending card overtaken by a later turn or by the end will never become current.
+  for (const n of pending) {
+    if (askedUpTo > n || isTerminal(serverStatus)) {
+      pending.delete(n);
+      rejected.add(n);
+    }
+  }
+  for (const n of state.refusedCards) {
+    if (!cards.has(n) && !pending.has(n)) rejected.add(n);
+  }
+
   const turnList = byKey(turns);
   const newest = Math.max(0, ...turnList.map((t) => t.turn_no), ...thinking);
   const open = newest === 0 ? null : (turns.get(newest) ?? null);
-  const closedByCoach = (n: number) => cards.has(n) || rejected.has(n) || failures.has(n);
+  const closedByCoach = (n: number) => cards.has(n) || rejected.has(n) || pending.has(n) || failures.has(n);
   if (snapshot.channel === "text") exchangesUsed = Math.max(exchangesUsed, turnList.filter((t) => t.answer !== null).length);
 
   let status: TrialView["status"];
@@ -431,6 +457,7 @@ function derive(state: TrialState): TrialState {
     requestable: snapshot.requestable,
     cards: byKey(cards),
     rejectedCards: [...rejected].sort((a, b) => a - b),
+    pendingCards: [...pending].sort((a, b) => a - b),
     updates: byKey(updates),
     coachFailures: byKey(failures),
     coachReading: status === "coach_working" && working.has(newest) ? newest : null,

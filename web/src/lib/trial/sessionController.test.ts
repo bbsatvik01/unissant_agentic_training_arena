@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { ArenaApi, ContractViolationReport } from "../api/arena";
-import { ApiError, ContractError } from "../api/client";
+import { createArenaApi, type ArenaApi, type ContractViolationReport } from "../api/arena";
+import { ApiError, ContractError, createApiClient } from "../api/client";
 import type { CardAck, DebriefRead, TrialFrame, TrialSnapshot, TurnSubmit } from "../contracts/generated/types";
 import type { EventSourceLike } from "../sse/ticketed-stream";
 import { fixture } from "../../test/wire-fixtures";
@@ -764,5 +764,208 @@ describe("documentVisibility", () => {
     const v = documentVisibility(null);
     expect(v.hidden()).toBe(false);
     v.subscribe(() => undefined)();
+  });
+});
+
+describe("session controller: Codex round 1 regressions", () => {
+  function keys() {
+    let n = 0;
+    return () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`;
+  }
+
+  it("a turn retried after a lost answer resends the same request, key and version; a refused one does not", async () => {
+    const sent: TurnSubmit[] = [];
+    const answers: (Error | { last_seq: null })[] = [new TypeError("network"), { last_seq: null }, new ApiError(409, "turn_in_progress", "/x"), { last_seq: null }];
+    const h = harness();
+    const c = h.make({
+      newKey: keys(),
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          const a = answers.shift();
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: null });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.submitTurn("Why?")).rejects.toBeInstanceOf(TypeError);
+    // the question was committed before the answer was lost: the stream moves the version meanwhile
+    for (const f of new LogBuilder().ask().frames.slice(0, 1)) h.last().send(f);
+    await c.submitTurn("Why?");
+    expect(sent[1]).toEqual(sent[0]);
+    await expect(c.submitTurn("Then?")).rejects.toBeInstanceOf(ApiError);
+    await c.submitTurn("Then?");
+    expect(sent[3]?.idem_key).not.toBe(sent[2]?.idem_key);
+    expect(sent[2]?.idem_key).not.toBe(sent[0]?.idem_key);
+  });
+
+  it("evidence requests and findings reuse their key on a retry of the same action only", async () => {
+    const evidenceKeys: string[] = [];
+    const findingKeys: string[] = [];
+    let failEvidence = 2;
+    let failFinding = 1;
+    const result = { released: [], already_released: [], denied: [], transcript_version: 0 };
+    const h = harness();
+    const c = h.make({
+      newKey: keys(),
+      api: {
+        ...h.api,
+        requestEvidence: (_id, body) => {
+          evidenceKeys.push(body.idem_key);
+          failEvidence -= 1;
+          if (failEvidence === 1) return Promise.reject(new TypeError("lost"));
+          if (failEvidence === 0) return Promise.reject(new ApiError(422, "unknown_record", "/x"));
+          return Promise.resolve(result);
+        },
+        commitFinding: (_id, body) => {
+          findingKeys.push(body.idem_key);
+          failFinding -= 1;
+          return failFinding === 0 ? Promise.reject(new ApiError(503, "paused", "/x")) : Promise.resolve({ last_seq: null });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.requestEvidence(["rec-02"])).rejects.toBeInstanceOf(TypeError);
+    await expect(c.requestEvidence(["rec-02"])).rejects.toBeInstanceOf(ApiError);
+    await c.requestEvidence(["rec-02"]);
+    expect(evidenceKeys[1]).toBe(evidenceKeys[0]);
+    expect(evidenceKeys[2]).not.toBe(evidenceKeys[1]);
+    await c.requestEvidence(["rec-03"]);
+    expect(evidenceKeys[3]).not.toBe(evidenceKeys[2]);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    await expect(c.submitFinding(body)).rejects.toBeInstanceOf(ApiError);
+    await c.submitFinding(body);
+    expect(findingKeys[1]).toBe(findingKeys[0]);
+  });
+
+  it("a debrief published between trial.status and trial.finalized still shows the hash, from the terminal snapshot", async () => {
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 9 });
+    const debrief = fixture("debrief:scored");
+    const h = harness({ snapshots: [snapshot(), ended] });
+    const c = h.make({ api: { ...h.api, requestDebrief: () => Promise.resolve(debrief as never) } });
+    await begin(c);
+    for (const f of new LogBuilder().ask().commit().frames.slice(0, -1)) h.last().send(f);
+    expect(trialView(c).commitmentHash).toBeNull();
+    await c.requestDebrief();
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+    expect(c.getState().debrief).toEqual(debrief);
+    expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
+  });
+
+  it("a live assessment that ends shows the coaching withheld until then, from the terminal snapshot", async () => {
+    const turn = { turn_no: 1, question: "Q?", source: "investigator", answer: "A.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+    const ended = snapshot({ mode: "assessment", status: "completed", last_seq: 9, exchanges_used: 1, turns: [turn], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const h = harness({ snapshots: [snapshot({ mode: "assessment" }), ended] });
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder("assessment").ask().commit().debriefReady();
+    for (const f of b.frames) h.last().send(f);
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    expect(h.violations).toEqual([]);
+  });
+
+  it("a card that fails the schema closes its turn, so the composer is not stuck", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask({ coach: "none" });
+    for (const f of b.frames) h.last().send(f);
+    expect(roomStatus(c.getState().trial)).toBe("coach_working");
+    h.last().send(frame("coach.card", b.seq + 1, b.version, { turn_no: 1, card: { ...cardFor(1, b.version), candidate_id: "x" } as never }));
+    await flush();
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+  });
+
+  it("a card ahead of its answer waits, then is acknowledged valid and shown once the answer arrives", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const frames = new LogBuilder().ask().frames;
+    const card = frames.at(-1);
+    h.last().send(frames[0]);
+    h.last().send(card);
+    await flush();
+    expect(h.acks).toEqual([]);
+    expect(trialView(c).cards).toEqual([]);
+    for (const f of frames.slice(1, -1)) h.last().send(f);
+    await flush();
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+  });
+
+  it("a stale card is dropped and counted, and does not move the cursor", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask({ coach: "stale" });
+    for (const f of b.frames) h.last().send(f);
+    expect(c.getState().dropped).toBe(1);
+    h.last().fail();
+    await h.clock.advance(250);
+    expect(h.last().url).toContain(`after=${String(b.seq - 1)}`);
+  });
+
+  it("a frame with a key outside the envelope schema is dropped", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const [q] = new LogBuilder().ask().frames as [TrialFrame];
+    h.last().send({ ...q, role: "deceptive" });
+    expect(c.getState().dropped).toBe(1);
+    expect(trialView(c).turns).toEqual([]);
+  });
+
+  it("a scoring answer that settles after the published debrief never replaces it", async () => {
+    const debrief = fixture("debrief:scored");
+    let answer: (d: DebriefRead) => void = () => undefined;
+    const h = harness({ snapshots: [snapshot({ status: "completed" })] });
+    const c = h.make({
+      api: {
+        ...h.api,
+        readDebrief: () => new Promise<DebriefRead>((r) => (answer = r)),
+        requestDebrief: () => Promise.resolve(debrief as never),
+      },
+    });
+    const started = c.start();
+    await flush();
+    await c.requestDebrief();
+    answer({ status: "scoring" });
+    await started;
+    await flush();
+    expect(c.getState().debrief).toEqual(debrief);
+  });
+
+  it("with the real API wrappers, the acknowledgement leaves before subscribers hear of the card", async () => {
+    const order: string[] = [];
+    const h = harness();
+    const fetchLike = (url: string, init: RequestInit): Promise<Response> => {
+      order.push(`${init.method ?? "GET"} ${url}`);
+      const body = url === "/api/me" ? { user_id: "u", display_name: "D", roles: [], ex4_acknowledged: null, csrf_token: "t" } : url.endsWith("/stream-tickets") ? { ticket: "tk" } : url.endsWith("/snapshot") ? snapshot() : null;
+      return Promise.resolve(new Response(body === null ? null : JSON.stringify(body), { status: body === null ? 204 : 200 }));
+    };
+    const api = createArenaApi(createApiClient({ fetch: fetchLike }));
+    const c = createSessionController({
+      trialId: TRIAL_ID,
+      sessionId: SESSION_ID,
+      api,
+      visibility: h.visibility,
+      scheduler: h.clock.scheduler,
+      eventSourceFactory: (url) => {
+        const es = new FakeES(url);
+        h.sources.push(es);
+        return es;
+      },
+    });
+    await c.start();
+    for (let i = 0; i < 20 && h.sources.length === 0; i += 1) await new Promise((r) => setTimeout(r, 0));
+    c.subscribe(() => {
+      if (trialView(c).cards.length > 0 && !order.includes("render")) order.push("render");
+    });
+    for (const f of new LogBuilder().ask().frames) h.last().send(f);
+    expect(order.slice(-2)).toEqual(["POST /api/telemetry/kpi4", "render"]);
   });
 });
