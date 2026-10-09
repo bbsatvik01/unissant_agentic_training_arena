@@ -19,15 +19,15 @@
  * coaching from the stream (S6 5.1: voice exchanges travel on the voice socket). Each refusal is recorded once
  * in `violations` for the controller to report; nothing from it is rendered (FE-SSE-3).
  *
- * Complete-card reveal (S6 4.5, SG4-23, FE-COACH-7): one rule for the snapshot and the stream (`judgeCard`).
+ * Complete-card reveal (S6 4.5, SG4-23, FE-COACH-7): one rule for the snapshot and the stream (`judgeCard`),
+ * applied once everything below the card is known.
  * A card for turn n at row seq S reading version v is stale when a later turn's question comes before S; otherwise
  * its context version is the newest of its answer's version and every release after the answer and before S, and
- * the card is shown only at exactly that version. The snapshot carries the seqs the rule needs (`question_seq`,
- * release and card `event_seq`). A streamed card that reads a version not known yet (or arrives before its answer)
- * is pending until the missing frame arrives, and stale once a later turn or the end overtakes it; a snapshot card
- * has everything below it in the snapshot, so it is shown or stale. In a practice text trial every event row is
- * live, so the owner's stream is gap-free (S5 6.1): a streamed card with a `seq` above the contiguous prefix
- * (`contiguousSeq`) is pending whatever it reads; the session controller re-reads the snapshot to cover the gap. A
+ * the card is shown only at exactly that version, else it is stale. The snapshot carries the seqs the rule needs
+ * (`question_seq`, release and card `event_seq`). In a practice text trial (the only one with live cards) every
+ * event row is live, so the owner's stream is gap-free (S5 6.1): a streamed card with a `seq` above the contiguous
+ * prefix (`contiguousSeq`) is pending, neither shown nor refused, until the frames below it arrive; the session
+ * controller re-reads the snapshot to cover the gap. Coaching frames never move the transcript version. A
  * `seq` the controller refused (a card failing validation, `seq_skipped`) counts toward the prefix without being
  * folded. A card that failed the schema is recorded by turn only (`card_refused`; nothing of it is kept), and a
  * refused card never shows again, from the stream or a snapshot (it was acknowledged invalid). A stale, pending or
@@ -370,7 +370,8 @@ function derive(state: TrialState): TrialState {
   for (const frame of byKey(state.log)) {
     if (frame.seq === null) continue;
     const v = frame.transcript_version;
-    version = Math.max(version, v);
+    // Coaching never moves the transcript version (S5 5.1): a card's claim is checked, not believed.
+    if (!COACHING.has(frame.type)) version = Math.max(version, v);
     lastSeq = Math.max(lastSeq, frame.seq);
     switch (frame.type) {
       case "question.accepted": {
@@ -428,43 +429,26 @@ function derive(state: TrialState): TrialState {
   const working = new Set<number>();
   const notices = new Map<Notice["kind"], Notice>();
   for (const hint of state.hints.values()) {
-    version = Math.max(version, hint.transcript_version);
+    if (!COACHING.has(hint.type)) version = Math.max(version, hint.transcript_version);
     if (hint.type === "subject.thinking") thinking.add(hint.data.turn_no);
     else if (hint.type === "coach.working") working.add(hint.data.turn_no);
     else if (hint.type === "trial.status") end(hint.data.status, hint.data.reason_code);
     else if (hint.type === "notice") notices.set(hint.data.kind, hint.data);
   }
 
-  // Judge every card by the one rule. A snapshot card has everything below it in the snapshot, so a card that reads
-  // beyond what is known is stale; a streamed one may be waiting for a frame still on its way.
+  // Judge every card by the one rule, once everything below it is known. A snapshot card has everything below it
+  // in the snapshot. A practice text stream is gap-free (S5 6.1), so a streamed card at or below the contiguous
+  // prefix is judged now, and one above a gap waits (pending) for the frames below it.
+  const gapFree = snapshot.mode === "practice" && snapshot.channel === "text";
   const known: Ordered = { questions, releases, turns };
   for (const { card, seq, version: v, streamed } of toJudge) {
     const n = card.turn_no;
     if (cards.has(n)) continue;
-    const verdict = judgeCard(n, seq, v, known);
     rejected.delete(n);
     pending.delete(n);
-    if (verdict === "current") cards.set(n, card);
-    else if (verdict === "ahead" && streamed) pending.add(n);
+    if (streamed && gapFree && seq > contiguousSeq) pending.add(n);
+    else if (judgeCard(n, seq, v, known) === "current") cards.set(n, card);
     else rejected.add(n);
-  }
-
-  // Practice text: a card above a gap was judged without a frame before it; it waits for the gap to fill.
-  const gapFree = snapshot.mode === "practice" && snapshot.channel === "text";
-  const aboveGap = (n: number) => gapFree && (cardSeq.get(n) ?? 0) > contiguousSeq;
-  for (const n of cardSeq.keys()) {
-    if (aboveGap(n)) {
-      cards.delete(n);
-      rejected.delete(n);
-      pending.add(n);
-    }
-  }
-  // A pending card overtaken by a later turn or by the end will never become current.
-  for (const n of pending) {
-    if (!aboveGap(n) && (askedUpTo > n || isTerminal(serverStatus))) {
-      pending.delete(n);
-      rejected.add(n);
-    }
   }
   // A refused card stays refused, from the stream or the snapshot: it was acknowledged invalid (S6 5.6).
   for (const n of state.refusedCards) {

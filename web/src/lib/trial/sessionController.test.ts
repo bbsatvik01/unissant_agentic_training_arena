@@ -1851,3 +1851,18 @@ describe("session controller: overlapping snapshot reads", () => {
     expect(roomStatus(c.getState().trial)).toBe("ended");
   });
 });
+
+describe("session controller: a card claiming a future version", () => {
+  it("is refused and acknowledged invalid once everything below it arrived, and the next question keeps the real version", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask({ coach: "none" });
+    for (const f of b.frames) h.last().send(f);
+    h.last().send(frame("coach.card", b.seq + 1, b.version + 1, { turn_no: 1, card: cardFor(1, b.version + 1) }));
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+    expect(trialView(c).cards).toEqual([]);
+    await c.submitTurn("Next?");
+    expect(h.turns[0]?.expected_version).toBe(b.version);
+  });
+});

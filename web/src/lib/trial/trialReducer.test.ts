@@ -312,14 +312,12 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
     expect(view(s).cards).toHaveLength(1);
   });
 
-  it("holds a card for a turn with no answer as pending, still closing nothing that is open", () => {
+  it("refuses a card for a turn with no answer once everything below it is known", () => {
     const b = new LogBuilder().ask({ coach: "none" });
     const card = frame("coach.card", b.seq + 1, b.version, { turn_no: 2, card: cardFor(2, b.version) });
     const s = fold(boot(), [...b.frames, card]);
-    expect(view(s).pendingCards).toEqual([2]);
-    expect(view(s).cards.map((c) => c.turn_no)).toEqual([]);
-    // the end overtakes it: it will never become current
-    expect(view(fold(s, new LogBuilder("practice", { seq: b.seq + 1 }).end("infra_failed").frames)).rejectedCards).toEqual([2]);
+    expect(view(s).rejectedCards).toEqual([2]);
+    expect(view(s).pendingCards).toEqual([]);
   });
 
   it("a card that arrives before its answer is pending, and shown once the answer is folded", () => {
@@ -349,16 +347,18 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
     expect(view(s).cards).toEqual([]);
   });
 
-  it("a pending card overtaken by a later question becomes stale", () => {
+  it("a card claiming a version beyond everything below it is stale, as on the snapshot, and moves no version", () => {
+    // question seq 1 (v1), answer seq 2 (v2), card seq 3 claiming v3
     const b = new LogBuilder().ask({ coach: "none" });
-    const ahead = frame("coach.card", b.seq + 1, b.version + 5, { turn_no: 1, card: cardFor(1, b.version + 5) });
+    const ahead = frame("coach.card", b.seq + 1, b.version + 1, { turn_no: 1, card: cardFor(1, b.version + 1) });
     const s = fold(boot(), [...b.frames, ahead]);
-    expect(view(s).pendingCards).toEqual([1]);
-    const next = new LogBuilder("practice", { seq: b.seq + 1, version: b.version, turn: 1 }).ask({ coach: "none" });
-    const after = fold(s, next.frames.slice(0, 1));
-    expect(view(after).pendingCards).toEqual([]);
-    expect(view(after).rejectedCards).toEqual([1]);
+    expect(view(s).rejectedCards).toEqual([1]);
+    expect(view(s).pendingCards).toEqual([]);
+    expect(view(s).transcriptVersion).toBe(b.version);
+    const snap = boot(snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1, 2, 1)], cards: [snapCard(1, 3, 3)] }));
+    expect(view(snap).rejectedCards).toEqual([1]);
   });
+
 
   it("a card refused by the schema closes its turn without keeping anything of it", () => {
     const frames = new LogBuilder().ask().frames;
