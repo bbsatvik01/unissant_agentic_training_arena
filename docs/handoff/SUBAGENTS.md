@@ -22,3 +22,12 @@
 - **Dispatched:** 2026-10-08 ~22:18 EDT. **Expected:** ~1.5-2 h.
 - **Agents:** build (Opus; writes only `web/` in worktree `/private/tmp/wt-web`, branch `feat/web-foundation`; self Codex gate to CORRECT; commits, no push) -> independent verify (Opus; pnpm check + mutation probes).
 - **After:** orchestrator cold Codex gate, merge into main; Makefile integration after WP-01 merges.
+
+## Build wave 2 workflow
+- **ID:** task `wr15p0y5x`, run `wf_9aced0c9-52d`; script `.../workflows/scripts/arena-build-wave2-wf_9aced0c9-52d.js`.
+- **Dispatched:** 2026-10-08 ~22:23 EDT. **Expected:** ~2-3 h.
+- **Agents:** gate:WP-01 (wt-wp01; self Codex on 7e484f4, add gitleaks/osv-scanner pinned by SHA), build:WP-08 (wt-wp08; port reference kit into arena_core/scenario with byte-identical seed regeneration and the 29-mutant suite), build:WP-03 (wt-wp03; supabase/migrations, PG17 container harness on a high port, capability fixture, fail-closed tests, parity check, make db-test); then one verifier per committed branch.
+- **After:** orchestrator cold Codex per branch, merge into main.
+
+## Codex spec review round 1
+- **ID:** background shell `bwgb2ahdw`; prompts scratchpad `codex/spec1/g1..g4.md`; outputs `g1..g4.json`.
