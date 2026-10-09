@@ -99,6 +99,29 @@ def test_only_the_active_revision_is_compared(  # S1 8.6: a retired revision lea
     assert "V5.signature" in rules([retired, active, family("F03", first_misleading="camera_outage")])
 
 
+def test_a_revision_keeps_its_persona_and_facility() -> None:
+    """S1 8.6 step 1: nothing about the family's identity changes (same family ID, persona and facility)."""
+    assert rules([family("F01"), family("F01", revision=2, name="Someone New")]) == {"V5.lineage"}
+    assert rules([family("F01"), family("F01", revision=2, facility="Another Site")]) == {"V5.lineage"}
+    hidden = balanced_hidden(3)
+    hidden[0]["variants"]["truthful"]["public_packet"]["interview_context"]["facility"] = "Site F01"
+    moved = [family("F01"), family("F01", revision=2, facility="Another Site"), *hidden]
+    assert rules(moved) == {"V5.lineage", "V5.facility"}  # a retired revision's facility stays dev's
+
+
+def test_a_hidden_family_is_compared_with_retired_dev_revisions() -> None:
+    """S1 9.5: every hidden-dev pair, so a hidden copy of a retired revision's text is caught."""
+    retired = family("F01")
+    active = family("F01", revision=2, statements=[f"Rewritten statement {i} about the dock door." for i in range(12)])
+    statements = [str(f["statement"]) for f in retired["event_graph"]["facts"]]
+    copy = family("Hcccccccccc", "hidden", statements=statements, level=1)
+    found = validate_split([retired, active, copy, *balanced_hidden(3)[1:]])
+    assert [(i.rule, i.message.split(" =")[0]) for i in found] == [
+        ("V5.lexical", "word 3-gram Jaccard(F01 r1, Hcccccccccc r1)")
+    ]
+    assert validate_split([active, copy, *balanced_hidden(3)[1:]]) == []  # the retired text is the match
+
+
 def test_a_case_id_is_unique_across_families() -> None:
     other = family("F02", violation="key_misuse")
     other["variants"]["truthful"]["case_id"] = "D-F01-1"
@@ -172,6 +195,7 @@ def test_every_v5_rule_has_a_seeded_defect() -> None:
         "V5.signature",
         "V5.lexical",
         "V5.names",
+        "V5.lineage",
         "V5.facility",
         "V5.type_quota",
         "V5.coverage_levels",

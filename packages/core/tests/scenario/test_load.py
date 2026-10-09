@@ -28,7 +28,7 @@ CODEX_RESULTS = {"rounds": 1, "review": "pass", "cx2_truthful": "pass", "cx2_dec
 
 def review_of(family: Family) -> CodexReview:
     """A passed Codex review of exactly this family file (its canonical-JSON sha256)."""
-    return CodexReview(**CODEX_RESULTS, family_sha256=canonical_sha256(family))
+    return CodexReview.model_validate({**CODEX_RESULTS, "family_sha256": canonical_sha256(family)})
 
 
 def sql_pattern(column: str) -> re.Pattern[str]:

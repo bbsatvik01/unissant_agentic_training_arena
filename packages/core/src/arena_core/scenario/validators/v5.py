@@ -4,11 +4,13 @@ A lineage is one family ID with its revisions (S1 8.6); its active family is its
 
 - `V5.family_id`: no (family ID, revision) appears twice.
 - `V5.case_id`: case IDs are unique across all families and revisions (a revision draws new ones).
-- `V5.names`: a persona name belongs to one lineage (a revision keeps its predecessor's persona).
+- `V5.names`: a persona name belongs to one lineage.
+- `V5.lineage`: every revision of a family keeps its predecessor's persona name and facility (S1 8.6).
 - `V5.signature`: within a split, no two active families share (violation type, first misleading type).
 - `V5.lexical`: word 3-gram Jaccard over all fact statements is at most `JACCARD_MAX` for every pair of active
-  families of different lineages within a split and for every hidden-dev pair.
-- `V5.facility`: no facility is used by both a dev and a hidden family.
+  families of different lineages within a split, and for every hidden family against every development
+  family, retired revisions included (their text is in the repository).
+- `V5.facility`: no facility is used by both a dev family (any revision) and a hidden family.
 - `V5.type_quota`: a hidden split has at most `HIDDEN_PER_TYPE` families per violation type, so a split of
   n families covers at least ceil(n/2) types; a split larger than twice the catalog therefore always fails.
 - `V5.coverage_levels`: a hidden split covers every difficulty level (a split of one or two families
@@ -27,7 +29,7 @@ from __future__ import annotations
 import itertools
 import re
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 from arena_core.agents.fence import sanitize_untrusted_text
 from arena_core.scenario.difficulty import LEVELS
@@ -89,6 +91,12 @@ def _check_unique(families: Sequence[Family], report: Reporter) -> None:
     for name, fids in sorted(lineages.items()):
         if len(fids) > 1:
             report.add("V5.names", f"persona name {name!r} is used by families {sorted(fids)}")
+    lineage_identity: dict[str, set[tuple[str, str]]] = {}
+    for f in families:
+        lineage_identity.setdefault(str(f["family_id"]), set()).add((_name(f), _facility(f)))
+    for fid, seen in sorted(lineage_identity.items()):
+        if len(seen) > 1:
+            report.add("V5.lineage", f"revisions of {fid} differ in persona name or facility: {sorted(seen)}")
 
 
 def _check_signatures(split: str, members: Sequence[Family], report: Reporter) -> None:
@@ -100,12 +108,23 @@ def _check_signatures(split: str, members: Sequence[Family], report: Reporter) -
         seen[key] = str(f["family_id"])
 
 
-def _check_lexical(active: Sequence[Family], report: Reporter) -> None:
-    # Active families only, one per lineage; with two splits every pair is within a split or hidden-dev.
+def _lexical_pairs(families: Sequence[Family], active: Sequence[Family]) -> Iterator[tuple[Family, Family]]:
+    """Active families of different lineages within a split, and every hidden family against every dev
+    family of any revision."""
     for a, b in itertools.combinations(active, 2):
+        if a["split"] == b["split"]:
+            yield a, b
+    dev = [f for f in families if f["split"] == "dev"]
+    for hidden in (f for f in active if f["split"] == "hidden"):
+        for d in dev:
+            yield d, hidden
+
+
+def _check_lexical(families: Sequence[Family], active: Sequence[Family], report: Reporter) -> None:
+    for a, b in _lexical_pairs(families, active):
         score = jaccard(shingles(a), shingles(b))
         if score > JACCARD_MAX:
-            pair = f"({a['family_id']}, {b['family_id']})"
+            pair = f"({a['family_id']} r{a['revision']}, {b['family_id']} r{b['revision']})"
             report.add("V5.lexical", f"word 3-gram Jaccard{pair} = {score:.3f} > {JACCARD_MAX}")
 
 
@@ -128,8 +147,8 @@ def check_diversity(families: Sequence[Family]) -> list[Issue]:
         by_split.setdefault(str(f["split"]), []).append(f)
     for split, members in sorted(by_split.items()):
         _check_signatures(split, members, report)
-    _check_lexical(active, report)
-    dev_facilities = {_facility(f) for f in by_split.get("dev", [])}
+    _check_lexical(families, active, report)
+    dev_facilities = {_facility(f) for f in families if f["split"] == "dev"}
     for facility in sorted(dev_facilities & {_facility(f) for f in by_split.get("hidden", [])}):
         report.add("V5.facility", f"facility {facility!r} is used by both dev and hidden families")
     if by_split.get("hidden"):
