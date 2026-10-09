@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F05",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Evening tape vault entry with a spare card",
@@ -753,7 +754,7 @@
     "truthful": {
       "case_id": "C-4EW6R8JK",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-4EW6R8JK",
         "domain": "facility_access",
@@ -2335,7 +2336,7 @@
     "deceptive": {
       "case_id": "C-F2YVPRZS",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-F2YVPRZS",
         "domain": "facility_access",

@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F07",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Supply store visit and dock loading after hours",
@@ -316,7 +317,7 @@
       },
       {
         "id": "f:19",
-        "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+        "statement": "Mattick kept the cartons in his car overnight and first reached the Corbel Lane training centre at 07:40 on 8 April.",
         "kind": "action",
         "time": "2026-04-08T07:40",
         "actors": [
@@ -493,7 +494,7 @@
       },
       {
         "id": "f:46",
-        "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton.",
+        "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin, which are not part of the training kit, into a second carton.",
         "kind": "action",
         "time": "2026-04-07T19:55",
         "actors": [
@@ -686,7 +687,7 @@
     "truthful": {
       "case_id": "C-9KD4TQ2W",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-9KD4TQ2W",
         "domain": "facility_access",
@@ -1364,7 +1365,7 @@
           },
           {
             "id": "f:19",
-            "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+            "statement": "Mattick kept the cartons in his car overnight and first reached the Corbel Lane training centre at 07:40 on 8 April.",
             "kind": "action",
             "time": "2026-04-08T07:40",
             "actors": [
@@ -2289,7 +2290,7 @@
     "deceptive": {
       "case_id": "C-M7XH3R5P",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-M7XH3R5P",
         "domain": "facility_access",
@@ -3016,7 +3017,7 @@
           },
           {
             "id": "f:19",
-            "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+            "statement": "Mattick kept the cartons in his car overnight and first reached the Corbel Lane training centre at 07:40 on 8 April.",
             "kind": "action",
             "time": "2026-04-08T07:40",
             "actors": [
@@ -3090,7 +3091,7 @@
           },
           {
             "id": "f:46",
-            "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton.",
+            "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin, which are not part of the training kit, into a second carton.",
             "kind": "action",
             "time": "2026-04-07T19:55",
             "actors": [

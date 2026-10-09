@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F08",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Server suite entry after a fault alarm",
@@ -826,7 +827,7 @@
     "truthful": {
       "case_id": "C-4VQ8N2HJ",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-4VQ8N2HJ",
         "domain": "facility_access",
@@ -1955,7 +1956,7 @@
               "after_exchanges": 4
             },
             "content": {
-              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. I next heard from Sami when he signed off."
+              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. He answered 'OK, going', and the next I heard from him was when he signed off."
             },
             "supports": [
               {
@@ -2520,7 +2521,7 @@
     "deceptive": {
       "case_id": "C-T6WK3M9R",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-T6WK3M9R",
         "domain": "facility_access",
@@ -3718,7 +3719,7 @@
               "after_exchanges": 4
             },
             "content": {
-              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. I next heard from Sami when he signed off."
+              "body": "At about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. I raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed Sami, the only security systems technician on after eight. Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14. I don't remember which one the screen named, and I didn't open the ticket again that night. He answered 'OK, going', and the next I heard from him was when he signed off."
             },
             "supports": [
               {
@@ -4264,9 +4265,9 @@
           },
           {
             "id": "l:04",
-            "situation": "After the tamper log is presented, acknowledges opening the panel cover but does not say why he went into R-6.",
+            "situation": "After the tamper log is presented, answers 'Walk me through what you did inside Suite R-6, step by step.' by acknowledging that he opened the panel cover, without saying what he did at the panel or why he went into R-6.",
             "label": "evasion",
-            "rationale": "f:46 is acknowledged once its gate opens; the purpose is CORE fact f:45 (the violation), left out."
+            "rationale": "The question asks what he did inside R-6. f:46 is acknowledged once its gate opens; what he did at the panel and why (CORE fact f:45, the violation) is left out: omission. Permitted by the profile, so not a fidelity failure."
           },
           {
             "id": "l:05",

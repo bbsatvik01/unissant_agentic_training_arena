@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F04",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Mail room dock door alarm on a meter service morning",
@@ -716,7 +717,7 @@
     "truthful": {
       "case_id": "C-2TCMFNRH",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-2TCMFNRH",
         "domain": "facility_access",
@@ -1096,7 +1097,7 @@
           {
             "id": "x:03",
             "text": "The technician was already in the mail room when I left on the mail round.",
-            "contradicts": "f:28"
+            "contradicts": "f:22"
           }
         ],
         "style": {
@@ -2116,7 +2117,7 @@
     "deceptive": {
       "case_id": "C-E50SZQGV",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-E50SZQGV",
         "domain": "facility_access",

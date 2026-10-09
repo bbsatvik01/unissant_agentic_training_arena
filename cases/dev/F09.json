@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F09",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
   "title": "Supplier review visit and the north staff door",
@@ -334,7 +335,7 @@
       },
       {
         "id": "f:23",
-        "statement": "Dunmore met Keable in the main lobby at about 08:50, after he had signed in.",
+        "statement": "Dunmore first met Keable that day in the main lobby at about 08:50, after he had signed in.",
         "kind": "action",
         "time": "2026-04-15T08:50",
         "actors": [
@@ -443,7 +444,7 @@
       },
       {
         "id": "f:45",
-        "statement": "The lobby desk telephone log shows no call to Ashby's extension or to the Procurement main line between 08:00 and 10:30 on 15 April.",
+        "statement": "The lobby desk telephone log for 08:00 to 10:30 on 15 April shows one call, to Facilities at 09:38, so the desk rang no one in Procurement and Contracts, Dunmore included.",
         "kind": "record",
         "actors": [],
         "material": true,
@@ -688,7 +689,7 @@
     "truthful": {
       "case_id": "C-4RW8KT2N",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-4RW8KT2N",
         "domain": "facility_access",
@@ -1311,7 +1312,7 @@
           },
           {
             "id": "f:23",
-            "statement": "Dunmore met Keable in the main lobby at about 08:50, after he had signed in.",
+            "statement": "Dunmore first met Keable that day in the main lobby at about 08:50, after he had signed in.",
             "kind": "action",
             "time": "2026-04-15T08:50",
             "actors": [
@@ -2104,7 +2105,7 @@
     "deceptive": {
       "case_id": "C-9HM3XQ6V",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-9HM3XQ6V",
         "domain": "facility_access",
@@ -2809,7 +2810,7 @@
           },
           {
             "id": "f:45",
-            "statement": "The lobby desk telephone log shows no call to Ashby's extension or to the Procurement main line between 08:00 and 10:30 on 15 April.",
+            "statement": "The lobby desk telephone log for 08:00 to 10:30 on 15 April shows one call, to Facilities at 09:38, so the desk rang no one in Procurement and Contracts, Dunmore included.",
             "kind": "record",
             "actors": [],
             "material": true,

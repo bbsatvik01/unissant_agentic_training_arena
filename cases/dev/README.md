@@ -1,33 +1,42 @@
 # Development families (F01-F09)
 
-Status of the development split as of 2026-10-09. Validators are V1-V5 (`validate.py`, run over all nine files together, with the cross-family V5 checks) and V4c (`guardscan.py`). CX is the Codex review in `reports/<ID>.cx.json`, bound to the family hash in the last column (canonical-JSON SHA-256 of `<ID>.json`, as recorded in the report's `family_sha256`).
+Status of the development split as of 2026-10-09. All nine files are case-family schema v1.2 (S1 v2.3, `revision` 1). Validators are V1-V5 (`validate.py`, run over all nine files together, with the cross-family V5 checks) and V4c (`guardscan.py`). CX is the Codex review in `reports/<ID>.cx.json` under the S1 v2.3 rules (CX-2 passes only on a complete decisive-support item, with the subject's account where the item needs it; the CX-3 sheet holds free evidence only), bound to the family hash in the last column (canonical-JSON SHA-256 of `<ID>.json`, as recorded in the report's `family_sha256`).
 
 | Family | Use | Level | Violation type | Style (verbosity, fluency, affect, register, language) | Validators | CX | sha256 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F01 | Dev pilot, practice | 2 | sealed_material_access | not set (hand-authored seed) | pass | FAIL (CX-1) | `520179a844f8459f6738ee41a9b0613f8358cf2cd13ceedff0d5c13ae9bccf11` |
-| F02 | Dev pilot, practice | 1 | unregistered_visitor_escort | not set (hand-authored seed) | pass | FAIL (CX-1) | `4a50ce85c5aac620f71d6abaf941361cb7e92c3ce0adb4d37da828cd81af6255` |
-| F03 | Dev pilot, practice | 3 | badge_sharing | not set (hand-authored seed) | pass | FAIL (CX-1) | `9d8137aaaedbd86098f56017af6aef1906adbc875eeb4521909ea2b3973d6461` |
-| F04 | Dev pilot, practice | 1 | tailgating_assist | terse, disfluent, calm, formal, native | pass | pass | `a455eae0b368a2b1aafc32b9f6ef504b357db5087dd61a3710ff4685f732810c` |
-| F05 | Dev pilot, practice | 3 | spare_credential_misuse | expansive, fluent, calm, informal, native | pass | pass | `1ef3eaa383437a061fe29f897878e327259ef804124130548e82ea1fa1a4b042` |
-| F06 | KPI-1 set A (never in practice) | 2 | key_misuse | terse, fluent, anxious, formal, native | pass | pass | `7b00ac2c6fa19c4da49ed7c752e1eb3d3be1ff88e5fc07103f510e08a7e70bcd` |
-| F07 | KPI-1 set A (never in practice) | 2 | after_hours_property_removal | expansive, disfluent, calm, informal, native | pass | pass | `498c37ecf713ed2be475c348c542e8cc9431e6c76b8c5304e09adbf092989623` |
-| F08 | KPI-1 set B (never in practice) | 2 | unauthorized_area_entry | terse, fluent, calm, informal, second_language | pass | pass | `53d763928b2fe047a41fde609700dda45d886bed9c99cec5686e8812c7622f00` |
-| F09 | KPI-1 set B (never in practice) | 2 | tailgating_assist | expansive, fluent, anxious, formal, native | pass | pass | `7b52cf3eb601ce2ee372bff2214a8e450f45e76599843afd0663f213d2dcda8d` |
+| F01 | Dev pilot, practice | 2 | sealed_material_access | not set (hand-authored seed) | pass | pass | `c6577f0b2332728603af89953ae27af1fab63ad0dca0ce34092ed205ac4a6547` |
+| F02 | Dev pilot, practice | 1 | unregistered_visitor_escort | not set (hand-authored seed) | pass | pass | `6f19ac331d143866dc640bf6ff6a841cdddae3764b2093c713c41ab2f2ea29b5` |
+| F03 | Dev pilot, practice | 3 | badge_sharing | not set (hand-authored seed) | pass | pass | `aa352b4e7980fd0cacce13a428f0044afa4b30ba8bcdc2ec12ebf63295c8d104` |
+| F04 | Dev pilot, practice | 1 | tailgating_assist | terse, disfluent, calm, formal, native | pass | pass | `3a103082bebe1ca2f04ef8e1f37d0dbb62fb3485fd002ef6ba8dfe3bb097ba11` |
+| F05 | Dev pilot, practice | 3 | spare_credential_misuse | expansive, fluent, calm, informal, native | pass | pass | `1755c6a1218126fe6e6a96d6c4687b368cb37ec0bc04d7cbb26e4e9ec513e9d2` |
+| F06 | KPI-1 set A (never in practice) | 2 | key_misuse | terse, fluent, anxious, formal, native | pass | pass | `1344d27b114ae890b99c1196e555c4453f94b593cd0b3dc03add2eb911a7bd64` |
+| F07 | KPI-1 set A (never in practice) | 2 | after_hours_property_removal | expansive, disfluent, calm, informal, native | pass | pass | `d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183` |
+| F08 | KPI-1 set B (never in practice) | 2 | unauthorized_area_entry | terse, fluent, calm, informal, second_language | pass | pass | `b67e7aa14496bcede3990985f0a2f38865380b81a91a01628f394aab77b11346` |
+| F09 | KPI-1 set B (never in practice) | 2 | tailgating_assist | expansive, fluent, anxious, formal, native | pass | pass | `7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91` |
 
-Split seal over the nine families (`validate.py`): `abc3e5781a6b13820ea7ff6934e5fc0c7f65b8a5d631aa2cecdefa1a2ce0a6a0`. Guard hits: 0. Largest V5 overlap: jaccard3(F04, F09) = 0.028.
+Split seal over the nine families (`validate.py`): `677ce5aecb84dd5f48a6415faf1136664147ec1c1996f3c8ba2dae0907aebc0e`. Guard hits: 0. Largest V5 overlap: jaccard3(F04, F09) = 0.028.
 
-## Open CX-1 findings on the hand-authored seeds
+F01-F03 are byte-identical to `docs/spec/seed-families/` on main (S1 section 11 hashes).
 
-F01-F03 are byte-identical to `docs/spec/seed-families/`. Their CX-1 findings are fixed in the spec's seed families first, then re-assembled here (S1 8.5: change the family, never the check).
+## CX-1 and CX-4 findings fixed on 2026-10-09
 
-| Family | Refs | Finding |
-| --- | --- | --- |
-| F01 | truthful, doc-02, f:24, c:02 | doc-02 requires staff to stay at the open door; in f:24 Pell props B-12 and wheels the tank to the corridor drain, and the synopsis and c:02 call that permitted. |
-| F01 | truthful, l:01, f:22 | l:01 labels "It was a busy shift" responsive to "Why did you enter?", although its own rationale calls it non-responsive. |
-| F02 | deceptive, f:14, f:40, g:01 | FREE fact f:14 says "when you came in with Evan", disclosing the HOLD joint entry (f:40) before gate g:01 opens. |
-| F02 | truthful and deceptive, f:14, f:23, f:46, rec-04 | f:14 has Hollis cleaning the floor-1 lobby 19:30-20:15, but rec-04 has him already in the mail room at the departure (20:00 truthful, 20:08 deceptive). |
-| F03 | deceptive, f:03, f:04, f:44, g:02 | FREE facts say A-2291 opened N-3 and is in Rafael's name, disclosing the HOLD proposition behind g:02 (f:44). |
-| F03 | truthful, f:08, x:03 | x:03 forbids "Someone else was with me in N-3", but f:08 excludes only other Infrastructure Support staff, so the assertion is not established as false. |
+Each fix changes the story so the rule holds, never the check (S1 8.5).
+
+| Family | Refs | Finding | Fix |
+| --- | --- | --- | --- |
+| F01 | truthful, doc-02, f:24, c:02 | doc-02 requires staff to stay at the open door; f:24 had Pell wheel the tank to a corridor drain. | Pell empties the tank into the drain just outside the door and stays in the doorway (f:24, ledger, synopsis, c:02). |
+| F01 | truthful, l:01 | "It was a busy shift" labeled responsive. | Already fixed in S1 v2.3 (SG1-13): the purpose given is responsive, the busy shift alone is evasion. |
+| F02 | f:14, f:40, rec-04 | FREE f:14 leaked the joint entry; the custodian's lobby time overlapped his mail-room statement. | Already fixed in S1 v2.3 (SG1-12, SG1-16). |
+| F03 | truthful, f:08, x:03 | f:08 excluded only Infrastructure Support staff, so "Someone else was with me in N-3" was not established false. | f:08: she was alone in N-3 and the only Infrastructure Support staff member in before 07:30. |
+| F03 | deceptive, f:03, f:04, f:44, g:02 | "Card still works" followed from FREE f:03 and f:04. | f:44 and rec-02: A-2291 is Haddad's own personal badge, never deactivated or moved to the spare pool. |
+| F03 | public title | "Network room entry on another person's card" presumed ownership (CX-4). | Title "Network room entry on card A-2291". |
+| F04 | truthful, x:03 | Cited f:28 did not place the technician outside the mail room at 07:56. | x:03 cites f:22 (he waited in his van until 08:00). |
+| F06 | truthful, x:02, x:04 | Cited facts (copier log, door contact) did not establish the assertions false. | f:27 adds that she did not use the copier; f:23 places her in 417 from 19:12 to 19:38; x:02 and x:04 cite them. |
+| F07 | x:02 both variants | f:19 did not date the delivery; f:46 did not say the drills were outside the kit. | f:19: the cartons stayed in his car overnight; f:46: the drills are not part of the training kit. |
+| F08 | doc-03, rec-05; deceptive l:04 | rec-05 said Fenwick next heard from him at sign-off, but doc-03 logs his 20:53 reply; l:04 did not name the question asked. | rec-05 includes the "OK, going" reply; l:04 names the step-by-step question it answers. |
+| F09 | truthful x:02; deceptive x:04 | f:23 did not exclude a north-door meeting; f:45 did not exclude a call to Dunmore. | f:23: first met him in the lobby; f:45: the desk log shows one call (Facilities), no one in Procurement rang. |
+
+F04-F09 were migrated to schema v1.2 (`revision` 1, `schema_version` 1.2.0; content otherwise unchanged) and re-reviewed under the v2.3 CX rules, which surfaced the F04-F09 rows above.
 
 ## KPI-1 case sets (S3 6.1, X-08)
 
