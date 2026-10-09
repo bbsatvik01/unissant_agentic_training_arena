@@ -398,7 +398,7 @@ def test_any_reference_outside_the_projection_is_refused_even_a_plain_annotation
         "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n"
     )
     lines = {f.line for f in lint.check_source(ARENA_API_FILE, source, FRAMES)}
-    assert lines == {1}  # the import: a tripwire, it does not follow the alias into the annotation
+    assert lines == {1, 4}  # the import, and the annotation itself
     assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import TrialFrame\n")  # importing is enough
     assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import CoachCard\n") == []
 
@@ -422,18 +422,19 @@ def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
         # source-agnostic: a frame model imported by name from wherever it is re-exported, aliased or not
         "from arena_core.events.projections import NoticeFrame as Note\n",
         "from some.other.module import TrialFrame\n",
-        # the projection's seal is private
-        "from arena_core.events.projections import _SEAL\n",
-        "from arena_core.events.projections import _seal as seal\n",
-        "from ..events.projections import _seal\n",
+        # the projection's internals are private (its frame adapter, its serializer)
+        "from arena_core.events.projections import _FRAMES\n",
+        "from arena_core.events.projections import _message as serialize\n",
+        "from ..events.projections import _MAPPING\n",
     ],
 )
-def test_the_tripwire_is_source_agnostic_and_guards_the_seal(source: str) -> None:
+def test_the_tripwire_is_source_agnostic_and_guards_the_projections_privates(source: str) -> None:
     assert frame_rules(OTHER_CORE_FILE, source)
 
 
 def test_the_send_path_types_may_be_imported() -> None:
-    assert frame_rules(ARENA_API_FILE, "from arena_core.events.projections import ProjectedFrame\n") == []
+    send_path = "from arena_core.events.projections import StoredEvent, Viewer, wire_deltas\n"
+    assert frame_rules(ARENA_API_FILE, send_path) == []
     assert frame_rules(ARENA_API_FILE, "from arena_core.events.sse import sse_message\n") == []
 
 
