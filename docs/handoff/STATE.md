@@ -9,6 +9,22 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Owner answers (2026-10-09 ~14:10)
+- gcloud ADC done (verified token). Budget alert created on billing account 015779-E976C5-FCD8BF: $75, project cna-guardian, label app=unissant-arena, thresholds 33/67/87/100% (budget id bc74c6da-7df4-442f-9572-bea7ba1593f1).
+- Database: owner's Supabase. Agent a73ac65007530d4a6 applying the ten migrations via MCP, then role passwords (owner-authorized) into git-ignored .env.api/.env.subject/.env.referee.
+- Docker only for the pgTAP test harness (OrbStack works); disk cleanup by owner later; KPI-1: owner + one friend (n=2).
+- DESIGN.md: docs/design/DESIGN.md (D-018).
+
+## Build wave 4 dispatched (2026-10-09)
+| Agent id | WP | Worktree / branch |
+| --- | --- | --- |
+| ac1b3a38666e87dcf | WP-05 agent port + spend-guard client (cna-guardian, label, fake model; real Vertex smoke left to the owner) | /private/tmp/wt-wp05-port feat/wp05-port |
+| aa5c3224c8090bdc8 | WP-10 prompts, builders, manifests | /private/tmp/wt-wp10-prompts feat/wp10-prompts |
+| adb48fe0d3cc9a911 | WP-11 guard runner, relay test, replay script, lexicons | /private/tmp/wt-wp11-guard feat/wp11-guard |
+| acd646de7e54c665f | WP-15 scorer library (pure) | /private/tmp/wt-wp15-scorer feat/wp15-scorer |
+| a80b942018d564e81 | WP-18 part 2 web state (API wrapper, trialReducer, session controller) | /private/tmp/wt-wp18b-web feat/wp18b-web |
+- Shared protocol: scratchpad gates/agent_protocol.md. Each returns on self Codex CORRECT; then coordinator cold gate and merge. Next after these: WP-12 subject service, WP-13 orchestrator + routes, WP-14 referee, WP-07 observability.
+
 ## WP-02 merged (2026-10-09)
 - feat/wp02-contracts merged: contracts package, adapter, quote predicate (Py + TS), deterministic schema export, wire fixtures, web-check in make check; the only wire writer is projections.wire_deltas (bytes in one call); frame lint is a tripwire. Migration 20261009001000_finding_contract.sql: fold into spec 0004. D-017 per-user cap $5 merged (3f4e5b4).
 - Open small items: web-check job in CI (pinned Node/pnpm actions); fold finding_contract into spec.
