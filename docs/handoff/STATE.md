@@ -9,6 +9,12 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Owner answers (2026-10-09 ~14:10)
+- gcloud ADC done (verified token). Budget alert created on billing account 015779-E976C5-FCD8BF: $75, project cna-guardian, label app=unissant-arena, thresholds 33/67/87/100% (budget id bc74c6da-7df4-442f-9572-bea7ba1593f1).
+- Database: owner's Supabase. Agent a73ac65007530d4a6 applying the ten migrations via MCP, then role passwords (owner-authorized) into git-ignored .env.api/.env.subject/.env.referee.
+- Docker only for the pgTAP test harness (OrbStack works); disk cleanup by owner later; KPI-1: owner + one friend (n=2).
+- DESIGN.md: docs/design/DESIGN.md (D-018).
+
 ## Build wave 4 dispatched (2026-10-09)
 | Agent id | WP | Worktree / branch |
 | --- | --- | --- |
