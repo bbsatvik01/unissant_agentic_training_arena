@@ -915,7 +915,7 @@
     },
     {
       "id": "TX-F07-C",
-      "reviewed_text_sha256": "0618a93e78af7b03e8149fcf933df3708e3fc65f9f1e7c085186c130249fca29",
+      "reviewed_text_sha256": "bd9be918ee8f2b18588850fc47cced70f041796e4165ad1117d644c2b9052747",
       "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
       "exchanges": [
         {
@@ -926,7 +926,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The opening account matches the cited ledger entries and records and preserves the approximate call time."
+          "note": "The cited ledger supports the leave, approximate call time, badge entries and collection purpose."
         },
         {
           "turn": 2,
@@ -936,7 +936,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer continues from entering S-2 through collecting and loading the cartons, preserving departure uncertainty."
+          "note": "Continues through collection, exit and loading while preserving u:01 uncertainty."
         },
         {
           "turn": 3,
@@ -946,7 +946,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The stated lack of knowledge matches f:16, f:17 and f:26 without denying the documented camera work."
+          "note": "The stated ignorance matches unknown entries f:16 and f:17 and known fact f:26."
         },
         {
           "turn": 4,
@@ -956,7 +956,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The leave booking, approval, start time and blank reason match the cited ledger entries and records."
+          "note": "The booking, approval, leave time and blank reason match the ledger and cited records."
         },
         {
           "turn": 5,
@@ -966,7 +966,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer accurately distinguishes Celia's assurance from seeing the pass and correctly identifies the kit contents."
+          "note": "Correctly distinguishes Celia's assurance from the unseen pass and identifies the known kit contents."
         },
         {
           "turn": 6,
@@ -976,7 +976,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The delivery time and Joanna Ainsley's receipt of both cartons are supported by f:19, f:24 and rec-02."
+          "note": "The arrival, delivery and signature are supported by f:19, f:24 and the delivery email."
         },
         {
           "turn": 7,
@@ -986,7 +986,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer acknowledges the ledger's stock-count ignorance and accurately describes what was taken and delivered."
+          "note": "Acknowledges the ledger's stock-count ignorance and accurately states what was taken and delivered."
         },
         {
           "turn": 8,
@@ -996,7 +996,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The account addresses Celia's statement using supported facts about her call, instructions, pass assurance and staging."
+          "note": "The call, delivery request, pass assurance and staging location match the cited ledger entries."
         },
         {
           "turn": 9,
@@ -1006,7 +1006,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The requested reverse chronology matches the canonical sequence and preserves both approximate times."
+          "note": "Provides the requested reverse chronology using supported events and permitted time precision."
         },
         {
           "turn": 10,
@@ -1016,7 +1016,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer directly explains the S-2 entry and subsequent departure using the cited ledger entries."
+          "note": "Directly explains the S-2 entry and subsequent exit using f:11, f:07 and f:13."
         },
         {
           "turn": 11,
@@ -1026,7 +1026,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The collection purpose is explicitly supported by f:11 and f:08, with matching instructions and pass assurance."
+          "note": "Directly states the collection purpose and Celia's instructions, supported by the ledger and statement."
         },
         {
           "turn": 12,
@@ -1036,13 +1036,13 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer identifies supported corroborating witnesses and accurately preserves ignorance about other S-2 entrants."
+          "note": "Identifies supported corroborating people and preserves f:12 uncertainty about other S-2 entrants."
         }
       ]
     },
     {
       "id": "TX-F08-C",
-      "reviewed_text_sha256": "0f2d4a207e75b291c77c5567de3ae2889ea469b918c5a1086acb34d442aa6fb7",
+      "reviewed_text_sha256": "c01715440babd8ab7835515eabb1e489345ece83d566706b899a10a095a00100",
       "case_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
       "exchanges": [
         {
@@ -1053,7 +1053,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The shift, staffing, dispatch and ticket assignment match the cited ledger entries."
+          "note": "The shift and dispatch account matches the cited ledger entries and records."
         },
         {
           "turn": 2,
@@ -1063,7 +1063,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer advances from dispatch to entry, testing and the unrepaired detector fault."
+          "note": "The answer continues from dispatch to entry, testing and the failed repair."
         },
         {
           "turn": 3,
@@ -1073,7 +1073,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The reverse account follows the supported chronology and preserves both approximate times."
+          "note": "The reverse account follows the canonical sequence and preserves both approximate times."
         },
         {
           "turn": 4,
@@ -1083,7 +1083,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The ticket explanation matches the ledger and cited record excerpts without adopting their exact timestamp."
+          "note": "The ticket explanation matches the ledger, and the quote supports the repair limitation."
         },
         {
           "turn": 5,
@@ -1093,7 +1093,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer supplies known alarm and testing facts while accurately stating that the history was unseen."
+          "note": "The answer addresses the alarm history while accurately stating the subject has not seen it."
         },
         {
           "turn": 6,
@@ -1103,7 +1103,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The replacement request and detector fault are supported by the cited ledger entries and quotes."
+          "note": "The parts request and failing detector head are supported by the cited ledger entries and quotes."
         },
         {
           "turn": 7,
@@ -1113,7 +1113,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The installation details, unopened panel and lack of access to its log match the private packet."
+          "note": "The installation details, unopened panel and unfamiliarity with its log match the private packet."
         },
         {
           "turn": 8,
@@ -1123,7 +1123,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer addresses Marisol's involvement using known facts and preserves uncertainty about her recollection."
+          "note": "The answer addresses Marisol's involvement without claiming knowledge of her recollection."
         },
         {
           "turn": 9,
@@ -1133,7 +1133,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "Badge access, access-list exclusion and the assigned purpose are supported and mutually compatible."
+          "note": "The entry, badge permissions, access-list status and assigned purpose are fully supported."
         },
         {
           "turn": 10,
@@ -1143,7 +1143,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer directly identifies the assigned task and accurately describes the detector work."
+          "note": "The answer directly explains the assigned task and accurately describes the detector work."
         },
         {
           "turn": 11,
@@ -1153,7 +1153,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "Marisol is identified as a corroborating contact without inventing witnesses or claiming knowledge of other entries."
+          "note": "The answer identifies Marisol's corroborating involvement and preserves uncertainty about other entrants."
         },
         {
           "turn": 12,
@@ -1163,7 +1163,7 @@
           "ledger_states_claims": true,
           "quotes_state_facts": true,
           "uncontradicted": true,
-          "note": "The answer addresses the later motion through known detector facts while preserving uncertainty about specific false triggers."
+          "note": "The answer addresses the later motion through known detector conditions while preserving uncertainty about individual events."
         }
       ]
     },

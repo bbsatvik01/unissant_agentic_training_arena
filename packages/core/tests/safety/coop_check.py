@@ -88,11 +88,15 @@ _NUMBER_WORD = "(?:" + "|".join([*_UNITS, *_TENS, *_SCALES, *_ONCE, *_DOZEN]) + 
 # only after a scale word ("hundred and five"); elsewhere it separates two numbers ("ten and twenty" is 10 and 20).
 _AFTER_SCALE = "(?:" + "|".join(f"(?<={w})" for w in _SCALES) + ")"
 CARDINAL = re.compile(rf"\b(?:a )?{_NUMBER_WORD}(?:(?:[ -]|{_AFTER_SCALE} and ){_NUMBER_WORD})*\b", re.IGNORECASE)
-APOSTROPHES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u02bc": "'", "\u2032": "'"})
+APOSTROPHES = str.maketrans(
+    {"\u2018": "'", "\u2019": "'", "\u02bc": "'", "\u2032": "'", "\u2212": "-"}
+    | {chr(c): "-" for c in range(0x2010, 0x2016)}
+)
 
 
 def fold(text: str) -> str:
-    """Typographic apostrophes as "'", so "didn\u2019t" is a negation like "didn't"."""
+    """Typographic apostrophes as "'" and dashes U+2010-U+2015, U+2212 as "-", so "didn\u2019t" is a negation and
+    "thirty\u2011two" is 32, however they are typed."""
     return text.translate(APOSTROPHES)
 
 
@@ -170,19 +174,11 @@ def content(word: str) -> bool:
     return len(word) >= MIN_CONTENT_WORD and not any(c.isdigit() for c in word) and word.lower() not in FUNCTION_WORDS
 
 
-# Spoken clock times are times, not quantities; they are approximate by nature, so code does not compare them (the
-# review does). Only the unambiguous forms count: "half past twelve", "ten to five", "twenty-five past ten" and
-# "nine o'clock", with an hour from one to twelve. Anything else that names a number is compared as a number (fail
-# closed): "after eight" and "about ten in total" are the numbers 8 and 10.
-_HOUR = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
-_MINUTES = "(?:half|quarter|five|ten|twenty|twenty-five)"
-SPOKEN_TIME = re.compile(rf"\b(?:{_MINUTES} (?:past|to) {_HOUR}|{_HOUR} o'clock)\b", re.IGNORECASE)
-
-
 def numbers(text: str) -> list[str]:
-    """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21); spoken clock
-    times are left out."""
-    text = SPOKEN_TIME.sub(" ", fold(text))
+    """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21). Fail closed:
+    every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
+    gives a time in words cites no quote that gives it in digits (the review judges that agreement)."""
+    text = fold(text)
     out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
     return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
@@ -268,8 +264,14 @@ def clauses(sentence: str) -> list[str]:
     return [*out, carry] if carry.strip() else out
 
 
+def binding(word: str) -> bool:
+    """A word that ties a time to its row: a content word, or an identifier or number that is not itself a time
+    (badge 70315, MS-6A)."""
+    return content(word) or (any(c.isdigit() for c in word) and not TIME.fullmatch(word))
+
+
 def rows_of(texts: Iterable[str]) -> list[tuple[str, set[str]]]:
-    rows = [row for text in texts for row in ROW_START.split(text)]
+    rows = [row for text in (fold(t) for t in texts) for row in ROW_START.split(text)]
     return [(row, {stem(w) for w in WORD.findall(row)}) for row in rows]
 
 
@@ -300,18 +302,20 @@ CALENDAR = frozenset(
 
 
 def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> list[str]:
-    """A time sits with what it describes. For each time, the content words nearest it in its clause (up to three on
-    each side) may not come only from rows of the same record that hold other times and never from a row that holds
-    this one: "the door opened at 19:38", when the record says opened at 19:12 and closed at 19:38, fails, and so does
-    swapping two times. A "from ... until" span runs forward. A time no row holds is not judged here."""
+    """A time sits with what it describes. For each time, the binding words nearest it in its clause (up to three
+    on each side: content words and identifiers such as badge numbers) may not come only from rows of the same record
+    that hold other times and never from a row that holds this one: "the door opened at 19:38", when the record says
+    opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge 70288's row.
+    A "from ... until" span runs forward. A time no row holds is not judged here."""
+    sentence = fold(sentence)
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
     for clause in clauses(sentence):
         tokens = WORD.findall(clause)
         for i, time in enumerate(tokens):
             if not TIME.fullmatch(time):
                 continue
-            before = [w for w in tokens[:i] if content(w)][-NEAR:]
-            after = [w for w in tokens[i + 1 :] if content(w)][:NEAR]
+            before = [w for w in tokens[:i] if binding(w)][-NEAR:]
+            after = [w for w in tokens[i + 1 :] if binding(w)][:NEAR]
             near = {stem(w) for w in before + after if w.lower() not in CALENDAR}
             for rows in tables:
                 holding = [s for row, s in rows if number_in(time, row)]

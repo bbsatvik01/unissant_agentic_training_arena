@@ -2133,12 +2133,7 @@
               "ledger": [
                 "f:03"
               ],
-              "records": [
-                {
-                  "record_id": "doc-04",
-                  "quote": "G. Mattick | Supply Technician | 07:00-12:30 | Personal leave 12:30-17:00; reason field blank"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2320,12 +2315,7 @@
               "ledger": [
                 "f:03"
               ],
-              "records": [
-                {
-                  "record_id": "rec-06",
-                  "quote": "7 Apr, 12:30-17:00 | Personal leave"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2415,12 +2405,7 @@
                 "f:19",
                 "f:24"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "Corbel Lane training centre. To: C. Brandt, Supply Supervisor. Sent: 8 April 2026, 07:52. Subject: Kit received. Glen Mattick dropped the kit off at 07:40."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2511,12 +2496,7 @@
                 "f:08",
                 "u:02"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2588,12 +2568,7 @@
               "ledger": [
                 "f:19"
               ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "Glen Mattick dropped the kit off at 07:40."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2645,12 +2620,7 @@
                 "f:08",
                 "u:02"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
-                }
-              ]
+              "records": []
             }
           ]
         },
@@ -2809,12 +2779,7 @@
                 "f:08",
                 "u:02"
               ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3046,12 +3011,7 @@
                 "f:26",
                 "f:08"
               ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "21:41 | WB-2, Hall B technician room | S. Varga | Detector left in service under Standard 5.3(c)."
-                }
-              ]
+              "records": []
             }
           ]
         },

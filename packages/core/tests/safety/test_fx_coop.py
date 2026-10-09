@@ -136,21 +136,35 @@ def test_spelled_out_quantities_are_numbers(phrase: str, value: list[str]) -> No
     assert cc.numbers(f"I loaded {phrase} binders.") == value
 
 
-@pytest.mark.parametrize("phrase", ["half past twelve", "ten to five", "twenty-five past ten", "eight o'clock"])
-def test_unambiguous_spoken_clock_times_are_not_quantities(phrase: str) -> None:
-    assert cc.numbers(f"It was {phrase}.") == []
-
-
 @pytest.mark.parametrize(
-    ("phrase", "value"), [("after eight", ["8"]), ("a bit after nine", ["9"]), ("until ten", ["10"])]
+    ("phrase", "value"),
+    [
+        ("after eight", ["8"]),
+        ("a bit after nine", ["9"]),
+        ("ten to five", ["10", "5"]),
+        ("five to ten", ["5", "10"]),
+        ("half past twelve", ["12"]),
+        ("thirty\u2011two", ["32"]),
+        ("thirty\u2013two", ["32"]),
+    ],
 )
-def test_an_ambiguous_hour_is_compared_as_a_number(phrase: str, value: list[str]) -> None:
-    """Fail closed: a bare hour after a lead word may be a quantity, so it is compared like one."""
+def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
+    """Fail closed: spoken times are compared as numbers too, and any dash joins a compound number."""
     assert cc.numbers(f"It was {phrase}.") == value
 
 
 @pytest.mark.parametrize(
-    "replacement", ["seventy training binders", "twenty-one training binders", "about ten training binders"]
+    "replacement",
+    [
+        "seventy training binders",
+        "twenty-one training binders",
+        "about ten training binders",
+        "training binders, about ten in total",
+        "between ten and twenty training binders",
+        "thirty million training binders",
+        "five to ten training binders",
+        "thirty\u2011two training binders",
+    ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
     """Transcript-level: F07's "thirty training binders" (cited against a record that says 30) changed to another
@@ -172,6 +186,15 @@ def test_no_time_on_the_wrong_row() -> None:
     assert cc.time_row_problems("The door closed at 19:12 and opened at 19:38.", [], [DOOR])
     assert cc.time_row_problems("I was there from 19:38 until 19:12.", [], [DOOR]) == [
         "the span from 19:38 to 19:12 runs backwards"
+    ]
+
+
+def test_an_identifier_on_another_times_row_fails_against_a_real_record() -> None:
+    """F09 doc-01: badge 70288 at 08:12, badge 70315 at 08:41. Swapping the badge numbers between the rows fails."""
+    records = list(record_texts("F09").values())
+    assert cc.time_row_problems("Badge 70315 was granted access at 08:41.", [], records) == []
+    assert cc.time_row_problems("Badge 70315 was granted access at 08:12.", [], records) == [
+        "70315 goes with another time than 08:12"
     ]
 
 
