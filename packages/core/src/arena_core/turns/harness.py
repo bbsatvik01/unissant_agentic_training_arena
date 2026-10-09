@@ -66,7 +66,15 @@ class SubjectStopError(StopError):
 
 
 class BudgetStopError(StopError):
-    """ST-4: the per-call spend guard refused a reservation, or the kill switch is on."""
+    """ST-4: the per-call spend guard refused a reservation, or the kill switch is on.
+
+    `dispatched` is whether any model call of this trial was ever dispatched, read by the port from the trial's
+    committed state (S4 `ops.model_calls`), not from this process: a call dispatched before a crash and recovery
+    still makes the trial `budget_truncated`, never `budget_skipped` (S2 8.5)."""
+
+    def __init__(self, *, dispatched: bool) -> None:
+        super().__init__("budget_truncated" if dispatched else "budget_skipped")
+        self.dispatched = dispatched
 
 
 class TransientStopError(StopError):
@@ -168,7 +176,8 @@ class _Run:
         if isinstance(error, SubjectStopError):
             return self.outcome(Execution.SUBJECT_QUARANTINED, "ST-3")
         if isinstance(error, BudgetStopError):
-            return self.outcome(Execution.BUDGET_TRUNCATED if self.calls else Execution.BUDGET_SKIPPED, "ST-4")
+            truncated = error.dispatched or self.calls > 0
+            return self.outcome(Execution.BUDGET_TRUNCATED if truncated else Execution.BUDGET_SKIPPED, "ST-4")
         return self.outcome(Execution.INFRA_FAILED, "ST-5")
 
 

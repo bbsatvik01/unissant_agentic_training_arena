@@ -2123,7 +2123,7 @@
             },
             {
               "record_id": "doc-01",
-              "quote": "Door closed, alarm cleared"
+              "quote": "14:12:05 | B-12 main door | - | Door closed, alarm cleared"
             }
           ]
         },
@@ -2142,7 +2142,7 @@
           "support": [
             {
               "record_id": "doc-01",
-              "quote": "Door closed, alarm cleared"
+              "quote": "14:12:05 | B-12 main door | - | Door closed, alarm cleared"
             },
             {
               "record_id": "doc-01",
@@ -2174,7 +2174,7 @@
             },
             {
               "record_id": "rec-01",
-              "quote": "Humidity alarm; dehumidifier reset; condensate tank emptied"
+              "quote": "WO-4478 | 14:31 | I. Marrow | B-12 Records Vault | Humidity alarm; dehumidifier reset; condensate tank emptied | Closed 14:31"
             },
             {
               "record_id": "rec-01",
@@ -2193,7 +2193,7 @@
             "rec-02",
             "rec-03"
           ],
-          "answer": "Ines called me at 14:01 about a humidity alarm in the B wing, B-12. I answered that I was on my way. At 14:25 I reported on the radio that the B-12 dehumidifier was reset and the tank emptied.",
+          "answer": "Ines called me at 14:01 about a humidity alarm in the B wing, B-12. At 14:01 I replied on the radio that I was on my way. At 14:25 I reported on the radio that the B-12 dehumidifier was reset and the tank emptied.",
           "protected": [
             "Ines called me at 14:01 about a humidity alarm in the B wing, B-12"
           ],
@@ -2204,7 +2204,7 @@
             },
             {
               "record_id": "rec-02",
-              "quote": "J. Pell | I. Marrow | On my way."
+              "quote": "14:01 | J. Pell | I. Marrow | On my way."
             },
             {
               "record_id": "rec-02",
@@ -2230,7 +2230,7 @@
           "support": [
             {
               "record_id": "rec-03",
-              "quote": "Humidity high (72% RH, limit 55%) | 13:58 | 14:16"
+              "quote": "B-12 Records Vault | Humidity high (72% RH, limit 55%) | 13:58 | 14:16"
             },
             {
               "record_id": "rec-02",
@@ -2305,7 +2305,7 @@
             },
             {
               "record_id": "rec-04",
-              "quote": "all seals match the register"
+              "quote": "Audit by O. Varga at 16:10. 214 sealed boxes checked; all seals match the register. Seal supply drawer: no seals issued on 12 March."
             }
           ]
         },
@@ -2338,11 +2338,11 @@
             },
             {
               "record_id": "doc-01",
-              "quote": "Door closed, alarm cleared"
+              "quote": "14:12:05 | B-12 main door | - | Door closed, alarm cleared"
             },
             {
               "record_id": "doc-01",
-              "quote": "Door held open, alarm raised"
+              "quote": "14:09:40 | B-12 main door | - | Door held open, alarm raised"
             },
             {
               "record_id": "doc-01",
@@ -2454,7 +2454,7 @@
             },
             {
               "record_id": "rec-03",
-              "quote": "Humidity high (72% RH, limit 55%) | 13:58"
+              "quote": "B-12 Records Vault | Humidity high (72% RH, limit 55%) | 13:58 | 14:16"
             },
             {
               "record_id": "doc-03",
@@ -2482,11 +2482,11 @@
           "support": [
             {
               "record_id": "doc-01",
-              "quote": "Door held open, alarm raised"
+              "quote": "14:09:40 | B-12 main door | - | Door held open, alarm raised"
             },
             {
               "record_id": "doc-01",
-              "quote": "Door closed, alarm cleared"
+              "quote": "14:12:05 | B-12 main door | - | Door closed, alarm cleared"
             },
             {
               "record_id": "doc-02",
@@ -2513,14 +2513,18 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "The monitor paged me at 06:55 about switch SW-2B, and I was the on-call technician. I came through lobby turnstile 1 at 07:04. My N-3 access had been removed the evening before, pending recertification training. I entered N-3 at 07:12 with card A-2291.",
+          "answer": "As the on-call technician, I was paged at 06:55. The monitor showed switch SW-2B unreachable from 06:55. I came through lobby turnstile 1 at 07:04. My N-3 access had been removed the evening before, pending recertification training. I entered N-3 at 07:12 with card A-2291.",
           "protected": [
             "I entered N-3 at 07:12 with card A-2291"
           ],
           "support": [
             {
               "record_id": "doc-02",
-              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55"
+              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55."
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "06:55:02 | SW-2B (floor 2) | Unreachable"
             },
             {
               "record_id": "doc-01",
@@ -2644,14 +2648,14 @@
             "rec-03",
             "rec-05"
           ],
-          "answer": "OP-7 says that when an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox. The technician must record the time and reason on the sign-out sheet and note the card number in the incident ticket. My ticket does note card A-2291.",
+          "answer": "The outage procedure says that when an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox. The technician must record the time and reason on the sign-out sheet and note the card number in the incident ticket. My ticket does note card A-2291.",
           "protected": [
             "My ticket does note card A-2291"
           ],
           "support": [
             {
               "record_id": "rec-05",
-              "quote": "may sign out a spare access card from the IT lockbox"
+              "quote": "When an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox"
             },
             {
               "record_id": "rec-05",
@@ -2675,9 +2679,9 @@
             "rec-03",
             "rec-05"
           ],
-          "answer": "That sheet has my entry for card A-2291 with the reason SW-2B outage, N-3. It shows the card out at 07:09 and back in at 07:41. That fits the ticket, which says I entered N-3 at 07:12. I am not sure whether I filled in the time column before or after going up to N-3.",
+          "answer": "That sheet has my entry for card A-2291 with the reason SW-2B outage, N-3. It shows the card out at 07:09 and back in at 07:41. That fits the ticket, which says I entered N-3 at 07:12. The sheet lists spare cards A-3310 and A-2291 in the pool that day.",
           "protected": [
-            "I am not sure whether I filled in the time column before or after going up to N-3"
+            "It shows the card out at 07:09 and back in at 07:41"
           ],
           "support": [
             {
@@ -2694,7 +2698,7 @@
             },
             {
               "record_id": "rec-01",
-              "quote": "Date | Name | Card | Reason | Out | In"
+              "quote": "Spare cards in the pool on 13 March: A-3310, A-2291."
             }
           ]
         },
@@ -2928,7 +2932,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "On the evening of 25 February I was on the evening shift in Building Engineering. The Operations desk sent me a service request at 18:44 about a ceiling drip in the floor 4 east corridor. I withdrew key K-14 from the key cabinet at 18:52.",
+          "answer": "That evening I was on the evening shift in Building Engineering. The Operations desk sent me a service request at 18:44 about a ceiling drip in the floor 4 east corridor. I withdrew key K-14 from the key cabinet at 18:52.",
           "protected": [
             "I withdrew key K-14 from the key cabinet at 18:52"
           ],
@@ -2943,7 +2947,7 @@
             },
             {
               "record_id": "doc-01",
-              "quote": "K-14 withdrawn, PIN P. Halloran"
+              "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
             }
           ]
         },
@@ -2987,7 +2991,7 @@
             "doc-03",
             "rec-04"
           ],
-          "answer": "The history shows three withdrawals of K-14 in February. The one on 23 February was under my PIN for a light fitting in Room 417. The one on 25 February was mine too, out at 18:52 and back at 20:06 for the service request. The 5 February withdrawal was under another PIN holder, so I can only say what the history shows.",
+          "answer": "The history shows three withdrawals in the period. The one on 23 February was under my PIN for a light fitting in Room 417. The one on 25 February was mine too, out at 18:52 and back at 20:06 for the service request. The 5 February withdrawal was under another PIN holder, so I can only say what the history shows.",
           "protected": [
             "The one on 23 February was under my PIN for a light fitting in Room 417"
           ],
@@ -2998,7 +3002,7 @@
             },
             {
               "record_id": "rec-04",
-              "quote": "15:50 | P. Halloran | WO-6087, light fitting, Room 417"
+              "quote": "23 February | 15:05 | 15:50 | P. Halloran | WO-6087, light fitting, Room 417"
             },
             {
               "record_id": "rec-04",
@@ -3028,19 +3032,19 @@
           "support": [
             {
               "record_id": "rec-01",
-              "quote": "Water coming out under the door of 417, the file room."
+              "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room. The ceiling tile outside is dripping too."
             },
             {
               "record_id": "rec-01",
-              "quote": "SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor"
+              "quote": "18:44 | G. Fenwick | SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor, between 417 and 419."
             },
             {
               "record_id": "rec-01",
-              "quote": "K-14 approved by phone for P. Halloran"
+              "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone for P. Halloran, leak on floor 4 east."
             },
             {
               "record_id": "rec-01",
-              "quote": "Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419."
+              "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out. Mopping the corridor next."
             },
             {
               "record_id": "rec-01",
@@ -3126,9 +3130,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The copier log shows a single three-page copy job at 16:52 under the account of Specht. The service request was not raised until 18:44, nearly two hours after that job. I made no copies in Room 417, and the log shows only that one job in the period.",
+          "answer": "The copier log shows a single three-page copy job at 16:52 under the account of Specht. The service request was not raised until 18:44, nearly two hours after that job. The log shows only that one job in the period.",
           "protected": [
-            "I made no copies in Room 417"
+            "a single three-page copy job at 16:52"
           ],
           "support": [
             {
@@ -3189,7 +3193,7 @@
             },
             {
               "record_id": "doc-01",
-              "quote": "K-14 withdrawn, PIN P. Halloran"
+              "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
             }
           ]
         },
@@ -3289,7 +3293,7 @@
           "support": [
             {
               "record_id": "rec-01",
-              "quote": "T. Wren, night custodian | Water coming out under the door of 417"
+              "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room. The ceiling tile outside is dripping too."
             },
             {
               "record_id": "doc-03",
@@ -3297,7 +3301,7 @@
             },
             {
               "record_id": "rec-05",
-              "quote": "I approved it on the phone and told her to go ahead"
+              "quote": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14, which covers 417, 419 and 421. I approved it on the phone and told her to go ahead. I sign the authorization forms for evening calls when I get in the next morning, so I signed this one at 08:20 on the 26th. I did not ask which rooms she would need."
             },
             {
               "record_id": "rec-01",
@@ -3333,7 +3337,7 @@
             },
             {
               "record_id": "rec-01",
-              "quote": "K-14 approved by phone for P. Halloran"
+              "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone for P. Halloran, leak on floor 4 east."
             },
             {
               "record_id": "doc-01",

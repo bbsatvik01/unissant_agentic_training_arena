@@ -196,9 +196,13 @@ def test_a_commit_request_on_the_twelfth_card_is_st1() -> None:
     ("raise_at", "error", "execution", "rule"),
     [
         (("ask", 3), SubjectStopError(), Execution.SUBJECT_QUARANTINED, "ST-3"),
-        (("ask", 5), BudgetStopError(), Execution.BUDGET_TRUNCATED, "ST-4"),
-        (("ask", 1), BudgetStopError(), Execution.BUDGET_SKIPPED, "ST-4"),
-        (("card", 2), BudgetStopError(), Execution.BUDGET_TRUNCATED, "ST-4"),
+        (("ask", 5), BudgetStopError(dispatched=True), Execution.BUDGET_TRUNCATED, "ST-4"),
+        (("ask", 1), BudgetStopError(dispatched=False), Execution.BUDGET_SKIPPED, "ST-4"),
+        # Recovery after a crash: the first call was dispatched in an earlier process, so the trial is truncated.
+        (("ask", 1), BudgetStopError(dispatched=True), Execution.BUDGET_TRUNCATED, "ST-4"),
+        (("card", 2), BudgetStopError(dispatched=True), Execution.BUDGET_TRUNCATED, "ST-4"),
+        # A call that returned in this run counts even if the port's read lags.
+        (("card", 2), BudgetStopError(dispatched=False), Execution.BUDGET_TRUNCATED, "ST-4"),
         (("card", 6), TransientStopError(), Execution.INFRA_FAILED, "ST-5"),
         (("final", 0), TransientStopError(), Execution.INFRA_FAILED, "ST-5"),
     ],
@@ -274,6 +278,7 @@ class FakeCorpus:
     requests: dict[int, list[str]] = field(default_factory=dict)
     asked: list[HarnessQuestion] = field(default_factory=list)
     stop_at: int | None = None
+    stop_error: Exception = field(default_factory=SubjectStopError)
 
     def release(self, n: int, record_ids: Sequence[str]) -> list[ReleasedRecord]:
         self.requests[n] = list(record_ids)
@@ -294,7 +299,7 @@ class FakeCorpus:
 
     def ask(self, n: int, question: HarnessQuestion) -> None:
         if self.stop_at == n:
-            raise SubjectStopError
+            raise self.stop_error
         self.asked.append(question)
 
 
@@ -370,3 +375,18 @@ def test_record_requests_go_with_the_next_question_whatever_happens_to_the_propo
     assert fake.requests[5] == []
     assert fake.requests[7] == ["rec-02"]  # a repeated request is passed on; release_evidence answers already_released
     assert all(fake.requests[n] == [] for n in (3, 6, 8, 9, 10, 11, 12))
+
+
+@pytest.mark.parametrize(
+    ("stop", "dispatched", "execution"),
+    [
+        (1, False, Execution.BUDGET_SKIPPED),
+        (1, True, Execution.BUDGET_TRUNCATED),
+        (3, False, Execution.BUDGET_TRUNCATED),
+    ],
+)
+def test_the_corpus_loop_classifies_a_budget_stop(stop: int, dispatched: bool, execution: Execution) -> None:
+    fake, public = _corpus("F01", "truthful")
+    fake.stop_at, fake.stop_error = stop, BudgetStopError(dispatched=dispatched)
+    out = harness.run_corpus(fake, public)
+    assert (out.execution, out.stop_rule) == (execution, "ST-4")
