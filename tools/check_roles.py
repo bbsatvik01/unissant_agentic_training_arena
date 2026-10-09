@@ -26,19 +26,18 @@ The lint reads source; it is not a sandbox. A module name assembled at run time 
 the per-process credentials and the database grants (S5 1.2 items 1 and 3, S5 10.2 item 7) remain the
 data boundary, as S5's threat model states.
 
-  frame. product code other than `arena_core.events.projections` names an event frame model at all: it may
-     not import one, reach one as an attribute (`events.NoticeFrame`), or spell one in a string (S5 1.2
-     item 2: "any module other than `arena_core.events.projections` constructs an event frame model"; S5 6.5).
-     Naming is the whole test, annotations included: any reference can become a construction (a decorator,
-     `validate_call(f)` in another module, a Pydantic field), so no use of a frame model is exempt anywhere but
-     the projection. A module that needs a frame type for typing takes it from the projection (a typed alias
-     or Protocol it exports), never the model class. The frame models are read from
-     `arena_core/contracts/events.py` (WP-02): every class or alias there whose name ends in `Frame`, and every
-     container that carries one (`ReplayPage`, the tournament poll), since validating a container builds its
-     frames. Two other files are exempt, each for a reason the rule cannot be broken by: that module itself (it
-     declares them) and `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and
-     builds no frame); product code may not import that export module, which hands out every wire type.
-     Absolute and relative imports both resolve.
+  frame. a tripwire for S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
+     event frame model"; S5 6.5). The guarantee is the send path, not this lint: `events.sse` sends only a
+     `ProjectedFrame`, which only `events.projections` can create (a module-private seal), so a frame built
+     anywhere else cannot reach the wire; Python cannot be stopped from constructing an object, and the lint
+     does not try to follow every alias. What it rejects, in product code other than the projection, the
+     module that declares the frames (`contracts/events.py`) and the schema writer (`contracts/export.py`):
+     importing any frame or carrier model by name, from any module (`from x import NoticeFrame`, aliased or
+     not, wherever it is re-exported), reaching one as an attribute (`events.NoticeFrame`), spelling one in a
+     string, importing a private name from `events.projections` (its seal), and importing the schema writer,
+     which hands out every wire type. The frame models are read from `contracts/events.py`: every class or
+     alias whose name ends in `Frame`, and every container that carries one (`ReplayPage`, the tournament
+     poll).
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -85,6 +84,7 @@ VERTEX_ADAPTER = "packages/core/src/arena_core/providers/vertex.py"
 FRAME_SOURCE = "packages/core/src/arena_core/contracts/events.py"
 FRAME_MODULE = "arena_core.contracts.events"
 FRAME_BUILDER = "packages/core/src/arena_core/events/projections.py"
+PROJECTION_MODULE = "arena_core.events.projections"
 FRAME_EXEMPT = frozenset({FRAME_BUILDER, FRAME_SOURCE, "packages/core/src/arena_core/contracts/export.py"})
 FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections names or builds frames (S5 1.2 item 2)"
 # The schema export maps file stems to every wire type, frames included; product code never needs it.
@@ -302,12 +302,8 @@ def _resolve_from(path: str, node: ast.ImportFrom) -> str | None:
 
 
 def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[int, str]]:
-    """(line, name) for every reference to a frame model (rule frame): an import, a name bound by one, an
-    attribute, or a string. Only docstrings, which are prose, are skipped."""
-    local: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and _resolve_from(path, node) == FRAME_MODULE:
-            local.update(a.asname or a.name for a in node.names if a.name in frames)
+    """(line, name) for every tripwire hit of rule frame: a frame model imported by name from any module, an
+    attribute or a string naming one, or a private name imported from the projection. Docstrings are prose."""
     exempt = _docstrings(tree)
     found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
@@ -315,14 +311,14 @@ def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[
             continue
         if _imports_export(path, node):
             found.append((getattr(node, "lineno", 0), ""))
-        elif isinstance(node, ast.ImportFrom) and _resolve_from(path, node) == FRAME_MODULE:
+        elif isinstance(node, ast.ImportFrom):
             found.extend((node.lineno, a.name) for a in node.names if a.name in frames)
-        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
-            found.append((node.lineno, node.id))
+            if _resolve_from(path, node) == PROJECTION_MODULE:
+                found.extend((node.lineno, a.name) for a in node.names if a.name.startswith("_"))
         elif isinstance(node, ast.Attribute) and node.attr in frames:
             found.append((node.lineno, node.attr))
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-            found.extend((node.lineno, name) for name in _named_in_string(node.value, frames | local))
+            found.extend((node.lineno, name) for name in _named_in_string(node.value, frames))
     return found
 
 

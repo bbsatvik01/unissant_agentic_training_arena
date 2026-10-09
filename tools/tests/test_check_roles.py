@@ -164,7 +164,7 @@ def test_make_roles_fails_on_a_seeded_subject_import_in_services_api(tmp_path: P
     )
     framed = proc.run("make", ["-f", makefile, "roles", uv_run], cwd=tmp_path)
     assert framed.returncode != 0, framed.stdout + framed.stderr
-    assert "services/api/src/arena_api/frames.py:3: NoticeFrame is an event frame model" in framed.stderr
+    assert "services/api/src/arena_api/frames.py:1: NoticeFrame is an event frame model" in framed.stderr
 
 
 # ---------------------------------------------------------------- rule frame (S5 1.2 item 2, S5 6.5)
@@ -398,7 +398,7 @@ def test_any_reference_outside_the_projection_is_refused_even_a_plain_annotation
         "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n"
     )
     lines = {f.line for f in lint.check_source(ARENA_API_FILE, source, FRAMES)}
-    assert lines == {1, 4}  # the import, and the annotation itself
+    assert lines == {1}  # the import: a tripwire, it does not follow the alias into the annotation
     assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import TrialFrame\n")  # importing is enough
     assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import CoachCard\n") == []
 
@@ -413,6 +413,28 @@ def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
     assert frame_rules(ARENA_API_FILE, 'MESSAGE = "frames are built by the projection"\n') == []
     assert frame_rules(ARENA_API_FILE, 'TEXT = "the NoticeFrames table"\n') == []
     assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == [lint.FRAME_RULE.format(name="NoticeFrame")]
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        # source-agnostic: a frame model imported by name from wherever it is re-exported, aliased or not
+        "from arena_core.events.projections import NoticeFrame as Note\n",
+        "from some.other.module import TrialFrame\n",
+        # the projection's seal is private
+        "from arena_core.events.projections import _SEAL\n",
+        "from arena_core.events.projections import _seal as seal\n",
+        "from ..events.projections import _seal\n",
+    ],
+)
+def test_the_tripwire_is_source_agnostic_and_guards_the_seal(source: str) -> None:
+    assert frame_rules(OTHER_CORE_FILE, source)
+
+
+def test_the_send_path_types_may_be_imported() -> None:
+    assert frame_rules(ARENA_API_FILE, "from arena_core.events.projections import ProjectedFrame\n") == []
+    assert frame_rules(ARENA_API_FILE, "from arena_core.events.sse import sse_message\n") == []
 
 
 def test_the_export_module_may_read_frame_schemas() -> None:
