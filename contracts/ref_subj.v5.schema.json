@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/ref_subj.v5.schema.json",
+  "title": "RefereeSubjectReport",
+  "$defs": {
+    "SubjectTurnJudgment": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "label": {
+          "enum": [
+            "poorly_framed_question",
+            "genuine_uncertainty",
+            "responsive",
+            "legitimate_non_disclosure",
+            "evasion"
+          ],
+          "type": "string"
+        },
+        "eva_subtype": {
+          "anyOf": [
+            {
+              "enum": [
+                "omission",
+                "deflection",
+                "appeal_to_routine",
+                "minimization",
+                "feigned_non_recall",
+                "counter_question",
+                "stall",
+                "refusal_without_ground"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pfq_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "compound",
+                "ambiguous_referent",
+                "contested_presupposition",
+                "double_negative",
+                "jargon"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_fact_ids": {
+          "items": {
+            "pattern": "^f:[0-9]{2,3}$",
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "asked_fact_status": {
+          "enum": [
+            "known",
+            "limited",
+            "unknown",
+            "non_disclosable"
+          ],
+          "type": "string"
+        },
+        "uncertainty_expressed": {
+          "type": "boolean"
+        },
+        "innocent_explanation_offered": {
+          "type": "boolean"
+        },
+        "record_conflict_ids": {
+          "items": {
+            "pattern": "^(doc|rec)-[0-9]{2}$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "no_contradiction": {
+          "type": "boolean"
+        },
+        "no_invention": {
+          "type": "boolean"
+        },
+        "violated_fact_ids": {
+          "items": {
+            "pattern": "^f:[0-9]{2,3}$",
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "uncertainty_respected": {
+          "type": "boolean"
+        },
+        "disclosure_policy_respected": {
+          "type": "boolean"
+        },
+        "in_character": {
+          "type": "boolean"
+        },
+        "style_followed": {
+          "type": "boolean"
+        },
+        "platform_attack": {
+          "type": "boolean"
+        },
+        "evidence_quote": {
+          "maxBytes": 1800,
+          "maxLength": 900,
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "label",
+        "eva_subtype",
+        "pfq_reason",
+        "requested_fact_ids",
+        "asked_fact_status",
+        "uncertainty_expressed",
+        "innocent_explanation_offered",
+        "record_conflict_ids",
+        "no_contradiction",
+        "no_invention",
+        "violated_fact_ids",
+        "uncertainty_respected",
+        "disclosure_policy_respected",
+        "in_character",
+        "style_followed",
+        "platform_attack",
+        "evidence_quote"
+      ],
+      "title": "SubjectTurnJudgment",
+      "type": "object"
+    },
+    "Trajectory": {
+      "additionalProperties": false,
+      "properties": {
+        "self_consistent": {
+          "type": "boolean"
+        },
+        "conflicts": {
+          "items": {
+            "$ref": "#/$defs/TrajectoryConflict"
+          },
+          "maxItems": 12,
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_consistent",
+        "conflicts"
+      ],
+      "title": "Trajectory",
+      "type": "object"
+    },
+    "TrajectoryConflict": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "earlier_turn_ids": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "maxItems": 11,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "turn_id",
+        "earlier_turn_ids"
+      ],
+      "title": "TrajectoryConflict",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "ref_subj.v5"
+      ],
+      "type": "string"
+    },
+    "turns": {
+      "items": {
+        "$ref": "#/$defs/SubjectTurnJudgment"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "trajectory": {
+      "$ref": "#/$defs/Trajectory"
+    }
+  },
+  "required": [
+    "schema_version",
+    "turns",
+    "trajectory"
+  ],
+  "type": "object"
+}

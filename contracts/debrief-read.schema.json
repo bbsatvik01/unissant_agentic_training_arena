@@ -1,0 +1,575 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/debrief-read.schema.json",
+  "title": "DebriefRead",
+  "$defs": {
+    "Counts": {
+      "additionalProperties": false,
+      "properties": {
+        "tp": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "flags": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "events": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tp",
+        "flags",
+        "events"
+      ],
+      "title": "Counts",
+      "type": "object"
+    },
+    "DebriefScoring": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "scoring",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "DebriefScoring",
+      "type": "object"
+    },
+    "Detection": {
+      "additionalProperties": false,
+      "properties": {
+        "evasion_strict": {
+          "$ref": "#/$defs/Counts"
+        },
+        "evasion_broad": {
+          "$ref": "#/$defs/Counts"
+        },
+        "unique_flags": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unsupported": {
+          "$ref": "#/$defs/Unsupported"
+        },
+        "coach_last_label": {
+          "anyOf": [
+            {
+              "enum": [
+                "deceptive",
+                "truthful",
+                "insufficient_evidence"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "evasion_strict",
+        "evasion_broad",
+        "unique_flags",
+        "unsupported",
+        "coach_last_label"
+      ],
+      "title": "Detection",
+      "type": "object"
+    },
+    "EvidenceCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "addressed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "key_facts": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "addressed",
+        "key_facts"
+      ],
+      "title": "EvidenceCoverage",
+      "type": "object"
+    },
+    "Failures": {
+      "additionalProperties": false,
+      "properties": {
+        "F1": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "F2_F4": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "F3": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "F5": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "F6": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "F1",
+        "F2_F4",
+        "F3",
+        "F5",
+        "F6"
+      ],
+      "title": "Failures",
+      "type": "object"
+    },
+    "KeyQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "addressed_turns": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "intent",
+        "addressed_turns"
+      ],
+      "title": "KeyQuestion",
+      "type": "object"
+    },
+    "Learning": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_coverage": {
+          "$ref": "#/$defs/EvidenceCoverage"
+        },
+        "key_questions": {
+          "items": {
+            "$ref": "#/$defs/KeyQuestion"
+          },
+          "maxItems": 8,
+          "type": "array"
+        }
+      },
+      "required": [
+        "evidence_coverage",
+        "key_questions"
+      ],
+      "title": "Learning",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "truthful",
+            "deceptive"
+          ],
+          "type": "string"
+        },
+        "correct_finding": {
+          "enum": [
+            "truthful",
+            "deceptive"
+          ],
+          "type": "string"
+        },
+        "committed_label": {
+          "anyOf": [
+            {
+              "enum": [
+                "deceptive",
+                "truthful",
+                "insufficient_evidence"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolution": {
+          "maxLength": 900,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "correct_finding",
+        "committed_label",
+        "resolution"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "rubric_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "r3_prompt_sha256": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "referee_model_ids": {
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "type": "array"
+        },
+        "scorer_git_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rubric_sha256",
+        "r3_prompt_sha256",
+        "referee_model_ids",
+        "scorer_git_sha"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Rubric": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "total": {
+                "type": "null"
+              },
+              "unscorable_reason": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "dimensions": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "scorable": {
+                "enum": [
+                  true
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "unscorable_reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "scorable": {
+          "type": "boolean"
+        },
+        "unscorable_reason": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dimensions": {
+          "items": {
+            "$ref": "#/$defs/RubricDimension"
+          },
+          "maxItems": 5,
+          "type": "array"
+        }
+      },
+      "required": [
+        "scorable",
+        "unscorable_reason",
+        "total",
+        "dimensions"
+      ],
+      "title": "Rubric",
+      "type": "object"
+    },
+    "RubricCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[1-5][a-e]$",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "na"
+          ],
+          "type": "string"
+        },
+        "turns": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "result",
+        "turns"
+      ],
+      "title": "RubricCheck",
+      "type": "object"
+    },
+    "RubricDimension": {
+      "additionalProperties": false,
+      "properties": {
+        "dim_id": {
+          "enum": [
+            "D1",
+            "D2",
+            "D3",
+            "D4",
+            "D5"
+          ],
+          "type": "string"
+        },
+        "score": {
+          "maximum": 4,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/RubricCheck"
+          },
+          "maxItems": 5,
+          "type": "array"
+        }
+      },
+      "required": [
+        "dim_id",
+        "score",
+        "checks"
+      ],
+      "title": "RubricDimension",
+      "type": "object"
+    },
+    "Scorecards": {
+      "additionalProperties": false,
+      "properties": {
+        "learning": {
+          "$ref": "#/$defs/Learning"
+        },
+        "detection": {
+          "$ref": "#/$defs/Detection"
+        },
+        "subject_realism": {
+          "$ref": "#/$defs/SubjectRealism"
+        }
+      },
+      "required": [
+        "learning",
+        "detection",
+        "subject_realism"
+      ],
+      "title": "Scorecards",
+      "type": "object"
+    },
+    "ScoredDebrief": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "debrief.v1",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "scored": {
+          "const": true,
+          "type": "boolean"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "rubric": {
+          "$ref": "#/$defs/Rubric"
+        },
+        "scorecards": {
+          "$ref": "#/$defs/Scorecards"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "scored",
+        "outcome",
+        "rubric",
+        "scorecards",
+        "provenance"
+      ],
+      "title": "ScoredDebrief",
+      "type": "object"
+    },
+    "SubjectRealism": {
+      "additionalProperties": false,
+      "properties": {
+        "turns": {
+          "maximum": 12,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "compliant": {
+          "maximum": 12,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "failures": {
+          "$ref": "#/$defs/Failures"
+        }
+      },
+      "required": [
+        "turns",
+        "compliant",
+        "failures"
+      ],
+      "title": "SubjectRealism",
+      "type": "object"
+    },
+    "UnscoredDebrief": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "debrief.v1",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "scored": {
+          "const": false,
+          "type": "boolean"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "scored",
+        "outcome"
+      ],
+      "title": "UnscoredDebrief",
+      "type": "object"
+    },
+    "Unsupported": {
+      "additionalProperties": false,
+      "properties": {
+        "citation": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "demeanor": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "claim": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "citation",
+        "demeanor",
+        "claim"
+      ],
+      "title": "Unsupported",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/ScoredDebrief"
+    },
+    {
+      "$ref": "#/$defs/UnscoredDebrief"
+    },
+    {
+      "$ref": "#/$defs/DebriefScoring"
+    }
+  ]
+}

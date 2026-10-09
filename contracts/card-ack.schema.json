@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/card-ack.schema.json",
+  "title": "CardAck",
+  "additionalProperties": false,
+  "properties": {
+    "trial_id": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "turn_no": {
+      "maximum": 12,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "client_valid": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "trial_id",
+    "turn_no",
+    "client_valid"
+  ],
+  "type": "object"
+}

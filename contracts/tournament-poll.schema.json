@@ -1,0 +1,535 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/tournament-poll.schema.json",
+  "title": "TournamentPoll",
+  "$defs": {
+    "ProgressRow": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "block": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "track": {
+                "enum": [
+                  "interactive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "block": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "track": {
+          "enum": [
+            "replay_corpus",
+            "replay",
+            "interactive"
+          ],
+          "type": "string"
+        },
+        "block": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "planned": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "counts_by_state": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "completed",
+              "subject_quarantined",
+              "assistant_failed",
+              "infra_failed",
+              "budget_skipped",
+              "budget_truncated",
+              "source_unavailable"
+            ]
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "track",
+        "block",
+        "planned",
+        "counts_by_state"
+      ],
+      "title": "ProgressRow",
+      "type": "object"
+    },
+    "ReplayTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "trial_ref": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "turn_no": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "trial_ref",
+        "turn_no"
+      ],
+      "title": "ReplayTurn",
+      "type": "object"
+    },
+    "ReplayTurnFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "type": "integer"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "const": "tournament",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "type": "string"
+        },
+        "type": {
+          "const": "replay.turn",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/ReplayTurn"
+        }
+      },
+      "required": [
+        "v",
+        "seq",
+        "scope",
+        "scope_id",
+        "ts",
+        "type",
+        "data"
+      ],
+      "title": "ReplayTurnFrame",
+      "type": "object"
+    },
+    "TournamentCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "visibility": {
+          "const": "counts",
+          "type": "string"
+        },
+        "progress": {
+          "items": {
+            "$ref": "#/$defs/ProgressRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "visibility",
+        "progress"
+      ],
+      "title": "TournamentCounts",
+      "type": "object"
+    },
+    "TournamentEvents": {
+      "additionalProperties": false,
+      "properties": {
+        "visibility": {
+          "const": "events",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TournamentStatusFrame"
+              },
+              {
+                "$ref": "#/$defs/TrialStartedFrame"
+              },
+              {
+                "$ref": "#/$defs/ReplayTurnFrame"
+              },
+              {
+                "$ref": "#/$defs/TournamentTrialFinalizedFrame"
+              },
+              {
+                "$ref": "#/$defs/TrialExecutionFrame"
+              }
+            ]
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "last": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "visibility",
+        "frames",
+        "last"
+      ],
+      "title": "TournamentEvents",
+      "type": "object"
+    },
+    "TournamentStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "draft",
+            "frozen",
+            "running",
+            "sealed",
+            "scoring",
+            "revealed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "title": "TournamentStatus",
+      "type": "object"
+    },
+    "TournamentStatusFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "type": "integer"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "const": "tournament",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "type": "string"
+        },
+        "type": {
+          "const": "tournament.status",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/TournamentStatus"
+        }
+      },
+      "required": [
+        "v",
+        "seq",
+        "scope",
+        "scope_id",
+        "ts",
+        "type",
+        "data"
+      ],
+      "title": "TournamentStatusFrame",
+      "type": "object"
+    },
+    "TournamentTrialFinalized": {
+      "additionalProperties": false,
+      "properties": {
+        "trial_ref": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "commitment_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trial_ref",
+        "commitment_hash"
+      ],
+      "title": "TournamentTrialFinalized",
+      "type": "object"
+    },
+    "TournamentTrialFinalizedFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "type": "integer"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "const": "tournament",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "type": "string"
+        },
+        "type": {
+          "const": "trial.finalized",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/TournamentTrialFinalized"
+        }
+      },
+      "required": [
+        "v",
+        "seq",
+        "scope",
+        "scope_id",
+        "ts",
+        "type",
+        "data"
+      ],
+      "title": "TournamentTrialFinalizedFrame",
+      "type": "object"
+    },
+    "TrialExecution": {
+      "additionalProperties": false,
+      "properties": {
+        "trial_ref": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "completed",
+            "subject_quarantined",
+            "assistant_failed",
+            "infra_failed",
+            "budget_skipped",
+            "budget_truncated",
+            "source_unavailable"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "trial_ref",
+        "state"
+      ],
+      "title": "TrialExecution",
+      "type": "object"
+    },
+    "TrialExecutionFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "type": "integer"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "const": "tournament",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "type": "string"
+        },
+        "type": {
+          "const": "trial.execution",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/TrialExecution"
+        }
+      },
+      "required": [
+        "v",
+        "seq",
+        "scope",
+        "scope_id",
+        "ts",
+        "type",
+        "data"
+      ],
+      "title": "TrialExecutionFrame",
+      "type": "object"
+    },
+    "TrialStarted": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "block": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "track": {
+                "enum": [
+                  "interactive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "block": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "trial_ref": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "trial_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "pairing": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "track": {
+          "enum": [
+            "replay_corpus",
+            "replay",
+            "interactive"
+          ],
+          "type": "string"
+        },
+        "block": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "trial_ref",
+        "trial_id",
+        "pairing",
+        "track",
+        "block"
+      ],
+      "title": "TrialStarted",
+      "type": "object"
+    },
+    "TrialStartedFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "type": "integer"
+        },
+        "seq": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "const": "tournament",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "ts": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "type": "string"
+        },
+        "type": {
+          "const": "trial.started",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/TrialStarted"
+        }
+      },
+      "required": [
+        "v",
+        "seq",
+        "scope",
+        "scope_id",
+        "ts",
+        "type",
+        "data"
+      ],
+      "title": "TrialStartedFrame",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/TournamentEvents"
+    },
+    {
+      "$ref": "#/$defs/TournamentCounts"
+    }
+  ]
+}

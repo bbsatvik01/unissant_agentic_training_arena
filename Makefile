@@ -5,9 +5,9 @@
 #
 # Lifted from TechnoMile `Makefile` (S5 T21; ATTRIBUTIONS.md). Thresholds below are mirrored in
 # tools/gates/ratchet.toml and may only get stricter; tools/check_ratchet.py fails on drift between the two
-# or on any loosening versus BASE_REF. db-test (supabase/ migrations and pgTAP) arrived with WP-03. Gate groups
-# not here yet, each arriving with the tree it gates: web-check and web-audit (web/, WP-18), dev and dev-check
-# (scripts/run_local.py, WP-13). Adding one never removes or weakens a gate already here.
+# or on any loosening versus BASE_REF. db-test (supabase/ migrations and pgTAP) arrived with WP-03, web-check
+# (web/: pnpm check) with WP-02. Gate groups not here yet, each arriving with the tree it gates: web-audit
+# (WP-18), dev and dev-check (scripts/run_local.py, WP-13). Adding one never removes or weakens a gate here.
 
 SHELL := /bin/bash
 # macOS ships GNU make 3.81, which ignores .SHELLFLAGS: every recipe line with a pipe or loop starts
@@ -45,12 +45,13 @@ SYNC_TOOLS ?=
 
 .PHONY: help bootstrap hooks check deps-sync tools-sync py-check sec-check \
 	lint format-check typecheck no-rigging silent-except roles cost-parity supabase-config ratchet deps-policy \
-	push-clean test scope-coverage diff-cover db-test \
+	push-clean test scope-coverage diff-cover db-test web-check \
 	bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses
 
 help:
 	@echo "make bootstrap   set up a clean clone (uv envs, pinned security binaries, git hook)"
-	@echo "make check       full gate: python, database, security (BASE_REF=$(BASE_REF))"
+	@echo "make check       full gate: python, web, database, security (BASE_REF=$(BASE_REF))"
+	@echo "make web-check   web/: frozen pnpm install, then pnpm check (lint, tsc, tests, coverage, build)"
 	@echo "make db-test     migrations and pgTAP on plain PostgreSQL 17 and on Supabase Postgres 17 (Docker, psql)"
 
 bootstrap:
@@ -64,7 +65,7 @@ hooks:
 
 # tools-sync runs before py-check: the CodeQL, gitleaks and Makefile gate proofs in the test suite run the pinned
 # binaries themselves.
-check: deps-sync tools-sync py-check db-test sec-check
+check: deps-sync tools-sync py-check web-check db-test sec-check
 	@echo "make check: ALL GATES GREEN"
 
 # Installed environments must match the lockfiles exactly before any gate reads them.
@@ -132,6 +133,12 @@ scope-coverage: test
 
 diff-cover: test
 	$(UV_RUN) diff-cover coverage.xml --compare-branch="$(BASE_REF)" --include-untracked --fail-under=$(DIFF_COVER_MIN)
+
+# ------------------------------------------------------------------ web
+# web-check (S6 12): the locked install, then web/'s own gate in order: ESLint (zero warnings), tsc, Vitest, Vitest
+# with the 90% coverage gate on src/lib, and the production build (web/package.json "check").
+web-check:
+	cd web && pnpm install --frozen-lockfile && pnpm check
 
 # ------------------------------------------------------------------ database
 # db-test (S5 11.1; S4 WI-S4-01, 02, 04, 08): supabase/migrations and every supabase/tests/*.sql pgTAP file on a

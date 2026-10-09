@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/deep.v1.schema.json",
+  "title": "DeepUpdate",
+  "$defs": {
+    "CoverageEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^rec-0[1-6]$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "not_yet_raised",
+            "raised_not_tested",
+            "consistent_with_account",
+            "conflicts_with_account",
+            "explained_innocently"
+          ],
+          "type": "string"
+        },
+        "turn_ids": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "record_id",
+        "status",
+        "turn_ids"
+      ],
+      "title": "CoverageEntry",
+      "type": "object"
+    },
+    "DisclosurePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "anyOf": [
+            {
+              "pattern": "^rec-0[1-6]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step": {
+          "enum": [
+            "hold",
+            "evidence_topic",
+            "evidence_source_vague",
+            "evidence_specific"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "record_id",
+        "step"
+      ],
+      "title": "DisclosurePlan",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "enum": [
+            "deceptive",
+            "truthful",
+            "insufficient_evidence"
+          ],
+          "type": "string"
+        },
+        "likelihood": {
+          "enum": [
+            "almost_no_chance",
+            "very_unlikely",
+            "unlikely",
+            "roughly_even_chance",
+            "likely",
+            "very_likely",
+            "almost_certain"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "type": "string"
+        },
+        "basis_flag_refs": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_turns": {
+          "description": "Turn numbers whose answers the finding rests on, adverse or corroborating; t04 is 4",
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_records": {
+          "description": "doc-NN or rec-NN records the finding rests on",
+          "items": {
+            "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "corroboration_needed": {
+          "items": {
+            "maxBytes": 240,
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "rationale": {
+          "maxBytes": 1200,
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "likelihood",
+        "confidence",
+        "basis_flag_refs",
+        "cited_turns",
+        "cited_records",
+        "corroboration_needed",
+        "rationale"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "OpenGap": {
+      "additionalProperties": false,
+      "properties": {
+        "missing_fact": {
+          "maxBytes": 240,
+          "maxLength": 120,
+          "minLength": 3,
+          "type": "string"
+        },
+        "first_seen_turn": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "missing_fact",
+        "first_seen_turn"
+      ],
+      "title": "OpenGap",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "deep.v1"
+      ],
+      "type": "string"
+    },
+    "as_of_turn": {
+      "pattern": "^t(0[1-9]|1[0-2])$",
+      "type": "string"
+    },
+    "finding": {
+      "$ref": "#/$defs/Finding"
+    },
+    "evidence_coverage": {
+      "items": {
+        "$ref": "#/$defs/CoverageEntry"
+      },
+      "maxItems": 8,
+      "type": "array"
+    },
+    "open_gaps": {
+      "items": {
+        "$ref": "#/$defs/OpenGap"
+      },
+      "maxItems": 4,
+      "type": "array"
+    },
+    "disclosure_plan": {
+      "$ref": "#/$defs/DisclosurePlan"
+    }
+  },
+  "required": [
+    "schema_version",
+    "as_of_turn",
+    "finding",
+    "evidence_coverage",
+    "open_gaps",
+    "disclosure_plan"
+  ],
+  "type": "object"
+}

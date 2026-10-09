@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/card.v1.schema.json",
+  "title": "CoachingCard",
+  "$defs": {
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "enum": [
+            "deceptive",
+            "truthful",
+            "insufficient_evidence"
+          ],
+          "type": "string"
+        },
+        "likelihood": {
+          "enum": [
+            "almost_no_chance",
+            "very_unlikely",
+            "unlikely",
+            "roughly_even_chance",
+            "likely",
+            "very_likely",
+            "almost_certain"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "type": "string"
+        },
+        "basis_flag_refs": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_turns": {
+          "description": "Turn numbers whose answers the finding rests on, adverse or corroborating; t04 is 4",
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_records": {
+          "description": "doc-NN or rec-NN records the finding rests on",
+          "items": {
+            "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "corroboration_needed": {
+          "items": {
+            "maxBytes": 240,
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "rationale": {
+          "maxBytes": 1200,
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "likelihood",
+        "confidence",
+        "basis_flag_refs",
+        "cited_turns",
+        "cited_records",
+        "corroboration_needed",
+        "rationale"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Flag": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "gap",
+            "non_responsive",
+            "possible_evasion",
+            "contradiction",
+            "evidence_conflict"
+          ],
+          "type": "string"
+        },
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "quote": {
+          "description": "Exact span of the subject's answer in turn_id",
+          "maxBytes": 400,
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "missing_fact": {
+          "anyOf": [
+            {
+              "maxBytes": 240,
+              "maxLength": 120,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_turn_id": {
+          "anyOf": [
+            {
+              "pattern": "^t(0[1-9]|1[0-2])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_quote": {
+          "anyOf": [
+            {
+              "maxBytes": 400,
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_record_id": {
+          "anyOf": [
+            {
+              "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_record_quote": {
+          "anyOf": [
+            {
+              "maxBytes": 400,
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "turn_id",
+        "quote",
+        "missing_fact",
+        "conflict_turn_id",
+        "conflict_quote",
+        "conflict_record_id",
+        "conflict_record_quote"
+      ],
+      "title": "Flag",
+      "type": "object"
+    },
+    "FollowUp": {
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "maxBytes": 600,
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "tactic": {
+          "enum": [
+            "account_first_open",
+            "funnel_probe",
+            "evidence_topic",
+            "evidence_source_vague",
+            "evidence_specific",
+            "unanticipated_detail",
+            "reverse_order",
+            "verifiable_detail",
+            "clarify_contradiction",
+            "alternative_explanation",
+            "corroboration_request",
+            "summary_check"
+          ],
+          "type": "string"
+        },
+        "purpose": {
+          "maxBytes": 320,
+          "maxLength": 160,
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_request": {
+          "anyOf": [
+            {
+              "pattern": "^rec-0[1-6]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "question",
+        "tactic",
+        "purpose",
+        "record_request"
+      ],
+      "title": "FollowUp",
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "properties": {
+        "question_type": {
+          "enum": [
+            "open",
+            "probing",
+            "closed",
+            "leading",
+            "suggestive",
+            "compound",
+            "forced_choice",
+            "opinion"
+          ],
+          "type": "string"
+        },
+        "neutrality_issues": {
+          "items": {
+            "enum": [
+              "presupposes_fact",
+              "accusatory_wording",
+              "demeanor_reference",
+              "multiple_questions",
+              "limits_options",
+              "solicits_opinion",
+              "emotionally_loaded",
+              "pressure_or_inducement"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "assessment": {
+          "description": "One sentence on the question",
+          "maxBytes": 320,
+          "maxLength": 160,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_type",
+        "neutrality_issues",
+        "assessment"
+      ],
+      "title": "Question",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "card.v1"
+      ],
+      "type": "string"
+    },
+    "turn_id": {
+      "description": "The exchange being assessed, e.g. t07",
+      "pattern": "^t(0[1-9]|1[0-2])$",
+      "type": "string"
+    },
+    "question": {
+      "$ref": "#/$defs/Question"
+    },
+    "answer_category": {
+      "enum": [
+        "responsive",
+        "non_responsive",
+        "contradiction",
+        "explicit_uncertainty",
+        "possible_evasion"
+      ],
+      "type": "string"
+    },
+    "flags": {
+      "items": {
+        "$ref": "#/$defs/Flag"
+      },
+      "maxItems": 3,
+      "type": "array"
+    },
+    "follow_up": {
+      "$ref": "#/$defs/FollowUp"
+    },
+    "finding": {
+      "$ref": "#/$defs/Finding"
+    },
+    "boundary_notice": {
+      "type": "boolean"
+    },
+    "commit_requested": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "turn_id",
+    "question",
+    "answer_category",
+    "flags",
+    "follow_up",
+    "finding",
+    "boundary_notice",
+    "commit_requested"
+  ],
+  "type": "object"
+}

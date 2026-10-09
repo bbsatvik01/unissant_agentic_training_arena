@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/review-submission.schema.json",
+  "title": "ReviewSubmission",
+  "$defs": {
+    "CitationVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "cite": {
+          "pattern": "^(t(0[1-9]|1[0-2])|doc-0[1-4]|rec-0[1-6])$",
+          "type": "string"
+        },
+        "supports_basis": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cite",
+        "supports_basis"
+      ],
+      "title": "CitationVerdict",
+      "type": "object"
+    },
+    "FlagSubmission": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "T-FLAG",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/FlagVerdict"
+          },
+          "maxItems": 36,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "flags"
+      ],
+      "title": "FlagSubmission",
+      "type": "object"
+    },
+    "FlagVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "flag_ref": {
+          "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+          "type": "string"
+        },
+        "quote_relevant": {
+          "type": "boolean"
+        },
+        "claim_holds": {
+          "type": "boolean"
+        },
+        "content_based": {
+          "type": "boolean"
+        },
+        "no_outside_facts": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "flag_ref",
+        "quote_relevant",
+        "claim_holds",
+        "content_based",
+        "no_outside_facts"
+      ],
+      "title": "FlagVerdict",
+      "type": "object"
+    },
+    "FollowupVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "question_type": {
+          "enum": [
+            "open",
+            "probing",
+            "closed",
+            "leading",
+            "suggestive",
+            "compound",
+            "forced_choice",
+            "opinion"
+          ],
+          "type": "string"
+        },
+        "not_leading": {
+          "type": "boolean"
+        },
+        "well_framed": {
+          "type": "boolean"
+        },
+        "no_loaded_wording": {
+          "type": "boolean"
+        },
+        "on_objective": {
+          "type": "boolean"
+        },
+        "builds_on_previous": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "turn_id",
+        "question_type",
+        "not_leading",
+        "well_framed",
+        "no_loaded_wording",
+        "on_objective",
+        "builds_on_previous"
+      ],
+      "title": "FollowupVerdict",
+      "type": "object"
+    },
+    "LabelSubmission": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "T-LAB",
+          "type": "string"
+        },
+        "turns": {
+          "items": {
+            "$ref": "#/$defs/LabelVerdict"
+          },
+          "maxItems": 12,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "turns"
+      ],
+      "title": "LabelSubmission",
+      "type": "object"
+    },
+    "LabelVerdict": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "eva_subtype": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "evasion"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "eva_subtype": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "pfq_reason": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "poorly_framed_question"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "pfq_reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "label": {
+          "enum": [
+            "poorly_framed_question",
+            "genuine_uncertainty",
+            "responsive",
+            "legitimate_non_disclosure",
+            "evasion"
+          ],
+          "type": "string"
+        },
+        "eva_subtype": {
+          "anyOf": [
+            {
+              "enum": [
+                "omission",
+                "deflection",
+                "appeal_to_routine",
+                "minimization",
+                "feigned_non_recall",
+                "counter_question",
+                "stall",
+                "refusal_without_ground"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pfq_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "compound",
+                "ambiguous_referent",
+                "contested_presupposition",
+                "double_negative",
+                "jargon"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "no_contradiction": {
+          "type": "boolean"
+        },
+        "no_invention": {
+          "type": "boolean"
+        },
+        "uncertainty_respected": {
+          "type": "boolean"
+        },
+        "disclosure_policy_respected": {
+          "type": "boolean"
+        },
+        "in_character": {
+          "type": "boolean"
+        },
+        "platform_attack": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "turn_id",
+        "label",
+        "eva_subtype",
+        "pfq_reason",
+        "no_contradiction",
+        "no_invention",
+        "uncertainty_respected",
+        "disclosure_policy_respected",
+        "in_character",
+        "platform_attack"
+      ],
+      "title": "LabelVerdict",
+      "type": "object"
+    },
+    "RubricSubmission": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "subchecks": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "not": {
+                      "enum": [
+                        "1a",
+                        "1c",
+                        "1d",
+                        "2c",
+                        "2d"
+                      ]
+                    }
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "task": {
+          "const": "T-RUB",
+          "type": "string"
+        },
+        "followups": {
+          "items": {
+            "$ref": "#/$defs/FollowupVerdict"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "subchecks": {
+          "items": {
+            "$ref": "#/$defs/SubcheckVerdict"
+          },
+          "maxItems": 30,
+          "type": "array"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/CitationVerdict"
+          },
+          "maxItems": 22,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "followups",
+        "subchecks",
+        "citations"
+      ],
+      "title": "RubricSubmission",
+      "type": "object"
+    },
+    "SubcheckVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[1-5][a-e]$",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "na"
+          ],
+          "type": "string"
+        },
+        "turn_ids": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "result",
+        "turn_ids"
+      ],
+      "title": "SubcheckVerdict",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/RubricSubmission"
+    },
+    {
+      "$ref": "#/$defs/LabelSubmission"
+    },
+    {
+      "$ref": "#/$defs/FlagSubmission"
+    }
+  ]
+}

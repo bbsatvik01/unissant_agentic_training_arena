@@ -1,0 +1,552 @@
+[
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/me",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Identity, roles, quotas, EX-4 status, KPI-1 study status, CSRF token",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/me/ack-ex4",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Record the EX-4 acknowledgement (idempotent)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/config",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Public flags and quotas",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/cases",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Assigned development variants or the participant's test set",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/cases/{id}",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Case brief (public packet); 404 unless listed",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/sessions",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Start a session",
+    "request": "session-create.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/sessions/{id}",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Session and trial state",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/trials/{id}/snapshot",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Absolute trial state",
+    "request": null,
+    "response": "snapshot.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/trials/{id}/turns",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "One turn",
+    "request": "turn-submit.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/trials/{id}/evidence-requests",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Release between turns",
+    "request": "evidence-request.schema.json",
+    "response": "evidence-result.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/trials/{id}/finding",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Commit the investigator's finding",
+    "request": "finding-commit.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/trials/{id}/stream-tickets",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Mint an SSE ticket (catch-up until debrief)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/trials/{id}/events",
+    "auth": "ticket",
+    "csrf": false,
+    "purpose": "Trial SSE stream of deltas",
+    "request": null,
+    "response": "events.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/sessions/{id}/debrief",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Run or return the debrief",
+    "request": null,
+    "response": "debrief.v1.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/sessions/{id}/debrief",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Read the published debrief (`scoring` until then)",
+    "request": null,
+    "response": "debrief-read.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/progress",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Score series and KPI-1 status",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/tournaments",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Tournament list",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/tournaments/{id}",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Progress counts per track and block",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/tournaments/{id}/events",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Tournament poll on the global ledger cursor",
+    "request": null,
+    "response": "tournament-poll.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/trials/{id}/replay",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "A visible tournament trial's frames by its own seq",
+    "request": null,
+    "response": "replay-page.schema.json"
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/leaderboards/{tournament_id}",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Leaderboards after reveal",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/trust/{section}",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Trust-center data",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/voice/tickets",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Mint a voice ticket",
+    "request": "voice-ticket-request.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/voice/ws",
+    "auth": "ticket",
+    "csrf": false,
+    "purpose": "Voice WebSocket (ticket in the subprotocol)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/telemetry/kpi4",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Card acknowledgement (KPI-4)",
+    "request": "card-ack.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/telemetry/contract-violation",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "Client projection re-check failed (log only)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/health",
+    "auth": "none",
+    "csrf": false,
+    "purpose": "Liveness only",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-subject",
+    "method": "POST",
+    "path": "/internal/answer",
+    "auth": "caller:api_or_tournament",
+    "csrf": false,
+    "purpose": "One subject turn",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-subject",
+    "method": "GET",
+    "path": "/internal/voice/ws",
+    "auth": "caller:api",
+    "csrf": false,
+    "purpose": "Voice relay leg",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/me",
+    "auth": "session:admin_or_trainer",
+    "csrf": false,
+    "purpose": "Console bootstrap on the referee origin",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/config",
+    "auth": "session:admin_or_trainer",
+    "csrf": false,
+    "purpose": "Console flags",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/internal/sessions/{id}/debrief",
+    "auth": "caller:api",
+    "csrf": false,
+    "purpose": "R3 stages and the published debrief",
+    "request": null,
+    "response": "debrief.v1.schema.json"
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/internal/blocks/{id}/score",
+    "auth": "caller:tournament",
+    "csrf": false,
+    "purpose": "Online block scoring",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/internal/trials/{id}/score",
+    "auth": "caller:tournament",
+    "csrf": false,
+    "purpose": "R1 on a corpus transcript or R2",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/internal/tournaments/{id}/corpus-seal",
+    "auth": "caller:tournament",
+    "csrf": false,
+    "purpose": "Seal the replay corpus",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/review/items",
+    "auth": "session:trainer",
+    "csrf": false,
+    "purpose": "Assigned review items",
+    "request": null,
+    "response": "review-list.schema.json"
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/review/items/{id}",
+    "auth": "session:trainer",
+    "csrf": false,
+    "purpose": "One review task",
+    "request": null,
+    "response": "review-item.schema.json"
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/review/items/{id}",
+    "auth": "session:trainer",
+    "csrf": true,
+    "purpose": "Submit one review task",
+    "request": "review-submission.schema.json",
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/admin/tournaments",
+    "auth": "session:admin",
+    "csrf": false,
+    "purpose": "Tournaments",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/admin/tournaments/{id}",
+    "auth": "session:admin",
+    "csrf": false,
+    "purpose": "One tournament",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Create (idempotent by name)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/roster",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Add planned trials (draft only)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/freeze",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Freeze",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/open",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Hidden-text scan, then open",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/close",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Close the run",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/scoring",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Begin scoring",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/admin/reviews",
+    "auth": "session:admin",
+    "csrf": false,
+    "purpose": "Blinded validity review queue",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/reviews/{trial_id}",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Validity verdict",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/reveal",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Reveal",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/corrections",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Seal a corrected manifest",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/tournaments/{id}/publish",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Publish scores and boards",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/cases",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Ingest an authored family",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/hidden-split/seal",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Seal the hidden split",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "GET",
+    "path": "/api/admin/budget",
+    "auth": "session:admin",
+    "csrf": false,
+    "purpose": "Budget view",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-referee",
+    "method": "POST",
+    "path": "/api/admin/traces/export",
+    "auth": "session:admin",
+    "csrf": true,
+    "purpose": "Export held spans after reveal",
+    "request": null,
+    "response": null
+  }
+]

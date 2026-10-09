@@ -3,6 +3,7 @@ arena_api/arena_subject/arena_core.providers.vertex module passes. Adapted from 
 tools/tests/test_check_adk_scope.py (same AST-walker shape; ATTRIBUTIONS.md); the rule set is new.
 """
 
+import importlib.util
 import shlex
 import shutil
 from pathlib import Path
@@ -143,6 +144,9 @@ def test_make_roles_fails_on_a_seeded_subject_import_in_services_api(tmp_path: P
     (tmp_path / "tools").mkdir()
     for name in ("__init__.py", "check_roles.py", "proc.py"):
         shutil.copy(REPO_ROOT / "tools" / name, tmp_path / "tools" / name)
+    # The frame rule reads the frame models from their defining module (fails closed without it).
+    (tmp_path / lint.FRAME_SOURCE).parent.mkdir(parents=True)
+    shutil.copy(REPO_ROOT / lint.FRAME_SOURCE, tmp_path / lint.FRAME_SOURCE)
     api = tmp_path / "services" / "api" / "src" / "arena_api"
     api.mkdir(parents=True)
     (api / "clean.py").write_text("VALUE = 1\n")
@@ -154,6 +158,297 @@ def test_make_roles_fails_on_a_seeded_subject_import_in_services_api(tmp_path: P
     seeded = proc.run("make", ["-f", makefile, "roles", uv_run], cwd=tmp_path)
     assert seeded.returncode != 0, seeded.stdout + seeded.stderr
     assert "services/api/src/arena_api/leak.py:1: arena_api may never import arena_subject" in seeded.stderr
+    (api / "leak.py").unlink()
+    (api / "frames.py").write_text(
+        "from arena_core.contracts.events import NoticeFrame\n\nFRAME = NoticeFrame.model_validate({})\n"
+    )
+    framed = proc.run("make", ["-f", makefile, "roles", uv_run], cwd=tmp_path)
+    assert framed.returncode != 0, framed.stdout + framed.stderr
+    assert "services/api/src/arena_api/frames.py:1: NoticeFrame is an event frame model" in framed.stderr
+
+
+# ---------------------------------------------------------------- rule frame (S5 1.2 item 2, S5 6.5)
+FRAMES = lint.frame_models(REPO_ROOT)
+
+
+def frame_rules(path: str, source: str) -> list[str]:
+    return [f.rule for f in lint.check_source(path, source, FRAMES)]
+
+
+def test_the_frame_models_are_read_from_the_contracts() -> None:
+    assert {"QuestionAcceptedFrame", "CoachCardFrame", "NoticeFrame", "TrialFrame", "ReplayFrame"} <= FRAMES
+    assert {"TournamentFrame", "TrialStartedFrame", "TournamentCoachCardFrame"} <= FRAMES
+    assert "TrialSnapshot" not in FRAMES
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("path", [ARENA_API_FILE, ARENA_TOURNAMENT_FILE, ARENA_REFEREE_FILE, OTHER_CORE_FILE])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n",
+        "from arena_core.contracts.events import NoticeFrame as N\nf = N.model_validate({})\n",
+        "from arena_core.contracts.events import TrialFrame\nA = TypeAdapter(TrialFrame)\n",
+        "from arena_core.contracts import events\nf = events.CoachCardFrame.model_construct()\n",
+        "import arena_core.contracts.events as ev\nf = ev.TrialStartedFrame(v=1)\n",
+    ],
+)
+def test_a_frame_model_built_outside_the_projection_fails(path: str, source: str) -> None:
+    found = frame_rules(path, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    ("path", "source"),
+    [
+        # relative imports resolve against the file's own package
+        (OTHER_CORE_FILE, "from ..contracts.events import NoticeFrame as N\nf = N.model_validate({})\n"),
+        (
+            "packages/core/src/arena_core/contracts/snapshot.py",
+            "from .events import NoticeFrame\nf = NoticeFrame(v=1)\n",
+        ),
+        (
+            "packages/core/src/arena_core/events/__init__.py",
+            "from ..contracts.events import TrialFrame\nx = [TrialFrame]\n",
+        ),
+        # the contracts package is not exempt as a whole
+        (
+            "packages/core/src/arena_core/contracts/routes.py",
+            "from arena_core.contracts.events import NoticeFrame\nNoticeFrame(v=1)\n",
+        ),
+        # a call inside an annotation runs at definition time
+        (
+            ARENA_API_FILE,
+            "from arena_core.contracts.events import NoticeFrame\n\ndef f(x: NoticeFrame(v=1)) -> None: ...\n",
+        ),
+        # loading the model by name
+        (ARENA_API_FILE, "from arena_core.contracts import events\nf = getattr(events, 'NoticeFrame')\n"),
+    ],
+)
+def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
+    found = frame_rules(path, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        # a container that carries frames builds them when validated
+        "from arena_core.contracts.events import ReplayPage\npage = ReplayPage.model_validate({})\n",
+        "from arena_core.contracts.events import TournamentPoll\nA = TypeAdapter(TournamentPoll)\n",
+        # a string annotation is resolved by Pydantic: the frame inside it is built too, under any alias
+        'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "NoticeFrame | None"\n',
+        'from arena_core.contracts.events import NoticeFrame as N\n\n\nclass W(BaseModel):\n    f: "list[N]"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\n\n\nclass W(BaseModel):\n    f: \"list['N']\"\n",
+        "from arena_core.contracts.events import NoticeFrame\n"
+        "\n\nclass W(BaseModel):\n    f: \"dict[str, 'NoticeFrame']\"\n",
+        'from arena_core.contracts import events\n\n\nclass W(BaseModel):\n    f: "events.NoticeFrame"\n',
+        # Unicode aliases, plain and nested, and a name Python reaches through NFKC normalization
+        "from arena_core.contracts.events import NoticeFrame as N\u00f8tice\n\n\n"
+        'class W(BaseModel):\n    f: "N\u00f8tice"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\u00f8tice\n\n\n"
+        "class W(BaseModel):\n    f: \"list['N\u00f8tice']\"\n",
+        'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "\uff2eoticeFrame"\n',
+        # combining marks are identifier characters too, plain and nested
+        'from arena_core.contracts.events import NoticeFrame as N\u0305\n\n\nclass W(BaseModel):\n    f: "N\u0305"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\u0305\n\n\n"
+        "class W(BaseModel):\n    f: \"dict[str, 'N\u0305']\"\n",
+        # a field inside a block of the class body is still a field
+        "from arena_core.contracts.events import NoticeFrame\n\n\n"
+        "class W(BaseModel):\n    if FLAG:\n        f: NoticeFrame\n",
+        "from arena_core.contracts.events import NoticeFrame\n\n\n"
+        "class W(BaseModel):\n    try:\n        f: NoticeFrame\n    except KeyError:\n        raise\n",
+        # a class defined inside a function is a class: its fields are built too
+        "from arena_core.contracts.events import NoticeFrame\n\n\ndef make() -> None:\n    class W(BaseModel):\n"
+        "        f: NoticeFrame\n",
+        # a module-level annotation has no reason to name a frame
+        "from arena_core.contracts.events import NoticeFrame\n\nCURRENT: NoticeFrame\n",
+        # a model field annotated with a frame is built by the model's validation
+        "from arena_core.contracts.events import NoticeFrame\n\n\nclass Wrapper(BaseModel):\n    frame: NoticeFrame\n",
+    ],
+)
+def test_frame_carriers_and_frame_fields_are_value_uses(source: str) -> None:
+    found = frame_rules(ARENA_API_FILE, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.export import WIRE\n",
+        "from arena_core.contracts import export\n",
+        "import arena_core.contracts.export\n",
+        "from ..contracts.export import schema_of\n",
+    ],
+)
+def test_product_code_may_not_import_the_schema_export(source: str) -> None:
+    assert frame_rules(OTHER_CORE_FILE, source) == [lint.EXPORT_RULE]
+
+
+def test_frame_carriers_are_read_from_the_contracts() -> None:
+    assert {"ReplayPage", "TournamentEvents", "TournamentPoll"} <= FRAMES
+    assert not {"TextTrialSnapshot", "CoachCard", "Content"} & FRAMES
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from pydantic import validate_call\nfrom arena_core.contracts.events import NoticeFrame\n\n\n"
+        "@validate_call\ndef parse(frame: NoticeFrame) -> None: ...\n",
+        "from pydantic import validate_call as vc\nfrom arena_core.contracts.events import NoticeFrame as N\n\n\n"
+        "@vc\ndef parse(frame: N) -> None: ...\n",
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        '@router.post("/frames")\nasync def take(*, frame: TrialFrame) -> None: ...\n',
+        "from arena_core.contracts.events import NoticeFrame\n\n\n@decorate\ndef build() -> NoticeFrame: ...\n",
+    ],
+)
+def test_a_decorated_functions_annotations_are_value_uses(source: str) -> None:
+    found = frame_rules(ARENA_API_FILE, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+FUNCTIONAL_WRAPPING = (
+    "from pydantic import validate_call\n"
+    "from arena_core.contracts.events import NoticeFrame\n\n\n"
+    "def parse(frame: NoticeFrame) -> NoticeFrame:\n    return frame\n\n\n"
+    "parse = validate_call(parse)\n"
+)
+NOTICE = {
+    "v": 1,
+    "seq": None,
+    "scope": "trial",
+    "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+    "type": "notice",
+    "ts": "2026-10-20T15:04:05.123Z",
+    "transcript_version": 3,
+    "data": {"kind": "paused", "text": "Paused."},
+}
+
+
+@pytest.mark.gateproof
+def test_a_function_wrapped_as_a_value_builds_frames_and_is_refused(tmp_path: Path) -> None:
+    """The bypass is real (running the module builds a NoticeFrame from a raw dict) and the rule refuses it."""
+    module_file = tmp_path / "wrapped_parse.py"
+    module_file.write_text(FUNCTIONAL_WRAPPING, encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("wrapped_parse", module_file)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    built = module.parse(NOTICE)
+    assert type(built).__name__ == "NoticeFrame"
+    found = frame_rules(ARENA_API_FILE, FUNCTIONAL_WRAPPING)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "def take(frame: TrialFrame) -> None: ...\n\n\nrouter.add_api_route('/frames', take)\n",
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "class H:\n    def take(self, frame: TrialFrame) -> None: ...\n\n    def wire(self) -> None:\n"
+        "        register(self.take)\n",
+    ],
+)
+def test_a_function_registered_as_a_value_is_a_value_use(source: str) -> None:
+    assert frame_rules(ARENA_API_FILE, source)
+
+
+HANDLERS = (
+    "from arena_core.contracts.events import NoticeFrame\n\n\ndef parse(frame: NoticeFrame) -> NoticeFrame:\n"
+    "    return frame\n"
+)
+APP = "from pydantic import validate_call\nfrom handlers_mod import parse\n\nparse = validate_call(parse)\n"
+
+
+@pytest.mark.gateproof
+def test_a_frame_annotation_wrapped_in_another_module_is_refused_at_its_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One module annotates with a frame model, another wraps the function: running them builds a NoticeFrame
+    outside the projection, so the rule refuses the import that makes it possible."""
+    (tmp_path / "handlers_mod.py").write_text(HANDLERS, encoding="utf-8")
+    (tmp_path / "app_mod.py").write_text(APP, encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    spec = importlib.util.spec_from_file_location("app_mod", tmp_path / "app_mod.py")
+    assert spec is not None
+    assert spec.loader is not None
+    app = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(app)
+    assert type(app.parse(NOTICE)).__name__ == "NoticeFrame"
+    handlers = frame_rules("services/api/src/arena_api/handlers.py", HANDLERS)
+    assert handlers
+    assert all("is an event frame model" in r for r in handlers), handlers
+
+
+def test_any_reference_outside_the_projection_is_refused_even_a_plain_annotation() -> None:
+    source = (
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n"
+    )
+    lines = {f.line for f in lint.check_source(ARENA_API_FILE, source, FRAMES)}
+    assert lines == {1, 4}  # the import, and the annotation itself
+    assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import TrialFrame\n")  # importing is enough
+    assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import CoachCard\n") == []
+
+
+def test_identifiers_follow_pythons_rules() -> None:
+    found = lint._identifiers("list['N\u0305'] | 9x | _a1 | \uff2eotice")
+    assert found == ["list", "N\u0305", "x", "_a1", "Notice"]
+    assert lint._identifiers("") == []
+
+
+def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
+    assert frame_rules(ARENA_API_FILE, 'MESSAGE = "frames are built by the projection"\n') == []
+    assert frame_rules(ARENA_API_FILE, 'TEXT = "the NoticeFrames table"\n') == []
+    assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == [lint.FRAME_RULE.format(name="NoticeFrame")]
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        # source-agnostic: a frame model imported by name from wherever it is re-exported, aliased or not
+        "from arena_core.events.projections import NoticeFrame as Note\n",
+        "from some.other.module import TrialFrame\n",
+        # the projection's internals are private (its frame adapter, its serializer)
+        "from arena_core.events.projections import _FRAMES\n",
+        "from arena_core.events.projections import _message as serialize\n",
+        "from ..events.projections import _MAPPING\n",
+    ],
+)
+def test_the_tripwire_is_source_agnostic_and_guards_the_projections_privates(source: str) -> None:
+    assert frame_rules(OTHER_CORE_FILE, source)
+
+
+def test_the_send_path_types_may_be_imported() -> None:
+    send_path = "from arena_core.events.projections import StoredEvent, Viewer, wire_deltas\n"
+    assert frame_rules(ARENA_API_FILE, send_path) == []
+    assert frame_rules(ARENA_API_FILE, "from arena_core.events.sse import sse_message\n") == []
+
+
+def test_the_export_module_may_read_frame_schemas() -> None:
+    export = "from arena_core.contracts.events import TrialFrame\nWIRE = {'events': ('TrialFrame', TrialFrame)}\n"
+    assert frame_rules("packages/core/src/arena_core/contracts/export.py", export) == []
+
+
+def test_the_projection_may_name_frame_models_and_non_product_code_is_not_scanned() -> None:
+    build = "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n"
+    assert frame_rules(lint.FRAME_BUILDER, build) == []
+    assert frame_rules(lint.FRAME_SOURCE, build) == []
+    assert frame_rules("packages/core/tests/contracts/test_x.py", build) == []
+    assert frame_rules("tools/some_tool.py", build) == []
 
 
 # ---------------------------------------------------------------- dynamic imports (Codex round 1, finding 1)

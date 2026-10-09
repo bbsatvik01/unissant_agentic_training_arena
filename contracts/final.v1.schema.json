@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/final.v1.schema.json",
+  "title": "FinalFinding",
+  "$defs": {
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "enum": [
+            "deceptive",
+            "truthful",
+            "insufficient_evidence"
+          ],
+          "type": "string"
+        },
+        "likelihood": {
+          "enum": [
+            "almost_no_chance",
+            "very_unlikely",
+            "unlikely",
+            "roughly_even_chance",
+            "likely",
+            "very_likely",
+            "almost_certain"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "type": "string"
+        },
+        "basis_flag_refs": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_turns": {
+          "description": "Turn numbers whose answers the finding rests on, adverse or corroborating; t04 is 4",
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_records": {
+          "description": "doc-NN or rec-NN records the finding rests on",
+          "items": {
+            "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "corroboration_needed": {
+          "items": {
+            "maxBytes": 240,
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "rationale": {
+          "maxBytes": 1200,
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "likelihood",
+        "confidence",
+        "basis_flag_refs",
+        "cited_turns",
+        "cited_records",
+        "corroboration_needed",
+        "rationale"
+      ],
+      "title": "Finding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "final.v1"
+      ],
+      "type": "string"
+    },
+    "finding": {
+      "$ref": "#/$defs/Finding"
+    },
+    "alternative_explanations": {
+      "items": {
+        "maxBytes": 320,
+        "maxLength": 160,
+        "minLength": 3,
+        "type": "string"
+      },
+      "maxItems": 3,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "finding",
+    "alternative_explanations"
+  ],
+  "type": "object"
+}

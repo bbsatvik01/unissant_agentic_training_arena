@@ -1,0 +1,1425 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/review-item.schema.json",
+  "title": "ReviewItem",
+  "$defs": {
+    "CanonicalFact": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^f:[0-9]{2,3}$",
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 300,
+          "minLength": 10,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "statement"
+      ],
+      "title": "CanonicalFact",
+      "type": "object"
+    },
+    "CaseFile": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 120,
+          "minLength": 5,
+          "type": "string"
+        },
+        "domain": {
+          "const": "facility_access",
+          "type": "string"
+        },
+        "investigation_objective": {
+          "maxLength": 600,
+          "minLength": 20,
+          "type": "string"
+        },
+        "interview_context": {
+          "$ref": "#/$defs/InterviewContext"
+        },
+        "known_timeline": {
+          "items": {
+            "$ref": "#/$defs/TimelineEntry"
+          },
+          "maxItems": 12,
+          "minItems": 2,
+          "type": "array"
+        },
+        "initial_documents": {
+          "items": {
+            "$ref": "#/$defs/InitialDocument"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array"
+        },
+        "requestable_records": {
+          "items": {
+            "$ref": "#/$defs/RequestableRecord"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "domain",
+        "investigation_objective",
+        "interview_context",
+        "known_timeline",
+        "initial_documents",
+        "requestable_records"
+      ],
+      "title": "CaseFile",
+      "type": "object"
+    },
+    "Content": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TableContent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "title": "Content",
+      "type": "object"
+    },
+    "FlagItem": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "T-FLAG",
+          "type": "string"
+        },
+        "item_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "initial_documents": {
+          "items": {
+            "$ref": "#/$defs/InitialDocument"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "released": {
+          "items": {
+            "$ref": "#/$defs/ReviewRecord"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "transcript": {
+          "items": {
+            "$ref": "#/$defs/ReviewTurn"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/StoredFlag"
+          },
+          "maxItems": 36,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "item_id",
+        "initial_documents",
+        "released",
+        "transcript",
+        "flags"
+      ],
+      "title": "FlagItem",
+      "type": "object"
+    },
+    "Gate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^g:[0-9]{2}$",
+          "type": "string"
+        },
+        "condition": {
+          "maxLength": 300,
+          "minLength": 20,
+          "type": "string"
+        },
+        "opens": {
+          "items": {
+            "pattern": "^f:[0-9]{2,3}$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "min_evidence_level": {
+          "maximum": 4,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "precondition_records": {
+          "items": {
+            "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "condition",
+        "opens",
+        "min_evidence_level",
+        "precondition_records"
+      ],
+      "title": "Gate",
+      "type": "object"
+    },
+    "InitialDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "doc_id": {
+          "pattern": "^doc-0[1-4]$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "access_exception_report",
+            "badge_log",
+            "door_log",
+            "sensor_metadata",
+            "camera_metadata",
+            "camera_status",
+            "alarm_log",
+            "monitor_alert",
+            "dispatch_log",
+            "work_order",
+            "staffing_note",
+            "visitor_register",
+            "lockbox_log",
+            "credential_record",
+            "access_change_notice",
+            "incident_ticket",
+            "seal_audit",
+            "witness_statement",
+            "supervisor_statement",
+            "email",
+            "policy_excerpt",
+            "procedure_excerpt",
+            "facilities_notice",
+            "clarification",
+            "context_change"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 5,
+          "type": "string"
+        },
+        "content": {
+          "$ref": "#/$defs/Content"
+        }
+      },
+      "required": [
+        "doc_id",
+        "kind",
+        "title",
+        "content"
+      ],
+      "title": "InitialDocument",
+      "type": "object"
+    },
+    "InterviewContext": {
+      "additionalProperties": false,
+      "properties": {
+        "agency": {
+          "maxLength": 120,
+          "minLength": 3,
+          "type": "string"
+        },
+        "facility": {
+          "maxLength": 120,
+          "minLength": 3,
+          "type": "string"
+        },
+        "timezone": {
+          "maxLength": 40,
+          "minLength": 3,
+          "type": "string"
+        },
+        "interview_date": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "type": "string"
+        },
+        "setting": {
+          "maxLength": 300,
+          "minLength": 10,
+          "type": "string"
+        },
+        "investigator_role": {
+          "maxLength": 160,
+          "minLength": 5,
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/InterviewSubject"
+        },
+        "purpose_statement": {
+          "maxLength": 400,
+          "minLength": 20,
+          "type": "string"
+        }
+      },
+      "required": [
+        "agency",
+        "facility",
+        "timezone",
+        "interview_date",
+        "setting",
+        "investigator_role",
+        "subject",
+        "purpose_statement"
+      ],
+      "title": "InterviewContext",
+      "type": "object"
+    },
+    "InterviewSubject": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 3,
+          "type": "string"
+        },
+        "position": {
+          "maxLength": 80,
+          "minLength": 3,
+          "type": "string"
+        },
+        "unit": {
+          "maxLength": 80,
+          "minLength": 3,
+          "type": "string"
+        },
+        "tenure_years": {
+          "maximum": 45,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "position",
+        "unit",
+        "tenure_years"
+      ],
+      "title": "InterviewSubject",
+      "type": "object"
+    },
+    "LabelItem": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "T-LAB",
+          "type": "string"
+        },
+        "item_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "initial_documents": {
+          "items": {
+            "$ref": "#/$defs/InitialDocument"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "released": {
+          "items": {
+            "$ref": "#/$defs/ReviewRecord"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "transcript": {
+          "items": {
+            "$ref": "#/$defs/ReviewTurn"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/LedgerFact"
+          },
+          "maxItems": 30,
+          "type": "array"
+        },
+        "uncertainty": {
+          "items": {
+            "$ref": "#/$defs/UncertaintyEntry"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/Gate"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "permitted_behaviors": {
+          "items": {
+            "enum": [
+              "omission",
+              "deflection",
+              "minimization"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "canonical_facts": {
+          "items": {
+            "$ref": "#/$defs/CanonicalFact"
+          },
+          "maxItems": 40,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "item_id",
+        "initial_documents",
+        "released",
+        "transcript",
+        "facts",
+        "uncertainty",
+        "gates",
+        "permitted_behaviors",
+        "canonical_facts"
+      ],
+      "title": "LabelItem",
+      "type": "object"
+    },
+    "LedgerFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "gate_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "class": {
+                "const": "HOLD"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "gate_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "pattern": "^f:[0-9]{2,3}$",
+          "type": "string"
+        },
+        "class": {
+          "enum": [
+            "FREE",
+            "HOLD",
+            "CORE",
+            "PRIVATE"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 300,
+          "minLength": 5,
+          "type": "string"
+        },
+        "certainty": {
+          "enum": [
+            "certain",
+            "approximate"
+          ],
+          "type": "string"
+        },
+        "gate_id": {
+          "anyOf": [
+            {
+              "pattern": "^g:[0-9]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "class",
+        "text",
+        "certainty"
+      ],
+      "title": "LedgerFact",
+      "type": "object"
+    },
+    "RequestableRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^rec-0[1-6]$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "access_exception_report",
+            "badge_log",
+            "door_log",
+            "sensor_metadata",
+            "camera_metadata",
+            "camera_status",
+            "alarm_log",
+            "monitor_alert",
+            "dispatch_log",
+            "work_order",
+            "staffing_note",
+            "visitor_register",
+            "lockbox_log",
+            "credential_record",
+            "access_change_notice",
+            "incident_ticket",
+            "seal_audit",
+            "witness_statement",
+            "supervisor_statement",
+            "email",
+            "policy_excerpt",
+            "procedure_excerpt",
+            "facilities_notice",
+            "clarification",
+            "context_change"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 5,
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 300,
+          "minLength": 10,
+          "type": "string"
+        },
+        "requestable_after_exchanges": {
+          "maximum": 12,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "record_id",
+        "kind",
+        "title",
+        "description",
+        "requestable_after_exchanges"
+      ],
+      "title": "RequestableRecord",
+      "type": "object"
+    },
+    "ReviewRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^rec-0[1-6]$",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 5,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "record",
+            "clarification",
+            "context_change"
+          ],
+          "type": "string"
+        },
+        "doc_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "access_exception_report",
+                "badge_log",
+                "door_log",
+                "sensor_metadata",
+                "camera_metadata",
+                "camera_status",
+                "alarm_log",
+                "monitor_alert",
+                "dispatch_log",
+                "work_order",
+                "staffing_note",
+                "visitor_register",
+                "lockbox_log",
+                "credential_record",
+                "access_change_notice",
+                "incident_ticket",
+                "seal_audit",
+                "witness_statement",
+                "supervisor_statement",
+                "email",
+                "policy_excerpt",
+                "procedure_excerpt",
+                "facilities_notice",
+                "clarification",
+                "context_change"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/Content"
+        },
+        "released_after_exchanges": {
+          "maximum": 12,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "record_id",
+        "title",
+        "kind",
+        "doc_kind",
+        "content",
+        "released_after_exchanges"
+      ],
+      "title": "ReviewRecord",
+      "type": "object"
+    },
+    "ReviewTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_no": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "question": {
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "maxBytes": 1800,
+              "maxLength": 900,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "turn_no",
+        "question",
+        "answer",
+        "partial"
+      ],
+      "title": "ReviewTurn",
+      "type": "object"
+    },
+    "RubricItem": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "T-RUB",
+          "type": "string"
+        },
+        "item_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "instrument": {
+          "enum": [
+            "C-RUB",
+            "C-QQ"
+          ],
+          "type": "string"
+        },
+        "case_file": {
+          "$ref": "#/$defs/CaseFile"
+        },
+        "released": {
+          "items": {
+            "$ref": "#/$defs/ReviewRecord"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "transcript": {
+          "items": {
+            "$ref": "#/$defs/ReviewTurn"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/ScoredQuestion"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "finding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StoredFinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "triggers": {
+          "items": {
+            "$ref": "#/$defs/TriggerEntry"
+          },
+          "maxItems": 228,
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "item_id",
+        "instrument",
+        "case_file",
+        "released",
+        "transcript",
+        "questions",
+        "finding",
+        "triggers"
+      ],
+      "title": "RubricItem",
+      "type": "object"
+    },
+    "ScoredQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_no": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "question": {
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "enum": [
+                "investigator",
+                "harness_fixed",
+                "harness_fallback",
+                "assistant_relay"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "assistant_proposal",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "turn_no",
+        "question",
+        "source"
+      ],
+      "title": "ScoredQuestion",
+      "type": "object"
+    },
+    "StoredFinding": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "deceptive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "likely",
+                  "very_likely",
+                  "almost_certain"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "truthful"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "almost_no_chance",
+                  "very_unlikely",
+                  "unlikely"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "insufficient_evidence"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "corroboration_needed": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "label": {
+          "enum": [
+            "deceptive",
+            "truthful",
+            "insufficient_evidence"
+          ],
+          "type": "string"
+        },
+        "likelihood": {
+          "enum": [
+            "almost_no_chance",
+            "very_unlikely",
+            "unlikely",
+            "roughly_even_chance",
+            "likely",
+            "very_likely",
+            "almost_certain"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "type": "string"
+        },
+        "basis_flag_refs": {
+          "items": {
+            "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_turns": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "cited_records": {
+          "items": {
+            "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "corroboration_needed": {
+          "items": {
+            "maxBytes": 240,
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "rationale": {
+          "maxBytes": 1200,
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        },
+        "alternative_explanations": {
+          "anyOf": [
+            {
+              "items": {
+                "maxBytes": 320,
+                "maxLength": 160,
+                "minLength": 3,
+                "type": "string"
+              },
+              "maxItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_revised_turn": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "likelihood",
+        "confidence",
+        "basis_flag_refs",
+        "cited_turns",
+        "cited_records",
+        "corroboration_needed",
+        "rationale",
+        "alternative_explanations",
+        "last_revised_turn"
+      ],
+      "title": "StoredFinding",
+      "type": "object"
+    },
+    "StoredFlag": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "missing_fact": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "gap",
+                  "non_responsive",
+                  "possible_evasion"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "missing_fact": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_quote": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "gap",
+            "non_responsive",
+            "possible_evasion",
+            "contradiction",
+            "evidence_conflict"
+          ],
+          "type": "string"
+        },
+        "turn_id": {
+          "pattern": "^t(0[1-9]|1[0-2])$",
+          "type": "string"
+        },
+        "quote": {
+          "description": "Exact span of the subject's answer in turn_id",
+          "maxBytes": 400,
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "missing_fact": {
+          "anyOf": [
+            {
+              "maxBytes": 240,
+              "maxLength": 120,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_turn_id": {
+          "anyOf": [
+            {
+              "pattern": "^t(0[1-9]|1[0-2])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_quote": {
+          "anyOf": [
+            {
+              "maxBytes": 400,
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_record_id": {
+          "anyOf": [
+            {
+              "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conflict_record_quote": {
+          "anyOf": [
+            {
+              "maxBytes": 400,
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flag_ref": {
+          "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "turn_id",
+        "quote",
+        "missing_fact",
+        "conflict_turn_id",
+        "conflict_quote",
+        "conflict_record_id",
+        "conflict_record_quote",
+        "flag_ref"
+      ],
+      "title": "StoredFlag",
+      "type": "object"
+    },
+    "TableContent": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[^|\\r\\n]+$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "items": {
+              "maxLength": 200,
+              "pattern": "^[^|\\r\\n]*$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "title": "TableContent",
+      "type": "object"
+    },
+    "TimelineEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "time": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+          "type": "string"
+        },
+        "event": {
+          "maxLength": 240,
+          "minLength": 5,
+          "type": "string"
+        },
+        "source": {
+          "pattern": "^doc-0[1-4]$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "time",
+        "event",
+        "source"
+      ],
+      "title": "TimelineEntry",
+      "type": "object"
+    },
+    "TriggerEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "subcheck_id": {
+          "pattern": "^[1-5][a-e]$",
+          "type": "string"
+        },
+        "trigger_turns": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "trigger_record": {
+          "anyOf": [
+            {
+              "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question_turns": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 12,
+          "type": "array"
+        }
+      },
+      "required": [
+        "subcheck_id",
+        "trigger_turns",
+        "trigger_record",
+        "question_turns"
+      ],
+      "title": "TriggerEntry",
+      "type": "object"
+    },
+    "UncertaintyEntry": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "answer_form": {
+                "const": "range"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "range_text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "range_text"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "pattern": "^u:[0-9]{2}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "pattern": "^f:[0-9]{2,3}$",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 300,
+          "minLength": 10,
+          "type": "string"
+        },
+        "answer_form": {
+          "enum": [
+            "range",
+            "unsure"
+          ],
+          "type": "string"
+        },
+        "range_text": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "fact_id",
+        "text",
+        "answer_form"
+      ],
+      "title": "UncertaintyEntry",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/RubricItem"
+    },
+    {
+      "$ref": "#/$defs/LabelItem"
+    },
+    {
+      "$ref": "#/$defs/FlagItem"
+    }
+  ]
+}

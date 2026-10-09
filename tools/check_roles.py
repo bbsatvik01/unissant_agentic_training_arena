@@ -26,10 +26,20 @@ The lint reads source; it is not a sandbox. A module name assembled at run time 
 the per-process credentials and the database grants (S5 1.2 items 1 and 3, S5 10.2 item 7) remain the
 data boundary, as S5's threat model states.
 
-A fifth rule in S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
-event frame model") needs the wire frame types, which WP-02 generates (`contracts/`, C-17) and WP-13's
-projection builds (S5 6.5 makes the rule part of that acceptance); it lands with those types, since
-nothing can violate a rule about a type that does not exist yet.
+  frame. a tripwire for S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
+     event frame model"; S5 6.5). The guarantee is the send path, not this lint: the only producer of wire
+     bytes is `events.projections.wire_deltas(stored_events, viewer)`, which projects, validates and serializes
+     in one call and hands out bytes, never a frame; `events.sse` writes only those bytes. Threat model (D-016,
+     a local team-run demo): that protects against our own code accidentally sending an unprojected frame;
+     deliberate in-process circumvention through private names is a violation of this rule (private-name
+     imports from `events.projections` are banned). What the rule rejects, in product code other than the
+     projection, the module that declares the frames (`contracts/events.py`) and the schema writer
+     (`contracts/export.py`): importing any frame or carrier model by name from any module (aliased or not,
+     wherever it is re-exported) and every later use of the name it binds (annotations included), reaching
+     one as an attribute (`events.NoticeFrame`), spelling one in a string, importing a private name from
+     `events.projections`, and importing the schema writer, which hands out every wire type. The frame models
+     are read from `contracts/events.py`: every class or alias whose name ends in `Frame`, and every container
+     that carries one (`ReplayPage`, the tournament poll).
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -40,6 +50,7 @@ import argparse
 import ast
 import re
 import sys
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,6 +82,16 @@ SERVICE_PACKAGE = {
 # A file path, not a dotted module name: `check_source` compares it against the `path` argument, which
 # `scan()` always passes as a repo-relative file path (matching TechnoMile check_adk_scope.py's ADAPTER).
 VERTEX_ADAPTER = "packages/core/src/arena_core/providers/vertex.py"
+# Rule frame: where the frame models are defined, and the one module that may build them.
+FRAME_SOURCE = "packages/core/src/arena_core/contracts/events.py"
+FRAME_MODULE = "arena_core.contracts.events"
+FRAME_BUILDER = "packages/core/src/arena_core/events/projections.py"
+PROJECTION_MODULE = "arena_core.events.projections"
+FRAME_EXEMPT = frozenset({FRAME_BUILDER, FRAME_SOURCE, "packages/core/src/arena_core/contracts/export.py"})
+FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections names or builds frames (S5 1.2 item 2)"
+# The schema export maps file stems to every wire type, frames included; product code never needs it.
+EXPORT_MODULE = "arena_core.contracts.export"
+EXPORT_RULE = "arena_core.contracts.export hands out the frame types; only tools import it (S5 1.2 item 2)"
 GENAI = "google.genai"
 ADK = "google.adk"
 # Modules that load or locate other modules by name at run time (rule dyn), whole: importlib.metadata loads
@@ -243,10 +264,132 @@ def _is_or_starts_with(module: str, prefix: str) -> bool:
     return module == prefix or module.startswith(prefix + ".")
 
 
-def check_source(path: str, source: str) -> list[Finding]:
+def frame_models(root: Path) -> frozenset[str]:
+    """The frame models of FRAME_SOURCE: every module-level class or alias whose name ends in `Frame`, plus every
+    class or alias that carries one (a field, a base or a union member naming it, transitively), because
+    validating such a container builds the frames inside it (`ReplayPage.model_validate(raw)`)."""
+    tree = ast.parse((root / FRAME_SOURCE).read_text(encoding="utf-8"), filename=FRAME_SOURCE)
+    uses: dict[str, set[str]] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            parts: list[ast.AST] = [*node.bases]
+            parts += [s.annotation for s in node.body if isinstance(s, ast.AnnAssign)]
+            uses[node.name] = {n.id for part in parts for n in ast.walk(part) if isinstance(n, ast.Name)}
+        elif isinstance(node, ast.Assign):
+            named = {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)}
+            uses.update({t.id: named for t in node.targets if isinstance(t, ast.Name)})
+    frames = {name for name in uses if name.endswith("Frame")}
+    while carriers := {name for name, named in uses.items() if name not in frames and named & frames}:
+        frames |= carriers
+    return frozenset(frames)
+
+
+def _dotted_module(path: str) -> list[str]:
+    """`packages/core/src/arena_core/x/y.py` -> ['arena_core', 'x', 'y'] (a package's `__init__` -> the package)."""
+    parts = Path(path).with_suffix("").parts
+    tail = list(parts[parts.index("src") + 1 :]) if "src" in parts else []
+    return tail[:-1] if tail[-1:] == ["__init__"] else tail
+
+
+def _resolve_from(path: str, node: ast.ImportFrom) -> str | None:
+    """The absolute module a `from ... import` names, resolving relative imports against the file's package."""
+    if node.level == 0:
+        return node.module
+    own = _dotted_module(path)
+    package = own if Path(path).name == "__init__.py" else own[:-1]
+    if node.level - 1 > len(package):
+        return None
+    base = package[: len(package) - (node.level - 1)]
+    return ".".join([*base, *([node.module] if node.module else [])])
+
+
+def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[int, str]]:
+    """(line, name) for every tripwire hit of rule frame: a frame model imported by name from any module and
+    every use of the name the import binds, an attribute or a string naming one, or a private name imported from
+    the projection. Docstrings are prose."""
+    local = {
+        a.asname or a.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for a in node.names
+        if a.name in frames
+    }
+    exempt = _docstrings(tree)
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if id(node) in exempt:
+            continue
+        if _imports_export(path, node):
+            found.append((getattr(node, "lineno", 0), ""))
+        elif isinstance(node, ast.ImportFrom):
+            found.extend((node.lineno, a.name) for a in node.names if a.name in frames)
+            if _resolve_from(path, node) == PROJECTION_MODULE:
+                found.extend((node.lineno, a.name) for a in node.names if a.name.startswith("_"))
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
+            found.append((node.lineno, node.id))
+        elif isinstance(node, ast.Attribute) and node.attr in frames:
+            found.append((node.lineno, node.attr))
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            found.extend((node.lineno, name) for name in _named_in_string(node.value, frames | local))
+    return found
+
+
+def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
+    """Frame names a string carries as identifiers: the whole string (`getattr(events, "NoticeFrame")`), or any
+    identifier in it (a string annotation such as `"NoticeFrame | None"` or `"list['N']"`, which Pydantic
+    resolves, nested quotes included). Prose that names a frame model is flagged too: product code has no
+    reason to spell one outside the projection."""
+    return sorted(set(_identifiers(text)) & set(names))
+
+
+def _identifiers(text: str) -> list[str]:
+    """Every Python identifier in `text`, by Python's own rules: maximal runs of identifier-continue characters
+    (`str.isidentifier`, so combining marks and every Unicode letter count), each trimmed to start at an
+    identifier-start character, compared after NFKC as Python compares names when it resolves an annotation."""
+    runs: list[str] = []
+    current = ""
+    for ch in text:
+        if f"_{ch}".isidentifier():
+            current += ch
+        else:
+            runs.append(current)
+            current = ""
+    runs.append(current)
+    out = []
+    for run in runs:
+        token = run
+        while token and not token.isidentifier():
+            token = token[1:]
+        if token:
+            out.append(unicodedata.normalize("NFKC", token))
+    return out
+
+
+def _imports_export(path: str, node: ast.AST) -> bool:
+    if isinstance(node, ast.Import):
+        return any(_is_or_starts_with(a.name, EXPORT_MODULE) for a in node.names)
+    if isinstance(node, ast.ImportFrom):
+        module = _resolve_from(path, node) or ""
+        return _is_or_starts_with(module, EXPORT_MODULE) or any(
+            f"{module}.{a.name}" == EXPORT_MODULE for a in node.names
+        )
+    return False
+
+
+def _builds_frames(path: str, own_package: str | None) -> bool:
+    """Product code (a package's src tree), except the projection and the two exempt contracts files."""
+    return own_package is not None and "/src/" in path and path not in FRAME_EXEMPT
+
+
+def check_source(path: str, source: str, frames: frozenset[str] = frozenset()) -> list[Finding]:
     tree = ast.parse(source, filename=path)
     findings: list[Finding] = []
     own_package = _module_of(path)
+    if frames and _builds_frames(path, own_package):
+        findings.extend(
+            Finding(path, line, FRAME_RULE.format(name=name) if name else EXPORT_RULE)
+            for line, name in _frame_uses(path, tree, frames)
+        )
     forbidden = FORBIDDEN_IMPORTS.get(own_package or "", frozenset())
     if own_package is not None:
         findings.extend(Finding(path, line, DYNAMIC_RULE.format(what=what)) for line, what in _machinery(tree))
@@ -267,10 +410,11 @@ def check_source(path: str, source: str) -> list[Finding]:
 
 
 def scan(root: Path, paths: Iterable[str]) -> list[Finding]:
+    frames = frame_models(root)
     findings: list[Finding] = []
     for rel in paths:
         if rel.endswith(".py") and rel.startswith(SCANNED_ROOTS):
-            findings.extend(check_source(rel, (root / rel).read_text(encoding="utf-8")))
+            findings.extend(check_source(rel, (root / rel).read_text(encoding="utf-8"), frames))
     return findings
 
 
@@ -288,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
     if findings:
         sys.stderr.write(f"roles: {len(findings)} violation(s) of S5 1.2 item 2\n")
         return 1
-    sys.stdout.write("roles: OK (no cross-role import, no stray google.genai or google.adk)\n")
+    sys.stdout.write("roles: OK (no cross-role import, no stray google.genai or google.adk, no stray frame)\n")
     return 0
 
 

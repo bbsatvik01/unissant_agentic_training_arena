@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/subject.v1.schema.json",
+  "title": "SubjectTurn",
+  "$defs": {
+    "SubjectTag": {
+      "additionalProperties": false,
+      "properties": {
+        "disclosed": {
+          "items": {
+            "pattern": "^f:[0-9]{2,3}$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "withheld": {
+          "items": {
+            "pattern": "^f:[0-9]{2,3}$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "uncertainty_used": {
+          "items": {
+            "pattern": "^u:[0-9]{2}$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "behavior": {
+          "enum": [
+            "responsive",
+            "omission",
+            "deflection",
+            "minimization",
+            "explicit_uncertainty",
+            "legitimate_non_disclosure"
+          ],
+          "type": "string"
+        },
+        "gates_opened": {
+          "items": {
+            "pattern": "^g:[0-9]{2}$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "disclosed",
+        "withheld",
+        "uncertainty_used",
+        "behavior",
+        "gates_opened"
+      ],
+      "title": "SubjectTag",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "utterance": {
+      "maxBytes": 1800,
+      "maxLength": 900,
+      "minLength": 1,
+      "type": "string"
+    },
+    "tag": {
+      "$ref": "#/$defs/SubjectTag"
+    }
+  },
+  "required": [
+    "utterance",
+    "tag"
+  ],
+  "type": "object"
+}

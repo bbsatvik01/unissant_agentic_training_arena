@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/contracts/evidence-request.schema.json",
+  "title": "EvidenceRequest",
+  "additionalProperties": false,
+  "properties": {
+    "record_ids": {
+      "items": {
+        "pattern": "^rec-0[1-6]$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "idem_key": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_ids",
+    "idem_key"
+  ],
+  "type": "object"
+}
