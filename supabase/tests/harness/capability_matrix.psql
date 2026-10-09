@@ -1,0 +1,54 @@
+-- Regenerates supabase/tests/fixtures/capability_matrix.csv from a migrated database (S4 section 10): prints the
+-- CSV on stdout, nothing else. db_test.sh runs it on every `make db-test` and fails when the committed fixture
+-- differs, so the fixture is always the generated form of the live privilege set, never hand-typed.
+-- Run from supabase/tests:  psql -X -q -v ON_ERROR_STOP=1 -d <migrated db> -f harness/capability_matrix.psql
+--
+-- Collapse rule (the one that produces S4 section 10, v2.7): a role that can SELECT more than half of a schema's
+-- relations gets one `table+view,<schema>.*,SELECT,allow` row plus a `deny` row for each relation of that schema
+-- it cannot read; every other privilege is an explicit `allow` row.
+-- Order: explicit rows by role, object type (function, schema, table, view, column, sequence), object, privilege;
+-- then pattern rows by role and schema (arena, subject, sealed, ledger, training, ops); then deny rows by role and
+-- object.
+\ir capability.psql
+copy (
+  with sel as (
+    select a.role, r.nsp, count(*) as n_sel
+      from capability_actual a join capability_relations r on r.object = a.object and r.object_type = a.object_type
+     where a.privilege = 'SELECT'
+     group by a.role, r.nsp
+  ), tot as (
+    select nsp, count(*) as n_rel from capability_relations group by nsp
+  ), patterns as (
+    select s.role, s.nsp from sel s join tot t on t.nsp = s.nsp
+     where s.n_sel * 2 > t.n_rel
+  ), covered as (
+    select a.role, a.object_type, a.object, a.privilege
+      from capability_actual a join capability_relations r on r.object = a.object and r.object_type = a.object_type
+      join patterns p on p.role = a.role and p.nsp = r.nsp
+     where a.privilege = 'SELECT'
+  ), explicit as (
+    select role, object_type, object, privilege from capability_actual
+    except
+    select role, object_type, object, privilege from covered
+  ), denies as (
+    select p.role, r.object_type, r.object, r.nsp
+      from patterns p join capability_relations r on r.nsp = p.nsp
+     where not exists (select 1 from capability_actual a
+                        where a.role = p.role and a.object = r.object and a.object_type = r.object_type
+                          and a.privilege = 'SELECT')
+  ), ordered as (
+    select 0 as part, role, object_type, object, privilege, 'allow' as expect,
+           array_position(array['function', 'schema', 'table', 'view', 'column', 'sequence'], object_type) as k1,
+           0 as k2
+      from explicit
+    union all
+    select 1, role, 'table+view', nsp || '.*', 'SELECT', 'allow', 0,
+           array_position(array['arena', 'subject', 'sealed', 'ledger', 'training', 'ops'], nsp)
+      from patterns
+    union all
+    select 2, role, object_type, object, 'SELECT', 'deny', 0, 0
+      from denies
+  )
+  select role, object_type, object, privilege, expect from ordered
+   order by part, role collate "C", k1, k2, object collate "C", privilege collate "C"
+) to stdout with (format csv, header true);

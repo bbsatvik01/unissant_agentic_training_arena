@@ -1,0 +1,73 @@
+-- The actual privilege set of the six roles over the six arena schemas (S4 section 10; TESTS.md CM-01, CM-02).
+-- Included by 001_capability_matrix.sql (the exact-equality test) and by capability_matrix.psql (which
+-- regenerates the committed fixture), so the test and the generator read the same set. Temp views: every read
+-- re-evaluates the privilege functions, so a grant made later in the same transaction shows up (CM-13, CM-16..CM-19).
+--
+-- Rows (role, object_type, object, privilege), one fact each, never folded into a coarser one:
+--   function  schema.name(argtypes)      EXECUTE
+--   schema    name                       USAGE, CREATE
+--   table     schema.name                relation-level SELECT, INSERT, UPDATE, REFERENCES, DELETE, TRUNCATE,
+--   view                                   TRIGGER, and MAINTAIN on PostgreSQL 17+ (has_table_privilege: a
+--                                          column grant does not count as the relation privilege)
+--   column    schema.relation.column     SELECT, INSERT, UPDATE, REFERENCES held on the column without the
+--                                          relation-level privilege (a column grant), so it can neither hide a
+--                                          leak nor stand in for a full grant
+--   sequence  schema.name                USAGE, SELECT, UPDATE
+-- Each privilege is reported a second time with the suffix ` WITH GRANT OPTION` when the role holds it grantable
+-- (has_*_privilege with that suffix), so a role that could pass a privilege on to another is its own fact: a grant
+-- upgraded to WITH GRANT OPTION is an extra row CM-01 reports even though the plain privilege is allowlisted.
+-- Roles: the three runtime roles and Supabase's three API roles (which must hold nothing here, CM-03).
+-- Every text column carries the database default collation (catalog names are collation "C"), so rows compare
+-- with the fixture and with literal rows without a collation conflict.
+-- regprocedure text omits the schema of anything on the search path: pin it so the six schemas always print.
+set search_path to public, extensions;
+create or replace temp view capability_actual as
+with roles(role) as (
+  values ('arena_public'), ('arena_subject'), ('arena_referee'), ('anon'), ('authenticated'), ('service_role')
+), schemas(nsp) as (
+  values ('arena'), ('subject'), ('sealed'), ('ledger'), ('training'), ('ops')
+), grantable(suffix) as (
+  values (''), (' WITH GRANT OPTION')
+), rel_privs(privilege) as (
+  values ('SELECT'), ('INSERT'), ('UPDATE'), ('REFERENCES'), ('DELETE'), ('TRUNCATE'), ('TRIGGER')
+  union all
+  select 'MAINTAIN' where current_setting('server_version_num')::integer >= 170000
+)
+select r.role, 'function'::text as object_type, p.oid::regprocedure::text collate "default" as object,
+       'EXECUTE' || g.suffix as privilege
+  from roles r cross join pg_proc p join pg_namespace n on n.oid = p.pronamespace cross join grantable g
+ where n.nspname in (select nsp from schemas) and has_function_privilege(r.role, p.oid, 'EXECUTE' || g.suffix)
+union all
+select r.role, 'schema', s.nsp, x.privilege || g.suffix
+  from roles r cross join schemas s cross join (values ('USAGE'), ('CREATE')) x(privilege) cross join grantable g
+ where has_schema_privilege(r.role, s.nsp, x.privilege || g.suffix)
+union all
+select r.role, case when c.relkind in ('v', 'm') then 'view' else 'table' end,
+       (n.nspname || '.' || c.relname) collate "default", x.privilege || g.suffix
+  from roles r cross join pg_class c join pg_namespace n on n.oid = c.relnamespace cross join rel_privs x
+       cross join grantable g
+ where n.nspname in (select nsp from schemas) and c.relkind in ('r', 'p', 'f', 'v', 'm')
+   and has_table_privilege(r.role, c.oid, x.privilege || g.suffix)
+union all
+select r.role, 'column', (n.nspname || '.' || c.relname || '.' || a.attname) collate "default",
+       x.privilege || g.suffix
+  from roles r cross join pg_class c join pg_namespace n on n.oid = c.relnamespace
+       join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+       cross join (values ('SELECT'), ('INSERT'), ('UPDATE'), ('REFERENCES')) x(privilege) cross join grantable g
+ where n.nspname in (select nsp from schemas) and c.relkind in ('r', 'p', 'f', 'v', 'm')
+   and has_column_privilege(r.role, c.oid, a.attnum, x.privilege || g.suffix)
+   and not has_table_privilege(r.role, c.oid, x.privilege || g.suffix)
+union all
+select r.role, 'sequence', (n.nspname || '.' || c.relname) collate "default", x.privilege || g.suffix
+  from roles r cross join pg_class c join pg_namespace n on n.oid = c.relnamespace
+       cross join (values ('USAGE'), ('SELECT'), ('UPDATE')) x(privilege) cross join grantable g
+ where n.nspname in (select nsp from schemas) and c.relkind = 'S'
+   and has_sequence_privilege(r.role, c.oid, x.privilege || g.suffix);
+
+-- Relations of the six schemas, for expanding and collapsing the fixture's `table+view` pattern rows.
+create or replace temp view capability_relations as
+select n.nspname::text collate "default" as nsp, (n.nspname || '.' || c.relname) collate "default" as object,
+       case when c.relkind in ('v', 'm') then 'view' else 'table' end as object_type,
+       c.relkind in ('r', 'p', 'f') as base_table
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname in ('arena', 'subject', 'sealed', 'ledger', 'training', 'ops') and c.relkind in ('r', 'p', 'f', 'v', 'm');

@@ -5,9 +5,9 @@
 #
 # Lifted from TechnoMile `Makefile` (S5 T21; ATTRIBUTIONS.md). Thresholds below are mirrored in
 # tools/gates/ratchet.toml and may only get stricter; tools/check_ratchet.py fails on drift between the two
-# or on any loosening versus BASE_REF. Gate groups not here yet, each arriving with the tree it gates:
-# db-test (supabase/ migrations and pgTAP, WP-03/WP-04), web-check and web-audit (web/, WP-18), dev and
-# dev-check (scripts/run_local.py, WP-13). Adding one never removes or weakens a gate already here.
+# or on any loosening versus BASE_REF. db-test (supabase/ migrations and pgTAP) arrived with WP-03. Gate groups
+# not here yet, each arriving with the tree it gates: web-check and web-audit (web/, WP-18), dev and dev-check
+# (scripts/run_local.py, WP-13). Adding one never removes or weakens a gate already here.
 
 SHELL := /bin/bash
 # macOS ships GNU make 3.81, which ignores .SHELLFLAGS: every recipe line with a pipe or loop starts
@@ -44,13 +44,14 @@ OSV_SCANNER := .tools/bin/osv-scanner
 SYNC_TOOLS ?=
 
 .PHONY: help bootstrap hooks check deps-sync tools-sync py-check sec-check \
-	lint format-check typecheck no-rigging silent-except roles cost-parity ratchet deps-policy push-clean \
-	test scope-coverage diff-cover \
+	lint format-check typecheck no-rigging silent-except roles cost-parity supabase-config ratchet deps-policy \
+	push-clean test scope-coverage diff-cover db-test \
 	bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses
 
 help:
 	@echo "make bootstrap   set up a clean clone (uv envs, pinned security binaries, git hook)"
-	@echo "make check       full gate: python + security (BASE_REF=$(BASE_REF))"
+	@echo "make check       full gate: python, database, security (BASE_REF=$(BASE_REF))"
+	@echo "make db-test     migrations and pgTAP on plain PostgreSQL 17 and on Supabase Postgres 17 (Docker, psql)"
 
 bootstrap:
 	uv sync --locked
@@ -63,7 +64,7 @@ hooks:
 
 # tools-sync runs before py-check: the CodeQL, gitleaks and Makefile gate proofs in the test suite run the pinned
 # binaries themselves.
-check: deps-sync tools-sync py-check sec-check
+check: deps-sync tools-sync py-check db-test sec-check
 	@echo "make check: ALL GATES GREEN"
 
 # Installed environments must match the lockfiles exactly before any gate reads them.
@@ -77,8 +78,8 @@ tools-sync:
 	tools/ensure_tools.sh $(SYNC_TOOLS)
 
 # ------------------------------------------------------------------ python
-py-check: lint format-check typecheck no-rigging silent-except roles cost-parity ratchet deps-policy push-clean \
-	test scope-coverage diff-cover
+py-check: lint format-check typecheck no-rigging silent-except roles cost-parity supabase-config ratchet deps-policy \
+	push-clean test scope-coverage diff-cover
 
 lint:
 	$(UV_RUN) ruff check --config $(PY_CONFIG) .
@@ -99,9 +100,14 @@ silent-except:
 roles:
 	$(UV_RUN) python -m tools.check_roles
 
-# S5 3.6, 4.9 (WP-01 stub; WP-05 adds the ceiling and limits parity).
+# S5 3.6, 4.9: cost_model.py runs and its --plan-json and parity constants parse. The seed parity against a
+# migrated database (WI-S4-08) runs inside db-test (`--dsn`).
 cost-parity:
 	$(UV_RUN) python -m tools.check_cost_parity
+
+# No arena schema exposed through the Supabase Data API (S4 2.1; WI-S4-01).
+supabase-config:
+	$(UV_RUN) python -m tools.check_supabase_config
 
 ratchet:
 	$(UV_RUN) python -m tools.check_ratchet --base "$(BASE_REF)"
@@ -126,6 +132,15 @@ scope-coverage: test
 
 diff-cover: test
 	$(UV_RUN) diff-cover coverage.xml --compare-branch="$(BASE_REF)" --include-untracked --fail-under=$(DIFF_COVER_MIN)
+
+# ------------------------------------------------------------------ database
+# db-test (S5 11.1; S4 WI-S4-01, 02, 04, 08): supabase/migrations and every supabase/tests/*.sql pgTAP file on a
+# disposable plain PostgreSQL 17 container with pgTAP (throwaway database plus the shim) and on a disposable
+# Supabase Postgres 17 container (its own database, no shim); the cost-parity gate on the migrated seeds; the
+# capability fixture regenerated and compared. 127.0.0.1 only, a free high port Docker picks (never 5432),
+# containers removed on exit. Any failing, skipped or TODO test fails it.
+db-test:
+	supabase/tests/harness/db_test.sh
 
 # ------------------------------------------------------------------ security
 sec-check: tools-sync bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses

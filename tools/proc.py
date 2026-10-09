@@ -1,9 +1,10 @@
 """The one place the gate tools start a subprocess.
 
-argv[0] is always a tool name from TOOLS, resolved to an absolute path: ``git``, ``make``, ``pnpm``, ``uv``
-through shutil.which; the pinned security binaries to .tools/bin (installed by tools/ensure_tools.sh); Python tools
-to the scripts of the running (locked) environment. No shell, no caller-chosen binary. Keeping the
-call here gives Ruff S603 a single, reviewed call site.
+argv[0] is always a tool name from TOOLS, resolved to an absolute path: ``bash`` (the pgTAP runner's gateproofs
+run supabase/tests/harness/run_pgtap.sh), ``git``, ``make``, ``pnpm``, ``psql`` (the cost-parity gate reads the
+migrated database), ``uv`` through shutil.which; the pinned security binaries to .tools/bin (installed by
+tools/ensure_tools.sh); Python tools to the scripts of the running (locked) environment. No shell string, no
+caller-chosen binary. Keeping the call here gives Ruff S603 a single, reviewed call site.
 """
 
 import shutil
@@ -20,7 +21,7 @@ PINNED_BINARIES = {
     **{name: _ENV_BIN / name for name in ("bandit", "diff-cover", "mypy", "pytest")},
 }
 BATCH_HEADER_FIELDS = 3  # "<sha> <type> <size>"
-TOOLS = frozenset({"git", "make", "pnpm", "uv", *PINNED_BINARIES})
+TOOLS = frozenset({"bash", "git", "make", "pnpm", "psql", "uv", *PINNED_BINARIES})
 
 
 class ToolNotFoundError(LookupError):

@@ -2,9 +2,10 @@ name: CI
 
 # S5 11.2/11.3: CI calls the same make targets `make check` runs locally; there is no separately softened CI
 # path. This workflow runs the Python half of the gate (`make deps-sync tools-sync py-check`: the test suite's
-# gate proofs run the pinned CodeQL and gitleaks binaries); security.yml and codeql.yml run the security half.
-# db-test (a Postgres service with pgTAP, S5 11.2) arrives with the migrations in WP-03/WP-04 and web-check
-# with web/ in WP-18. No path filter: push-clean and the other repository-policy gates run on every change,
+# gate proofs run the pinned CodeQL and gitleaks binaries) and the database half (`make deps-sync db-test`: the
+# script starts its own disposable plain PostgreSQL 17 + pgTAP and Supabase Postgres 17 containers with the
+# runner's Docker, on 127.0.0.1, and uses the runner's psql, so no service container is declared here);
+# security.yml and codeql.yml run the security half. web-check arrives with web/ in WP-18. No path filter: push-clean and the other repository-policy gates run on every change,
 # including a Markdown-only one. Actions are pinned to full commit SHAs; each comment names the release tag.
 on:
   push:
@@ -56,3 +57,22 @@ jobs:
           name: coverage-report
           path: coverage.xml
           retention-days: 14
+
+  db-test:
+    name: make db-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.2"
+
+      - name: make deps-sync db-test
+        run: make deps-sync db-test

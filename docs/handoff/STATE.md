@@ -9,6 +9,10 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## WP-03 merged (2026-10-09)
+- feat/wp03-db merged (cold Codex CORRECT after 2 rounds). Migration 20261008000800_draft_fixes.sql carries 7 fixes to the v2.7 draft SQL (reservation rounding, same-key lock, purpose in identity, usage-report repeats, voice exchange retry release, voice quota recheck at open, exchange 13 AR004): fold into docs/spec/sql and S4. Test IDs CM-16..CM-21 to record in TESTS.md. Docker Desktop is hung; harness ran on OrbStack (DOCKER_CONTEXT=orbstack).
+- deps-policy fixed on main (579f327).
+
 ## Merges and ports (2026-10-09)
 - WP-01 scaffold merged into main (0237c86): self Codex CORRECT, cold Codex CORRECT after 3 rounds (D-015 allowlist cna-guardian only; conftest under mypy and bandit; two S603 suppressions accepted as verified false positives).
 - Web branch 7e1bd0a: voice machine on v2.7 exchange lines[]; confirmation cold gate running.

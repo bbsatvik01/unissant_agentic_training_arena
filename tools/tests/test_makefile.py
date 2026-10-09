@@ -3,7 +3,7 @@
 macOS ships GNU make 3.81, which ignores .SHELLFLAGS, so a pipeline's failure can be masked by its
 last command. These tests drive the real recipes (make -f <repo Makefile>) in scratch repositories.
 Lifted from TechnoMile tools/tests/test_makefile.py (ATTRIBUTIONS.md); the gate-group lists are this
-repo's (S5 11.1; web-check and db-test arrive with their trees).
+repo's (S5 11.1; db-test arrived with WP-03, web-check arrives with its tree).
 """
 
 import re
@@ -65,7 +65,8 @@ def _prerequisites(text: str, target: str) -> list[str]:
 def test_check_runs_every_gate_group_after_syncing_dependencies() -> None:
     text = MAKEFILE.read_text()
     # The pinned binaries are synced before py-check: its gate proofs run CodeQL and gitleaks themselves.
-    assert _prerequisites(text, "check") == ["deps-sync", "tools-sync", "py-check", "sec-check"]
+    assert _prerequisites(text, "check") == ["deps-sync", "tools-sync", "py-check", "db-test", "sec-check"]
+    assert re.search(r"^db-test:\n\tsupabase/tests/harness/db_test\.sh\n", text, flags=re.MULTILINE)
     required = {
         "py-check": [
             "lint",
@@ -75,6 +76,7 @@ def test_check_runs_every_gate_group_after_syncing_dependencies() -> None:
             "silent-except",
             "roles",
             "cost-parity",
+            "supabase-config",
             "ratchet",
             "deps-policy",
             "push-clean",
