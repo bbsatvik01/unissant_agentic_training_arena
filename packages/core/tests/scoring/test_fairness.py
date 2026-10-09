@@ -197,3 +197,18 @@ def test_empty_units_cannot_change_a_style_permutation_p_value() -> None:
     actual = [StyleUnit("F1", "a", 1, 1), StyleUnit("F2", "b", 0, 1)]
     empty = [StyleUnit(f"Z{i}", "c", 0, 0) for i in range(13)]
     assert style_permutation_test(actual + empty, seed=1) == style_permutation_test(actual, seed=1)
+
+
+def test_an_unequal_size_family_bound_is_labeled_a_family_level_statistic() -> None:
+    (s,) = stratified_rates([RateUnit("F1", "plain", 0, 1), RateUnit("F2", "plain", 0, 12)], seed=1, b=100)
+    assert s.bound is not None
+    assert s.bound.kind.startswith("family-level statistic")
+    (eq,) = stratified_rates([RateUnit("F1", "plain", 0, 12), RateUnit("F2", "plain", 0, 12)], seed=1, b=100)
+    assert eq.bound is not None
+    assert eq.bound.kind == "one-sided 95% zero-event bound (equal sizes)"
+
+
+def test_a_varying_stratum_gets_a_bootstrap_interval_and_no_bound() -> None:
+    (s,) = stratified_rates([RateUnit(f"F{i}", "plain", i, 12) for i in range(6)], seed=5, b=300)
+    assert s.interval is not None
+    assert (s.interval.status, s.bound) == ("ok", None)

@@ -149,10 +149,16 @@ class Question:
     releases_seen: int
     answered_turn: int | None
     verdict: FollowupVerdict | None
+    lexicon_hit: bool = False  # 1d's deterministic pre-screen (S2 4.4 lexicon) on the question text
 
 
-def investigator_questions(question_sources: Mapping[int, str], followups: Iterable[FollowupVerdict]) -> list[Question]:
-    """The investigator's own questions (`question_source = investigator`) with R3's per-question checks."""
+def investigator_questions(
+    question_sources: Mapping[int, str],
+    followups: Iterable[FollowupVerdict],
+    lexicon_hits: frozenset[int] = frozenset(),
+) -> list[Question]:
+    """The investigator's own questions (`question_source = investigator`) with R3's per-question checks;
+    `lexicon_hits`: turns whose question text the demeanor lexicon flags (1d pre-screen)."""
     by_turn = {turn_no(f.turn_id): f for f in followups}
     out = []
     for k in sorted(question_sources):
@@ -161,7 +167,7 @@ def investigator_questions(question_sources: Mapping[int, str], followups: Itera
         if k not in by_turn:
             msg = f"R3 returned no per-question checks for turn {k}"
             raise RubricError(msg)
-        out.append(Question(k, k - 1, k - 1, k, by_turn[k]))
+        out.append(Question(k, k - 1, k - 1, k, by_turn[k], k in lexicon_hits))
     return out
 
 
@@ -170,9 +176,11 @@ def assistant_questions(
     valid_card_turns: frozenset[int],
     question_sources: Mapping[int, str],
     followups: Iterable[FollowupVerdict],
+    lexicon_hits: frozenset[int] = frozenset(),
 ) -> list[Question]:
     """Every proposal of an assistant, relayed or not (S3 2.9): one per card turn. A proposal on card k was
-    answered at turn k + 1 only when that turn's recorded source is `assistant_relay` (SG2-09)."""
+    answered at turn k + 1 only when that turn's recorded source is `assistant_relay` (SG2-09); `lexicon_hits`:
+    card turns whose proposal text the demeanor lexicon flags (1d pre-screen)."""
     by_turn = {turn_no(f.turn_id): f for f in followups}
     out = []
     for k in sorted(card_turns):
@@ -181,7 +189,7 @@ def assistant_questions(
             msg = f"R2 returned no per-question checks for the proposal on card {k}"
             raise RubricError(msg)
         answered = k + 1 if question_sources.get(k + 1) == "assistant_relay" else None
-        out.append(Question(k, k, k - 1, answered, verdict))
+        out.append(Question(k, k, k - 1, answered, verdict, k in lexicon_hits))
     return out
 
 
@@ -258,6 +266,14 @@ def _all(questions: Sequence[Question], field: str) -> CheckResult:
     return CheckResult(not failing, failing)
 
 
+def _loaded(questions: Sequence[Question]) -> CheckResult:
+    """1d: the lexicon pre-screen, then R2/R3's `no_loaded_wording` (S3 2.3); either failing fails the question."""
+    failing = tuple(
+        q.turn_no for q in questions if q.lexicon_hit or q.verdict is None or not q.verdict.no_loaded_wording
+    )
+    return CheckResult(not failing, failing)
+
+
 def _share(questions: Sequence[Question], passes: list[bool], threshold: Fraction) -> CheckResult:
     failing = tuple(q.turn_no for q, ok in zip(questions, passes, strict=True) if not ok)
     return CheckResult(Fraction(sum(passes), len(passes)) >= threshold, failing)
@@ -304,7 +320,7 @@ def question_checks(
         "1a": _all(questions, "not_leading"),
         "1b": _share(questions, types, OPEN_SHARE),
         "1c": c1,
-        "1d": _all(questions, "no_loaded_wording"),
+        "1d": _loaded(questions),
         "2a": _referee("2a", sub, _answer_trigger(questions, triggers.evasion)),
         "2b": _referee("2b", sub, _answer_trigger(questions, triggers.uncertainty)),
         "2c": _all(questions, "on_objective"),

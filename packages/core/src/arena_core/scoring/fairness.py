@@ -14,7 +14,15 @@ from fractions import Fraction
 import numpy as np
 
 from arena_core.scoring.exact import B
-from arena_core.scoring.stats import Cluster, FamilyBound, Interval, cluster_bootstrap, family_level_bound, ratio
+from arena_core.scoring.stats import (
+    Cluster,
+    FamilyBound,
+    Interval,
+    cluster_bootstrap,
+    family_level_bound,
+    ratio,
+    unequal_family_statistic,
+)
 
 MIN_BOOTSTRAP_FAMILIES = 5
 FLOAT_TIE = 1e-12  # FA-5c: float ties of abs(rho) count as hits
@@ -42,11 +50,15 @@ class Stratum:
 def _stratum(
     level: str, fams: Mapping[str, tuple[int, int]], bounded: Sequence[tuple[str, bool]], seed: int, b: int
 ) -> Stratum:
-    """`bounded`: the (family, any event) pairs the family-level bound is computed over."""
+    """`bounded`: the (family, any event) pairs the family-level bound is computed over; when their families'
+    sizes differ the bound is labeled a family-level statistic, never an equal-size guarantee (S3 5.1)."""
     clusters = [Cluster(f, n, d) for f, (n, d) in fams.items()]
     num, den = sum(n for n, _ in fams.values()), sum(d for _, d in fams.values())
     interval = cluster_bootstrap(clusters, seed, b) if len(fams) >= MIN_BOOTSTRAP_FAMILIES else None
-    bound = family_level_bound(bounded) if interval is None or interval.status == "degenerate" else None
+    bound = None
+    if interval is None or interval.status == "degenerate":
+        equal = len({fams[f][1] for f, _ in bounded}) <= 1
+        bound = family_level_bound(bounded) if equal else unequal_family_statistic(bounded)
     return Stratum(level, len(fams), num, den, ratio(clusters), interval, bound)
 
 

@@ -163,7 +163,7 @@ def ratio(clusters: Sequence[Cluster]) -> Fraction | None:
 def cluster_bootstrap(clusters: Sequence[Cluster], seed: int, b: int = B) -> Interval:
     """Percentile family-cluster bootstrap of a ratio of sums. Only families with den > 0 are resampled, so no
     resample divides by zero; the pool size is published."""
-    pool = [c for c in clusters if c.den > 0]
+    pool = sorted((c for c in clusters if c.den > 0), key=lambda c: c.family_id)  # row order never matters
     if not pool:
         return Interval(None, None, "undefined", 0)
     rng = np.random.default_rng(seed)

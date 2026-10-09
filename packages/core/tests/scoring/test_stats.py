@@ -263,3 +263,9 @@ def test_paired_difference_with_every_draw_undefined_has_no_interval() -> None:
     point, iv = paired_difference(a, b, seed=seed, b=1)
     assert point == Fraction(1, 2)
     assert (iv.lo, iv.hi, iv.status) == (None, None, "undefined")
+
+
+def test_the_bootstrap_does_not_depend_on_the_order_rows_arrive_in() -> None:
+    clusters = [Cluster(f"F{i:02d}", Fraction(i % 4, 4) + i % 3, 3 + i % 2) for i in range(15)]
+    seed = seed_for("b" * 64, "M09", "A1", "I")
+    assert cluster_bootstrap(clusters, seed) == cluster_bootstrap(list(reversed(clusters)), seed)

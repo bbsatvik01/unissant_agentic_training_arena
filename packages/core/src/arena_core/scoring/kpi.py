@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from fractions import Fraction
@@ -151,7 +151,8 @@ def evidence_coverage(r3_subject_report: RefereeSubjectReport, key: tuple[str, .
 @dataclass(frozen=True)
 class LatencyRow:
     """One row of S4 `ops.v_latency_report` (C-28): `report_outcome` reads `unmeasured_timeout` for a row still
-    pending past the 120 s coaching deadline (SG2-23, SG3-30)."""
+    pending past the 120 s coaching deadline (SG2-23, SG3-30). `card_validated_server_at` is the server segment's
+    end (the harness population's end; a diagnostic elsewhere)."""
 
     trial_id: str
     turn_no: int
@@ -159,9 +160,12 @@ class LatencyRow:
     report_outcome: str  # pending, delivered, timeout, repair_failed, client_invalid, unmeasured_timeout
     subject_commit_at: datetime
     client_ack_at: datetime | None
+    card_validated_server_at: datetime | None = None
+    instance_cold: bool = False
 
 
 Latency = Fraction | float  # seconds, exact; math.inf for a miss
+TURN_BANDS = (("turns 1-4", 1, 4), ("turns 5-8", 5, 8), ("turns 9-12", 9, 12))
 
 
 @dataclass(frozen=True)
@@ -190,27 +194,40 @@ def _within(x: Latency) -> bool:
     return x <= _seconds(KPI4_LIMIT)
 
 
-def kpi4(turns: Iterable[LatencyRow], seed: int, b: int = B) -> Kpi4:
-    """Share of practice-client turns with latency <= 3.000 s; misses (timeouts, failed repairs, client-invalid
-    cards, unmeasured timeouts) count as infinitely late; a delivered card with no acknowledgement is unmeasured
-    and left out; a row pending inside its deadline is `in_flight` and left out until it resolves."""
-    pop = [t for t in turns if t.population == "practice_client"]
-    measured: list[tuple[str, Latency]] = []
+def _client_end(t: LatencyRow) -> datetime | None:
+    return t.client_ack_at
+
+
+def _server_end(t: LatencyRow) -> datetime | None:
+    return t.card_validated_server_at
+
+
+def _measure(
+    pop: Sequence[LatencyRow], end: Callable[[LatencyRow], datetime | None]
+) -> tuple[list[tuple[LatencyRow, Latency]], int, int]:
+    """(measured rows with latency, unmeasured, in flight): misses are infinitely late; a delivered card with no
+    end timestamp is unmeasured and left out; a row pending inside its deadline is in flight and left out."""
+    measured: list[tuple[LatencyRow, Latency]] = []
     unmeasured = in_flight = 0
     for t in pop:
+        stamp = end(t)
         if t.report_outcome == "pending":
             in_flight += 1
-            continue
-        if t.report_outcome in MISSES:
-            measured.append((t.trial_id, inf))
+        elif t.report_outcome in MISSES:
+            measured.append((t, inf))
             unmeasured += t.report_outcome == "unmeasured_timeout"
-        elif t.client_ack_at is None:
+        elif stamp is None:
             unmeasured += 1
         else:
-            measured.append((t.trial_id, _seconds(t.client_ack_at - t.subject_commit_at)))
+            measured.append((t, _seconds(stamp - t.subject_commit_at)))
+    return measured, unmeasured, in_flight
+
+
+def _summary(pop: Sequence[LatencyRow], end: Callable[[LatencyRow], datetime | None], seed: int, b: int) -> Kpi4:
+    measured, unmeasured, in_flight = _measure(pop, end)
     lat = sorted(x for _, x in measured)
     share = Fraction(sum(_within(x) for x in lat), len(lat)) if lat else None
-    ci_share, ci_p95 = session_bootstrap(measured, seed, b)
+    ci_share, ci_p95 = session_bootstrap([(t.trial_id, x) for t, x in measured], seed, b)
     return Kpi4(
         share_within_3s=share,
         p95_s=nearest_rank(lat, Fraction(95, 100)) if lat else None,
@@ -223,6 +240,32 @@ def kpi4(turns: Iterable[LatencyRow], seed: int, b: int = B) -> Kpi4:
         ci_share=ci_share,
         ci_p95=ci_p95,
     )
+
+
+def kpi4(turns: Iterable[LatencyRow], seed: int, b: int = B) -> Kpi4:
+    """KPI-4 (the primary population, practice-client turns): share with latency <= 3.000 s from the subject
+    commit to the client's acknowledgement; misses (timeouts, failed repairs, client-invalid cards, unmeasured
+    timeouts) count as infinitely late; a delivered card with no acknowledgement is unmeasured and left out."""
+    return _summary([t for t in turns if t.population == "practice_client"], _client_end, seed, b)
+
+
+def harness_latency(turns: Iterable[LatencyRow], seed: int, b: int = B) -> Kpi4:
+    """M16 for one candidate's bake-off harness turns (pass that candidate's rows): the server-side client, so the
+    end is `card_validated_server_at` (BKO-9); not part of KPI-4."""
+    return _summary([t for t in turns if t.population == "harness"], _server_end, seed, b)
+
+
+def kpi4_breakdowns(turns: Iterable[LatencyRow]) -> dict[str, tuple[Fraction | None, int]]:
+    """KPI-4's published breakdowns over the practice-client population: by `instance_cold` and by turn band;
+    group -> (share within 3 s, measured turns)."""
+    measured, _, _ = _measure([t for t in turns if t.population == "practice_client"], _client_end)
+    groups: dict[str, list[Latency]] = {"cold": [], "warm": [], **{name: [] for name, _, _ in TURN_BANDS}}
+    for t, x in measured:
+        groups["cold" if t.instance_cold else "warm"].append(x)
+        for name, lo, hi in TURN_BANDS:
+            if lo <= t.turn_no <= hi:
+                groups[name].append(x)
+    return {k: (Fraction(sum(_within(x) for x in v), len(v)) if v else None, len(v)) for k, v in groups.items()}
 
 
 def session_bootstrap(

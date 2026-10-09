@@ -648,3 +648,16 @@ def test_records_helper_marks_initial_documents_citable_from_the_start() -> None
 
 def test_the_rubric_hash_keeps_the_prompt_model_boundary() -> None:
     assert rubric_sha256("lex", ["p1", "p2"], ["m"]) != rubric_sha256("lex", ["p1"], ["p2", "m"])
+
+
+def test_1d_lexicon_pre_screen_fails_a_demeanor_question_the_referee_passed() -> None:
+    _, trig, sc, _ = strong()
+    sources = dict.fromkeys(range(1, 4), "investigator")
+    clean = investigator_questions(sources, [fv(t, "open") for t in (1, 2, 3)])
+    assert question_checks(clean, trig, sc)["1d"].result is True
+    hit = investigator_questions(sources, [fv(t, "open") for t in (1, 2, 3)], lexicon_hits=frozenset({2}))
+    assert question_checks(hit, trig, sc)["1d"] == rubric.CheckResult(False, (2,))
+    proposals = assistant_questions(
+        [1, 2, 3], frozenset({1, 2, 3}), {}, [fv(t, "open") for t in (1, 2, 3)], lexicon_hits=frozenset({3})
+    )
+    assert question_checks(proposals, trig, sc)["1d"] == rubric.CheckResult(False, (3,))

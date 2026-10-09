@@ -14,9 +14,11 @@ import pytest
 from arena_core.scoring.kpi import (
     LatencyRow,
     evidence_coverage,
+    harness_latency,
     key_fact_ids,
     kpi1,
     kpi4,
+    kpi4_breakdowns,
     nearest_rank,
 )
 
@@ -170,3 +172,31 @@ def test_kpi1_with_no_paired_participant_has_no_estimand() -> None:
     r = kpi1({"p1": [40]}, {}, seed=3, b=100)
     assert (r.mean_rel, r.mean_abs, r.attrition) == (None, None, ["p1"])
     assert set(r.cis.values()) == {None}
+
+
+def test_harness_latency_uses_the_server_validation_time() -> None:
+    rows = [
+        LatencyRow("h1", 1, "harness", "delivered", T0, None, T0 + timedelta(seconds=2), False),
+        LatencyRow("h1", 2, "harness", "delivered", T0, None, T0 + timedelta(seconds=4), False),
+        LatencyRow("h2", 1, "harness", "timeout", T0, None, None, False),
+        LatencyRow("s1", 1, "practice_client", "delivered", T0, T0 + timedelta(seconds=1), T0, False),
+    ]
+    r = harness_latency(rows, seed=1, b=100)
+    assert (r.share_within_3s, r.measured, r.p50_s) == (Fraction(1, 3), 3, 4)
+
+
+def test_kpi4_breakdowns_by_cold_start_and_turn_band() -> None:
+    rows = [
+        LatencyRow("s1", 1, "practice_client", "delivered", T0, T0 + timedelta(seconds=5), None, True),
+        LatencyRow("s1", 2, "practice_client", "delivered", T0, T0 + timedelta(seconds=1), None, False),
+        LatencyRow("s1", 6, "practice_client", "timeout", T0, None, None, False),
+        LatencyRow("s1", 10, "practice_client", "delivered", T0, T0 + timedelta(seconds=2), None, False),
+    ]
+    b = kpi4_breakdowns(rows)
+    assert b["cold"] == (Fraction(0), 1)
+    assert b["warm"] == (Fraction(2, 3), 3)
+    assert (b["turns 1-4"], b["turns 5-8"], b["turns 9-12"]) == (
+        (Fraction(1, 2), 2),
+        (Fraction(0), 1),
+        (Fraction(1), 1),
+    )
