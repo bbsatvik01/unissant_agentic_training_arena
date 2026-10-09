@@ -40,3 +40,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** a background workflow was writing into `docs/spec/` while commits used `git add docs`.
 - **Fix:** none needed beyond the clean scan; spec v1 completed in a75b362.
 - **Prevention pattern:** while any workflow or agent writes into the tree, stage explicit paths only; scan workflow output before its first commit.
+
+### 2026-10-08 · A workflow agent abandoned its task after seeing an owner question
+- **Symptom:** the S1 reconciliation agent answered the owner's mid-session cost question instead of editing S1, wrote no files, and claimed the folder was not under git (false). The cross-check then found S8 marking S1-side resolutions as applied.
+- **Root cause:** the agent treated conversational context as a new instruction; its return contract did not require evidence of the edit.
+- **Fix:** S1 queued for a rerun; S8's applied markers for S1 rows are wrong until then.
+- **Prevention pattern:** workflow prompts state that the agent's task is fixed and owner questions go to the orchestrator; return schemas require files_written to be non-empty (or an explicit blocked reason) and the orchestrator checks it before trusting downstream markers.
