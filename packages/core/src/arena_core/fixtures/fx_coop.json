@@ -1,7 +1,7 @@
 {
   "fixture": "FX-COOP",
   "spec": "S2 11.1, 11.2 EV-COACH-2",
-  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches a released record. The subject speaks only from its ledger and the questions (it never sees records, S2 6.7, 8.4); each sentence cites its ledger entries and one or two verbatim quotes of records released in the interview (possibly after that question) that corroborate it. Families F06, F07, F08. Each transcript passed an independent review for consistency, responsiveness and subject visibility (transcript_review.json). The transcripts are in dev_transcripts.json.",
+  "note": "Three development transcripts (F06, F07, F08) in which a truthful subject answers every question responsively, under S2 11.1: every claim is known to the subject (its ledger, or the ledger's silence for a plain I have not seen or I do not know, S2 6.3); no claim is contradicted by any record of the variant; a claim that states a fact a released record also states agrees with it in content and polarity (each sentence lists those records with verbatim quotes); perception and memory claims need ledger support only. Each Q/A pair passed an independent review bound to the text and case hashes (transcript_review.json). The transcripts are in dev_transcripts.json; tests/safety/coop_check.py holds the separate checks.",
   "transcripts": [
     "TX-F06-C",
     "TX-F07-C",

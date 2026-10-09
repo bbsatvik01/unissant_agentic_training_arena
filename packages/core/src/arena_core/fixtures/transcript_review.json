@@ -1,7 +1,7 @@
 {
   "fixture": "transcript review",
   "review": "transcript_review.v1",
-  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also every claim shown by a record released in the interview, not merely partly backed) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
+  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also the S2 11.1 rule: every claim known to the subject, no claim contradicted by any record of the variant, a claim that a released record also states agreeing with it in content and polarity, perception and memory claims backed by the ledger only) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
   "transcripts": [
     {
       "id": "TX-F01-T",
@@ -915,7 +915,7 @@
     },
     {
       "id": "TX-F06-C",
-      "reviewed_text_sha256": "76f7575ebbd5f53c04eb685423e3d1c3d21a5e82df26f1fc27c66b4c8398a095",
+      "reviewed_text_sha256": "f863be362542bcc15c59cae86cec69ee47f12a99b2f029e307ca292baa18adf8",
       "case_sha256": "af244d249fbc05f5932739801a4d5b660ecbde55966facb2649badcf9fb1aaae",
       "exchanges": [
         {
@@ -923,90 +923,90 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Dispatch, location, approval and withdrawal match private facts and doc-03, rec-05 and doc-01."
+          "note": "The dispatch, location, phone approval and withdrawal time match FREE ledger facts."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues after withdrawal with known actions corroborated by rec-01, rec-02 and doc-01."
+          "note": "Continues from the withdrawal with supported events and preserves the valve-time uncertainty."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly addresses the key history using private facts corroborated by rec-04."
+          "note": "Addresses the key history using ledger-supported work and withdrawal details that agree with rec-04."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the desk log accurately and preserves u:01's approximate call time."
+          "note": "Addresses the Operations calls accurately while preserving the approximate reporting time in u:01."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Describes known leak and repair actions corroborated by rec-01 and rec-02."
+          "note": "Describes ledger-supported damage and actions consistent with rec-02 and correctly states the work order is unseen."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses Ebdon's approval with known details corroborated by rec-05, rec-01 and doc-01."
+          "note": "Addresses Ebdon's approval consistently with rec-05 without claiming knowledge of the signing time."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The copier denial follows private x:02 and rec-03, while the room times match f:06 and doc-01."
+          "note": "Directly states the copier log is unseen and adds supported actions without claiming its contents."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Provides the requested reverse chronology using known events corroborated by the released records."
+          "note": "Recounts supported events in reverse chronological order without adding unavailable times."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the entry and protective work, matching private facts and doc-01, rec-01 and rec-02."
+          "note": "Directly explains the entry and work using FREE facts that agree with the records."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "States the known entry purpose and leak location, corroborated by rec-01, rec-02 and doc-03."
+          "note": "Directly states the ledger-supported purpose of entry and the source of the water."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies corroborating contacts without inventing eyewitnesses and respects the call-time uncertainty."
+          "note": "Identifies potential corroborators through their ledger-supported involvement without inventing eyewitnesses."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the authorized withdrawal, assigned task and return using known, corroborated facts."
+          "note": "Explains the withdrawal, prior authorization, assigned task and return consistently with the ledger and records."
         }
       ]
     },
     {
       "id": "TX-F07-C",
-      "reviewed_text_sha256": "7336a3e73babfebcb270dac87924abe2f308c0f5fa8e8a8acac38a18b8b7ed64",
+      "reviewed_text_sha256": "2d8f23fe7a477e4fe0a743413ffc930e8d614b277e94c9e22aac1c39debb1ef1",
       "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
       "exchanges": [
         {
@@ -1014,90 +1014,90 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The account matches ledger facts and doc-04, rec-05 and doc-01, preserving the approximate call time."
+          "note": "The account matches ledger facts and preserves the approximate call time."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues from the S-2 entry with ledger-supported collection and loading details corroborated by the released records."
+          "note": "Continues from the S-2 entry with ledger-supported carton contents, departure and guard interaction."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly addresses the camera record using the packet's explicit ignorance and lack of email recollection."
+          "note": "Directly addresses the camera record using the ledger's explicit knowledge and memory limits."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The leave booking, approval and blank reason match the ledger, rec-06 and doc-04."
+          "note": "The leave dates, approval and blank reason match the ledger and leave records."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The pass and kit details match rec-01 and rec-05, while never seeing the pass is explicit packet knowledge."
+          "note": "Addresses the pass through Celia's statement while accurately acknowledging never seeing it."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The delivery time and receipt of both cartons match the ledger and rec-02."
+          "note": "The arrival time and receipt of both cartons are ledger-supported and agree with rec-02."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The packet explicitly supplies ignorance of stock counts, and rec-01 and rec-02 corroborate the carton contents."
+          "note": "Accurately states ignorance of the counts and the ledger-supported fact that only the kit cartons were taken."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The call, pass and staging details address Celia's statement and match rec-05 and the ledger."
+          "note": "Addresses Celia's statement with ledger-supported details of her call, pass and staging."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Recounts the supported events in reverse order while preserving the packet's approximate times."
+          "note": "Recounts the events in reverse chronological order using known details and permitted time approximations."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The question supplies 19:52, and the remaining entry, staging and approximate exit details match the ledger and records."
+          "note": "Explains the entry using ledger facts and the 19:52 time explicitly supplied in the question."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the entry's purpose using ledger facts corroborated by rec-05 and rec-01."
+          "note": "Directly explains the collection purpose, delivery deadline and pass consistently with the ledger and records."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies relevant corroborating people through ledger events supported by rec-05, doc-03 and rec-02."
+          "note": "Identifies ledger-supported corroborating people and preserves the explicit uncertainty about other S-2 entrants."
         }
       ]
     },
     {
       "id": "TX-F08-C",
-      "reviewed_text_sha256": "bc81b792362226a9ae07c906a9d23f09bb4e5e1cc8b2e4568004835680f5e20a",
+      "reviewed_text_sha256": "593f2f14f82ac086d88d33696a42e8843df7c1fcb7068cc23f486952a712ef67",
       "case_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
       "exchanges": [
         {
@@ -1105,84 +1105,84 @@
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Shift, staffing and dispatch details match the private packet and doc-03."
+          "note": "The shift, staffing and dispatch account matches the ledger and records."
         },
         {
           "turn": 2,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Continues from dispatch with ledger-known entry and detector work corroborated by doc-01 and rec-01."
+          "note": "Continues from dispatch to entry, testing and diagnosis using ledger facts."
         },
         {
           "turn": 3,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Gives the requested reverse chronology with record-backed events and permitted approximate timing."
+          "note": "Recounts events backwards in the supported order while preserving both time uncertainties."
         },
         {
           "turn": 4,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly describes SR-3051 using private-packet facts corroborated by rec-01."
+          "note": "Addresses SR-3051 with ledger details that agree with rec-01."
         },
         {
           "turn": 5,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the alarm history through corroborated detector work and explicitly permitted ignorance of the log."
+          "note": "Addresses the alarm history using known testing facts and explicitly supported lack of access to the history."
         },
         {
           "turn": 6,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The parts request and failing detector head match the private packet, rec-04 and rec-01."
+          "note": "The replacement request and failing detector head match the ledger and rec-04."
         },
         {
           "turn": 7,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the panel log with permitted ignorance and ledger-known facts corroborated by rec-03."
+          "note": "The installation, unopened panel and unseen log are ledger-supported and agree with rec-03."
         },
         {
           "turn": 8,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses Marisol's statement using known dispatch, staffing and device details corroborated by the released records."
+          "note": "Addresses Marisol's involvement without claiming knowledge of her statement or memory."
         },
         {
           "turn": 9,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "The question supplies 21:14, and the remaining entry details are ledger-known and corroborated by doc-01 and rec-01."
+          "note": "The question supplies 21:14, and the access status and entry purpose are ledger-supported."
         },
         {
           "turn": 10,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Directly explains the entry's purpose with known ticket and testing facts corroborated by rec-01 and rec-02."
+          "note": "Directly explains the entry's purpose with supported ticket, testing and diagnosis facts."
         },
         {
           "turn": 11,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Identifies Marisol's corroborating involvement and accurately states the packet's uncertainty about other entrants."
+          "note": "Identifies Marisol's involvement and accurately states the limits of knowledge about others entering R-6."
         },
         {
           "turn": 12,
           "consistent": true,
           "responsive": true,
           "visible": true,
-          "note": "Addresses the reported motion with permitted uncertainty and the record-backed detector fault without claiming unseen log knowledge."
+          "note": "Addresses the later motion with supported uncertainty, approximate departure time and the known detector fault."
         }
       ]
     }
