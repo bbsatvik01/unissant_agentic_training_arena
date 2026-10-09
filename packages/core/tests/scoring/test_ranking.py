@@ -160,6 +160,10 @@ def test_attrition_sensitivity_follows_the_published_order_not_the_input_order()
     boards = [rank(c, PASS, qq_calibrated=True) for c in ([a, b], [b, a])]
     assert [ranks(x) for x in boards] == [{"B": 1, "A": 2}, {"B": 1, "A": 2}]
     assert [x.status for x in boards] == ["provisional", "provisional"]
+    sens = [x.sensitivity for x in boards]
+    assert sens[0] == sens[1]
+    assert sens[0] is not None
+    assert (sens[0].order, sens[0].provisional, sens[0].low_coverage) == (("B", "A"), True, ())
 
 
 def test_a_reversal_through_qq_at_equal_imputed_recall_is_provisional() -> None:
@@ -172,3 +176,5 @@ def test_a_reversal_through_qq_at_equal_imputed_recall_is_provisional() -> None:
 def test_a_shared_rank_that_attrition_could_split_is_provisional() -> None:
     board = rank([cand("A1"), cand("A2", det=40, inc_d=45, exc_d=1)], PASS, qq_calibrated=True)
     assert (ranks(board), board.status) == ({"A1": 1, "A2": 1}, "provisional")
+    assert board.sensitivity is not None
+    assert (board.sensitivity.order, board.sensitivity.provisional) == (("A1", "A2"), True)

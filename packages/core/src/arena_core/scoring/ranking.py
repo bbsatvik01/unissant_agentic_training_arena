@@ -104,11 +104,10 @@ def rank(cands: Sequence[CandidateStats], isolation: IsolationResult, qq_calibra
         if _key(c) != prev:
             r, prev = i + 1, _key(c)
         rows.append(Row(c, r, None, e))
-    sens = rank_sensitivity({c.id: (c.det, c.inc_d, c.exc_d) for c, _ in eligible})
+    sens = _sensitivity(rows)
     decided_by_qq = any(a.recall == b.recall and a.qq != b.qq for (a, _), (b, _) in pairwise(ordered))
     provisional = (
-        _attrition_reversible(rows)
-        or bool(sens.low_coverage)
+        sens.provisional
         or any(e.status == "provisional" for _, e in eligible)
         or (decided_by_qq and (not qq_calibrated or any(c.qq_coverage < QQ_COVERAGE_MIN for c, _ in eligible)))
     )
@@ -118,6 +117,15 @@ def rank(cands: Sequence[CandidateStats], isolation: IsolationResult, qq_calibra
         evidence=isolation.evidence_hash,
         sensitivity=sens,
     )
+
+
+def _sensitivity(rows: Sequence[Row]) -> RankSensitivity:
+    """F14 on the published leaderboard: the recall ranges and low coverage of `stats.rank_sensitivity` (the
+    stats_contracts.py port), keyed and ordered as published, with provisional decided on the full key."""
+    base = rank_sensitivity({r.candidate.id: (r.candidate.det, r.candidate.inc_d, r.candidate.exc_d) for r in rows})
+    order = tuple(r.candidate.id for r in rows)
+    low = tuple(i for i in order if i in base.low_coverage)
+    return RankSensitivity(order, {i: base.rows[i] for i in order}, _attrition_reversible(rows) or bool(low), low)
 
 
 def _attrition_reversible(rows: Sequence[Row]) -> bool:
