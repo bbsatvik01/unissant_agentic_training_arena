@@ -1,7 +1,8 @@
 /**
- * The pure voice core: reducer, frame whitelist, close-code taxonomy, resume policy and the voice
- * bar (S6 6.2, FE-VOICE-1..3 and 6; S5 7.3-7.5). Lifted from gokbase `voiceMachine.test.ts` and
- * re-targeted to the arena's states, frames and close codes.
+ * The pure voice core under protocol v2.5 (S6 6.2, FE-VOICE-1..3, 6..8; S5 7.3-7.5): voice is
+ * display-only and unscored; the stored `exchange` frame is the transcript; captions are unpaired;
+ * the close code is the only end signal; 4410 drains; every transport drop ends the session.
+ * Lifted from gokbase `voiceMachine.test.ts` and re-targeted.
  */
 import { describe, expect, expectTypeOf, it } from "vitest";
 
@@ -9,21 +10,19 @@ import {
   audioUtterance,
   closeCodeToEnded,
   controlFrame,
+  EXCHANGE_CAP,
   frameToEvent,
   initialVoiceState,
   inputLevel,
-  isTerminalCloseCode,
   MAX_CAPTION_CHARS,
-  RESUME_BACKOFF_MS,
-  RESUME_SUBPROTOCOL,
-  resumeDelayMs,
+  reconnectOffered,
+  reconnectState,
   talkLevel,
   voiceBarState,
   voiceReducer,
   type VoiceControl,
   type VoiceEndKey,
   type VoiceEvent,
-  type VoiceMode,
   type VoiceState,
   type VoiceStateName,
 } from "./voiceMachine";
@@ -32,9 +31,17 @@ const run = (events: VoiceEvent[], from: VoiceState = initialVoiceState("push_to
   events.reduce(voiceReducer, from);
 
 const OPEN: VoiceEvent[] = [{ type: "open_consent" }, { type: "connect" }, { type: "socket_open" }];
+const say = (role: "investigator" | "subject", text: string, partial = true): VoiceEvent => ({ type: "transcription", role, text, partial });
+/** The investigator's turn by its capture edges (live mode; push-to-talk maps talk_start and talk_end to them). */
+const turn: VoiceEvent[] = [{ type: "investigator_audio" }, { type: "investigator_silence" }];
+const closed = (code: number): VoiceEvent => ({ type: "socket_closed", code });
+const speaking = (utterance = 1): VoiceEvent[] => [
+  { type: "utterance_start", utterance },
+  { type: "playback", utterance },
+];
 
-describe("closeCodeToEnded: the S5 7.5 close-code taxonomy", () => {
-  const terminal: [number, VoiceEndKey][] = [
+describe("closeCodeToEnded: the S5 7.5 close-code table", () => {
+  const known: [number, VoiceEndKey][] = [
     [1000, "normal"],
     [4400, "protocol"],
     [4401, "unavailable"],
@@ -45,16 +52,18 @@ describe("closeCodeToEnded: the S5 7.5 close-code taxonomy", () => {
     [4410, "exchange_cap"],
     [4413, "cost_cap"],
     [4423, "paused"],
-    [4503, "resume_failed"],
   ];
-  it.each(terminal)("code %i is terminal and ends with key %s", (code, key) => {
-    expect(closeCodeToEnded(code)).toEqual({ terminal: true, key });
-    expect(isTerminalCloseCode(code)).toBe(true);
+  it.each(known)("code %i ends the session with key %s", (code, key) => {
+    expect(closeCodeToEnded(code)).toBe(key);
+    expect(reconnectOffered(run([...OPEN, closed(code)]))).toBe(false);
   });
 
-  it.each([1006, 1011, 1005, 1001, 4429, 4999, 0])("code %i is transient and drives a resume", (code) => {
-    expect(closeCodeToEnded(code)).toEqual({ terminal: false, key: "transient_exhausted" });
-    expect(isTerminalCloseCode(code)).toBe(false);
+  it.each([1006, 1011, 1005, 1001, 4429, 4503, 4999, 0])("code %i (a transport drop or unknown) ends the session and offers a reconnect", (code) => {
+    expect(closeCodeToEnded(code)).toBe("transport");
+    const ended = run([...OPEN, closed(code)]);
+    expect(ended.status).toBe("ended");
+    expect(ended.endedKey).toBe("transport");
+    expect(reconnectOffered(ended)).toBe(true);
   });
 });
 
@@ -63,1193 +72,551 @@ describe("frameToEvent: the S5 7.3 frame whitelist", () => {
     [{ type: "utterance_start", utterance: 3 }, { type: "utterance_start", utterance: 3 }],
     [{ type: "utterance_end", utterance: 3 }, { type: "utterance_end", utterance: 3 }],
     [{ type: "interrupted", utterance: 0 }, { type: "interrupted", utterance: 0 }],
+    [{ type: "transcription", role: "subject", text: "x".repeat(MAX_CAPTION_CHARS), partial: true }, say("subject", "x".repeat(MAX_CAPTION_CHARS))],
+    [{ type: "transcription", role: "investigator", text: "", partial: false }, say("investigator", "", false)],
     [
-      { type: "transcription", role: "investigator", text: "Where were you?", partial: true },
-      { type: "transcription", role: "investigator", text: "Where were you?", partial: true },
+      { type: "exchange", exchange_no: 2, question: "Where were you?", answer: "At home.", partial: false },
+      { type: "exchange", exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false },
     ],
     [
-      { type: "transcription", role: "subject", text: "At home.", partial: false },
-      { type: "transcription", role: "subject", text: "At home.", partial: false },
+      { type: "exchange", exchange_no: 12, question: null, answer: null, partial: true },
+      { type: "exchange", exchangeNo: 12, question: null, answer: null, partial: true },
     ],
     [
-      { type: "transcription", role: "subject", text: "x".repeat(MAX_CAPTION_CHARS), partial: true },
-      { type: "transcription", role: "subject", text: "x".repeat(MAX_CAPTION_CHARS), partial: true },
+      { type: "exchange", exchange_no: 1, question: "q".repeat(600), answer: "a".repeat(900), partial: false },
+      { type: "exchange", exchangeNo: 1, question: "q".repeat(600), answer: "a".repeat(900), partial: false },
     ],
-    [{ type: "turn_committed", turn_no: 4, version: 9 }, { type: "turn_committed", turnNo: 4, version: 9 }],
     [{ type: "exchange_count", used: 12, cap: 12 }, { type: "exchange_count", used: 12, cap: 12 }],
-    [{ type: "timer_tick", time_remaining: 42 }, { type: "timer_tick", timeRemaining: 42 }],
-    [{ type: "timer_tick", time_remaining: 41.7 }, { type: "timer_tick", timeRemaining: 41 }],
+    [{ type: "timer_tick", time_remaining: 42.9 }, { type: "timer_tick", timeRemaining: 42 }],
     [{ type: "timer_tick", time_remaining: -3 }, { type: "timer_tick", timeRemaining: 0 }],
-    [
-      { type: "warning", reason: "ending_soon", seconds: 60 },
-      { type: "warning", reason: "ending_soon", seconds: 60 },
-    ],
+    [{ type: "warning", reason: "ending_soon", seconds: 60 }, { type: "warning", reason: "ending_soon", seconds: 60 }],
     [{ type: "warning", reason: "ending_soon" }, { type: "warning", reason: "ending_soon", seconds: null }],
-    [
-      { type: "warning", reason: "connection_lost_resume" },
-      { type: "warning", reason: "connection_lost_resume", seconds: null },
-    ],
-    [{ type: "ended", reason: "cost_cap" }, { type: "server_ended" }],
   ];
   it.each(valid)("maps %j", (frame, event) => {
     expect(frameToEvent(frame)).toEqual(event);
   });
 
   const ignored: [string, unknown][] = [
-    ["resume (the token belongs to the session hook, never the machine)", { type: "resume", token: "abc", expires_in: 300 }],
-    ["a cost-shaped frame (no cost ever reaches the UI)", { type: "cost", cost_usd: 0.05 }],
-    ["an unknown type", { type: "tool_status", tool: "lookup" }],
-    ["a v1 playback_ack echo", { type: "playback_ack", utterance: 1 }],
     ["a non-object", "utterance_start"],
     ["null", null],
-    ["an array", [{ type: "utterance_start", utterance: 1 }]],
+    ["an array", []],
+    ["an ended frame (the close code alone ends the session, SG4-32)", { type: "ended" }],
+    ["a turn_committed frame (voice creates no turns)", { type: "turn_committed", turn_no: 1, version: 1 }],
+    ["a resume frame (there is no resumption)", { type: "resume", token: "t" }],
+    ["a connection_lost_resume warning", { type: "warning", reason: "connection_lost_resume", seconds: null }],
+    ["a connection_lost_resume warning with seconds", { type: "warning", reason: "connection_lost_resume", seconds: 5 }],
+    ["a connection_lost_resume warning with no seconds", { type: "warning", reason: "connection_lost_resume" }],
+    ["an unknown type", { type: "tool_call" }],
+    ["a cost-shaped frame", { type: "usage", cost_usd: 0.4 }],
     ["a missing type", { utterance: 1 }],
     ["a negative utterance", { type: "utterance_start", utterance: -1 }],
-    ["a fractional utterance", { type: "utterance_end", utterance: 1.5 }],
-    ["a string utterance", { type: "interrupted", utterance: "1" }],
-    ["an unknown transcription role", { type: "transcription", role: "model", text: "x", partial: false }],
-    ["a missing transcription role", { type: "transcription", text: "x", partial: false }],
-    ["a non-string transcription text", { type: "transcription", role: "subject", text: 5, partial: false }],
-    [
-      "a transcription over the S5 500-character limit",
-      { type: "transcription", role: "subject", text: "x".repeat(MAX_CAPTION_CHARS + 1), partial: false },
-    ],
-    ["a non-boolean partial", { type: "transcription", role: "subject", text: "x", partial: "no" }],
-    ["a turn_committed without a turn", { type: "turn_committed", version: 2 }],
-    ["a turn_committed with a fractional version", { type: "turn_committed", turn_no: 2, version: 2.5 }],
-    ["an exchange count over its cap", { type: "exchange_count", used: 13, cap: 12 }],
-    ["an exchange count with a cap other than S5's 12", { type: "exchange_count", used: 13, cap: 13 }],
-    ["an exchange count with a lower cap", { type: "exchange_count", used: 1, cap: 11 }],
-    ["a negative exchange count", { type: "exchange_count", used: -1, cap: 12 }],
-    ["an exchange count without a cap", { type: "exchange_count", used: 3 }],
-    ["a timer_tick without a time", { type: "timer_tick" }],
-    ["a non-finite timer_tick", { type: "timer_tick", time_remaining: Number.POSITIVE_INFINITY }],
-    ["a warning with an unknown reason", { type: "warning", reason: "cost", seconds: 5 }],
-    ["a warning without a reason", { type: "warning", seconds: 5 }],
+    ["a fractional utterance", { type: "interrupted", utterance: 1.5 }],
+    ["a transcription with no role", { type: "transcription", text: "x", partial: true }],
+    ["a transcription with no text", { type: "transcription", role: "subject", partial: true }],
+    ["a transcription with numeric text", { type: "transcription", role: "subject", text: 5, partial: true }],
+    ["a transcription with no partial", { type: "transcription", role: "subject", text: "x" }],
+    ["a warning with no reason", { type: "warning", seconds: 60 }],
+    ["a warning with an unknown reason", { type: "warning", reason: "kill", seconds: 60 }],
+    ["an interrupted with no number", { type: "interrupted" }],
+    ["a bad role", { type: "transcription", role: "judge", text: "x", partial: true }],
+    ["a non-boolean partial", { type: "transcription", role: "subject", text: "x", partial: "yes" }],
+    ["a caption over 500 code points", { type: "transcription", role: "subject", text: "x".repeat(501), partial: true }],
+    ["an exchange numbered 0", { type: "exchange", exchange_no: 0, question: "q", answer: "a", partial: false }],
+    ["an exchange numbered past the cap", { type: "exchange", exchange_no: 13, question: "q", answer: "a", partial: false }],
+    ["a fractional exchange number", { type: "exchange", exchange_no: 1.5, question: "q", answer: "a", partial: false }],
+    ["an exchange with a numeric question", { type: "exchange", exchange_no: 1, question: 7, answer: "a", partial: false }],
+    ["an exchange with a missing answer", { type: "exchange", exchange_no: 1, question: "q", partial: false }],
+    ["an exchange with a non-boolean partial", { type: "exchange", exchange_no: 1, question: "q", answer: "a", partial: 1 }],
+    ["an exchange question over 600 code points", { type: "exchange", exchange_no: 1, question: "q".repeat(601), answer: "a", partial: false }],
+    ["an exchange answer over 900 code points", { type: "exchange", exchange_no: 1, question: "q", answer: "a".repeat(901), partial: false }],
+    ["an exchange_count with another cap", { type: "exchange_count", used: 3, cap: 10 }],
+    ["an exchange_count used past the cap", { type: "exchange_count", used: 13, cap: 12 }],
+    ["an exchange_count with a negative used", { type: "exchange_count", used: -1, cap: 12 }],
+    ["an exchange_count with a fractional used", { type: "exchange_count", used: 1.5, cap: 12 }],
+    ["an exchange_count with a string used", { type: "exchange_count", used: "3", cap: 12 }],
+    ["an exchange_count with no cap", { type: "exchange_count", used: 3 }],
+    ["an exchange_count with no used", { type: "exchange_count", cap: 12 }],
+    ["a timer_tick with no time", { type: "timer_tick" }],
+    ["a timer_tick with a string time", { type: "timer_tick", time_remaining: "9" }],
     ["a warning with negative seconds", { type: "warning", reason: "ending_soon", seconds: -1 }],
+    ["a warning with string seconds", { type: "warning", reason: "ending_soon", seconds: "60" }],
+    ["an exchange with a negative number", { type: "exchange", exchange_no: -1, question: "q", answer: "a", partial: false }],
+    ["an utterance_start with a string number", { type: "utterance_start", utterance: "1" }],
+    ["an utterance_end with no number", { type: "utterance_end" }],
+    ["a non-finite timer", { type: "timer_tick", time_remaining: Number.POSITIVE_INFINITY }],
+    ["a fractional warning seconds", { type: "warning", reason: "ending_soon", seconds: 1.5 }],
   ];
   it.each(ignored)("ignores %s", (_label, frame) => {
     expect(frameToEvent(frame)).toBeNull();
   });
+
+  it("counts code points, not UTF-16 units", () => {
+    const text = "\u{1F600}".repeat(MAX_CAPTION_CHARS);
+    expect(frameToEvent({ type: "transcription", role: "subject", text, partial: true })).not.toBeNull();
+  });
+
+  it("the machine has no event for an ended or turn frame", () => {
+    expectTypeOf<Extract<VoiceEvent["type"], "server_ended" | "turn_committed">>().toEqualTypeOf<never>();
+  });
 });
-
-/** One reachable representative of every machine state (push-to-talk, so `recording` exists). */
-function representatives(): Record<VoiceStateName, VoiceState> {
-  const idle = initialVoiceState("push_to_talk");
-  const consent = run([{ type: "open_consent" }], idle);
-  const connecting = run([{ type: "connect" }], consent);
-  const listening = run([{ type: "socket_open" }], connecting);
-  return {
-    idle,
-    consent,
-    connecting,
-    listening,
-    recording: run([{ type: "talk_start" }], listening),
-    thinking: run([{ type: "transcription", role: "investigator", text: "Why?", partial: false }], listening),
-    speaking: run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }], listening),
-    reconnecting: run([{ type: "socket_closed", code: 1006, resumable: true }], listening),
-    ended: run([{ type: "socket_closed", code: 1000, resumable: true }], listening),
-  };
-}
-
-/** One representative of every event, aimed at the state's own utterance where that matters. */
-const EVENTS = {
-  open_consent: () => ({ type: "open_consent" }),
-  consent_declined: () => ({ type: "consent_declined" }),
-  connect: () => ({ type: "connect" }),
-  socket_open: () => ({ type: "socket_open" }),
-  closed_terminal: () => ({ type: "socket_closed", code: 4410, resumable: true }),
-  closed_resumable: () => ({ type: "socket_closed", code: 1006, resumable: true }),
-  closed_no_token: () => ({ type: "socket_closed", code: 1006, resumable: false }),
-  ended: () => ({ type: "ended", key: "normal" }),
-  talk_start: () => ({ type: "talk_start" }),
-  talk_end: () => ({ type: "talk_end" }),
-  playback_on: (s) => ({ type: "playback", utterance: s.openUtterance ?? s.lastUtterance ?? 1 }),
-  playback_off: () => ({ type: "playback", utterance: null }),
-  utterance_start: (s) => ({ type: "utterance_start", utterance: (s.lastUtterance ?? 0) + 1 }),
-  utterance_end: (s) => ({ type: "utterance_end", utterance: s.openUtterance ?? 1 }),
-  interrupted: (s) => ({ type: "interrupted", utterance: s.lastUtterance ?? 1 }),
-  investigator_partial: () => ({ type: "transcription", role: "investigator", text: "And ", partial: true }),
-  investigator_final: () => ({ type: "transcription", role: "investigator", text: "then?", partial: false }),
-  subject_caption: () => ({ type: "transcription", role: "subject", text: "I left.", partial: true }),
-  turn_committed: () => ({ type: "turn_committed", turnNo: 1, version: 2 }),
-  exchange_count: () => ({ type: "exchange_count", used: 1, cap: 12 }),
-  timer_tick: () => ({ type: "timer_tick", timeRemaining: 300 }),
-  warning_ending: () => ({ type: "warning", reason: "ending_soon", seconds: 60 }),
-  warning_resume: () => ({ type: "warning", reason: "connection_lost_resume", seconds: null }),
-  server_ended: () => ({ type: "server_ended" }),
-} satisfies Record<string, (s: VoiceState) => VoiceEvent>;
-
-type EventName = keyof typeof EVENTS;
-
-/** Expected status after each (state, event) pair: FE-VOICE-1 covers every cell. */
-const EXPECTED: Record<VoiceStateName, Record<EventName, VoiceStateName>> = {
-  idle: {
-    open_consent: "consent", consent_declined: "idle", connect: "idle", socket_open: "idle",
-    closed_terminal: "idle", closed_resumable: "idle", closed_no_token: "idle", ended: "ended",
-    talk_start: "idle", talk_end: "idle", playback_on: "idle", playback_off: "idle",
-    utterance_start: "idle", utterance_end: "idle", interrupted: "idle", investigator_partial: "idle",
-    investigator_final: "idle", subject_caption: "idle", turn_committed: "idle", exchange_count: "idle",
-    timer_tick: "idle", warning_ending: "idle", warning_resume: "idle", server_ended: "idle",
-  },
-  consent: {
-    open_consent: "consent", consent_declined: "idle", connect: "connecting", socket_open: "consent",
-    closed_terminal: "consent", closed_resumable: "consent", closed_no_token: "consent", ended: "ended",
-    talk_start: "consent", talk_end: "consent", playback_on: "consent", playback_off: "consent",
-    utterance_start: "consent", utterance_end: "consent", interrupted: "consent", investigator_partial: "consent",
-    investigator_final: "consent", subject_caption: "consent", turn_committed: "consent", exchange_count: "consent",
-    timer_tick: "consent", warning_ending: "consent", warning_resume: "consent", server_ended: "consent",
-  },
-  connecting: {
-    open_consent: "connecting", consent_declined: "connecting", connect: "connecting", socket_open: "listening",
-    closed_terminal: "ended", closed_resumable: "reconnecting", closed_no_token: "ended", ended: "ended",
-    talk_start: "connecting", talk_end: "connecting", playback_on: "connecting", playback_off: "connecting",
-    utterance_start: "connecting", utterance_end: "connecting", interrupted: "connecting",
-    investigator_partial: "connecting", investigator_final: "connecting", subject_caption: "connecting",
-    turn_committed: "connecting", exchange_count: "connecting", timer_tick: "connecting",
-    warning_ending: "connecting", warning_resume: "connecting", server_ended: "connecting",
-  },
-  listening: {
-    open_consent: "listening", consent_declined: "listening", connect: "listening", socket_open: "listening",
-    closed_terminal: "ended", closed_resumable: "reconnecting", closed_no_token: "ended", ended: "ended",
-    talk_start: "recording", talk_end: "listening", playback_on: "speaking", playback_off: "listening",
-    utterance_start: "thinking", utterance_end: "listening", interrupted: "listening",
-    investigator_partial: "listening", investigator_final: "thinking", subject_caption: "listening",
-    turn_committed: "listening", exchange_count: "listening", timer_tick: "listening",
-    warning_ending: "listening", warning_resume: "reconnecting", server_ended: "listening",
-  },
-  recording: {
-    open_consent: "recording", consent_declined: "recording", connect: "recording", socket_open: "recording",
-    closed_terminal: "ended", closed_resumable: "reconnecting", closed_no_token: "ended", ended: "ended",
-    talk_start: "recording", talk_end: "listening", playback_on: "speaking", playback_off: "recording",
-    utterance_start: "recording", utterance_end: "recording", interrupted: "recording",
-    investigator_partial: "recording", investigator_final: "recording", subject_caption: "recording",
-    turn_committed: "recording", exchange_count: "recording", timer_tick: "recording",
-    warning_ending: "recording", warning_resume: "reconnecting", server_ended: "recording",
-  },
-  thinking: {
-    open_consent: "thinking", consent_declined: "thinking", connect: "thinking", socket_open: "thinking",
-    closed_terminal: "ended", closed_resumable: "reconnecting", closed_no_token: "ended", ended: "ended",
-    talk_start: "recording", talk_end: "thinking", playback_on: "speaking", playback_off: "thinking",
-    utterance_start: "thinking", utterance_end: "thinking", interrupted: "thinking",
-    investigator_partial: "thinking", investigator_final: "thinking", subject_caption: "thinking",
-    // A count reporting a commit whose answer this client never saw start (missed while the
-    // socket was down): the pending question was answered (S5 7.4 pairs each commit with one).
-    turn_committed: "thinking", exchange_count: "listening", timer_tick: "thinking",
-    warning_ending: "thinking", warning_resume: "reconnecting", server_ended: "thinking",
-  },
-  speaking: {
-    open_consent: "speaking", consent_declined: "speaking", connect: "speaking", socket_open: "speaking",
-    closed_terminal: "ended", closed_resumable: "reconnecting", closed_no_token: "ended", ended: "ended",
-    talk_start: "speaking", talk_end: "speaking", playback_on: "speaking", playback_off: "thinking",
-    utterance_start: "speaking", utterance_end: "speaking", interrupted: "listening",
-    investigator_partial: "speaking", investigator_final: "speaking", subject_caption: "speaking",
-    turn_committed: "speaking", exchange_count: "speaking", timer_tick: "speaking",
-    warning_ending: "speaking", warning_resume: "reconnecting", server_ended: "speaking",
-  },
-  reconnecting: {
-    open_consent: "reconnecting", consent_declined: "reconnecting", connect: "reconnecting",
-    socket_open: "listening", closed_terminal: "ended", closed_resumable: "reconnecting",
-    closed_no_token: "ended", ended: "ended", talk_start: "reconnecting", talk_end: "reconnecting",
-    playback_on: "reconnecting", playback_off: "reconnecting", utterance_start: "reconnecting",
-    utterance_end: "reconnecting", interrupted: "reconnecting", investigator_partial: "reconnecting",
-    investigator_final: "reconnecting", subject_caption: "reconnecting", turn_committed: "reconnecting",
-    exchange_count: "reconnecting", timer_tick: "reconnecting", warning_ending: "reconnecting",
-    warning_resume: "reconnecting", server_ended: "reconnecting",
-  },
-  ended: {
-    open_consent: "ended", consent_declined: "ended", connect: "ended", socket_open: "ended",
-    closed_terminal: "ended", closed_resumable: "ended", closed_no_token: "ended", ended: "ended",
-    talk_start: "ended", talk_end: "ended", playback_on: "ended", playback_off: "ended",
-    utterance_start: "ended", utterance_end: "ended", interrupted: "ended", investigator_partial: "ended",
-    investigator_final: "ended", subject_caption: "ended", turn_committed: "ended", exchange_count: "ended",
-    timer_tick: "ended", warning_ending: "ended", warning_resume: "ended", server_ended: "ended",
-  },
-};
 
 describe("voiceReducer: FE-VOICE-1, every (state, event) pair", () => {
-  const states = representatives();
+  const states: [VoiceStateName, VoiceState][] = [
+    ["idle", initialVoiceState("push_to_talk")],
+    ["consent", run([{ type: "open_consent" }])],
+    ["connecting", run([{ type: "open_consent" }, { type: "connect" }])],
+    ["listening", run(OPEN)],
+    ["recording", run([...OPEN, { type: "talk_start" }])],
+    ["thinking", run([...OPEN, ...turn])],
+    ["speaking", run([...OPEN, ...speaking()])],
+    ["draining", run([...OPEN, ...speaking(), closed(4410)])],
+    ["ended", run([...OPEN, closed(1000)])],
+  ];
+  // Expected status after each event, per starting state, in the order of `states`:
+  // idle, consent, connecting, listening, recording, thinking, speaking, draining, ended.
+  const expected: [string, VoiceEvent, VoiceStateName[]][] = [
+    ["open_consent", { type: "open_consent" }, ["consent", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["consent_declined", { type: "consent_declined" }, ["idle", "idle", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["connect", { type: "connect" }, ["idle", "connecting", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["socket_open", { type: "socket_open" }, ["idle", "consent", "listening", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["socket_closed 1006", closed(1006), ["idle", "consent", "ended", "ended", "ended", "ended", "ended", "ended", "ended"]],
+    ["ended (hang-up)", { type: "ended", key: "error" }, ["ended", "ended", "ended", "ended", "ended", "ended", "ended", "ended", "ended"]],
+    ["investigator_audio", { type: "investigator_audio" }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["investigator_silence", { type: "investigator_silence" }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["talk_start", { type: "talk_start" }, ["idle", "consent", "connecting", "recording", "recording", "recording", "speaking", "draining", "ended"]],
+    ["talk_end", { type: "talk_end" }, ["idle", "consent", "connecting", "listening", "thinking", "thinking", "speaking", "draining", "ended"]],
+    ["playback drained", { type: "playback", utterance: null }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "thinking", "ended", "ended"]],
+    ["playback 9", { type: "playback", utterance: 9 }, ["idle", "consent", "connecting", "speaking", "speaking", "speaking", "speaking", "draining", "ended"]],
+    ["utterance_start 9", { type: "utterance_start", utterance: 9 }, ["idle", "consent", "connecting", "thinking", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["utterance_end 1", { type: "utterance_end", utterance: 1 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["interrupted 1", { type: "interrupted", utterance: 1 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "listening", "draining", "ended"]],
+    ["transcription", say("subject", "hi"), ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["exchange", { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["exchange_count", { type: "exchange_count", used: 1, cap: 12 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["timer_tick", { type: "timer_tick", timeRemaining: 5 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["warning", { type: "warning", reason: "ending_soon", seconds: 60 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+  ];
+  const events = expected.map(([, event]) => event);
 
-  it("reaches every state it is tabled for", () => {
-    for (const [name, state] of Object.entries(states)) expect(state.status).toBe(name);
+  it("labels each fixture state correctly", () => {
+    for (const [name, state] of states) expect(state.status).toBe(name);
   });
 
-  const cells = (Object.keys(EXPECTED) as VoiceStateName[]).flatMap((s) =>
-    (Object.keys(EVENTS) as EventName[]).map((e): [VoiceStateName, EventName, VoiceStateName] => [s, e, EXPECTED[s][e]]),
-  );
-  it.each(cells)("%s + %s -> %s", (from, event, to) => {
-    const state = states[from];
-    expect(voiceReducer(state, EVENTS[event](state)).status).toBe(to);
-  });
-
-  it("ended absorbs every later event and returns the same state object", () => {
-    const ended = states.ended;
-    for (const make of Object.values(EVENTS)) expect(voiceReducer(ended, make(ended))).toBe(ended);
-  });
-
-  it("never mutates its input", () => {
-    for (const state of Object.values(states)) {
-      const frozen = Object.freeze({ ...state });
-      for (const make of Object.values(EVENTS)) {
-        expect(() => voiceReducer(frozen, make(frozen))).not.toThrow();
-      }
-    }
-  });
-});
-
-describe("voiceReducer: lifecycle details", () => {
-  it("enforces the consent gate: connect from idle does nothing", () => {
-    const s = run([{ type: "connect" }]);
-    expect(s).toEqual(initialVoiceState("push_to_talk"));
-  });
-
-  it("starts in the mode it is created with; live mode has no recording state", () => {
-    const modes: VoiceMode[] = ["live", "push_to_talk"];
-    for (const mode of modes) expect(initialVoiceState(mode)).toMatchObject({ mode, status: "idle" });
-    expect(run([...OPEN, { type: "talk_start" }], initialVoiceState("live")).status).toBe("listening");
-  });
-
-  it("records the terminal close cause and clears live activity, keeping the session's counts", () => {
-    const s = run([
-      ...OPEN,
-      { type: "exchange_count", used: 12, cap: 12 },
-      { type: "turn_committed", turnNo: 12, version: 30 },
-      { type: "utterance_start", utterance: 7 },
-      { type: "playback", utterance: 7 },
-      { type: "transcription", role: "subject", text: "Done.", partial: true },
-      { type: "transcription", role: "investigator", text: "One more?", partial: false },
-      { type: "transcription", role: "investigator", text: "And ", partial: true },
-      { type: "warning", reason: "ending_soon", seconds: 60 },
-      { type: "talk_start" },
-      { type: "socket_closed", code: 4410, resumable: true },
-    ]);
-    expect(s).toMatchObject({
-      status: "ended",
-      connection: "ended",
-      endedKey: "exchange_cap",
-      openUtterance: null,
-      questionOpen: false,
-      questionLive: false,
-      awaitingAnswer: false,
-      investigatorSpeaking: false,
-      audible: null,
-      caption: null,
-      talkHeld: false,
-      endingSoon: false,
-      exchanges: { used: 12, cap: 12 },
-      committedTurn: { turnNo: 12, version: 30 },
+  for (const [label, event, results] of expected) {
+    states.forEach(([name, state], index) => {
+      it(`${name} + ${label} gives ${results[index] ?? "?"} and never mutates its input`, () => {
+        const frozen = structuredClone(state);
+        const next = voiceReducer(state, event);
+        expect(state).toEqual(frozen);
+        expect(next.status).toBe(results[index]);
+        if (name === "ended") expect(next).toBe(state);
+      });
     });
+  }
+
+  it("ended absorbs every later event, including a late frame and a second close", () => {
+    const ended = states[8]?.[1] as VoiceState;
+    for (const event of events) expect(voiceReducer(ended, event)).toBe(ended);
+    expect(events).toHaveLength(20);
   });
 
-  it("ends with the client's own key on a client-side end", () => {
-    expect(run([...OPEN, { type: "ended", key: "error" }]).endedKey).toBe("error");
-  });
-
-  it("resumes at most three times per session with 500, 1000 and 2000 ms, then gives up", () => {
-    const drop: VoiceEvent = { type: "socket_closed", code: 1006, resumable: true };
-    let s = run(OPEN);
-    const delays: (number | null)[] = [];
-    for (let i = 0; i < 3; i += 1) {
-      s = voiceReducer(s, drop);
-      expect(s.status).toBe("reconnecting");
-      delays.push(resumeDelayMs(s));
-      // Reopening does not refill the budget: S5 7.2 caps resumes per session.
-      s = voiceReducer(s, { type: "socket_open" });
-      expect(resumeDelayMs(s)).toBeNull();
+  it("server frames change nothing before the socket is open", () => {
+    const connecting = states[2]?.[1] as VoiceState;
+    for (const event of [{ type: "utterance_start", utterance: 1 }, say("subject", "x"), { type: "exchange_count", used: 1, cap: 12 }] as VoiceEvent[]) {
+      expect(voiceReducer(connecting, event)).toBe(connecting);
     }
-    expect(delays).toEqual([...RESUME_BACKOFF_MS]);
-    expect(RESUME_BACKOFF_MS).toEqual([500, 1000, 2000]);
-    s = voiceReducer(s, drop);
-    expect(s).toMatchObject({ status: "ended", endedKey: "transient_exhausted", resumeAttempts: 3 });
   });
 
-  it("names the resume subprotocol the relay expects", () => {
-    expect(RESUME_SUBPROTOCOL).toBe("voice-resume");
+  it("walks idle to consent to connecting to listening, and consent can be declined", () => {
+    expect(run([{ type: "open_consent" }]).status).toBe("consent");
+    expect(run([{ type: "open_consent" }, { type: "consent_declined" }]).status).toBe("idle");
+    expect(run([{ type: "connect" }]).status).toBe("idle");
+    expect(run([{ type: "socket_open" }]).status).toBe("idle");
+    expect(run([{ type: "open_consent" }, { type: "connect" }]).status).toBe("connecting");
+    expect(run(OPEN).status).toBe("listening");
+    expect(run([...OPEN, { type: "open_consent" }]).status).toBe("listening");
   });
 
-  it("gives up when a resume attempt itself is refused (4503)", () => {
-    const s = run([
-      ...OPEN,
-      { type: "socket_closed", code: 1011, resumable: true },
-      { type: "socket_closed", code: 4503, resumable: true },
-    ]);
-    expect(s).toMatchObject({ status: "ended", endedKey: "resume_failed" });
+  it("a close or hang-up before any microphone use leaves idle and consent alone; elsewhere it ends the session", () => {
+    expect(run([closed(1006)]).status).toBe("idle");
+    expect(run([{ type: "open_consent" }, closed(1006)]).status).toBe("consent");
+    expect(run([{ type: "open_consent" }, { type: "connect" }, closed(1006)]).endedKey).toBe("transport");
+    expect(run([...OPEN, { type: "ended", key: "normal" }]).endedKey).toBe("normal");
   });
 
-  it("treats any close after the server's ended frame as final, never as a resume", () => {
-    const s = run([...OPEN, { type: "server_ended" }, { type: "socket_closed", code: 1006, resumable: true }]);
-    expect(s).toMatchObject({ status: "ended", endedKey: "normal", resumeAttempts: 0 });
-  });
-
-  it("lets the close code refine the cause after the server's ended frame", () => {
-    const s = run([...OPEN, { type: "server_ended" }, { type: "socket_closed", code: 4409, resumable: true }]);
-    expect(s.endedKey).toBe("subject_guard");
-  });
-
-  it("shows an upstream resume as reconnecting until the server is active again; a timer tick does not count", () => {
-    let s = run([...OPEN, { type: "warning", reason: "connection_lost_resume", seconds: null }]);
-    expect(s.status).toBe("reconnecting");
-    expect(resumeDelayMs(s)).toBeNull();
-    s = voiceReducer(s, { type: "timer_tick", timeRemaining: 100 });
-    expect(s.status).toBe("reconnecting");
-    s = voiceReducer(s, { type: "utterance_start", utterance: 1 });
-    expect(s).toMatchObject({ upstreamResuming: false, status: "thinking" });
-  });
-
-  it("clears an upstream resume on every kind of server activity", () => {
-    const resumed = run([...OPEN, { type: "warning", reason: "connection_lost_resume", seconds: null }]);
-    const activity: VoiceEvent[] = [
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "subject", text: "Yes.", partial: true },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-    ];
-    for (const event of activity) expect(voiceReducer(resumed, event).upstreamResuming).toBe(false);
-    const speaking = run(
-      [{ type: "utterance_start", utterance: 4 }, { type: "warning", reason: "connection_lost_resume", seconds: null }],
-      run(OPEN),
-    );
-    expect(voiceReducer(speaking, { type: "utterance_end", utterance: 4 }).upstreamResuming).toBe(false);
-    expect(voiceReducer(speaking, { type: "interrupted", utterance: 4 }).upstreamResuming).toBe(false);
-    // The socket dropping and reopening also ends it.
-    const reopened = run([{ type: "socket_closed", code: 1006, resumable: true }, { type: "socket_open" }], resumed);
-    expect(reopened).toMatchObject({ upstreamResuming: false, status: "listening" });
-  });
-
-  it("keeps an unfinished utterance across a resume, so its continuation audio is attributed and played", () => {
-    const dropped = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 2 },
-      { type: "socket_closed", code: 1006, resumable: true },
-    ]);
-    // No socket while reconnecting: nothing can arrive to attribute.
-    expect(audioUtterance(dropped)).toBeNull();
-    const resumed = voiceReducer(dropped, { type: "socket_open" });
-    expect(resumed).toMatchObject({ status: "thinking", openUtterance: 2, lastUtterance: 2 });
-    expect(audioUtterance(resumed)).toBe(2);
-    // The server may also re-announce the utterance it is continuing.
-    const reannounced = voiceReducer(resumed, { type: "utterance_start", utterance: 2 });
-    expect(audioUtterance(reannounced)).toBe(2);
-    // Its continuation, once audible, shows the subject speaking again.
-    expect(voiceReducer(reannounced, { type: "playback", utterance: 2 }).status).toBe("speaking");
-  });
-
-  it("refuses to reopen an utterance that ended or was interrupted before the drop", () => {
-    const resume: VoiceEvent[] = [{ type: "socket_closed", code: 1006, resumable: true }, { type: "socket_open" }, { type: "utterance_start", utterance: 2 }];
-    const ended = run([...OPEN, { type: "utterance_start", utterance: 2 }, { type: "utterance_end", utterance: 2 }, ...resume]);
-    expect(audioUtterance(ended)).toBeNull();
-    const cut = run([...OPEN, { type: "utterance_start", utterance: 2 }, { type: "interrupted", utterance: 2 }, ...resume]);
-    expect(audioUtterance(cut)).toBeNull();
-  });
-
-  it("keeps a pending answer across a resume, but not an investigator partial whose stream restarted", () => {
-    const awaiting = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-    ]);
-    expect(awaiting).toMatchObject({ status: "thinking", awaitingAnswer: true });
-    const speaking = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "So ", partial: true },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-    ]);
-    expect(speaking.investigatorSpeaking).toBe(false);
-  });
-
-  it("keeps a question's correlation across a resume: its late final does not wait for an answer it already got", () => {
-    // Codex round 5: partial, its answer starts, the socket drops, then the question's final arrives.
-    const answered = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where were ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "transcription", role: "investigator", text: "you?", partial: false },
-      { type: "utterance_end", utterance: 1 },
-    ]);
-    expect(answered).toMatchObject({ awaitingAnswer: false, investigatorSpeaking: false, status: "listening" });
-    expect(voiceBarState({ voice: answered, captureAboveFloor: false })).toBe("listening");
-  });
-
-  it("shows the investigator speaking again once their question resumes after a drop", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "So ", partial: true },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-    ]);
-    expect(s.investigatorSpeaking).toBe(false);
-    const resumed = voiceReducer(s, { type: "transcription", role: "investigator", text: "then?", partial: true });
-    expect(resumed.investigatorSpeaking).toBe(true);
-    const done = voiceReducer(resumed, { type: "transcription", role: "investigator", text: "", partial: false });
-    expect(done).toMatchObject({ investigatorSpeaking: false, awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("keeps the timer, the ending-soon notice and the exchange count", () => {
-    let s = run([...OPEN, { type: "timer_tick", timeRemaining: 90 }]);
-    expect(s.timeRemaining).toBe(90);
-    s = voiceReducer(s, { type: "warning", reason: "ending_soon", seconds: 60 });
-    expect(s).toMatchObject({ endingSoon: true, timeRemaining: 60 });
-    s = voiceReducer(s, { type: "warning", reason: "ending_soon", seconds: null });
-    expect(s.timeRemaining).toBe(60);
-    s = voiceReducer(s, { type: "exchange_count", used: 5, cap: 12 });
-    expect(s.exchanges).toEqual({ used: 5, cap: 12 });
+  it("push-to-talk records only while the talk control is held and only on push_to_talk", () => {
+    expect(run([...OPEN, { type: "talk_start" }]).status).toBe("recording");
+    expect(run([...OPEN, { type: "talk_start" }, { type: "talk_end" }]).status).toBe("thinking");
+    expect(run([{ type: "talk_start" }]).talkHeld).toBe(false);
+    expect(run(OPEN, initialVoiceState("live")).mode).toBe("live");
+    expect(run([...OPEN, { type: "talk_start" }], initialVoiceState("live")).status).toBe("listening");
+    expect(run([...OPEN, { type: "talk_end" }]).status).toBe("listening");
   });
 });
 
-describe("voiceReducer: utterances and server activity", () => {
-  it("ignores a stale or repeated utterance_start and an utterance_end for another utterance", () => {
-    let s = run([...OPEN, { type: "utterance_start", utterance: 5 }]);
-    expect(voiceReducer(s, { type: "utterance_start", utterance: 5 })).toBe(s);
-    expect(voiceReducer(s, { type: "utterance_start", utterance: 4 })).toBe(s);
-    expect(voiceReducer(s, { type: "utterance_end", utterance: 4 })).toBe(s);
-    s = voiceReducer(s, { type: "utterance_end", utterance: 5 });
-    expect(s).toMatchObject({ openUtterance: null, lastUtterance: 5, status: "listening" });
+describe("voiceReducer: server activity and playback", () => {
+  it("an open utterance without audible audio is the subject preparing; audible audio is speaking", () => {
+    expect(run([...OPEN, { type: "utterance_start", utterance: 1 }]).status).toBe("thinking");
+    expect(run([...OPEN, ...speaking()]).status).toBe("speaking");
   });
 
-  it("stays speaking after utterance_end while audio is still queued, until the queue drains", () => {
-    let s = run([...OPEN, { type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }]);
-    s = voiceReducer(s, { type: "utterance_end", utterance: 1 });
-    expect(s.status).toBe("speaking");
-    s = voiceReducer(s, { type: "playback", utterance: null });
-    expect(s.status).toBe("listening");
+  it("the investigator's turn ending (capture edges) is thinking; the utterance clears the wait", () => {
+    expect(run([...OPEN, ...turn]).status).toBe("thinking");
+    expect(run([...OPEN, { type: "investigator_audio" }]).status).toBe("listening");
+    expect(run([...OPEN, { type: "investigator_silence" }]).status).toBe("listening");
+    expect(run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, { type: "utterance_end", utterance: 1 }]).status).toBe("listening");
+    expect(voiceBarState({ voice: run([...OPEN, ...turn]), captureAboveFloor: false })).toBe("preparing_answer");
+    // Push-to-talk: release is the end of the turn.
+    expect(run([...OPEN, { type: "talk_start" }, { type: "talk_end" }]).status).toBe("thinking");
   });
 
-  it("speaks only while audio is audible: start-up, an underrun and the recovery read as preparing, preparing, speaking", () => {
-    let s = run([...OPEN, { type: "utterance_start", utterance: 1 }]);
-    expect(s).toMatchObject({ status: "thinking", openUtterance: 1, audible: null });
-    s = voiceReducer(s, { type: "playback", utterance: 1 });
-    expect(s.status).toBe("speaking");
-    s = voiceReducer(s, { type: "playback", utterance: null });
+  it("captions never change activity: they arrive unordered against audio and turns (S5 7.3, SG3-40)", () => {
+    const answered: VoiceEvent[] = [{ type: "investigator_audio" }, { type: "investigator_silence" }, { type: "utterance_start", utterance: 1 }, { type: "utterance_end", utterance: 1 }];
+    // Fragments and finals of any speaker, before or after the answer, leave a listening machine listening.
+    expect(run([...OPEN, say("investigator", "Why?"), say("investigator", "", false)]).status).toBe("listening");
+    expect(run([...OPEN, say("investigator", "Why?", false)]).status).toBe("listening");
+    expect(run([...OPEN, say("subject", "No."), say("investigator", "Why?", false)]).status).toBe("listening");
+    // A delayed final of the answered question does not reopen the wait.
+    const late = run([...OPEN, say("investigator", "Why"), ...answered, say("investigator", "?", false)]);
+    expect(late.status).toBe("listening");
+    expect(late.awaitingAnswer).toBe(false);
+    // A delayed fragment while the answer is open is not the investigator speaking over it.
+    const during = run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, say("investigator", "Wh")]);
+    expect(voiceBarState({ voice: during, captureAboveFloor: false })).toBe("preparing_answer");
+    // A late partial after the turn ended and the exchange was stored does not say "You are speaking".
+    const stored = run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, { type: "utterance_end", utterance: 1 }, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, say("investigator", "Wh")]);
+    expect(voiceBarState({ voice: stored, captureAboveFloor: false })).toBe("listening");
+    expect(voiceBarState({ voice: run([...OPEN, { type: "investigator_audio" }]), captureAboveFloor: false })).toBe("investigator_speaking");
+  });
+
+  it("an exchange frame does not erase a question already finished for the next exchange", () => {
+    // Exchange k is stored after the investigator's next turn ended (S5 7.4 holds that audio meanwhile).
+    const s = run([...OPEN, { type: "utterance_start", utterance: 1 }, ...turn, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, { type: "utterance_end", utterance: 1 }]);
+    expect(s.awaitingAnswer).toBe(true);
     expect(s.status).toBe("thinking");
-    s = voiceReducer(s, { type: "playback", utterance: 1 });
-    expect(s.status).toBe("speaking");
+    expect(run([{ type: "utterance_start", utterance: 2 }], s).awaitingAnswer).toBe(false);
   });
 
-  it("stops playback on interrupted, including for an utterance that already ended but is still playing", () => {
-    let s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 2 },
-      { type: "playback", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-    ]);
-    expect(s.status).toBe("speaking");
-    s = voiceReducer(s, { type: "interrupted", utterance: 2 });
-    expect(s).toMatchObject({ status: "listening", audible: null, openUtterance: null });
-    const stale = run([{ type: "utterance_start", utterance: 3 }], s);
-    expect(voiceReducer(stale, { type: "interrupted", utterance: 2 })).toBe(stale);
+  it("a capture interval the subject already answered opens no wait when it ends", () => {
+    // Voice activity detection answered while the control was still held (or capture still active).
+    const held: VoiceEvent[] = [{ type: "talk_start" }, { type: "utterance_start", utterance: 1 }, { type: "talk_end" }, { type: "utterance_end", utterance: 1 }, { type: "playback", utterance: null }];
+    const afterHold = run([...OPEN, ...held]);
+    expect(afterHold.awaitingAnswer).toBe(false);
+    expect(afterHold.status).toBe("listening");
+    const live: VoiceEvent[] = [{ type: "investigator_audio" }, { type: "utterance_start", utterance: 1 }, { type: "investigator_silence" }, { type: "utterance_end", utterance: 1 }];
+    expect(run([...OPEN, ...live]).status).toBe("listening");
+    // Input that begins after an answer started is a pending question again.
+    const next = run([...OPEN, ...live, { type: "investigator_audio" }, { type: "investigator_silence" }]);
+    expect(next.status).toBe("thinking");
+    expect(run([...OPEN, { type: "talk_start" }, { type: "utterance_start", utterance: 1 }, { type: "talk_end" }, { type: "talk_start" }, { type: "talk_end" }]).status).toBe("thinking");
   });
 
-  it("ignores a playback report for flushed audio that arrives after interrupted", () => {
-    const cut = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "utterance_start", utterance: 2 },
-      { type: "interrupted", utterance: 2 },
-    ]);
-    expect(cut.status).toBe("listening");
-    // Posted by the worklet before it processed the flush: neither utterance can still be playing.
-    expect(voiceReducer(cut, { type: "playback", utterance: 2 })).toBe(cut);
-    expect(voiceReducer(cut, { type: "playback", utterance: 1 })).toBe(cut);
-    const next = run([{ type: "utterance_start", utterance: 3 }, { type: "playback", utterance: 3 }], cut);
-    expect(next.status).toBe("speaking");
-  });
-
-  it("marks the investigator's turn ended on a final transcription, and speaking again on a partial", () => {
-    let s = run([...OPEN, { type: "transcription", role: "investigator", text: "Who ", partial: true }]);
-    expect(s).toMatchObject({ investigatorSpeaking: true, awaitingAnswer: false, status: "listening" });
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "called?", partial: false });
-    expect(s).toMatchObject({ investigatorSpeaking: false, awaitingAnswer: true, status: "thinking" });
-    s = voiceReducer(s, { type: "utterance_start", utterance: 1 });
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "thinking", openUtterance: 1 });
-    s = voiceReducer(s, { type: "playback", utterance: 1 });
-    expect(s.status).toBe("speaking");
-  });
-
-  it("a question asked over the subject's answer to an earlier question waits for its own answer", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "Wait.", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "speaking" });
-  });
-
-  it("reads a question transcribed entirely after its answer started as that answer's question", () => {
-    // Codex round 6: every committed answer has a question (S5 7.4), so an utterance that started
-    // with no completed question is answering one whose transcription is still to come.
-    let s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "Where were ", partial: true },
-    ]);
-    expect(s.investigatorSpeaking).toBe(false);
-    s = run(
-      [
-        { type: "transcription", role: "investigator", text: "you?", partial: false },
-        { type: "utterance_end", utterance: 1 },
-        { type: "turn_committed", turnNo: 1, version: 1 },
-        { type: "exchange_count", used: 1, cap: 12 },
-        { type: "playback", utterance: null },
-      ],
-      s,
-    );
-    expect(s).toMatchObject({ awaitingAnswer: false, investigatorSpeaking: false, status: "listening" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("listening");
-    // The next question is new and waits for its own answer.
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "Alone?", partial: false });
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("answers a question asked before the previous answer's commit arrived", () => {
-    // Round 2's ordering: the commit of turn 1 lands after question 2 is complete.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "And then?", partial: false },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it.each([
-    ["a non-empty final", "you?"],
-    ["an empty final", ""],
-  ])("does not count a question twice when its commit arrives before %s", (_label, text) => {
-    // Codex round 7: the commit already accounts for the question in progress; its final only closes it.
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where were ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-    ]);
-    expect(s.investigatorSpeaking).toBe(false);
-    s = run([{ type: "transcription", role: "investigator", text, partial: false }, { type: "playback", utterance: null }], s);
-    expect(s).toMatchObject({ awaitingAnswer: false, investigatorSpeaking: false, status: "listening" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("listening");
-    // The next real question still waits for its answer, and shows as spoken while in progress.
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "Alone?", partial: true });
-    expect(s.investigatorSpeaking).toBe(true);
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "", partial: false });
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("keeps a counted question counted through a repeated exchange_count that reports no new commit", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where were ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "you?", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-  });
-
-  it("trusts a commit that counted a question in progress: the next late question is still read as late", () => {
-    // Question 1's final follows its commit (counted while its partials were open, so certainly its
-    // own); question 2's final then also follows its own commit.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "were you?", partial: false },
-      { type: "transcription", role: "investigator", text: "With ", partial: true },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "transcription", role: "investigator", text: "whom?", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-  });
-
-  it("absorbs one late final per question two commits counted ahead, then waits for a new question again", () => {
-    let s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "transcription", role: "investigator", text: "One?", partial: false },
-      { type: "transcription", role: "investigator", text: "Two?", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening", aheadCount: 0 });
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "Three?", partial: false });
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("never stops attributing audio to an open utterance on an inference: a lagging count leaves utterance 3 open", () => {
-    // Codex round 10: counts lag two answers behind; the later count must not close utterance 3.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "One?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "Two?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Three?", partial: false },
-      { type: "utterance_start", utterance: 3 },
-      { type: "exchange_count", used: 2, cap: 12 },
-    ]);
-    expect(s.openUtterance).toBe(3);
-    expect(audioUtterance(s)).toBe(3);
-    expect(voiceReducer(s, { type: "playback", utterance: 3 }).status).toBe("speaking");
-  });
-
-  it("reads consecutive late finals without a drop as late, never as lost", () => {
-    // Codex round 10: no transport gap, so a question counted before its final is certainly late.
-    const s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "One?", partial: false },
-      { type: "transcription", role: "investigator", text: "Two ", partial: true },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "transcription", role: "investigator", text: "now?", partial: false },
-    ]);
-    expect(s).toMatchObject({ questionsDone: 2, answersStarted: 2, awaitingAnswer: false, status: "listening" });
-  });
-
-  it("trusts a question whose partials arrive on the new socket when a count after a drop counts it", () => {
-    const s = run([
-      ...OPEN,
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "transcription", role: "investigator", text: "Where ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "were you?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "transcription", role: "investigator", text: "With whom?", partial: false },
-    ]);
-    expect(s).toMatchObject({ aheadCount: 0, aheadGuesses: 0, awaitingAnswer: false, status: "listening" });
-  });
-
-  it.each([
-    ["its partials arrived before the drop", true],
-    ["it was counted before the drop", false],
-  ])("treats a counted question whose final was outstanding across a drop as possibly lost: %s", (_label, partialFirst) => {
-    // Codex round 12: the final is lost in the drop; the next question's final is taken as it, and
-    // the next commit corrects that, so only one pending answer is under-reported.
-    const lead: VoiceEvent[] = partialFirst
-      ? [
-          { type: "transcription", role: "investigator", text: "Where ", partial: true },
-          { type: "utterance_start", utterance: 1 },
-          { type: "socket_closed", code: 1006, resumable: true },
-          { type: "socket_open" },
-          { type: "utterance_end", utterance: 1 },
-          { type: "exchange_count", used: 1, cap: 12 },
-        ]
-      : [
-          { type: "utterance_start", utterance: 1 },
-          { type: "utterance_end", utterance: 1 },
-          { type: "exchange_count", used: 1, cap: 12 },
-          { type: "socket_closed", code: 1006, resumable: true },
-          { type: "socket_open" },
-        ];
-    let s = run([...OPEN, ...lead, { type: "transcription", role: "investigator", text: "Q2?", partial: false }]);
-    expect(s.status).toBe("listening");
-    s = run([{ type: "utterance_start", utterance: 2 }, { type: "utterance_end", utterance: 2 }, { type: "exchange_count", used: 2, cap: 12 }], s);
-    for (let n = 3; n <= 6; n += 1) {
-      s = voiceReducer(s, { type: "transcription", role: "investigator", text: `Q${String(n)}?`, partial: false });
-      expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("preparing_answer");
-      s = run([{ type: "utterance_start", utterance: n }, { type: "utterance_end", utterance: n }, { type: "exchange_count", used: n, cap: 12 }], s);
-      expect(s).toMatchObject({ aheadCount: 0, status: "listening" });
-    }
-  });
-
-  it("keeps an unused correction until a count can apply it, when the next question beats the count", () => {
-    // Codex round 13: question 3's final arrives before count 2, so count 2 has nothing to correct
-    // yet; the correction must survive to count 3 instead of being dropped.
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Q2?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "transcription", role: "investigator", text: "Q3?", partial: false },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "utterance_start", utterance: 3 },
-      { type: "utterance_end", utterance: 3 },
-      { type: "exchange_count", used: 3, cap: 12 },
-    ]);
-    expect(s).toMatchObject({ aheadCount: 0, consumedGuesses: 0, status: "listening" });
-    for (let n = 4; n <= 8; n += 1) {
-      s = voiceReducer(s, { type: "transcription", role: "investigator", text: `Q${String(n)}?`, partial: false });
-      expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("preparing_answer");
-      s = run([{ type: "utterance_start", utterance: n }, { type: "utterance_end", utterance: n }, { type: "exchange_count", used: n, cap: 12 }], s);
-      expect(s).toMatchObject({ aheadCount: 0, status: "listening" });
-    }
-  });
-
-  it("does not count an empty final with no question in progress as a question", () => {
-    const s = run([...OPEN, { type: "transcription", role: "investigator", text: "", partial: false }]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-  });
-
-  it("keeps every observed answer and question through counts that lag, exchange after exchange", () => {
-    // Codex round 11: counts lag two answers behind; later counts must not erase observed answers or
-    // manufacture late-final credits that swallow new questions.
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "One?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "Two?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Three?", partial: false },
-      { type: "utterance_start", utterance: 3 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "utterance_end", utterance: 3 },
-      { type: "exchange_count", used: 3, cap: 12 },
-    ]);
-    expect(s).toMatchObject({ questionsDone: 3, answersStarted: 3, aheadCount: 0, status: "listening" });
-    for (let n = 4; n <= 7; n += 1) {
-      s = voiceReducer(s, { type: "transcription", role: "investigator", text: `Q${String(n)}?`, partial: false });
-      expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("preparing_answer");
-      s = run(
-        [
-          { type: "utterance_start", utterance: n },
-          { type: "utterance_end", utterance: n },
-          // The count for this exchange lags until after the next answer would have started.
-        ],
-        s,
-      );
-      expect(s.status).toBe("listening");
-      s = voiceReducer(s, { type: "exchange_count", used: n, cap: 12 });
-      expect(s).toMatchObject({ aheadCount: 0, status: "listening" });
-    }
-  });
-
-  it("resynchronises at each commit when a question is lost entirely in a drop, healing by the next commit", () => {
-    // The question of utterance 1 was transcribed while the socket was down; its commit arrives after.
-    // Without relay correlation the next question's transcription cannot be told from utterance 1's
-    // late one (S5 7.3 carries none; the round-9 regression above is the other reading), so it is
-    // taken as the late one: the bar under-reports that one pending answer (listening, not
-    // preparing) until the answer starts, and the following commit restores exact counts.
-    let s = run([
-      ...OPEN,
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-    s = run(
-      [
-        { type: "utterance_start", utterance: 2 },
-        { type: "utterance_end", utterance: 2 },
-        { type: "turn_committed", turnNo: 2, version: 1 },
-        { type: "exchange_count", used: 2, cap: 12 },
-      ],
-      s,
-    );
-    // The second commit corrects the misread question instead of expecting another late one, so the
-    // very next question waits for its answer again.
-    expect(s).toMatchObject({ questionsDone: 2, answersStarted: 2, aheadCount: 0, status: "listening" });
-    s = run([{ type: "transcription", role: "investigator", text: "Next?", partial: false }], s);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("counts commits against the trial's count when the session started, so a mid-trial session is not offset", () => {
-    let s = run(
-      [
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "And?", partial: false },
-      { type: "turn_committed", turnNo: 6, version: 1 },
-      { type: "exchange_count", used: 6, cap: 12 },
-      ],
-      initialVoiceState("live", 5),
-    );
+  it("barge-in while the control is held makes the release a pending question again", () => {
+    const s = run([...OPEN, { type: "talk_start" }, ...speaking(1), { type: "interrupted", utterance: 1 }, { type: "talk_end" }]);
     expect(s.awaitingAnswer).toBe(true);
-    s = run([{ type: "exchange_count", used: 6, cap: 12 }], s);
-    expect(s.awaitingAnswer).toBe(true);
+    expect(s.status).toBe("thinking");
   });
 
-  it.each([0, 5])("reconciles from the absolute count when the first count was lost in a drop (%i exchanges before)", (before) => {
-    // Codex round 8: exchange 1's count is lost while the socket is down; exchange 2's count reports both.
-    const s = run(
-      [
-        ...OPEN,
-        { type: "transcription", role: "investigator", text: "Why?", partial: false },
-        { type: "utterance_start", utterance: 1 },
-        { type: "utterance_end", utterance: 1 },
-        { type: "turn_committed", turnNo: before + 1, version: 1 },
-        { type: "socket_closed", code: 1006, resumable: true },
-        { type: "socket_open" },
-        { type: "transcription", role: "investigator", text: "And then?", partial: false },
-        { type: "utterance_start", utterance: 2 },
-        { type: "playback", utterance: 2 },
-        { type: "utterance_end", utterance: 2 },
-        { type: "turn_committed", turnNo: before + 2, version: 1 },
-        { type: "exchange_count", used: before + 2, cap: 12 },
-        { type: "playback", utterance: null },
-      ],
-      initialVoiceState("live", before),
-    );
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("listening");
+  it("an interruption that trails the release still leaves the question pending, in both arrival orders", () => {
+    const ptt: VoiceEvent[] = [{ type: "talk_start" }, ...speaking(1)];
+    const releasedFirst = run([...OPEN, ...ptt, { type: "talk_end" }, { type: "interrupted", utterance: 1 }]);
+    const interruptedFirst = run([...OPEN, ...ptt, { type: "interrupted", utterance: 1 }, { type: "talk_end" }]);
+    for (const s of [releasedFirst, interruptedFirst]) {
+      expect(s.awaitingAnswer).toBe(true);
+      expect(s.status).toBe("thinking");
+    }
+    const live: VoiceEvent[] = [{ type: "investigator_audio" }, ...speaking(1), { type: "investigator_silence" }, { type: "interrupted", utterance: 1 }];
+    expect(run([...OPEN, ...live]).status).toBe("thinking");
+    // An interruption of an utterance that answered nothing pending leaves no wait.
+    expect(run([...OPEN, ...speaking(1), { type: "interrupted", utterance: 1 }]).awaitingAnswer).toBe(false);
+    // A later answer to that turn clears the marker, so a late interruption of it adds no wait.
+    const answered = run([...OPEN, ...turn, ...speaking(1), { type: "interrupted", utterance: 1 }]);
+    expect(answered.awaitingAnswer).toBe(false);
   });
 
-  it("ignores an exchange count older than one already seen", () => {
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "And?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-    ]);
-    s = run([{ type: "exchange_count", used: 1, cap: 12 }, { type: "transcription", role: "investigator", text: "Next?", partial: false }], s);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking", exchanges: { used: 2, cap: 12 } });
+  it("push-to-talk held across the exchange store keeps the investigator active", () => {
+    const s = run([...OPEN, { type: "talk_start" }, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }]);
+    expect(s.talkHeld).toBe(true);
+    expect(s.investigatorActive).toBe(true);
+    expect(s.status).toBe("recording");
+    expect(run([{ type: "talk_end" }], s).status).toBe("thinking");
   });
 
-  it("leaves the whole state unchanged for a stale or repeated count, while a newer answer awaits its commit", () => {
-    // Codex round 9: a stale count used to pull the started answers back below the open exchange.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "One?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Two?", partial: false },
-      { type: "utterance_start", utterance: 2 },
-      { type: "utterance_end", utterance: 2 },
-      { type: "exchange_count", used: 2, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Three?", partial: false },
-      { type: "utterance_start", utterance: 3 },
-      { type: "utterance_end", utterance: 3 },
-    ]);
-    expect(s.status).toBe("listening");
-    expect(voiceReducer(s, { type: "exchange_count", used: 1, cap: 12 })).toBe(s);
-    expect(voiceReducer(s, { type: "exchange_count", used: 2, cap: 12 })).toBe(s);
+  it("queued audio keeps the subject speaking after utterance_end until playback drains", () => {
+    const ended = run([...OPEN, ...speaking(), { type: "utterance_end", utterance: 1 }]);
+    expect(ended.status).toBe("speaking");
+    expect(run([{ type: "playback", utterance: null }], ended).status).toBe("listening");
   });
 
-  it("closes an utterance whose end marker was lost in a drop once its commit is counted", () => {
-    // Codex round 9: every started answer committed, so none is still open.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-    ]);
-    // The display reads it as finished; audio attribution changes only on utterance markers.
-    expect(s).toMatchObject({ openUtterance: 1, settledUtterance: 1, awaitingAnswer: false, status: "listening" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("listening");
-    // A commit for an earlier answer leaves a newer open utterance open.
-    const newer = run(
-      [
-        { type: "transcription", role: "investigator", text: "And?", partial: false },
-        { type: "utterance_start", utterance: 2 },
-        { type: "utterance_end", utterance: 2 },
-        { type: "transcription", role: "investigator", text: "Then?", partial: false },
-        { type: "utterance_start", utterance: 3 },
-        { type: "exchange_count", used: 2, cap: 12 },
-      ],
-      s,
-    );
-    expect(newer).toMatchObject({ openUtterance: 3, settledUtterance: 1, status: "thinking" });
+  it("ignores a stale or foreign utterance marker", () => {
+    const open = run([...OPEN, { type: "utterance_start", utterance: 5 }]);
+    expect(voiceReducer(open, { type: "utterance_start", utterance: 5 })).toBe(open);
+    expect(voiceReducer(open, { type: "utterance_start", utterance: 4 })).toBe(open);
+    expect(voiceReducer(open, { type: "utterance_end", utterance: 4 })).toBe(open);
+    expect(voiceReducer(open, { type: "interrupted", utterance: 4 })).toBe(open);
   });
 
-  it("closes a question whose partials were lost with its late final, once a commit counted it", () => {
-    // Codex round 9: resume, the answer starts and commits, then the question's final arrives alone.
-    let s = run([
-      ...OPEN,
-      { type: "socket_closed", code: 1006, resumable: true },
-      { type: "socket_open" },
-      { type: "utterance_start", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "exchange_count", used: 1, cap: 12 },
-      { type: "transcription", role: "investigator", text: "Where were you?", partial: false },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, status: "listening" });
-    // A genuinely new question afterwards still waits for its answer.
-    s = run(
-      [
-        { type: "transcription", role: "investigator", text: "Alone?", partial: true },
-        { type: "transcription", role: "investigator", text: "", partial: false },
-      ],
-      s,
-    );
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
+  it("interrupted flushes at once, and a playback report posted before the flush is stale", () => {
+    const flushed = run([...OPEN, ...speaking(), { type: "interrupted", utterance: 1 }]);
+    expect(flushed.audible).toBeNull();
+    expect(flushed.status).toBe("listening");
+    expect(voiceReducer(flushed, { type: "playback", utterance: 1 })).toBe(flushed);
+    expect(voiceReducer(flushed, { type: "playback", utterance: 2 }).audible).toBe(2);
+    // Older audio than the interrupted utterance is flushed too; a newer utterance plays again.
+    const second = run([...speaking(2), { type: "interrupted", utterance: 2 }], run(OPEN));
+    expect(voiceReducer(second, { type: "playback", utterance: 1 })).toBe(second);
+    expect(voiceReducer(second, { type: "playback", utterance: 2 })).toBe(second);
+    expect(voiceReducer(second, { type: "playback", utterance: 3 }).audible).toBe(3);
   });
 
-  it("does not wait for an answer to a question the subject already answered, whatever order its final arrives in", () => {
-    // Codex round 3, sequence 1: the question's final transcription arrives after its answer ended.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where were ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "you?", partial: false },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "playback", utterance: null },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: false, investigatorSpeaking: false, status: "listening" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("listening");
+  it("tracks the exchange count, ignoring a stale or repeated count", () => {
+    const one = run([...OPEN, { type: "exchange_count", used: 3, cap: 12 }]);
+    expect(one.exchangeCount).toEqual({ used: 3, cap: 12 });
+    expect(voiceReducer(one, { type: "exchange_count", used: 2, cap: 12 })).toBe(one);
+    expect(voiceReducer(one, { type: "exchange_count", used: 3, cap: 12 })).toBe(one);
+    expect(voiceReducer(one, { type: "exchange_count", used: 4, cap: 12 }).exchangeCount?.used).toBe(4);
   });
 
-  it("keeps a question asked during the subject's answer pending through the interruption it causes", () => {
-    // Codex round 3, sequence 2: the next question's final arrives while utterance 1 is still open.
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Why?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "playback", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "Stop there.", partial: false },
-      { type: "interrupted", utterance: 1 },
-    ]);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("preparing_answer");
+  it("keeps the timer and the 60 s warning for the room's copy", () => {
+    const warned = run([...OPEN, { type: "timer_tick", timeRemaining: 90 }, { type: "warning", reason: "ending_soon", seconds: 60 }]);
+    expect(warned.endingSoon).toBe(true);
+    expect(warned.timeRemaining).toBe(60);
+    expect(run([...OPEN, { type: "warning", reason: "ending_soon", seconds: null }, { type: "timer_tick", timeRemaining: 4 }]).timeRemaining).toBe(4);
+    expect(run([...OPEN, { type: "timer_tick", timeRemaining: 7 }, { type: "warning", reason: "ending_soon", seconds: null }]).timeRemaining).toBe(7);
   });
 
-  it("treats delayed partials of an answered question as finished speech, not as the investigator speaking", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Where ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "investigator", text: "were you?", partial: true },
-    ]);
-    expect(s).toMatchObject({ investigatorSpeaking: false, awaitingAnswer: false, status: "thinking" });
-    expect(voiceBarState({ voice: s, captureAboveFloor: false })).toBe("preparing_answer");
-  });
-
-  it("answers every completed question with the next utterance, and only those", () => {
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "First?", partial: false },
-      { type: "transcription", role: "investigator", text: "And second?", partial: false },
-    ]);
-    expect(s.awaitingAnswer).toBe(true);
-    s = voiceReducer(s, { type: "utterance_start", utterance: 1 });
-    expect(s.awaitingAnswer).toBe(false);
-    s = run([{ type: "transcription", role: "investigator", text: "Third ", partial: true }], s);
-    s = run([{ type: "utterance_end", utterance: 1 }, { type: "transcription", role: "investigator", text: "one?", partial: false }], s);
-    expect(s).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-  });
-
-  it("keeps the newest committed turn and ignores an older one", () => {
-    let s = run([...OPEN, { type: "turn_committed", turnNo: 3, version: 7 }]);
-    s = voiceReducer(s, { type: "turn_committed", turnNo: 2, version: 5 });
-    expect(s.committedTurn).toEqual({ turnNo: 3, version: 7 });
-    s = voiceReducer(s, { type: "turn_committed", turnNo: 4, version: 9 });
-    expect(s.committedTurn).toEqual({ turnNo: 4, version: 9 });
-    s = voiceReducer(s, { type: "turn_committed", turnNo: 4, version: 10 });
-    expect(s.committedTurn).toEqual({ turnNo: 4, version: 10 });
-    s = voiceReducer(s, { type: "turn_committed", turnNo: 4, version: 8 });
-    expect(s.committedTurn).toEqual({ turnNo: 4, version: 10 });
+  it("has no turn, card, resume or upstream facts: voice is display-only and unscored", () => {
+    const keys = Object.keys(initialVoiceState("live"));
+    for (const gone of ["committedTurn", "resumeAttempts", "upstreamResuming", "serverEnded", "questionsDone", "answersStarted"]) {
+      expect(keys).not.toContain(gone);
+    }
   });
 });
 
-describe("voiceReducer: FE-VOICE-3, one live caption line", () => {
-  it("merges one subject utterance's fragments into one caption line", () => {
-    const s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "subject", text: "I was ", partial: true },
-      { type: "transcription", role: "subject", text: "at the ", partial: true },
-      { type: "transcription", role: "subject", text: "depot.", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "I was at the depot." });
+describe("FE-VOICE-7: termination, draining and flushing", () => {
+  const sequence: VoiceEvent[] = [
+    ...OPEN,
+    ...speaking(7),
+    { type: "exchange", exchangeNo: 12, question: "q", answer: "a", partial: false },
+    { type: "exchange_count", used: 12, cap: 12 },
+    { type: "utterance_end", utterance: 7 },
+  ];
+
+  it("the full 4410 sequence with a final utterance queued drains, then ends with the exchange-cap copy", () => {
+    const draining = run([...sequence, closed(4410)]);
+    expect(draining.status).toBe("draining");
+    expect(draining.audible).toBe(7);
+    expect(draining.talkHeld).toBe(false);
+    expect(draining.endedKey).toBeNull();
+    expect(voiceBarState({ voice: draining, captureAboveFloor: true })).toBe("finishing_answer");
+    const done = run([{ type: "playback", utterance: null }], draining);
+    expect(done.status).toBe("ended");
+    expect(done.endedKey).toBe("exchange_cap");
+    expect(done.audible).toBeNull();
+    expect(done.transcript).toHaveLength(1);
   });
 
-  it("replaces the line on a role change and ignores empty fragments", () => {
-    let s = run([...OPEN, { type: "transcription", role: "investigator", text: "Where?", partial: true }]);
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: "", partial: true });
-    expect(s.caption).toEqual({ role: "investigator", text: "Where?" });
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: "Home.", partial: true });
-    expect(s.caption).toEqual({ role: "subject", text: "Home." });
-  });
-
-  it("keeps fragments that arrive before their utterance_start", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "I was ", partial: true },
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "subject", text: "at home.", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "I was at home." });
-  });
-
-  it("keeps fragments that arrive after their utterance ended, or after the next one started", () => {
-    let s = run([
-      ...OPEN,
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "subject", text: "I left ", partial: true },
-      { type: "utterance_end", utterance: 1 },
-      { type: "transcription", role: "subject", text: "early. ", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "I left early. " });
-    // A late fragment of utterance 2's speech, before its final, still joins its own line.
-    s = run(
-      [
-        { type: "utterance_start", utterance: 2 },
-        { type: "transcription", role: "subject", text: "Then ", partial: true },
-        { type: "utterance_end", utterance: 2 },
-        { type: "utterance_start", utterance: 3 },
-        { type: "transcription", role: "subject", text: "home.", partial: true },
-      ],
-      s,
-    );
-    expect(s.caption).toEqual({ role: "subject", text: "Then home." });
-    s = run([{ type: "interrupted", utterance: 3 }], s);
-    expect(s.caption).toEqual({ role: "subject", text: "Then home." });
-  });
-
-  it("keeps each speaker's fragments together when the other speaker's text arrives in between", () => {
-    // Codex round 4: a delayed investigator final lands inside the subject's answer.
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "I was ", partial: true },
-      { type: "transcription", role: "investigator", text: "you?", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "investigator", text: "you?" });
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: "at home.", partial: false });
-    expect(s.caption).toEqual({ role: "subject", text: "I was at home." });
-    // And the investigator's next words do not join a question that already ended.
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "When?", partial: true });
-    expect(s.caption).toEqual({ role: "investigator", text: "When?" });
-  });
-
-  it("ends a speaker's line at their final: their next fragment starts a new line", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "One.", partial: false },
-      { type: "transcription", role: "subject", text: "Two.", partial: true },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "Two." });
-  });
-
-  it("lets an empty final end the line without changing what it shows", () => {
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "Yes", partial: true },
-      { type: "transcription", role: "subject", text: "", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "Yes" });
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: "No", partial: true });
-    expect(s.caption).toEqual({ role: "subject", text: "No" });
-  });
-
-  it("keeps the last speech through the commit; the next speaker replaces it", () => {
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "No.", partial: false },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "No." });
-    s = voiceReducer(s, { type: "transcription", role: "investigator", text: "Why not?", partial: true });
-    expect(s.caption).toEqual({ role: "investigator", text: "Why not?" });
-  });
-
-  it("keeps the investigator's next question, caption and activity, when the previous turn commits under it", () => {
-    const answered = run([
-      ...OPEN,
-      { type: "transcription", role: "investigator", text: "Were you there?", partial: false },
-      { type: "utterance_start", utterance: 1 },
-      { type: "transcription", role: "subject", text: "No.", partial: false },
-      { type: "utterance_end", utterance: 1 },
-    ]);
-    const partial = run([{ type: "transcription", role: "investigator", text: "Then why ", partial: true }], answered);
-    const committedUnderPartial = voiceReducer(partial, { type: "turn_committed", turnNo: 1, version: 1 });
-    expect(committedUnderPartial).toMatchObject({ investigatorSpeaking: true, caption: { role: "investigator", text: "Then why " } });
-    expect(voiceBarState({ voice: committedUnderPartial, captureAboveFloor: false })).toBe("investigator_speaking");
-    const final = run([{ type: "transcription", role: "investigator", text: "did you go?", partial: false }], partial);
-    const committedUnderFinal = voiceReducer(final, { type: "turn_committed", turnNo: 1, version: 1 });
-    expect(committedUnderFinal).toMatchObject({ awaitingAnswer: true, status: "thinking" });
-    expect(voiceBarState({ voice: committedUnderFinal, captureAboveFloor: false })).toBe("preparing_answer");
-    expect(committedUnderFinal.caption).toEqual({ role: "investigator", text: "Then why did you go?" });
-  });
-
-  it("keeps the caption across a resume, so the same speech continues the line; the end of the session clears it", () => {
-    let s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "I was ", partial: true },
-      { type: "socket_closed", code: 1006, resumable: true },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "I was " });
-    s = run([{ type: "socket_open" }, { type: "transcription", role: "subject", text: "at home.", partial: true }], s);
-    expect(s.caption).toEqual({ role: "subject", text: "I was at home." });
-    s = voiceReducer(s, { type: "socket_closed", code: 1000, resumable: false });
-    expect(s.caption).toBeNull();
-  });
-
-  it("continues the line with a fragment that arrives after its turn committed", () => {
-    const s = run([
-      ...OPEN,
-      { type: "transcription", role: "subject", text: "Yes", partial: true },
-      { type: "turn_committed", turnNo: 1, version: 1 },
-      { type: "transcription", role: "subject", text: ", really.", partial: false },
-    ]);
-    expect(s.caption).toEqual({ role: "subject", text: "Yes, really." });
-  });
-
-  it("caps a merged caption at the S5 limit, keeping the newest text", () => {
-    let s = run([...OPEN, { type: "utterance_start", utterance: 1 }]);
-    for (let i = 0; i < 6; i += 1) {
-      s = voiceReducer(s, { type: "transcription", role: "subject", text: `${String(i)}${"y".repeat(99)}`, partial: true });
+  it("capture stops while draining and nothing new starts", () => {
+    const draining = run([...sequence, { type: "talk_start" }, closed(4410)]);
+    expect(draining.talkHeld).toBe(false);
+    for (const event of [{ type: "talk_start" }, { type: "utterance_start", utterance: 8 }, say("subject", "more"), { type: "socket_open" }, { type: "connect" }] as VoiceEvent[]) {
+      expect(voiceReducer(draining, event)).toBe(draining);
     }
-    expect(s.caption?.text).toHaveLength(MAX_CAPTION_CHARS);
-    expect(s.caption?.text.endsWith(`5${"y".repeat(99)}`)).toBe(true);
+    // A start report only updates audibility; another utterance's report does not end the drain.
+    expect(voiceReducer(draining, { type: "playback", utterance: 7 }).status).toBe("draining");
   });
 
-  it("counts the caption limit in code points, as the server does, and never splits a character", () => {
-    const astral = "\u{1F600}";
-    expect(frameToEvent({ type: "transcription", role: "subject", text: astral.repeat(MAX_CAPTION_CHARS), partial: true })).not.toBeNull();
-    let s = run([...OPEN, { type: "utterance_start", utterance: 1 }]);
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: astral.repeat(MAX_CAPTION_CHARS), partial: true });
-    s = voiceReducer(s, { type: "transcription", role: "subject", text: "z", partial: true });
-    expect(Array.from(s.caption?.text ?? "")).toHaveLength(MAX_CAPTION_CHARS);
-    expect(s.caption?.text.startsWith(astral)).toBe(true);
-    expect(s.caption?.text.endsWith("z")).toBe(true);
+  it("a hang-up while draining ends at once with its own key", () => {
+    const done = run([{ type: "ended", key: "normal" }], run([...sequence, closed(4410)]));
+    expect(done.status).toBe("ended");
+    expect(done.endedKey).toBe("normal");
+    expect(done.audible).toBeNull();
+  });
+
+  it("4410 always drains: the machine cannot see the queue, so it ends on the drained report (sent at once when the queue is empty)", () => {
+    const draining = run([...OPEN, { type: "exchange_count", used: 12, cap: 12 }, closed(4410)]);
+    expect(draining.status).toBe("draining");
+    expect(run([{ type: "playback", utterance: null }], draining).endedKey).toBe("exchange_cap");
+  });
+
+  it("audio queued while its playback-start report is still in flight is not cut off", () => {
+    const draining = run([...OPEN, { type: "utterance_start", utterance: 3 }, { type: "utterance_end", utterance: 3 }, closed(4410)]);
+    expect(draining.status).toBe("draining");
+    expect(draining.audible).toBeNull();
+    const reported = run([{ type: "playback", utterance: 3 }], draining);
+    expect(reported.status).toBe("draining");
+    expect(reported.audible).toBe(3);
+    expect(talkLevel(reported, 0.7, { reducedMotion: false, paused: false })).toBe(0.7);
+    expect(run([{ type: "playback", utterance: null }], reported).status).toBe("ended");
+  });
+
+  it("an interrupted frame before 4410 flushed the audio; the drained report from the flush ends the drain", () => {
+    const draining = run([...sequence, { type: "interrupted", utterance: 7 }, closed(4410)]);
+    expect(draining.audible).toBeNull();
+    expect(run([{ type: "playback", utterance: null }], draining).status).toBe("ended");
+  });
+
+  it.each([4409, 4423, 4413, 4400, 4408, 1000])("close %i flushes at once, never draining", (code) => {
+    const done = run([...OPEN, ...speaking(), closed(code)]);
+    expect(done.status).toBe("ended");
+    expect(done.audible).toBeNull();
+    expect(done.endedKey).toBe(closeCodeToEnded(code));
+  });
+
+  it("termination clears the warning, captions and activity, whichever close ends the session", () => {
+    const warned: VoiceEvent[] = [...OPEN, { type: "warning", reason: "ending_soon", seconds: 60 }, ...speaking(), say("subject", "x"), { type: "investigator_audio" }];
+    for (const code of [1000, 1006, 4409]) {
+      const done = run([...warned, closed(code)]);
+      expect(done.endingSoon).toBe(false);
+      expect(done.captions).toEqual([]);
+      expect(done.audible).toBeNull();
+      expect(done.investigatorActive).toBe(false);
+      expect(done.talkHeld).toBe(false);
+    }
+    const draining = run([...warned, closed(4410)]);
+    expect(draining.endingSoon).toBe(true);
+    const drained = run([{ type: "playback", utterance: null }], draining);
+    expect(drained.endingSoon).toBe(false);
+    expect(drained.captions).toEqual([]);
+    expect(drained.investigatorActive).toBe(false);
+  });
+
+  it("an ended text frame is ignored as unknown and cannot end the session", () => {
+    expect(frameToEvent({ type: "ended" })).toBeNull();
+    const open = run([...OPEN, ...speaking()]);
+    expect(open.status).toBe("speaking");
+  });
+});
+
+describe("transport drops: no resumption", () => {
+  it("every drop ends the session at once, with no reconnecting state, and offers a reconnect", () => {
+    for (const code of [1006, 1011]) {
+      const ended = run([...OPEN, ...speaking(), say("investigator", "So", true), closed(code)]);
+      expect(ended.status).toBe("ended");
+      expect(ended.connection).toBe("ended");
+      expect(ended.audible).toBeNull();
+      expect(ended.captions).toEqual([]);
+      expect(reconnectOffered(ended)).toBe(true);
+    }
+    expect(reconnectOffered(run(OPEN))).toBe(false);
+  });
+
+  it("a reconnect is a new session: nothing stale carries over except the stored transcript", () => {
+    const old = run([
+      ...OPEN,
+      { type: "utterance_start", utterance: 4 },
+      say("subject", "At ho"),
+      { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false },
+      { type: "exchange_count", used: 1, cap: 12 },
+      { type: "timer_tick", timeRemaining: 30 },
+      { type: "warning", reason: "ending_soon", seconds: 60 },
+      closed(1006),
+    ]);
+    const fresh = reconnectState(old);
+    expect(fresh.status).toBe("connecting");
+    expect(fresh.endedKey).toBeNull();
+    expect(fresh.openUtterance).toBeNull();
+    expect(fresh.lastUtterance).toBeNull();
+    expect(fresh.captions).toEqual([]);
+    expect(fresh.audible).toBeNull();
+    expect(fresh.interruptedUtterance).toBeNull();
+    expect(fresh.exchangeCount).toBeNull();
+    expect(fresh.timeRemaining).toBeNull();
+    expect(fresh.endingSoon).toBe(false);
+    expect(fresh.mode).toBe(old.mode);
+    expect(fresh.transcript).toEqual(old.transcript);
+    // Utterance numbers restart with the new session, so a low number is accepted again.
+    expect(run([{ type: "socket_open" }, { type: "utterance_start", utterance: 1 }], fresh).openUtterance).toBe(1);
+  });
+
+  it("a reconnect is offered only from a transport end", () => {
+    expect(() => reconnectState(run(OPEN))).not.toThrow();
+    expect(reconnectOffered(run([...OPEN, { type: "ended", key: "error" }]))).toBe(false);
+  });
+});
+
+describe("FE-VOICE-3 and FE-VOICE-8: captions are unpaired; the stored exchange is the transcript", () => {
+  it("fragments of one subject utterance merge into one caption line, a final closes it, the next starts anew", () => {
+    const s = run([...OPEN, say("subject", "At "), say("subject", "home"), say("subject", ".", false)]);
+    expect(s.captions).toEqual([{ role: "subject", text: "At home.", done: true }]);
+    expect(run([say("subject", "Then ")], s).captions).toEqual([
+      { role: "subject", text: "At home.", done: true },
+      { role: "subject", text: "Then ", done: false },
+    ]);
+  });
+
+  it("renders captions in arrival order, an investigator caption after the subject's included, without pairing", () => {
+    const s = run([...OPEN, say("subject", "At home."), say("investigator", "Where were you?"), say("subject", " All night.")]);
+    expect(s.captions.map((c) => [c.role, c.text])).toEqual([
+      ["subject", "At home. All night."],
+      ["investigator", "Where were you?"],
+    ]);
+  });
+
+  it("an empty final only closes its speaker's open line and an empty final with none open adds nothing", () => {
+    const s = run([...OPEN, say("investigator", "So"), say("investigator", "", false)]);
+    expect(s.captions).toEqual([{ role: "investigator", text: "So", done: true }]);
+    const mixed = run([...OPEN, say("subject", "At home."), say("investigator", "So"), say("investigator", "", false)]);
+    expect(mixed.captions).toEqual([
+      { role: "subject", text: "At home.", done: false },
+      { role: "investigator", text: "So", done: true },
+    ]);
+    expect(run([say("investigator", "", false)], run(OPEN)).captions).toEqual([]);
+    expect(run([say("subject", "", true)], run(OPEN)).captions).toEqual([]);
+  });
+
+  it("keeps the newest 500 code points of a long line and the newest 20 lines", () => {
+    const long = run([...OPEN, say("subject", "a".repeat(400)), say("subject", "b".repeat(300))]);
+    const text = long.captions[0]?.text ?? "";
+    expect(Array.from(text)).toHaveLength(MAX_CAPTION_CHARS);
+    expect(text.endsWith("b".repeat(300))).toBe(true);
+    const many = run([...OPEN, ...Array.from({ length: 30 }, (_, i) => say("subject", `line ${String(i)}`, false))]);
+    expect(many.captions).toHaveLength(20);
+    expect(many.captions.at(-1)?.text).toBe("line 29");
+    expect(many.captions[0]?.text).toBe("line 10");
+  });
+
+  it("keeps 500 whole code points of an astral-character line, never splitting a surrogate pair", () => {
+    const s = run([...OPEN, say("subject", "\u{1F600}".repeat(400)), say("subject", "\u{1F4A1}".repeat(300))]);
+    const text = s.captions[0]?.text ?? "";
+    const points = Array.from(text);
+    expect(points).toHaveLength(MAX_CAPTION_CHARS);
+    expect(text.length).toBe(1000);
+    expect(points.slice(-300).every((p) => p === "\u{1F4A1}")).toBe(true);
+    expect(points.slice(0, 200).every((p) => p === "\u{1F600}")).toBe(true);
+  });
+
+  it("the exchange frame replaces the captions with one stored entry holding question and answer", () => {
+    const s = run([
+      ...OPEN,
+      say("subject", "At home."),
+      say("investigator", "Where were you?"),
+      { type: "exchange", exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false },
+    ]);
+    expect(s.captions).toEqual([]);
+    expect(s.transcript).toEqual([{ exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false }]);
+  });
+
+  it("keeps null transcripts and partial marks, replaces a repeated exchange, and orders by number", () => {
+    const s = run([
+      ...OPEN,
+      { type: "exchange", exchangeNo: 3, question: null, answer: "a3", partial: true },
+      { type: "exchange", exchangeNo: 1, question: "q1", answer: null, partial: false },
+      { type: "exchange", exchangeNo: 3, question: "q3", answer: "a3", partial: false },
+    ]);
+    expect(s.transcript.map((e) => e.exchangeNo)).toEqual([1, 3]);
+    expect(s.transcript[1]).toEqual({ exchangeNo: 3, question: "q3", answer: "a3", partial: false });
+    expect(s.transcript[0]?.answer).toBeNull();
+  });
+
+  it("a fragment arriving after the exchange stays a caption", () => {
+    const stored = run([{ type: "exchange", exchangeNo: 1, question: "Why?", answer: "Because.", partial: false }, say("subject", " late")], run(OPEN));
+    expect(stored.status).toBe("listening");
+    expect(stored.captions).toEqual([{ role: "subject", text: " late", done: false }]);
+  });
+
+  it("holds no turn, card or acknowledgement state", () => {
+    expectTypeOf<Extract<keyof VoiceState, "committedTurn" | "card" | "ack">>().toEqualTypeOf<never>();
   });
 });
 
@@ -1266,14 +633,14 @@ describe("controlFrame: the browser sends only S5 7.3's controls", () => {
 });
 
 describe("audioUtterance: audio frames belong to the open utterance", () => {
-  it("attributes audio to the open utterance and drops it otherwise", () => {
+  it("attributes audio to the open utterance on an open socket and drops it otherwise", () => {
     const open = run([...OPEN, { type: "utterance_start", utterance: 4 }]);
     expect(audioUtterance(open)).toBe(4);
     expect(audioUtterance(voiceReducer(open, { type: "interrupted", utterance: 4 }))).toBeNull();
     expect(audioUtterance(voiceReducer(open, { type: "utterance_end", utterance: 4 }))).toBeNull();
     expect(audioUtterance(run(OPEN))).toBeNull();
-    const dropped = voiceReducer(open, { type: "socket_closed", code: 1006, resumable: true });
-    expect(audioUtterance(dropped)).toBeNull();
+    expect(audioUtterance(voiceReducer(open, closed(1006)))).toBeNull();
+    expect(EXCHANGE_CAP).toBe(12);
   });
 });
 
@@ -1284,24 +651,24 @@ describe("voiceBarState: FE-VOICE-6, connection x capture x server activity x pl
     ["idle", initialVoiceState("live"), false, "hidden"],
     ["consent", run([{ type: "open_consent" }]), true, "hidden"],
     ["connecting", run([{ type: "open_consent" }, { type: "connect" }]), true, "connecting"],
-    ["reconnecting", run([{ type: "socket_closed", code: 1006, resumable: true }], open), false, "connecting"],
-    ["upstream resuming", run([{ type: "warning", reason: "connection_lost_resume", seconds: null }], open), true, "connecting"],
     ["open, quiet, nothing pending", open, false, "listening"],
     ["open, capture above the floor", open, true, "investigator_speaking"],
-    ["open, investigator partial transcription, capture below", run([{ type: "transcription", role: "investigator", text: "So", partial: true }], open), false, "investigator_speaking"],
-    ["turn ended, no utterance yet, capture below", run([{ type: "transcription", role: "investigator", text: "Why?", partial: false }], open), false, "preparing_answer"],
-    ["turn ended, capture above again", run([{ type: "transcription", role: "investigator", text: "Why?", partial: false }], open), true, "investigator_speaking"],
+    ["open, investigator partial transcription only (captions never drive the bar)", run([say("investigator", "So")], open), false, "listening"],
+    ["open, capture edge: investigator active, level below floor", run([{ type: "investigator_audio" }], open), false, "investigator_speaking"],
+    ["turn ended, no utterance yet, capture below", run(turn, open), false, "preparing_answer"],
+    ["turn ended, capture above again", run(turn, open), true, "investigator_speaking"],
     ["utterance open, playback not started", run([{ type: "utterance_start", utterance: 1 }], open), false, "preparing_answer"],
-    ["utterance open, playback not started, investigator talking", run([{ type: "utterance_start", utterance: 1 }], open), true, "investigator_speaking"],
-    ["utterance open and audible", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }], open), false, "subject_speaking"],
-    ["utterance open, investigator talking over it", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }], open), true, "subject_speaking"],
-    ["utterance open, playback underrun", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }, { type: "playback", utterance: null }], open), false, "preparing_answer"],
-    ["utterance ended, audio still queued", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }, { type: "utterance_end", utterance: 1 }], open), false, "subject_speaking"],
-    ["utterance ended, queue drained", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }, { type: "utterance_end", utterance: 1 }, { type: "playback", utterance: null }], open), false, "listening"],
-    ["interrupted, then a stale playback report", run([{ type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }, { type: "interrupted", utterance: 1 }, { type: "playback", utterance: 1 }], open), false, "listening"],
+    ["utterance open and audible", run(speaking(), open), false, "subject_speaking"],
+    ["utterance open, investigator talking over it", run(speaking(), open), true, "subject_speaking"],
+    ["utterance open, playback underrun", run([...speaking(), { type: "playback", utterance: null }], open), false, "preparing_answer"],
+    ["utterance ended, audio still queued", run([...speaking(), { type: "utterance_end", utterance: 1 }], open), false, "subject_speaking"],
+    ["utterance ended, queue drained", run([...speaking(), { type: "utterance_end", utterance: 1 }, { type: "playback", utterance: null }], open), false, "listening"],
+    ["interrupted, then a stale playback report", run([...speaking(), { type: "interrupted", utterance: 1 }, { type: "playback", utterance: 1 }], open), false, "listening"],
+    ["closed by 4410 with audio queued", run([...speaking(), closed(4410)], open), false, "finishing_answer"],
     ["push-to-talk held, silent", run([{ type: "talk_start" }], ptt), false, "recording"],
-    ["push-to-talk released", run([{ type: "talk_start" }, { type: "talk_end" }], ptt), false, "listening"],
-    ["ended", run([{ type: "socket_closed", code: 1000, resumable: false }], open), true, "ended"],
+    ["push-to-talk released, no answer yet", run([{ type: "talk_start" }, { type: "talk_end" }], ptt), false, "preparing_answer"],
+    ["ended", run([closed(1000)], open), true, "ended"],
+    ["ended by a transport drop", run([closed(1006)], open), false, "ended"],
   ];
   it.each(rows)("%s", (_label, voice, captureAboveFloor, bar) => {
     expect(voiceBarState({ voice, captureAboveFloor })).toBe(bar);
@@ -1310,7 +677,7 @@ describe("voiceBarState: FE-VOICE-6, connection x capture x server activity x pl
 
 describe("talkLevel and inputLevel: one amplitude from the playback node", () => {
   const still = { reducedMotion: false, paused: false };
-  const playing = run([...OPEN, { type: "utterance_start", utterance: 1 }, { type: "playback", utterance: 1 }]);
+  const playing = run([...OPEN, ...speaking()]);
 
   it("passes the playback level through only while audio is actually playing", () => {
     expect(talkLevel(playing, 0.6, still)).toBe(0.6);
@@ -1319,10 +686,10 @@ describe("talkLevel and inputLevel: one amplitude from the playback node", () =>
     expect(talkLevel(run(OPEN), 0.6, still)).toBe(0);
   });
 
-  it("drops to 0 on the interrupted event itself, before the analyser decays", () => {
+  it("keeps the amplitude while draining and drops it to 0 on interrupted, before the analyser decays", () => {
+    expect(talkLevel(run([closed(4410)], playing), 0.5, still)).toBe(0.5);
     const interrupted = voiceReducer(playing, { type: "interrupted", utterance: 1 });
     expect(talkLevel(interrupted, 0.9, still)).toBe(0);
-    // A playback report the worklet posted before it flushed does not bring the mouth back.
     expect(talkLevel(voiceReducer(interrupted, { type: "playback", utterance: 1 }), 0.9, still)).toBe(0);
   });
 
@@ -1335,24 +702,16 @@ describe("talkLevel and inputLevel: one amplitude from the playback node", () =>
     expect([1.7, -0.2, Number.NaN, Number.POSITIVE_INFINITY].map((l) => talkLevel(playing, l, still))).toEqual([1, 0, 0, 0]);
   });
 
-  it("shows the investigator's own level only above the floor, while the mic is live", () => {
+  it("shows the investigator's own level only above the floor, while the mic is live and not draining", () => {
     const live = run(OPEN);
     expect(inputLevel(live, 0.4, 0.05, still)).toBe(0.4);
     expect(inputLevel(live, 0.05, 0.05, still)).toBe(0);
     expect(inputLevel(live, 0.4, 0.05, { reducedMotion: true, paused: false })).toBe(0);
     expect(inputLevel(live, 0.4, 0.05, { reducedMotion: false, paused: true })).toBe(0);
     expect(inputLevel(initialVoiceState("live"), 0.4, 0.05, still)).toBe(0);
-    expect(inputLevel(run([{ type: "socket_closed", code: 1000, resumable: false }], live), 0.4, 0.05, still)).toBe(0);
+    expect(inputLevel(run([closed(1000)], live), 0.4, 0.05, still)).toBe(0);
+    expect(inputLevel(run([closed(4410)], playing), 0.4, 0.05, still)).toBe(0);
     expect(inputLevel(run([{ type: "open_consent" }, { type: "connect" }]), 0.4, 0.05, still)).toBe(0.4);
     expect(inputLevel(live, 3, 0.05, still)).toBe(1);
-  });
-});
-
-describe("resumeDelayMs", () => {
-  it("is null unless a client resume is pending, including for a malformed state", () => {
-    expect(resumeDelayMs(run(OPEN))).toBeNull();
-    const reconnecting = run([...OPEN, { type: "socket_closed", code: 1006, resumable: true }]);
-    expect(resumeDelayMs(reconnecting)).toBe(500);
-    expect(resumeDelayMs({ ...reconnecting, resumeAttempts: 9 })).toBeNull();
   });
 });
