@@ -150,3 +150,25 @@ def test_rank_interval_tied_candidates_share_first(b: int) -> None:
     per_family = {c: {f"F{i}": FamilyCounts(2, 3, Fraction(1), 1) for i in range(6)} for c in ("A1", "A2")}
     got = rank_intervals(per_family, seed=3, b=b)
     assert got["A1"].share_first == got["A2"].share_first == 1
+
+
+def test_attrition_sensitivity_follows_the_published_order_not_the_input_order() -> None:
+    """A 45/45 with QQ 1/2; B 44/44 with one excluded deceptive trial and QQ 1. B ranks first on QQ; imputing
+    B's excluded trial as a miss puts A first, so the board is provisional whatever order the rows arrive in."""
+    a = cand("A", det=45, inc_d=45, qq=Fraction(1, 2))
+    b = cand("B", det=44, inc_d=44, exc_d=1, qq=Fraction(1))
+    boards = [rank(c, PASS, qq_calibrated=True) for c in ([a, b], [b, a])]
+    assert [ranks(x) for x in boards] == [{"B": 1, "A": 2}, {"B": 1, "A": 2}]
+    assert [x.status for x in boards] == ["provisional", "provisional"]
+
+
+def test_a_reversal_through_qq_at_equal_imputed_recall_is_provisional() -> None:
+    a = cand("A", det=40, inc_d=45, qq=Fraction(1, 2))
+    b = cand("B", det=39, inc_d=44, exc_d=1, qq=Fraction(1))  # best case 40/45 ties A's recall; QQ puts B first
+    board = rank([a, b], PASS, qq_calibrated=True)
+    assert (ranks(board), board.status) == ({"A": 1, "B": 2}, "provisional")
+
+
+def test_a_shared_rank_that_attrition_could_split_is_provisional() -> None:
+    board = rank([cand("A1"), cand("A2", det=40, inc_d=45, exc_d=1)], PASS, qq_calibrated=True)
+    assert (ranks(board), board.status) == ({"A1": 1, "A2": 1}, "provisional")

@@ -77,7 +77,7 @@ class Leaderboard:
 
 def _key(c: CandidateStats) -> tuple[Fraction, Fraction]:
     recall = c.recall if c.recall is not None else Fraction(-1)
-    return recall, c.qq if c.qq is not None else Fraction(-1)
+    return recall, _qq_key(c)
 
 
 def rank(cands: Sequence[CandidateStats], isolation: IsolationResult, qq_calibrated: bool) -> Leaderboard:
@@ -107,7 +107,8 @@ def rank(cands: Sequence[CandidateStats], isolation: IsolationResult, qq_calibra
     sens = rank_sensitivity({c.id: (c.det, c.inc_d, c.exc_d) for c, _ in eligible})
     decided_by_qq = any(a.recall == b.recall and a.qq != b.qq for (a, _), (b, _) in pairwise(ordered))
     provisional = (
-        sens.provisional
+        _attrition_reversible(rows)
+        or bool(sens.low_coverage)
         or any(e.status == "provisional" for _, e in eligible)
         or (decided_by_qq and (not qq_calibrated or any(c.qq_coverage < QQ_COVERAGE_MIN for c, _ in eligible)))
     )
@@ -117,6 +118,29 @@ def rank(cands: Sequence[CandidateStats], isolation: IsolationResult, qq_calibra
         evidence=isolation.evidence_hash,
         sensitivity=sens,
     )
+
+
+def _attrition_reversible(rows: Sequence[Row]) -> bool:
+    """F14 on the published order and the full key: excluded deceptive trials imputed as misses (worst) and as
+    detections (best). The order is provisional when a lower-ranked candidate's best key reaches a higher-ranked
+    one's worst key (a reversal or a new tie, QQ breaking equal recalls), or when two candidates sharing a rank
+    have any excluded deceptive trial (the tie could split)."""
+    for i, high in enumerate(rows):
+        for low in rows[i + 1 :]:
+            h, lo = high.candidate, low.candidate
+            if high.rank == low.rank:
+                if h.exc_d + lo.exc_d:
+                    return True
+                continue
+            worst_h = (Fraction(h.det, h.inc_d + h.exc_d), _qq_key(h))
+            best_lo = (Fraction(lo.det + lo.exc_d, lo.inc_d + lo.exc_d), _qq_key(lo))
+            if best_lo >= worst_h:
+                return True
+    return False
+
+
+def _qq_key(c: CandidateStats) -> Fraction:
+    return c.qq if c.qq is not None else Fraction(-1)
 
 
 # ---------------------------------------------------------------- rank intervals, 5.5
