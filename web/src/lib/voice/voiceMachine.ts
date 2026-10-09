@@ -10,9 +10,9 @@
  * by role.
  *
  * Protocol v2.5 (S5 7.3-7.5, S6 6.2; D7, D-016): voice is display-only and unscored.
- *   - The stored `exchange {exchange_no, question, answer, partial}` frame is the transcript: the
- *     only place a question is paired with its answer, with either text null after the server's
- *     grace. Live captions (`transcription`) are display-only, kept in arrival order and never
+ *   - The stored `exchange {exchange_no, lines[{role, text, partial}]}` frame is the transcript:
+ *     the window's role-tagged lines in arrival order, with no pairing of question and answer
+ *     (SG3-41). Live captions (`transcription`) are display-only, kept in arrival order and never
  *     paired; an `exchange` frame replaces them. Voice creates no turns, cards or acknowledgements.
  *   - There is no `ended` frame and no `turn_committed` frame: the WebSocket close code alone ends
  *     the session (SG4-32).
@@ -74,13 +74,21 @@ export interface CaptionLine {
   readonly done: boolean;
 }
 
-/** One stored exchange (S5 7.4): the transcript entry `V{exchangeNo}`. Either text may be null. */
+/** One role-tagged line of a stored window; `partial` marks a subject line Live reported interrupted. */
+export interface ExchangeLine {
+  readonly role: CaptionRole;
+  readonly text: string;
+  readonly partial: boolean;
+}
+
+/**
+ * One stored exchange window (S5 7.3-7.4): the transcript entry `V{exchangeNo}`. Its lines are in
+ * arrival order and claim no pairing of question and answer (SG3-41); a late line is stored in the
+ * window it arrived in.
+ */
 export interface ExchangeEntry {
   readonly exchangeNo: number;
-  readonly question: string | null;
-  readonly answer: string | null;
-  /** The subject's utterance was interrupted: its text can include words never heard. */
-  readonly partial: boolean;
+  readonly lines: readonly ExchangeLine[];
 }
 
 /** The machine's full state. Never carries cost. */
@@ -163,15 +171,22 @@ export const MAX_CAPTION_CHARS = 500;
 /** The newest caption lines kept; `exchange` frames clear them long before this. */
 export const MAX_CAPTION_LINES = 20;
 
-/** S5 7.4: stored question and answer are cut to 600 and 900 characters. */
-export const MAX_QUESTION_CHARS = 600;
-export const MAX_ANSWER_CHARS = 900;
+/** S5 7.3: a stored exchange line's text is at most 900 characters (code points). */
+export const MAX_LINE_CHARS = 900;
 
 /** S5 7.3: `exchange_count.cap` is always 12 (BKO-8). */
 export const EXCHANGE_CAP = 12;
 
-/** The state before the voice control is used; `transcript` is the trial's stored exchanges. */
-export function initialVoiceState(mode: VoiceMode, transcript: readonly ExchangeEntry[] = []): VoiceState {
+/**
+ * The state before the voice control is used. `transcript` and `exchangeCount` come from the
+ * snapshot's voice branch (`voice_exchanges[]`, `exchanges_used`, `exchanges_cap`), so a reload shows
+ * the stored windows and the trial's count before the socket opens (S5 7.7, FE-VOICE-9).
+ */
+export function initialVoiceState(
+  mode: VoiceMode,
+  transcript: readonly ExchangeEntry[] = [],
+  exchangeCount: { readonly used: number; readonly cap: number } | null = null,
+): VoiceState {
   return {
     status: "idle",
     mode,
@@ -187,7 +202,7 @@ export function initialVoiceState(mode: VoiceMode, transcript: readonly Exchange
     interruptedUtterance: null,
     captions: [],
     transcript,
-    exchangeCount: null,
+    exchangeCount,
     timeRemaining: null,
     endingSoon: false,
     endedKey: null,
@@ -234,7 +249,12 @@ export function reconnectOffered(state: VoiceState): boolean {
  * carries over, because it belongs to the trial.
  */
 export function reconnectState(previous: VoiceState): VoiceState {
-  return withStatus({ ...initialVoiceState(previous.mode, previous.transcript), connection: "connecting" });
+  return withStatus({
+    ...initialVoiceState(previous.mode, previous.transcript),
+    // The 12-exchange cap is per trial across voice sessions (S5 7.4); the next `exchange_count` refreshes it.
+    exchangeCount: previous.exchangeCount,
+    connection: "connecting",
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -249,9 +269,12 @@ function fits(value: unknown, max: number): value is string {
   return typeof value === "string" && Array.from(value).length <= max;
 }
 
-function nullableText(value: unknown, max: number): string | null | undefined {
-  if (value === null) return null;
-  return fits(value, max) ? value : undefined;
+function parseLine(value: unknown): ExchangeLine | null {
+  if (!isRecord(value)) return null;
+  const { role, text, partial } = value;
+  if (role !== "investigator" && role !== "subject") return null;
+  if (!fits(text, MAX_LINE_CHARS) || typeof partial !== "boolean") return null;
+  return { role, text, partial };
 }
 
 /**
@@ -276,12 +299,11 @@ export function frameToEvent(frame: unknown): VoiceEvent | null {
       return { type, role, text, partial };
     }
     case "exchange": {
-      const { exchange_no: exchangeNo, partial } = frame;
-      const question = nullableText(frame["question"], MAX_QUESTION_CHARS);
-      const answer = nullableText(frame["answer"], MAX_ANSWER_CHARS);
-      if (!isCount(exchangeNo) || exchangeNo < 1 || exchangeNo > EXCHANGE_CAP) return null;
-      if (question === undefined || answer === undefined || typeof partial !== "boolean") return null;
-      return { type, exchangeNo, question, answer, partial };
+      const { exchange_no: exchangeNo, lines: rawLines } = frame;
+      if (!isCount(exchangeNo) || exchangeNo < 1 || exchangeNo > EXCHANGE_CAP || !Array.isArray(rawLines)) return null;
+      const lines = (rawLines as unknown[]).map(parseLine);
+      if (lines.some((line) => line === null)) return null;
+      return { type, exchangeNo, lines: lines as ExchangeLine[] };
     }
     case "exchange_count": {
       const { used, cap } = frame;
@@ -436,7 +458,7 @@ function onServerFrame(state: VoiceState, event: ServerEvent): VoiceState {
       // Captions are display only and change no activity: they arrive unordered against audio and turns.
       return withStatus({ ...state, captions: addFragment(state.captions, event.role, event.text, event.partial) });
     case "exchange": {
-      const entry: ExchangeEntry = { exchangeNo: event.exchangeNo, question: event.question, answer: event.answer, partial: event.partial };
+      const entry: ExchangeEntry = { exchangeNo: event.exchangeNo, lines: event.lines };
       return withStatus({ ...state, transcript: upsertExchange(state.transcript, entry), captions: [] });
     }
     case "exchange_count":

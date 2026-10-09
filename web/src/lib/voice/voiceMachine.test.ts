@@ -75,18 +75,19 @@ describe("frameToEvent: the S5 7.3 frame whitelist", () => {
     [{ type: "transcription", role: "subject", text: "x".repeat(MAX_CAPTION_CHARS), partial: true }, say("subject", "x".repeat(MAX_CAPTION_CHARS))],
     [{ type: "transcription", role: "investigator", text: "", partial: false }, say("investigator", "", false)],
     [
-      { type: "exchange", exchange_no: 2, question: "Where were you?", answer: "At home.", partial: false },
-      { type: "exchange", exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false },
+      { type: "exchange", exchange_no: 2, lines: [{ role: "investigator", text: "Where were you?", partial: false }, { role: "subject", text: "At home.", partial: false }] },
+      { type: "exchange", exchangeNo: 2, lines: [{ role: "investigator", text: "Where were you?", partial: false }, { role: "subject", text: "At home.", partial: false }] },
     ],
     [
-      { type: "exchange", exchange_no: 12, question: null, answer: null, partial: true },
-      { type: "exchange", exchangeNo: 12, question: null, answer: null, partial: true },
+      { type: "exchange", exchange_no: 12, lines: [{ role: "subject", text: "I never", partial: true }] },
+      { type: "exchange", exchangeNo: 12, lines: [{ role: "subject", text: "I never", partial: true }] },
     ],
     [
-      { type: "exchange", exchange_no: 1, question: "q".repeat(600), answer: "a".repeat(900), partial: false },
-      { type: "exchange", exchangeNo: 1, question: "q".repeat(600), answer: "a".repeat(900), partial: false },
+      { type: "exchange", exchange_no: 3, lines: [{ role: "subject", text: "late", partial: false }, { role: "investigator", text: "and then?", partial: false }, { role: "subject", text: "x".repeat(900), partial: false }] },
+      { type: "exchange", exchangeNo: 3, lines: [{ role: "subject", text: "late", partial: false }, { role: "investigator", text: "and then?", partial: false }, { role: "subject", text: "x".repeat(900), partial: false }] },
     ],
-    [{ type: "exchange_count", used: 12, cap: 12 }, { type: "exchange_count", used: 12, cap: 12 }],
+    [{ type: "exchange", exchange_no: 1, lines: [] }, { type: "exchange", exchangeNo: 1, lines: [] }],
+        [{ type: "exchange_count", used: 12, cap: 12 }, { type: "exchange_count", used: 12, cap: 12 }],
     [{ type: "timer_tick", time_remaining: 42.9 }, { type: "timer_tick", timeRemaining: 42 }],
     [{ type: "timer_tick", time_remaining: -3 }, { type: "timer_tick", timeRemaining: 0 }],
     [{ type: "warning", reason: "ending_soon", seconds: 60 }, { type: "warning", reason: "ending_soon", seconds: 60 }],
@@ -121,14 +122,22 @@ describe("frameToEvent: the S5 7.3 frame whitelist", () => {
     ["a bad role", { type: "transcription", role: "judge", text: "x", partial: true }],
     ["a non-boolean partial", { type: "transcription", role: "subject", text: "x", partial: "yes" }],
     ["a caption over 500 code points", { type: "transcription", role: "subject", text: "x".repeat(501), partial: true }],
-    ["an exchange numbered 0", { type: "exchange", exchange_no: 0, question: "q", answer: "a", partial: false }],
-    ["an exchange numbered past the cap", { type: "exchange", exchange_no: 13, question: "q", answer: "a", partial: false }],
-    ["a fractional exchange number", { type: "exchange", exchange_no: 1.5, question: "q", answer: "a", partial: false }],
-    ["an exchange with a numeric question", { type: "exchange", exchange_no: 1, question: 7, answer: "a", partial: false }],
-    ["an exchange with a missing answer", { type: "exchange", exchange_no: 1, question: "q", partial: false }],
-    ["an exchange with a non-boolean partial", { type: "exchange", exchange_no: 1, question: "q", answer: "a", partial: 1 }],
-    ["an exchange question over 600 code points", { type: "exchange", exchange_no: 1, question: "q".repeat(601), answer: "a", partial: false }],
-    ["an exchange answer over 900 code points", { type: "exchange", exchange_no: 1, question: "q", answer: "a".repeat(901), partial: false }],
+    ["an exchange numbered 0", { type: "exchange", exchange_no: 0, lines: [] }],
+    ["an exchange numbered past the cap", { type: "exchange", exchange_no: 13, lines: [] }],
+    ["a fractional exchange number", { type: "exchange", exchange_no: 1.5, lines: [] }],
+    ["a negative exchange number", { type: "exchange", exchange_no: -1, lines: [] }],
+    ["an exchange with no lines field", { type: "exchange", exchange_no: 1 }],
+    ["the withdrawn question/answer exchange shape", { type: "exchange", exchange_no: 1, question: "q", answer: "a", partial: false }],
+    ["an exchange whose lines is not an array", { type: "exchange", exchange_no: 1, lines: "x" }],
+    ["an exchange with a non-object line", { type: "exchange", exchange_no: 1, lines: ["x"] }],
+    ["an exchange line with a bad role", { type: "exchange", exchange_no: 1, lines: [{ role: "judge", text: "x", partial: false }] }],
+    ["an exchange line with no role", { type: "exchange", exchange_no: 1, lines: [{ text: "x", partial: false }] }],
+    ["an exchange line with numeric text", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", text: 7, partial: false }] }],
+    ["an exchange line with no text", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", partial: false }] }],
+    ["an exchange line with a non-boolean partial", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", text: "x", partial: 1 }] }],
+    ["an exchange line with no partial", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", text: "x" }] }],
+    ["an exchange line over 900 code points", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", text: "x".repeat(901), partial: false }] }],
+    ["one bad line among good ones", { type: "exchange", exchange_no: 1, lines: [{ role: "subject", text: "x", partial: false }, { role: "subject", text: 1, partial: false }] }],
     ["an exchange_count with another cap", { type: "exchange_count", used: 3, cap: 10 }],
     ["an exchange_count used past the cap", { type: "exchange_count", used: 13, cap: 12 }],
     ["an exchange_count with a negative used", { type: "exchange_count", used: -1, cap: 12 }],
@@ -140,7 +149,6 @@ describe("frameToEvent: the S5 7.3 frame whitelist", () => {
     ["a timer_tick with a string time", { type: "timer_tick", time_remaining: "9" }],
     ["a warning with negative seconds", { type: "warning", reason: "ending_soon", seconds: -1 }],
     ["a warning with string seconds", { type: "warning", reason: "ending_soon", seconds: "60" }],
-    ["an exchange with a negative number", { type: "exchange", exchange_no: -1, question: "q", answer: "a", partial: false }],
     ["an utterance_start with a string number", { type: "utterance_start", utterance: "1" }],
     ["an utterance_end with no number", { type: "utterance_end" }],
     ["a non-finite timer", { type: "timer_tick", time_remaining: Number.POSITIVE_INFINITY }],
@@ -191,7 +199,7 @@ describe("voiceReducer: FE-VOICE-1, every (state, event) pair", () => {
     ["utterance_end 1", { type: "utterance_end", utterance: 1 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
     ["interrupted 1", { type: "interrupted", utterance: 1 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "listening", "draining", "ended"]],
     ["transcription", say("subject", "hi"), ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
-    ["exchange", { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
+    ["exchange", { type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "a", partial: false }] }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
     ["exchange_count", { type: "exchange_count", used: 1, cap: 12 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
     ["timer_tick", { type: "timer_tick", timeRemaining: 5 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
     ["warning", { type: "warning", reason: "ending_soon", seconds: 60 }, ["idle", "consent", "connecting", "listening", "recording", "thinking", "speaking", "draining", "ended"]],
@@ -284,14 +292,14 @@ describe("voiceReducer: server activity and playback", () => {
     const during = run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, say("investigator", "Wh")]);
     expect(voiceBarState({ voice: during, captureAboveFloor: false })).toBe("preparing_answer");
     // A late partial after the turn ended and the exchange was stored does not say "You are speaking".
-    const stored = run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, { type: "utterance_end", utterance: 1 }, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, say("investigator", "Wh")]);
+    const stored = run([...OPEN, ...turn, { type: "utterance_start", utterance: 1 }, { type: "utterance_end", utterance: 1 }, { type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "a", partial: false }] }, say("investigator", "Wh")]);
     expect(voiceBarState({ voice: stored, captureAboveFloor: false })).toBe("listening");
     expect(voiceBarState({ voice: run([...OPEN, { type: "investigator_audio" }]), captureAboveFloor: false })).toBe("investigator_speaking");
   });
 
   it("an exchange frame does not erase a question already finished for the next exchange", () => {
     // Exchange k is stored after the investigator's next turn ended (S5 7.4 holds that audio meanwhile).
-    const s = run([...OPEN, { type: "utterance_start", utterance: 1 }, ...turn, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }, { type: "utterance_end", utterance: 1 }]);
+    const s = run([...OPEN, { type: "utterance_start", utterance: 1 }, ...turn, { type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "a", partial: false }] }, { type: "utterance_end", utterance: 1 }]);
     expect(s.awaitingAnswer).toBe(true);
     expect(s.status).toBe("thinking");
     expect(run([{ type: "utterance_start", utterance: 2 }], s).awaitingAnswer).toBe(false);
@@ -335,7 +343,7 @@ describe("voiceReducer: server activity and playback", () => {
   });
 
   it("push-to-talk held across the exchange store keeps the investigator active", () => {
-    const s = run([...OPEN, { type: "talk_start" }, { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false }]);
+    const s = run([...OPEN, { type: "talk_start" }, { type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "a", partial: false }] }]);
     expect(s.talkHeld).toBe(true);
     expect(s.investigatorActive).toBe(true);
     expect(s.status).toBe("recording");
@@ -397,7 +405,7 @@ describe("FE-VOICE-7: termination, draining and flushing", () => {
   const sequence: VoiceEvent[] = [
     ...OPEN,
     ...speaking(7),
-    { type: "exchange", exchangeNo: 12, question: "q", answer: "a", partial: false },
+    { type: "exchange", exchangeNo: 12, lines: [{ role: "subject", text: "a", partial: false }] },
     { type: "exchange_count", used: 12, cap: 12 },
     { type: "utterance_end", utterance: 7 },
   ];
@@ -506,7 +514,7 @@ describe("transport drops: no resumption", () => {
       ...OPEN,
       { type: "utterance_start", utterance: 4 },
       say("subject", "At ho"),
-      { type: "exchange", exchangeNo: 1, question: "q", answer: "a", partial: false },
+      { type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "a", partial: false }] },
       { type: "exchange_count", used: 1, cap: 12 },
       { type: "timer_tick", timeRemaining: 30 },
       { type: "warning", reason: "ending_soon", seconds: 60 },
@@ -520,7 +528,10 @@ describe("transport drops: no resumption", () => {
     expect(fresh.captions).toEqual([]);
     expect(fresh.audible).toBeNull();
     expect(fresh.interruptedUtterance).toBeNull();
-    expect(fresh.exchangeCount).toBeNull();
+    // The cap is per trial across voice sessions: the trial-level count carries over.
+    expect(fresh.exchangeCount).toEqual({ used: 1, cap: 12 });
+    expect(run([{ type: "socket_open" }, { type: "exchange_count", used: 1, cap: 12 }], fresh).exchangeCount).toEqual({ used: 1, cap: 12 });
+    expect(run([{ type: "socket_open" }, { type: "exchange_count", used: 2, cap: 12 }], fresh).exchangeCount?.used).toBe(2);
     expect(fresh.timeRemaining).toBeNull();
     expect(fresh.endingSoon).toBe(false);
     expect(fresh.mode).toBe(old.mode);
@@ -586,31 +597,62 @@ describe("FE-VOICE-3 and FE-VOICE-8: captions are unpaired; the stored exchange 
     expect(points.slice(0, 200).every((p) => p === "\u{1F600}")).toBe(true);
   });
 
-  it("the exchange frame replaces the captions with one stored entry holding question and answer", () => {
-    const s = run([
-      ...OPEN,
-      say("subject", "At home."),
-      say("investigator", "Where were you?"),
-      { type: "exchange", exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false },
-    ]);
+  it("the exchange frame replaces the captions with one stored entry listing the window's role-tagged lines in arrival order", () => {
+    const lines = [
+      { role: "subject", text: "At home.", partial: false },
+      { role: "investigator", text: "Where were you?", partial: false },
+    ] as const;
+    const s = run([...OPEN, say("subject", "At home."), say("investigator", "Where were you?"), { type: "exchange", exchangeNo: 2, lines }]);
     expect(s.captions).toEqual([]);
-    expect(s.transcript).toEqual([{ exchangeNo: 2, question: "Where were you?", answer: "At home.", partial: false }]);
+    expect(s.transcript).toEqual([{ exchangeNo: 2, lines }]);
   });
 
-  it("keeps null transcripts and partial marks, replaces a repeated exchange, and orders by number", () => {
-    const s = run([
-      ...OPEN,
-      { type: "exchange", exchangeNo: 3, question: null, answer: "a3", partial: true },
-      { type: "exchange", exchangeNo: 1, question: "q1", answer: null, partial: false },
-      { type: "exchange", exchangeNo: 3, question: "q3", answer: "a3", partial: false },
-    ]);
+  it("keeps per-line partial marks, makes no pairing claim, and renders a late line in the window it arrived in", () => {
+    const first = { type: "exchange", exchangeNo: 1, lines: [{ role: "investigator", text: "Where were you?", partial: false }, { role: "subject", text: "At ho", partial: true }] } as const;
+    // The end of question 1 is stored in window 2, with its role, ahead of question 2's own line.
+    const second = { type: "exchange", exchangeNo: 2, lines: [{ role: "investigator", text: " that night?", partial: false }, { role: "subject", text: "No.", partial: false }] } as const;
+    const s = run([...OPEN, first, second]);
+    expect(s.transcript.map((e) => e.exchangeNo)).toEqual([1, 2]);
+    expect(s.transcript[0]?.lines.map((l) => l.partial)).toEqual([false, true]);
+    expect(s.transcript[1]?.lines[0]).toEqual({ role: "investigator", text: " that night?", partial: false });
+    expect(Object.keys(s.transcript[0] ?? {}).sort()).toEqual(["exchangeNo", "lines"]);
+  });
+
+  it("an exchange with an existing number replaces it, never duplicates, and entries stay ordered by number", () => {
+    const entry = (exchangeNo: number, text: string) => ({ type: "exchange", exchangeNo, lines: [{ role: "subject", text, partial: false }] }) as const;
+    const s = run([...OPEN, entry(3, "old"), entry(1, "one"), entry(3, "new")]);
     expect(s.transcript.map((e) => e.exchangeNo)).toEqual([1, 3]);
-    expect(s.transcript[1]).toEqual({ exchangeNo: 3, question: "q3", answer: "a3", partial: false });
-    expect(s.transcript[0]?.answer).toBeNull();
+    expect(s.transcript[1]?.lines).toEqual([{ role: "subject", text: "new", partial: false }]);
+    // An empty window is stored as an empty entry (the room shows it as untranscribed).
+    expect(run([entry(1, "x"), { type: "exchange", exchangeNo: 1, lines: [] }], run(OPEN)).transcript).toEqual([{ exchangeNo: 1, lines: [] }]);
+  });
+
+  it.each([3, 12])("restores %i stored windows and the trial's count before any socket (FE-VOICE-9)", (used) => {
+    const stored = Array.from({ length: used }, (_, i) => ({ exchangeNo: i + 1, lines: [{ role: "subject" as const, text: `s${String(i + 1)}`, partial: false }] }));
+    const fresh = initialVoiceState("live", stored, { used, cap: 12 });
+    expect(fresh.transcript).toHaveLength(used);
+    expect(fresh.exchangeCount).toEqual({ used, cap: 12 });
+    // The count survives the whole session lifecycle, including a reconnect, until a newer one arrives.
+    const dropped = run([...OPEN, closed(1006)], fresh);
+    expect(reconnectState(dropped).exchangeCount).toEqual({ used, cap: 12 });
+    expect(reconnectState(dropped).transcript).toHaveLength(used);
+    // A repeated exchange number replaces its entry; the stored count is not duplicated.
+    const replaced = run([...OPEN, { type: "exchange", exchangeNo: used, lines: [{ role: "subject", text: "again", partial: false }] }], fresh);
+    expect(replaced.transcript).toHaveLength(used);
+    expect(replaced.transcript.at(-1)?.lines[0]?.text).toBe("again");
+    // A stale count from the socket does not lower the restored one.
+    expect(run([...OPEN, { type: "exchange_count", used: used - 1, cap: 12 }], fresh).exchangeCount?.used).toBe(used);
+  });
+
+  it("starts from the snapshot's stored exchanges and a later frame replaces its number (FE-VOICE-9)", () => {
+    const stored = [1, 2, 3].map((exchangeNo) => ({ exchangeNo, lines: [{ role: "subject" as const, text: `s${String(exchangeNo)}`, partial: false }] }));
+    const s = run([...OPEN, { type: "exchange", exchangeNo: 2, lines: [{ role: "subject", text: "again", partial: false }] }], initialVoiceState("live", stored));
+    expect(s.transcript.map((e) => e.exchangeNo)).toEqual([1, 2, 3]);
+    expect(s.transcript[1]?.lines[0]?.text).toBe("again");
   });
 
   it("a fragment arriving after the exchange stays a caption", () => {
-    const stored = run([{ type: "exchange", exchangeNo: 1, question: "Why?", answer: "Because.", partial: false }, say("subject", " late")], run(OPEN));
+    const stored = run([{ type: "exchange", exchangeNo: 1, lines: [{ role: "subject", text: "Because.", partial: false }] }, say("subject", " late")], run(OPEN));
     expect(stored.status).toBe("listening");
     expect(stored.captions).toEqual([{ role: "subject", text: " late", done: false }]);
   });
