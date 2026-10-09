@@ -205,6 +205,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   /** Idempotency keys some attempt of which may have been applied (a lost answer, a 5xx, a malformed answer). */
   const uncertainKeys = new Set<string>();
   let completing: Promise<void> | null = null;
+  /** Callers of complete() still waiting: released when the end state is loaded or the controller is disposed. */
+  const endWaiters = new Set<() => void>();
   /** The gap-free prefix a snapshot re-read was last made for. */
   let gapResynced: number | null = null;
   let resyncing = false;
@@ -336,6 +338,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     if (isDisposed() || state.connection === "finished" || !terminalLoaded() || !published()) return;
     stopForGood();
     set({ connection: "finished", error: null });
+    for (const release of [...endWaiters]) release();
   }
 
   /** The published debrief.v1 is in (a `scoring` answer is not). */
@@ -430,7 +433,17 @@ export function createSessionController(options: SessionControllerOptions): Sess
       // Only the run in flight is shared: a later call (another debrief request) reads the REST state again.
       completing = null;
     });
-    return completing;
+    // A caller waits for this run, or less: the end state loaded by another request, or dispose, releases it too,
+    // so no caller hangs on a read that no longer matters.
+    const run = completing;
+    return new Promise<void>((resolve) => {
+      const release = () => {
+        endWaiters.delete(release);
+        resolve();
+      };
+      endWaiters.add(release);
+      void run.then(release);
+    });
   };
 
   /** Practice text streams are gap-free (S5 6.1): there the cursor stops at the gap-free prefix. */
@@ -802,6 +815,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       for (const handle of catchUpTimers) scheduler.clearTimeout(handle);
       catchUpTimers.clear();
       for (const done of [...waits]) done();
+      for (const release of [...endWaiters]) release();
       unsubscribeVisibility?.();
       unsubscribeVisibility = null;
       set({ connection: "closed" });

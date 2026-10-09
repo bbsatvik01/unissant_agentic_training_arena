@@ -2482,3 +2482,54 @@ describe("session controller: Codex round 28 regressions", () => {
     expect(c.getState().error).toBeNull();
   });
 });
+
+describe("session controller: a debrief request settles when the end state is loaded", () => {
+  it("even while an obsolete completion read never settles", async () => {
+    let resyncAnswer: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((r) => (resyncAnswer = r));
+          return new Promise<TrialSnapshot>(() => undefined);
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    h.last().raw("{lost frame");
+    await flush();
+    let settled = false;
+    const requested = c.requestDebrief().then(() => (settled = true));
+    await flush();
+    expect(settled).toBe(false);
+    resyncAnswer(snapshot({ status: "completed", last_seq: 4 }));
+    await requested;
+    expect(settled).toBe(true);
+    expect(c.getState().connection).toBe("finished");
+  });
+
+  it("and on dispose", async () => {
+    const h = harness();
+    let reads = 0;
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : new Promise<TrialSnapshot>(() => undefined);
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    const requested = c.requestDebrief();
+    await flush();
+    c.dispose();
+    await requested;
+  });
+});
