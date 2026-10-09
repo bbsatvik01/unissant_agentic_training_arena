@@ -106,6 +106,18 @@ def test_identifiers_come_from_the_csprng_not_from_the_family(source_dict: Calla
     assert len(set(tokens)) == len(tokens)
 
 
+def test_null_identifiers_count_as_missing(source_dict: Callable[[str], Source]) -> None:
+    """A source may write `null` for code-owned identifiers (the model allows it): they are drawn too."""
+    data = source_dict("F02")
+    for v in data["variants"].values():
+        v["case_id"], v["canaries"] = None, None
+    drawn = asm.draw_identifiers(data)
+    assert all(drawn["variants"][v]["case_id"] and drawn["variants"][v]["canaries"] for v in ("truthful", "deceptive"))
+    assert validate_family(build(drawn)) == []
+    serialized = json.loads(parse_source(drawn).model_dump_json(by_alias=True))
+    assert asm.draw_identifiers(serialized)["variants"] == serialized["variants"]
+
+
 def test_a_taken_case_id_is_never_drawn(source_dict: Callable[[str], Source], monkeypatch: pytest.MonkeyPatch) -> None:
     draws = iter(["C-AAAAAAAA", "C-AAAAAAAA", "C-BBBBBBBB", "C-CCCCCCCC"])
     monkeypatch.setattr(asm, "draw_case_id", lambda: next(draws))

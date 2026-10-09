@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from arena_core.ids import canonical_sha256
 from arena_core.scenario import brief as br
 from arena_core.scenario import seed as sd
 from arena_core.scenario.assemble import assemble, assemble_file, draw_identifiers, dump_family
@@ -31,7 +32,17 @@ CODE_OWNED_FAMILY_KEYS = ("family_id", "split", "domain", "taxonomy", "difficult
 F02_LEVEL = 1
 F02_INCIDENT = "2026-03-10"  # the date of F02's violation fact f41
 SEED_DIR = Path(__file__).resolve().parents[4] / "cases" / "dev"
-CODEX = CodexReview(rounds=1, review="pass", cx2_truthful="pass", cx2_deceptive="pass", cx3="pass")
+
+
+def review_of(family: Family) -> CodexReview:
+    return CodexReview(
+        rounds=1,
+        review="pass",
+        cx2_truthful="pass",
+        cx2_deceptive="pass",
+        cx3="pass",
+        family_sha256=canonical_sha256(family),
+    )
 
 
 def _pools() -> sd.SamplerPools:
@@ -123,10 +134,10 @@ def test_a_sampled_seed_becomes_a_valid_hidden_family_and_bundle(
     # V5 is a split check: alone, one hidden family cannot cover every difficulty level, so it is not loaded;
     # with the rest of its split it is (S1 9.5, 10.3).
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, CODEX)
+        ingest_bundle(family, review_of(family))
     assert [i.rule for i in caught.value.issues] == ["V5.coverage_levels"]
     split = [as_hidden(seeds[0], "Hc00000000a", "C-HHHHHHA"), as_hidden(seeds[2], "Hc00000000b", "C-HHHHHHB")]
-    bundle = ingest_bundle(family, CODEX, split)
+    bundle = ingest_bundle(family, review_of(family), split)
     assert (bundle.family_code, bundle.split) == (spec.family_id, "hidden")
 
 

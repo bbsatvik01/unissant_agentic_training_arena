@@ -120,17 +120,21 @@ def draw_identifiers(source: dict[str, Any], *, taken: Collection[str] = ()) -> 
     Case IDs and canaries are opaque (L3, S3 IG-6): they are drawn from the operating system's CSPRNG
     (`secrets`), never from the sampler seed or any other recorded input, so nobody can recompute them. They
     are drawn once and recorded in the source, so assembling the source again reproduces the family byte for
-    byte (AC-S1-26); values already recorded are kept. A case ID in `taken` (every case ID of the families
-    that exist) is never drawn.
+    byte (AC-S1-26); values already recorded are kept (a `null` counts as missing). A case ID in `taken`
+    (every case ID of the families that exist) is never drawn; a recorded one is kept as it is, and V5
+    reports it if another family uses it.
     """
     out = copy.deepcopy(source)
     used = set(taken)
     for variant in VARIANTS:
         v = out["variants"][variant]
-        while "case_id" not in v or v["case_id"] in used:
+        if v.get("case_id") is None:  # missing or null: draw one
             v["case_id"] = draw_case_id()
+            while v["case_id"] in used:
+                v["case_id"] = draw_case_id()
         used.add(v["case_id"])
-        v.setdefault("canaries", {"private": draw_canary(), "evaluator": draw_canary()})
+        if v.get("canaries") is None:
+            v["canaries"] = {"private": draw_canary(), "evaluator": draw_canary()}
     return out
 
 

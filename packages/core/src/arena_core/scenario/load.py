@@ -19,7 +19,8 @@ names the active predecessor (`Fnn` for r2, `Fnn.r(N-1)` after that); `variant_c
 `source` is the family file as canonical JSON text (S1 8.4) and `attestation` its authoring attestation
 (S1 10.5): `{family_id, revision, family_sha256, validator_version, checks_passed, codex}`, where
 `family_sha256` is the sha256 of `source` and `codex` the passed Codex review (`CodexReview`, given by the
-authoring loop; this package runs no model). S4 checks the two against each other and the variants.
+authoring loop; this package runs no model). The review names the family hash it was run on, and a review of
+any other file is refused (S1 8.5 step 3). S4 checks the two against each other and the variants.
 
 Variants are ordered by `variant_code`, so the insertion order of the public-tier `arena.case_variants`
 rows cannot reveal which variant is truthful (L3). The loader refuses a family with any validator issue
@@ -74,8 +75,8 @@ class IngestVariant(_Model):
     artifacts: tuple[IngestArtifact, ...]
 
 
-class CodexReview(_Model):
-    """The Codex review of the accepted family file (S1 9.7, 10.5): every result a pass."""
+class CodexResults(_Model):
+    """The attestation's `codex` object (S1 10.5): every result a pass."""
 
     rounds: int = Field(ge=1, le=MAX_CODEX_ROUNDS)
     review: Literal["pass"]
@@ -84,13 +85,23 @@ class CodexReview(_Model):
     cx3: Literal["pass"]
 
 
+class CodexReview(CodexResults):
+    """A passed Codex review together with the family-file hash it was run on (S1 8.5 step 3: the validators
+    and the review pass on the same hash). The loader refuses it for any other family file."""
+
+    family_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    def results(self) -> CodexResults:
+        return CodexResults.model_validate(self.model_dump(exclude={"family_sha256"}))
+
+
 class Attestation(_Model):
     family_id: str
     revision: int
     family_sha256: str
     validator_version: str
     checks_passed: tuple[str, ...]
-    codex: CodexReview
+    codex: CodexResults
 
 
 class IngestBundle(_Model):
@@ -177,7 +188,7 @@ def attestation(family: Mapping[str, Any], codex: CodexReview) -> Attestation:
         family_sha256=sha256_hex(family_source_text(family)),
         validator_version=VALIDATOR_VERSION,
         checks_passed=CHECKS_PASSED,
-        codex=codex,
+        codex=codex.results(),
     )
 
 
@@ -190,6 +201,9 @@ def ingest_bundle(
     rest of its split); every check runs here, so the attestation's `checks_passed` is true when it is written.
     """
     issues = validate_families([*peers, family])
+    if not issues and codex.family_sha256 != sha256_hex(family_source_text(family)):
+        message = "the Codex review was run on a different family file (S1 8.5 step 3: same hash)"
+        issues = [Issue("CODEX.family_sha256", message, str(family.get("family_id")))]
     if issues:
         raise FamilyLoadError(issues)
     variants = []

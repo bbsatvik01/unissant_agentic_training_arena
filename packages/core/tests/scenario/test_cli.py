@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from arena_core.ids import canonical_sha256
 from arena_core.scenario import __main__ as scenario_main
 from arena_core.scenario import cli
 from arena_core.scenario.cli import main
@@ -35,9 +36,15 @@ def nothing_leaked(out: str, err: str) -> bool:
     return all(marker not in out + err for marker in (HIDDEN_TEXT, "H0a1b2c3d4e"))
 
 
+def review_file(tmp_path: Path, family_path: Path, **changes: object) -> Path:
+    """A passed Codex review of the family file at `family_path` (bound by its canonical-JSON hash)."""
+    family_hash = canonical_sha256(json.loads(family_path.read_text(encoding="utf-8")))
+    return write_json(tmp_path / "codex.json", {**CODEX, "family_sha256": family_hash, **changes})
+
+
 @pytest.fixture
 def codex(tmp_path: Path) -> Path:
-    return write_json(tmp_path / "codex.json", CODEX)
+    return review_file(tmp_path, SEED_DIR / "F03.json")
 
 
 def source_copy(tmp_path: Path, family_id: str) -> Path:
@@ -203,7 +210,7 @@ def test_counts_mode_covers_assembly_and_bundling(
     family["variants"]["truthful"]["evaluator_packet"]["role"] = "deceptive"
     family["variants"]["truthful"]["evaluator_packet"]["synopsis"] += " " + HIDDEN_TEXT
     path = write_json(tmp_path / "F02.json", family)
-    codex = write_json(tmp_path / "codex.json", CODEX)
+    codex = review_file(tmp_path, path)
     assert main(["bundle", "--counts", "--codex", str(codex), "--out", str(tmp_path / "bundle.json"), str(path)]) == 1
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == ({"V2.correct_finding": 1, "V2.labels": 1}, "")
@@ -246,7 +253,7 @@ def test_bundle_refuses_an_invalid_family(
 
 
 def test_bundle_refuses_a_codex_review_that_did_not_pass(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    failed = write_json(tmp_path / "codex.json", {**CODEX, "cx3": "fail"})
+    failed = review_file(tmp_path, SEED_DIR / "F03.json", cx3="fail")
     assert (
         main(["bundle", str(SEED_DIR / "F03.json"), "--codex", str(failed), "--counts", "--out", str(tmp_path / "b")])
         == 1

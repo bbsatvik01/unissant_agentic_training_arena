@@ -63,4 +63,4 @@ uv run --locked python -m arena_core.scenario validate cases/dev/F0*.json
 uv run --locked python -m arena_core.scenario bundle cases/dev/F04.json --codex codex.json --peer cases/dev/F01.json ...
 ```
 
-`assemble` draws any missing case ID and canary from a CSPRNG and writes them into the source before it assembles, so a rebuild reproduces the family; `--revise` makes the source the next revision (S1 8.6) with new ones. The Codex review stays in the kit; `bundle` takes its passed result (`{rounds, review, cx2_truthful, cx2_deceptive, cx3}`) as the attestation's `codex` object (S1 10.5).
+`assemble` draws any missing case ID and canary from a CSPRNG and writes them into the source before it assembles, so a rebuild reproduces the family; `--revise` makes the source the next revision (S1 8.6) with new ones. The Codex review stays in the kit; `bundle` takes its passed result (`{family_sha256, rounds, review, cx2_truthful, cx2_deceptive, cx3}`, bound to the family-file hash it was run on) and writes the results as the attestation's `codex` object (S1 10.5).

@@ -288,11 +288,15 @@ def _record_shape_problems(record: Mapping[str, Any]) -> list[str]:
     return problems
 
 
-def sampler_record_problems(record: object, families: Sequence[Mapping[str, Any]]) -> list[str]:
+def sampler_record_problems(
+    record: object, families: Sequence[Mapping[str, Any]], *, second_language_allowed: bool
+) -> list[str]:
     """Why `record` cannot seal `families`, the accepted files of the split: the checks S4's
-    `sealed.sampler_matches` makes at the seal (SG1-29, SG1-33), plus the one the authoring session's
+    `sealed.sampler_matches` makes at the seal (SG1-29, SG1-33), plus the ones the authoring session's
     validator makes before it calls the seal: `max_phi` equals the largest phi recomputed from the
-    assignment (S1 7.5, 10.5)."""
+    assignment, and the assignment is balanced as S1 7.5 requires (every style level of every axis in use on
+    floor(n/2) or ceil(n/2) families, every difficulty level on floor(n/3) or ceil(n/3), largest phi at most
+    0.40; `second_language_allowed` is the owner's OD-1 answer)."""
     if not isinstance(record, Mapping):
         return ["the sampler record is not an object"]
     problems = _record_shape_problems(record)
@@ -308,8 +312,12 @@ def sampler_record_problems(record: object, families: Sequence[Mapping[str, Any]
     for entry in assignment:
         if by_id.get(str(entry.get("family_id"))) != dict(entry):
             problems.append(f"entry {entry.get('family_id')!r} differs from the archived family")
-    if not problems and _assignment_phi(assignment) != record["max_phi"]:
+    if problems:
+        return problems
+    if _assignment_phi(assignment) != record["max_phi"]:
         problems.append(f"max_phi {record['max_phi']} is not the assignment's largest phi")
+    report = balance_report([dict(e["style"]) for e in assignment], [int(e["level"]) for e in assignment])
+    problems.extend(report.problems(second_language_allowed=second_language_allowed))
     return problems
 
 

@@ -596,8 +596,8 @@ def test_the_sampler_record_matches_the_plan_and_its_families(seeds: list[Family
         "level": first["difficulty"]["level"],
         "style": first["style"],
     }
-    assert sd.sampler_record_problems(record, families) == []
-    assert sd.sampler_record_problems(json.loads(json.dumps(record)), families) == []
+    assert sd.sampler_record_problems(record, families, second_language_allowed=False) == []
+    assert sd.sampler_record_problems(json.loads(json.dumps(record)), families, second_language_allowed=False) == []
 
 
 def _edited(record: dict[str, Any], **changes: object) -> dict[str, Any]:
@@ -637,7 +637,8 @@ def test_a_sampler_record_that_does_not_match_is_refused(
     """The checks of S4 `sealed.sampler_matches` (SG1-29, SG1-33) and the phi recomputation (S1 10.5)."""
     plan = plan_for(seeds, n=SMALL_HIDDEN, draws=SMALL_DRAWS)
     families = _accepted(plan)
-    problems = sd.sampler_record_problems(edit(sd.split_sampler_record(plan.seed, families)), families)
+    record = edit(sd.split_sampler_record(plan.seed, families))
+    problems = sd.sampler_record_problems(record, families, second_language_allowed=False)
     assert any(problem in p for p in problems), problems
 
 
@@ -646,4 +647,36 @@ def test_a_record_for_other_families_is_refused(seeds: list[Family]) -> None:
     families = _accepted(plan)
     record = sd.split_sampler_record(plan.seed, families)
     renamed = [{**f, "family_id": "Hffffffffff"} if i == 0 else f for i, f in enumerate(families)]
-    assert any("differs from the archived family" in p for p in sd.sampler_record_problems(record, renamed))
+    assert any(
+        "differs from the archived family" in p
+        for p in sd.sampler_record_problems(record, renamed, second_language_allowed=False)
+    )
+
+
+def test_an_unbalanced_split_is_refused_even_with_a_low_phi(seeds: list[Family]) -> None:
+    """S1 7.5 before the seal: constant axes give phi 0, so the balance quotas are checked as well."""
+    plan = plan_for(seeds, n=SMALL_HIDDEN, draws=SMALL_DRAWS)
+    families = _accepted(plan)
+    same_style = dict(families[0]["style"])
+    for f in families:
+        f["style"] = dict(same_style)
+    levels = [1, 1, 2, 2, 2, 2, 2, 3, 3]  # 2/5/2 instead of 3/3/3
+    for f, level in zip(families, levels, strict=True):
+        f["difficulty"]["level"] = level
+    record = sd.split_sampler_record(plan.seed, families)
+    assert record["max_phi"] == 0.0
+    problems = sd.sampler_record_problems(record, families, second_language_allowed=False)
+    assert any(p.startswith("style verbosity=") for p in problems), problems
+    assert any(p.startswith("difficulty level 2 on 5 of 9") for p in problems), problems
+
+
+def test_second_language_is_refused_unless_the_owner_allows_it(seeds: list[Family]) -> None:
+    plan = plan_for(seeds, n=SMALL_HIDDEN, draws=SMALL_DRAWS)
+    families = _accepted(plan)
+    for f in families:
+        f["style"]["language"] = "second_language"  # constant, so phi stays as drawn
+    record = sd.split_sampler_record(plan.seed, families)
+    refused = sd.sampler_record_problems(record, families, second_language_allowed=False)
+    assert any("second_language used" in p for p in refused), refused
+    unbalanced = sd.sampler_record_problems(record, families, second_language_allowed=True)
+    assert any(p.startswith("style language=") for p in unbalanced), unbalanced
