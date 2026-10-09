@@ -6,8 +6,10 @@ this gate forbids. A marker passes only when tools/gates/suppressions-allowlist.
 that marker and a substring of that exact line (``match``), with a reason: a verified false positive,
 narrowest scope. Allowlist entries that match nothing fail. Python under docs/ (which the linters
 skip as frozen research evidence) must stay inside the one archive root. A file that is itself a
-suppression list (``.gitleaksignore``: fingerprints gitleaks skips, locally and in CI) counts every entry
-line as a finding under the matching inline marker, so it needs the same reviewed allowlist entry.
+suppression list counts every entry line as a finding under the matching inline marker, so it needs the
+same reviewed allowlist entry: ``.gitleaksignore`` (fingerprints gitleaks skips, locally and in CI) and a
+gitleaks config (``.gitleaks.toml`` / ``gitleaks.toml``, loaded automatically by the CLI and the Action;
+it can allowlist findings, disable rules, or replace the default rule set).
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
@@ -31,7 +33,11 @@ POLICY_FILES = {ALLOWLIST_PATH, MARKERS_PATH}  # name markers as data; validated
 SCANNED_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".toml", ".yaml", ".yml"}
 SCANNED_SUFFIXES |= {".json", ".cfg", ".ini", ".sh", ".txt"}
 # A whole file whose entries are suppressions -> the marker each non-blank, non-comment line counts as.
-SUPPRESSION_FILES = {".gitleaksignore": "gitleaks-allow"}
+SUPPRESSION_FILES = {
+    ".gitleaksignore": "gitleaks-allow",
+    ".gitleaks.toml": "gitleaks-allow",
+    "gitleaks.toml": "gitleaks-allow",
+}
 SCANNED_NAMES = {"Makefile", "Dockerfile", "pre-commit", "pre-push", *SUPPRESSION_FILES}
 
 

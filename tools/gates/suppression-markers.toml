@@ -1,11 +1,13 @@
 # Forbidden suppression syntax (global hard gate: never rig, soften or bypass CI/tests), read by
-# tools/check_no_rigging.py. Only real tool
-# suppression directives are listed; ordinary code and data never match. Each id has a seeded line in
-# tools/tests/fixtures/suppressions.tsv that its pattern must catch.
+# tools/check_no_rigging.py. Every syntax a gate tool in this repo accepts for skipping a finding is listed,
+# in each form the tool parses (YAML sequence items, inline TOML tables, either quote style); ordinary code
+# and data never match. Each id has seeded lines in tools/tests/fixtures/suppressions.tsv that its pattern
+# must catch. Lifted from TechnoMile tools/gates/suppression-markers.toml (ATTRIBUTIONS.md) and extended.
 ids = [
   "noqa", "type-ignore", "pyright-ignore", "nosec", "nosemgrep", "gitleaks-allow", "pragma-no-cover",
   "pytest-skip", "unittest-skip", "mypy-ignore-errors", "eslint-disable", "ts-suppress", "coverage-ignore",
-  "test-skip-or-focus", "continue-on-error", "trufflehog-ignore", "osv-ignore",
+  "test-skip-or-focus", "continue-on-error", "trufflehog-ignore", "osv-ignore", "no-type-check",
+  "warnings-ignore", "isort-skip", "pip-audit-ignore", "pnpm-audit-ignore",
 ]
 
 [patterns]
@@ -18,14 +20,30 @@ gitleaks-allow = 'gitleaks:allow\b'
 pragma-no-cover = '(?i)#\s*pragma:\s*no\s*(cover|branch)\b'
 pytest-skip = '\bpytest\.(mark\.)?(skip|skipif|xfail|importorskip)\b'
 unittest-skip = '\bunittest\.(skip|skipIf|skipUnless|expectedFailure)\b|\bSkipTest\b'
-mypy-ignore-errors = '(?i)#\s*mypy:\s*ignore-errors\b|^\s*ignore_errors\s*=\s*true\b'
+# Any inline mypy configuration comment (`# mypy: ignore-errors`, `# mypy: disable-error-code=...`,
+# `# mypy: allow-untyped-defs`) is a per-file override of the strict config; ignore_errors in any TOML form.
+mypy-ignore-errors = '''(?i)#\s*mypy:\s*\S|(^|[\s{,])["']?ignore_errors["']?\s*=\s*true\b'''
 eslint-disable = 'eslint-disable'
 ts-suppress = '@ts-(ignore|expect-error|nocheck)\b'
 coverage-ignore = '/\*\s*(istanbul|c8|v8)\s+ignore\b'
 test-skip-or-focus = '\b(it|test|describe)\.(skip|only|todo|skipIf|runIf)\b|\b(xit|xdescribe|fit|fdescribe)\('
-continue-on-error = '^\s*continue-on-error\s*:\s*(true|\$\{\{)'
+# Job, step (including a YAML sequence item `- continue-on-error: true`) or flow-mapping form; true in any
+# case or a YAML 1.1 spelling, quoted or not, or an expression.
+continue-on-error = '''(?i)(^|[\s{,-])["']?continue-on-error["']?\s*:\s*(["']?(true|yes|on)\b|\$\{\{)'''
 # TruffleHog's inline line-skip comment.
 trufflehog-ignore = 'trufflehog:ignore\b'
 # osv-scanner.toml entries that skip an advisory or a package (osv-scanner loads the file next to a lockfile
-# on its own, so an entry silently drops a finding from `make osv-scanner` and the CI scan).
-osv-ignore = '^\s*\[\[\s*(IgnoredVulns|PackageOverrides)\s*\]\]'
+# on its own, so an entry silently drops a finding from `make osv-scanner` and the CI scan): array-of-tables
+# headers and inline arrays alike.
+osv-ignore = '''(?i)^\s*(\[\[\s*)?["']?(IgnoredVulns|PackageOverrides)["']?\s*(\]\]|=)'''
+# typing.no_type_check makes mypy skip a function or class entirely.
+no-type-check = '\bno_type_check(_decorator)?\b'
+# Warnings are errors (pytest -W error): a filter that ignores them, as a pytest mark, a warnings call, a -W
+# option or PYTHONWARNINGS, would swallow our own code's deprecations.
+warnings-ignore = '''(?i)\b(filterwarnings|simplefilter)\s*\(\s*["']ignore|(^|\s)-W\s*["']?ignore|PYTHONWARNINGS\s*[=:]\s*["']?ignore'''
+# Ruff's isort directives that switch the import-order lint off for a file or a block.
+isort-skip = '#\s*isort:\s*(skip_file|skip|off)\b'
+# pip-audit's per-advisory skip.
+pip-audit-ignore = '--ignore-vuln\b'
+# pnpm audit's advisory skips (web/pnpm-workspace.yaml auditConfig, WP-18).
+pnpm-audit-ignore = '\b(ignoreGhsas|ignoreCves)\b'

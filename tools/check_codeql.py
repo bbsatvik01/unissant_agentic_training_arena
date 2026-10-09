@@ -1,8 +1,11 @@
 """CodeQL security-extended gate (S5 11.1 sec-check: CodeQL, fail-closed), run locally with the pinned bundle.
 
 For each language: build a database from the scoped source root, analyze it with the
-security-extended suite, and count SARIF results. Fails closed: a missing or empty SARIF, a failed
-database build (CodeQL refuses one with no source for the language) or analysis, or any result.
+security-extended suite, and count SARIF results. Fails closed: a missing, empty or malformed SARIF, a
+failed database build (CodeQL refuses one with no source for the language) or analysis, or any result.
+
+``--sarif FILE...`` only validates existing SARIF files with the same rules: .github/workflows/codeql.yml
+runs it on the codeql-action output, so CI cannot accept a report this gate rejects.
 """
 
 import argparse
@@ -36,22 +39,50 @@ class CodeQLError(RuntimeError):
 
 
 def sarif_findings(sarif_path: Path) -> list[str]:
+    """Every result in a SARIF file; a missing, empty or malformed report raises (never counts as zero)."""
     if not sarif_path.is_file():
         msg = f"no SARIF at {sarif_path}; refusing to pass"
         raise CodeQLError(msg)
-    runs = json.loads(sarif_path.read_text()).get("runs")
+    try:
+        report = json.loads(sarif_path.read_text())
+    except json.JSONDecodeError as exc:
+        msg = f"SARIF at {sarif_path} is not valid JSON ({exc}); refusing to pass"
+        raise CodeQLError(msg) from exc
+    if not isinstance(report, dict):
+        msg = f"SARIF at {sarif_path} is not a SARIF object; refusing to pass"
+        raise CodeQLError(msg)
+    runs = report.get("runs")
     if not isinstance(runs, list) or not runs:
         msg = f"SARIF at {sarif_path} has no runs; refusing to pass"
         raise CodeQLError(msg)
     findings: list[str] = []
-    for run in runs:
-        for result in run.get("results", []):
-            location = result.get("locations", [{}])[0].get("physicalLocation", {})
-            uri = location.get("artifactLocation", {}).get("uri", "?")
-            line = location.get("region", {}).get("startLine", "?")
-            text = result.get("message", {}).get("text", "")
-            findings.append(f"{result.get('ruleId', '?')} {uri}:{line} {text}")
+    for index, run in enumerate(runs):
+        if not isinstance(run, dict):
+            msg = f"SARIF at {sarif_path}: run {index} is not an object; refusing to pass"
+            raise CodeQLError(msg)
+        results = run.get("results")
+        # SARIF 2.1.0 3.14.23: an absent results array means the tool did not produce results.
+        if not isinstance(results, list):
+            msg = f"SARIF at {sarif_path}: run {index} has no results array; refusing to pass"
+            raise CodeQLError(msg)
+        findings.extend(_describe(result) for result in results)
     return findings
+
+
+def _field(value: object, *keys: str) -> object:
+    """``value[k1][k2]...`` through nested objects, or "?" where a level is missing or not an object."""
+    for key in keys:
+        value = value.get(key, "?") if isinstance(value, dict) else "?"
+    return value
+
+
+def _describe(result: object) -> str:
+    """One line per result. Every result counts as a finding, however malformed its location is."""
+    locations = _field(result, "locations")
+    first = locations[0] if isinstance(locations, list) and locations else {}
+    uri = _field(first, "physicalLocation", "artifactLocation", "uri")
+    line = _field(first, "physicalLocation", "region", "startLine")
+    return f"{_field(result, 'ruleId')} {uri}:{line} {_field(result, 'message', 'text')}"
 
 
 def analyze(language: Language, root: Path, out_dir: Path) -> list[str]:
@@ -95,12 +126,32 @@ def analyze(language: Language, root: Path, out_dir: Path) -> list[str]:
     return sarif_findings(sarif)
 
 
+def validate_reports(paths: list[Path]) -> int:
+    """The CI path: fail on any result, and on any missing, empty or malformed report."""
+    failed = False
+    for path in paths:
+        try:
+            findings = sarif_findings(path)
+        except (CodeQLError, OSError) as exc:
+            sys.stderr.write(f"codeql: FAIL: {exc}\n")
+            failed = True
+            continue
+        for finding in findings:
+            sys.stderr.write(f"codeql: FAIL: {path.name}: {finding}\n")
+        failed = failed or bool(findings)
+        sys.stdout.write(f"codeql: {path.name}: {len(findings)} findings\n")
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path(".gates"))
     parser.add_argument("--language", choices=[lang.name for lang in LANGUAGES], action="append")
+    parser.add_argument("--sarif", type=Path, nargs="+", help="only validate these SARIF files (the CI path)")
     args = parser.parse_args(argv)
+    if args.sarif:
+        return validate_reports(args.sarif)
     root: Path = args.root.resolve()
     out: Path = args.out.resolve()
     selected = [lang for lang in LANGUAGES if not args.language or lang.name in args.language]

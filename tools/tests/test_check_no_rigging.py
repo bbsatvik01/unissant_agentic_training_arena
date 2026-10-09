@@ -141,6 +141,14 @@ def test_docs_python_outside_the_archive_fails() -> None:
         "# type annotations are ignored at runtime",
         "ignore_errors = false",
         "    continue-on-error: false",
+        "      - continue-on-error: ${ false }",
+        "# mypy strict mode is on for every package",
+        'filterwarnings = ["error"]',
+        "warnings.simplefilter('error')",
+        "pytest -W error --cov",
+        "from typing import cast, no_type_check_helper_name_is_not_used",
+        "pip-audit --strict --require-hashes",
+        "# isort is ruff's I rule here",
     ],
 )
 def test_ordinary_code_and_data_never_match(tmp_path: Path, line: str) -> None:
@@ -156,6 +164,15 @@ def test_every_gitleaksignore_entry_is_a_suppression(tmp_path: Path) -> None:
     assert errors == [
         ".gitleaksignore:3: forbidden suppression [gitleaks-allow] 0123abcd:services/api/x.py:generic-api-key:3"
     ]
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("name", [".gitleaks.toml", "gitleaks.toml"])
+def test_a_gitleaks_config_is_a_suppression_list(tmp_path: Path, name: str) -> None:
+    (tmp_path / name).write_text("# replaces the default rules\n[extend]\nuseDefault = false\n")
+    errors = nr.check([name], reader(tmp_path), [], MARKERS)
+    assert [e.split(": forbidden")[0] for e in errors] == [f"{name}:2", f"{name}:3"]
+    assert all("[gitleaks-allow]" in e for e in errors)
 
 
 def test_a_gitleaksignore_with_only_comments_is_clean_and_an_allowed_entry_passes(tmp_path: Path) -> None:

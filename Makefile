@@ -36,6 +36,8 @@ SEMGREP := uv run --project tools/envs/semgrep --locked semgrep
 GITLEAKS := .tools/bin/gitleaks
 TRUFFLEHOG := .tools/bin/trufflehog
 OSV_SCANNER := .tools/bin/osv-scanner
+# Empty = every pinned binary; a CI job that needs one scanner names it (`make tools-sync gitleaks SYNC_TOOLS=gitleaks`).
+SYNC_TOOLS ?=
 
 .PHONY: help bootstrap hooks check deps-sync tools-sync py-check sec-check \
 	lint format-check typecheck no-rigging silent-except roles cost-parity ratchet deps-policy push-clean \
@@ -68,7 +70,7 @@ deps-sync:
 # The pinned, sha256-verified security binaries (gitleaks, trufflehog, osv-scanner, CodeQL) in .tools/bin; needed
 # by sec-check and by the gate proofs in py-check's test suite. Idempotent: a cached version is only re-linked.
 tools-sync:
-	tools/ensure_tools.sh
+	tools/ensure_tools.sh $(SYNC_TOOLS)
 
 # ------------------------------------------------------------------ python
 py-check: lint format-check typecheck no-rigging silent-except roles cost-parity ratchet deps-policy push-clean \

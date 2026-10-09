@@ -21,3 +21,19 @@ continue-on-error	    continue-on-error: true
 trufflehog-ignore	token = 'x'  # trufflehog:ignore
 osv-ignore	[[IgnoredVulns]]
 osv-ignore	  [[ PackageOverrides ]]
+continue-on-error	      - continue-on-error: true
+continue-on-error	    continue-on-error: True
+continue-on-error	    "continue-on-error": "yes"
+continue-on-error	    steps: [{ uses: x, continue-on-error: true }]
+mypy-ignore-errors	# mypy: disable-error-code="attr-defined"
+mypy-ignore-errors	# mypy: allow-untyped-defs
+mypy-ignore-errors	overrides = [{ module = "x", ignore_errors = true }]
+osv-ignore	IgnoredVulns = [{ id = "GHSA-0000-0000-0000" }]
+no-type-check	@typing.no_type_check
+warnings-ignore	@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+warnings-ignore	warnings.simplefilter('ignore')
+warnings-ignore		pytest -W ignore::UserWarning
+warnings-ignore	PYTHONWARNINGS=ignore make test
+isort-skip	# isort: skip_file
+pip-audit-ignore	pip-audit --strict --ignore-vuln PYSEC-2024-1
+pnpm-audit-ignore	    ignoreGhsas:

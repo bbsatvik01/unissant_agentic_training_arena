@@ -35,6 +35,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
       - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           languages: python
@@ -54,21 +58,9 @@ jobs:
           name: codeql-results
           path: codeql-results
 
-      # Blocking gate: any SARIF result fails the build, so a finding can never merge as advisory only.
-      # A missing or unreadable SARIF also fails (fail-closed), it is never counted as zero findings.
+      # Blocking gate, with the validator `make codeql` uses (tools/check_codeql.py --sarif): any result
+      # fails the build, and a missing, empty or malformed SARIF fails closed; it is never counted as zero
+      # findings. Standard library only, so the runner's Python runs it without the project environment.
       - name: Fail on CodeQL findings
         if: always()
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          files=(codeql-results/*.sarif)
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "::error::CodeQL produced no SARIF file; failing closed"
-            exit 1
-          fi
-          FINDINGS=$(jq -s '[.[].runs[].results | length] | add // 0' "${files[@]}")
-          echo "CodeQL findings: $FINDINGS"
-          if [ "$FINDINGS" -gt 0 ]; then
-            echo "::error::CodeQL detected $FINDINGS finding(s); failing the build"
-            exit 1
-          fi
+        run: python3 -m tools.check_codeql --sarif codeql-results/*.sarif

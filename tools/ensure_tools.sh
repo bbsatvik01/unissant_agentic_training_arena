@@ -2,13 +2,30 @@
 # Install the pinned, sha256-verified security binaries the gate needs (S5 11.1 sec-check), then link them
 # into .tools/bin.
 #   gitleaks 8.30.1, trufflehog 3.97.5, osv-scanner 2.6.0, CodeQL bundle 2.27.0
+#   tools/ensure_tools.sh            all four (what `make tools-sync` runs)
+#   tools/ensure_tools.sh gitleaks   only the named ones (a CI job that needs one scanner)
 # Versions respect the 7-day release cooldown (global pre-push bar). Every checksum below equals the digest
 # GitHub publishes for that release asset (re-checked 2026-10-08). Downloads are cached per version in
 # ${ARENA_TOOLS_CACHE:-$HOME/.cache/arena-tools} so clean clones do not re-download (the CodeQL bundle
 # unpacks to ~3.3 GB; point ARENA_TOOLS_CACHE at an existing cache populated by this same script to reuse
-# it). Fails closed: an unsupported platform or a checksum mismatch aborts, and nothing falls back to a tool
-# on PATH. Lifted from TechnoMile tools/ensure_tools.sh (ATTRIBUTIONS.md); only the cache variable changed.
+# it). Fails closed: an unknown tool name, an unsupported platform or a checksum mismatch aborts, and nothing
+# falls back to a tool on PATH. Lifted from TechnoMile tools/ensure_tools.sh (ATTRIBUTIONS.md); the cache
+# variable and the optional tool selection are this repo's.
 set -euo pipefail
+
+ALL_TOOLS=(gitleaks trufflehog osv-scanner codeql)
+if (($# == 0)); then
+  WANT=("${ALL_TOOLS[@]}")
+else
+  WANT=("$@")
+fi
+for tool in "${WANT[@]}"; do
+  case " ${ALL_TOOLS[*]} " in
+    *" $tool "*) ;;
+    *) echo "ensure_tools: unknown tool '$tool' (one of: ${ALL_TOOLS[*]})" >&2; exit 1 ;;
+  esac
+done
+wants() { case " ${WANT[*]} " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CACHE="${ARENA_TOOLS_CACHE:-$HOME/.cache/arena-tools}"
@@ -62,39 +79,54 @@ install_tarball_binary() { # $1 tool, $2 version, $3 url, $4 binary name inside 
 }
 
 GL=8.30.1
-GL_ASSET="${PLAT/amd64/x64}"
-install_tarball_binary gitleaks "$GL" \
-  "https://github.com/gitleaks/gitleaks/releases/download/v$GL/gitleaks_${GL}_${GL_ASSET}.tar.gz" gitleaks
-
 TH=3.97.5
-install_tarball_binary trufflehog "$TH" \
-  "https://github.com/trufflesecurity/trufflehog/releases/download/v$TH/trufflehog_${TH}_${PLAT}.tar.gz" trufflehog
-
 OSV=2.6.0
-OSV_DIR="$CACHE/osv-scanner-$OSV"
-if [[ ! -x "$OSV_DIR/osv-scanner" ]]; then
-  mkdir -p "$OSV_DIR"
-  fetch "https://github.com/google/osv-scanner/releases/download/v$OSV/osv-scanner_$PLAT" \
-    "$OSV_DIR/osv-scanner" "$(sha_for osv-scanner)"
-  chmod 0755 "$OSV_DIR/osv-scanner"
-fi
-ln -sfn "$OSV_DIR/osv-scanner" "$BIN_DIR/osv-scanner"
-
 CQ=2.27.0
-CQ_DIR="$CACHE/codeql-$CQ"
-case "$PLAT" in darwin_*) CQ_ASSET="osx64" ;; *) CQ_ASSET="linux64" ;; esac
-if [[ ! -x "$CQ_DIR/codeql/codeql" ]]; then
-  command -v zstd >/dev/null || { echo "ensure_tools: zstd is required to unpack CodeQL (brew install zstd)" >&2; exit 1; }
-  mkdir -p "$CQ_DIR"
-  fetch "https://github.com/github/codeql-action/releases/download/codeql-bundle-v$CQ/codeql-bundle-$CQ_ASSET.tar.zst" \
-    "$CQ_DIR/bundle.tar.zst" "$(sha_for codeql)"
-  zstd -dc "$CQ_DIR/bundle.tar.zst" | tar -x -C "$CQ_DIR"
-  rm -f "$CQ_DIR/bundle.tar.zst"
-fi
-ln -sfn "$CQ_DIR/codeql/codeql" "$BIN_DIR/codeql"
+READY=()
 
-"$BIN_DIR/gitleaks" version >/dev/null
-"$BIN_DIR/trufflehog" --version >/dev/null 2>&1
-"$BIN_DIR/osv-scanner" --version >/dev/null
-"$BIN_DIR/codeql" version --format=terse >/dev/null
-echo "ensure_tools: gitleaks $GL, trufflehog $TH, osv-scanner $OSV, codeql $CQ ready in .tools/bin"
+if wants gitleaks; then
+  GL_ASSET="${PLAT/amd64/x64}"
+  install_tarball_binary gitleaks "$GL" \
+    "https://github.com/gitleaks/gitleaks/releases/download/v$GL/gitleaks_${GL}_${GL_ASSET}.tar.gz" gitleaks
+  "$BIN_DIR/gitleaks" version >/dev/null
+  READY+=("gitleaks $GL")
+fi
+
+if wants trufflehog; then
+  install_tarball_binary trufflehog "$TH" \
+    "https://github.com/trufflesecurity/trufflehog/releases/download/v$TH/trufflehog_${TH}_${PLAT}.tar.gz" trufflehog
+  "$BIN_DIR/trufflehog" --version >/dev/null 2>&1
+  READY+=("trufflehog $TH")
+fi
+
+if wants osv-scanner; then
+  OSV_DIR="$CACHE/osv-scanner-$OSV"
+  if [[ ! -x "$OSV_DIR/osv-scanner" ]]; then
+    mkdir -p "$OSV_DIR"
+    fetch "https://github.com/google/osv-scanner/releases/download/v$OSV/osv-scanner_$PLAT" \
+      "$OSV_DIR/osv-scanner" "$(sha_for osv-scanner)"
+    chmod 0755 "$OSV_DIR/osv-scanner"
+  fi
+  ln -sfn "$OSV_DIR/osv-scanner" "$BIN_DIR/osv-scanner"
+  "$BIN_DIR/osv-scanner" --version >/dev/null
+  READY+=("osv-scanner $OSV")
+fi
+
+if wants codeql; then
+  CQ_DIR="$CACHE/codeql-$CQ"
+  case "$PLAT" in darwin_*) CQ_ASSET="osx64" ;; *) CQ_ASSET="linux64" ;; esac
+  if [[ ! -x "$CQ_DIR/codeql/codeql" ]]; then
+    command -v zstd >/dev/null || { echo "ensure_tools: zstd is required to unpack CodeQL (brew install zstd)" >&2; exit 1; }
+    mkdir -p "$CQ_DIR"
+    fetch "https://github.com/github/codeql-action/releases/download/codeql-bundle-v$CQ/codeql-bundle-$CQ_ASSET.tar.zst" \
+      "$CQ_DIR/bundle.tar.zst" "$(sha_for codeql)"
+    zstd -dc "$CQ_DIR/bundle.tar.zst" | tar -x -C "$CQ_DIR"
+    rm -f "$CQ_DIR/bundle.tar.zst"
+  fi
+  ln -sfn "$CQ_DIR/codeql/codeql" "$BIN_DIR/codeql"
+  "$BIN_DIR/codeql" version --format=terse >/dev/null
+  READY+=("codeql $CQ")
+fi
+
+summary="$(printf '%s, ' "${READY[@]}")"
+echo "ensure_tools: ${summary%, } ready in .tools/bin"

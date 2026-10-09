@@ -10,6 +10,14 @@ tools/, scripts/ that fails `make check` when:
   core. `arena_core` imports any role package (`arena_api`, `arena_subject`, `arena_referee`,
      `arena_tournament`). Every role imports arena_core, so a role import inside it would hand
      arena_api the subject's or the referee's code transitively and defeat rules a and b.
+  dyn. product code (arena_core or a role) uses dynamic import machinery (`importlib` other than the
+     `importlib.metadata` from-imports, `runpy`, `pkgutil`, `builtins`, `zipimport`, `__import__`,
+     `__builtins__`). Every module product code loads is then a static import this lint can check; an
+     alias or a keyword argument to `importlib.import_module` cannot route around rules a, b and core.
+     Outside product code, aliased and keyword dynamic imports with a literal target still resolve.
+
+The lint reads source, it is not a sandbox: attribute chains built at run time are out of its reach,
+and the database grants and per-process credentials (S5 1.2 items 1 and 3) remain the data boundary.
 
 A fifth rule in S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
 event frame model") needs the wire frame types, which WP-02 generates (`contracts/`, C-17) and WP-13's
@@ -57,6 +65,14 @@ SERVICE_PACKAGE = {
 VERTEX_ADAPTER = "packages/core/src/arena_core/providers/vertex.py"
 GENAI = "google.genai"
 ADK = "google.adk"
+# Modules that load other modules by name at run time (rule dyn). importlib.metadata reads distribution
+# metadata without importing anything; its from-import forms are allowed (`import importlib.metadata` is not,
+# because it binds `importlib` itself).
+DYNAMIC_LOADER_MODULES = ("importlib", "runpy", "pkgutil", "builtins", "zipimport")
+METADATA = "importlib.metadata"
+DYNAMIC_NAMES = frozenset({"__import__", "__builtins__"})
+LOADER_FUNCTIONS = frozenset({"import_module", "__import__"})
+DYNAMIC_RULE = "dynamic import machinery {what} in product code (S5 1.2 item 2: imports must be static)"
 
 
 @dataclass(frozen=True)
@@ -79,14 +95,41 @@ def _module_of(path: str) -> str | None:
     return None
 
 
-def _dynamic_import(node: ast.Call) -> str | None:
-    """The literal module name of ``importlib.import_module("...")`` or ``__import__("...")``."""
+def _loader_aliases(tree: ast.AST) -> frozenset[str]:
+    """Local names bound to a loader function: ``from importlib import import_module as load`` binds ``load``."""
+    names = set(LOADER_FUNCTIONS)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module in {"importlib", "builtins"} and node.level == 0:
+            names.update(a.asname or a.name for a in node.names if a.name in LOADER_FUNCTIONS)
+    return frozenset(names)
+
+
+def _argument(node: ast.Call, position: int, keyword: str) -> str | None:
+    """A string-literal argument given by position or by keyword, else None."""
+    value: ast.expr | None = node.args[position] if len(node.args) > position else None
+    value = next((k.value for k in node.keywords if k.arg == keyword), value)
+    return value.value if isinstance(value, ast.Constant) and isinstance(value.value, str) else None
+
+
+def _resolve_relative(name: str, package: str | None) -> str:
+    """``import_module(".genai", package="google")`` -> ``google.genai`` (importlib's own rule)."""
+    level = len(name) - len(name.lstrip("."))
+    if not level or package is None:
+        return name
+    base = package.rsplit(".", level - 1)[0] if level > 1 else package
+    return f"{base}.{name[level:]}" if name[level:] else base
+
+
+def _dynamic_import(node: ast.Call, loaders: frozenset[str]) -> str | None:
+    """The literal module name a loader call imports (any alias; positional or keyword), else None."""
     func = node.func
-    name = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
-    if name not in {"import_module", "__import__"} or not node.args:
+    is_loader = (isinstance(func, ast.Name) and func.id in loaders) or (
+        isinstance(func, ast.Attribute) and func.attr in LOADER_FUNCTIONS
+    )
+    if not is_loader:
         return None
-    first = node.args[0]
-    return first.value if isinstance(first, ast.Constant) and isinstance(first.value, str) else None
+    name = _argument(node, 0, "name")
+    return None if name is None else _resolve_relative(name, _argument(node, 1, "package"))
 
 
 def _imports(tree: ast.AST) -> list[tuple[int, str]]:
@@ -97,6 +140,7 @@ def _imports(tree: ast.AST) -> list[tuple[int, str]]:
     ``arena_core.agents.subject_prompts``, still catches ``from arena_core.agents import
     subject_prompts``, not only ``import arena_core.agents.subject_prompts``).
     """
+    loaders = _loader_aliases(tree)
     found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -105,9 +149,30 @@ def _imports(tree: ast.AST) -> list[tuple[int, str]]:
             found.append((node.lineno, node.module))
             found.extend((node.lineno, f"{node.module}.{a.name}") for a in node.names)
         elif isinstance(node, ast.Call):
-            module = _dynamic_import(node)
+            module = _dynamic_import(node, loaders)
             if module is not None:
                 found.append((node.lineno, module))
+    return found
+
+
+def _is_loader_module(module: str) -> bool:
+    return any(_is_or_starts_with(module, loader) for loader in DYNAMIC_LOADER_MODULES)
+
+
+def _machinery(tree: ast.AST) -> list[tuple[int, str]]:
+    """(line, what) for every use of dynamic import machinery (rule dyn; product code only)."""
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.extend((node.lineno, f"`import {a.name}`") for a in node.names if _is_loader_module(a.name))
+        elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
+            metadata_only = node.module == "importlib" and all(a.name == "metadata" for a in node.names)
+            if _is_loader_module(node.module) and not metadata_only and not _is_or_starts_with(node.module, METADATA):
+                found.append((node.lineno, f"`from {node.module} import ...`"))
+        elif isinstance(node, ast.Name) and node.id in DYNAMIC_NAMES:
+            found.append((node.lineno, f"`{node.id}`"))
+        elif isinstance(node, ast.Attribute) and node.attr == "__import__":
+            found.append((node.lineno, "`.__import__`"))
     return found
 
 
@@ -120,6 +185,8 @@ def check_source(path: str, source: str) -> list[Finding]:
     findings: list[Finding] = []
     own_package = _module_of(path)
     forbidden = FORBIDDEN_IMPORTS.get(own_package or "", frozenset())
+    if own_package is not None:
+        findings.extend(Finding(path, line, DYNAMIC_RULE.format(what=what)) for line, what in _machinery(tree))
     for line, module in _imports(tree):
         if any(_is_or_starts_with(module, name) for name in forbidden):
             findings.append(Finding(path, line, f"{own_package} may never import {module} (S5 1.2 item 2)"))

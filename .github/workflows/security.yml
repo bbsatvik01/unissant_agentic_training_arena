@@ -55,14 +55,22 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0 # full history: the push range, the PR range, and the whole history on schedule
+          fetch-depth: 0 # full history: `make gitleaks` scans all of it; the action scans the push or PR range
           persist-credentials: false
+
+      # The complete scan: `make gitleaks` with the pinned, checksum-verified gitleaks 8.30.1 over the whole
+      # history reachable from the checked-out commit (on a PR, the merge commit: every PR commit), exactly as
+      # `make check` runs it locally.
+      - name: make tools-sync gitleaks
+        run: make tools-sync gitleaks SYNC_TOOLS=gitleaks
 
       # gitleaks/gitleaks-action v3.0.0: refs/tags/v3.0.0 -> e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e (2026-05-30).
       # Licence: the action's own EULA; free for a personal account, while an organization-owned repository
       # needs a GITLEAKS_LICENSE secret (a free key from gitleaks.io, an owner action), and without it the job
-      # fails closed. The action reports with --redact and exits 1 on any leak.
-      - name: gitleaks
+      # fails closed. The action reports with --redact and exits 1 on any leak. On a PR it scans only the
+      # commits on the first page of the PR-commits API (30; src/gitleaks.js makes one unpaginated request),
+      # which is why the make step above, not this one, is the complete gate; the action adds its job summary.
+      - name: gitleaks (official action)
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
