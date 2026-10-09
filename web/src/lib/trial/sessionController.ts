@@ -269,6 +269,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     }
     reported = trial.violations.length;
     set({ trial, dropped: state.dropped + drops });
+    finishIfLoaded();
   };
 
   const dispatch = (action: TrialAction) => {
@@ -322,6 +323,17 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return snap !== null && snap.status !== "running";
   };
 
+  /**
+   * The end state is loaded: a terminal snapshot and the published debrief, whichever request brought either. The
+   * stream closes for good and the room is finished at once, whatever reads are still in flight (S6 5.1); none of
+   * them can replace the document (setDebrief) or undo this (a newer snapshot only, and the end is final).
+   */
+  function finishIfLoaded(): void {
+    if (isDisposed() || state.connection === "finished" || !terminalLoaded() || !published()) return;
+    stopForGood();
+    set({ connection: "finished", error: null });
+  }
+
   /** The published debrief.v1 is in (a `scoring` answer is not). */
   const published = (): boolean => state.debrief !== null && "schema_version" in state.debrief;
 
@@ -347,6 +359,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const setDebrief = (debrief: DebriefRead) => {
     if (state.debrief !== null && "schema_version" in state.debrief && !("schema_version" in debrief)) return;
     set({ debrief });
+    finishIfLoaded();
   };
 
 
@@ -377,7 +390,6 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * until now) and the debrief carry everything (S6 5.1, SG4-21).
    */
   const complete = (options: { readonly snapshotLoaded?: boolean } = {}): Promise<void> => {
-    if (isDisposed()) return Promise.resolve();
     completing ??= (async () => {
       stopForGood();
       set({ connection: "ending" });
@@ -757,14 +769,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
     },
     async requestDebrief() {
       const debrief = await api.requestDebrief(sessionId);
+      // With the terminal snapshot in, this finishes at once (finishIfLoaded), whatever older reads still do.
       setDebrief(debrief);
-      if (terminalLoaded() && !isDisposed()) {
-        // The terminal snapshot is in and the published debrief just arrived: the end state is loaded, whatever an
-        // older debrief read still in flight does (it cannot replace the document or undo this).
-        stopForGood();
-        set({ connection: "finished", error: null });
-        return;
-      }
+      if (state.connection === "finished" || isDisposed()) return;
       await complete();
     },
     reconnect() {

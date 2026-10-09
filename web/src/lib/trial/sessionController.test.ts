@@ -2241,3 +2241,52 @@ describe("session controller: Codex round 24 regressions", () => {
     expect(c.getState().connection).toBe("finished");
   });
 });
+
+describe("session controller: the end state finishes whoever loads it", () => {
+  it("a published GET started by a re-read finishes the room while a later GET still hangs", async () => {
+    const gets: ((d: DebriefRead) => void)[] = [];
+    const b = new LogBuilder().ask().commit();
+    const ended = snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: b.seq });
+    const h = harness({ snapshots: [snapshot(), ended] });
+    const c = h.make({ api: { ...h.api, readDebrief: () => new Promise<DebriefRead>((r) => gets.push(r)) } });
+    await begin(c);
+    for (const f of b.frames) h.last().send(f);
+    h.last().raw("{lost frame");
+    await flush();
+    expect(gets).toHaveLength(1);
+    h.last().send(frame("debrief.ready", b.seq + 1, b.version, { session_id: SESSION_ID }));
+    await flush();
+    expect(gets).toHaveLength(2);
+    gets[0]?.(fixture("debrief:scored") as DebriefRead);
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+  });
+});
+
+describe("session controller: a terminal snapshot from any read completes a published session", () => {
+  it("the finding-409 reload installing the terminal snapshot finishes it while the completion read still hangs", async () => {
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>(() => undefined);
+          return Promise.resolve(snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 5 }));
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+        commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")),
+      },
+    });
+    await begin(c);
+    void c.requestDebrief();
+    await flush();
+    expect(c.getState().connection).toBe("ending");
+    await c.submitFinding((fixture("finding-commit") as { finding: never }).finding).catch(() => undefined);
+    expect(c.getState().connection).toBe("finished");
+    expect(trialView(c).commitmentHash).toBe(COMMITMENT_HASH);
+  });
+});
