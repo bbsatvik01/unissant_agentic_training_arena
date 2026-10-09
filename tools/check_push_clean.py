@@ -1,0 +1,120 @@
+"""Push-safety (global pre-push bar item 5; S5 11.1 `push-clean`): nothing that must stay local is tracked,
+staged, or in the branch history.
+
+Fails on: env files other than the committed example shapes (.env.example, .env.local.example), private
+keys and keystores, hidden case families (cases/hidden/, D-014: authored into a git-ignored directory and
+never committed), files over the size cap, local tooling or scratch output, and absolute home-directory
+paths in code or config (docs/ is research prose and may cite local file paths; code must not depend on
+one person's machine).
+
+Default mode reads every index entry from the index (so a file deleted only in the working tree is
+still checked), untracked-but-not-ignored files from disk, and every path added in ``BASE..HEAD``
+(a file committed then deleted is still pushed). ``--snapshot`` checks a plain exported directory.
+"""
+
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+from tools import proc
+
+MAX_BYTES = 5 * 1024 * 1024
+ENV_FILE = re.compile(r"(^|/)\.env(\.[^/]+)?$")
+ENV_EXAMPLES = (".env.example", ".env.local.example")
+HIDDEN_CASES = re.compile(r"^cases/hidden(/|$)")
+KEY_FILE = re.compile(r"(\.(pem|key|p12|pfx|jks|keystore|ppk)|(^|/)id_(rsa|ecdsa|ed25519)(\.pub)?)$")
+LOCAL_OUTPUT = re.compile(r"(^|/)(\.tools|\.gates|\.venv|node_modules|\.next|coverage|htmlcov|scratch|tmp)/|\.log$")
+HOME_PATH = re.compile(r"/(Users|home)/[A-Za-z0-9._-]+/")
+TEXT_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".toml", ".yaml", ".yml", ".sh", ".cfg", ".ini"}
+TEXT_NAMES = {"Makefile", "Dockerfile", "pre-commit", ".npmrc", ".gitignore", *ENV_EXAMPLES}
+
+
+def path_errors(path: str, size: int) -> list[str]:
+    errors: list[str] = []
+    if ENV_FILE.search(path) and not path.endswith(ENV_EXAMPLES):
+        errors.append(f"{path}: environment file must never be committed (only {' and '.join(ENV_EXAMPLES)})")
+    if HIDDEN_CASES.search(path):
+        errors.append(f"{path}: hidden case families stay in git-ignored cases/hidden/ and are never committed (D-014)")
+    if KEY_FILE.search(path):
+        errors.append(f"{path}: private key or keystore must never be committed")
+    if LOCAL_OUTPUT.search(path):
+        errors.append(f"{path}: local tool, build or scratch output must not be committed")
+    if size > MAX_BYTES:
+        errors.append(f"{path}: {size} bytes exceeds the {MAX_BYTES}-byte cap for committed files")
+    return errors
+
+
+def content_errors(path: str, text: str) -> list[str]:
+    name = path.rsplit("/", 1)[-1]
+    if path.startswith("docs/") or (Path(name).suffix not in TEXT_SUFFIXES and name not in TEXT_NAMES):
+        return []
+    return [
+        f"{path}:{number}: absolute home-directory path ({match.group(0)}...) in code or config"
+        for number, line in enumerate(text.splitlines(), start=1)
+        for match in [HOME_PATH.search(line)]
+        if match
+    ]
+
+
+def check(contents: dict[str, bytes], history_paths: list[str]) -> list[str]:
+    errors: list[str] = []
+    for path, data in sorted(contents.items()):
+        errors.extend(path_errors(path, len(data)))
+        try:
+            errors.extend(content_errors(path, data.decode("utf-8")))
+        # silent-ok: a binary file has no text lines to search for home paths; its path checks ran above
+        except UnicodeDecodeError:
+            continue
+    errors.extend(f"{error} (added in branch history)" for path in history_paths for error in path_errors(path, 0))
+    return errors
+
+
+def repo_contents(root: Path) -> dict[str, bytes]:
+    tracked = proc.index_files(root)
+    contents = proc.index_blobs(root, tracked)
+    untracked = set(proc.repo_files(root)) - set(tracked)
+    contents.update({path: (root / path).read_bytes() for path in untracked})
+    return contents
+
+
+def history_paths(root: Path, base: str) -> list[str]:
+    if proc.run("git", ["-C", str(root), "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"]).returncode:
+        msg = f"base ref {base!r} does not resolve to a commit"
+        raise LookupError(msg)
+    log = proc.run(
+        "git", ["-C", str(root), "log", "--diff-filter=A", "--name-only", "--format=", f"{base}..HEAD"], check=True
+    )
+    return sorted({line for line in log.stdout.splitlines() if line})
+
+
+def snapshot_contents(root: Path) -> dict[str, bytes]:
+    return {str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file() and not p.is_symlink()}
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--base", default="main", help="history from this ref to HEAD is checked too")
+    parser.add_argument("--snapshot", action="store_true", help="root is an exported index, not a git worktree")
+    args = parser.parse_args(argv)
+    root: Path = args.root
+    try:
+        if args.snapshot:
+            errors = check(snapshot_contents(root), [])
+        else:
+            errors = check(repo_contents(root), history_paths(root, args.base))
+    except (OSError, LookupError, ValueError, subprocess.CalledProcessError) as exc:
+        sys.stderr.write(f"push-clean: FAIL: {exc}\n")
+        return 1
+    for error in errors:
+        sys.stderr.write(f"push-clean: FAIL: {error}\n")
+    if errors:
+        return 1
+    sys.stdout.write("push-clean: OK\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

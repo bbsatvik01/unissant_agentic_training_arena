@@ -3,7 +3,7 @@
 #   packages/core       -> arena_core        shared types, boot checks; later: provider port, spend guard
 #   services/api         -> arena_api         ARENA_ROLE=api; investigator REST, SSE, voice relay edge
 #   services/subject     -> arena_subject      ARENA_ROLE=subject; answer(), guard, Live voice sessions
-#   services/referee     -> arena_referee      ARENA_ROLE=referee; generation, scoring, adjudication, reveal
+#   services/referee     -> arena_referee      ARENA_ROLE=referee; authored-family loading (D-014), labels, scoring, reveal
 #   services/tournament  -> arena_tournament   ARENA_ROLE=tournament job; roster, blocks, harness trials
 # Gate thresholds live in tools/gates/ratchet.toml and may only get stricter (lifted from TechnoMile T22;
 # see ATTRIBUTIONS.md).
@@ -24,7 +24,9 @@ dependencies = [
 [dependency-groups]
 dev = [
   "bandit==1.9.4",
+  "diff-cover==10.5.1",
   "mypy==2.3.1",
+  "pip-audit==2.10.1",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
   "ruff==0.16.8",
@@ -44,6 +46,8 @@ members = [
   "services/referee",
   "services/tournament",
 ]
+# Isolated tool environments with their own lockfiles (tools/envs/semgrep); never workspace members.
+exclude = ["tools/envs/*"]
 
 [tool.uv.sources]
 arena-core = { workspace = true }
@@ -109,13 +113,15 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["arena_core", "arena_api", "arena_subject", "arena_referee", "arena_tournament", "tools"]
-omit = ["tools/tests/*"]
-# Repo-relative paths in coverage.xml.
+omit = ["tools/tests/*", "tools/envs/*"]
+# Repo-relative paths in coverage.xml, so tools/check_scope.py and diff-cover map files unambiguously.
 relative_files = true
 
 [tool.coverage.report]
 # Mirrored in tools/gates/ratchet.toml (coverage.python.fail_under); the ratchet check fails on drift.
 fail_under = 90
+# Modules without __init__.py are still discovered as unexecuted source (reported at 0%, not hidden);
+# tools/check_scope.py fails if any measured-scope file is missing from the report.
 include_namespace_packages = true
 show_missing = true
 skip_covered = false

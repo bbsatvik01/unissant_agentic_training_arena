@@ -1,8 +1,10 @@
 name: CI
 
-# S5 11.2/11.3: CI calls the same make targets `make check` runs locally -- no separately softened CI
-# path. WP-01 scope only (py-check equivalent + bandit); WP-04 adds the Postgres service and db-test,
-# WP-18 adds web-check.
+# S5 11.2/11.3: CI calls the same make targets `make check` runs locally; there is no separately softened CI
+# path. This workflow runs the Python half of the gate (`make deps-sync py-check`); security.yml and
+# codeql.yml run the security half. db-test (a Postgres service with pgTAP, S5 11.2) arrives with the
+# migrations in WP-03/WP-04 and web-check with web/ in WP-18.
+# Actions are pinned to full commit SHAs; each comment names the release tag the SHA resolves to.
 on:
   push:
     branches: [main]
@@ -24,31 +26,31 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  check:
-    name: make check
+  py-check:
+    name: make py-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0 # tools/check_ratchet.py (BASE_REF) and tools/check_no_rigging.py need history
+          fetch-depth: 0 # ratchet, push-clean and diff-cover compare against BASE_REF
+          persist-credentials: false
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
 
-      # Pinned through pip (resolved at install time, not a third-party Action SHA this session could
-      # not verify over the network); must match [tool.uv] required-version in pyproject.toml.
-      - name: Install uv
-        run: pip install uv==0.11.2
+      # uv 0.11.2 = the [tool.uv] required-version floor; the action verifies the release checksum it ships.
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.2"
 
-      - name: make check
-        # BASE_REF: the ratchet gate compares against the PR's merge-base branch, not this runner's
-        # detached HEAD.
-        run: make check BASE_REF=origin/${{ github.event.pull_request.base.ref || 'main' }}
+      # Every PR and push here targets main (the trigger filters above), so main is always the base.
+      - name: make deps-sync py-check
+        run: make deps-sync py-check BASE_REF=origin/main
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
           path: coverage.xml

@@ -12,6 +12,7 @@ description: "Four roles, one credential each, enforced import boundaries and bo
 | referee | `arena_referee` | `ARENA_REFEREE_DSN` |
 | tournament | `arena_tournament` | `ARENA_PUBLIC_DSN` |
 
-- `arena_api` and `arena_tournament` never import `arena_subject` or `arena_referee`; `arena_subject` never imports `arena_referee`; only `arena_core.providers.vertex` imports `google.genai`; nothing imports `google.adk`. `tools/check_roles.py` enforces this.
-- Every role calls `arena_core.config.boot(role)` first. It refuses: a Google or Gemini API key, a missing `ARENA_GCP_PROJECT`, `ARENA_GCP_PROJECT=kbg-production`, an extra or missing DSN, `ARENA_OWNER_DSN`, `ARENA_ENV=local` on Cloud Run, and a non-loopback bind in local mode.
+- `arena_api` and `arena_tournament` never import `arena_subject` or `arena_referee`; `arena_subject` never imports `arena_referee`; `arena_core` imports no role package; only `arena_core.providers.vertex` imports `google.genai`; nothing imports `google.adk`. `tools/check_roles.py` enforces this (S5 1.2).
+- Every role's `python -m arena_<role>` calls `arena_core.config.boot(role)` first (S5 1.3). It refuses: a Google or Gemini API key, a missing `ARENA_GCP_PROJECT`, `ARENA_GCP_PROJECT=kbg-production`, an extra or missing DSN, `ARENA_OWNER_DSN`, an `ARENA_ENV` other than `local` or `hosted`, `ARENA_ENV=local` on Cloud Run (`K_SERVICE` set), and in local mode any `ARENA_BIND_HOST` other than `127.0.0.1`.
+- Hidden case families (`cases/hidden/`, D-014) are git-ignored and never committed or read by a gate.
 - Hosting is GCP, scale to zero. Never min-instances >= 1 or CPU always-allocated.

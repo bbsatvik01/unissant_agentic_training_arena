@@ -1,8 +1,6 @@
-"""Shared helpers for gate tests."""
+"""Shared helpers for gate tests. Lifted from TechnoMile tools/tests/conftest.py (ATTRIBUTIONS.md); the
+fake-gcloud helper stays behind until the hosted cost audit it serves arrives (WP-33)."""
 
-import shlex
-import stat
-import sys
 from pathlib import Path
 
 from tools import proc
@@ -18,14 +16,3 @@ def git_commit_all(root: Path, message: str) -> None:
     proc.run("git", ["-C", str(root), "add", "-A"], check=True)
     identity = ["-c", "user.name=gate-test", "-c", "user.email=gate-test@example.invalid", "-c", "commit.gpgsign=false"]
     proc.run("git", ["-C", str(root), *identity, "commit", "-q", "-m", message], check=True)
-
-
-def write_fake_gcloud(bindir: Path, source: str) -> Path:
-    """Install a fake ``gcloud`` on PATH: the Python source runs through a /bin/sh wrapper, because a shebang
-    cannot hold an interpreter path with spaces (this repo lives under "2026 Fall/Challenge X/...")."""
-    script = bindir / "gcloud_fake.py"
-    script.write_text(source)
-    wrapper = bindir / "gcloud"
-    wrapper.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(script))} "$@"\n')
-    wrapper.chmod(wrapper.stat().st_mode | stat.S_IXUSR)
-    return wrapper

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Fast pre-commit subset of `make check` (the full gate). Blocks the commit on any failure.
+# Every check reads the STAGED snapshot (exported from the index), never the working tree, so a
+# defect that is staged and then hidden in the working tree is still caught.
+#   ruff check + ruff format --check on staged Python, the no-rigging and push-clean scans of the
+#   snapshot (run from the snapshot's own code and policy files), and gitleaks on the staged diff.
+# Lifted from TechnoMile tools/githooks/pre-commit (ATTRIBUTIONS.md); the web block (ESLint + tsc on a staged
+# web/ change) returns with web/ in WP-18.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ ! -x .tools/bin/gitleaks ]]; then
+  echo "pre-commit: gitleaks missing; run make bootstrap" >&2
+  exit 1
+fi
+
+STAGE="$(mktemp -d "${TMPDIR:-/tmp}/arena-precommit.XXXXXX")"
+trap 'rm -rf "$STAGE"' EXIT
+git checkout-index --all --prefix="$STAGE/"
+
+# bash 3.2 compatible (macOS /bin/bash): no mapfile.
+PY=()
+while IFS= read -r -d '' f; do
+  case "$f" in
+    docs/*) ;;
+    *.py) [[ -f "$STAGE/$f" ]] && PY+=("$f") ;;
+  esac
+done < <(git diff --cached --name-only --no-renames -z)
+
+if ((${#PY[@]} > 0)); then
+  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff check -- "${PY[@]}")
+  (cd "$STAGE" && uv run --project "$ROOT" --locked ruff format --check -- "${PY[@]}")
+fi
+
+(cd "$STAGE" && uv run --project "$ROOT" --locked python -m tools.check_no_rigging --snapshot --root "$STAGE")
+(cd "$STAGE" && uv run --project "$ROOT" --locked python -m tools.check_push_clean --snapshot --root "$STAGE")
+.tools/bin/gitleaks git --no-banner --log-level warn --redact --pre-commit --staged .

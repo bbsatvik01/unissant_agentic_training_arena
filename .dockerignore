@@ -1,0 +1,10 @@
+# Build context for the hosted-variant image (Dockerfile): only what the image needs leaves the machine.
+# Secrets, local environments, gate outputs, docs and case data never enter the context.
+**
+!pyproject.toml
+!uv.lock
+!packages/
+!services/
+**/__pycache__/
+**/*.pyc
+**/tests/

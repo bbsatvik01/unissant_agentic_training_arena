@@ -5,7 +5,9 @@ Scans every tracked or new (not git-ignored) source and config file for the supp
 this gate forbids. A marker passes only when tools/gates/suppressions-allowlist.toml names that file,
 that marker and a substring of that exact line (``match``), with a reason: a verified false positive,
 narrowest scope. Allowlist entries that match nothing fail. Python under docs/ (which the linters
-skip as frozen research evidence) must stay inside the one archive root.
+skip as frozen research evidence) must stay inside the one archive root. A file that is itself a
+suppression list (``.gitleaksignore``: fingerprints gitleaks skips, locally and in CI) counts every entry
+line as a finding under the matching inline marker, so it needs the same reviewed allowlist entry.
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
@@ -28,7 +30,9 @@ MARKERS_PATH = "tools/gates/suppression-markers.toml"
 POLICY_FILES = {ALLOWLIST_PATH, MARKERS_PATH}  # name markers as data; validated on load
 SCANNED_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".toml", ".yaml", ".yml"}
 SCANNED_SUFFIXES |= {".json", ".cfg", ".ini", ".sh", ".txt"}
-SCANNED_NAMES = {"Makefile", "pre-commit", "pre-push"}
+# A whole file whose entries are suppressions -> the marker each non-blank, non-comment line counts as.
+SUPPRESSION_FILES = {".gitleaksignore": "gitleaks-allow"}
+SCANNED_NAMES = {"Makefile", "Dockerfile", "pre-commit", "pre-push", *SUPPRESSION_FILES}
 
 
 def load_markers(text: str) -> dict[str, re.Pattern[str]]:
@@ -85,7 +89,10 @@ def is_scanned(path: str) -> bool:
 
 def scan_text(path: str, text: str, markers: dict[str, re.Pattern[str]]) -> list[Finding]:
     findings: list[Finding] = []
+    whole_file_marker = SUPPRESSION_FILES.get(path.rsplit("/", 1)[-1])
     for number, line in enumerate(text.splitlines(), start=1):
+        if whole_file_marker is not None and line.strip() and not line.lstrip().startswith("#"):
+            findings.append(Finding(path, number, whole_file_marker, line.strip()[:160]))
         for marker, pattern in markers.items():
             if pattern.search(line):
                 findings.append(Finding(path, number, marker, line.strip()[:160]))

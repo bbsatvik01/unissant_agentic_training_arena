@@ -18,3 +18,6 @@ test-skip-or-focus	it.skip('later', () => {});
 test-skip-or-focus	it.skipIf(process.env.CI)('flaky', () => {});
 test-skip-or-focus	describe.only('focus', () => {});
 continue-on-error	    continue-on-error: true
+trufflehog-ignore	token = 'x'  # trufflehog:ignore
+osv-ignore	[[IgnoredVulns]]
+osv-ignore	  [[ PackageOverrides ]]

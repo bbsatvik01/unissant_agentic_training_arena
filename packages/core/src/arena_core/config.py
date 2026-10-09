@@ -9,6 +9,17 @@ the local-vs-hosted shape check are specific to this repo's four-role, credentia
 Each check raises `BootCheckError` with the exact reason; `boot()` is what a role's `__main__` calls,
 and turns that into `sys.exit(1)` with the reason on stderr (S5 1.4: "exits non-zero with a message
 naming the extra credential").
+
+The fifth S5 1.3 row ("tracing installed before any instrumented import") is enforced where tracing is
+installed: WP-07 adds `arena_core.observability.tracing.install()` and its boot-order check. Nothing is
+instrumented before WP-07, so there is nothing for that check to observe yet.
+
+Settings the boot checks read (all from the process environment):
+  ARENA_ROLE          api | subject | referee | tournament
+  ARENA_GCP_PROJECT   the arena project, named explicitly; never `kbg-production`
+  ARENA_ENV           local (default when unset or blank) | hosted
+  ARENA_BIND_HOST     the address the role's server binds (default 127.0.0.1); local runs: 127.0.0.1 only
+  ARENA_PUBLIC_DSN | ARENA_SUBJECT_DSN | ARENA_REFEREE_DSN   exactly the one DSN the role holds
 """
 
 from __future__ import annotations
@@ -16,7 +27,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 # D-001: Vertex only. An API key would route around ADC / service-account impersonation.
@@ -25,7 +36,12 @@ FORBIDDEN_MODEL_KEYS: tuple[str, ...] = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
 # command may ever run against it, by accident or otherwise.
 REFUSED_GCP_PROJECT = "kbg-production"
 OWNER_DSN_VAR = "ARENA_OWNER_DSN"
-LOOPBACK_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "localhost", "::1"})
+BIND_HOST_VAR = "ARENA_BIND_HOST"
+# S5 1.3: "with ARENA_ENV=local the server binds 127.0.0.1 only". Exactly this address: "localhost" goes
+# through name resolution and "::1" is a different socket than the 127.0.0.1 one S5 10.4's check inspects.
+LOCAL_BIND_HOST = "127.0.0.1"
+LOCAL, HOSTED = "local", "hosted"
+ENV_MODES: tuple[str, ...] = (LOCAL, HOSTED)
 # Cloud Run sets this on every revision (S5 1.3); its presence means "this is not the operator's
 # workstation", whatever ARENA_ENV claims.
 HOSTED_MARKER_VAR = "K_SERVICE"
@@ -67,7 +83,7 @@ def require_gcp_project(env: Mapping[str, str]) -> str:
     if not project:
         msg = "ARENA_GCP_PROJECT is not set; every arena command must name the arena project explicitly"
         raise BootCheckError(msg)
-    if project == REFUSED_GCP_PROJECT:
+    if project.lower() == REFUSED_GCP_PROJECT:
         msg = f"ARENA_GCP_PROJECT={REFUSED_GCP_PROJECT!r} refused (gokbase production; PATTERNS.md permission wall)"
         raise BootCheckError(msg)
     return project
@@ -93,24 +109,36 @@ def require_single_role_dsn(role: ArenaRole, env: Mapping[str, str]) -> str:
     return env[own_var]
 
 
-def require_local_shape(env: Mapping[str, str]) -> bool:
-    """Whether this is a local run; `ARENA_ENV=local` is refused outright on a Cloud Run host."""
-    is_local = env.get("ARENA_ENV", "local") == "local"
-    hosted = bool(env.get(HOSTED_MARKER_VAR))
-    if is_local and hosted:
+def resolve_env_mode(env: Mapping[str, str]) -> str:
+    """`ARENA_ENV`: `local` (also when unset or blank) or `hosted`; anything else is refused.
+
+    Local is the restrictive mode (loopback only, refused on Cloud Run), so a missing value falls to it;
+    an unknown value is a typo or a mistake and never silently becomes hosted.
+    """
+    raw = env.get("ARENA_ENV", "")
+    mode = raw if raw.strip() else LOCAL
+    if mode not in ENV_MODES:
+        msg = f"ARENA_ENV must be one of {list(ENV_MODES)}, got {raw!r}"
+        raise BootCheckError(msg)
+    if mode == LOCAL and env.get(HOSTED_MARKER_VAR):
         msg = (
             f"ARENA_ENV=local is refused when {HOSTED_MARKER_VAR} is set "
             "(local-only features never run on a hosted revision)"
         )
         raise BootCheckError(msg)
-    return is_local
+    return mode
 
 
-def require_loopback_bind(*, is_local: bool, bind_host: str) -> None:
-    """A local run binds 127.0.0.1 only."""
-    if is_local and bind_host not in LOOPBACK_HOSTS:
-        msg = f"ARENA_ENV=local requires a loopback bind address, got {bind_host!r}"
+def require_bind_host(env: Mapping[str, str], *, is_local: bool) -> str:
+    """The address the role's server binds: 127.0.0.1 only in a local run; never blank."""
+    bind_host = env.get(BIND_HOST_VAR, LOCAL_BIND_HOST)
+    if is_local and bind_host != LOCAL_BIND_HOST:
+        msg = f"ARENA_ENV=local requires a loopback bind address ({LOCAL_BIND_HOST} only), got {bind_host!r}"
         raise BootCheckError(msg)
+    if not bind_host.strip():
+        msg = f"{BIND_HOST_VAR} is blank"
+        raise BootCheckError(msg)
+    return bind_host
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -118,7 +146,8 @@ class Settings:
     role: ArenaRole
     env_name: str
     gcp_project: str
-    dsn: str
+    # The DSN carries the role's database password: never part of a repr, a log line or an error.
+    dsn: str = field(repr=False)
     is_local: bool
     bind_host: str
 
@@ -131,9 +160,7 @@ def _parse_role(raw: str | None) -> ArenaRole:
         raise BootCheckError(msg) from None
 
 
-def load_settings(
-    env: Mapping[str, str], *, expected_role: ArenaRole | None = None, bind_host: str = "127.0.0.1"
-) -> Settings:
+def load_settings(env: Mapping[str, str], *, expected_role: ArenaRole | None = None) -> Settings:
     """Run every S5 1.3 boot check in order and return typed settings, or raise BootCheckError.
 
     `expected_role` lets a service's own entry point (which already knows it is `arena_api`, say)
@@ -146,25 +173,13 @@ def load_settings(
     refuse_gemini_api_keys(env)
     gcp_project = require_gcp_project(env)
     dsn = require_single_role_dsn(role, env)
-    is_local = require_local_shape(env)
-    require_loopback_bind(is_local=is_local, bind_host=bind_host)
-    return Settings(
-        role=role,
-        env_name=env.get("ARENA_ENV", "local"),
-        gcp_project=gcp_project,
-        dsn=dsn,
-        is_local=is_local,
-        bind_host=bind_host,
-    )
+    mode = resolve_env_mode(env)
+    is_local = mode == LOCAL
+    bind_host = require_bind_host(env, is_local=is_local)
+    return Settings(role=role, env_name=mode, gcp_project=gcp_project, dsn=dsn, is_local=is_local, bind_host=bind_host)
 
 
-def boot(
-    expected_role: ArenaRole,
-    env: Mapping[str, str] | None = None,
-    *,
-    bind_host: str = "127.0.0.1",
-    exit_on_failure: bool = True,
-) -> Settings:
+def boot(expected_role: ArenaRole, env: Mapping[str, str] | None = None, *, exit_on_failure: bool = True) -> Settings:
     """Entry point every role's `__main__` calls first.
 
     On failure: writes the reason to stderr and calls `sys.exit(1)` (S5 1.4), unless
@@ -172,7 +187,7 @@ def boot(
     """
     resolved_env = os.environ if env is None else env
     try:
-        return load_settings(resolved_env, expected_role=expected_role, bind_host=bind_host)
+        return load_settings(resolved_env, expected_role=expected_role)
     except BootCheckError as exc:
         if not exit_on_failure:
             raise

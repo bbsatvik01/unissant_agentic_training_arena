@@ -5,7 +5,7 @@
 ids = [
   "noqa", "type-ignore", "pyright-ignore", "nosec", "nosemgrep", "gitleaks-allow", "pragma-no-cover",
   "pytest-skip", "unittest-skip", "mypy-ignore-errors", "eslint-disable", "ts-suppress", "coverage-ignore",
-  "test-skip-or-focus", "continue-on-error",
+  "test-skip-or-focus", "continue-on-error", "trufflehog-ignore", "osv-ignore",
 ]
 
 [patterns]
@@ -24,3 +24,8 @@ ts-suppress = '@ts-(ignore|expect-error|nocheck)\b'
 coverage-ignore = '/\*\s*(istanbul|c8|v8)\s+ignore\b'
 test-skip-or-focus = '\b(it|test|describe)\.(skip|only|todo|skipIf|runIf)\b|\b(xit|xdescribe|fit|fdescribe)\('
 continue-on-error = '^\s*continue-on-error\s*:\s*(true|\$\{\{)'
+# TruffleHog's inline line-skip comment.
+trufflehog-ignore = 'trufflehog:ignore\b'
+# osv-scanner.toml entries that skip an advisory or a package (osv-scanner loads the file next to a lockfile
+# on its own, so an entry silently drops a finding from `make osv-scanner` and the CI scan).
+osv-ignore = '^\s*\[\[\s*(IgnoredVulns|PackageOverrides)\s*\]\]'

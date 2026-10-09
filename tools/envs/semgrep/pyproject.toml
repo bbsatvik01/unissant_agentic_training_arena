@@ -1,0 +1,14 @@
+# Isolated, locked environment for Semgrep (S5 11.1 sec-check). Semgrep pins many transitive packages
+# (starlette, opentelemetry, ...) that must not constrain the application's resolution.
+# Lifted from TechnoMile tools/envs/semgrep/pyproject.toml (ATTRIBUTIONS.md). Semgrep moves from 1.177.0 to
+# 1.179.0: 1.179.0 (PyPI upload 2026-10-02) lifts the pyjwt~=2.13 pin behind PYSEC-2026-4140..4152 /
+# CVE-2026-103001 and cleared the 7-day cooldown on 2026-10-09, so TechnoMile's pyjwt override is dropped.
+[project]
+name = "arena-semgrep-env"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["semgrep==1.179.0"]
+
+[tool.uv]
+package = false
+exclude-newer = "7 days"

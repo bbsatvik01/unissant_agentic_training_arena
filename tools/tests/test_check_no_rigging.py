@@ -146,3 +146,53 @@ def test_docs_python_outside_the_archive_fails() -> None:
 def test_ordinary_code_and_data_never_match(tmp_path: Path, line: str) -> None:
     (tmp_path / "app.ts").write_text(line + "\n")
     assert nr.check(["app.ts"], reader(tmp_path), [], MARKERS) == []
+
+
+# ---------------------------------------------------------------- suppression-list files
+@pytest.mark.gateproof
+def test_every_gitleaksignore_entry_is_a_suppression(tmp_path: Path) -> None:
+    (tmp_path / ".gitleaksignore").write_text("# a comment\n\n0123abcd:services/api/x.py:generic-api-key:3\n")
+    errors = nr.check([".gitleaksignore"], reader(tmp_path), [], MARKERS)
+    assert errors == [
+        ".gitleaksignore:3: forbidden suppression [gitleaks-allow] 0123abcd:services/api/x.py:generic-api-key:3"
+    ]
+
+
+def test_a_gitleaksignore_with_only_comments_is_clean_and_an_allowed_entry_passes(tmp_path: Path) -> None:
+    (tmp_path / ".gitleaksignore").write_text("# verified false positives only\n")
+    assert nr.check([".gitleaksignore"], reader(tmp_path), [], MARKERS) == []
+    (tmp_path / ".gitleaksignore").write_text("abc:docs/x.md:generic-api-key:9\n")
+    allowed = [nr.Allowance(".gitleaksignore", "gitleaks-allow", "abc:docs/x.md:generic-api-key:9")]
+    assert nr.check([".gitleaksignore"], reader(tmp_path), allowed, MARKERS) == []
+
+
+# ---------------------------------------------------------------- S5 11.3 against this repo's real files
+def _tracked_copy(tmp_path: Path, rel: str) -> Path:
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(REPO_ROOT / rel, target)
+    return target
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("workflow", [".github/workflows/ci.yml", ".github/workflows/security.yml"])
+def test_continue_on_error_added_to_a_real_workflow_fails(tmp_path: Path, workflow: str) -> None:
+    git_init(tmp_path)
+    _policy_files(tmp_path)
+    target = _tracked_copy(tmp_path, workflow)
+    assert nr.main(["--root", str(tmp_path)]) == 0
+    text = target.read_text()
+    marker = "    steps:\n"
+    assert marker in text
+    target.write_text(text.replace(marker, CONTINUE + "\n" + marker, 1))
+    assert nr.main(["--root", str(tmp_path)]) == 1
+
+
+@pytest.mark.gateproof
+def test_type_ignore_added_to_a_real_module_fails(tmp_path: Path) -> None:
+    git_init(tmp_path)
+    _policy_files(tmp_path)
+    target = _tracked_copy(tmp_path, "packages/core/src/arena_core/config.py")
+    assert nr.main(["--root", str(tmp_path)]) == 0
+    target.write_text(target.read_text() + "\n" + TYPE_IGNORE + "\n")
+    assert nr.main(["--root", str(tmp_path)]) == 1

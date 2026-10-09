@@ -1,0 +1,14 @@
+# Replaces Semgrep's built-in defaults (which skip tests/ and test files). Only generated, vendored or
+# third-party trees are ignored; tests are scanned like product code. docs/ holds frozen research scripts
+# (evidence, not product code); cases/ holds case-family data (no code), and cases/hidden/ must never be
+# read by a gate (D-014). Lifted from TechnoMile .semgrepignore (ATTRIBUTIONS.md).
+.git/
+.venv/
+.tools/
+.gates/
+node_modules/
+web/dist/
+web/coverage/
+tools/envs/*/.venv/
+docs/
+cases/

@@ -7,10 +7,10 @@
 path = "tools/proc.py"
 marker = "noqa"
 match = "check=check)  # noqa: S603"
-reason = "Ruff S603 flags every subprocess call whose argv is not all literals; this is the single call site, argv[0] is an allowlisted tool resolved to an absolute path, and no shell is used (verified false positive; lifted unchanged from TechnoMile tools/proc.py, ATTRIBUTIONS.md)"
+reason = "Ruff S603 flags every subprocess call whose argv is not all literals; this is the single call site for the gate tools, argv[0] is an allowlisted tool resolved to an absolute path, and no shell is used (verified false positive; lifted from TechnoMile tools/proc.py, ATTRIBUTIONS.md)"
 
 [[allow]]
 path = "tools/tests/subprocess_support.py"
 marker = "noqa"
 match = "subprocess.run(  # noqa: S603"
-reason = "Ruff S603 flags every subprocess call whose argv is not all literals (sys.executable is dynamic); this is the single call site, argv is a fixed [interpreter, '-m', module] shape, there is no shell, and both cwd and env are caller-controlled (verified false positive; used only by the four service boot-check test suites, S5 1.4)"
+reason = "Ruff S603 flags every subprocess call whose argv is not all literals (sys.executable is dynamic); this is the single call site of the role boot-check tests, argv is a fixed [interpreter, '-m', module] shape, there is no shell, and env is fully replaced by the caller so no ambient credential reaches the child (verified false positive; S5 1.4 process tests for the four roles)"

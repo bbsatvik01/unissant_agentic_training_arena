@@ -1,0 +1,43 @@
+rules:
+  # S5 1.1 and 1.2: every model call goes through the typed agent port (arena_core.providers: reserve
+  # before, settle after, one span per attempt), and every internal role-to-role call goes through the
+  # api's subject and referee clients (caller tokens per route, S5 5.5 and 10.2). Any other module that
+  # imports an HTTP client bypasses the spend guard, the caller-token check or tracing.
+  # Adapted from TechnoMile tools/semgrep/rules.yml `bh-no-raw-http` (ATTRIBUTIONS.md): same patterns;
+  # the allowed paths are this repo's. A new exclusion is a gate change and needs its own review.
+  - id: arena-no-raw-http
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Raw HTTP client outside the agent port (packages/core/src/arena_core/providers), the api's
+      subject and referee clients, and the Phoenix read-back. Use the port for model calls and the
+      role clients for internal routes.
+    paths:
+      exclude:
+        - "/packages/core/src/arena_core/providers/"
+        # Span read-back and export to the operator's own Phoenix (S5 8.6): a fixed, operator-configured
+        # URL, not a model call and not a role route. One file.
+        - "/packages/core/src/arena_core/observability/phoenix.py"
+        # arena-api's internal clients for arena-subject and arena-referee (S5 5.5): loopback (local) or
+        # IAM-private (hosted) routes with per-route caller authorization.
+        - "/services/api/src/arena_api/subject_client.py"
+        - "/services/api/src/arena_api/referee_client.py"
+    pattern-either:
+      - pattern: import httpx
+      - pattern: import httpx2
+      - pattern: import requests
+      - pattern: import urllib.request
+      - pattern: import urllib3
+      - pattern: import http.client
+      - pattern: import aiohttp
+      - pattern: import pycurl
+      - pattern: from httpx import $X
+      - pattern: from httpx2 import $X
+      - pattern: from requests import $X
+      - pattern: from urllib.request import $X
+      - pattern: from urllib3 import $X
+      - pattern: from http.client import $X
+      - pattern: from aiohttp import $X
+      - pattern: from urllib import request
+      - pattern: from http import client
+      - pattern: urllib.request.urlopen(...)

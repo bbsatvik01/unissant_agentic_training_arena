@@ -227,3 +227,59 @@ def test_a_second_assignment_of_a_threshold_fails(tmp_path: Path) -> None:
     (tmp_path / "Makefile").write_text("MAX_WARNINGS := 0\nMAX_WARNINGS := 5\n")
     errors = check_ratchet.check(check_ratchet.parse(ratchet_text()), None, tmp_path)
     assert errors == ["warnings.max: Makefile sets this threshold 2 times (lines [1, 2]); set it once"]
+
+
+# ---------------------------------------------------------------- S5 11.3 against this repo's real files
+RATCHETED_FILES = (
+    "Makefile",
+    "pyproject.toml",
+    "conftest.py",
+    "tools/envs/semgrep/pyproject.toml",
+    check_ratchet.RATCHET_PATH,
+)
+
+
+def _real_repo(tmp_path: Path) -> Path:
+    git_init(tmp_path)
+    for rel in RATCHETED_FILES:
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text((REPO_ROOT / rel).read_text())
+    git_commit_all(tmp_path, "base")
+    return tmp_path
+
+
+@pytest.mark.gateproof
+def test_lowering_coverage_min_in_the_real_makefile_fails(tmp_path: Path) -> None:
+    root = _real_repo(tmp_path)
+    assert check_ratchet.main(["--base", "main", "--root", str(root)]) == 0
+    makefile = root / "Makefile"
+    makefile.write_text(makefile.read_text().replace("override COVERAGE_MIN := 90", "override COVERAGE_MIN := 80"))
+    assert check_ratchet.main(["--base", "main", "--root", str(root)]) == 1  # drift from the ratchet file
+    ratchet = root / check_ratchet.RATCHET_PATH
+    lowered = ratchet.read_text().replace(
+        'id = "coverage.python.cli_fail_under"\nvalue = 90', 'id = "coverage.python.cli_fail_under"\nvalue = 80'
+    )
+    assert lowered != ratchet.read_text()
+    ratchet.write_text(lowered)
+    assert check_ratchet.main(["--base", "main", "--root", str(root)]) == 1  # loosened versus the base ref
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    ("rel", "old", "new"),
+    [
+        ("Makefile", "override BANDIT_FLAGS := -ll -ii", "override BANDIT_FLAGS := -l"),
+        ("Makefile", "override DIFF_COVER_MIN := 90", "override DIFF_COVER_MIN := 50"),
+        ("Makefile", "override BANDIT_SECRET_TESTS := B105,B106,B107", "override BANDIT_SECRET_TESTS := B105"),
+        ("pyproject.toml", 'exclude-newer = "7 days"', 'exclude-newer = "1 days"'),
+        ("tools/envs/semgrep/pyproject.toml", 'exclude-newer = "7 days"', 'exclude-newer = "0 days"'),
+        ("pyproject.toml", "strict = true", "strict = false"),
+        ("conftest.py", 'pytest_plugins = ["tools.pytest_guard"]', "pytest_plugins = []"),
+    ],
+)
+def test_loosening_any_real_threshold_fails(tmp_path: Path, rel: str, old: str, new: str) -> None:
+    root = _real_repo(tmp_path)
+    target = root / rel
+    assert target.read_text().count(old) == 1, (rel, old)
+    target.write_text(target.read_text().replace(old, new))
+    assert check_ratchet.main(["--base", "main", "--root", str(root)]) == 1

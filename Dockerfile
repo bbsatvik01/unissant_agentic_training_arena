@@ -1,5 +1,6 @@
 # Hosted-variant image skeleton (WP-33, owner decision OD-10; S5 9.1). Not built in WP-01 -- no role's
-# package yet declares a web server or a console-script entry point, so there is nothing to run.
+# package yet declares a web server or a console-script entry point, so there is nothing to serve.
+# .dockerignore limits the build context to pyproject.toml, uv.lock, packages/ and services/.
 # Kept so WP-33 can wire a real CMD without redesigning the build:
 #   docker build -t arena .
 # One image, every role (`ARENA_ROLE=api|subject|referee|tournament` at `docker run` time): a web build
@@ -32,5 +33,7 @@ USER arena
 EXPOSE 8080
 # arena-serve (WP-33): dispatches on ARENA_ROLE to uvicorn (api/subject/referee) or the job main
 # (tournament). Until it exists, this CMD only proves the image boots and runs the role's own boot
-# checks (S5 1.3) -- the same entry point `make dev` (WP-05) and `python -m <role package>` use locally.
+# checks (S5 1.3), the same entry point `python -m <role package>` runs locally. The boot checks default
+# ARENA_ENV to local and refuse it when K_SERVICE is set, so a hosted deploy must set ARENA_ENV=hosted
+# and ARENA_BIND_HOST explicitly (WP-33, owner-approved values); the image sets neither.
 CMD ["sh", "-c", "exec python -m arena_${ARENA_ROLE:?set ARENA_ROLE}"]

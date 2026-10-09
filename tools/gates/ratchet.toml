@@ -6,10 +6,9 @@
 # tools/check_ratchet.py fails when a live config differs from this file, or when this file loosens,
 # deletes or re-points an entry compared with BASE_REF. To tighten, change the value here and in its
 # source in the same commit. Lifted from TechnoMile tools/gates/ratchet.toml (T22): entries re-pointed
-# to this repo's files; WP-01 carries only the thresholds this repo's Makefile and pyproject.toml set
-# today (coverage, mypy, ruff, bandit, pytest -W error, the pytest skip/xfail guard, the uv cooldown).
-# Later WPs add their own entries here as they add gates (web, diff-cover, db-test, ...) — entries are
-# only ever added or tightened, never removed.
+# to this repo's files, directions and values unchanged; WP-01 carries the thresholds this repo's Makefile,
+# pyproject.toml, conftest.py and the semgrep environment set today. Later WPs add their own entries as
+# they add gates (web, db-test, ...); entries are only ever added or tightened, never removed.
 
 [[threshold]]
 id = "coverage.python.fail_under"
@@ -31,6 +30,13 @@ value = 90
 direction = "min"
 origin = "global pre-push bar; passed on the pytest command line so addopts cannot lower it"
 source = { file = "Makefile", regex = '^\s*(?:override\s+)?COVERAGE_MIN\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
+
+[[threshold]]
+id = "diff_cover.python.fail_under"
+value = 90
+direction = "min"
+origin = "S5 11.1 py-check (diff-cover --fail-under=90)"
+source = { file = "Makefile", regex = '^\s*(?:override\s+)?DIFF_COVER_MIN\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
 
 [[threshold]]
 id = "mypy.strict"
@@ -61,6 +67,13 @@ origin = "global pre-push bar (bandit -ll -ii, never weaker)"
 source = { file = "Makefile", regex = '^\s*(?:override\s+)?BANDIT_FLAGS\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
 
 [[threshold]]
+id = "bandit.secret_tests"
+value = "B105,B106,B107"
+direction = "frozen"
+origin = "S5 11.1 sec-check (bandit -t B105,B106,B107: the hardcoded-secret pass -ll skips)"
+source = { file = "Makefile", regex = '^\s*(?:override\s+)?BANDIT_SECRET_TESTS\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
+
+[[threshold]]
 id = "pytest.cli_warnings"
 value = "error"
 direction = "frozen"
@@ -87,3 +100,10 @@ value = 7
 direction = "min"
 origin = "global pre-push bar (supply-chain cooldown)"
 source = { file = "pyproject.toml", regex = '^\s*exclude-newer\s*=\s*"(\d+) days"\s*$' }
+
+[[threshold]]
+id = "cooldown.python.semgrep_env.days"
+value = 7
+direction = "min"
+origin = "global pre-push bar (supply-chain cooldown) for the isolated Semgrep environment"
+source = { file = "tools/envs/semgrep/pyproject.toml", regex = '^\s*exclude-newer\s*=\s*"(\d+) days"\s*$' }

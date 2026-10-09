@@ -7,11 +7,14 @@ tools/, scripts/ that fails `make check` when:
   b. `arena_subject` imports `arena_referee`.
   c. any module other than `arena_core.providers.vertex` imports `google.genai`.
   d. any module imports `google.adk` (the typed agent port replaces ADK everywhere, direction DM-1).
+  core. `arena_core` imports any role package (`arena_api`, `arena_subject`, `arena_referee`,
+     `arena_tournament`). Every role imports arena_core, so a role import inside it would hand
+     arena_api the subject's or the referee's code transitively and defeat rules a and b.
 
 A fifth rule in S5 1.2 item 2 ("any module other than `arena_core.events.projections` constructs an
-event frame model") needs the event envelope types that `arena_core.events.envelope` defines in
-WP-13; it is not checked here yet (nothing can violate a rule about a type that does not exist), and
-is deferred to the WP that adds those types.
+event frame model") needs the wire frame types, which WP-02 generates (`contracts/`, C-17) and WP-13's
+projection builds (S5 6.5 makes the rule part of that acceptance); it lands with those types, since
+nothing can violate a rule about a type that does not exist yet.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -29,8 +32,10 @@ from tools import proc
 
 SCANNED_ROOTS = ("packages/", "services/", "tools/", "scripts/")
 
-# Role package -> modules it may never import (S5 1.2 item 2 rules a, b).
+ROLE_PACKAGES = frozenset({"arena_api", "arena_subject", "arena_referee", "arena_tournament"})
+# Package -> modules it may never import (S5 1.2 item 2 rules a, b; the arena_core rule above).
 FORBIDDEN_IMPORTS: dict[str, frozenset[str]] = {
+    "arena_core": ROLE_PACKAGES,
     "arena_api": frozenset(
         {"arena_subject", "arena_referee", "arena_core.agents.subject_prompts", "arena_core.agents.referee_prompts"}
     ),
@@ -65,10 +70,12 @@ class Finding:
 
 
 def _module_of(path: str) -> str | None:
-    """The role package a scanned path belongs to, or None (tools/scripts carry no role)."""
+    """The package a scanned path belongs to (a role, or arena_core), or None (tools/scripts carry no role)."""
     parts = Path(path).parts
     if parts[:1] == ("services",) and parts[1:2] and parts[1] in SERVICE_PACKAGE:
         return SERVICE_PACKAGE[parts[1]]
+    if parts[:2] == ("packages", "core"):
+        return "arena_core"
     return None
 
 

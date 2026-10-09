@@ -24,9 +24,10 @@ Text-based training arena where investigators practice interviews with simulated
 
 Python 3.12 uv workspace (`packages/core`, `services/{api,subject,referee,tournament}`); the web app lands in WP-18.
 
-- `make bootstrap`: `uv sync --locked` (clean-clone setup).
-- `make check`: the full gate. ruff check, ruff format --check, mypy strict, no-rigging, roles, cost-parity, ratchet, pytest with the 90% branch coverage floor (`-W error`), bandit `-ll -ii`. CI runs the same targets. Never soften a gate; fix the code.
+- `make bootstrap`: clean-clone setup. `uv sync --locked` for the workspace and the isolated Semgrep env (`tools/envs/semgrep`), the pinned sha256-verified security binaries into `.tools/bin` (`tools/ensure_tools.sh`: gitleaks, trufflehog, osv-scanner, CodeQL; cached in `$ARENA_TOOLS_CACHE`, default `~/.cache/arena-tools`; the CodeQL bundle unpacks to ~3.3 GB), and the pre-commit hook (`tools/githooks/install.sh`; in a git worktree it installs into the shared `.git/hooks`).
+- `make check`: the full gate (S5 11.1). `py-check`: ruff check, ruff format --check, mypy strict, no-rigging, silent-except, roles, cost-parity, ratchet, deps-policy, push-clean, pytest `-W error` with the 90% branch-coverage floor, scope-coverage, diff-cover 90% against `BASE_REF` (default `main`). `sec-check`: bandit (`-ll -ii`, then `-t B105,B106,B107`), Semgrep, CodeQL security-extended, gitleaks, TruffleHog, pip-audit `--require-hashes`, osv-scanner, licence gate. CI (`.github/workflows/`) runs the same make targets for `py-check` and the Python scans (bandit, Semgrep, pip-audit, licences); gitleaks, TruffleHog, osv-scanner and CodeQL run there through their official SHA-pinned Actions at the same scanner versions. Never soften a gate; fix the code.
 - `uv run --locked pytest -m gateproof`: only the seeded-defect proofs that each gate fails on what it exists for.
-- `ARENA_ROLE=api ARENA_GCP_PROJECT=<arena-project> ARENA_PUBLIC_DSN=<dsn> uv run python -m arena_api`: run a role's boot checks (shape of the settings: `.env.local.example`). Boot refuses `kbg-production`, API keys, extra DSNs.
+- `ARENA_ROLE=api ARENA_GCP_PROJECT=<arena-project> ARENA_PUBLIC_DSN=<dsn> uv run python -m arena_api`: run a role's boot checks (settings shape: `.env.local.example`; S5 1.3). Boot refuses `kbg-production`, Google/Gemini API keys, a missing or extra DSN, `ARENA_OWNER_DSN`, an unknown `ARENA_ENV`, `ARENA_ENV=local` on Cloud Run, and any `ARENA_BIND_HOST` other than 127.0.0.1 in local mode.
+- Not yet in `make check`, each arriving with the tree it gates: `db-test` (WP-03/WP-04), `web-check` (WP-18), `dev` and `dev-check` (S5 10.4, with the local launcher).
 
 Research outputs live in `docs/research/`.

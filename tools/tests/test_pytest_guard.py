@@ -1,7 +1,10 @@
-"""Gate proof: any skipped or xfailed test fails the pytest run."""
+"""Gate proofs: any skipped or xfailed test fails the pytest run, and so does a test file whose module was
+shadowed by another file with the same import name (its tests would silently run someone else's code)."""
 
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -17,20 +20,68 @@ RAISE_SKIP = next(
 SKIP_BY_EXCEPTION = f"import unittest\n\n\ndef test_hidden() -> None:\n    {RAISE_SKIP}\n"
 
 
+def _scratch_project(tmp_path: Path) -> list[str]:
+    """A scratch project that loads the real guard through the real root conftest.py; returns pytest args."""
+    (tmp_path / "tools").mkdir()
+    shutil.copy(REPO_ROOT / "tools" / "pytest_guard.py", tmp_path / "tools" / "pytest_guard.py")
+    (tmp_path / "tools" / "__init__.py").write_text("")
+    shutil.copy(REPO_ROOT / "conftest.py", tmp_path / "conftest.py")
+    return ["-q", "-p", "no:cacheprovider", "--import-mode=importlib", "--rootdir", str(tmp_path), "-o", "pythonpath=."]
+
+
 def test_unwanted_counts_only_skip_like_outcomes() -> None:
     stats: dict[str, list[object]] = {"passed": [1, 2], "skipped": [1], "xfailed": [1, 2]}
     assert pytest_guard.unwanted(stats) == {"skipped": 1, "xfailed": 2}
     assert pytest_guard.unwanted({"passed": [1]}) == {}
 
 
+def _item(path: Path, defined_in: Path) -> pytest.Item:
+    return cast(pytest.Item, SimpleNamespace(path=path, module=SimpleNamespace(__file__=str(defined_in))))
+
+
+def test_shadowed_names_a_file_that_ran_another_files_tests(tmp_path: Path) -> None:
+    first, second = tmp_path / "api" / "test_main.py", tmp_path / "subject" / "test_main.py"
+    assert pytest_guard.shadowed([_item(first, first), _item(second, second)]) == []
+    assert pytest_guard.shadowed([_item(first, first), _item(second, first)]) == [f"{second} ran the tests of {first}"]
+
+
 @pytest.mark.gateproof
 def test_a_runtime_skip_fails_the_session(tmp_path: Path) -> None:
-    (tmp_path / "tools").mkdir()
-    shutil.copy(REPO_ROOT / "tools" / "pytest_guard.py", tmp_path / "tools" / "pytest_guard.py")
-    (tmp_path / "tools" / "__init__.py").write_text("")
-    shutil.copy(REPO_ROOT / "conftest.py", tmp_path / "conftest.py")
+    args = _scratch_project(tmp_path)
     (tmp_path / "test_probe.py").write_text(SKIP_BY_EXCEPTION)
-    args = ["-q", "-p", "no:cacheprovider", "--rootdir", str(tmp_path), "-o", "pythonpath=.", str(tmp_path)]
-    result = proc.run("pytest", args, cwd=tmp_path)
+    result = proc.run("pytest", [*args, str(tmp_path)], cwd=tmp_path)
     assert result.returncode == pytest.ExitCode.TESTS_FAILED, result.stdout
     assert "pytest_guard: FAIL" in result.stdout
+
+
+@pytest.mark.gateproof
+def test_a_shadowed_test_module_fails_the_session(tmp_path: Path) -> None:
+    """Two `tests` packages each holding test_main.py share the import name `tests.test_main` under
+    --import-mode=importlib; without the guard the second file's tests silently run the first file's code."""
+    args = _scratch_project(tmp_path)
+    for role in ("api", "subject"):
+        tests = tmp_path / "services" / role / "tests"
+        tests.mkdir(parents=True)
+        (tests / "__init__.py").write_text("")
+        (tests / "test_main.py").write_text(f"ROLE = '{role}'\n\n\ndef test_role() -> None:\n    assert ROLE\n")
+    result = proc.run("pytest", [*args, str(tmp_path / "services")], cwd=tmp_path)
+    assert result.returncode != pytest.ExitCode.OK, result.stdout
+    assert "pytest_guard: FAIL" in result.stdout + result.stderr
+    assert "services/subject/tests/test_main.py" in result.stdout + result.stderr
+
+
+def test_distinct_test_modules_pass(tmp_path: Path) -> None:
+    args = _scratch_project(tmp_path)
+    for role in ("api", "subject"):
+        tests = tmp_path / "services" / role / "tests"
+        tests.mkdir(parents=True)
+        (tests / "test_main.py").write_text(f"ROLE = '{role}'\n\n\ndef test_role() -> None:\n    assert ROLE\n")
+    result = proc.run("pytest", [*args, str(tmp_path / "services")], cwd=tmp_path)
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "2 passed" in result.stdout
+
+
+def test_this_repository_collects_every_test_file_as_its_own_module() -> None:
+    result = proc.run("pytest", ["-q", "-p", "no:cacheprovider", "--collect-only"], cwd=REPO_ROOT)
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "pytest_guard: FAIL" not in result.stdout

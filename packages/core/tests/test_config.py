@@ -9,7 +9,7 @@ from arena_core import config
 GOOD_ENV: dict[str, str] = {
     "ARENA_ROLE": "api",
     "ARENA_GCP_PROJECT": "arena-dev-000000",
-    "ARENA_PUBLIC_DSN": "postgresql://api@127.0.0.1/arena",
+    "ARENA_PUBLIC_DSN": "postgresql://api:not-a-real-password@127.0.0.1/arena",
     "ARENA_ENV": "local",
 }
 
@@ -31,6 +31,7 @@ def test_a_clean_local_api_environment_boots() -> None:
     assert settings.dsn == GOOD_ENV["ARENA_PUBLIC_DSN"]
     assert settings.gcp_project == "arena-dev-000000"
     assert settings.is_local is True
+    assert settings.bind_host == "127.0.0.1"
 
 
 @pytest.mark.parametrize("role", list(config.ArenaRole))
@@ -71,15 +72,17 @@ def test_refuse_gemini_api_keys_names_every_key_present() -> None:
 
 
 # ---------------------------------------------------------------- ARENA_GCP_PROJECT
-def test_missing_gcp_project_is_refused() -> None:
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_missing_or_blank_gcp_project_is_refused(value: str | None) -> None:
     with pytest.raises(config.BootCheckError, match="ARENA_GCP_PROJECT is not set"):
-        config.load_settings(env(ARENA_GCP_PROJECT=None))
+        config.load_settings(env(ARENA_GCP_PROJECT=value))
 
 
 @pytest.mark.gateproof
-def test_kbg_production_is_refused() -> None:
+@pytest.mark.parametrize("value", ["kbg-production", " kbg-production ", "KBG-Production"])
+def test_kbg_production_is_refused_in_any_spelling(value: str) -> None:
     with pytest.raises(config.BootCheckError, match="kbg-production"):
-        config.load_settings(env(ARENA_GCP_PROJECT="kbg-production"))
+        config.load_settings(env(ARENA_GCP_PROJECT=value))
 
 
 # ---------------------------------------------------------------- S5 1.4 bullet: credential isolation
@@ -100,6 +103,13 @@ def test_own_dsn_missing_is_refused() -> None:
         config.load_settings(env(ARENA_PUBLIC_DSN=None))
 
 
+def test_settings_never_print_the_credential() -> None:
+    """A logged Settings object must not leak the DSN (it carries the role's database password)."""
+    settings = config.load_settings(env())
+    assert "not-a-real-password" not in repr(settings)
+    assert "not-a-real-password" not in str(settings)
+
+
 # ---------------------------------------------------------------- S5 1.4 bullet: local shape / loopback
 @pytest.mark.gateproof
 def test_local_env_refused_when_hosted_marker_is_set() -> None:
@@ -108,15 +118,47 @@ def test_local_env_refused_when_hosted_marker_is_set() -> None:
 
 
 @pytest.mark.gateproof
-def test_local_run_must_bind_loopback() -> None:
+def test_unset_arena_env_counts_as_local_and_is_refused_on_cloud_run() -> None:
+    with pytest.raises(config.BootCheckError, match="K_SERVICE"):
+        config.load_settings(env(ARENA_ENV=None, K_SERVICE="arena-api"))
+
+
+@pytest.mark.parametrize("value", [None, "", "  "])
+def test_unset_or_blank_arena_env_means_local(value: str | None) -> None:
+    assert config.load_settings(env(ARENA_ENV=value)).is_local is True
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("value", ["Local", "dev", "staging", "production", "hosted "])
+def test_an_unknown_arena_env_is_refused(value: str) -> None:
+    with pytest.raises(config.BootCheckError, match="ARENA_ENV must be one of"):
+        config.load_settings(env(ARENA_ENV=value))
+
+
+# S5 1.3: "with ARENA_ENV=local the server binds 127.0.0.1 only" (S5 10.4 acceptance: a socket check
+# finds every process on 127.0.0.1). Other loopback spellings are refused too: "localhost" resolves
+# through /etc/hosts and "::1" is a different socket than the one the acceptance check inspects.
+@pytest.mark.gateproof
+@pytest.mark.parametrize("host", ["::", "10.1.2.3", "192.168.1.20", "::1", "localhost", "127.0.0.2", " ", ""])
+def test_local_run_must_bind_127_0_0_1_only(host: str) -> None:
     with pytest.raises(config.BootCheckError, match="loopback bind address"):
-        config.load_settings(env(), bind_host="10.1.2.3")
+        config.load_settings(env(ARENA_BIND_HOST=host))
 
 
 def test_hosted_run_may_bind_any_host() -> None:
-    settings = config.load_settings(env(ARENA_ENV="hosted"), bind_host="10.1.2.3")
+    settings = config.load_settings(env(ARENA_ENV="hosted", ARENA_BIND_HOST="10.1.2.3"))
     assert settings.is_local is False
     assert settings.bind_host == "10.1.2.3"
+
+
+def test_hosted_run_defaults_to_loopback_unless_told_otherwise() -> None:
+    assert config.load_settings(env(ARENA_ENV="hosted")).bind_host == "127.0.0.1"
+
+
+@pytest.mark.parametrize("host", ["", "   "])
+def test_hosted_run_refuses_a_blank_bind_host(host: str) -> None:
+    with pytest.raises(config.BootCheckError, match="ARENA_BIND_HOST is blank"):
+        config.load_settings(env(ARENA_ENV="hosted", ARENA_BIND_HOST=host))
 
 
 # ---------------------------------------------------------------- boot() wraps load_settings as SystemExit
