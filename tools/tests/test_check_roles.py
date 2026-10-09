@@ -199,6 +199,45 @@ def test_a_frame_model_built_outside_the_projection_fails(path: str, source: str
     assert all("is an event frame model" in r for r in found), found
 
 
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    ("path", "source"),
+    [
+        # relative imports resolve against the file's own package
+        (OTHER_CORE_FILE, "from ..contracts.events import NoticeFrame as N\nf = N.model_validate({})\n"),
+        (
+            "packages/core/src/arena_core/contracts/snapshot.py",
+            "from .events import NoticeFrame\nf = NoticeFrame(v=1)\n",
+        ),
+        (
+            "packages/core/src/arena_core/events/__init__.py",
+            "from ..contracts.events import TrialFrame\nx = [TrialFrame]\n",
+        ),
+        # the contracts package is not exempt as a whole
+        (
+            "packages/core/src/arena_core/contracts/routes.py",
+            "from arena_core.contracts.events import NoticeFrame\nNoticeFrame(v=1)\n",
+        ),
+        # a call inside an annotation runs at definition time
+        (
+            ARENA_API_FILE,
+            "from arena_core.contracts.events import NoticeFrame\n\ndef f(x: NoticeFrame(v=1)) -> None: ...\n",
+        ),
+        # loading the model by name
+        (ARENA_API_FILE, "from arena_core.contracts import events\nf = getattr(events, 'NoticeFrame')\n"),
+    ],
+)
+def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
+    found = frame_rules(path, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+def test_the_export_module_may_read_frame_schemas() -> None:
+    export = "from arena_core.contracts.events import TrialFrame\nWIRE = {'events': ('TrialFrame', TrialFrame)}\n"
+    assert frame_rules("packages/core/src/arena_core/contracts/export.py", export) == []
+
+
 def test_the_projection_and_annotations_may_name_frame_models() -> None:
     build = "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n"
     assert frame_rules(lint.FRAME_BUILDER, build) == []

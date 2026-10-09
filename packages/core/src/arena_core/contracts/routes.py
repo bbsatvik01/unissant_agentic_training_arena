@@ -21,7 +21,6 @@ from arena_core.contracts.common import (
     Distinct,
     RecordId,
     TurnNo,
-    UniqueItems,
     Uuid,
 )
 from arena_core.contracts.events import Text600
@@ -45,7 +44,7 @@ class TurnSubmit(Contract):
     `release_ids: []` and requests records through the evidence route (S6 5.5)."""
 
     question: Text600
-    release_ids: Annotated[list[RecordId], Field(max_length=6), UniqueItems, Distinct]
+    release_ids: Annotated[list[RecordId], Field(max_length=6), Distinct]
     expected_version: Annotated[int, Field(ge=0)]
     idem_key: Uuid
 
@@ -53,7 +52,7 @@ class TurnSubmit(Contract):
 class EvidenceRequest(Contract):
     """`POST /api/trials/{id}/evidence-requests` (S5 5.4)."""
 
-    record_ids: Annotated[list[RecordId], Field(min_length=1, max_length=6), UniqueItems, Distinct]
+    record_ids: Annotated[list[RecordId], Field(min_length=1, max_length=6), Distinct]
     idem_key: Uuid
 
 

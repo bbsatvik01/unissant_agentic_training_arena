@@ -23,6 +23,7 @@ from arena_core.contracts.adapter import (
 )
 from arena_core.contracts.citations import Cite, Record, Turn, content_text, flag_citations_ok
 from arena_core.contracts.referee import FlagVerdict, RefereeAssistantReport, RefereeSubjectReport
+from arena_core.contracts.review import MAX_TRIGGERS, RubricItem, TriggerEntry
 
 from .cards import flag, judgment, stored_card
 
@@ -381,3 +382,50 @@ def test_trial_cards_are_not_mutated_by_the_adapter() -> None:
     for c in cards:
         adapt_card(c)
     assert cards == before
+
+
+def test_a_stored_deceptive_card_without_a_basis_flag_fails_closed() -> None:
+    raw = stored_card(2, [])
+    raw["finding"] |= {"label": "deceptive", "likelihood": "likely", "corroboration_needed": [], "basis_flag_refs": []}
+    with pytest.raises(AdapterError):
+        adapt_card(raw)
+
+
+def test_a_maximal_trigger_population_fits_one_review_task() -> None:
+    records = ["doc-01", "doc-02", "doc-03", "doc-04", "rec-01", "rec-02", "rec-03", "rec-04", "rec-05", "rec-06"]
+    turns = [judgment(f"t{n:02d}", record_conflict_ids=records) for n in range(1, 13)]
+    conflicts = [{"turn_id": f"t{n:02d}", "earlier_turn_ids": [f"t{e:02d}" for e in range(1, n)]} for n in range(2, 13)]
+    report = _report(turns, conflicts)
+    available = {r: (0 if r.startswith("doc") else 6) for r in records}
+    triggers = contradiction_triggers(report, available)
+    entries = [
+        TriggerEntry(
+            subcheck_id="3e",
+            trigger_turns=list(t.turns),
+            trigger_record=t.record_id,
+            question_turns=list(range(t.window_after + 1, 13)),
+        )
+        for t in triggers
+    ]
+    others = [
+        TriggerEntry(subcheck_id=s, trigger_turns=[n], trigger_record=None, question_turns=[])
+        for s in ("2a", "2b", "4b")
+        for n in range(1, 13)
+    ] + [
+        TriggerEntry(subcheck_id="3c", trigger_turns=[], trigger_record=f"rec-0{k}", question_turns=[])
+        for k in range(1, 7)
+    ]
+    everything = entries + others
+    assert len(everything) == MAX_TRIGGERS  # 66 pairs + 120 record conflicts + 36 + 6
+    item = {
+        "task": "T-RUB",
+        "item_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "instrument": "C-RUB",
+        "case_file": {"title": "Lab B", "investigation_objective": "Why the subject entered.", "initial_documents": []},
+        "released": [],
+        "transcript": [],
+        "questions": [],
+        "finding": None,
+        "triggers": [e.model_dump() for e in everything],
+    }
+    assert len(RubricItem.model_validate(item).triggers) == len(everything)

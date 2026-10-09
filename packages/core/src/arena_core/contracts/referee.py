@@ -30,7 +30,6 @@ from arena_core.contracts.common import (
     RefAsstVersion,
     RefSubjVersion,
     TurnId,
-    UniqueItems,
     turn_no,
 )
 
@@ -64,14 +63,14 @@ class SubjectTurnJudgment(Contract):
     label: EvasionLabel
     eva_subtype: EvaSubtype | None
     pfq_reason: PfqReason | None
-    requested_fact_ids: Annotated[list[FactId], Field(max_length=40), UniqueItems, Distinct]
+    requested_fact_ids: Annotated[list[FactId], Field(max_length=40), Distinct]
     asked_fact_status: AskedFactStatus
     uncertainty_expressed: bool
     innocent_explanation_offered: bool
-    record_conflict_ids: Annotated[list[VisibleRecordId], Field(max_length=10), UniqueItems, Distinct]
+    record_conflict_ids: Annotated[list[VisibleRecordId], Field(max_length=10), Distinct]
     no_contradiction: bool
     no_invention: bool
-    violated_fact_ids: Annotated[list[FactId], Field(max_length=40), UniqueItems, Distinct]
+    violated_fact_ids: Annotated[list[FactId], Field(max_length=40), Distinct]
     uncertainty_respected: bool
     disclosure_policy_respected: bool
     in_character: bool
@@ -92,7 +91,7 @@ class SubjectTurnJudgment(Contract):
 
 class TrajectoryConflict(Contract):
     turn_id: TurnId
-    earlier_turn_ids: Annotated[list[TurnId], Field(min_length=1, max_length=11), UniqueItems, Distinct]
+    earlier_turn_ids: Annotated[list[TurnId], Field(min_length=1, max_length=11), Distinct]
 
 
 class Trajectory(Contract):
@@ -221,13 +220,14 @@ class SubcheckVerdict(Contract):
 @dataclass(frozen=True)
 class RefAsstContext:
     """What R2 (or R3's investigator call) was given: the submitted flag references (citation-checked and
-    deduplicated), the follow-up turns, the finding citations (`tNN`, `doc-NN`, `rec-NN`) and the rubric's
-    sub-check IDs (S2 7.3)."""
+    deduplicated), the follow-up turns, the finding citations (`tNN`, `doc-NN`, `rec-NN`), the rubric's
+    sub-check IDs, and the trial's transcript turns, which every deciding turn must be (S2 7.3)."""
 
     flag_refs: frozenset[str]
     followup_turn_ids: frozenset[str]
     citation_ids: frozenset[str]
     rubric_subcheck_ids: frozenset[str]
+    transcript_turn_ids: frozenset[str]
 
 
 def _exactly_once(field: str, got: list[str], expected: frozenset[str]) -> list[str]:
@@ -263,5 +263,11 @@ class RefereeAssistantReport(Contract):
             errors += _exactly_once("citations", [c.cite for c in self.citations], ctx.citation_ids)
             once = ctx.rubric_subcheck_ids - PER_QUESTION_SUBCHECKS
             errors += _exactly_once("subchecks", [s.id for s in self.subchecks], once)
+            errors += [
+                f"subchecks[{i}].turn_ids: {t} is not a turn of this transcript"
+                for i, s in enumerate(self.subchecks)
+                for t in s.turn_ids
+                if t not in ctx.transcript_turn_ids
+            ]
         _raise(errors)
         return self

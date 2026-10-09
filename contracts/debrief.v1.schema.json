@@ -258,6 +258,44 @@
     },
     "Rubric": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "total": {
+                "type": "null"
+              },
+              "unscorable_reason": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "dimensions": {
+                "maxItems": 0,
+                "type": "array"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "scorable": {
+                "enum": [
+                  true
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "unscorable_reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "scorable": {
           "type": "boolean"

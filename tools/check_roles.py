@@ -26,12 +26,15 @@ The lint reads source; it is not a sandbox. A module name assembled at run time 
 the per-process credentials and the database grants (S5 1.2 items 1 and 3, S5 10.2 item 7) remain the
 data boundary, as S5's threat model states.
 
-  frame. product code other than `arena_core.events.projections` (and the contracts module that defines
-     them) names an event frame model outside a type annotation: a call, `X.model_validate(...)`,
-     `TypeAdapter(X)` or any other value use (S5 1.2 item 2: "any module other than
-     `arena_core.events.projections` constructs an event frame model"; S5 6.5). The frame models are read
-     from `arena_core/contracts/events.py` (WP-02): every class or alias there whose name ends in `Frame`.
-     Annotations stay free, so a function may accept or return a frame it never builds.
+  frame. product code other than `arena_core.events.projections` names an event frame model outside a
+     type annotation: a call, `X.model_validate(...)`, `TypeAdapter(X)`, any other value use, or the model's
+     name as a string (S5 1.2 item 2: "any module other than `arena_core.events.projections` constructs an
+     event frame model"; S5 6.5). The frame models are read from `arena_core/contracts/events.py` (WP-02):
+     every class or alias there whose name ends in `Frame`. Two files are exempt, each for a reason the rule
+     cannot be broken by: that module itself (it declares them) and `arena_core/contracts/export.py` (it reads
+     their JSON Schema to write `contracts/`, and builds no frame). Absolute and relative imports both resolve.
+     A plain annotation stays free, so a function may accept or return a frame it never builds; a call inside
+     an annotation is a value use like any other.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -77,6 +80,7 @@ VERTEX_ADAPTER = "packages/core/src/arena_core/providers/vertex.py"
 FRAME_SOURCE = "packages/core/src/arena_core/contracts/events.py"
 FRAME_MODULE = "arena_core.contracts.events"
 FRAME_BUILDER = "packages/core/src/arena_core/events/projections.py"
+FRAME_EXEMPT = frozenset({FRAME_BUILDER, FRAME_SOURCE, "packages/core/src/arena_core/contracts/export.py"})
 FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections builds frames (S5 1.2 item 2)"
 GENAI = "google.genai"
 ADK = "google.adk"
@@ -263,7 +267,8 @@ def frame_models(root: Path) -> frozenset[str]:
 
 
 def _annotation_nodes(tree: ast.AST) -> set[int]:
-    """ids of every node inside a type annotation (arguments, returns, annotated assignments)."""
+    """ids of the nodes of every type annotation (arguments, returns, annotated assignments), except the nodes
+    of a call inside one: `def f(x: NoticeFrame(v=1))` runs that call when the function is defined."""
     roots: list[ast.AST] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.arg) and node.annotation is not None:
@@ -272,31 +277,53 @@ def _annotation_nodes(tree: ast.AST) -> set[int]:
             roots.append(node.returns)
         elif isinstance(node, ast.AnnAssign):
             roots.append(node.annotation)
-    return {id(n) for root in roots for n in ast.walk(root)}
+    inside = {id(n) for root in roots for n in ast.walk(root)}
+    calls = {id(n) for root in roots for c in ast.walk(root) if isinstance(c, ast.Call) for n in ast.walk(c)}
+    return inside - calls
 
 
-def _frame_uses(tree: ast.AST, frames: frozenset[str]) -> list[tuple[int, str]]:
+def _dotted_module(path: str) -> list[str]:
+    """`packages/core/src/arena_core/x/y.py` -> ['arena_core', 'x', 'y'] (a package's `__init__` -> the package)."""
+    parts = Path(path).with_suffix("").parts
+    tail = list(parts[parts.index("src") + 1 :]) if "src" in parts else []
+    return tail[:-1] if tail[-1:] == ["__init__"] else tail
+
+
+def _resolve_from(path: str, node: ast.ImportFrom) -> str | None:
+    """The absolute module a `from ... import` names, resolving relative imports against the file's package."""
+    if node.level == 0:
+        return node.module
+    own = _dotted_module(path)
+    package = own if Path(path).name == "__init__.py" else own[:-1]
+    if node.level - 1 > len(package):
+        return None
+    base = package[: len(package) - (node.level - 1)]
+    return ".".join([*base, *([node.module] if node.module else [])])
+
+
+def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[int, str]]:
     """(line, name) for every value use of a frame model (rule frame)."""
     local: set[str] = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module == FRAME_MODULE and node.level == 0:
+        if isinstance(node, ast.ImportFrom) and _resolve_from(path, node) == FRAME_MODULE:
             local.update(a.asname or a.name for a in node.names if a.name in frames)
-    in_annotation = _annotation_nodes(tree)
+    exempt = _annotation_nodes(tree) | _docstrings(tree)
     found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
-        if id(node) in in_annotation:
+        if id(node) in exempt:
             continue
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
             found.append((node.lineno, node.id))
         elif isinstance(node, ast.Attribute) and node.attr in frames:
             found.append((node.lineno, node.attr))
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.strip() in frames:
+            found.append((node.lineno, node.value.strip()))
     return found
 
 
 def _builds_frames(path: str, own_package: str | None) -> bool:
-    """Product code (a package's src tree) that is neither the projection nor the frames' own module."""
-    contracts_dir = str(Path(FRAME_SOURCE).parent) + "/"
-    return own_package is not None and "/src/" in path and path != FRAME_BUILDER and not path.startswith(contracts_dir)
+    """Product code (a package's src tree), except the projection and the two exempt contracts files."""
+    return own_package is not None and "/src/" in path and path not in FRAME_EXEMPT
 
 
 def check_source(path: str, source: str, frames: frozenset[str] = frozenset()) -> list[Finding]:
@@ -304,7 +331,9 @@ def check_source(path: str, source: str, frames: frozenset[str] = frozenset()) -
     findings: list[Finding] = []
     own_package = _module_of(path)
     if frames and _builds_frames(path, own_package):
-        findings.extend(Finding(path, line, FRAME_RULE.format(name=name)) for line, name in _frame_uses(tree, frames))
+        findings.extend(
+            Finding(path, line, FRAME_RULE.format(name=name)) for line, name in _frame_uses(path, tree, frames)
+        )
     forbidden = FORBIDDEN_IMPORTS.get(own_package or "", frozenset())
     if own_package is not None:
         findings.extend(Finding(path, line, DYNAMIC_RULE.format(what=what)) for line, what in _machinery(tree))

@@ -145,6 +145,58 @@
     },
     "LabelVerdict": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "eva_subtype": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "evasion"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "eva_subtype": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "pfq_reason": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "poorly_framed_question"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "pfq_reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "turn_id": {
           "pattern": "^t(0[1-9]|1[0-2])$",

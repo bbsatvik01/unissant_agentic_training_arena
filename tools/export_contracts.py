@@ -56,8 +56,12 @@ _VALUE_KEYWORDS = frozenset(
         "const",
         "anyOf",
         "$ref",
+        "allOf",
     }
 )
+# `allOf` entries the generator accepts: cross-field rules (`json_rules()` in arena_core.contracts) that
+# constrain values and never change a type.
+_RULE_KEYWORDS = frozenset({"if", "then", "else", "properties"})
 
 
 class GenerationError(ValueError):
@@ -81,6 +85,10 @@ def ts_type(schema: Mapping[str, Any], path: str) -> str:
     if unknown:
         msg = f"{path}: unsupported keywords {sorted(unknown)}"
         raise GenerationError(msg)
+    for i, rule in enumerate(schema.get("allOf", [])):
+        if not set(rule) <= _RULE_KEYWORDS:
+            msg = f"{path}.allOf[{i}]: only if/then/else/properties rules are supported, not {sorted(rule)}"
+            raise GenerationError(msg)
     if "$ref" in schema:
         return _ref_type(str(schema["$ref"]), path)
     if "const" in schema or "enum" in schema:

@@ -5,6 +5,71 @@
   "$defs": {
     "InvestigatorFinding": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "deceptive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "likely",
+                  "very_likely",
+                  "almost_certain"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "truthful"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "almost_no_chance",
+                  "very_unlikely",
+                  "unlikely"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "insufficient_evidence"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "corroboration_needed": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "label": {
           "enum": [
@@ -49,7 +114,8 @@
             "type": "integer"
           },
           "maxItems": 12,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_records": {
           "items": {
@@ -57,7 +123,8 @@
             "type": "string"
           },
           "maxItems": 10,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "corroboration_needed": {
           "items": {

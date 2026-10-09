@@ -33,10 +33,12 @@ def test_every_valid_fixture_passes_the_model_and_the_exported_schema(case: dict
 
 
 @pytest.mark.parametrize("case", FIXTURE["invalid"], ids=lambda c: f"{c['id']}: {c['why']}")
-def test_every_negative_fixture_fails_the_model_and_the_exported_schema(case: dict[str, Any]) -> None:
+def test_every_negative_fixture_fails_the_model_and_its_layer(case: dict[str, Any]) -> None:
+    """Layer `schema`: the exported schema refuses it too. Layer `invariant`: JSON Schema cannot state the rule,
+    so the schema alone accepts it and the browser's invariant check must refuse it (validate.test.ts)."""
     with pytest.raises(ValidationError):
         _validate(case["schema"], case["value"])
-    assert not _schema_accepts(case["schema"], case["value"])
+    assert _schema_accepts(case["schema"], case["value"]) is (case["layer"] == "invariant")
 
 
 def test_the_fixtures_cover_every_wire_schema_and_every_trial_frame_type() -> None:
@@ -57,6 +59,11 @@ def test_the_fixtures_cover_every_wire_schema_and_every_trial_frame_type() -> No
         "debrief.ready",
         "notice",
     }
+
+
+def test_every_negative_fixture_names_a_known_layer() -> None:
+    layers = [c["layer"] for c in FIXTURE["invalid"]]
+    assert set(layers) == {"schema", "invariant"}
 
 
 def test_negative_fixtures_name_each_forbidden_field_of_s6_12() -> None:

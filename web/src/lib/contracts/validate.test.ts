@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { NEUTRALITY_ISSUES, QUESTION_TYPES } from "./card";
 import { WIRE_SCHEMAS } from "./generated/schemas";
-import { isWire, wireErrors, wireSchemaNames, type WireSchemaName } from "./validate";
+import { invariantErrors, isWire, wireErrors, wireSchemaNames, type WireSchemaName } from "./validate";
 
 interface WireCase {
   readonly id: string;
   readonly schema: WireSchemaName;
   readonly value: unknown;
   readonly why?: string;
+  readonly layer?: "schema" | "invariant";
 }
 
 /** The shared wire fixtures (S6 12), read through Vite; the Python tests run the same file. */
@@ -31,12 +32,22 @@ describe("wire fixtures against the exported schemas, through ajv (S6 12)", () =
 
   it.each(valid.map((c) => [c.id, c] as const))("accepts %s", (_id, c) => {
     expect(wireErrors(c.schema, c.value)).toEqual([]);
+    expect(invariantErrors(c.schema, c.value)).toEqual([]);
     expect(isWire(c.schema, c.value)).toBe(true);
   });
 
   it.each(invalid.map((c) => [`${c.id}: ${c.why ?? ""}`, c] as const))("rejects %s", (_id, c) => {
     expect(isWire(c.schema, c.value)).toBe(false);
-    expect(wireErrors(c.schema, c.value).length).toBeGreaterThan(0);
+    if (c.layer === "invariant") {
+      expect(wireErrors(c.schema, c.value)).toEqual([]);
+      expect(invariantErrors(c.schema, c.value).length).toBeGreaterThan(0);
+    } else {
+      expect(wireErrors(c.schema, c.value).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("has negative fixtures in both layers", () => {
+    expect(new Set(invalid.map((c) => c.layer))).toEqual(new Set(["schema", "invariant"]));
   });
 
   it("refuses an unknown schema name", () => {

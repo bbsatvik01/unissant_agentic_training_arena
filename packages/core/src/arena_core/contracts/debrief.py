@@ -8,15 +8,15 @@ it carries no candidate hash, participant pseudonym, fact ID or hidden-case cont
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
-from arena_core.contracts.common import GIT_SHA, Contract, Distinct, Label, Sha256, TurnNo, UniqueItems, Uuid
+from arena_core.contracts.common import GIT_SHA, Contract, Distinct, Label, Sha256, TurnNo, Uuid, when
 
 DebriefVersion = Literal["debrief.v1"]
 Count = Annotated[int, Field(ge=0)]
-Turns = Annotated[list[TurnNo], Field(max_length=12), UniqueItems, Distinct]
+Turns = Annotated[list[TurnNo], Field(max_length=12), Distinct]
 
 
 class Outcome(Contract):
@@ -46,6 +46,12 @@ class Rubric(Contract):
     unscorable_reason: Annotated[str, StringConstraints(max_length=200)] | None
     total: Annotated[int, Field(ge=0, le=100)] | None
     dimensions: Annotated[list[RubricDimension], Field(max_length=5)]
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        scorable = {"total": {"type": "integer"}, "unscorable_reason": {"type": "null"}}
+        unscorable = {"total": {"type": "null"}, "unscorable_reason": {"type": "string", "minLength": 1}}
+        return [when("scorable", [True], scorable, {**unscorable, "dimensions": {"type": "array", "maxItems": 0}})]
 
     @model_validator(mode="after")
     def _branch(self) -> Self:

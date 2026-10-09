@@ -360,7 +360,8 @@
             "type": "string"
           },
           "maxItems": 4,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "required": [
@@ -904,7 +905,8 @@
             "type": "string"
           },
           "maxItems": 4,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "assessment": {
           "description": "One sentence on the question",
@@ -1014,6 +1016,50 @@
     },
     "StoredDeepUpdate": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "finding": {
+              "properties": {
+                "last_revised_turn": {
+                  "type": "integer"
+                },
+                "alternative_explanations": {
+                  "type": "null"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "label": {
+                    "const": "deceptive"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "basis_flag_refs": {
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "schema_version": {
           "enum": [
@@ -1059,6 +1105,71 @@
     },
     "StoredFinding": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "deceptive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "likely",
+                  "very_likely",
+                  "almost_certain"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "truthful"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "almost_no_chance",
+                  "very_unlikely",
+                  "unlikely"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "insufficient_evidence"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "corroboration_needed": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "label": {
           "enum": [
@@ -1094,7 +1205,8 @@
             "type": "string"
           },
           "maxItems": 6,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_turns": {
           "items": {
@@ -1103,7 +1215,8 @@
             "type": "integer"
           },
           "maxItems": 12,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_records": {
           "items": {
@@ -1111,7 +1224,8 @@
             "type": "string"
           },
           "maxItems": 10,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "corroboration_needed": {
           "items": {
@@ -1173,6 +1287,135 @@
     },
     "StoredFlag": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "missing_fact": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "gap",
+                  "non_responsive",
+                  "possible_evasion"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "missing_fact": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_quote": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "kind": {
           "enum": [
@@ -1454,6 +1697,50 @@
     },
     "TrainingWireCard": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "finding": {
+              "properties": {
+                "last_revised_turn": {
+                  "type": "integer"
+                },
+                "alternative_explanations": {
+                  "type": "null"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "label": {
+                    "const": "deceptive"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "basis_flag_refs": {
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "schema_version": {
           "enum": [

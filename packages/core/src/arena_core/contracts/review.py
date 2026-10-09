@@ -17,7 +17,7 @@ proxy's own output fields, reused from `referee`.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
@@ -37,6 +37,7 @@ from arena_core.contracts.common import (
     TurnNo,
     UncertaintyId,
     Uuid,
+    when,
 )
 from arena_core.contracts.events import Content, QuestionSource, Text600, Text900
 from arena_core.contracts.findings import StoredFinding
@@ -102,6 +103,13 @@ class TriggerEntry(Contract):
     question_turns: Annotated[list[TurnNo], Field(max_length=12)]
 
 
+# Every trigger S3's applicability rules can produce for one 12-turn trial (S2 7.2, S3 1.5), so no task is
+# ever refused or truncated: 2a per evasion turn (12), 2b per uncertainty turn (12), 3c per release (6), 3e per
+# listed turn pair (at most 12 * 11 / 2 = 66) and per (turn, visible document) pair (12 turns x 10 records =
+# 120), 4b per innocent explanation (12).
+MAX_TRIGGERS = 12 + 12 + 6 + 66 + 120 + 12
+
+
 class RubricItem(Contract):
     task: Literal["T-RUB"]
     item_id: Uuid
@@ -111,7 +119,7 @@ class RubricItem(Contract):
     transcript: Annotated[list[ReviewTurn], Field(max_length=12)]
     questions: Annotated[list[ScoredQuestion], Field(max_length=12)]
     finding: StoredFinding | None
-    triggers: Annotated[list[TriggerEntry], Field(max_length=60)]
+    triggers: Annotated[list[TriggerEntry], Field(max_length=MAX_TRIGGERS)]
 
 
 class LedgerFact(Contract):
@@ -143,6 +151,7 @@ class CanonicalFact(Contract):
 class LabelItem(Contract):
     task: Literal["T-LAB"]
     item_id: Uuid
+    initial_documents: Annotated[list[InitialDocument], Field(max_length=4)]
     released: Annotated[list[ReviewRecord], Field(max_length=6)]
     transcript: Annotated[list[ReviewTurn], Field(max_length=12)]
     facts: Annotated[list[LedgerFact], Field(max_length=30)]
@@ -155,6 +164,7 @@ class LabelItem(Contract):
 class FlagItem(Contract):
     task: Literal["T-FLAG"]
     item_id: Uuid
+    initial_documents: Annotated[list[InitialDocument], Field(max_length=4)]
     released: Annotated[list[ReviewRecord], Field(max_length=6)]
     transcript: Annotated[list[ReviewTurn], Field(max_length=12)]
     flags: Annotated[list[StoredFlag], Field(max_length=36)]
@@ -188,6 +198,18 @@ class LabelVerdict(Contract):
     disclosure_policy_respected: bool
     in_character: bool
     platform_attack: bool
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return [
+            when("label", ["evasion"], {"eva_subtype": {"type": "string"}}, {"eva_subtype": {"type": "null"}}),
+            when(
+                "label",
+                ["poorly_framed_question"],
+                {"pfq_reason": {"type": "string"}},
+                {"pfq_reason": {"type": "null"}},
+            ),
+        ]
 
     @model_validator(mode="after")
     def _reasons(self) -> Self:

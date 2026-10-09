@@ -12,14 +12,15 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from pydantic import (
-    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
     GetCoreSchemaHandler,
+    GetJsonSchemaHandler,
     StringConstraints,
     WithJsonSchema,
 )
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
 TURN_ID = r"^t(0[1-9]|1[0-2])$"
@@ -41,21 +42,38 @@ TIMESTAMP = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6
 MAX_TURNS = 12
 
 
-def _schema_without_prose(schema: dict[str, Any]) -> None:
-    """Drop the class docstring and the generated per-field titles from a model's JSON Schema: they are notes
-    for maintainers, and a model-facing schema reaches the model on every call (S2 1, Structured output).
+def _schema_extra(schema: dict[str, Any], cls: type[Any]) -> None:
+    """Drop the class docstring and the generated per-field titles (notes for maintainers; a model-facing
+    schema reaches the model on every call, S2 1 Structured output), and add the class's `json_rules()`.
+
+    `json_rules()` returns the cross-field rules a class can state in JSON Schema (`if`/`then` entries under
+    `allOf`), so the browser's validators refuse what the Python validators refuse. Model-facing classes define
+    none: Vertex ignores those keywords and `lint_schema` requires every listed property to be required.
     Descriptions set on a field on purpose (S2's own, e.g. `turn_id`) stay."""
     schema.pop("description", None)
     for prop in schema.get("properties", {}).values():
         if isinstance(prop, dict):
             prop.pop("title", None)
+    rules = getattr(cls, "json_rules", None)
+    if rules is not None:
+        schema["allOf"] = rules()
 
 
 class Contract(BaseModel):
     """Base for every contract model: unknown keys are refused (`additionalProperties: false`), instances are
     frozen, and nothing is coerced (strict: `"3"` is not a turn number)."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True, json_schema_extra=_schema_without_prose)
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True, json_schema_extra=_schema_extra)
+
+
+def when(
+    field: str, values: list[Any], then: dict[str, Any], otherwise: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """One JSON Schema rule: when `field` is one of `values`, the properties in `then` hold (else `otherwise`)."""
+    rule: dict[str, Any] = {"if": {"properties": {field: {"enum": values}}}, "then": {"properties": then}}
+    if otherwise is not None:
+        rule["else"] = {"properties": otherwise}
+    return rule
 
 
 class ByteLimit:
@@ -82,15 +100,26 @@ def _version_schema(tag: str) -> WithJsonSchema:
     return WithJsonSchema({"type": "string", "enum": [tag]})
 
 
-def _distinct(values: list[Any]) -> list[Any]:
-    if len(set(values)) != len(values):
-        msg = "entries must be distinct"
-        raise ValueError(msg)
-    return values
+class _Distinct:
+    """Annotated marker for a list of distinct entries: checked in code and exported as `uniqueItems`, so the
+    browser's validator refuses a repeated entry too."""
+
+    def __get_pydantic_core_schema__(self, source: type[Any], handler: GetCoreSchemaHandler) -> CoreSchema:
+        def check(values: list[Any]) -> list[Any]:
+            if len(set(values)) != len(values):
+                msg = "entries must be distinct"
+                raise ValueError(msg)
+            return values
+
+        return core_schema.no_info_after_validator_function(check, handler(source))
+
+    def __get_pydantic_json_schema__(self, schema: CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
+        out = handler(schema)
+        out["uniqueItems"] = True
+        return out
 
 
-Distinct = AfterValidator(_distinct)
-UniqueItems = Field(json_schema_extra={"uniqueItems": True})
+Distinct = _Distinct()
 
 TurnId = Annotated[str, StringConstraints(pattern=TURN_ID)]
 FlagRef = Annotated[str, StringConstraints(pattern=FLAG_REF)]

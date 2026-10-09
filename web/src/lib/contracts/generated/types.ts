@@ -192,6 +192,7 @@ export interface FlagCheck {
 export interface FlagItem {
   readonly task: "T-FLAG";
   readonly item_id: string;
+  readonly initial_documents: readonly (InitialDocument)[];
   readonly released: readonly (ReviewRecord)[];
   readonly transcript: readonly (ReviewTurn)[];
   readonly flags: readonly (StoredFlag)[];
@@ -261,6 +262,7 @@ export interface KeyQuestion {
 export interface LabelItem {
   readonly task: "T-LAB";
   readonly item_id: string;
+  readonly initial_documents: readonly (InitialDocument)[];
   readonly released: readonly (ReviewRecord)[];
   readonly transcript: readonly (ReviewTurn)[];
   readonly facts: readonly (LedgerFact)[];

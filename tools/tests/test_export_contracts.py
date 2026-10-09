@@ -87,6 +87,10 @@ def test_the_web_gets_the_wire_schemas_only() -> None:
         ),
         ({"type": "object", "additionalProperties": {"type": "integer"}}, "Readonly<Record<string, number>>"),
         (
+            {"type": "string", "allOf": [{"if": {"properties": {}}, "then": {"properties": {}}, "else": {}}]},
+            "string",
+        ),
+        (
             {"type": "object", "properties": {"a": {"type": "string"}, "b-c": {"type": "string"}}, "required": ["a"]},
             '{\n  readonly a: string;\n  readonly "b-c"?: string;\n}',
         ),
@@ -106,6 +110,7 @@ def test_ts_type_covers_the_pydantic_subset(schema: dict[str, Any], expected: st
         ({"type": "object"}, "free-form object"),
         ({"type": "object", "patternProperties": {"a": {}, "b": {}}}, "one pattern"),
         ({"title": "nothing"}, "no type"),
+        ({"type": "string", "allOf": [{"$ref": "#/$defs/X"}]}, "only if/then/else/properties"),
     ],
 )
 def test_ts_type_refuses_what_it_cannot_type(schema: dict[str, Any], problem: str) -> None:

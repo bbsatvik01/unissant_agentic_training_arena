@@ -26,7 +26,8 @@
             "type": "string"
           },
           "maxItems": 4,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "required": [
@@ -105,7 +106,8 @@
             "type": "string"
           },
           "maxItems": 6,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_turns": {
           "description": "Turn numbers whose answers the finding rests on, adverse or corroborating; t04 is 4",
@@ -115,7 +117,8 @@
             "type": "integer"
           },
           "maxItems": 8,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_records": {
           "description": "doc-NN or rec-NN records the finding rests on",
@@ -124,7 +127,8 @@
             "type": "string"
           },
           "maxItems": 6,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "corroboration_needed": {
           "items": {

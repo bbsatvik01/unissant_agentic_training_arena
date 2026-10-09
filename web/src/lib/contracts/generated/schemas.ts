@@ -367,7 +367,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           }
         },
         "required": [
@@ -911,7 +912,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "assessment": {
             "description": "One sentence on the question",
@@ -1021,6 +1023,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredDeepUpdate": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -1066,6 +1112,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -1101,7 +1212,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -1110,7 +1222,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -1118,7 +1231,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -1180,6 +1294,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -1461,6 +1704,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "TrainingWireCard": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -1909,7 +2196,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "assessment": {
             "description": "One sentence on the question",
@@ -1928,6 +2216,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -1963,7 +2316,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -1972,7 +2326,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -1980,7 +2335,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -2042,6 +2398,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -2142,6 +2627,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       }
     },
     "additionalProperties": false,
+    "allOf": [
+      {
+        "properties": {
+          "finding": {
+            "properties": {
+              "last_revised_turn": {
+                "type": "integer"
+              },
+              "alternative_explanations": {
+                "type": "null"
+              }
+            },
+            "type": "object"
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "finding": {
+              "properties": {
+                "label": {
+                  "const": "deceptive"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "finding": {
+              "properties": {
+                "basis_flag_refs": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    ],
     "properties": {
       "schema_version": {
         "enum": [
@@ -2365,7 +2894,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "assessment": {
             "description": "One sentence on the question",
@@ -2384,6 +2914,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -2419,7 +3014,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -2428,7 +3024,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -2436,7 +3033,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -2498,6 +3096,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -2598,6 +3325,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       }
     },
     "additionalProperties": false,
+    "allOf": [
+      {
+        "properties": {
+          "finding": {
+            "properties": {
+              "last_revised_turn": {
+                "type": "integer"
+              },
+              "alternative_explanations": {
+                "type": "null"
+              }
+            },
+            "type": "object"
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "finding": {
+              "properties": {
+                "label": {
+                  "const": "deceptive"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "finding": {
+              "properties": {
+                "basis_flag_refs": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    ],
     "properties": {
       "schema_version": {
         "enum": [
@@ -2838,7 +3609,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           }
         },
         "required": [
@@ -3003,7 +3775,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "assessment": {
             "description": "One sentence on the question",
@@ -3271,6 +4044,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredDeepUpdate": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -3316,6 +4133,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -3351,7 +4233,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -3360,7 +4243,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -3368,7 +4252,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -3430,6 +4315,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -3719,6 +4733,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "TrainingWireCard": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -4279,6 +5337,44 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "Rubric": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "total": {
+                  "type": "null"
+                },
+                "unscorable_reason": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "dimensions": {
+                  "maxItems": 0,
+                  "type": "array"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "scorable": {
+                  "enum": [
+                    true
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "total": {
+                  "type": "integer"
+                },
+                "unscorable_reason": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "scorable": {
             "type": "boolean"
@@ -4813,6 +5909,44 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "Rubric": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "total": {
+                  "type": "null"
+                },
+                "unscorable_reason": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "dimensions": {
+                  "maxItems": 0,
+                  "type": "array"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "scorable": {
+                  "enum": [
+                    true
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "total": {
+                  "type": "integer"
+                },
+                "unscorable_reason": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "scorable": {
             "type": "boolean"
@@ -5215,6 +6349,13 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             "type": "string"
           },
+          "initial_documents": {
+            "items": {
+              "$ref": "#/$defs/InitialDocument"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
           "released": {
             "items": {
               "$ref": "#/$defs/ReviewRecord"
@@ -5240,6 +6381,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "required": [
           "task",
           "item_id",
+          "initial_documents",
           "released",
           "transcript",
           "flags"
@@ -5353,6 +6495,13 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             "type": "string"
           },
+          "initial_documents": {
+            "items": {
+              "$ref": "#/$defs/InitialDocument"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
           "released": {
             "items": {
               "$ref": "#/$defs/ReviewRecord"
@@ -5411,6 +6560,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "required": [
           "task",
           "item_id",
+          "initial_documents",
           "released",
           "transcript",
           "facts",
@@ -5643,7 +6793,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "items": {
               "$ref": "#/$defs/TriggerEntry"
             },
-            "maxItems": 60,
+            "maxItems": 228,
             "type": "array"
           }
         },
@@ -5702,6 +6852,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -5737,7 +6952,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -5746,7 +6962,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -5754,7 +6971,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -5816,6 +7034,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -6182,6 +7529,58 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "LabelVerdict": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "eva_subtype": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "eva_subtype": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "pfq_reason": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "poorly_framed_question"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "pfq_reason": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "turn_id": {
             "pattern": "^t(0[1-9]|1[0-2])$",
@@ -7052,7 +8451,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           }
         },
         "required": [
@@ -7450,7 +8850,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 4,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "assessment": {
             "description": "One sentence on the question",
@@ -7560,6 +8961,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredDeepUpdate": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -7605,6 +9050,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -7640,7 +9150,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 6,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_turns": {
             "items": {
@@ -7649,7 +9160,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -7657,7 +9169,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {
@@ -7719,6 +9232,135 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "StoredFlag": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "kind": {
             "enum": [
@@ -8020,6 +9662,50 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "TournamentWireCard": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "schema_version": {
             "enum": [
@@ -8542,6 +10228,71 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
     "$defs": {
       "InvestigatorFinding": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "label": {
             "enum": [
@@ -8586,7 +10337,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "integer"
             },
             "maxItems": 12,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "cited_records": {
             "items": {
@@ -8594,7 +10346,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "type": "string"
             },
             "maxItems": 10,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           },
           "corroboration_needed": {
             "items": {

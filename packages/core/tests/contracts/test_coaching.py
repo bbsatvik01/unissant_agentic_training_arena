@@ -384,3 +384,29 @@ def test_the_investigator_finding_is_stored_as_entered() -> None:
         InvestigatorFinding.model_validate({**body, "basis_flag_refs": ["t01.f1"]})
     with pytest.raises(ValidationError):
         InvestigatorFinding.model_validate({**body, "last_revised_turn": 3})
+
+
+def test_the_output_turn_must_be_the_turn_it_was_requested_for() -> None:
+    late = model_card(12, [], finding=finding(cited_turns=[12]))
+    with pytest.raises(ValidationError, match="turn_id: t12 is not the exchange"):
+        CoachingCard.model_validate(late, context=_ctx(1))
+    stale = model_card(2, [])
+    with pytest.raises(ValidationError, match="turn_id: t02 is not the exchange"):
+        CoachingCard.model_validate(stale, context=_ctx(3))
+    ctx = _ctx(6, {"doc-01", "rec-02"}, requestable=frozenset({"rec-03"}))
+    with pytest.raises(ValidationError, match="as_of_turn: t12 is not the exchange"):
+        DeepUpdate.model_validate(_deep(as_of_turn="t12"), context=ctx)
+    with pytest.raises(ValidationError, match="as_of_turn: t05 is not the exchange"):
+        DeepUpdate.model_validate(_deep(as_of_turn="t05", finding=finding()), context=ctx)
+
+
+def test_a_stored_assistant_finding_keeps_the_deceptive_basis_rule() -> None:
+    deceptive = {**finding(label="deceptive", likelihood="likely", corroboration_needed=[]), "last_revised_turn": 2}
+    raw = stored_card(2, [])
+    raw["finding"] = {**deceptive, "alternative_explanations": None}
+    with pytest.raises(ValidationError, match="basis flag"):
+        StoredCard.model_validate(raw)
+    deep = _deep(finding={**deceptive, "alternative_explanations": None})
+    with pytest.raises(ValidationError, match="basis flag"):
+        StoredDeepUpdate.model_validate(deep)
+    StoredFinding.model_validate({**deceptive, "alternative_explanations": None})  # an investigator's may

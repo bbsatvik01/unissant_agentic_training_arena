@@ -15,7 +15,7 @@ carries an identifier (S5 6.5, S6 FE-COACH-8).
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import Field, ValidationInfo, model_validator
 
@@ -41,6 +41,7 @@ from arena_core.contracts.common import (
     TurnNo,
     Uuid,
     turn_no,
+    when,
 )
 from arena_core.contracts.findings import CitationContext, Finding, StoredFinding, finding_context_errors
 
@@ -96,6 +97,17 @@ class Question(Contract):
     assessment: Annotated[Assessment, Field(description="One sentence on the question")]
 
 
+# The claim fields of a flag and the kinds that need each one (S2 4.1); every other kind leaves it null.
+CLAIM_FIELDS: dict[str, frozenset[str]] = {
+    "missing_fact": GAP_KINDS,
+    "conflict_turn_id": frozenset({"contradiction"}),
+    "conflict_quote": frozenset({"contradiction"}),
+    "conflict_record_id": frozenset({"evidence_conflict"}),
+    "conflict_record_quote": frozenset({"evidence_conflict"}),
+}
+FLAG_KINDS = ("gap", "non_responsive", "possible_evasion", "contradiction", "evidence_conflict")
+
+
 class Flag(Contract):
     """One card.v1 flag (S2 4.1): the claim fields its `kind` needs are non-null, every other one is null."""
 
@@ -110,14 +122,8 @@ class Flag(Contract):
 
     @model_validator(mode="after")
     def _claim_fields(self) -> Self:
-        needs = {
-            "missing_fact": self.kind in GAP_KINDS,
-            "conflict_turn_id": self.kind == "contradiction",
-            "conflict_quote": self.kind == "contradiction",
-            "conflict_record_id": self.kind == "evidence_conflict",
-            "conflict_record_quote": self.kind == "evidence_conflict",
-        }
-        for name, required in needs.items():
+        for name, kinds in CLAIM_FIELDS.items():
+            required = self.kind in kinds
             present = getattr(self, name) is not None
             if present != required:
                 msg = f"{name}: {'required' if required else 'must be null'} for kind {self.kind}"
@@ -187,6 +193,8 @@ class CoachingCard(Contract):
         errors, own_refs = _card_errors(self.turn_id, self.flags, self.finding)
         ctx = _context(info)
         if ctx is not None:
+            if turn_no(self.turn_id) != ctx.current_turn:
+                errors.append(f"turn_id: {self.turn_id} is not the exchange this card was requested for")
             errors += _card_context_errors(self.flags, self.finding, self.follow_up.record_request, ctx, own_refs)
         _raise(errors)
         return self
@@ -194,6 +202,40 @@ class CoachingCard(Contract):
 
 class StoredFlag(Flag):
     flag_ref: FlagRef
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return [
+            when("kind", [k for k in FLAG_KINDS if k in kinds], {name: {"type": "string"}}, {name: {"type": "null"}})
+            for name, kinds in CLAIM_FIELDS.items()
+        ]
+
+
+def _assistant_finding_rules() -> list[dict[str, Any]]:
+    """The stored assistant finding on a card or deep update: code-filled `last_revised_turn`, no alternatives,
+    and a deceptive label rests on at least one basis flag (S2 4.1, 4.2, 4.8)."""
+
+    def on_finding(properties: dict[str, Any]) -> dict[str, Any]:
+        return {"properties": {"finding": {"type": "object", "properties": properties}}}
+
+    filled = {"last_revised_turn": {"type": "integer"}, "alternative_explanations": {"type": "null"}}
+    deceptive = {
+        "if": on_finding({"label": {"const": "deceptive"}}),
+        "then": on_finding({"basis_flag_refs": {"type": "array", "minItems": 1}}),
+    }
+    return [on_finding(filled), deceptive]
+
+
+def _assistant_finding_errors(finding: StoredFinding, turn: str) -> list[str]:
+    errors: list[str] = []
+    last = finding.last_revised_turn
+    if last is None or last > turn_no(turn):
+        errors.append(f"finding.last_revised_turn: code-filled, at or before {turn}")
+    if finding.alternative_explanations is not None:
+        errors.append("finding.alternative_explanations: null on a card or deep update finding (S2 4.8)")
+    if finding.label == "deceptive" and not finding.basis_flag_refs:
+        errors.append("finding.basis_flag_refs: an assistant's deceptive finding needs at least one basis flag")
+    return errors
 
 
 class FlagCheck(Contract):
@@ -245,12 +287,13 @@ class _CardFields(Contract):
             errors.append(f"flags[].flag_ref: {refs} must be {expected} (emission order, S2 1)")
         if set(self.validation.flags) != set(refs):
             errors.append("validation.flags: needs exactly one entry per flag_ref")
-        if self.finding.last_revised_turn is None or self.finding.last_revised_turn > self.turn_no:
-            errors.append("finding.last_revised_turn: code-filled, at or before the card's turn")
-        if self.finding.alternative_explanations is not None:
-            errors.append("finding.alternative_explanations: null on a card finding (S2 4.8)")
+        errors += _assistant_finding_errors(self.finding, self.turn_id)
         _raise(errors)
         return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return _assistant_finding_rules()
 
 
 class TrainingWireCard(_CardFields):
@@ -333,6 +376,8 @@ class DeepUpdate(Contract):
         errors = _deep_errors(self.as_of_turn, self.finding, self.evidence_coverage, self.open_gaps)
         ctx = _context(info)
         if ctx is not None:
+            if turn_no(self.as_of_turn) != ctx.current_turn:
+                errors.append(f"as_of_turn: {self.as_of_turn} is not the exchange this update was requested for")
             errors += finding_context_errors(self.finding, ctx, "finding")
             released = sorted(r for r in ctx.citable_records if r.startswith("rec-"))
             listed = [c.record_id for c in self.evidence_coverage]
@@ -365,13 +410,13 @@ class StoredDeepUpdate(Contract):
     @model_validator(mode="after")
     def _rules(self) -> Self:
         errors = _deep_errors(self.as_of_turn, self.finding, self.evidence_coverage, self.open_gaps)
-        last = self.finding.last_revised_turn
-        if last is None or last > turn_no(self.as_of_turn):
-            errors.append("finding.last_revised_turn: code-filled, at or before as_of_turn")
-        if self.finding.alternative_explanations is not None:
-            errors.append("finding.alternative_explanations: null on a deep update finding (S2 4.8)")
+        errors += _assistant_finding_errors(self.finding, self.as_of_turn)
         _raise(errors)
         return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return _assistant_finding_rules()
 
 
 class FinalFinding(Contract):

@@ -12,7 +12,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, StringConstraints, ValidationInfo, model_validator
 
-from arena_core.contracts.common import ByteLimit, Contract, Distinct, FactId, GateId, UncertaintyId, UniqueItems
+from arena_core.contracts.common import ByteLimit, Contract, Distinct, FactId, GateId, UncertaintyId
 
 Behavior = Literal[
     "responsive", "omission", "deflection", "minimization", "explicit_uncertainty", "legitimate_non_disclosure"
@@ -34,11 +34,11 @@ class SubjectContext:
 
 
 class SubjectTag(Contract):
-    disclosed: Annotated[list[FactId], Field(max_length=30), UniqueItems, Distinct]
-    withheld: Annotated[list[FactId], Field(max_length=30), UniqueItems, Distinct]
-    uncertainty_used: Annotated[list[UncertaintyId], Field(max_length=4), UniqueItems, Distinct]
+    disclosed: Annotated[list[FactId], Field(max_length=30), Distinct]
+    withheld: Annotated[list[FactId], Field(max_length=30), Distinct]
+    uncertainty_used: Annotated[list[UncertaintyId], Field(max_length=4), Distinct]
     behavior: Behavior
-    gates_opened: Annotated[list[GateId], Field(max_length=6), UniqueItems, Distinct]
+    gates_opened: Annotated[list[GateId], Field(max_length=6), Distinct]
 
 
 class SubjectTurn(Contract):

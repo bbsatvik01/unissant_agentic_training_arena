@@ -89,6 +89,13 @@
           "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
           "type": "string"
         },
+        "initial_documents": {
+          "items": {
+            "$ref": "#/$defs/InitialDocument"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
         "released": {
           "items": {
             "$ref": "#/$defs/ReviewRecord"
@@ -114,6 +121,7 @@
       "required": [
         "task",
         "item_id",
+        "initial_documents",
         "released",
         "transcript",
         "flags"
@@ -227,6 +235,13 @@
           "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
           "type": "string"
         },
+        "initial_documents": {
+          "items": {
+            "$ref": "#/$defs/InitialDocument"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
         "released": {
           "items": {
             "$ref": "#/$defs/ReviewRecord"
@@ -285,6 +300,7 @@
       "required": [
         "task",
         "item_id",
+        "initial_documents",
         "released",
         "transcript",
         "facts",
@@ -517,7 +533,7 @@
           "items": {
             "$ref": "#/$defs/TriggerEntry"
           },
-          "maxItems": 60,
+          "maxItems": 228,
           "type": "array"
         }
       },
@@ -576,6 +592,71 @@
     },
     "StoredFinding": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "deceptive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "likely",
+                  "very_likely",
+                  "almost_certain"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "truthful"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "likelihood": {
+                "enum": [
+                  "almost_no_chance",
+                  "very_unlikely",
+                  "unlikely"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "insufficient_evidence"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "corroboration_needed": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "label": {
           "enum": [
@@ -611,7 +692,8 @@
             "type": "string"
           },
           "maxItems": 6,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_turns": {
           "items": {
@@ -620,7 +702,8 @@
             "type": "integer"
           },
           "maxItems": 12,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cited_records": {
           "items": {
@@ -628,7 +711,8 @@
             "type": "string"
           },
           "maxItems": 10,
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "corroboration_needed": {
           "items": {
@@ -690,6 +774,135 @@
     },
     "StoredFlag": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "missing_fact": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "gap",
+                  "non_responsive",
+                  "possible_evasion"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "missing_fact": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_turn_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "contradiction"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_quote": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "evidence_conflict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conflict_record_quote": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "kind": {
           "enum": [

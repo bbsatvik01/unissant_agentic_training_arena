@@ -190,6 +190,7 @@ ASST_CTX = RefAsstContext(
     followup_turn_ids=frozenset({"t01"}),
     citation_ids=frozenset({"t02", "doc-01"}),
     rubric_subcheck_ids=frozenset({"1a", "1b", "1c", "1d", "2c", "2d", "5e"}),
+    transcript_turn_ids=frozenset({"t01", "t02"}),
 )
 
 
@@ -212,5 +213,8 @@ def test_ref_asst_answers_each_submitted_item_exactly_once() -> None:
         RefereeAssistantReport.model_validate(_asst(subchecks=_asst()["subchecks"][:1]), context=ASST_CTX)
     with pytest.raises(ValidationError):
         RefereeAssistantReport.model_validate(_asst(citations=[{"cite": "doc-05", "supports_basis": True}]))
+    late = [{"id": "1b", "result": "fail", "turn_ids": ["t12"]}, {"id": "5e", "result": "na", "turn_ids": []}]
+    with pytest.raises(ValidationError, match=r"subchecks\[0\]\.turn_ids: t12"):
+        RefereeAssistantReport.model_validate(_asst(subchecks=late), context=ASST_CTX)
     with pytest.raises(TypeError, match="RefAsstContext"):
         RefereeAssistantReport.model_validate(_asst(), context=ASST_CTX.flag_refs)

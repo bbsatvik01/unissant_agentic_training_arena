@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Annotated, Protocol, Self
+from typing import Annotated, Any, Protocol, Self
 
 from pydantic import Field, model_validator
 
@@ -35,26 +35,34 @@ from arena_core.contracts.common import (
     Rationale,
     TurnNo,
     turn_no,
+    when,
 )
 
-ALLOWED_LIKELIHOOD: dict[str, frozenset[str]] = {
-    "deceptive": frozenset({"likely", "very_likely", "almost_certain"}),
-    "truthful": frozenset({"unlikely", "very_unlikely", "almost_no_chance"}),
-    "insufficient_evidence": frozenset(
-        {
-            "almost_no_chance",
-            "very_unlikely",
-            "unlikely",
-            "roughly_even_chance",
-            "likely",
-            "very_likely",
-            "almost_certain",
-        }
-    ),
+LIKELIHOODS = (
+    "almost_no_chance",
+    "very_unlikely",
+    "unlikely",
+    "roughly_even_chance",
+    "likely",
+    "very_likely",
+    "almost_certain",
+)
+# S2 4.2: the likelihoods each label allows, in ICD 203 order.
+ALLOWED_LIKELIHOOD: dict[str, tuple[str, ...]] = {
+    "deceptive": ("likely", "very_likely", "almost_certain"),
+    "truthful": ("almost_no_chance", "very_unlikely", "unlikely"),
+    "insufficient_evidence": LIKELIHOODS,
 }
-
-
 MAX_CORROBORATION = 3
+
+
+def label_json_rules() -> list[dict[str, Any]]:
+    """S2 4.2 as JSON Schema rules (the browser's copy of `_check_label_rules`)."""
+    return [
+        when("label", ["deceptive"], {"likelihood": {"enum": list(ALLOWED_LIKELIHOOD["deceptive"])}}),
+        when("label", ["truthful"], {"likelihood": {"enum": list(ALLOWED_LIKELIHOOD["truthful"])}}),
+        when("label", ["insufficient_evidence"], {"corroboration_needed": {"type": "array", "minItems": 1}}),
+    ]
 
 
 def _check_label_rules(label: str, likelihood: str, corroboration_needed: list[str]) -> None:
@@ -113,6 +121,10 @@ class StoredFinding(Contract):
     alternative_explanations: Annotated[list[AlternativeExplanation], Field(max_length=3)] | None
     last_revised_turn: TurnNo | None
 
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return label_json_rules()
+
     @model_validator(mode="after")
     def _rules(self) -> Self:
         _check_label_rules(self.label, self.likelihood, self.corroboration_needed)
@@ -131,6 +143,10 @@ class InvestigatorFinding(Contract):
     corroboration_needed: Annotated[list[Corroboration], Field(max_length=3)]
     rationale: Rationale
     alternative_explanations: Annotated[list[AlternativeExplanation], Field(max_length=3)] | None = None
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return label_json_rules()
 
     @model_validator(mode="after")
     def _rules(self) -> Self:

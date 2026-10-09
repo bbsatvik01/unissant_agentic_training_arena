@@ -96,10 +96,15 @@ def test_the_exported_debrief_schema_agrees_with_s3s_on_every_fixture() -> None:
             },
         },
     ]
-    values = [c["value"] for c in cases] + extra
+    stricter = [c["value"] for c in cases if c.get("why") == "unscorable rubric with a total (SG2-38)"]
+    values = [c["value"] for c in cases if c["value"] not in stricter] + extra
     assert len(values) >= len(extra) + 3
     for value in values:
         assert ours.is_valid(value) == s3.is_valid(value), value
+    # S5 5.4 and SG2-38 add one rule S3's schema text leaves out: an unscorable rubric has no total.
+    assert len(stricter) == 1
+    assert s3.is_valid(stricter[0])
+    assert not ours.is_valid(stricter[0])
     assert {s3.is_valid(v) for v in values} == {True, False}
     debrief: TypeAdapter[Debrief] = TypeAdapter(Debrief)
     for value in values:
