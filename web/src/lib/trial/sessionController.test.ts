@@ -2067,3 +2067,37 @@ describe("session controller: a publication supersedes an older debrief read", (
     expect(c.getState().debrief).toEqual(debrief);
   });
 });
+
+describe("session controller: recovery reads never undo a loaded end state", () => {
+  it("after end_failed, reconnect() reads only what is missing, and a later failure cannot undo the publication", async () => {
+    let debriefReads = 0;
+    let snapshotReads = 0;
+    const h = harness({ snapshots: [snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH })] });
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          snapshotReads += 1;
+          return snapshotReads === 1 ? Promise.resolve(snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH })) : Promise.reject(new TypeError("down"));
+        },
+        readDebrief: () => {
+          debriefReads += 1;
+          return Promise.reject(new TypeError("down"));
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    await h.clock.advance(60_000);
+    expect(c.getState().connection).toBe("end_failed");
+    c.reconnect();
+    await flush();
+    await c.requestDebrief();
+    expect(c.getState().connection).toBe("finished");
+    await h.clock.advance(60_000);
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(fixture("debrief:scored"));
+    expect(snapshotReads).toBe(1);
+    expect(debriefReads).toBeLessThanOrEqual(2 + RESYNC_RETRIES);
+  });
+});

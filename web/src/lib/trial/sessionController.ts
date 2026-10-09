@@ -312,6 +312,12 @@ export function createSessionController(options: SessionControllerOptions): Sess
       waits.add(done);
     });
 
+  /** A terminal snapshot is installed: the trial's final state. */
+  const terminalLoaded = (): boolean => {
+    const snap = state.trial.snapshot;
+    return snap !== null && snap.status !== "running";
+  };
+
   /** The published debrief.v1 is in (a `scoring` answer is not). */
   const published = (): boolean => state.debrief !== null && "schema_version" in state.debrief;
 
@@ -376,8 +382,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
       stopForGood();
       set({ connection: "ending" });
       try {
-        if (options.snapshotLoaded !== true) {
-          const snapshot = await readWithRetries(() => api.trialSnapshot(trialId));
+        // A terminal snapshot already installed is the end state; it is not read again.
+        if (options.snapshotLoaded !== true && !terminalLoaded()) {
+          const snapshot = await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded);
           if (isDisposed()) return;
           dispatch({ type: "snapshot", snapshot });
         }
@@ -392,8 +399,11 @@ export function createSessionController(options: SessionControllerOptions): Sess
         if (isDisposed()) return;
         set({ connection: "finished", error: null });
       } catch {
-        // Kept as `error`; `reconnect()` reads again. The stream stays closed for good.
-        set({ connection: "end_failed" });
+        // Kept as `error`; `reconnect()` reads again. The stream stays closed for good. A read superseded by the end
+        // state arriving another way (the debrief POST) changes nothing.
+        if (isDisposed()) return;
+        if (terminalLoaded() && published()) set({ connection: "finished", error: null });
+        else set({ connection: "end_failed" });
       }
     })().finally(() => {
       // Only the run in flight is shared: a later call (another debrief request) reads the REST state again.
@@ -746,8 +756,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     async requestDebrief() {
       const debrief = await api.requestDebrief(sessionId);
       setDebrief(debrief);
-      const snap = state.trial.snapshot;
-      if (snap !== null && snap.status !== "running" && !isDisposed()) {
+      if (terminalLoaded() && !isDisposed()) {
         // The terminal snapshot is in and the published debrief just arrived: the end state is loaded, whatever an
         // older debrief read still in flight does (it cannot replace the document or undo this).
         stopForGood();
