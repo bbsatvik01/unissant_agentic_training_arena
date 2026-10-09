@@ -384,13 +384,21 @@ def replay_scoring_calls(lu: Lineup, high: bool) -> list[Call]:
     return calls
 
 
+# D-014 (owner, 2026-10-08): case families are authored once, offline, by Claude agents with Codex review;
+# no Vertex generation or validation calls, and gemini-3.1-pro-preview is not used. The generation calls
+# below remain only for the older lineups and the research history.
+CASE_AUTHORING = "offline"
+
+
 def family_generation_calls(lu: Lineup, hidden: bool) -> list[Call]:
+    if CASE_AUTHORING == "offline" and lu.name == "d009":
+        return []
     return [lu.gen_hidden if hidden else lu.gen_dev] + list(lu.gen_validate)
 
 
 def experiment_calls(high: bool) -> list[Call]:
     calls = [CARD_SINGLE_35, CARD_SINGLE_31, CARD_FLASH_LITE_35] * 200            # lineup models x 2 contexts x 100
-    for _ in range(2):                                                          # case-generation pilot
+    for _ in range(2):                                                          # case-generation pilot (none, D-014)
         calls += family_generation_calls(LINEUPS["d009"], hidden=True)
     calls += [Call("3.5-flash-lite", 3500, 200, "MINIMAL", kind="subject")] * (2 * 3 * 2 * EXCHANGES)  # fidelity pilot
     return calls
@@ -593,7 +601,7 @@ CAP = 75.0
 BUILD_PHASES = ("experiments", "generation", "dev_pilot", "replay", "interactive")
 
 
-PLAN = {"sealed": 24, "dev": 10}   # baseline that completes at conservative usage; 30 if the dev pilot tracks expected
+PLAN = {"sealed": 30, "dev": 10}   # baseline that completes at conservative usage (D-014); 34 if the dev pilot tracks expected
 
 
 def budget_plan(hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:

@@ -32,3 +32,4 @@
 - c293bec spec v2 reconciliation of S2-S8 + SQL; cross-check RED (S1 not reconciled; 8 majors). Work paused for owner scope steer.
 - d357dfd D-013 (owner): build first, one global spend ceiling, keep simple. Workflow wf_cedd150a-eec dispatched: spec v2.1 (S1 + X-02..X-17) and WP-01 scaffold in parallel.
 - D-014 (owner): case families authored by Claude agents + Codex; Gemini 3.1 Pro dropped. Supabase MCP added at project scope (.mcp.json, project fzjgcwkvveetegpngujr).
+- Direction v10.4: D-013 + D-014 applied; offline authoring removes generation spend; baseline back to 30 hidden cases (~$44/$66, complete), 34 pilot-gated. Owner completed Supabase MCP login.
