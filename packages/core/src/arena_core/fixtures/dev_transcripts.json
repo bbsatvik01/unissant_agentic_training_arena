@@ -2208,12 +2208,7 @@
                 "f:13",
                 "u:01"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:03:18 | Loading dock door | Badge 40562 (G. Mattick) | Granted, exit"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "perception",
@@ -2618,12 +2613,7 @@
                 "f:13",
                 "u:01"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:03:18 | Loading dock door | Badge 40562 (G. Mattick) | Granted, exit"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -2721,12 +2711,7 @@
                 "f:13",
                 "u:01"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:03:18 | Loading dock door | Badge 40562 (G. Mattick) | Granted, exit"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3275,12 +3260,7 @@
               "ledger": [
                 "f:09"
               ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "21:14:08 | Suite R-6 door | Badge 51873 (S. Varga) | Access granted"
-                }
-              ]
+              "records": []
             },
             {
               "kind": "fact",
@@ -3412,12 +3392,7 @@
               "ledger": [
                 "f:04"
               ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00)."
-                }
-              ]
+              "records": []
             },
             {
               "kind": "perception",

@@ -120,15 +120,33 @@ def test_numbers_match_whole_tokens_and_spelled_out_numbers_count() -> None:
 
 @pytest.mark.parametrize(
     ("phrase", "value"),
-    [("seventy", "70"), ("twenty-one", "21"), ("about ten", "10"), ("two hundred and five", "205"), ("twice", "2")],
+    [
+        ("seventy", ["70"]),
+        ("twenty-one", ["21"]),
+        ("about ten", ["10"]),
+        ("two hundred and five", ["205"]),
+        ("twice", ["2"]),
+        ("thirty million", ["30000000"]),
+        ("a dozen", ["12"]),
+        ("between ten and twenty", ["10", "20"]),
+        ("about ten in total, around", ["10"]),
+    ],
 )
-def test_spelled_out_quantities_are_numbers(phrase: str, value: str) -> None:
-    assert cc.numbers(f"I loaded {phrase} binders.") == [value]
+def test_spelled_out_quantities_are_numbers(phrase: str, value: list[str]) -> None:
+    assert cc.numbers(f"I loaded {phrase} binders.") == value
 
 
-@pytest.mark.parametrize("phrase", ["half past twelve", "ten to five", "eight o'clock", "after eight", "until ten"])
-def test_spoken_clock_times_are_not_quantities(phrase: str) -> None:
+@pytest.mark.parametrize("phrase", ["half past twelve", "ten to five", "twenty-five past ten", "eight o'clock"])
+def test_unambiguous_spoken_clock_times_are_not_quantities(phrase: str) -> None:
     assert cc.numbers(f"It was {phrase}.") == []
+
+
+@pytest.mark.parametrize(
+    ("phrase", "value"), [("after eight", ["8"]), ("a bit after nine", ["9"]), ("until ten", ["10"])]
+)
+def test_an_ambiguous_hour_is_compared_as_a_number(phrase: str, value: list[str]) -> None:
+    """Fail closed: a bare hour after a lead word may be a quantity, so it is compared like one."""
+    assert cc.numbers(f"It was {phrase}.") == value
 
 
 @pytest.mark.parametrize(

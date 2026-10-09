@@ -79,12 +79,15 @@ _UNITS = [
 ]
 _TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
 THOUSAND = 1000
-_SCALES = {"hundred": 100, "thousand": THOUSAND}
+_SCALES = {"hundred": 100, "thousand": THOUSAND, "million": 10**6, "billion": 10**9, "trillion": 10**12}
+_DOZEN = {"dozen": 12}
 _UNIT = {w: n for n, w in enumerate(_UNITS)}
 _ONCE = {"once": 1, "twice": 2}
-_NUMBER_WORD = "(?:" + "|".join([*_UNITS, *_TENS, *_SCALES, *_ONCE]) + ")"
-# A spelled-out cardinal: "seventy", "twenty-one", "two hundred and five", "a hundred".
-CARDINAL = re.compile(rf"\b(?:a )?{_NUMBER_WORD}(?:(?:[ -]| and ){_NUMBER_WORD})*\b", re.IGNORECASE)
+_NUMBER_WORD = "(?:" + "|".join([*_UNITS, *_TENS, *_SCALES, *_ONCE, *_DOZEN]) + ")"
+# A spelled-out cardinal: "seventy", "twenty-one", "two hundred and five", "thirty million", "a dozen". "and" joins
+# only after a scale word ("hundred and five"); elsewhere it separates two numbers ("ten and twenty" is 10 and 20).
+_AFTER_SCALE = "(?:" + "|".join(f"(?<={w})" for w in _SCALES) + ")"
+CARDINAL = re.compile(rf"\b(?:a )?{_NUMBER_WORD}(?:(?:[ -]|{_AFTER_SCALE} and ){_NUMBER_WORD})*\b", re.IGNORECASE)
 APOSTROPHES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u02bc": "'", "\u2032": "'"})
 
 
@@ -104,6 +107,8 @@ def cardinal_value(phrase: str) -> int:
             current += _UNIT[word]
         elif word in _TENS:
             current += _TENS[word]
+        elif word in _DOZEN:
+            current = max(current, 1) * _DOZEN[word]
         elif word in _SCALES:
             current = max(current, 1) * _SCALES[word]
             if _SCALES[word] >= THOUSAND:
@@ -166,16 +171,12 @@ def content(word: str) -> bool:
 
 
 # Spoken clock times are times, not quantities; they are approximate by nature, so code does not compare them (the
-# review does): "half past twelve", "ten to five", "nine o'clock", and a lead word with a bare hour that ends the
-# phrase ("after eight", "until ten.", "at nine when"). A lead word followed by a noun is a quantity ("about ten
-# binders").
-_LEAD = r"(?:after|before|around|about|until|till|from|at|by|since)"
-_END = r"(?=\s*(?:[.,;:!?]|$|\b(?:and|but|in|on|that|when|while|I|we|he|she|they|the next|this|that)\b))"
-SPOKEN_TIME = re.compile(
-    rf"\b(?:{_LEAD} )?(?:(?:half|quarter|{_NUMBER_WORD}) (?:past|to) {_NUMBER_WORD}|{_NUMBER_WORD} o'clock)\b"
-    rf"|\b{_LEAD} {_NUMBER_WORD}\b{_END}",
-    re.IGNORECASE,
-)
+# review does). Only the unambiguous forms count: "half past twelve", "ten to five", "twenty-five past ten" and
+# "nine o'clock", with an hour from one to twelve. Anything else that names a number is compared as a number (fail
+# closed): "after eight" and "about ten in total" are the numbers 8 and 10.
+_HOUR = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
+_MINUTES = "(?:half|quarter|five|ten|twenty|twenty-five)"
+SPOKEN_TIME = re.compile(rf"\b(?:{_MINUTES} (?:past|to) {_HOUR}|{_HOUR} o'clock)\b", re.IGNORECASE)
 
 
 def numbers(text: str) -> list[str]:
