@@ -1944,3 +1944,36 @@ describe("session controller: an uncertain request stays uncertain", () => {
     expect(keys).toEqual(["k1", "k1", "k1", "k2"]);
   });
 });
+
+describe("session controller: identical actions in flight share one request", () => {
+  it("a second identical turn, evidence request or finding while the first is in flight sends nothing new", async () => {
+    let calls = 0;
+    const gates: (() => void)[] = [];
+    const wait = <T,>(v: T) =>
+      new Promise<T>((r) => {
+        calls += 1;
+        gates.push(() => {
+          r(v);
+        });
+      });
+    const result: EvidenceResult = { released: [], already_released: [], denied: [], transcript_version: 0 };
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        submitTurn: () => wait({ last_seq: 0 }),
+        requestEvidence: () => wait(result),
+        commitFinding: () => wait({ last_seq: 0 }),
+      },
+    });
+    await begin(c);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    const all = [c.submitTurn("Why?"), c.submitTurn("Why?"), c.requestEvidence(["rec-02"]), c.requestEvidence(["rec-02"]), c.submitFinding(body), c.submitFinding(body)];
+    expect(calls).toBe(3);
+    for (const g of gates) g();
+    await Promise.all(all);
+    // settled: the next identical action is a new request
+    void c.submitTurn("Why?");
+    expect(calls).toBe(4);
+  });
+});

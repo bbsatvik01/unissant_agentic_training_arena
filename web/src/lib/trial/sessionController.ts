@@ -527,6 +527,21 @@ export function createSessionController(options: SessionControllerOptions): Sess
     catchUp(() => (stream?.lastSeq ?? cursor) < target);
   };
 
+  /**
+   * An action identical to one still in flight shares its request instead of sending a second one under the same
+   * key: a refusal of the second could otherwise end the identity while the first may still be applied.
+   */
+  const inFlight = new Map<string, Promise<unknown>>();
+  const once = <T,>(id: string, run: () => Promise<T>): Promise<T> => {
+    const held = inFlight.get(id);
+    if (held !== undefined) return held as Promise<T>;
+    const started = run().finally(() => {
+      if (inFlight.get(id) === started) inFlight.delete(id);
+    });
+    inFlight.set(id, started);
+    return started;
+  };
+
   /** The same action retried reuses its key; a different one gets a fresh key. */
   const keyFor = (kind: "evidence" | "finding", match: string): string => {
     const id = `${kind}:${match}`;
@@ -585,75 +600,81 @@ export function createSessionController(options: SessionControllerOptions): Sess
         listeners.delete(listener);
       };
     },
-    async submitTurn(question) {
-      const v = requireView();
-      // A retry of the same question resends the same request, key and version included, so the server resumes it.
-      const body: TurnSubmit = pendingTurns.get(question) ?? {
-        question,
-        release_ids: [],
-        expected_version: v.transcriptVersion,
-        idem_key: newKey(),
-      };
-      pendingTurns.set(question, body);
-      const settle = () => {
-        if (pendingTurns.get(question) === body) pendingTurns.delete(question);
-        uncertainKeys.delete(body.idem_key);
-      };
-      try {
-        const answer = await api.submitTurn(trialId, body);
-        settle();
-        afterPost(answer);
-      } catch (error) {
-        if (endsIdentity(error, uncertainKeys.has(body.idem_key))) settle();
-        else if (!refused(error)) uncertainKeys.add(body.idem_key);
-        throw error;
-      }
+    submitTurn(question) {
+      return once(`turn:${question}`, async () => {
+        const v = requireView();
+        // A retry of the same question resends the same request, key and version included, so the server resumes it.
+        const body: TurnSubmit = pendingTurns.get(question) ?? {
+          question,
+          release_ids: [],
+          expected_version: v.transcriptVersion,
+          idem_key: newKey(),
+        };
+        pendingTurns.set(question, body);
+        const settle = () => {
+          if (pendingTurns.get(question) === body) pendingTurns.delete(question);
+          uncertainKeys.delete(body.idem_key);
+        };
+        try {
+          const answer = await api.submitTurn(trialId, body);
+          settle();
+          afterPost(answer);
+        } catch (error) {
+          if (endsIdentity(error, uncertainKeys.has(body.idem_key))) settle();
+          else if (!refused(error)) uncertainKeys.add(body.idem_key);
+          throw error;
+        }
+      });
     },
-    async requestEvidence(recordIds) {
-      requireView();
-      const ids = [...recordIds];
-      const match = JSON.stringify(ids);
-      const idem = keyFor("evidence", match);
-      try {
-        const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
-        settleKey("evidence", match, idem);
-        // Records released in one call share one transcript version: wait for each record, not only the version.
-        const expected = [...result.released.map((r) => r.record_id), ...result.already_released];
-        catchUp(() => {
-          const v = view();
-          if (v === null) return false;
-          return v.transcriptVersion < result.transcript_version || expected.some((id) => !v.released.some((r) => r.record_id === id));
-        });
-        return result;
-      } catch (error) {
-        if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("evidence", match, idem);
-        else if (!refused(error)) uncertainKeys.add(idem);
-        throw error;
-      }
+    requestEvidence(recordIds) {
+      return once(`evidence:${JSON.stringify(recordIds)}`, async () => {
+        requireView();
+        const ids = [...recordIds];
+        const match = JSON.stringify(ids);
+        const idem = keyFor("evidence", match);
+        try {
+          const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
+          settleKey("evidence", match, idem);
+          // Records released in one call share one transcript version: wait for each record, not only the version.
+          const expected = [...result.released.map((r) => r.record_id), ...result.already_released];
+          catchUp(() => {
+            const v = view();
+            if (v === null) return false;
+            return v.transcriptVersion < result.transcript_version || expected.some((id) => !v.released.some((r) => r.record_id === id));
+          });
+          return result;
+        } catch (error) {
+          if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("evidence", match, idem);
+          else if (!refused(error)) uncertainKeys.add(idem);
+          throw error;
+        }
+      });
     },
-    async submitFinding(finding) {
-      requireView();
-      const match = JSON.stringify(finding);
-      const idem = keyFor("finding", match);
-      findingsInFlight += 1;
-      dispatch({ type: "finding_submitted" });
-      try {
-        const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
-        findingsInFlight -= 1;
-        findingCommitted = true;
-        settleKey("finding", match, idem);
-        afterPost(answer);
-      } catch (error) {
-        findingsInFlight -= 1;
-        if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("finding", match, idem);
-        else if (!refused(error)) uncertainKeys.add(idem);
-        // S6 4.6: a 409 (a turn is still open) reloads the room state before the investigator confirms again; the
-        // draft is the caller's and stays as it is.
-        if (error instanceof ApiError && error.status === 409) await reloadRoom();
-        // The room leaves `finalizing` only when no submit is still in flight and none succeeded.
-        if (findingsInFlight === 0 && !findingCommitted) dispatch({ type: "finding_failed" });
-        throw error;
-      }
+    submitFinding(finding) {
+      return once(`finding:${JSON.stringify(finding)}`, async () => {
+        requireView();
+        const match = JSON.stringify(finding);
+        const idem = keyFor("finding", match);
+        findingsInFlight += 1;
+        dispatch({ type: "finding_submitted" });
+        try {
+          const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
+          findingsInFlight -= 1;
+          findingCommitted = true;
+          settleKey("finding", match, idem);
+          afterPost(answer);
+        } catch (error) {
+          findingsInFlight -= 1;
+          if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("finding", match, idem);
+          else if (!refused(error)) uncertainKeys.add(idem);
+          // S6 4.6: a 409 (a turn is still open) reloads the room state before the investigator confirms again; the
+          // draft is the caller's and stays as it is.
+          if (error instanceof ApiError && error.status === 409) await reloadRoom();
+          // The room leaves `finalizing` only when no submit is still in flight and none succeeded.
+          if (findingsInFlight === 0 && !findingCommitted) dispatch({ type: "finding_failed" });
+          throw error;
+        }
+      });
     },
     async requestDebrief() {
       const debrief = await api.requestDebrief(sessionId);
