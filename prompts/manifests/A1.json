@@ -1,0 +1,130 @@
+{
+  "candidate_id": "A1",
+  "coaching_policy": {
+    "deep_update": {
+      "every_n_exchanges": 3,
+      "on_release": true
+    },
+    "design": "two_stage",
+    "max_flags_per_card": 3,
+    "may_request_commit": true
+  },
+  "display_name": "Evidence Strategist",
+  "kind": "assistant",
+  "limits": {
+    "card": {
+      "attempt_timeout_ms": 6000,
+      "deadline_ms": 12000,
+      "max_input_tokens": 128000,
+      "max_output_tokens": 1600,
+      "model_id": "gemini-3.5-flash-lite",
+      "thinking_level": "MINIMAL"
+    },
+    "deep": {
+      "attempt_timeout_ms": 10000,
+      "deadline_ms": 20000,
+      "max_input_tokens": 128000,
+      "max_output_tokens": 3000,
+      "model_id": "gemini-3.5-flash-lite",
+      "thinking_level": "MINIMAL"
+    },
+    "final": {
+      "attempt_timeout_ms": 15000,
+      "deadline_ms": 30000,
+      "max_input_tokens": 128000,
+      "max_output_tokens": 3000,
+      "model_id": "gemini-3.5-flash-lite",
+      "thinking_level": "MINIMAL"
+    }
+  },
+  "lineage": {
+    "change_note": "initial",
+    "parent_sha256": null
+  },
+  "manifest_version": "manifest.v1",
+  "model": {
+    "location": "global",
+    "provider": "vertex"
+  },
+  "official": true,
+  "prompt": {
+    "assembly": {
+      "card": [
+        "prompts/coach/common.v1.txt",
+        "prompts/coach/a1.strategy.v1.txt"
+      ],
+      "deep": [
+        "prompts/coach/a1.deep.v1.txt"
+      ],
+      "final": [
+        "prompts/coach/common.v1.txt",
+        "prompts/coach/a1.strategy.v1.txt",
+        "prompts/coach/final.v1.txt"
+      ]
+    },
+    "files": [
+      {
+        "path": "prompts/coach/common.v1.txt",
+        "sha256": "7824b0e20a1eb3a682f11f2460d996867ab1b8239588f20b20311a61457c09ba"
+      },
+      {
+        "path": "prompts/coach/a1.strategy.v1.txt",
+        "sha256": "7d4d06cd276f7c31440e6b0b633428f05bb394e99d95f7193aa58e0ae26cde0f"
+      },
+      {
+        "path": "prompts/coach/a1.deep.v1.txt",
+        "sha256": "1d04a6c81e54520f965e320dd99e1f53b4772b3cd04ef8cbf65fd25a35f3a64a"
+      },
+      {
+        "path": "prompts/coach/final.v1.txt",
+        "sha256": "0ae3be07bbd9d85b7af8c849ee4b312c60bd5d2b177694c30cc00b7361d62d8a"
+      }
+    ],
+    "output_schemas": [
+      {
+        "name": "CoachingCard",
+        "sha256": "55b116a5689fde2114e40c8dd124eca93fad87a295985a6697b531cc9e187e91",
+        "version": "card.v1"
+      },
+      {
+        "name": "DeepUpdate",
+        "sha256": "2ebf57884e1169fb44fbce63360843cea4b422641feb38fdb5420738970ccc99",
+        "version": "deep.v1"
+      },
+      {
+        "name": "FinalFinding",
+        "sha256": "eeac1c685c8b673daa98fe30349c60a9808831930435cb43925b1ca23e50aa4c",
+        "version": "final.v1"
+      }
+    ],
+    "user_templates": [
+      {
+        "path": "prompts/coach/user.card.v1.txt",
+        "sha256": "046441e4bf52e22a8977f2c6db60701633ac31e3877dd776910f4819e1230c92"
+      },
+      {
+        "path": "prompts/coach/user.deep.v1.txt",
+        "sha256": "b677c571fe25f5793dce0c57e92574705b6ae7a3d89ee37a0045b4622f5a83cb"
+      },
+      {
+        "path": "prompts/coach/user.final.v1.txt",
+        "sha256": "167fa48c12214e476fc5196ed206cfb2b8e81f379cdd77b1bca449a8b46e37d5"
+      }
+    ]
+  },
+  "repair": {
+    "schema_repairs": 1,
+    "transient_retries": 2
+  },
+  "sampling": {
+    "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
+    "temperature": null
+  },
+  "sha256": "f0d45938936aac021b4930a2efea3e13121d8c07e357cbeb51d23667abb1cdb6",
+  "subject_policy": null,
+  "tools": [
+    "record_request"
+  ],
+  "transport": "in_process",
+  "version": "1.0.0"
+}

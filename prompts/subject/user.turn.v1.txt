@@ -1,0 +1,20 @@
+CASE LEDGER (private; read it again before every answer). Exchange {{n}} of 12.
+You are {{persona.name}}, {{persona.position}} at {{persona.organization}}. {{persona.background}}
+Matter under review, as the investigator described it: {{matter}}
+
+{{ledger}}
+
+WHAT YOU HAVE SAID SO FAR
+{{said_so_far}}
+
+TRANSCRIPT SO FAR
+<untrusted_transcript_{{salt}}>
+{{transcript}}
+</untrusted_transcript_{{salt}}>
+
+LATEST QUESTION ({{turn}})
+<untrusted_question_{{salt}}>
+{{question}}
+</untrusted_question_{{salt}}>
+
+Answer the latest question in character, following your rules, then fill the tag. Return only the JSON object.
