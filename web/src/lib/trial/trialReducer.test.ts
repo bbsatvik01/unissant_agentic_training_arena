@@ -423,6 +423,26 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
   });
 });
 
+describe("trialReducer: the gap-free prefix (S5 6.1)", () => {
+  it("counts held and skipped seqs toward the prefix, and ignores a skip at or below the snapshot", () => {
+    const b = new LogBuilder().ask();
+    const [q, , answer, , card] = b.frames;
+    let s = fold(boot(), [q as TrialFrame, card as TrialFrame]);
+    expect(view(s).contiguousSeq).toBe(1);
+    expect(view(s).pendingCards).toEqual([1]);
+    s = trialReducer(s, { type: "seq_skipped", seq: 2 });
+    expect(view(s).contiguousSeq).toBe(3);
+    expect(trialReducer(s, { type: "seq_skipped", seq: 2 })).toBe(s);
+    expect(trialReducer(boot(snapshot({ last_seq: 5 })), { type: "seq_skipped", seq: 5 }).skippedSeqs.size).toBe(0);
+    expect(trialReducer(initialTrialState(), { type: "seq_skipped", seq: 1 }).view).toBeNull();
+    // the answer arriving after all is folded as usual
+    s = fold(s, [answer as TrialFrame]);
+    expect(view(s).cards.map((c) => c.turn_no)).toEqual([1]);
+    const next = trialReducer(s, { type: "snapshot", snapshot: snapshot({ last_seq: 2 }) });
+    expect([...next.skippedSeqs]).toEqual([]);
+  });
+});
+
 describe("trialReducer: the visibility re-check (S6 5.4, FE-SSE-3, FE-SSE-9)", () => {
   const coaching = (b: LogBuilder) => b.frames.filter((f) => f.type.startsWith("coach."));
 

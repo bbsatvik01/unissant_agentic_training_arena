@@ -29,7 +29,8 @@
  * (`released_at_turn` is the exchange count at release, S4 `released_after_exchanges`), and is stale otherwise.
  * In a practice text trial every event row is live, so the owner's stream is gap-free (S5 6.1): a streamed card
  * with a `seq` above the contiguous prefix (`contiguousSeq`) is pending whatever it reads, since a frame below it
- * is still missing; the session controller resumes the stream from that prefix. A card that failed the schema
+ * is still missing; the session controller resumes the stream from that prefix. A `seq` the controller refused
+ * (its frame failed validation) or gave up on (`seq_skipped`) counts toward the prefix without being folded. A card that failed the schema
  * is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
  * pending or refused card still closes its turn (the server closed it on the card row) and never reaches
  * `cards`.
@@ -143,6 +144,8 @@ export interface TrialState {
   readonly findingSubmitted: boolean;
   /** Turns whose `coach.card` frame failed the schema (no payload kept). */
   readonly refusedCards: ReadonlySet<number>;
+  /** Persisted `seq`s known and deliberately not folded (a frame failing validation, or a gap given up on). */
+  readonly skippedSeqs: ReadonlySet<number>;
   readonly violations: readonly Violation[];
   readonly view: TrialView | null;
 }
@@ -151,6 +154,7 @@ export type TrialAction =
   | { readonly type: "snapshot"; readonly snapshot: TrialSnapshot }
   | { readonly type: "frame"; readonly frame: TrialFrame }
   | { readonly type: "card_refused"; readonly turn_no: number }
+  | { readonly type: "seq_skipped"; readonly seq: number }
   | { readonly type: "finding_submitted" }
   | { readonly type: "finding_failed" };
 
@@ -170,7 +174,7 @@ const COACHING: ReadonlySet<TrialFrame["type"]> = new Set(["coach.working", "coa
 const TEXT_TURN: ReadonlySet<TrialFrame["type"]> = new Set(["question.accepted", "subject.thinking", "subject.answer", ...COACHING]);
 
 export function initialTrialState(): TrialState {
-  return { snapshot: null, log: new Map(), hints: new Map(), findingSubmitted: false, refusedCards: new Set(), violations: [], view: null };
+  return { snapshot: null, log: new Map(), hints: new Map(), findingSubmitted: false, refusedCards: new Set(), skippedSeqs: new Set(), violations: [], view: null };
 }
 
 export function roomStatus(state: TrialState): RoomStatus {
@@ -237,7 +241,8 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
     case "snapshot": {
       const { snapshot } = action;
       const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
-      let next: TrialState = { ...state, snapshot, log, hints: new Map(), findingSubmitted: false, refusedCards: new Set() };
+      const skippedSeqs = new Set([...state.skippedSeqs].filter((seq) => seq > snapshot.last_seq));
+      let next: TrialState = { ...state, snapshot, log, hints: new Map(), findingSubmitted: false, refusedCards: new Set(), skippedSeqs };
       if (snapshotLeaks(snapshot)) {
         next = withViolation(next, { key: "snapshot:assessment_coaching", frame_type: "snapshot", seq: null, reason: "assessment_coaching" });
       }
@@ -248,6 +253,11 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
     case "card_refused":
       if (state.snapshot === null || state.refusedCards.has(action.turn_no)) return state;
       return derive({ ...state, refusedCards: new Set(state.refusedCards).add(action.turn_no) });
+    case "seq_skipped": {
+      const { snapshot } = state;
+      if (snapshot === null || action.seq <= snapshot.last_seq || state.skippedSeqs.has(action.seq)) return state;
+      return derive({ ...state, skippedSeqs: new Set(state.skippedSeqs).add(action.seq) });
+    }
     case "finding_submitted":
       return state.findingSubmitted ? state : derive({ ...state, findingSubmitted: true });
     case "finding_failed":
@@ -330,7 +340,7 @@ function derive(state: TrialState): TrialState {
 
   let askedUpTo = Math.max(0, ...snapshot.turns.map((t) => t.turn_no));
   let contiguousSeq = snapshot.last_seq;
-  while (state.log.has(contiguousSeq + 1)) contiguousSeq += 1;
+  while (state.log.has(contiguousSeq + 1) || state.skippedSeqs.has(contiguousSeq + 1)) contiguousSeq += 1;
   /** The seq of each card that came on the stream, by turn. */
   const cardSeq = new Map<number, number>();
   for (const frame of byKey(state.log)) {

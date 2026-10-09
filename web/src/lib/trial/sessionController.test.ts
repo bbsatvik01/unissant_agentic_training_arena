@@ -501,7 +501,7 @@ describe("session controller: catch-up after a POST (S6 5.1)", () => {
     await expect(c.requestEvidence(["rec-02"])).resolves.toEqual(result);
     await h.clock.advance(CATCH_UP_MS);
     expect(h.sources).toHaveLength(2);
-    const caughtUp = h.make({ api: { ...h.api, requestEvidence: () => Promise.resolve({ ...result, transcript_version: 2 }) } });
+    const caughtUp = h.make({ api: { ...h.api, requestEvidence: () => Promise.resolve({ ...result, released: [], transcript_version: 2 }) } });
     await begin(caughtUp);
     for (const f of new LogBuilder().ask().frames) h.last().send(f);
     await caughtUp.requestEvidence(["rec-02"]);
@@ -1113,5 +1113,86 @@ describe("session controller: Codex round 2 regressions", () => {
     await h.clock.advance(250);
     expect(h.last().url).toContain("after=5");
     expect(trialView(c).turns.map((t) => t.answer)).toEqual(["Answer 1."]);
+  });
+});
+
+describe("session controller: Codex round 3 regressions", () => {
+  it("a card that fails the schema does not hold later coaching behind a gap", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask().ask();
+    const frames = b.frames.map((f) => (f.type === "coach.card" && f.data.turn_no === 1 ? { ...f, data: { ...f.data, card: { ...f.data.card, candidate_id: "x" } } } : f));
+    for (const f of frames) h.last().send(f);
+    await flush();
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([2]);
+    expect(trialView(c).pendingCards).toEqual([]);
+    expect(h.acks).toEqual([
+      { trial_id: TRIAL_ID, turn_no: 1, client_valid: false },
+      { trial_id: TRIAL_ID, turn_no: 2, client_valid: true },
+    ]);
+    await h.clock.advance(5_000);
+    expect(h.sources).toHaveLength(1);
+  });
+
+  it("a gap the replay does not fill is skipped after one resume, so later cards are judged", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask().ask();
+    const missing = b.frames.find((f) => f.type === "coach.card" && f.data.turn_no === 1);
+    const rest = b.frames.filter((f) => f !== missing);
+    for (const f of rest) h.last().send(f);
+    expect(trialView(c).pendingCards).toEqual([2]);
+    await h.clock.advance(CATCH_UP_MS);
+    expect(h.sources).toHaveLength(2);
+    expect(h.last().url).toContain(`after=${String((missing?.seq ?? 0) - 1)}`);
+    // the replay sends everything after the prefix except the frame this client cannot read
+    h.last().raw("{broken");
+    for (const f of rest.filter((f) => (f.seq ?? 0) > (missing?.seq ?? 0))) h.last().send(f);
+    await h.clock.advance(CATCH_UP_MS);
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([2]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 2, client_valid: true }]);
+    expect(h.sources).toHaveLength(2);
+  });
+
+  it("an evidence request whose records share one version waits for every record", async () => {
+    const result: EvidenceResult = {
+      released: [
+        { record_id: "rec-02", kind: "record", doc_kind: "alarm_log" },
+        { record_id: "rec-03", kind: "record", doc_kind: "alarm_log" },
+      ],
+      already_released: [],
+      denied: [],
+      transcript_version: 3,
+    };
+    const h = harness();
+    const c = h.make({ api: { ...h.api, requestEvidence: () => Promise.resolve(result) } });
+    await begin(c);
+    const b = new LogBuilder().ask();
+    const first = b.release("rec-02", "requested");
+    for (const f of b.frames) h.last().send(f);
+    expect(first.transcript_version).toBe(3);
+    await c.requestEvidence(["rec-02", "rec-03"]);
+    await h.clock.advance(CATCH_UP_MS);
+    expect(h.sources).toHaveLength(2);
+  });
+
+  it("a card refused after it was pending is counted as dropped once", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask({ coach: "none" });
+    b.release("rec-02");
+    const card = frame("coach.card", b.seq + 1, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const [q, , answer, release] = b.frames;
+    for (const f of [q, answer, card]) h.last().send(f);
+    expect(c.getState().dropped).toBe(0);
+    h.last().send(release);
+    h.last().send(card);
+    await flush();
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+    // once when it was refused, once more for the replayed copy the stream itself drops
+    expect(c.getState().dropped).toBe(2);
   });
 });

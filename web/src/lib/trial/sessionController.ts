@@ -158,6 +158,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const acked = new Set<number>();
   /** Turns whose `coach.card` arrived on the stream: only these are acknowledged (S6 5.6). */
   const streamCards = new Set<number>();
+  /** Streamed card turns already counted as dropped. */
+  const droppedCards = new Set<number>();
   /** The last unsettled request per action, so a retry resends it with the same idempotency key (S5 5.2). */
   let pendingTurn: TurnSubmit | null = null;
   const pendingKeys = new Map<"evidence" | "finding", { readonly match: string; readonly key: string }>();
@@ -185,13 +187,20 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * schema). A pending card (reading a frame not folded yet) waits; it is shown or refused by a later frame.
    * Practice text trials only: no other population receives live cards (S6 5.6).
    */
-  const settleAcks = (trial: TrialState) => {
+  const settleAcks = (trial: TrialState, countDrop: () => void) => {
     const v = trial.view;
     if (v === null || v.mode !== "practice" || v.channel !== "text") return;
     for (const turn of streamCards) {
       if (acked.has(turn)) continue;
       if (v.cards.some((c) => c.turn_no === turn)) ack(turn, true);
-      else if (v.rejectedCards.includes(turn)) ack(turn, false);
+      else if (v.rejectedCards.includes(turn)) {
+        ack(turn, false);
+        // Refused after it was taken as pending: dropped and counted now, once (S6 4.5).
+        if (!droppedCards.has(turn)) {
+          droppedCards.add(turn);
+          countDrop();
+        }
+      }
     }
   };
 
@@ -203,8 +212,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
     }
     reported = trial.violations.length;
     // Acknowledge before subscribers are told, so before any render (S6 5.6).
-    settleAcks(trial);
-    set({ trial });
+    let dropped = state.dropped;
+    settleAcks(trial, () => (dropped += 1));
+    set({ trial, dropped });
   };
 
   const dispatch = (action: TrialAction) => {
@@ -275,14 +285,36 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return v.mode === "practice" && v.channel === "text" ? v.contiguousSeq : v.lastSeq;
   };
 
-  /** A missing frame below a held one: if it has not arrived 1 s later, resume from the prefix (once per gap). */
-  const checkGap = () => {
+  const gapAt = (): number | null => {
     const v = view();
-    if (v === null || v.mode !== "practice" || v.channel !== "text" || v.lastSeq <= v.contiguousSeq) return;
-    if (gapChecked === v.contiguousSeq) return;
-    gapChecked = v.contiguousSeq;
-    const at = v.contiguousSeq;
-    catchUp(() => view()?.contiguousSeq === at);
+    if (v === null || v.mode !== "practice" || v.channel !== "text" || v.lastSeq <= v.contiguousSeq) return null;
+    return v.contiguousSeq;
+  };
+
+  /**
+   * A missing frame below a held one. If it has not arrived 1 s later, resume from the prefix so the server replays
+   * it; if it is still missing 1 s after that, the server has nothing to send for it (a frame this client could
+   * not parse): skip that seq so later frames are judged, rather than waiting for ever.
+   */
+  const checkGap = () => {
+    const at = gapAt();
+    if (at === null || gapChecked === at) return;
+    gapChecked = at;
+    const watch = (resumed: boolean) => {
+      const handle = scheduler.setTimeout(() => {
+        catchUpTimers.delete(handle);
+        if (gapAt() !== at || stream === null) return;
+        if (!resumed) {
+          stream.reconnect();
+          watch(true);
+          return;
+        }
+        dispatch({ type: "seq_skipped", seq: at + 1 });
+        checkGap();
+      }, CATCH_UP_MS);
+      catchUpTimers.add(handle);
+    };
+    watch(false);
   };
 
   const onFrame = (frame: TrialFrame): boolean => {
@@ -292,20 +324,27 @@ export function createSessionController(options: SessionControllerOptions): Sess
       if (turn !== null && trialView?.mode === "practice" && trialView.channel === "text") {
         // The server closed the turn on this card: close it here too, keeping nothing of the card.
         streamCards.add(turn);
+        droppedCards.add(turn);
         dispatch({ type: "card_refused", turn_no: turn });
       }
+      // Its seq is known and will never fold: it counts toward the gap-free prefix (nothing of it is kept).
+      if (frame.seq !== null) dispatch({ type: "seq_skipped", seq: frame.seq });
+      checkGap();
       return false;
     }
     const wire: WireFrame = frame;
     const result = applyFrame(state.trial, wire);
     const counted = result.outcome === "applied" || result.outcome === "duplicate";
-    if (counted && wire.type === "coach.card") streamCards.add(wire.data.turn_no);
+    // A card refused on arrival is dropped and counted by the stream (S6 4.5); one refused later by settleAcks.
+    const refusedNow = counted && wire.type === "coach.card" && (result.state.view?.rejectedCards.includes(wire.data.turn_no) ?? false);
+    if (counted && wire.type === "coach.card") {
+      streamCards.add(wire.data.turn_no);
+      if (refusedNow) droppedCards.add(wire.data.turn_no);
+    }
     setTrial(result.state);
     checkGap();
     if (result.state.view?.debriefReady != null && stream !== null) void complete();
-    // A refused card is dropped and counted (S6 4.5); it never moves the cursor.
-    if (counted && wire.type === "coach.card") return !(result.state.view?.rejectedCards.includes(wire.data.turn_no) ?? true);
-    return counted;
+    return counted && !refusedNow;
   };
 
   const mintTicket = async (id: string): Promise<string> => {
@@ -453,7 +492,13 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         const result = await api.requestEvidence(trialId, { record_ids: ids, idem_key: idem });
         settleKey("evidence", idem);
-        catchUp(() => (view()?.transcriptVersion ?? 0) < result.transcript_version);
+        // Records released in one call share one transcript version: wait for each record, not only the version.
+        const expected = [...result.released.map((r) => r.record_id), ...result.already_released];
+        catchUp(() => {
+          const v = view();
+          if (v === null) return false;
+          return v.transcriptVersion < result.transcript_version || expected.some((id) => !v.released.some((r) => r.record_id === id));
+        });
         return result;
       } catch (error) {
         if (refused(error)) settleKey("evidence", idem);
