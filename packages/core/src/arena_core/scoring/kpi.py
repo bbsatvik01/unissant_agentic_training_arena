@@ -1,0 +1,211 @@
+"""KPI procedures (S3 6): KPI-1 improvement (M18), evidence coverage (M17), KPI-4 coaching latency (M16)."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from fractions import Fraction
+from math import ceil, inf
+from typing import Any
+
+import numpy as np
+
+from arena_core.contracts.common import turn_no
+from arena_core.contracts.referee import RefereeSubjectReport
+from arena_core.scoring.exact import B, ci_indices
+
+KPI1_TARGET = Fraction(1, 5)
+KPI4_LIMIT = timedelta(seconds=3)
+KPI4_SHARE = Fraction(95, 100)
+UNMEASURED_PROVISIONAL = Fraction(5, 100)
+MISSES = ("timeout", "repair_failed", "client_invalid", "unmeasured_timeout")
+
+# ---------------------------------------------------------------- KPI-1, 6.1, M18
+
+
+@dataclass(frozen=True)
+class Kpi1:
+    mean_rel: Fraction | None  # primary: mean of r_i over participants with pre_i > 0
+    ci: tuple[float, float] | None  # participant bootstrap of the primary estimand
+    excluded_pre_zero: list[str]
+    mean_abs: Fraction | None  # mean of a_i = post_i - pre_i, every paired participant
+    median_rel: Fraction | None
+    share_ge_20pct: Fraction | None
+    ratio_of_means: Fraction | None  # mean post / mean pre - 1
+    attrition: list[str]  # participants with no scorable session in a phase
+    met: bool
+
+
+def _median(values: Sequence[Fraction]) -> Fraction:
+    s = sorted(values)
+    m = len(s) // 2
+    return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
+
+
+def kpi1(pre: Mapping[str, Sequence[int]], post: Mapping[str, Sequence[int]], seed: int, b: int = B) -> Kpi1:
+    """`pre`, `post`: participant -> the scores of their scorable test sessions in that phase (an unscorable
+    session has no score and is left out; a participant with none in a phase is attrition, SG2-38)."""
+    everyone = sorted(set(pre) | set(post))
+    ids = [i for i in everyone if pre.get(i) and post.get(i)]
+    pre_m = {i: Fraction(sum(pre[i]), len(pre[i])) for i in ids}
+    post_m = {i: Fraction(sum(post[i]), len(post[i])) for i in ids}
+    rel = {i: (post_m[i] - pre_m[i]) / pre_m[i] for i in ids if pre_m[i] > 0}
+    absd = {i: post_m[i] - pre_m[i] for i in ids}
+    point = sum(rel.values(), Fraction(0)) / len(rel) if rel else None
+    keys = sorted(rel)
+    ci = None
+    if keys:
+        rng = np.random.default_rng(seed)
+        vals = np.array([float(rel[k]) for k in keys])
+        boot = np.sort(vals[rng.integers(0, len(keys), size=(b, len(keys)))].mean(axis=1))
+        lo_i, hi_i = ci_indices(b)
+        ci = (float(boot[lo_i]), float(boot[hi_i]))
+    mean_pre = sum(pre_m.values(), Fraction(0)) / len(ids) if ids else None
+    mean_post = sum(post_m.values(), Fraction(0)) / len(ids) if ids else None
+    return Kpi1(
+        mean_rel=point,
+        ci=ci,
+        excluded_pre_zero=[i for i in ids if pre_m[i] == 0],
+        mean_abs=sum(absd.values(), Fraction(0)) / len(absd) if absd else None,
+        median_rel=_median(list(rel.values())) if rel else None,
+        share_ge_20pct=Fraction(sum(v >= KPI1_TARGET for v in rel.values()), len(rel)) if rel else None,
+        ratio_of_means=mean_post / mean_pre - 1 if mean_pre and mean_post is not None else None,
+        attrition=[i for i in everyone if i not in ids],
+        met=point is not None and point >= KPI1_TARGET,
+    )
+
+
+# ---------------------------------------------------------------- evidence coverage, 6.1, M17
+
+
+def key_fact_ids(evaluator_packet: Mapping[str, Any]) -> tuple[str, ...]:
+    """The sorted distinct `target_fact_ids` of the evaluator packet's `rubric.key_questions`."""
+    return tuple(sorted({f for q in evaluator_packet["rubric"]["key_questions"] for f in q["target_fact_ids"]}))
+
+
+@dataclass(frozen=True)
+class Coverage:
+    addressed: int
+    key_facts: int
+    share: Fraction
+    by_fact: dict[str, list[int]]
+
+
+def evidence_coverage(r3_subject_report: RefereeSubjectReport, key: tuple[str, ...]) -> Coverage:
+    """A key fact is addressed when at least one question asked for it (`requested_fact_ids` over every canonical
+    fact, known to the subject or not, SG2-07)."""
+    if not key:
+        msg = "evidence coverage needs at least one key fact"
+        raise ValueError(msg)
+    by_fact: dict[str, list[int]] = {f: [] for f in key}
+    for t in r3_subject_report.turns:
+        for f in t.requested_fact_ids:
+            if f in by_fact:
+                by_fact[f].append(turn_no(t.turn_id))
+    addressed = sum(1 for turns in by_fact.values() if turns)
+    return Coverage(addressed, len(key), Fraction(addressed, len(key)), by_fact)
+
+
+# ---------------------------------------------------------------- KPI-4, 6.4, M16
+
+
+@dataclass(frozen=True)
+class LatencyRow:
+    """One row of S4 `ops.v_latency_report` (C-28): `report_outcome` reads `unmeasured_timeout` for a row still
+    pending past the 120 s coaching deadline (SG2-23, SG3-30)."""
+
+    trial_id: str
+    turn_no: int
+    population: str  # practice_client, harness, assessment
+    report_outcome: str  # pending, delivered, timeout, repair_failed, client_invalid, unmeasured_timeout
+    subject_commit_at: datetime
+    client_ack_at: datetime | None
+
+
+Latency = Fraction | float  # seconds, exact; math.inf for a miss
+
+
+@dataclass(frozen=True)
+class Kpi4:
+    share_within_3s: Fraction | None
+    p95_s: Latency | None
+    p50_s: Latency | None
+    met: bool
+    measured: int
+    unmeasured: int
+    in_flight: int
+    provisional: bool
+    ci_share: tuple[float, float] | None
+    ci_p95: tuple[float, float] | None
+
+
+def _seconds(delta: timedelta) -> Fraction:
+    return Fraction((delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds, 1_000_000)
+
+
+def nearest_rank(sorted_values: Sequence[Latency], q: Fraction) -> Latency:
+    return sorted_values[ceil(q * len(sorted_values)) - 1]
+
+
+def _within(x: Latency) -> bool:
+    return x <= _seconds(KPI4_LIMIT)
+
+
+def kpi4(turns: Iterable[LatencyRow], seed: int, b: int = B) -> Kpi4:
+    """Share of practice-client turns with latency <= 3.000 s; misses (timeouts, failed repairs, client-invalid
+    cards, unmeasured timeouts) count as infinitely late; a delivered card with no acknowledgement is unmeasured
+    and left out; a row pending inside its deadline is `in_flight` and left out until it resolves."""
+    pop = [t for t in turns if t.population == "practice_client"]
+    measured: list[tuple[str, Latency]] = []
+    unmeasured = in_flight = 0
+    for t in pop:
+        if t.report_outcome == "pending":
+            in_flight += 1
+            continue
+        if t.report_outcome in MISSES:
+            measured.append((t.trial_id, inf))
+            unmeasured += t.report_outcome == "unmeasured_timeout"
+        elif t.client_ack_at is None:
+            unmeasured += 1
+        else:
+            measured.append((t.trial_id, _seconds(t.client_ack_at - t.subject_commit_at)))
+    lat = sorted(x for _, x in measured)
+    share = Fraction(sum(_within(x) for x in lat), len(lat)) if lat else None
+    ci_share, ci_p95 = session_bootstrap(measured, seed, b)
+    return Kpi4(
+        share_within_3s=share,
+        p95_s=nearest_rank(lat, Fraction(95, 100)) if lat else None,
+        p50_s=nearest_rank(lat, Fraction(1, 2)) if lat else None,
+        met=share is not None and share >= KPI4_SHARE,
+        measured=len(lat),
+        unmeasured=unmeasured,
+        in_flight=in_flight,
+        provisional=unmeasured > UNMEASURED_PROVISIONAL * (len(pop) - in_flight),
+        ci_share=ci_share,
+        ci_p95=ci_p95,
+    )
+
+
+def session_bootstrap(
+    measured: Sequence[tuple[str, Latency]], seed: int, b: int = B
+) -> tuple[tuple[float, float] | None, tuple[float, float] | None]:
+    """Session-cluster bootstrap (one session = one training trial) of the share within 3 s and the nearest-rank
+    p95: resample sessions with replacement."""
+    sessions: dict[str, list[float]] = {}
+    for trial, x in measured:
+        sessions.setdefault(trial, []).append(float(x))
+    if not sessions:
+        return None, None
+    keys = sorted(sessions)
+    rng = np.random.default_rng(seed)
+    limit = float(_seconds(KPI4_LIMIT))
+    shares, p95s = np.empty(b), np.empty(b)
+    for i in range(b):
+        picked = rng.integers(0, len(keys), len(keys))
+        xs = np.sort(np.concatenate([sessions[keys[j]] for j in picked]))
+        shares[i] = float((xs <= limit).sum()) / len(xs)
+        p95s[i] = xs[ceil(Fraction(95, 100) * len(xs)) - 1]
+    lo_i, hi_i = ci_indices(b)
+    s, p = np.sort(shares), np.sort(p95s)
+    return (float(s[lo_i]), float(s[hi_i])), (float(p[lo_i]), float(p[hi_i]))
