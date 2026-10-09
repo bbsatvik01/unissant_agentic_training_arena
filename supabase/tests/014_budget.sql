@@ -17,14 +17,16 @@ select tests.users();
 
 -- ------------------------------------------------------------------ BU-40: a same-key race (dblink, committed)
 -- Runs first: this transaction must hold no lock on the bucket or reservation rows yet. Session A raises the
--- committed ceiling, reserves key K and stays open; session B asks for K meanwhile and must wait on the key, then
--- see A's reservation (`exists`, same id) rather than miss it and fail on the unique key (23505). A then removes
--- what it committed (the reservation row, with its settle-once trigger off for that one statement, and the ceiling).
+-- committed ceiling by $1, reserves key K and stays open; session B asks for K meanwhile and must wait on the key,
+-- then see A's reservation (`exists`, same id) rather than miss it and fail on the unique key (23505). A then removes
+-- what it committed: the reservation row (its settle-once trigger off for that one statement) and the $1, so the
+-- ceiling is the migrated seed again, whatever that seed is (BU-01 and BU-27 below still judge the seed).
 create temp table bu40 (step integer, val text) on commit drop;
+insert into bu40 select 0, ceiling_usd::text from ops.budget_buckets where name = 'global';
 select dblink_connect('bu40a', current_setting('arena_test.dblink_dsn'));
 select dblink_connect('bu40b', current_setting('arena_test.dblink_dsn'));
 select dblink_exec('bu40a', 'begin');
-select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = 1 where name = 'global'$q$);
+select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = ceiling_usd + 1 where name = 'global'$q$);
 insert into bu40 select 1, r from dblink('bu40a',
   $q$select ops.reserve_model_call('bu40-race-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
                                    null, null, 1000)::text$q$) as t(r text);
@@ -52,7 +54,7 @@ select count(*) from dblink_get_result('bu40b', false) as t(r text);
 select dblink_exec('bu40a', 'alter table ops.budget_reservations disable trigger budget_reservations_settle_once');
 select dblink_exec('bu40a', $q$delete from ops.budget_reservations where idempotency_key = 'bu40-race-key-0001'$q$);
 select dblink_exec('bu40a', 'alter table ops.budget_reservations enable trigger budget_reservations_settle_once');
-select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = 0 where name = 'global'$q$);
+select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = ceiling_usd - 1 where name = 'global'$q$);
 select dblink_disconnect('bu40a');
 select dblink_disconnect('bu40b');
 select is(array[(select val::jsonb ->> 'outcome' from bu40 where step = 1),
@@ -61,8 +63,9 @@ select is(array[(select val::jsonb ->> 'outcome' from bu40 where step = 1),
                 ((select val::jsonb ->> 'id' from bu40 where step = 1)
                    = (select case when val not like 'error: %' then val::jsonb ->> 'id' end from bu40 where step = 3))::text,
                 (select count(*) from ops.budget_reservations)::text,
-                (select ceiling_usd from ops.budget_buckets where name = 'global')::text],
-          array['reserved', 'blocked', 'exists', 'true', '0', '0.000000'],
+                ((select ceiling_usd from ops.budget_buckets where name = 'global')::text
+                   = (select val from bu40 where step = 0))::text],
+          array['reserved', 'blocked', 'exists', 'true', '0', 'true'],
   'BU-40 a same-key reservation made while the first is uncommitted waits on the key and returns the first '
   || 'reservation (exists, same id); the committed rows are removed again');
 
