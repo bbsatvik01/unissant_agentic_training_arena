@@ -338,7 +338,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-03 | Worst case `referee` (purpose `referee_assistant`) on `gemini-3.5-flash-lite` at 12,000 bytes: 4 x (12000 x 0.30 + 4000 x 2.50) / 1e6 (`liab_reservation`); a `generate`, `validate` or `retranscribe` call kind, or model `gemini-3.1-pro-preview` | 0.054400; `AR007` each |
 | BU-04 | After the plan (BU-28), the owner lowers `global` to its liability + 0.12; fill it with the BU-03 `referee` reservations until refused; restore the plan value | Refused at reservation floor(0.12 / 0.0544) + 1 = 3 with reason `cap` at `global`; liability <= ceiling |
 | BU-05 | Invariant after every step of this file: for every bucket, subtree liability <= ceiling | Holds |
-| BU-06 | Per-user cap (seeded proposal `per_user_daily_usd`): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations of 6,000 bytes (215 at the seeded 5.00, D-017), reason `per_user_cap` |
+| BU-06 | Per-user cap (`per_user_daily_usd`, owner-approved 5.00, D-017): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations of 6,000 bytes (215 at the seeded 5.00, D-017), reason `per_user_cap` |
 | BU-07 | Unknown model or call kind | `AR007` |
 | BU-08 | Same key, same inputs; different inputs | `exists` with the same id; `AR003` |
 | BU-09 | Usage before dispatch | `AR001` |
