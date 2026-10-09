@@ -30,6 +30,7 @@ __all__ = [
     "ThinkingLevel",
     "Usage",
     "VertexModel",
+    "request_body",
     "request_bytes",
 ]
 
@@ -93,6 +94,9 @@ class AgentCall[T: BaseModel]:
     context: CallContext
     timeout_s: float | None = None  # per attempt; defaults to the call type's ceiling and may not exceed it
     deadline_s: float | None = None  # bounds every attempt of the call, repair and retries included (S2 2)
+    # Passed to the schema's validators on every reply (for example a SubjectContext or a CitationContext): the
+    # context-dependent rules of S2 4.2, 6.8 and 7.2 are part of the schema the one repair answers (S2 10).
+    validation_context: object | None = None
 
 
 @dataclass(frozen=True)
@@ -121,21 +125,31 @@ class ModelRequest:
     labels: dict[str, str] = field(default_factory=lambda: dict(APP_LABELS))
 
 
-def request_bytes(request: ModelRequest) -> int:
-    """UTF-8 byte length of the complete serialized request (D11, SG2-25): the measure every bound uses."""
-    body = {
-        "system_instruction": request.system,
-        "contents": [{"role": m.role, "parts": [{"text": m.text}]} for m in request.messages],
-        "generation_config": {
-            "response_mime_type": "application/json",
-            "response_json_schema": request.json_schema,
-            "max_output_tokens": request.max_output_tokens,
-            "thinking_config": {"thinking_level": request.thinking.value.upper()},
+def request_body(request: ModelRequest) -> dict[str, Any]:
+    """The Vertex `generateContent` JSON body google-genai 2.24.0 sends for this request, field for field (the Vertex
+    adapter's tests compare it with the body the pinned SDK actually puts on the wire)."""
+    return {
+        "contents": [{"parts": [{"text": m.text}], "role": m.role} for m in request.messages],
+        "systemInstruction": {"parts": [{"text": request.system}], "role": "user"},
+        "labels": dict(request.labels),
+        "generationConfig": {
+            "maxOutputTokens": request.max_output_tokens,
             "seed": request.seed,
+            "responseMimeType": "application/json",
+            "responseJsonSchema": request.json_schema,
+            "thinkingConfig": {"thinking_level": request.thinking.value.upper()},
         },
-        "labels": request.labels,
     }
-    return len(json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+
+def request_bytes(request: ModelRequest) -> int:
+    """UTF-8 byte length of the complete request body as compact UTF-8 JSON (D11, SG2-25): the measure every bound
+    uses. Text is counted as its UTF-8 bytes (a three-byte character counts three), and every JSON escape the body
+    needs (backslash, quote, control characters) is counted, so the echo of a hostile reply is measured as sent. The
+    wire may spell a non-ASCII character as a six-byte `\\uXXXX` escape; that is transport encoding of the same text,
+    which the model tokenizes decoded, so it does not count toward the bound on input tokens."""
+    body = json.dumps(request_body(request), ensure_ascii=False, separators=(",", ":"))
+    return len(body.encode("utf-8"))
 
 
 @dataclass(frozen=True)

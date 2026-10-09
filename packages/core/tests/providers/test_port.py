@@ -21,6 +21,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import Tracer
 from pydantic import BaseModel, Field
 
+from arena_core.contracts.subject import SubjectContext, SubjectTurn
 from arena_core.db.calls import GuardProtocolError, ModelCallRequest, SettleOutcome, UsageReport, UsageResult
 from arena_core.providers.errors import (
     BudgetRefusedError,
@@ -56,6 +57,7 @@ USAGE = Usage(input_tokens=1_000, output_tokens=200, thinking_tokens=20)
 MODEL = VertexModel.FLASH_LITE_35
 CEILING = Decimal(10)
 TWO = 2
+THREE = 3
 INT32_MAX = 2**31 - 1
 
 
@@ -599,3 +601,99 @@ def test_one_guard_session_per_logical_call() -> None:
     agent = AgentPort(FakeAdapter(script=["nope", VALID]), guard, PortOptions(sleep=no_sleep))
     run(agent.run(card()))
     assert guard.sessions == 1
+
+
+# ---------------------------------------------------------------- Codex round 1: context, same seed, deadline, echo
+
+
+SUBJECT_CTX = SubjectContext(
+    fact_ids=frozenset({"f:01", "f:02"}),
+    uncertainty_ids=frozenset({"u:01"}),
+    closed_gate_ids=frozenset({"g:01"}),
+    allowed_behaviors=frozenset({"responsive"}),
+)
+
+
+def subject_reply(*disclosed: str, withheld: tuple[str, ...] = ()) -> str:
+    tag = {
+        "disclosed": list(disclosed),
+        "withheld": list(withheld),
+        "uncertainty_used": [],
+        "behavior": "responsive",
+        "gates_opened": [],
+    }
+    return json.dumps({"utterance": "I went in to reset the freezer alarm.", "tag": tag})
+
+
+def subject_call() -> AgentCall[SubjectTurn]:
+    return AgentCall(
+        model=VertexModel.FLASH_LITE_31,
+        thinking=ThinkingLevel.MINIMAL,
+        system="You play the subject.",
+        messages=(Message("user", "Why were you in the store room?"),),
+        schema=SubjectTurn,
+        context=CallContext(
+            call_type=CallType.SUBJECT,
+            purpose="subject.answer",
+            step_key=f"step:{uuid4()}",
+            data_class="subject_private",
+        ),
+        validation_context=SUBJECT_CTX,
+    )
+
+
+def test_the_schema_s_context_rules_are_applied_and_repaired_without_echoing_the_value() -> None:
+    """A fact ID the packet does not have passes the bare schema but fails with the call's SubjectContext (V2)."""
+    adapter = FakeAdapter(script=[subject_reply("f:999"), subject_reply("f:01")])
+    agent, _ = port(adapter)
+    result = run(agent.run(subject_call()))
+    assert result.value.tag.disclosed == ["f:01"]
+    assert result.attempts == TWO
+    note = adapter.requests[1].messages[-1].text
+    assert "V2" in note
+    assert "f:999" not in note
+
+
+def test_a_custom_rule_message_never_echoes_model_values_and_an_unexpected_key_is_not_named() -> None:
+    both = subject_reply("f:01", withheld=("f:01",))
+    extra = json.dumps({**json.loads(subject_reply("f:01")), "PLANTED-KEY-NAME": 1})
+    adapter = FakeAdapter(script=[both, subject_reply("f:01")])
+    agent, _ = port(adapter)
+    run(agent.run(subject_call()))
+    note = adapter.requests[1].messages[-1].text
+    assert ("V3" in note, "f:01" in note) == (True, False)
+    adapter = FakeAdapter(script=[extra, subject_reply("f:01")])
+    agent, _ = port(adapter)
+    run(agent.run(subject_call()))
+    note = adapter.requests[1].messages[-1].text
+    assert "<unexpected field>" in note
+    assert "PLANTED" not in note
+
+
+def test_a_transient_retry_resends_the_identical_request_with_the_same_seed() -> None:
+    adapter = FakeAdapter(script=[unavailable(), unavailable(), VALID])
+    agent, _ = port(adapter)
+    run(agent.run(card()))
+    first, second, third = adapter.requests
+    assert first == second == third
+
+
+def test_a_retry_after_a_repair_that_filled_its_allowance_is_still_sent() -> None:
+    """The repaired request is resent byte for byte, so a boundary-sized repair never grows past its reservation."""
+    long_reply = "\\" * 6_000
+    adapter = FakeAdapter(script=[long_reply, unavailable(), VALID])
+    agent, budget = port(adapter)
+    result = run(agent.run(card()))
+    assert result.attempts == len(adapter.requests) == THREE
+    repaired, retried = adapter.requests[1], adapter.requests[2]
+    assert repaired == retried
+    assert request_bytes(retried) <= budget.reservations[result.reservation_id].input_bytes
+
+
+def test_the_backoff_never_outlasts_the_deadline() -> None:
+    adapter = FakeAdapter(script=[unavailable() for _ in range(ATTEMPTS)])
+    agent = AgentPort(adapter, RunBudget(CEILING), PortOptions(retry=RetryPolicy(base_delay_s=5.0, max_delay_s=5.0)))
+    started = time.monotonic()
+    with pytest.raises(ProviderFailedError):
+        run(agent.run(dataclasses.replace(card(), deadline_s=0.05)))
+    assert time.monotonic() - started < 1.0

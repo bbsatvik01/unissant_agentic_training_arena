@@ -103,8 +103,11 @@ def vertex_base_url(location: str) -> str:
     return f"https://{location}-aiplatform.googleapis.com/"
 
 
-def build_vertex_client(project: str, location: str, credentials: Credentials) -> genai.Client:
-    """A Vertex client on the arena project only (D-015), explicit location and host, SDK retries off."""
+def build_vertex_client(
+    project: str, location: str, credentials: Credentials, *, http_client: httpx.AsyncClient | None = None
+) -> genai.Client:
+    """A Vertex client on the arena project only (D-015), explicit location and host, SDK retries off.
+    ``http_client`` replaces the SDK's own async HTTP client (tests capture the wire body with it)."""
     if project != ALLOWED_GCP_PROJECT:
         msg = f"Vertex project {project!r} refused: D-015 allows only {ALLOWED_GCP_PROJECT!r}"
         raise ConfigError(msg)
@@ -113,7 +116,9 @@ def build_vertex_client(project: str, location: str, credentials: Credentials) -
         project=project,
         location=location,
         credentials=credentials,
-        http_options=gtypes.HttpOptions(base_url=vertex_base_url(location), retry_options=no_sdk_retries()),
+        http_options=gtypes.HttpOptions(
+            base_url=vertex_base_url(location), retry_options=no_sdk_retries(), httpx_async_client=http_client
+        ),
     )
 
 
@@ -178,18 +183,31 @@ class VertexAdapter:
         return parse_response(resp)
 
 
+def billed_usage(meta: gtypes.GenerateContentResponseUsageMetadata | None) -> Usage | None:
+    """The attempt's billed tokens, or None when the metadata cannot bound them (the call then settles usage_unknown
+    and keeps its full hold). Input is the prompt plus any tool-use prompt; output is the candidates plus thinking,
+    raised to everything the total reports beyond the input, so a partial report never under-counts. Without a
+    prompt count, or with neither a candidates count nor a total, the usage is unknown."""
+    if meta is None or meta.prompt_token_count is None:
+        return None
+    input_tokens = meta.prompt_token_count + (meta.tool_use_prompt_token_count or 0)
+    thinking = meta.thoughts_token_count or 0
+    if meta.total_token_count is None and meta.candidates_token_count is None:
+        return None
+    output = (meta.candidates_token_count or 0) + thinking
+    if meta.total_token_count is not None:
+        output = max(output, meta.total_token_count - input_tokens)
+    return Usage(
+        input_tokens=input_tokens,
+        output_tokens=output,
+        thinking_tokens=min(thinking, output),
+        cached_input_tokens=min(meta.cached_content_token_count or 0, input_tokens),
+    )
+
+
 def parse_response(resp: gtypes.GenerateContentResponse) -> RawCompletion:
     """Usage (thinking billed as output), then the typed stops, then the text."""
-    usage = None
-    meta = resp.usage_metadata
-    if meta is not None and meta.prompt_token_count is not None:
-        thinking = meta.thoughts_token_count or 0
-        usage = Usage(
-            input_tokens=meta.prompt_token_count,
-            output_tokens=(meta.candidates_token_count or 0) + thinking,
-            thinking_tokens=thinking,
-            cached_input_tokens=min(meta.cached_content_token_count or 0, meta.prompt_token_count),
-        )
+    usage = billed_usage(resp.usage_metadata)
     candidate = resp.candidates[0] if resp.candidates else None
     if candidate is None:
         block = resp.prompt_feedback.block_reason if resp.prompt_feedback else None

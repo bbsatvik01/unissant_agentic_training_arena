@@ -233,7 +233,7 @@ class AgentPort:
         call, opts, run = plan.call, self._opts, live.run
         timeout = call.timeout_s or plan.limits.timeout_ceiling_s
         deadline = None if call.deadline_s is None else started + call.deadline_s
-        messages = call.messages
+        request = plan.request(call.messages, attempt=1)
         repairs = transient_retries = 0
         failure: _Failure | None = None
         while run.sends < opts.retry.max_attempts:
@@ -243,7 +243,6 @@ class AgentPort:
                 if attempt_timeout <= 0:
                     msg = f"deadline of {call.deadline_s}s reached after {run.sends} attempt(s)"
                     raise ProviderFailedError(msg)
-            request = plan.request(messages, attempt=run.sends + 1)
             size = request_bytes(request)
             if size > plan.reserved_bytes:
                 msg = f"request of {size} bytes exceeds the {plan.reserved_bytes} bytes reserved; not sent"
@@ -252,7 +251,7 @@ class AgentPort:
             current: _Failure
             if isinstance(result, RawCompletion):
                 try:
-                    return parse_output(result.text, call.schema)
+                    return parse_output(result.text, call.schema, call.validation_context)
                 except OutputInvalidError as exc:
                     current = _Failure("schema", f"{exc}. {REPAIR_SUFFIX}", result.text, "schema validation failed")
             else:
@@ -261,15 +260,31 @@ class AgentPort:
                     raise ProviderFailedError(current.detail) from result
             failure = current
             if current.kind == ErrorKind.TRANSIENT:
+                # S2 10: the same request again, same seed; the backoff never outlasts the call's deadline.
                 if run.sends < opts.retry.max_attempts:
                     transient_retries += 1
-                    await opts.sleep(opts.retry.delay_s(transient_retries, opts.rng))
+                    delay = opts.retry.delay_s(transient_retries, opts.rng)
+                    if deadline is not None:
+                        delay = min(delay, max(0.0, deadline - opts.clock()))
+                    await opts.sleep(delay)
                 continue
             if repairs >= MAX_REPAIRS or run.sends >= opts.retry.max_attempts:
                 break
             repairs += 1
-            messages = _repair(plan, current, attempt=run.sends + 1)
+            request = _repair(plan, current, attempt=run.sends + 1)
         raise _terminal(failure, run.sends)
+
+    async def _send(
+        self, request: ModelRequest, timeout_s: float
+    ) -> tuple[RawCompletion | ProviderCallError, UsageStatus]:
+        """The adapter call under the attempt timeout; a failure is handed back as the attempt's result."""
+        try:
+            async with asyncio.timeout(timeout_s):
+                return await self._adapter.generate(request, timeout_s=timeout_s), "ok"
+        except TimeoutError as exc:
+            return _timed_out(timeout_s, exc), "timeout"
+        except ProviderCallError as exc:
+            return exc, "error"
 
     async def _attempt(
         self, live: _Live, plan: _Plan[Any], request: ModelRequest, timeout_s: float
@@ -291,19 +306,7 @@ class AgentPort:
             run.trace_id, run.span_id = trace_id, span_id
             run.sends += 1
             began = clock()
-            result: RawCompletion | ProviderCallError
-            status: UsageStatus = "ok"
-            try:
-                async with asyncio.timeout(timeout_s):
-                    result = await self._adapter.generate(request, timeout_s=timeout_s)
-            except TimeoutError as exc:
-                result = ProviderCallError(ErrorKind.TRANSIENT, f"timeout after {timeout_s}s", maybe_billed=True)
-                result.__cause__ = exc
-                status = "timeout"
-            # silent-ok: the failure is this attempt's result; it is recorded, then retried, repaired or raised
-            except ProviderCallError as exc:
-                result = exc
-                status = "error"
+            result, status = await self._send(request, timeout_s)
             usage = result.usage
             if usage is None and (isinstance(result, RawCompletion) or result.maybe_billed):
                 run.unknown = True
@@ -332,17 +335,24 @@ class AgentPort:
         return result
 
 
-def _repair(plan: _Plan[Any], failure: _Failure, *, attempt: int) -> tuple[Message, ...]:
-    """The repaired conversation: the original messages, the longest prefix of the previous reply that keeps the
+def _timed_out(timeout_s: float, cause: TimeoutError) -> ProviderCallError:
+    """A timed-out attempt: transient, and it may have been billed without reported usage."""
+    error = ProviderCallError(ErrorKind.TRANSIENT, f"timeout after {timeout_s}s", maybe_billed=True)
+    error.__cause__ = cause
+    return error
+
+
+def _repair(plan: _Plan[Any], failure: _Failure, *, attempt: int) -> ModelRequest:
+    """The repaired request: the original messages, the longest prefix of the previous reply that keeps the
     serialized request within the reserved bytes (character boundary), then the error turn (S2 10, SG2-25)."""
     original = plan.call.messages
 
-    def conversation(prefix_chars: int) -> tuple[Message, ...]:
+    def conversation(prefix_chars: int) -> ModelRequest:
         echo = (Message("model", failure.reply[:prefix_chars]),) if prefix_chars else ()
-        return (*original, *echo, Message("user", failure.note))
+        return plan.request((*original, *echo, Message("user", failure.note)), attempt)
 
     def fits(prefix_chars: int) -> bool:
-        return request_bytes(plan.request(conversation(prefix_chars), attempt)) <= plan.reserved_bytes
+        return request_bytes(conversation(prefix_chars)) <= plan.reserved_bytes
 
     if not fits(0):
         msg = "the repair turn alone exceeds the reserved bytes; not sent"

@@ -8,16 +8,19 @@ reached through the names the adapter module declares for this purpose (`SDK_TYP
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import json
 from collections.abc import Callable, Coroutine
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import pytest
 from google.auth.credentials import AnonymousCredentials, Credentials
 from google.auth.exceptions import DefaultCredentialsError
+from google.oauth2.credentials import Credentials as TokenCredentials
 
 from arena_core.providers import vertex
 from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError
-from arena_core.providers.types import Message, ModelRequest, Usage
+from arena_core.providers.types import Message, ModelRequest, Usage, request_body, request_bytes
 from arena_core.spend.limits import LIMITS, CallType, ThinkingLevel, VertexModel
 
 gtypes: Any = vertex.SDK_TYPES
@@ -29,6 +32,7 @@ TIMEOUT_S = 6.0
 # google-auth ships no annotations for these constructors; typed aliases keep the tests strictly checked.
 anonymous: Callable[[], Credentials] = AnonymousCredentials
 no_adc: Callable[[str], Exception] = DefaultCredentialsError
+token_credentials: Callable[[str], Credentials] = TokenCredentials
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -246,3 +250,64 @@ def test_a_timeout_may_have_been_billed_and_a_refused_connection_was_not() -> No
 
 def test_a_credentials_failure_is_a_bad_request() -> None:
     assert call_error(no_adc("no adc")).kind == ErrorKind.BAD_REQUEST
+
+
+# ---------------------------------------------------------------- the measured body is the body on the wire (D11)
+
+
+class SentRequest(Protocol):
+    content: bytes
+
+
+def wire_body(request: ModelRequest) -> dict[str, Any]:
+    """Drive the pinned SDK through the adapter with an in-memory transport and return the JSON body it sent."""
+    bodies: list[bytes] = []
+
+    def handler(sent: SentRequest) -> object:
+        bodies.append(sent.content)
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [{"content": {"role": "model", "parts": [{"text": "{}"}]}, "finishReason": "STOP"}],
+                "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1, "totalTokenCount": 4},
+            },
+        )
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    run(vertex.VertexAdapter(client).generate(request, timeout_s=TIMEOUT_S))
+    [body] = bodies
+    parsed: dict[str, Any] = json.loads(body)
+    return parsed
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["plain", "€" * 500, "\\" * 300 + '"' * 300 + "\x01" * 50, "line\nbreak\ttab"],
+    ids=["ascii", "three-byte", "escapes", "whitespace"],
+)
+def test_request_bytes_measure_exactly_the_body_the_sdk_sends(text: str) -> None:
+    req = dataclasses.replace(request(), system=f"sys {text}", messages=(*request().messages, Message("model", text)))
+    sent = wire_body(req)
+    assert sent == request_body(req)
+    assert request_bytes(req) == len(json.dumps(sent, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+
+# ---------------------------------------------------------------- partial usage metadata never under-counts
+
+
+@pytest.mark.parametrize(
+    ("meta", "want"),
+    [
+        ({"prompt_token_count": 10, "candidates_token_count": 5, "thoughts_token_count": 2}, Usage(10, 7, 2, 0)),
+        ({"prompt_token_count": 10, "total_token_count": 100}, Usage(10, 90, 0, 0)),
+        ({"prompt_token_count": 10, "candidates_token_count": 5, "total_token_count": 40}, Usage(10, 30, 0, 0)),
+        ({"prompt_token_count": 10, "tool_use_prompt_token_count": 4, "total_token_count": 20}, Usage(14, 6, 0, 0)),
+        ({"prompt_token_count": 10}, None),
+        ({"candidates_token_count": 5, "total_token_count": 9}, None),
+    ],
+    ids=["complete", "total-only", "total-above-parts", "tool-prompt", "no-output-count", "no-prompt-count"],
+)
+def test_billed_usage_is_unknown_or_an_upper_bound(meta: dict[str, int], want: Usage | None) -> None:
+    assert vertex.billed_usage(gtypes.GenerateContentResponseUsageMetadata(**meta)) == want
+    assert vertex.billed_usage(None) is None

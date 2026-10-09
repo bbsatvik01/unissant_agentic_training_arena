@@ -16,6 +16,7 @@ import re
 from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
+from pydantic_core import ErrorDetails
 
 from arena_core.providers.errors import ConfigError
 from arena_core.spend.limits import REPAIR_ERROR_ITEM_BYTES, REPAIR_ERROR_ITEMS
@@ -140,19 +141,38 @@ def extract_json_text(text: str) -> str:
     return stripped[start : end + 1]
 
 
-def parse_output[T: BaseModel](text: str, schema: type[T]) -> T:
-    """Validate the reply against ``schema``; raise OutputInvalidError with the repair list on failure."""
+# Pydantic error types raised by a contract's own validators: their messages may quote model-written values (an ID,
+# a phrase), so the repair names only the rule codes they cite, never the message (S2 10: no value is echoed).
+_CUSTOM_ERROR_TYPES = frozenset({"value_error", "assertion_error"})
+_RULE_CODE = re.compile(r"\(([A-Z][A-Z0-9-]{0,11})\)")
+# A location part the model chose (an unexpected key) is not echoed either.
+_MODEL_CHOSEN_LOC_TYPES = frozenset({"extra_forbidden"})
+
+
+def _repair_item(err: ErrorDetails) -> str:
+    loc = [str(part) for part in err["loc"]]
+    if err["type"] in _MODEL_CHOSEN_LOC_TYPES and loc:
+        loc[-1] = "<unexpected field>"
+    path = ".".join(loc) or "<root>"
+    if err["type"] in _CUSTOM_ERROR_TYPES:
+        codes = sorted(set(_RULE_CODE.findall(str(err["msg"]))))
+        message = f"fails rule {', '.join(codes)}" if codes else "fails a rule of the schema"
+    else:
+        message = str(err["msg"])
+    return _item(path, message)
+
+
+def parse_output[T: BaseModel](text: str, schema: type[T], context: object | None = None) -> T:
+    """Validate the reply against ``schema`` (with its validation ``context``); raise OutputInvalidError with the
+    repair list on failure."""
     candidate = extract_json_text(text)
     try:
         json.loads(candidate)
     except ValueError:
         raise OutputInvalidError((_item("<root>", "the reply is not valid JSON"),)) from None
     try:
-        return schema.model_validate_json(candidate)
+        return schema.model_validate_json(candidate, context=context)
     except ValidationError as exc:
-        # loc and the error type's own message template; `input` and `ctx` values are never echoed (S2 10).
-        items = tuple(
-            _item(".".join(str(part) for part in err["loc"]) or "<root>", err["msg"])
-            for err in exc.errors(include_url=False, include_input=False, include_context=False)[:REPAIR_ERROR_ITEMS]
-        )
-        raise OutputInvalidError(items) from None
+        # Built-in messages describe the schema's own bounds; `input` and `ctx` are never included (S2 10).
+        errors = exc.errors(include_url=False, include_input=False, include_context=False)
+        raise OutputInvalidError(tuple(_repair_item(err) for err in errors[:REPAIR_ERROR_ITEMS])) from None
