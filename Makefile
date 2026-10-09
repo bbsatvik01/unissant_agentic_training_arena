@@ -131,7 +131,9 @@ diff-cover: test
 sec-check: tools-sync bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses
 
 # Bandit gets the exact file list (tracked + new, not ignored) so virtualenvs and caches are never scanned.
-PY_FILES_CMD := git ls-files -z --cached --others --exclude-standard -- $(foreach d,$(PY_SOURCES),'$(d)/*.py')
+# conftest.py at the repo root is Python the pytest run executes, so it is scanned too.
+PY_ROOT_FILES := conftest.py
+PY_FILES_CMD := git ls-files -z --cached --others --exclude-standard -- $(foreach d,$(PY_SOURCES),'$(d)/*.py') $(PY_ROOT_FILES)
 
 bandit:
 	$(STRICT) $(PY_FILES_CMD) | xargs -0 $(UV_RUN) bandit -q $(BANDIT_FLAGS)

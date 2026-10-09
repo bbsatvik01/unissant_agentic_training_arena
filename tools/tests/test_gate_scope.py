@@ -129,6 +129,9 @@ def test_bandit_scans_every_python_root() -> None:
     match = re.search(r"^PY_SOURCES := (.+)$", (REPO_ROOT / "Makefile").read_text(), flags=re.MULTILINE)
     assert match is not None
     assert match.group(1).split() == ["packages", "services", "tools", "scripts"]
+    root_files = re.search(r"^PY_ROOT_FILES := (.+)$", (REPO_ROOT / "Makefile").read_text(), flags=re.MULTILINE)
+    assert root_files is not None
+    assert root_files.group(1).split() == ["conftest.py"]
 
 
 def test_semgrep_ignores_only_generated_vendored_and_data_trees() -> None:

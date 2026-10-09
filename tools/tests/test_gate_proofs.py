@@ -8,6 +8,8 @@ tools/tests/test_gate_proofs.py (ATTRIBUTIONS.md); the ESLint and tsc proofs ret
 
 import re
 import secrets
+import shlex
+import shutil
 import string
 import tomllib
 from pathlib import Path
@@ -80,6 +82,23 @@ def test_bandit_flags_shell_injection_at_the_gate_severity(tmp_path: Path) -> No
     result = proc.run("bandit", ["-q", "-r", str(tmp_path), *make_var("BANDIT_FLAGS").split()])
     assert result.returncode == 1, result.stdout
     assert "B602" in result.stdout
+
+
+def test_bandit_recipe_flags_a_planted_issue_in_the_root_conftest(tmp_path: Path) -> None:
+    """Runs the real Makefile `bandit` recipe in a throwaway repo whose only Python is a bad conftest.py."""
+    shutil.copy(REPO_ROOT / "Makefile", tmp_path / "Makefile")
+    git_init(tmp_path)
+    bin_dir = Path(proc.resolve("bandit")).parent
+    uv_run = f"UV_RUN=env {shlex.quote(f'PATH={bin_dir}:/usr/bin:/bin')}"
+    conftest = tmp_path / "conftest.py"
+    conftest.write_text("VALUE: int = 1\n")
+    clean = proc.run("make", ["bandit", uv_run], cwd=tmp_path)
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    conftest.write_text("import subprocess\n\n\ndef run(cmd: str) -> None:\n    subprocess.call(cmd, shell=True)\n")
+    result = proc.run("make", ["bandit", uv_run], cwd=tmp_path)
+    assert result.returncode != 0, result.stdout
+    assert "B602" in result.stdout + result.stderr
+    assert "conftest.py:5" in result.stdout + result.stderr
 
 
 def test_bandit_secret_pass_flags_a_hardcoded_password(tmp_path: Path) -> None:
