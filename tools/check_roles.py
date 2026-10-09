@@ -104,9 +104,6 @@ LOADER_FUNCTIONS = frozenset({"import_module", "__import__"})
 DYNAMIC_RULE = "dynamic import machinery {what} in product code (S5 1.2 item 2: imports must be static)"
 STRING_RULE = "{package} names {module} in a string; a load-by-name API would import it (S5 1.2 item 2)"
 # A dotted (`a.b`) or colon (`a:attr`) module reference, optionally `ext://`-prefixed (logging.config).
-# A Python identifier, Unicode included (a letter or underscore, then word characters); tokens are compared
-# after NFKC normalization, as Python itself normalizes identifiers when it resolves a string annotation.
-_IDENTIFIER = re.compile(r"[^\W\d]\w*")
 MODULE_REFERENCE = re.compile(r"(?:ext://)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|[A-Za-z_]\w*(?=:))(?::[\w.]+)?")
 
 
@@ -374,8 +371,30 @@ def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
     identifier in it (a string annotation such as `"NoticeFrame | None"` or `"list['N']"`, which Pydantic
     resolves, nested quotes included). Prose that names a frame model is flagged too: product code has no
     reason to spell one outside the projection."""
-    tokens = {unicodedata.normalize("NFKC", t) for t in _IDENTIFIER.findall(unicodedata.normalize("NFKC", text))}
-    return sorted(tokens & set(names))
+    return sorted(set(_identifiers(text)) & set(names))
+
+
+def _identifiers(text: str) -> list[str]:
+    """Every Python identifier in `text`, by Python's own rules: maximal runs of identifier-continue characters
+    (`str.isidentifier`, so combining marks and every Unicode letter count), each trimmed to start at an
+    identifier-start character, compared after NFKC as Python compares names when it resolves an annotation."""
+    runs: list[str] = []
+    current = ""
+    for ch in text:
+        if f"_{ch}".isidentifier():
+            current += ch
+        else:
+            runs.append(current)
+            current = ""
+    runs.append(current)
+    out = []
+    for run in runs:
+        token = run
+        while token and not token.isidentifier():
+            token = token[1:]
+        if token:
+            out.append(unicodedata.normalize("NFKC", token))
+    return out
 
 
 def _imports_export(path: str, node: ast.AST) -> bool:

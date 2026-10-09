@@ -252,6 +252,10 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
         "from arena_core.contracts.events import NoticeFrame as N\u00f8tice\n\n\n"
         "class W(BaseModel):\n    f: \"list['N\u00f8tice']\"\n",
         'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "\uff2eoticeFrame"\n',
+        # combining marks are identifier characters too, plain and nested
+        'from arena_core.contracts.events import NoticeFrame as N\u0305\n\n\nclass W(BaseModel):\n    f: "N\u0305"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\u0305\n\n\n"
+        "class W(BaseModel):\n    f: \"dict[str, 'N\u0305']\"\n",
         # a field inside a block of the class body is still a field
         "from arena_core.contracts.events import NoticeFrame\n\n\n"
         "class W(BaseModel):\n    if FLAG:\n        f: NoticeFrame\n",
@@ -308,6 +312,12 @@ def test_a_decorated_functions_annotations_are_value_uses(source: str) -> None:
     found = frame_rules(ARENA_API_FILE, source)
     assert found
     assert all("is an event frame model" in r for r in found), found
+
+
+def test_identifiers_follow_pythons_rules() -> None:
+    found = lint._identifiers("list['N\u0305'] | 9x | _a1 | \uff2eotice")
+    assert found == ["list", "N\u0305", "x", "_a1", "Notice"]
+    assert lint._identifiers("") == []
 
 
 def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
