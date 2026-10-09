@@ -1866,3 +1866,31 @@ describe("session controller: a card claiming a future version", () => {
     expect(h.turns[0]?.expected_version).toBe(b.version);
   });
 });
+
+describe("session controller: nothing new after dispose", () => {
+  it("a turn or a debrief answered after dispose schedules no timer and sends no request", async () => {
+    let turn: (v: { last_seq: number }) => void = () => undefined;
+    let debrief: (v: never) => void = () => undefined;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        submitTurn: () => new Promise((r) => (turn = r)),
+        requestDebrief: () => new Promise((r) => (debrief = r)),
+      },
+    });
+    await begin(c);
+    const t = c.submitTurn("Why?");
+    const d = c.requestDebrief();
+    c.dispose();
+    const before = h.log.length;
+    turn({ last_seq: 50 });
+    debrief(fixture("debrief:scored") as never);
+    await t;
+    await d;
+    await flush();
+    expect(h.clock.pending()).toBe(0);
+    expect(h.log.length).toBe(before);
+    expect(c.getState().connection).toBe("closed");
+  });
+});

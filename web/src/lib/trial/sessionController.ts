@@ -188,6 +188,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let disposed = false;
   let unsubscribeVisibility: (() => void) | null = null;
 
+  /** Read through a function: awaits in between can dispose the controller, which a narrowed flag would hide. */
+  const isDisposed = (): boolean => disposed;
+
   const set = (patch: Partial<SessionState>) => {
     if (disposed) return;
     state = { ...state, ...patch };
@@ -271,6 +274,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const loadDebrief = async () => {
+    if (isDisposed()) return;
     try {
       setDebrief(await api.readDebrief(sessionId));
     } catch (error) {
@@ -280,6 +284,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** Read and fold the snapshot now (the room changed under a request); a failed read is kept as the error. */
   const reloadRoom = async () => {
+    if (isDisposed()) return;
     try {
       const snapshot = await api.trialSnapshot(trialId);
       if (!disposed) dispatch({ type: "snapshot", snapshot });
@@ -300,6 +305,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * until now) and the debrief carry everything (S6 5.1, SG4-21).
    */
   const complete = (): Promise<void> => {
+    if (isDisposed()) return Promise.resolve();
     completing ??= (async () => {
       finish();
       try {
@@ -337,6 +343,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * more after it, so a frame committed after the first read began is covered too.
    */
   const resync = () => {
+    if (isDisposed()) return;
     if (resyncing) {
       resyncAgain = true;
       return;
@@ -494,6 +501,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** S6 5.1: if the stream has not delivered what a POST produced 1 s later, resume from the cursor. */
   const catchUp = (behind: () => boolean) => {
+    if (isDisposed()) return;
     const handle = scheduler.setTimeout(() => {
       catchUpTimers.delete(handle);
       if (stream !== null && behind()) stream.reconnect();
