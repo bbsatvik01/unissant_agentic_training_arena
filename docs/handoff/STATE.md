@@ -9,6 +9,19 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## HOLD 3 (owner directive, 2026-10-09 night): pause for some days
+- Do not stop running agents; send nothing new. Resume when the owner returns.
+- Running (normal agents, addressable with SendMessage):
+  | Agent id | Work | Worktree / branch | Next step when it reports |
+  | --- | --- | --- | --- |
+  | ac1b3a38666e87dcf | WP-05 agent port: serialized byte bound (align with contracts/rendered.py + agents/budget.request_bytes), S5 4.10 cap replay, per-role lifecycle tests | /private/tmp/wt-wp05-port feat/wp05-port | cold Codex gate, merge |
+  | adb48fe0d3cc9a911 | WP-11 guard: finish FX-COOP checks under option A (S2 11.1 a355544) | /private/tmp/wt-wp11-guard feat/wp11-guard | cold Codex gate, merge |
+  | a80b942018d564e81 | WP-18 part 2 web state: 5 cold-gate findings (snapshot event_seq, malformed POST bodies, finding 409 reload, bootstrap retry, URL normalization) | /private/tmp/wt-wp18b-web feat/wp18b-web | cold Codex gate, merge |
+- Supabase blocked at migration 0600 of 10 (0100-0500 applied byte-exact); owner action: .env.owner with the session-pooler DSN, or restart the Claude Code session so the MCP allow rules load; then apply 0600-1000 and roles.
+- Next queue after the three merges: WP-12 subject service, WP-13 orchestrator + routes + SSE, WP-14 referee, WP-07 observability, then WP-19 slice UI (DESIGN.md D-018) and WP-24 integration; first local end-to-end text run follows.
+- Spec follow-ups collected: content_text separator (S2 4.4.1 ' ; ' vs code ' | '); AC-S3-4.5 F01 material count; S3 5.3 code block duplicate rule; S3 5.5 full ranking key; S2 HOLD range wording; finding_contract migration into spec 0004; web-check CI job.
+- Durable checkpoint: /Users/balla/arena-checkpoint/2026-10-09-1831
+
 ## WP-10 merged (2026-10-09 night)
 - WP-10 prompts/builders/manifests/byte bounds merged (8b3b0df; cold Codex CORRECT, 3 rounds). Question cap 600 chars and 2,400 normalized bytes (contracts/rendered.py). S2 11.1 FX-COOP enforcement split recorded (a355544).
 - In fix loops: WP-05 port (serialized byte bound, cap replay, per-role tests), WP-11 guard (FX-COOP option A), WP-18 part 2 (5 findings).
