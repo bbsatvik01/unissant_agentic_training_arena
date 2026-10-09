@@ -83,15 +83,18 @@ describe("typed arena routes (S5 5.5; S6 5.2: every REST payload validated)", ()
     expect(calls).toEqual([]);
   });
 
-  it("answers last_seq null when the POST answer has none", async () => {
-    const { client } = fakeClient(() => ({ turn_no: 2 }));
-    const api = createArenaApi(client);
-    await expect(api.commitFinding(TRIAL, fixture("finding-commit") as never)).resolves.toEqual({ last_seq: null });
-    const { client: c2 } = fakeClient(() => ({ last_seq: -1 }));
-    await expect(createArenaApi(c2).commitFinding(TRIAL, fixture("finding-commit") as never)).resolves.toEqual({ last_seq: null });
-    const { client: c3 } = fakeClient(() => null);
-    await expect(createArenaApi(c3).commitFinding(TRIAL, fixture("finding-commit") as never)).resolves.toEqual({ last_seq: null });
-  });
+  it.each([[{ turn_no: 2 }], [{ last_seq: -1 }], [{ last_seq: 1.5 }], [{ last_seq: "3" }], [null], [[3]]])(
+    "refuses a POST success answer without a valid last_seq (%j): a contract error, never a silent null",
+    async (answer) => {
+      for (const call of [
+        (api: ReturnType<typeof createArenaApi>) => api.commitFinding(TRIAL, fixture("finding-commit") as never),
+        (api: ReturnType<typeof createArenaApi>) => api.submitTurn(TRIAL, fixture("turn-submit") as never),
+      ]) {
+        const { client } = fakeClient(() => answer);
+        await expect(call(createArenaApi(client))).rejects.toBeInstanceOf(ContractError);
+      }
+    },
+  );
 
   it("requests evidence and validates the result", async () => {
     const result = fixture("evidence-result");

@@ -3,7 +3,7 @@
  * browser makes goes through here; a lint rule forbids `fetch` everywhere else.
  *
  * - Same origin only: a path must be a relative `/api/...` path of the origin that served the page (no
- *   scheme, no host, no `..` segment); cookies travel `same-origin` and redirects are refused, so nothing is
+ *   scheme, no host, no `..` segment, also after URL normalization, so `%2e%2e` cannot escape); cookies travel `same-origin` and redirects are refused, so nothing is
  *   ever sent to, or followed to, another origin.
  * - CSRF: the token comes from `GET /api/me` (which also sets the `arena_csrf` cookie) and is kept in memory
  *   only. Every POST, bodyless ones included, carries `X-Arena-CSRF`; no POST is sent before the token is
@@ -69,12 +69,24 @@ export interface ApiClientOptions {
 
 const API_PATH = /^\/api\/[^\\]*$/;
 
-/** The refusal for anything but a relative path under `/api/` on this origin, or null. */
+/** A placeholder origin to resolve paths against: the check is on what the browser would make of the path. */
+const PROBE_ORIGIN = "http://arena.invalid";
+
+/**
+ * The refusal for anything but a relative path under `/api/` on this origin, or null. The path is checked as
+ * written and as the URL parser normalizes it, so encoded dot segments (`/api/%2e%2e/...`) cannot leave `/api/`.
+ */
 function pathError(path: string): Error | null {
+  const refusal = new Error(`not a same-origin /api/ path: ${JSON.stringify(path)}`);
   const route = path.split(/[?#]/, 1)[0] ?? "";
-  if (!API_PATH.test(path) || route.split("/").some((segment) => segment === ".." || segment === ".")) {
-    return new Error(`not a same-origin /api/ path: ${JSON.stringify(path)}`);
+  if (!API_PATH.test(path) || route.split("/").some((segment) => segment === ".." || segment === ".")) return refusal;
+  let url: URL;
+  try {
+    url = new URL(path, PROBE_ORIGIN);
+  } catch {
+    return refusal;
   }
+  if (url.origin !== PROBE_ORIGIN || !url.pathname.startsWith("/api/")) return refusal;
   return null;
 }
 

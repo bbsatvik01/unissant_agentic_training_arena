@@ -218,3 +218,21 @@ describe("fetch wrapper: a transport that throws", () => {
     await expect(api.get("/api/config")).rejects.toBeInstanceOf(TypeError);
   });
 });
+
+describe("fetch wrapper: encoded dot segments", () => {
+  it.each(["/api/%2e%2e/internal/answer", "/api/.%2E/x", "/api/x/%2e%2e/%2e%2e/internal/answer", "/api/%2e%2e", "/api/x/%2E%2E/%2E%2E/y"])(
+    "refuses %s, which the browser would resolve outside /api/",
+    async (bad) => {
+      const t = transport({ "GET /api/me": [() => json(200, ME)] });
+      const api = createApiClient({ fetch: t.fetch });
+      await expect(api.get(bad)).rejects.toThrow(/same-origin/);
+      await expect(api.post(bad)).rejects.toThrow(/same-origin/);
+      expect(t.sent).toHaveLength(0);
+    },
+  );
+
+  it("keeps a query string that merely mentions dots", async () => {
+    const t = transport({ "GET /api/a?b=../c": [() => json(200, {})] });
+    await expect(createApiClient({ fetch: t.fetch }).get("/api/a?b=../c")).resolves.toEqual({});
+  });
+});

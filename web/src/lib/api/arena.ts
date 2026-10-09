@@ -5,7 +5,8 @@
  *
  * Shapes S5 does not export a schema for are read narrowly: a stream ticket is `{ticket}` (the donor's mint,
  * TechnoMile `app/api/runs/[runId]/ticket/route.ts`), and a POST that produces events answers `last_seq`
- * (S5 5.2), read as null when absent so the caller simply skips its catch-up check.
+ * (S5 5.2): a success answer without a non-negative integer `last_seq` is a `ContractError` (the caller keeps
+ * the request's idempotency key, so a retry resumes it, S5 5.2).
  */
 
 import { isWire, type WireSchemaName } from "../contracts/validate";
@@ -24,7 +25,7 @@ import { ContractError, type ApiClient } from "./client";
 
 /** What a POST that produces events answers, for the catch-up check (S6 5.1). */
 export interface PostAck {
-  readonly last_seq: number | null;
+  readonly last_seq: number;
 }
 
 /** The client-side projection re-check failed (S6 5.4); the server writes a log line, never state. */
@@ -54,10 +55,10 @@ function checked<K extends WireSchemaName>(name: K, path: string, value: unknown
   return value;
 }
 
-function postAck(value: unknown): PostAck {
-  if (typeof value !== "object" || value === null) return { last_seq: null };
-  const seq = (value as { last_seq?: unknown }).last_seq;
-  return { last_seq: typeof seq === "number" && Number.isSafeInteger(seq) && seq >= 0 ? seq : null };
+function postAck(path: string, value: unknown): PostAck {
+  const seq = typeof value === "object" && value !== null && !Array.isArray(value) ? (value as { last_seq?: unknown }).last_seq : undefined;
+  if (typeof seq !== "number" || !Number.isSafeInteger(seq) || seq < 0) throw new ContractError(path, "a POST answer with last_seq");
+  return { last_seq: seq };
 }
 
 export function createArenaApi(client: ApiClient): ArenaApi {
@@ -77,14 +78,16 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       return ticket;
     },
     async submitTurn(trialId, body) {
-      return postAck(await send("turn-submit", `/api/trials/${id(trialId)}/turns`, body));
+      const path = `/api/trials/${id(trialId)}/turns`;
+      return postAck(path, await send("turn-submit", path, body));
     },
     async requestEvidence(trialId, body) {
       const path = `/api/trials/${id(trialId)}/evidence-requests`;
       return checked("evidence-result", path, await send("evidence-request", path, body));
     },
     async commitFinding(trialId, body) {
-      return postAck(await send("finding-commit", `/api/trials/${id(trialId)}/finding`, body));
+      const path = `/api/trials/${id(trialId)}/finding`;
+      return postAck(path, await send("finding-commit", path, body));
     },
     async requestDebrief(sessionId) {
       const path = `/api/sessions/${id(sessionId)}/debrief`;

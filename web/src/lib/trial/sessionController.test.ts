@@ -141,10 +141,10 @@ function harness(opts: { snapshots?: Answer<TrialSnapshot>[]; tickets?: Answer<s
     },
     submitTurn: (_id, body) => {
       turns.push(body);
-      return Promise.resolve({ last_seq: null });
+      return Promise.resolve({ last_seq: 0 });
     },
     requestEvidence: () => Promise.reject(new Error("set per test")),
-    commitFinding: () => Promise.resolve({ last_seq: null }),
+    commitFinding: () => Promise.resolve({ last_seq: 0 }),
   };
   const options: SessionControllerOptions = {
     trialId: TRIAL_ID,
@@ -629,9 +629,9 @@ describe("session controller: KPI-4 acknowledgement and the visibility re-check 
           last_seq: 3,
           exchanges_used: 1,
           turns: [
-            { turn_no: 1, question: "Q?", source: "investigator", answer: "A.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 },
+            { turn_no: 1, question: "Q?", source: "investigator", answer: "A.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 },
           ],
-          cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+          cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 3 }],
         }),
       ],
     });
@@ -775,7 +775,7 @@ describe("session controller: Codex round 1 regressions", () => {
 
   it("a turn retried after a lost answer resends the same request, key and version; a refused one does not", async () => {
     const sent: TurnSubmit[] = [];
-    const answers: (Error | { last_seq: null })[] = [new TypeError("network"), { last_seq: null }, new ApiError(409, "turn_in_progress", "/x"), { last_seq: null }];
+    const answers: (Error | { last_seq: number })[] = [new TypeError("network"), { last_seq: 0 }, new ApiError(409, "turn_in_progress", "/x"), { last_seq: 0 }];
     const h = harness();
     const c = h.make({
       newKey: keys(),
@@ -784,7 +784,7 @@ describe("session controller: Codex round 1 regressions", () => {
         submitTurn: (_id, body) => {
           sent.push(body);
           const a = answers.shift();
-          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: null });
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: 0 });
         },
       },
     });
@@ -821,7 +821,7 @@ describe("session controller: Codex round 1 regressions", () => {
         commitFinding: (_id, body) => {
           findingKeys.push(body.idem_key);
           failFinding -= 1;
-          return failFinding === 0 ? Promise.reject(new ApiError(503, "paused", "/x")) : Promise.resolve({ last_seq: null });
+          return failFinding === 0 ? Promise.reject(new ApiError(503, "paused", "/x")) : Promise.resolve({ last_seq: 0 });
         },
       },
     });
@@ -854,8 +854,8 @@ describe("session controller: Codex round 1 regressions", () => {
   });
 
   it("a live assessment that ends shows the coaching withheld until then, from the terminal snapshot", async () => {
-    const turn = { turn_no: 1, question: "Q?", source: "investigator", answer: "A.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
-    const ended = snapshot({ mode: "assessment", status: "completed", last_seq: 9, exchanges_used: 1, turns: [turn], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const turn = { turn_no: 1, question: "Q?", source: "investigator", answer: "A.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 } as const;
+    const ended = snapshot({ mode: "assessment", status: "completed", last_seq: 9, exchanges_used: 1, turns: [turn], cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 3 }] });
     const h = harness({ snapshots: [snapshot({ mode: "assessment" }), ended] });
     const c = h.make();
     await begin(c);
@@ -984,7 +984,7 @@ describe("session controller: Codex round 2 regressions", () => {
   it("an older turn settling never clears a newer turn's retry identity", async () => {
     let n = 0;
     const sent: TurnSubmit[] = [];
-    const answers = [deferred<{ last_seq: null }>(), deferred<{ last_seq: null }>(), deferred<{ last_seq: null }>()];
+    const answers = [deferred<{ last_seq: number }>(), deferred<{ last_seq: number }>(), deferred<{ last_seq: number }>()];
     const h = harness();
     const c = h.make({
       newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
@@ -999,12 +999,12 @@ describe("session controller: Codex round 2 regressions", () => {
     await begin(c);
     const first = c.submitTurn("One?");
     const second = c.submitTurn("Two?");
-    answers[0]?.resolve({ last_seq: null });
+    answers[0]?.resolve({ last_seq: 0 });
     await first;
     answers[1]?.reject(new TypeError("lost"));
     await expect(second).rejects.toBeInstanceOf(TypeError);
     const retry = c.submitTurn("Two?");
-    answers[2]?.resolve({ last_seq: null });
+    answers[2]?.resolve({ last_seq: 0 });
     await retry;
     expect(sent[2]).toEqual(sent[1]);
   });
@@ -1062,8 +1062,8 @@ describe("session controller: Codex round 2 regressions", () => {
     const covered = snapshot({
       last_seq: release?.seq ?? 0,
       exchanges_used: 1,
-      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
-      released: [{ ...(release?.data as never as object), transcript_version: 3 } as never],
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
+      released: [{ ...(release?.data as never as object), transcript_version: 3, event_seq: release?.seq ?? 0 } as never],
     });
     let answerSnapshot: (s: TrialSnapshot) => void = () => undefined;
     let reads = 0;
@@ -1153,8 +1153,8 @@ describe("session controller: Codex round 3 regressions", () => {
     const after = snapshot({
       last_seq: card?.seq ?? 0,
       exchanges_used: 1,
-      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
-      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: card?.seq ?? 0 }],
     });
     const h = harness({ snapshots: [snapshot(), after] });
     const c = h.make();
@@ -1243,7 +1243,7 @@ describe("session controller: Codex round 4 regressions", () => {
   it("a different question in between does not lose an unresolved turn's identity", async () => {
     let n = 0;
     const sent: TurnSubmit[] = [];
-    const answers: (Error | { last_seq: null })[] = [new TypeError("lost"), new ApiError(409, "turn_in_progress", "/x"), { last_seq: null }];
+    const answers: (Error | { last_seq: number })[] = [new TypeError("lost"), new ApiError(409, "turn_in_progress", "/x"), { last_seq: 0 }];
     const h = harness();
     const c = h.make({
       newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
@@ -1252,7 +1252,7 @@ describe("session controller: Codex round 4 regressions", () => {
         submitTurn: (_id, body) => {
           sent.push(body);
           const a = answers.shift();
-          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: null });
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: 0 });
         },
       },
     });
@@ -1330,8 +1330,8 @@ describe("session controller: gap cursor and pinned refusals", () => {
     const resynced = snapshot({
       last_seq: b.seq + 1,
       exchanges_used: 1,
-      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
-      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: b.seq + 1 }],
     });
     const h = harness({ snapshots: [snapshot(), resynced] });
     const c = h.make();
@@ -1347,7 +1347,7 @@ describe("session controller: gap cursor and pinned refusals", () => {
 });
 
 describe("session controller: Codex round 5 regressions", () => {
-  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 } as const;
 
   function releaseSession() {
     // question v1 (seq 1), answer v2 (seq 2), scheduled release v3 (seq 3)
@@ -1357,7 +1357,7 @@ describe("session controller: Codex round 5 regressions", () => {
       last_seq: release.seq ?? 0,
       exchanges_used: 1,
       turns: [turn1],
-      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
+      released: [{ ...(release.data as never as object), transcript_version: 3, event_seq: release.seq ?? 0 } as never],
     });
     return { b, release, covered };
   }
@@ -1382,7 +1382,7 @@ describe("session controller: Codex round 5 regressions", () => {
   it("a streamed card the snapshot already showed is acknowledged when its frame arrives", async () => {
     const b = new LogBuilder().ask();
     const card = b.frames.at(-1) as TrialFrame;
-    const covered = snapshot({ last_seq: card.seq ?? 0, exchanges_used: 1, turns: [turn1], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const covered = snapshot({ last_seq: card.seq ?? 0, exchanges_used: 1, turns: [turn1], cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: card.seq ?? 0 }] });
     const h = harness({ snapshots: [snapshot(), covered] });
     const c = h.make();
     await begin(c);
@@ -1437,8 +1437,8 @@ describe("session controller: a second gap behind the first", () => {
     const b = new LogBuilder().ask().ask();
     // turn 1: q1 a2 c3; turn 2: q4 a5 c6. Missing: 3 (card 1) and 5 (answer 2).
     const byseq = new Map(b.frames.filter((f) => f.seq !== null).map((f) => [f.seq, f] as const));
-    const s3 = snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1)], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
-    const s5 = snapshot({ last_seq: 5, exchanges_used: 2, turns: [turn(1), { ...turn(2), answer_version: 4 }], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const s3 = snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1)], cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 3 }] });
+    const s5 = snapshot({ last_seq: 5, exchanges_used: 2, turns: [turn(1), { ...turn(2), answer_version: 4 }], cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 3 }] });
     const h = harness({ snapshots: [snapshot(), s3, s5] });
     const c = h.make();
     await begin(c);
@@ -1451,7 +1451,7 @@ describe("session controller: a second gap behind the first", () => {
   });
 
   function turn(n: number) {
-    return { turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+    return { turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 3 * n - 2 } as const;
   }
 });
 
@@ -1463,7 +1463,7 @@ describe("session controller: lost frames outside practice text", () => {
       mode: "assessment",
       last_seq: answer.seq ?? 0,
       exchanges_used: 1,
-      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
     });
     const h = harness({ snapshots: [snapshot({ mode: "assessment" }), covered] });
     const c = h.make();
@@ -1480,7 +1480,7 @@ describe("session controller: lost frames outside practice text", () => {
       mode: "assessment",
       last_seq: 2,
       exchanges_used: 1,
-      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 }],
     });
     const h = harness({ snapshots: [snapshot({ mode: "assessment" }), covered] });
     const c = h.make();
@@ -1494,7 +1494,7 @@ describe("session controller: lost frames outside practice text", () => {
   it("a voice trial's release that fails validation is recovered from the snapshot", async () => {
     const voice = voiceSnapshot();
     const release = new LogBuilder("practice", { seq: voice.last_seq }).release("rec-02");
-    const covered = { ...voice, last_seq: release.seq ?? 0, released: [{ ...(release.data as never as object), transcript_version: release.transcript_version } as never] } as TrialSnapshot;
+    const covered = { ...voice, last_seq: release.seq ?? 0, released: [{ ...(release.data as never as object), transcript_version: release.transcript_version, event_seq: release.seq ?? 0 } as never] } as TrialSnapshot;
     const h = harness({ snapshots: [voice, covered] });
     const c = h.make();
     await begin(c);
@@ -1505,7 +1505,7 @@ describe("session controller: lost frames outside practice text", () => {
 });
 
 describe("session controller: Codex round 7 regressions", () => {
-  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 } as const;
 
   it.each([
     [2, false],
@@ -1519,8 +1519,8 @@ describe("session controller: Codex round 7 regressions", () => {
       last_seq: card.seq ?? 0,
       exchanges_used: 1,
       turns: [turn1],
-      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3 } as never],
-      cards: [{ turn_no: 1, card: cardFor(1, version) }],
+      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3, event_seq: (release as TrialFrame).seq ?? 0 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, version), event_seq: card.seq ?? 0 }],
     });
     const h = harness({ snapshots: [snapshot(), covered] });
     const c = h.make();
@@ -1591,7 +1591,7 @@ function h0(f: TrialFrame): unknown {
 }
 
 describe("session controller: Codex round 8 regression", () => {
-  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2, question_seq: 1 } as const;
 
   it.each([
     [2, false],
@@ -1605,8 +1605,8 @@ describe("session controller: Codex round 8 regression", () => {
       last_seq: card.seq ?? 0,
       exchanges_used: 1,
       turns: [turn1],
-      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3 } as never],
-      cards: [{ turn_no: 1, card: cardFor(1, version) }],
+      released: [{ ...((release as TrialFrame).data as never as object), transcript_version: 3, event_seq: (release as TrialFrame).seq ?? 0 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, version), event_seq: card.seq ?? 0 }],
     });
     const h = harness({ snapshots: [snapshot(), covered] });
     const c = h.make();
@@ -1626,8 +1626,8 @@ describe("session controller: Codex round 8 regression", () => {
     const covered = snapshot({
       last_seq: 4,
       exchanges_used: 1,
-      turns: [turn1, { turn_no: 2, question: "Two?", source: "investigator", answer: null, partial: false, committed_at: null, answer_version: null }],
-      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+      turns: [turn1, { turn_no: 2, question: "Two?", source: "investigator", answer: null, partial: false, committed_at: null, answer_version: null, question_seq: 3 }],
+      cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 4 }],
     });
     const h = harness({ snapshots: [snapshot(), covered] });
     const c = h.make();
@@ -1642,8 +1642,8 @@ describe("session controller: Codex round 8 regression", () => {
 });
 
 describe("session controller: Codex round 9 regressions", () => {
-  const t = (n: number, v: number) =>
-    ({ turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: v }) as const;
+  const t = (n: number, v: number, q: number) =>
+    ({ turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: v, question_seq: q }) as const;
 
   it("a refused card's skip marker survives the recovery snapshot and keeps proving an earlier card stale", async () => {
     const b = new LogBuilder().ask({ releaseAfter: "rec-02", coach: "none" });
@@ -1654,11 +1654,11 @@ describe("session controller: Codex round 9 regressions", () => {
     const covered = snapshot({
       last_seq: 7,
       exchanges_used: 2,
-      turns: [t(1, 2), t(2, 5)],
-      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
+      turns: [t(1, 2, 1), t(2, 5, 5)],
+      released: [{ ...(release.data as never as object), transcript_version: 3, event_seq: release.seq ?? 0 } as never],
       cards: [
-        { turn_no: 1, card: cardFor(1, 2) },
-        { turn_no: 2, card: cardFor(2, 5) },
+        { turn_no: 1, card: cardFor(1, 2), event_seq: 4 },
+        { turn_no: 2, card: cardFor(2, 5), event_seq: 7 },
       ],
     });
     const h = harness({ snapshots: [snapshot(), covered] });
@@ -1685,9 +1685,9 @@ describe("session controller: Codex round 9 regressions", () => {
     const covered = snapshot({
       last_seq: 4,
       exchanges_used: 1,
-      turns: [t(1, 2)],
-      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
-      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+      turns: [t(1, 2, 1)],
+      released: [{ ...(release.data as never as object), transcript_version: 3, event_seq: release.seq ?? 0 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, 2), event_seq: 4 }],
     });
     const h = harness({ snapshots: [snapshot(), covered] });
     const c = h.make();
@@ -1708,7 +1708,7 @@ describe("session controller: overlapping finding submits", () => {
     ["the failure first", [1, 0] as const],
     ["the success first", [0, 1] as const],
   ])("a failed submit never takes the room out of finalizing while another is pending or succeeded (%s)", async (_why, order) => {
-    const gates: { resolve: (v: { last_seq: null }) => void; reject: (e: Error) => void }[] = [];
+    const gates: { resolve: (v: { last_seq: number }) => void; reject: (e: Error) => void }[] = [];
     const h = harness();
     const c = h.make({
       api: {
@@ -1724,7 +1724,7 @@ describe("session controller: overlapping finding submits", () => {
     const ok = c.submitFinding(body);
     const bad = c.submitFinding({ ...(body as object), rationale: "Another." } as never);
     for (const i of order) {
-      if (i === 0) gates[0]?.resolve({ last_seq: null });
+      if (i === 0) gates[0]?.resolve({ last_seq: 0 });
       else gates[1]?.reject(new ApiError(409, "turn_in_progress", "/x"));
       await flush();
     }
@@ -1744,5 +1744,78 @@ describe("session controller: overlapping finding submits", () => {
     await expect(a).rejects.toBeInstanceOf(ApiError);
     await expect(b).rejects.toBeInstanceOf(ApiError);
     expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+});
+
+describe("session controller: a malformed POST answer", () => {
+  it("keeps the turn's request and key, so the retry resumes it", async () => {
+    const sent: TurnSubmit[] = [];
+    let first = true;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          if (first) {
+            first = false;
+            return Promise.reject(new ContractError("/api/trials/x/turns", "a POST answer with last_seq"));
+          }
+          return Promise.resolve({ last_seq: 0 });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.submitTurn("Why?")).rejects.toBeInstanceOf(ContractError);
+    for (const f of new LogBuilder().ask().frames.slice(0, 1)) h.last().send(f);
+    await c.submitTurn("Why?");
+    expect(sent[1]).toEqual(sent[0]);
+  });
+});
+
+describe("session controller: cold gate regressions", () => {
+  it("a finding refused with 409 reloads and folds the room state before the caller confirms again (S6 4.6)", async () => {
+    const reopened = snapshot({
+      last_seq: 1,
+      turns: [{ turn_no: 1, question: "Q?", source: "investigator", answer: null, partial: false, committed_at: null, answer_version: null, question_seq: 1 }],
+    });
+    const h = harness({ snapshots: [snapshot(), reopened] });
+    const c = h.make({ api: { ...h.api, commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")) } });
+    await begin(c);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    const error = await c.submitFinding(body).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
+    // the reload is folded before the caller hears of the refusal: the open turn shows
+    expect(roomStatus(c.getState().trial)).toBe("subject_answering");
+  });
+
+  it("a finding refused otherwise does not reload", async () => {
+    const h = harness();
+    const c = h.make({ api: { ...h.api, commitFinding: () => Promise.reject(new ApiError(422, "bad_citation", "/x")) } });
+    await begin(c);
+    await expect(c.submitFinding((fixture("finding-commit") as { finding: never }).finding)).rejects.toBeInstanceOf(ApiError);
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(1);
+  });
+
+  it("a 409 reload that fails keeps the error and still rethrows the refusal", async () => {
+    const h = harness({ snapshots: [snapshot(), new TypeError("down"), snapshot()] });
+    const c = h.make({ api: { ...h.api, commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")) } });
+    await begin(c);
+    await expect(c.submitFinding((fixture("finding-commit") as { finding: never }).finding)).rejects.toBeInstanceOf(ApiError);
+    expect(c.getState().error).toBeInstanceOf(TypeError);
+  });
+
+  it("a bootstrap that failed can be started again, and the error clears", async () => {
+    const h = harness({ snapshots: [new TypeError("offline"), snapshot()] });
+    const c = h.make();
+    await begin(c);
+    expect(c.getState().connection).toBe("failed");
+    await begin(c);
+    expect(c.getState().connection).toBe("connecting");
+    expect(c.getState().error).toBeNull();
+    expect(h.sources).toHaveLength(1);
+    await begin(c);
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(2);
   });
 });

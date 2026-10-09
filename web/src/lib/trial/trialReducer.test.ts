@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SnapshotRelease, SnapshotTurn, TrialFrame, TrialSnapshot } from "../contracts/generated/types";
+import type { SnapshotCard, SnapshotRelease, SnapshotTurn, TrialFrame, TrialSnapshot } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
 import { COMMITMENT_HASH, LogBuilder, SESSION_ID, cardFor, finding, frame, snapshot, voiceSnapshot } from "../../test/trial-log";
 import { applyFrame, initialTrialState, roomStatus, trialReducer, type TrialState } from "./trialReducer";
@@ -167,7 +167,7 @@ describe("trialReducer: lifecycle (S6 6.1)", () => {
         last_seq: 4,
         exchanges_used: 1,
         turns: [turn(1, 3)],
-        released: [release("rec-01", 0, 4)],
+        released: [release("rec-01", 0, 4, 3)],
       }),
     );
     expect(view(s).transcriptVersion).toBe(4);
@@ -375,45 +375,57 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
     expect(view(copy).rejectedCards).toEqual([1]);
     const snap = trialReducer(refused, {
       type: "snapshot",
-      snapshot: snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1, 2)], cards: [{ turn_no: 1, card: cardFor(1, 2) }] }),
+      snapshot: snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1, 2)], cards: [snapCard(1, 2, 3)] }),
     });
     expect(view(snap).cards).toEqual([]);
   });
 
-  it("on the snapshot: keeps a card read at its answer or at a release after it in the same exchange, drops any other", () => {
-    const base = {
-      last_seq: 12,
-      exchanges_used: 1,
-      turns: [turn(1, 7)],
-      released: [release("rec-01", 0, 6), release("rec-03", 1, 8)],
-    };
+  it("on the snapshot: the same rule as on deltas, by the seqs it carries (FE-COACH-7, SG4-23)", () => {
+    // question seq 1, answer seq 2 at version 7, scheduled release seq 3 at version 8, card seq 4
+    const base = { last_seq: 4, exchanges_used: 1, turns: [turn(1, 7, 1)], released: [release("rec-03", 1, 8, 3)] };
     for (const [v, kept] of [
       [8, true],
-      [7, true],
+      [7, false],
       [6, false],
       [9, false],
     ] as const) {
-      const s = boot(snapshot({ ...base, cards: [{ turn_no: 1, card: cardFor(1, v) }] }));
+      const s = boot(snapshot({ ...base, cards: [snapCard(1, v, 4)] }));
       expect(view(s).cards.length, `card at ${String(v)}`).toBe(kept ? 1 : 0);
       expect(view(s).rejectedCards).toEqual(kept ? [] : [1]);
+    }
+    // the same release after the card (seq 4, card at seq 3) leaves the card read at its answer current
+    const before = boot(snapshot({ ...base, released: [release("rec-03", 1, 8, 4)], cards: [snapCard(1, 7, 3)] }));
+    expect(view(before).cards.map((c) => c.turn_no)).toEqual([1]);
+  });
+
+  it("on the snapshot: the same fixture through deltas gives the same verdicts", () => {
+    for (const [v, kept] of [
+      [8, true],
+      [7, false],
+    ] as const) {
+      const b = new LogBuilder("practice", { seq: 0, version: 5 }).ask({ releaseAfter: "rec-03", coach: "none" });
+      const card = frame("coach.card", b.seq + 1, v, { turn_no: 1, card: cardFor(1, v) });
+      expect(view(fold(boot(), [...b.frames, card])).cards.length, `delta card at ${String(v)}`).toBe(kept ? 1 : 0);
     }
   });
 
   it("on the snapshot: a release made inside the next turn does not make an earlier card stale", () => {
-    // turn 2's POST: question (v4), scheduled release (v5, released after 1 exchange), answer (v6)
+    // turn 1: q 1, answer 2 (v2), card 3; turn 2's POST: question 4 (v3), scheduled release 5 (v4), answer 6 (v5), card 7
     const s = boot(
       snapshot({
-        last_seq: 9,
+        last_seq: 7,
         exchanges_used: 2,
-        turns: [turn(1, 2), turn(2, 6)],
-        released: [release("rec-01", 1, 5)],
-        cards: [
-          { turn_no: 1, card: cardFor(1, 2) },
-          { turn_no: 2, card: cardFor(2, 6) },
-        ],
+        turns: [turn(1, 2, 1), turn(2, 5, 4)],
+        released: [release("rec-01", 1, 4, 5)],
+        cards: [snapCard(1, 2, 3), snapCard(2, 5, 7)],
       }),
     );
     expect(view(s).cards.map((c) => c.turn_no)).toEqual([1, 2]);
+  });
+
+  it("on the snapshot: a card after a later turn's question is stale", () => {
+    const s = boot(snapshot({ last_seq: 5, exchanges_used: 1, turns: [turn(1, 2, 1), { ...turn(2, 0, 3), answer: null, answer_version: null, committed_at: null }], cards: [snapCard(1, 2, 5)] }));
+    expect(view(s).rejectedCards).toEqual([1]);
   });
 
   it("on the snapshot: a card for a turn with no answer is dropped", () => {
@@ -421,7 +433,7 @@ describe("trialReducer: complete-card reveal (S6 4.5, FE-COACH-7, SG4-23)", () =
       snapshot({
         last_seq: 3,
         turns: [{ ...turn(1, 2), answer: null, answer_version: null, committed_at: null }],
-        cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+        cards: [snapCard(1, 2, 3)],
       }),
     );
     expect(view(s).rejectedCards).toEqual([1]);
@@ -443,9 +455,9 @@ describe("trialReducer: the gap-free prefix (S5 6.1)", () => {
     // the answer arriving after all is folded as usual
     s = fold(s, [answer as TrialFrame]);
     expect(view(s).cards.map((c) => c.turn_no)).toEqual([1]);
-    // skip markers outlive a snapshot: they still prove which seqs carried nothing a card could read
+    // a snapshot covers every seq up to its last_seq, the order included: markers at or below it go
     const next = trialReducer(s, { type: "snapshot", snapshot: snapshot({ last_seq: 2 }) });
-    expect([...next.skippedSeqs]).toEqual([2]);
+    expect([...next.skippedSeqs]).toEqual([]);
   });
 });
 
@@ -488,7 +500,7 @@ describe("trialReducer: the visibility re-check (S6 5.4, FE-SSE-3, FE-SSE-9)", (
         last_seq: 3,
         exchanges_used: 1,
         turns: [turn(1, 2)],
-        cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+        cards: [snapCard(1, 2, 3)],
       }),
     );
     expect(view(s).cards).toEqual([]);
@@ -503,7 +515,7 @@ describe("trialReducer: the visibility re-check (S6 5.4, FE-SSE-3, FE-SSE-9)", (
         last_seq: 3,
         exchanges_used: 1,
         turns: [turn(1, 2)],
-        cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+        cards: [snapCard(1, 2, 3)],
       }),
     );
     expect(view(s).cards).toHaveLength(1);
@@ -538,7 +550,11 @@ describe("trialReducer: the visibility re-check (S6 5.4, FE-SSE-3, FE-SSE-9)", (
   });
 });
 
-function turn(n: number, answerVersion: number): SnapshotTurn {
+function snapCard(n: number, version: number, seq: number): SnapshotCard {
+  return { turn_no: n, card: cardFor(n, version), event_seq: seq };
+}
+
+function turn(n: number, answerVersion: number, questionSeq = 3 * n - 2): SnapshotTurn {
   return {
     turn_no: n,
     question: `Question ${String(n)}?`,
@@ -547,10 +563,11 @@ function turn(n: number, answerVersion: number): SnapshotTurn {
     partial: false,
     committed_at: "2026-10-20T15:04:05.123Z",
     answer_version: answerVersion,
+    question_seq: questionSeq,
   };
 }
 
-function release(recordId: string, afterExchanges: number, version: number): SnapshotRelease {
+function release(recordId: string, afterExchanges: number, version: number, seq: number): SnapshotRelease {
   return {
     record_id: recordId,
     title: `Record ${recordId}`,
@@ -561,6 +578,7 @@ function release(recordId: string, afterExchanges: number, version: number): Sna
     released_at_turn: afterExchanges,
     trigger: "scheduled",
     transcript_version: version,
+    event_seq: seq,
   };
 }
 

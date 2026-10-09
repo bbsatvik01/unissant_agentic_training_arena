@@ -19,23 +19,20 @@
  * coaching from the stream (S6 5.1: voice exchanges travel on the voice socket). Each refusal is recorded once
  * in `violations` for the controller to report; nothing from it is rendered (FE-SSE-3).
  *
- * Complete-card reveal (S6 4.5, SG4-23): a card is shown only when its `transcript_version` is the turn's
- * context version, the version of the last frame applied for the turn: its answer, or a release after the
- * answer and before any next question. On the stream that is decided in `seq` order: a card read at an older
- * version, or arriving after a later turn's question, is stale; a card read at a version this client has not
- * folded yet (or before its answer) is pending until the missing frame arrives, and stale once a later turn or
- * the end overtakes it. The snapshot carries no event order between a card and the releases of its exchange, so
- * there a card is kept when it was read at its answer or at a release of the same exchange made after the answer
- * (`released_at_turn` is the exchange count at release, S4 `released_after_exchanges`), and is stale otherwise.
- * In a practice text trial every event row is live, so the owner's stream is gap-free (S5 6.1): a streamed card
- * with a `seq` above the contiguous prefix (`contiguousSeq`) is pending whatever it reads, since a frame below it
- * is still missing; the session controller re-reads the snapshot to cover it. A `seq` the controller refused (its
- * frame failed validation, `seq_skipped`) counts toward the prefix without being folded. Hints, the client's own
- * submit and refused cards survive a newer snapshot; a refused card never shows again (it was acknowledged
- * invalid). A card that failed the schema
- * is recorded by turn only (`card_refused`; nothing of it is kept). A stale,
- * pending or refused card still closes its turn (the server closed it on the card row) and never reaches
- * `cards`.
+ * Complete-card reveal (S6 4.5, SG4-23, FE-COACH-7): one rule for the snapshot and the stream (`judgeCard`).
+ * A card for turn n at row seq S reading version v is stale when a later turn's question comes before S; otherwise
+ * its context version is the newest of its answer's version and every release after the answer and before S, and
+ * the card is shown only at exactly that version. The snapshot carries the seqs the rule needs (`question_seq`,
+ * release and card `event_seq`). A streamed card that reads a version not known yet (or arrives before its answer)
+ * is pending until the missing frame arrives, and stale once a later turn or the end overtakes it; a snapshot card
+ * has everything below it in the snapshot, so it is shown or stale. In a practice text trial every event row is
+ * live, so the owner's stream is gap-free (S5 6.1): a streamed card with a `seq` above the contiguous prefix
+ * (`contiguousSeq`) is pending whatever it reads; the session controller re-reads the snapshot to cover the gap. A
+ * `seq` the controller refused (a card failing validation, `seq_skipped`) counts toward the prefix without being
+ * folded. A card that failed the schema is recorded by turn only (`card_refused`; nothing of it is kept), and a
+ * refused card never shows again, from the stream or a snapshot (it was acknowledged invalid). A stale, pending or
+ * refused card still closes its turn (the server closed it on the card row) and never reaches `cards`. Hints, the
+ * client's own submit and refused cards survive a newer snapshot.
  *
  * Derived room status (C-45): `connecting` before the snapshot; `ended` on any terminal status;
  * `finalizing` from the client's own finding submit, or a `finding.committed` frame, until then; in a text trial
@@ -233,12 +230,7 @@ export function applyFrame(state: TrialState, frame: TrialFrame): { state: Trial
     const hints = new Map(state.hints).set(key, frame);
     return { state: derive({ ...state, hints }), outcome: "applied" };
   }
-  if (state.log.has(frame.seq)) return { state, outcome: "duplicate" };
-  if (frame.seq <= snapshot.last_seq) {
-    // The snapshot already has its content; the frame is kept only as ordering evidence for the snapshot's cards
-    // (snapshotCardCurrent), so a card it proves stale is re-judged.
-    return { state: derive({ ...state, log: new Map(state.log).set(frame.seq, frame) }), outcome: "duplicate" };
-  }
+  if (frame.seq <= snapshot.last_seq || state.log.has(frame.seq)) return { state, outcome: "duplicate" };
   const log = new Map(state.log).set(frame.seq, frame);
   return { state: derive({ ...state, log }), outcome: "applied" };
 }
@@ -247,11 +239,10 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
   switch (action.type) {
     case "snapshot": {
       const { snapshot } = action;
-      // Frames at or below the new last_seq stay held: the snapshot has their content, but they still say in what
-      // order a card and the releases before it arrived, which the snapshot cannot (see snapshotCardCurrent).
-      const log = state.log;
-      // Skip markers stay too: payload-free, they still prove which seqs held nothing a card could read.
-      const skippedSeqs = state.skippedSeqs;
+      // The snapshot holds everything up to its last_seq, with the seqs the card rule needs: frames and skip
+      // markers at or below it are superseded.
+      const log = new Map([...state.log].filter(([seq]) => seq > snapshot.last_seq));
+      const skippedSeqs = new Set([...state.skippedSeqs].filter((seq) => seq > snapshot.last_seq));
       // Hints, the client's own submit and refused cards stay: they are facts a newer snapshot does not undo.
       let next: TrialState = { ...state, snapshot, log, skippedSeqs };
       if (snapshotLeaks(snapshot)) {
@@ -290,50 +281,30 @@ function byKey<T>(map: ReadonlyMap<number, T>): T[] {
   return [...map.entries()].sort(([a], [b]) => a - b).map(([, value]) => value);
 }
 
+/** Where a card stands under the complete-card rule (S6 4.5), given what is known below its seq. */
+type CardVerdict = "current" | "stale" | "ahead";
+
+interface Ordered {
+  /** The seq of each turn's question. */
+  readonly questions: ReadonlyMap<number, number>;
+  /** Every release: its row seq and the version it set. */
+  readonly releases: readonly { readonly seq: number; readonly version: number }[];
+  readonly turns: ReadonlyMap<number, MutableTurn>;
+}
+
 /**
- * Snapshot rule for a card (see the header). When this client holds the card's own frame from the stream (seq S),
- * the frames it held are ordering evidence: a later turn's question before S makes it stale, and its context
- * version is the newest release after the answer known to precede S: a held release frame before S, or, when every
- * seq from S to the snapshot's `last_seq` is held, any snapshot release not among those held after S (it can only
- * be before S). Read at that context version it is current, below it stale. Otherwise (or when the card reads a
- * version that evidence does not reach), it is current when read at its answer, or at a release of the same
- * exchange made after the answer.
+ * One rule for snapshot and stream cards alike: a card for turn n at seq S reading version v is stale when a later
+ * turn's question comes before S; otherwise its context version is the newest of its answer's version and every
+ * release after that answer and before S. At the context version it is current, below it stale, above it (or with
+ * no answer) it reads a frame not known here ("ahead").
  */
-function snapshotCardCurrent(
-  card: CoachCard,
-  turns: ReadonlyMap<number, MutableTurn>,
-  snapshot: TrialSnapshot,
-  state: TrialState,
-  held: readonly TrialFrame[],
-): boolean {
-  const released = snapshot.released;
-  const answerVersion = turns.get(card.turn_no)?.answerVersion ?? null;
-  if (answerVersion === null) return false;
-  const version = card.card.transcript_version;
-  const own = held.find((f) => f.type === "coach.card" && f.data.turn_no === card.turn_no);
-  if (own?.seq != null) {
-    const ownSeq = own.seq;
-    const before = held.filter((f) => f.seq !== null && f.seq < ownSeq);
-    if (before.some((f) => f.type === "question.accepted" && f.data.turn_no > card.turn_no)) return false;
-    const versions = before.filter((f) => f.type === "evidence.released").map((f) => f.transcript_version);
-    let afterComplete = true;
-    for (let seq = ownSeq + 1; seq <= snapshot.last_seq; seq += 1) {
-      if (!state.log.has(seq) && !state.skippedSeqs.has(seq)) afterComplete = false;
-    }
-    if (afterComplete) {
-      const later = held.filter((f) => f.seq !== null && f.seq > ownSeq);
-      const releasedAfter = new Set(later.flatMap((f) => (f.type === "evidence.released" ? [f.data.record_id] : [])));
-      const askedAfter = new Set(later.flatMap((f) => (f.type === "question.accepted" ? [f.data.turn_no] : [])));
-      // A later turn's question the stream did not show after the card came before it.
-      if (snapshot.turns.some((t) => t.turn_no > card.turn_no && !askedAfter.has(t.turn_no))) return false;
-      versions.push(...released.filter((r) => !releasedAfter.has(r.record_id)).map((r) => r.transcript_version));
-    }
-    const context = Math.max(answerVersion, ...versions.filter((rv) => rv > answerVersion));
-    if (version < context) return false;
-    if (version === context) return true;
-  }
-  if (version === answerVersion) return true;
-  return released.some((r) => r.released_at_turn === card.turn_no && r.transcript_version > answerVersion && r.transcript_version === version);
+function judgeCard(n: number, seq: number, version: number, known: Ordered): CardVerdict {
+  for (const [turnNo, questionSeq] of known.questions) if (turnNo > n && questionSeq < seq) return "stale";
+  const answer = known.turns.get(n)?.answerVersion ?? null;
+  if (answer === null) return "ahead";
+  const context = Math.max(answer, ...known.releases.filter((r) => r.seq < seq && r.version > answer).map((r) => r.version));
+  if (version === context) return "current";
+  return version < context ? "stale" : "ahead";
 }
 
 /** Recompute the view from the snapshot, the persisted frames in seq order, and the hints. */
@@ -351,11 +322,13 @@ function derive(state: TrialState): TrialState {
   const pending = new Set<number>();
   const updates = new Map<number, CoachUpdate>();
   const failures = new Map<number, CoachFailed>();
-  const held = byKey(state.log);
+  const questions = new Map<number, number>(snapshot.turns.map((t) => [t.turn_no, t.question_seq]));
+  const releases: { seq: number; version: number }[] = snapshot.released.map((r) => ({ seq: r.event_seq, version: r.transcript_version }));
+  /** Every card to judge, from the snapshot or the stream, with its seq. */
+  const toJudge: { readonly card: CoachCard; readonly seq: number; readonly version: number; readonly streamed: boolean }[] = [];
   if (snapshotCoachingVisible(snapshot)) {
     for (const c of snapshot.cards) {
-      if (snapshotCardCurrent(c, turns, snapshot, state, held)) cards.set(c.turn_no, c);
-      else rejected.add(c.turn_no);
+      toJudge.push({ card: { turn_no: c.turn_no, card: c.card }, seq: c.event_seq, version: c.card.transcript_version, streamed: false });
     }
     for (const u of snapshot.updates) updates.set(u.turn_no, u);
     for (const f of snapshot.coach_failures) failures.set(f.turn_no, f);
@@ -392,9 +365,8 @@ function derive(state: TrialState): TrialState {
   while (state.log.has(contiguousSeq + 1) || state.skippedSeqs.has(contiguousSeq + 1)) contiguousSeq += 1;
   /** The seq of each card that came on the stream, by turn. */
   const cardSeq = new Map<number, number>();
-  for (const frame of held) {
-    // At or below last_seq the snapshot already has it (held only as ordering evidence for its cards).
-    if (frame.seq === null || frame.seq <= snapshot.last_seq) continue;
+  for (const frame of byKey(state.log)) {
+    if (frame.seq === null) continue;
     const v = frame.transcript_version;
     version = Math.max(version, v);
     lastSeq = Math.max(lastSeq, frame.seq);
@@ -404,6 +376,7 @@ function derive(state: TrialState): TrialState {
         t.question = frame.data.text;
         t.source = frame.data.source;
         askedUpTo = Math.max(askedUpTo, frame.data.turn_no);
+        questions.set(frame.data.turn_no, frame.seq);
         break;
       }
       case "subject.answer": {
@@ -416,25 +389,13 @@ function derive(state: TrialState): TrialState {
         break;
       }
       case "evidence.released":
-        if (!released.has(frame.data.record_id)) released.set(frame.data.record_id, { ...frame.data, transcript_version: v });
+        if (!released.has(frame.data.record_id)) released.set(frame.data.record_id, { ...frame.data, transcript_version: v, event_seq: frame.seq });
+        releases.push({ seq: frame.seq, version: v });
         break;
-      case "coach.card": {
-        const n = frame.data.turn_no;
-        if (cards.has(n)) break;
-        cardSeq.set(n, frame.seq);
-        const answerVersion = turns.get(n)?.answerVersion ?? null;
-        // The context version: the answer, or the newest release folded after it (all of them precede this card).
-        const context =
-          answerVersion === null
-            ? null
-            : Math.max(answerVersion, ...[...released.values()].map((r) => r.transcript_version).filter((rv) => rv > answerVersion));
-        rejected.delete(n);
-        pending.delete(n);
-        if (askedUpTo > n || (context !== null && v < context)) rejected.add(n);
-        else if (context === null || v > context) pending.add(n);
-        else cards.set(n, frame.data);
+      case "coach.card":
+        cardSeq.set(frame.data.turn_no, frame.seq);
+        toJudge.push({ card: frame.data, seq: frame.seq, version: v, streamed: true });
         break;
-      }
       case "coach.update":
         updates.set(frame.data.turn_no, frame.data);
         break;
@@ -470,6 +431,20 @@ function derive(state: TrialState): TrialState {
     else if (hint.type === "coach.working") working.add(hint.data.turn_no);
     else if (hint.type === "trial.status") end(hint.data.status, hint.data.reason_code);
     else if (hint.type === "notice") notices.set(hint.data.kind, hint.data);
+  }
+
+  // Judge every card by the one rule. A snapshot card has everything below it in the snapshot, so a card that reads
+  // beyond what is known is stale; a streamed one may be waiting for a frame still on its way.
+  const known: Ordered = { questions, releases, turns };
+  for (const { card, seq, version: v, streamed } of toJudge) {
+    const n = card.turn_no;
+    if (cards.has(n)) continue;
+    const verdict = judgeCard(n, seq, v, known);
+    rejected.delete(n);
+    pending.delete(n);
+    if (verdict === "current") cards.set(n, card);
+    else if (verdict === "ahead" && streamed) pending.add(n);
+    else rejected.add(n);
   }
 
   // Practice text: a card above a gap was judged without a frame before it; it waits for the gap to fill.

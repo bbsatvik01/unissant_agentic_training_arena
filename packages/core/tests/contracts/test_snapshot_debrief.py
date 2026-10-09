@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -113,3 +114,53 @@ def test_the_exported_debrief_schema_agrees_with_s3s_on_every_fixture() -> None:
         else:
             with pytest.raises(ValidationError):
                 debrief.validate_python(value)
+
+
+def test_the_text_snapshot_carries_the_event_order_cards_are_judged_by() -> None:
+    """S6 4.5, FE-COACH-7: questions, releases and cards carry their row's seq, so a snapshot can be judged by the
+    same complete-card rule as the deltas (a card read before a release that preceded it is stale)."""
+    snap = _valid("snapshot:text")
+    parsed = SNAPSHOT.validate_python(snap)
+    assert parsed.channel == "text"
+    question_seq, card_seq = 1, 3  # the fixture's question row and card row
+    assert parsed.turns[0].question_seq == question_seq
+    assert parsed.cards[0].event_seq == card_seq
+    for missing in (("turns", "question_seq"), ("cards", "event_seq")):
+        broken = copy.deepcopy(snap)
+        del broken[missing[0]][0][missing[1]]
+        with pytest.raises(ValidationError, match=missing[1]):
+            SNAPSHOT.validate_python(broken)
+    release = {
+        "record_id": "rec-02",
+        "title": "Lab B panel alarm log",
+        "kind": "record",
+        "doc_kind": "alarm_log",
+        "date": None,
+        "content": {"body": "Lab B panel alarm log for the evening of the entry."},
+        "released_at_turn": 1,
+        "trigger": "scheduled",
+        "transcript_version": 3,
+        "event_seq": 3,
+    }
+    with_release = {**snap, "released": [release], "last_seq": 4, "cards": [{**snap["cards"][0], "event_seq": 4}]}
+    SNAPSHOT.validate_python(with_release)
+    no_seq = {**with_release, "released": [{k: v for k, v in release.items() if k != "event_seq"}]}
+    with pytest.raises(ValidationError, match="event_seq"):
+        SNAPSHOT.validate_python(no_seq)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda s: s["cards"][0].update(event_seq=9), "after last_seq"),
+        (lambda s: s["turns"][0].update(question_seq=9), "after last_seq"),
+        (lambda s: s["cards"][0].update(event_seq=1), "twice"),
+    ],
+)
+def test_snapshot_event_seqs_are_distinct_and_within_last_seq(
+    change: Callable[[dict[str, Any]], None], message: str
+) -> None:
+    snap = _valid("snapshot:text")
+    change(snap)
+    with pytest.raises(ValidationError, match=message):
+        SNAPSHOT.validate_python(snap)

@@ -278,6 +278,16 @@ export function createSessionController(options: SessionControllerOptions): Sess
     }
   };
 
+  /** Read and fold the snapshot now (the room changed under a request); a failed read is kept as the error. */
+  const reloadRoom = async () => {
+    try {
+      const snapshot = await api.trialSnapshot(trialId);
+      if (!disposed) dispatch({ type: "snapshot", snapshot });
+    } catch (error) {
+      set({ error });
+    }
+  };
+
   /** Read the debrief; a published one ends the stream (S6 5.1), a `scoring` answer keeps it open. */
   const finishIfPublished = async () => {
     await loadDebrief();
@@ -493,7 +503,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   const afterPost = (answer: PostAck) => {
     const target = answer.last_seq;
-    if (target !== null) catchUp(() => (stream?.lastSeq ?? cursor) < target);
+    catchUp(() => (stream?.lastSeq ?? cursor) < target);
   };
 
   /** The same action retried reuses its key; a different one gets a fresh key. */
@@ -519,7 +529,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const run = async () => {
-    set({ connection: "loading" });
+    set({ connection: "loading", error: null });
     let snapshot;
     try {
       snapshot = await api.trialSnapshot(trialId);
@@ -541,6 +551,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   return {
     start() {
+      // A bootstrap that failed (the snapshot could not be read) may be started again.
+      if (state.connection === "failed") started = null;
       started ??= run();
       return started;
     },
@@ -609,6 +621,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
       } catch (error) {
         findingsInFlight -= 1;
         if (refused(error)) settleKey("finding", match, idem);
+        // S6 4.6: a 409 (a turn is still open) reloads the room state before the investigator confirms again; the
+        // draft is the caller's and stays as it is.
+        if (error instanceof ApiError && error.status === 409) await reloadRoom();
         // The room leaves `finalizing` only when no submit is still in flight and none succeeded.
         if (findingsInFlight === 0 && !findingCommitted) dispatch({ type: "finding_failed" });
         throw error;
