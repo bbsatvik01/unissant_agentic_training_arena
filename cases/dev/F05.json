@@ -3815,19 +3815,6 @@
                 "f:44"
               ],
               "requires_subject_account": true
-            },
-            {
-              "id": "r:02",
-              "description": "The badge events show Grell leaving through the lobby at 20:32, and Grell states he went home before the tape pull, was never in TV-1 that night and had no spare card.",
-              "artifact_ids": [
-                "rec-03",
-                "rec-04"
-              ],
-              "fact_ids": [
-                "f:40",
-                "f:44"
-              ],
-              "requires_subject_account": false
             }
           ],
           "corroboration_to_name": [

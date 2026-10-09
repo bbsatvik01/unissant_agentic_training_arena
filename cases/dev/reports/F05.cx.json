@@ -7,8 +7,8 @@
   "cx3": true,
   "cx4": true,
   "findings": [],
-  "family_sha256": "1755c6a1218126fe6e6a96d6c4687b368cb37ec0bc04d7cbb26e4e9ec513e9d2",
-  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "family_sha256": "a7490ba29687054c9700f40e743f3df8f6394d152e95206a280ef1abfa480af9",
+  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -32,7 +32,7 @@
         "A6",
         "A7"
       ],
-      "basis": "The records corroborate that Strand presented his badge, Grell presented SP-3, both worked and left together, and Grell returned the card. Both were certified, and the documented spare-card arrangement complied with policy. The renewal backlog and delayed backup explain the access and timing anomalies. Strand's answers consistently disclose his involvement, and the records close the main gaps.",
+      "basis": "The records support Strand presenting his badge and Grell presenting SP-3, working together and leaving together. Both were certified, and the registered spare-card arrangement complied with policy despite Grell’s delayed renewal. The backup delay explains the evening entry. Strand’s answers match the records, including the card’s return, and the records close the main gaps.",
       "expected": "truthful",
       "pass": true
     },
@@ -43,16 +43,16 @@
         "doc-02",
         "rec-01",
         "rec-02",
+        "rec-03",
         "rec-04"
       ],
       "cited_answers": [
         "A1",
         "A2",
         "A3",
-        "A4",
-        "A7"
+        "A4"
       ],
-      "basis": "Records establish Strand’s solo vault entry, opened with his badge and SP-3, released under his PIN. Grell was absent and had no spare. Strand acknowledges working alone, failing to register a holder and returning SP-3, but leaves its purpose and the credential presenters unanswered, concealing how he gained entry despite the two-person requirement.",
+      "basis": "The access log, single-person doorway counts and Grell’s confirmed departure establish Strand’s solo vault entry using his badge and SP-3, violating the two-person rule. He acknowledges working alone and omitting the register entry, but leaves unanswered SP-3’s purpose and who presented the credentials, concealing his use of both credentials.",
       "expected": "deceptive",
       "pass": true
     },
@@ -61,15 +61,18 @@
       "cited_records": [
         "doc-01",
         "doc-02",
+        "doc-03",
         "doc-04",
         "rec-05"
       ],
       "cited_answers": [
         "A1",
         "A2",
-        "A3"
+        "A3",
+        "A5",
+        "A6"
       ],
-      "basis": "The records explain the late tape pull and permit releasing a spare for a certified colleague. However, they do not verify who presented each credential or remained inside. Strand identifies Tobias as the holder and says they worked and left together. The provisional credential attribution establishes neither concealed involvement nor compliance; the main gaps remain open.",
+      "basis": "The records explain the late tape pull and permit a spare for Grell despite his badge restriction. They do not establish who presented each credential or who remained inside TV-1. Strand’s account is consistent but unverified on those central points. No examined record establishes involvement that his answers conceal.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }

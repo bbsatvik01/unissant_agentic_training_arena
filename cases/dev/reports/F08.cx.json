@@ -7,13 +7,12 @@
   "cx3": true,
   "cx4": true,
   "findings": [],
-  "family_sha256": "b67e7aa14496bcede3990985f0a2f38865380b81a91a01628f394aab77b11346",
-  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "family_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
+  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
       "cited_records": [
-        "doc-01",
         "doc-02",
         "rec-01",
         "rec-02",
@@ -27,7 +26,7 @@
         "A4",
         "A5"
       ],
-      "basis": "SR-3051 authorized Varga’s work on MS-6A inside R-6. Ticket and parts records support the walk tests, failed detector diagnosis, and subsequent work at WB-2. Alarms before entry and after departure support detector malfunction as the explanation for later motion events. AP-6C recorded no opening. The records close the main gaps without establishing concealed involvement.",
+      "basis": "SR-3051 assigned Varga to MS-6A inside R-6, authorizing entry. Ticket notes and the WB-2 parts request support the maintenance account and departure. Repeated detector alarms before entry and after sign-off account for the later motion events. AP-6C recorded no opening or evening login. The records corroborate the answers and close the main gaps.",
       "expected": "truthful",
       "pass": true
     },
@@ -41,11 +40,11 @@
       ],
       "cited_answers": [
         "A1",
-        "A2",
         "A3",
+        "A4",
         "A5"
       ],
-      "basis": "SR-3051 covered an outside door contact and was closed before entry; it did not authorize R-6 entry or panel work. Badge and tamper records corroborate Varga’s admitted panel opening. Despite acknowledging the ticket’s scope and panel activity, Varga omits the entry’s purpose and a full walkthrough, avoiding an explanation of the established activity outside the assigned task.",
+      "basis": "Sami’s only assigned ticket concerned the corridor door and closed before entry. Badge and tamper logs establish R-6 entry and panel opening without the required ticket. Sami acknowledges opening the cover and leaving around 21:50, but leaves the entry’s purpose and full activity sequence unanswered, avoiding an account of this unticketed involvement.",
       "expected": "deceptive",
       "pass": true
     },
@@ -61,7 +60,7 @@
         "A1",
         "A2"
       ],
-      "basis": "The assigned ticket’s named device is unknown, leaving authorization for R-6 entry unresolved. A1–A2 describe detector testing, a failing head, and departure around 21:25. Later motion does not establish Varga’s continued presence, and its cause remains unresolved. The available records neither establish involvement concealed by the answers nor close the main gaps.",
+      "basis": "The records establish entry and an assigned ticket, but not whether that ticket authorized work inside R-6. Fenwick cannot identify the device. The later motion remains unexplained and does not establish that Varga remained inside. The account’s main gaps remain open, without records establishing involvement that the answers conceal.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }
