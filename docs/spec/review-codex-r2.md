@@ -58,3 +58,51 @@ Status: fixes queued for after the 07:00 usage refresh (owner hold: no new agent
 - SG2-19, SG3-22 (input limits disagree): SQL `ops.call_limits` seed and S5 3.3 now carry the byte limits of `cost_model.LIMITS` (subject 80,000; card, deep, final 128,000; referee 160,000), matching S2 section 2. Migrations re-applied on a fresh PostgreSQL 16 cluster: all six apply.
 - SG2-20, SG4-20 (debrief envelope): S3 5.7 `debrief.v1` gains a required `scored` boolean (voice sessions publish `scored: false`, as S5, S6, S7 and S8 already say); the SQL envelope in `training.publish_debrief` now checks S3's keys (`schema_version`, `session_id` matching the session, `scored`, `outcome` with role, correct_finding, committed_label, resolution, `rubric`, `scorecards`, `provenance`).
 - The 35 majors remain for the post-07:00 fix round.
+
+## Dispositions of the majors and minors (v2.4, 2026-10-09)
+
+Method: red-to-root-cause per finding, under D-016 (prefer removing or narrowing a mechanism the local team-run demo does not need). Real = the defect exists as described; FP = false positive; Removed = resolved by removing the mechanism. SQL changes were verified on a fresh PostgreSQL 16.13 cluster (all six migrations apply; four smoke scripts, 51 assertions, all pass; TESTS.md 0.1). Classes that recurred across rounds: S8 restating contracts that S1 and S2 own (SG1-20, SG4-25, SG4-26), consumers restating a definition owned elsewhere (SG1-25, SG2-21, SG2-25), and voice cross-process timing (SG3-27 to SG3-29); each was fixed at the rule, not the site.
+
+| ID | Real | Change |
+| --- | --- | --- |
+| SG1-19 | Real | One archive shape: bundle `source` is the family file text, `attestation` is S1 10.5's object. Ingest checks text hash = attested `family_sha256`, every required check and Codex result `pass`, family code from the file, bundle variants equal to the file's variants. Seal digest binds each family's file hash and attestation; `seal_hidden_split(sampler_record)` stores the sampler record and publishes its hash (S1 4.4, 10.3, 10.5; SQL 0002; CS-07, CS-23) |
+| SG1-20 | Real | WP-09 now names S1 9.7's four fresh sessions per round and adds a launcher test that each solve session receives only its sheet |
+| SG1-21 | Real | CX-2 requires the item's whole account: every account fact (item fact that is a ledger fact and a key-question target) covered by a cited answer. Scratch `cx.py`: rec-02 + A2 now fails in both variants; mutation to "any account fact" passes it, so the fixture pins the rule (S1 9.3, 9.7, AC-S1-32; schema description) |
+| SG1-22 | Real | Bundle carries `supersedes`; ingest is the only retirement writer and refuses a revision with a missing, wrong or retired predecessor and `supersedes` on revision 1 (S1 4.4, 8.6; CS-24) |
+| SG1-23 | Real | Narrowed: a KPI-1 case-set family is never revised (ingest refuses), case-set rows name active dev variants only and are append-only (trigger); sets are written after the V6 relabels (S1 8.6; SQL 0002, 0005; CS-27) |
+| SG1-24 | Real | `SubjectPacket.uncertainty[]` carries `fact_id`; the ledger renders each entry with its fact and a class-dependent suffix ("If asked, say" only for FREE, PRIVATE or an OPEN gate); uncertainty never authorizes disclosure; AT-SUBJ-9 on F03 u:02 (S2 6.2, 6.7) |
+| SG1-25 | Real | S2 3.4 and S3 IG-4 no longer restate the corpus; both call the one `build_corpus` of S1 10.4 (identifiers, persona name, development subtraction) |
+| SG1-26 | Real | Rule fixed: FREE texts may not establish a HOLD or CORE proposition alone or in combination; CX-1 checks combinations (S1 7.3, 9.7). The F03 data fix (f:44 vs f:03 + f:04) is open for the seed-families agent |
+| SG1-27 | Real (minor) | CX-1 now requires each forbidden assertion to contradict its fact as stated. The F03 x:03 data fix is open for the seed-families agent |
+| SG2-21 | Real | One vocabulary, `relay_outcome` (`relayed`, `fallback_no_card`, `fallback_failed_test:<reason>`), with closed reason codes including `non_neutral:<group>`; the SQL check enumerates them; S5's HarnessAsker uses S2 8.2's relay test instead of its own (S2 8.2, S3 1.3, S5 5.3, SQL 0003; AT-HAR-7) |
+| SG2-22 | Real | Card, deep and final are `coaching`/`finalize` items with purposes; referee calls are not work items and are idempotent by judgment stage keys; the referee failure path no longer counts work items (S2 2, 4.6, 7.1, 10) |
+| SG2-23 | Real | `ops.v_latency` projects a row pending past the 120 s coaching deadline as `unmeasured_timeout` with no later request; inside the deadline it is `in_flight`; S3's `kpi4` reads that projection and no longer raises (SQL 0006; S3 6.4; S4 8.8; CC-11b) |
+| SG2-24 | Real | Model-output `Finding` keeps 8/6 caps; `StoredFinding` caps 12 turns and 10 records, which always holds the union; S3 adapter validates `StoredFinding`; AT-FIND-5 (S2 4.8, S3 1.3.1) |
+| SG2-25 | Real | `REPAIR_BYTES` bounds measured serialized growth; the builder cuts the echoed reply until the serialized repaired request fits. Reproduced: a 4,000-backslash reply grew the request by 9,137 bytes; with the rule, backslash, quote, control-character and 3-byte fixtures all fit. S5 defines no second allowance (S2 2, 10, AT-PORT-5; S5 3.2) |
+| SG2-26 | Real | `requested_fact_ids` and `violated_fact_ids` capped at the canonical-fact bound (40), unique; AT-REF-16 with a five-fact question and a fifth-position material violation (S2 7.2) |
+| SG2-27 | Real | Corpus seal requires each completed transcript's R1 report and an initial validity verdict and binds both (first R1 payload hash, first adjudication) into the digest; replay starts only from transcripts whose first verdict is `valid`; later corrections leave the digest unchanged (SQL 0003, 0004; S5 5.3; S4 7.4; EF-13, EF-14) |
+| SG2-28 | Real | M14 success requires every subject turn compliant (F1-F6); non-compliant undetected runs are reported as `noncompliant_undetected`, a non-success; assistant inclusion still uses validity alone (S3 4.2, M14) |
+| SG2-29 | Real (minor) | S3 adapter joins through `arena.trials.source_trial_id` and the unchanged `turn_no`; AT-HAR-8 asserts non-zero turns on coaching items only (`replay_turn` items start at 0) |
+| SG3-23 | Real | `http_guard` dispatches by path: `/internal/` routes take the internal policy (caller token per route, any Origin or Cookie refused), browser routes keep Origin and CSRF; Host checked on both (S5 10.3; acceptance item added) |
+| SG3-24 | Real | New referee route `POST /internal/tournaments/{id}/corpus-seal` for the job; `seal_replay_corpus` is idempotent; the admin close route only closes and requires the existing seal (S5 5.3, 5.5; SQL 0003; S8 WP-17, WP-28; EF-15) |
+| SG3-25 | Real | Narrowed (D-016): one `arena-api` and at most one tournament job (pidfile lock), a per-trial lock in-process, so a live duplicate waits and then reads stored results; recovery defines reserved-undispatched, reserved-dispatched and settled-without-result (reserve n + 1, paid twice) (S5 5.1; AT-PORT-6) |
+| SG3-26 | Real | `open_work_item(..., expected_version)` creates the item only at that version, else AR002; the deep item passes its card's version (SQL 0004; S2 4.6; S4; S5; WI-09 verified) |
+| SG3-27 | Real | Simplified: a voice turn's boundary release commits inside `record_subject_turn` (shared `arena._apply_releases`); `arena-subject`, which owns the relay pump, holds investigator audio across the commit and the Live context update; a standalone release is refused while a voice question is open (SQL 0004; S5 7.4; S4; VB-16 verified) |
+| SG3-28 | Removed | Voice resume removed (D-016): a reconnect is a new voice session with its own reservation, so receipts never span legs (SQL 0005 drops `voice_resumes` and three functions; S5 7.2, 7.3, 7.5, 7.6; S6 6.2; S4; VB-15) |
+| SG3-29 | Removed | Same removal: no resume frame or handle is needed |
+| SG3-30 | Real | Same fix as SG2-23 |
+| SG3-31 | Real | One predicate `training.session_counts`: a practice session qualifies only in Practice mode, text and finalized; used by `start_session` and `v_my_study`; TT-15 rewritten (mutation proved) (SQL 0005; S3 6.1; S4; S6) |
+| SG3-32 | Real | KPI-4 eligibility is session-level: `record_subject_turn` opens no sample on any turn of a voice session (SQL 0004; S4 8.8; CC-11b verified) |
+| SG3-33 | Real | `make dev` mints both caller tokens and writes the tournament token to `.run/tournament.token` (0600); the job reads it, so starts and restarts during the stack's run authenticate (S5 10.2; acceptance item) |
+| SG4-21 | Real | After publication the ticket route answers 409 `stream_closed`; the client reloads snapshot and debrief and finishes; direct visits do the same (S5 6.3; S6 5.1, FE-SSE-5) |
+| SG4-22 | Real | Same fix as SG3-23 (S6 1.3 points to the internal policy) |
+| SG4-23 | Real | A card is current when its version equals the client's context version for the turn (the answer or a release after it, before the next question), on deltas, snapshots and replay (S6 4.5, FE-COACH-7) |
+| SG4-24 | Real | WP-25a calibrates anchors on slice data by Oct 18 and is a WP-24 dependency; WP-26 Oct 19-21, WP-25b Oct 21-22 after the pilot runs, WP-27 seal from Oct 21 and freeze Oct 22, sealed run Oct 23-27, reveal Oct 28-30; Oct 31-Nov 2 kept (S8 1.1, 3, 4) |
+| SG4-25 | Real | Same fix as SG1-20 |
+| SG4-26 | Real | WP-02 and WP-10 name S2 7.2's current ref_subj.v4 |
+| SG4-27 | Real | Post-reveal audit uses T-LAB, T-FLAG and T-RUB as audit items; a hidden-trial item is served only after reveal, without candidate identity (S3 7.3, 7.5; S6 4.12, FE-REV-5; S8 WP-29) |
+| SG4-28 | Real | 4410 closes after the final utterance ends and the client drains its queue (`draining` state); interruption and safety closes still flush (S5 7.4; S6 6.2, FE-VOICE-7) |
+| SG4-29 | Real (minor) | The tournament page polls through sealed and scoring until reveal (S6 4.9, FE-ARENA-4) |
+| Web agent | Request | Investigator `transcription` frames carry `utterance`, the number of the subject utterance that answers them (S5 7.3; S6 6.2, FE-VOICE-8) |
+
+Counts: 35 majors and 3 minors: 36 real (2 of them minors, 2 needing a seed-file change by the seed-families agent), 0 false positives, 2 removed by simplification (SG3-28, SG3-29); one added request (web agent).

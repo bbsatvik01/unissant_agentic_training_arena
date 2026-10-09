@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0002_cases.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0002_cases.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Case families and variants (public tier, no role), packets in three tiers, evidence
 -- artifacts with release predicates, the hidden-split seal, the candidate registry.
 -- Requirements: SCN-1, SCN-4, SCN-7, SCN-8, SCN-9, SCN-10, SCN-11, SCN-12, AST-5, BKO-5.
@@ -112,23 +112,27 @@ create table sealed.evidence_artifacts (
                                                                          else 'record' end)
 );
 
--- Bundle hash per ingested family (idempotent re-ingest check). Sealed: the bundle carries roles.
--- SG1-08: the accepted family file (source) and its structured validator and review attestations are
--- kept here, covered by bundle_sha256, so the post-reveal audit can export the exact family file and
--- check that each ingested hash passed both review gates after the authoring workspace is deleted.
--- Reports outside the sealed tier stay codes and counts only (S1 10.3).
+-- Bundle hash per ingested family (idempotent re-ingest check) and the sealed authoring archive (S1 10.5).
+-- SG1-08, SG1-19: one archive shape across S1 and SQL. `source` is the accepted family file as canonical
+-- JSON text (S1 8.4) and `attestation` is S1 10.5's object {family_id, revision, family_sha256,
+-- validator_version, checks_passed, codex}. Ingest checks that the text hashes to the attested
+-- family_sha256, that every required check and every Codex result passed, and that the bundle's variants
+-- are exactly the family file's variants (same case ids, roles and three packets), so the archive cannot
+-- carry a file other than the one whose packets run. Reports outside the sealed tier stay codes and counts.
 create table sealed.family_ingests (
   family_id      uuid primary key references arena.case_families(id) on delete restrict,
   bundle_sha256  text not null check (bundle_sha256 ~ '^[0-9a-f]{64}$'),
-  source         jsonb not null check (jsonb_typeof(source) = 'object' and octet_length(source::text) <= 524288),
-  attestations   jsonb not null check (jsonb_typeof(attestations) = 'object' and attestations ?& array['validators', 'review']
-                                       and octet_length(attestations::text) <= 65536),
+  source         text not null check (octet_length(source) <= 524288),
+  source_sha256  text not null generated always as (ledger.hash_text(source)) stored,
+  attestation    jsonb not null check (jsonb_typeof(attestation) = 'object' and octet_length(attestation::text) <= 65536),
   created_at     timestamptz not null default now()
 );
 
--- Development family revisions (SG1-11). A revised family is ingested under a new family_code (for
--- example F01.r2) whose bundle names the family it supersedes; the old family is retired here in the
--- same transaction. Retired families leave the case library (arena.v_dev_cases), new sessions and new
+-- Development family revisions (SG1-11, SG1-22). A revised family is ingested under a new family_code
+-- (for example F01.r2) whose bundle names, in `supersedes`, the active family it replaces; the old family
+-- is retired here in the same transaction, and ingest is the only writer. A revision (family file
+-- revision >= 2) without the right `supersedes`, or a `supersedes` on revision 1, is refused. A family
+-- holding a KPI-1 case-set member is never revised (SG1-23): the study's fixed sets stay valid. Retired families leave the case library (arena.v_dev_cases), new sessions and new
 -- tournament rosters; trials that already ran keep their variant ids and packets. Hidden families are
 -- never revised (the split is sealed whole).
 create table arena.family_retirements (
@@ -138,13 +142,18 @@ create table arena.family_retirements (
   constraint retirement_not_self check (family_id <> superseded_by)
 );
 
--- The hidden split is sealed once, before any tournament on it freezes (SCN-12).
+-- The hidden split is sealed once, before any tournament on it freezes (SCN-12). The seal stores the
+-- split's sampler record (S1 10.5) and publishes its hash beside the digest (SG1-19).
 create table sealed.hidden_split_seals (
-  id           uuid primary key default gen_random_uuid(),
-  seal_sha256  text not null check (seal_sha256 ~ '^[0-9a-f]{64}$'),
-  n_families   integer not null check (n_families > 0),
-  n_variants   integer not null check (n_variants > 0),
-  created_at   timestamptz not null default now()
+  id              uuid primary key default gen_random_uuid(),
+  seal_sha256     text not null check (seal_sha256 ~ '^[0-9a-f]{64}$'),
+  n_families      integer not null check (n_families > 0),
+  n_variants      integer not null check (n_variants > 0),
+  sampler_record  jsonb not null check (jsonb_typeof(sampler_record) = 'object'
+                                        and sampler_record ?& array['seed', 'n', 'assignment', 'max_phi']
+                                        and octet_length(sampler_record::text) <= 65536),
+  sampler_sha256  text not null generated always as (ledger.hash_jsonb(sampler_record)) stored,
+  created_at      timestamptz not null default now()
 );
 create unique index hidden_split_seals_one on sealed.hidden_split_seals ((true));
 
@@ -231,7 +240,8 @@ create trigger hidden_public_packets_hidden_only before insert on sealed.hidden_
 -- The canonical jsonb holds everything an interview or the scoring consumes: the family row (code,
 -- domain, split), the variant row (code, style, difficulty), the three packets, the role, and every
 -- artifact row in full (record_id, kind, doc_kind, title, content, requestable, scheduled_turn,
--- request_after_turn). Every hash is recomputed from stored values; no stored hash column is read. The
+-- request_after_turn), and the family's archive (the sha256 of the accepted family file text and the
+-- attestation, SG1-19). Every hash is recomputed from stored values; no stored hash column is read. The
 -- seal is the sha256 of the lines sorted by code point and joined by newlines.
 -- -----------------------------------------------------------------------------
 create or replace function sealed.hidden_split_digest()
@@ -243,13 +253,15 @@ language sql stable security definer set search_path = '' as $$
              'variant', jsonb_build_object('variant_code', v.variant_code, 'style', v.style, 'difficulty', v.difficulty),
              'public_packet', hp.packet, 'private_packet', pp.packet, 'role', ep.role, 'evaluator_packet', ep.packet,
              'artifacts', coalesce((select jsonb_agg(to_jsonb(a) - 'variant_id' - 'sha256' order by a.record_id collate "C")
-                                      from sealed.evidence_artifacts a where a.variant_id = v.id), '[]'::jsonb))) as line,
+                                      from sealed.evidence_artifacts a where a.variant_id = v.id), '[]'::jsonb),
+             'archive', jsonb_build_object('source_sha256', ledger.hash_text(i.source), 'attestation', i.attestation))) as line,
            f.id as family_id
       from arena.case_families f
       join arena.case_variants v on v.family_id = f.id
       join sealed.hidden_public_packets hp on hp.variant_id = v.id
       join subject.private_packets pp on pp.variant_id = v.id
       join sealed.evaluator_packets ep on ep.variant_id = v.id
+      join sealed.family_ingests i on i.family_id = f.id
      where f.split = 'hidden'
   )
   select ledger.hash_text(string_agg(line, E'\n' order by line collate "C")),
@@ -259,15 +271,20 @@ $$;
 
 -- -----------------------------------------------------------------------------
 -- ingest_case_family (arena_referee). One transaction writes every tier of one family.
--- bundle: {family_code, domain, split, supersedes (optional, dev only), source, attestations,
+-- bundle: {family_code, domain, split, supersedes (dev revisions >= 2 only), source (family file text),
+--          attestation,
 --          variants: [{variant_code, style, difficulty, role, public_packet, private_packet, evaluator_packet,
 --          artifacts: [{record_id, kind, doc_kind, title, content, requestable, scheduled_turn,
 --                       request_after_turn}]}]}   (S1 4.4; doc_kind is S1's artifactKind, C-24)
 -- Refuses: a hidden family after the seal (AR001); a family without both roles (SCN-11, AR007); more
 -- than 6 artifacts on a variant (MAX_RELEASES, AR006); artifact rows that differ from the evaluator
 -- packet's releasable records, or a public requestable list that differs from the requestable rows
--- (SG1-09, AR007); a supersedes that does not name one active development family (SG1-11, AR007); a
--- re-ingest with different content (AR003). An identical re-ingest returns the existing id.
+-- (SG1-09, AR007); an archive that does not match (SG1-19, AR007: source not a family file whose
+-- family_id, revision, split and domain give this family_code; attestation hash not the source's sha256;
+-- a required check or Codex result missing or not pass; bundle variants other than the file's variants);
+-- a revision whose supersedes is missing, wrong or not active, or names a KPI-1 case-set family
+-- (SG1-11, SG1-22, SG1-23, AR007); a re-ingest with different content (AR003). An identical re-ingest
+-- returns the existing id.
 -- Hidden ingests and seal_hidden_split serialize on the seal table (SG3-09, SG1-10): an ingest takes it
 -- in SHARE mode before it checks for the seal, the seal takes it in EXCLUSIVE mode, so an ingest that
 -- passed its check commits before the seal reads the split, and an ingest that starts after the seal
@@ -285,6 +302,9 @@ declare
   v_art      jsonb;
   v_existing text;
   v_old      arena.case_families;
+  v_src      jsonb;
+  v_att      jsonb;
+  v_rev      integer;
 begin
   perform ledger.require_read_committed();
   if jsonb_typeof(p_bundle) is distinct from 'object' or jsonb_typeof(p_bundle -> 'variants') is distinct from 'array' then
@@ -309,19 +329,69 @@ begin
        where x ->> 'role' in ('truthful', 'deceptive')) <> 2 then
     raise exception using errcode = 'AR007', message = 'a family needs matched truthful and deceptive variants (SCN-11)';
   end if;
-  if p_bundle ->> 'supersedes' is not null then
+  -- SG1-19: the archive is the family file whose packets run, attested as passed.
+  if jsonb_typeof(p_bundle -> 'source') is distinct from 'string' then
+    raise exception using errcode = 'AR007', message = 'source is the family file text';
+  end if;
+  begin
+    v_src := (p_bundle ->> 'source')::jsonb;
+  exception when others then
+    raise exception using errcode = 'AR007', message = 'source is not JSON';
+  end;
+  v_att := p_bundle -> 'attestation';
+  v_rev := case when jsonb_typeof(v_src -> 'revision') = 'number' then (v_src ->> 'revision')::integer end;
+  if jsonb_typeof(v_src) is distinct from 'object' or v_rev is null or v_rev < 1
+     or jsonb_typeof(v_att) is distinct from 'object'
+     or not (v_att ?& array['family_id', 'revision', 'family_sha256', 'validator_version', 'checks_passed', 'codex'])
+     or v_att ->> 'family_sha256' is distinct from ledger.hash_text(p_bundle ->> 'source')
+     or v_att ->> 'family_id' is distinct from v_src ->> 'family_id'
+     or v_att -> 'revision' is distinct from v_src -> 'revision'
+     or p_bundle ->> 'family_code' is distinct from
+        ((v_src ->> 'family_id') || (case when v_rev >= 2 then '.r' || v_rev::text else '' end))
+     or v_split is distinct from v_src ->> 'split' or p_bundle ->> 'domain' is distinct from v_src ->> 'domain'
+     or jsonb_typeof(v_att -> 'checks_passed') is distinct from 'array'
+     or not (v_att -> 'checks_passed' @> '["V1", "V1b", "V1c", "V1d", "V2", "V3a", "V4a", "V4b", "V4c", "V5"]'::jsonb)
+     or jsonb_typeof(v_att #> '{codex,rounds}') is distinct from 'number'
+     or (v_att #>> '{codex,rounds}')::numeric not between 1 and 5
+     or (v_att #>> '{codex,review}', v_att #>> '{codex,cx2_truthful}', v_att #>> '{codex,cx2_deceptive}',
+         v_att #>> '{codex,cx3}') is distinct from ('pass', 'pass', 'pass', 'pass') then
+    raise exception using errcode = 'AR007', message = 'the archive must be the attested, passed family file (SG1-19)';
+  end if;
+  if (select coalesce(jsonb_agg(jsonb_build_object('code', x ->> 'variant_code', 'role', x ->> 'role',
+                                                   'public', x -> 'public_packet', 'private', x -> 'private_packet',
+                                                   'evaluator', x -> 'evaluator_packet')
+                                order by x ->> 'variant_code' collate "C"), '[]'::jsonb)
+        from jsonb_array_elements(p_bundle -> 'variants') x)
+     is distinct from
+     (select coalesce(jsonb_agg(jsonb_build_object('code', e.value ->> 'case_id', 'role', e.key,
+                                                   'public', e.value -> 'public_packet', 'private', e.value -> 'private_packet',
+                                                   'evaluator', e.value -> 'evaluator_packet')
+                                order by e.value ->> 'case_id' collate "C"), '[]'::jsonb)
+        from jsonb_each(case when jsonb_typeof(v_src -> 'variants') = 'object' then v_src -> 'variants' else '{}'::jsonb end) e) then
+    raise exception using errcode = 'AR007', message = 'bundle variants must be the family file''s variants (SG1-19)';
+  end if;
+  -- SG1-22: a revision names its active predecessor and replaces it here; revision 1 names none.
+  if v_rev >= 2 then
     select * into v_old from arena.case_families where family_code = p_bundle ->> 'supersedes' for update;
     if v_split is distinct from 'dev' or v_old.id is null or v_old.split <> 'dev'
+       or p_bundle ->> 'supersedes' is distinct from
+          ((v_src ->> 'family_id') || (case when v_rev >= 3 then '.r' || (v_rev - 1)::text else '' end))
        or exists (select 1 from arena.family_retirements r where r.family_id = v_old.id) then
-      raise exception using errcode = 'AR007', message = 'a revision supersedes one active development family';
+      raise exception using errcode = 'AR007', message = 'a revision supersedes its active predecessor (SG1-22)';
     end if;
+    if exists (select 1 from training.case_set_members m join arena.case_variants cv on cv.id = m.variant_id
+                where cv.family_id = v_old.id) then
+      raise exception using errcode = 'AR007', message = 'a KPI-1 case-set family is never revised (SG1-23)';
+    end if;
+  elsif p_bundle ? 'supersedes' then
+    raise exception using errcode = 'AR007', message = 'only a revision names supersedes (SG1-22)';
   end if;
 
   insert into arena.case_families (family_code, domain, split)
     values (p_bundle ->> 'family_code', p_bundle ->> 'domain', v_split)
     returning id into v_family;
-  insert into sealed.family_ingests (family_id, bundle_sha256, source, attestations)
-    values (v_family, v_sha, p_bundle -> 'source', p_bundle -> 'attestations');
+  insert into sealed.family_ingests (family_id, bundle_sha256, source, attestation)
+    values (v_family, v_sha, p_bundle ->> 'source', v_att);
   if v_old.id is not null then
     insert into arena.family_retirements (family_id, superseded_by) values (v_old.id, v_family);
   end if;
@@ -380,13 +450,16 @@ begin
   return v_family;
 end $$;
 
--- seal_hidden_split (arena_referee): once, over every hidden variant. Appends a ledger event.
-create or replace function sealed.seal_hidden_split()
+-- seal_hidden_split (arena_referee): once, over every hidden variant, with the split's sampler record
+-- (S1 10.5: seed, n, assignment, max_phi; n must equal the sealed family count). Appends a ledger event
+-- carrying the seal hash and the sampler record's hash (SG1-19).
+create or replace function sealed.seal_hidden_split(p_sampler_record jsonb)
 returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   v record;
   v_id uuid;
+  v_sampler_sha text;
 begin
   perform ledger.require_read_committed();
   lock table sealed.hidden_split_seals in exclusive mode;
@@ -397,12 +470,20 @@ begin
   if v.n_variants is null or v.n_variants = 0 then
     raise exception using errcode = 'AR001', message = 'no hidden variants to seal';
   end if;
-  insert into sealed.hidden_split_seals (seal_sha256, n_families, n_variants)
-    values (v.seal_sha256, v.n_families, v.n_variants) returning id into v_id;
+  if jsonb_typeof(p_sampler_record) is distinct from 'object'
+     or not (p_sampler_record ?& array['seed', 'n', 'assignment', 'max_phi'])
+     or jsonb_typeof(p_sampler_record -> 'assignment') is distinct from 'array'
+     or jsonb_typeof(p_sampler_record -> 'n') is distinct from 'number'
+     or (p_sampler_record ->> 'n')::numeric <> v.n_families
+     or jsonb_array_length(p_sampler_record -> 'assignment') <> v.n_families then
+    raise exception using errcode = 'AR007', message = 'the sampler record must cover exactly the sealed families';
+  end if;
+  insert into sealed.hidden_split_seals (seal_sha256, n_families, n_variants, sampler_record)
+    values (v.seal_sha256, v.n_families, v.n_variants, p_sampler_record) returning id, sampler_sha256 into v_id, v_sampler_sha;
   -- the seal hash is public: it is published before candidates freeze
   perform ledger.append_event('hidden_split_sealed', null, null,
-    jsonb_build_object('seal_id', v_id, 'seal_sha256', v.seal_sha256, 'n_families', v.n_families,
-                       'n_variants', v.n_variants));
+    jsonb_build_object('seal_id', v_id, 'seal_sha256', v.seal_sha256, 'sampler_sha256', v_sampler_sha,
+                       'n_families', v.n_families, 'n_variants', v.n_variants));
   return v.seal_sha256;
 end $$;
 
@@ -410,6 +491,7 @@ create or replace function sealed.verify_hidden_seal()
 returns boolean
 language sql stable security definer set search_path = '' as $$
   select coalesce((select s.seal_sha256 = d.seal_sha256 and s.n_variants = d.n_variants
+                          and s.sampler_sha256 = ledger.hash_jsonb(s.sampler_record)
                      from sealed.hidden_split_seals s, sealed.hidden_split_digest() d), false)
 $$;
 
@@ -469,7 +551,7 @@ alter table arena.family_retirements enable row level security;
 revoke all on all tables in schema arena, subject, sealed from public, anon, authenticated, service_role,
   arena_public, arena_subject, arena_referee;
 revoke all on function arena.tg_packet_split(), sealed.hidden_split_digest(), sealed.ingest_case_family(jsonb),
-  sealed.seal_hidden_split(), sealed.verify_hidden_seal(), arena.register_candidate(text, text, text, jsonb)
+  sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(), arena.register_candidate(text, text, text, jsonb)
   from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 
 -- arena_referee reads every tier (labeling, judging, scoring) and writes cases only through functions.
@@ -490,6 +572,6 @@ create policy evidence_artifacts_referee on sealed.evidence_artifacts for select
 create policy family_ingests_referee on sealed.family_ingests for select to arena_referee using (true);
 create policy hidden_split_seals_referee on sealed.hidden_split_seals for select to arena_referee using (true);
 
-grant execute on function sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(), sealed.verify_hidden_seal(),
+grant execute on function sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(),
   sealed.hidden_split_digest(), arena.register_candidate(text, text, text, jsonb)
   to arena_referee;

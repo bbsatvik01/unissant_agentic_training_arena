@@ -536,7 +536,7 @@
                 }
               },
               "requires_subject_account": {
-                "description": "When true, at least one of fact_ids is a ledger fact of this variant that a rubric key question targets, so the account the item needs can be asked for (validator V3a; Codex check CX-2, S1 9.7).",
+                "description": "When true, at least one of fact_ids is a ledger fact of this variant that a rubric key question targets (validator V3a). Those facts are the item's account facts; a supported closure covers every one of them with an answer to a question that targets it (Codex check CX-2, S1 9.7).",
                 "type": "boolean"
               }
             }

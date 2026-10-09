@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0003_tournament_ledger.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -238,8 +238,10 @@ create table arena.turns (
   -- question, a fallback question, or an assistant proposal it relayed
   question_source  text not null check (question_source in ('investigator', 'harness_fixed', 'harness_fallback',
                                                              'assistant_relay')),
-  -- harness relay outcome (S2 8.2): relayed, fallback_failed_test:<reason> or fallback_no_card; null otherwise
-  relay_outcome    text check (relay_outcome ~ '^(relayed|fallback_no_card|fallback_failed_test:[a-z0-9_]{1,40})$'),
+  -- harness relay outcome (S2 8.2's one vocabulary, SG2-21): relayed, fallback_no_card or
+  -- fallback_failed_test:<reason>, where <reason> is a relay-test reason code and non_neutral carries its
+  -- lexicon group (non_neutral:accusation); null for other sources
+  relay_outcome    text check (relay_outcome ~ '^(relayed|fallback_no_card|fallback_failed_test:(too_short|too_long|not_single_question|markup|identifier|not_addressed_to_subject|compound|leading_tag|repeat|non_neutral:(accusation|leading|demeanor|pressure)))$'),
   -- the coach_card event (same trial, previous turn) whose proposal was relayed or failed the relay test
   proposal_seq     integer,
   channel          text not null default 'text' check (channel in ('text', 'voice')),
@@ -799,13 +801,21 @@ begin
 end $$;
 
 -- Replay corpus seal (BKO-6): every corpus planned trial has an execution record; the seal hashes
--- each one's state and, when completed, its committed transcript and evidence hashes.
+-- each one's state and, when completed, its committed transcript and evidence hashes, its R1 report (the
+-- first fidelity_detail judgment) and its initial validity verdict (the first adjudication), so what the
+-- replay track may use is fixed before any assistant sees a transcript (SG2-27). Later corrections append
+-- adjudications and never change the first one, so the digest stays verifiable at reveal.
 create or replace function ledger.corpus_digest(p_tournament uuid)
 returns table (corpus_sha256 text, n_transcripts integer)
 language sql stable security definer set search_path = '' as $$
   select ledger.hash_text(coalesce(string_agg(
            e.planned_trial_id || ':' || coalesce(e.state, 'none') || ':'
-           || coalesce(c.payload ->> 'transcript_sha256', '-') || ':' || coalesce(c.payload ->> 'evidence_sha256', '-'),
+           || coalesce(c.payload ->> 'transcript_sha256', '-') || ':' || coalesce(c.payload ->> 'evidence_sha256', '-')
+           || ':' || coalesce((select ledger.hash_jsonb(j.payload) from sealed.judgments j
+                                where j.trial_id = e.trial_id and j.kind = 'fidelity_detail'
+                                order by j.created_at, j.id limit 1), '-')
+           || ':' || coalesce((select a.id::text || '/' || a.verdict from ledger.validity_adjudications a
+                                where a.trial_id = e.trial_id order by a.adj_seq limit 1), '-'),
            E'\n' order by e.planned_trial_id::text collate "C"), '')),
          count(*) filter (where e.state = 'completed')::integer
     from ledger.planned_execution(p_tournament) e
@@ -818,6 +828,7 @@ returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   v_status text;
+  v_existing text;
   v record;
   v_seq bigint;
 begin
@@ -826,11 +837,22 @@ begin
   if v_status is distinct from 'running' then
     raise exception using errcode = 'AR001', message = 'the replay corpus is sealed while the tournament runs';
   end if;
-  if exists (select 1 from ledger.corpus_seals where tournament_id = p_tournament) then
-    raise exception using errcode = 'AR001', message = 'the replay corpus is already sealed';
+  -- SG3-24: idempotent; the tournament job asks the referee to seal once the corpus is reviewed, and a
+  -- retry returns the stored seal instead of failing.
+  select corpus_sha256 into v_existing from ledger.corpus_seals where tournament_id = p_tournament;
+  if found then
+    return v_existing;
   end if;
   if exists (select 1 from ledger.planned_execution(p_tournament) e where e.track = 'replay_corpus' and e.state is null) then
     raise exception using errcode = 'AR001', message = 'every corpus transcript needs an execution record before the seal';
+  end if;
+  -- SG2-27: R1 and an initial validity verdict precede the seal for every completed corpus transcript.
+  if exists (select 1 from ledger.planned_execution(p_tournament) e
+              where e.track = 'replay_corpus' and e.state = 'completed'
+                and (not exists (select 1 from sealed.judgments j where j.trial_id = e.trial_id and j.kind = 'fidelity_detail')
+                     or not exists (select 1 from ledger.validity_adjudications a where a.trial_id = e.trial_id))) then
+    raise exception using errcode = 'AR001',
+      message = 'every completed corpus transcript needs its R1 report and an initial validity verdict before the seal';
   end if;
   select * into v from ledger.corpus_digest(p_tournament);
   v_seq := ledger.append_event('replay_corpus_sealed', p_tournament, null,
@@ -970,7 +992,7 @@ create policy leaderboards_referee_insert on arena.leaderboards for insert to ar
 create policy isolation_checks_referee_insert on arena.isolation_checks for insert to arena_referee with check (true);
 
 -- re-grant what 0002 granted (the blanket revoke above covered all functions in these schemas)
-grant execute on function sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(), sealed.verify_hidden_seal(),
+grant execute on function sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(),
   sealed.hidden_split_digest(), arena.register_candidate(text, text, text, jsonb) to arena_referee;
 grant execute on function arena.actor_id() to arena_public;
 

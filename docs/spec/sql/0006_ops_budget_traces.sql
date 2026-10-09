@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0006_ops_budget_traces.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
 -- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
@@ -1036,10 +1036,22 @@ create view ops.v_call_costs with (security_barrier = true) as
     from ops.budget_reservations r join ops.model_calls c on c.reservation_id = r.id
    where r.trial_id is null or arena.trial_visible(r.trial_id);
 
+-- SG2-23, SG3-30: the reporting projection needs no later request. A row still pending after the coaching
+-- deadline (120 s after the subject commit, the same deadline that ends the coaching hold, S5 5.1) reads as
+-- unmeasured_timeout, a miss, whether or not the session ever returns; a pending row inside the deadline
+-- reads as in_flight and stays out of the share until it resolves. report_outcome, miss and unmeasured
+-- are what S3 6.4 reads.
 create view ops.v_latency with (security_barrier = true) as
-  select l.trial_id, l.turn_no, l.subject_commit_at, l.card_validated_server_at, l.client_ack_at, l.card_outcome,
-         l.population, l.instance_cold, l.server_ms, l.kpi4_ms, l.miss, l.unmeasured, l.created_at
-    from ops.latency_samples l where arena.trial_visible(l.trial_id);
+  select x.*,
+         x.report_outcome in ('timeout', 'repair_failed', 'client_invalid', 'unmeasured_timeout') as miss,
+         (x.report_outcome = 'unmeasured_timeout'
+          or (x.population = 'practice_client' and x.report_outcome = 'delivered' and x.client_ack_at is null)) as unmeasured,
+         x.report_outcome = 'pending' as in_flight
+    from (select l.trial_id, l.turn_no, l.subject_commit_at, l.card_validated_server_at, l.client_ack_at, l.card_outcome,
+                 case when l.card_outcome = 'pending' and l.subject_commit_at < now() - interval '120 seconds'
+                      then 'unmeasured_timeout' else l.card_outcome end as report_outcome,
+                 l.population, l.instance_cold, l.server_ms, l.kpi4_ms, l.created_at
+            from ops.latency_samples l where arena.trial_visible(l.trial_id)) x;
 
 -- Public configuration for GET /api/config (SG3-13): the paused flag and the per-user quotas only.
 create view ops.v_public_config with (security_barrier = true) as

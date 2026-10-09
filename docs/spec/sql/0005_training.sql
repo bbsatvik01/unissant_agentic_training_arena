@@ -1,9 +1,9 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0005_training.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets with the session phase derived from committed state, blinded rubric scores, the
 -- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,
--- D7) and resume credentials.
+-- D7). A dropped voice connection ends its voice session; reconnecting opens a new one (D-016).
 -- Requirements: CH-1, SOL-6, EVL-2, EVL-7, KPI-1, PRB-1, SCN-12, EX-4; voice: D-006, direction 4.3, 9.
 --
 -- A training session is an arena.trials row of kind 'training', so it runs through the same
@@ -31,6 +31,24 @@ create table training.case_set_members (
   variant_id uuid not null references arena.case_variants(id) on delete restrict,
   primary key (set_code, variant_id)
 );
+-- SG1-23: a case set names active development variants only, and its members are fixed (append-only);
+-- ingest refuses to revise a family that holds a member, so a set never points at a retired revision.
+create or replace function training.tg_case_set_member() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if tg_op <> 'INSERT' then
+    raise exception using errcode = 'AR010', message = 'KPI-1 case sets are fixed (append-only)';
+  end if;
+  if exists (select 1 from arena.case_variants cv join arena.case_families f on f.id = cv.family_id
+              where cv.id = new.variant_id and f.split <> 'dev')
+     or exists (select 1 from arena.case_variants cv join arena.family_retirements r on r.family_id = cv.family_id
+                 where cv.id = new.variant_id) then
+    raise exception using errcode = 'AR007', message = 'a case set names an active development variant (SG1-23)';
+  end if;
+  return new;
+end $$;
+create trigger case_set_members_guard before insert or update or delete on training.case_set_members
+  for each row execute function training.tg_case_set_member();
 
 create table training.sessions (
   id              uuid primary key default gen_random_uuid(),
@@ -129,18 +147,10 @@ create table training.debriefs (
 create trigger debriefs_append_only before update or delete on training.debriefs
   for each row execute function arena.tg_forbid_mutation();
 
--- Resume credentials (S5 7.2 step 4): token sha256 only; the Live resumption handle never leaves
--- arena-subject (take_voice_handle is granted to arena_subject alone). At most 3 per session.
-create table training.voice_resumes (
-  id               uuid primary key default gen_random_uuid(),
-  voice_session_id uuid not null references training.voice_sessions(id) on delete restrict,
-  token_sha256     text not null unique check (token_sha256 ~ '^[0-9a-f]{64}$'),
-  live_handle      text not null check (length(live_handle) between 1 and 4096),
-  expires_at       timestamptz not null,
-  redeemed_at      timestamptz,
-  taken_at         timestamptz,
-  created_at       timestamptz not null default now()
-);
+-- No resume credentials (D-016, SG3-28, SG3-29): a dropped voice connection ends that voice session; the
+-- browser reconnects by opening a new voice session on the same trial (new ticket, new reservation), and
+-- arena-subject rebuilds Live's context from subject.voice_context, so continuity comes from the database
+-- and no Live resumption handle or cross-leg receipt numbering exists.
 
 -- -----------------------------------------------------------------------------
 -- start_session (arena_public): the actor (arena.actor_id, set by arena-api's identity layer:
@@ -155,11 +165,23 @@ create table training.voice_resumes (
 -- mode, in text (voice is unscored, D7), each test variant once. A KPI-1 case-set variant runs only as a
 -- participant's test (X-08), and a retired family never starts a session (SG1-11).
 -- -----------------------------------------------------------------------------
+-- SG3-31: the one study predicate, used by start_session and training.v_my_study. A test session counts
+-- once it ended (finalized or terminated). A practice session counts toward the protocol only as the
+-- KPI-1 intervention S3 6.1 defines: Practice mode (live coaching), text (not voice, D7), and finalized
+-- (the investigator committed a finding); assessment-mode, voice and terminated free sessions do not.
+create or replace function training.session_counts(p_phase text, p_mode text, p_voice boolean, p_status text)
+returns boolean
+language sql immutable set search_path = '' as $$
+  select case when p_phase in ('pre', 'post') then p_status in ('finalized', 'terminated')
+              else p_mode = 'practice' and not p_voice and p_status = 'finalized' end
+$$;
+
 create or replace function training._ended_sessions(p_participant uuid, p_phase text)
 returns integer
 language sql stable security definer set search_path = '' as $$
   select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
-   where s.participant_id = p_participant and s.phase = p_phase and t.status in ('finalized', 'terminated')
+   where s.participant_id = p_participant and s.phase = p_phase
+     and training.session_counts(s.phase, t.mode, s.voice, t.status)
 $$;
 
 create or replace function training.start_session(p_variant uuid, p_mode text, p_coach_candidate uuid,
@@ -359,61 +381,6 @@ begin
   return v_res || jsonb_build_object('work_item_id', v_wi.id);
 end $$;
 
--- Resume: arena-subject stores the Live handle and gets a token for the browser; arena-api redeems
--- it for the actor (re-checking ownership); arena-subject takes the handle once.
-create or replace function training.issue_voice_resume(p_voice_session uuid, p_live_handle text)
-returns text
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_token text := encode(extensions.gen_random_bytes(32), 'hex');
-begin
-  if (select status from training.voice_sessions where id = p_voice_session for update) is distinct from 'open'
-     or (select count(*) from training.voice_resumes where voice_session_id = p_voice_session) >= 3 then
-    raise exception using errcode = 'AR040', message = 'resume refused';
-  end if;
-  insert into training.voice_resumes (voice_session_id, token_sha256, live_handle, expires_at)
-    values (p_voice_session, ledger.hash_text(v_token), p_live_handle, now() + interval '10 minutes');
-  return v_token;
-end $$;
-
-create or replace function training.redeem_voice_resume(p_token text)
-returns jsonb
-language plpgsql security definer set search_path = '' as $$
-declare
-  v   training.voice_resumes;
-  v_s training.sessions;
-  v_t arena.trials;
-begin
-  select * into v from training.voice_resumes where token_sha256 = ledger.hash_text(p_token) for update;
-  select s.* into v_s from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
-   where vs.id = v.voice_session_id and vs.status = 'open';
-  select * into v_t from arena.trials where id = v_s.trial_id;
-  if v.id is null or v.redeemed_at is not null or v.expires_at < now() or v_s.id is null
-     or v_s.user_id is distinct from arena.actor_id() or v_t.status <> 'running' then
-    raise exception using errcode = 'AR040', message = 'resume refused';
-  end if;
-  update training.voice_resumes set redeemed_at = now() where id = v.id;
-  return jsonb_build_object('voice_session_id', v.voice_session_id, 'trial_id', v_t.id, 'user_id', v_s.user_id,
-                            'mode', v_t.mode, 'split', 'dev');
-end $$;
-
-create or replace function training.take_voice_handle(p_voice_session uuid)
-returns text
-language plpgsql security definer set search_path = '' as $$
-declare
-  v training.voice_resumes;
-begin
-  select * into v from training.voice_resumes
-   where voice_session_id = p_voice_session and redeemed_at is not null and taken_at is null
-     and redeemed_at > now() - interval '2 minutes'
-   order by redeemed_at desc limit 1 for update;
-  if v.id is null then
-    raise exception using errcode = 'AR040', message = 'resume refused';
-  end if;
-  update training.voice_resumes set taken_at = now() where id = v.id;
-  return v.live_handle;
-end $$;
-
 -- acknowledge (arena_public): records the actor's acknowledgement once and returns its time.
 create or replace function training.acknowledge(p_kind text)
 returns timestamptz
@@ -526,7 +493,8 @@ create view training.v_my_study with (security_barrier = true) as
          (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
            where s.participant_id = p.id and s.phase = 'pre' and t.status in ('finalized', 'terminated')) as pre_ended,
          (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
-           where s.participant_id = p.id and s.phase = 'practice' and t.status in ('finalized', 'terminated')) as practice_ended,
+           where s.participant_id = p.id and s.phase = 'practice'
+             and training.session_counts(s.phase, t.mode, s.voice, t.status)) as practice_ended,
          (select count(*)::integer from training.sessions s join arena.trials t on t.id = s.trial_id
            where s.participant_id = p.id and s.phase = 'post' and t.status in ('finalized', 'terminated')) as post_ended,
          array(select m.variant_id from training.case_set_members m
@@ -546,7 +514,6 @@ alter table training.sessions enable row level security;
 alter table training.rubric_scores enable row level security;
 alter table training.access_tickets enable row level security;
 alter table training.voice_sessions enable row level security;
-alter table training.voice_resumes enable row level security;
 alter table training.acknowledgements enable row level security;
 alter table training.debriefs enable row level security;
 
@@ -558,11 +525,11 @@ revoke all on arena.v_dev_cases from public, anon, authenticated, service_role, 
 
 grant usage on schema training to arena_public, arena_subject, arena_referee;
 
+grant execute on function training.session_counts(text, text, boolean, text) to arena_public, arena_referee;
 grant execute on function
   training.start_session(uuid, text, uuid, uuid, boolean, text),
   training.issue_access_ticket(text, uuid),
   training.redeem_access_ticket(text, text),
-  training.redeem_voice_resume(text),
   training.acknowledge(text)
   to arena_public;
 grant select on arena.v_dev_cases, training.v_my_sessions, training.v_my_scores, training.v_my_debrief,
@@ -570,12 +537,10 @@ grant select on arena.v_dev_cases, training.v_my_sessions, training.v_my_scores,
 
 grant execute on function
   training.claim_voice_ticket(uuid, uuid, uuid, text),
-  training.record_voice_question(uuid, uuid, text, text),
-  training.issue_voice_resume(uuid, text),
-  training.take_voice_handle(uuid)
+  training.record_voice_question(uuid, uuid, text, text)
   to arena_subject;
 
--- arena_referee: reads training rows except resume handles; writes participants, case sets and scores
+-- arena_referee: reads training rows; writes participants, case sets and scores
 -- directly, and debriefs only through publish_debrief.
 grant select on training.participants, training.case_set_members, training.sessions, training.rubric_scores,
   training.access_tickets, training.voice_sessions, training.acknowledgements, training.debriefs,

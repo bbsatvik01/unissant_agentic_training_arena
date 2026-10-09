@@ -1,6 +1,6 @@
 # S4: Data layer (Supabase Postgres)
 
-Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.3, 2026-10-08: Codex spec round 1 fixes.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.4; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-014 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings; D-013 build first, one global spend ceiling, per-phase cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review, no runtime generator). Today is 2026-10-08; the build runs to 2026-11-02.
+Part of the build-ready spec for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant). **Version 2.4, 2026-10-09: Codex round 2 fixes; D-016 simplifications.** Governed by `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` (v10.4; sections 4.1-4.6, 7.1, 8.2, 8.3, 10, 12), `docs/research/synthesis/03-ui-direction.md` (v2.1), `docs/spec/S8-build-plan.md` section 9 (C-01 to C-48) and `docs/challenge/REQUIREMENTS.md`. Owner decisions D-001 to D-014 are hard constraints (D-007 superseded by D-009; D-011 local-first; D-012 generated-and-applied budget ceilings; D-013 build first, one global spend ceiling, per-phase cost tuning deferred; D-014 case families authored offline by Claude agents with Codex review, no runtime generator). Today is 2026-10-08; the build runs to 2026-11-02.
 
 Deliverables of this part:
 
@@ -81,8 +81,8 @@ The migrations are drafts: never applied to any Supabase project. Version 2.3 wa
 | Role | Used by (local processes, D-011) | Connects as | Reads | Writes |
 | --- | --- | --- | --- | --- |
 | `arena_public` | `arena-api` (:8080) and the tournament job (`python -m arena_tournament`) | Its own DSN in its own gitignored file, `.env.local.public` (S5 10.2): `arena_public.<project-ref>` on the Supavisor shared pooler, transaction mode, port 6543 (owner's project), or a direct connection to `supabase start` | 28 projection views; `arena.trial_context`; `arena.work_item_results` | 30 functions (section 6.3) |
-| `arena_subject` | `arena-subject` (:8081) | Its own DSN in `.env.local.subject`, same pooler | `subject.turn_context`, `subject.voice_context` | 18 functions (`record_subject_turn`, voice, budget, spans) |
-| `arena_referee` | `arena-referee` (:8082); operator CLI for case ingest and reveal | Its own DSN in `.env.local.referee`, same pooler | Every table and view except `training.voice_resumes` | 8 tables (labels, judgments, scores, leaderboards, isolation checks, participants, case sets, rubric scores); 34 functions, among them `training.publish_debrief` |
+| `arena_subject` | `arena-subject` (:8081) | Its own DSN in `.env.local.subject`, same pooler | `subject.turn_context`, `subject.voice_context` | 16 functions (`record_subject_turn`, voice, budget, spans) |
+| `arena_referee` | `arena-referee` (:8082); operator CLI for case ingest and reveal | Its own DSN in `.env.local.referee`, same pooler | Every table and view | 8 tables (labels, judgments, scores, leaderboards, isolation checks, participants, case sets, rubric scores); 35 functions, among them `training.publish_debrief` |
 | `postgres` (owner) | Migrations; owner-only controls (`ops.set_kill_switch`, `ops.set_bucket_ceiling`) and plan application (section 8.1) | Session mode, port 5432, or the SQL editor | All | All |
 
 - Roles are created `NOLOGIN NOINHERIT` in git (TechnoMile `supabase/migrations/20260927000100_foundation.sql` lines 21-29). The owner enables `LOGIN` and sets each password outside git; each local process reads only its own DSN (S5 1.3 boot checks). Setting the passwords is a secret write and needs explicit owner authorization (S4-D4).
@@ -125,7 +125,7 @@ Kept so the design is ready if the owner approves hosting; nothing below is on t
 | `subject` | Subject-private | Private packets | None | `turn_context`, `voice_context` only | Read |
 | `sealed` | Evaluator-only | Evaluator packets (role), hidden public packets, evidence artifacts and predicates, family ingests (bundle hash, accepted family file, attestations), hidden-split seal, tag proposals, quarantined artifacts, independent labels, judgments, commitment nonces | None | None | Read; insert labels and judgments |
 | `ledger` | Public hashes, evaluator decisions | Event chain, commitments, execution records, adjudications, corpus seals, manifests, revealed nonces | Views | None | Read; functions |
-| `training` | Public (actor-scoped) | Participants, case sets, sessions, rubric scores, debriefs, acknowledgements, tickets, voice sessions, resumes | Views and functions | Voice functions | Read (not resumes); insert participants, case sets, scores; publish debriefs |
+| `training` | Public (actor-scoped) | Participants, case sets, sessions, rubric scores, debriefs, acknowledgements, tickets, voice sessions | Views and functions | Voice functions | Read (not resumes); insert participants, case sets, scores; publish debriefs |
 | `ops` | Operator | Config, buckets, prices, limits, reservations, model calls, kill-switch history, latency, trace mirror and summaries, keep-alive | Views and functions | Functions | Read; prune spans |
 
 The direction calls the public tier "public projections"; the schema is named `arena` so it never collides with Supabase's exposed `public` schema.
@@ -166,8 +166,8 @@ Columns are listed in full in the SQL; this section gives keys and purpose. "App
 | `sealed.evaluator_packets` | `variant_id`, `role`, `packet` (canonical facts, contradictions, resolution criteria, rubric, evidence artifacts with release predicates; at most 131,072 bytes), `sha256` | SCN-9; the only place a role label exists | ingest |
 | `sealed.hidden_public_packets` | `variant_id`, `packet`, `sha256` | Hidden variants' public packets until a running trial projects them | ingest |
 | `sealed.evidence_artifacts` | (`variant_id`, `record_id` `rec-NN`, C-16), `kind` (record, clarification, context_change; follows `doc_kind`), `doc_kind` (S1 `artifactKind`, C-24), `title`, `content` (<= 12,288 bytes, SG1-14), `sha256`, `requestable`, `scheduled_turn`, `request_after_turn` (exactly one of the two) | Evidence and its deterministic release predicate in one row (replaces the direction's separate `release_predicates`). Ingest refuses rows that differ from the evaluator packet's releasable records or from the public requestable list (SG1-09) | ingest |
-| `sealed.family_ingests` | `family_id`, `bundle_sha256`, `source` (the accepted family file), `attestations` (validator and review results) | Idempotent re-ingest check and the sealed authoring archive kept after the workspace is deleted (SG1-08) | ingest |
-| `sealed.hidden_split_seals` | `id`, `seal_sha256`, counts | The one seal of the hidden split (SCN-12) | `seal_hidden_split` |
+| `sealed.family_ingests` | `family_id`, `bundle_sha256`, `source` (the accepted family file text), `source_sha256` (generated), `attestation` (S1 10.5's object) | Idempotent re-ingest check and the sealed authoring archive kept after the workspace is deleted (SG1-08, SG1-19) | ingest |
+| `sealed.hidden_split_seals` | `id`, `seal_sha256`, counts, `sampler_record`, `sampler_sha256` (generated) | The one seal of the hidden split with its sampler record (SCN-12, SG1-19) | `seal_hidden_split` |
 | `sealed.subject_tag_proposals` | (`trial_id`, `turn_no`), `tag` | The subject's own disclosure tag; a proposal, not ground truth; the source of the subject's committed disclosure state (SG1-02) | `record_subject_turn` |
 | `sealed.quarantined_artifacts` | `trial_id`, `turn_no`, `utterance`, `tag`, `guard_result` | The offending output of a guard rejection (SUB-7) | `record_subject_turn` |
 | `sealed.independent_labels` | (`trial_id`, `turn_no`, `labeler` model or human_consensus), `label` (words: evasion, genuine_uncertainty, legitimate_non_disclosure, poorly_framed_question, responsive; S3's codes are display abbreviations only, C-09), `compliant`, `rationale` (R1's evidence quote; empty when the label needs none or the quote check failed, SG2-08), `prompt_sha256` | EVL-8 events and EVL-11 fidelity: the model label (R1) and the human consensus (C-34) | Referee insert |
@@ -203,7 +203,6 @@ All are append-only.
 | `debriefs` | `session_id`, `payload` (debrief.v1: schema, scored, outcome, resolution, rubric, scorecards, provenance; at most 65,536 bytes), `sha256`, `published_at` | The one published debrief of a session (D8, SG3-14); its owner reads it through `training.v_my_debrief` |
 | `access_tickets` | `ticket_sha256`, `kind` (sse, voice), `user_id`, `trial_id`, `mode`, `expires_at` (60 s), `redeemed_at`, `subject_checked_at` | Single-use tickets bound to user, trial, split (dev) and mode |
 | `voice_sessions` | `id`, `session_id`, `ticket_id`, `reservation_id`, `status`, `close_code` | One Live session (unscored practice, D7); one open per session |
-| `voice_resumes` | `token_sha256`, `live_handle`, `expires_at`, `redeemed_at`, `taken_at` | Resume credentials; the handle never leaves `arena_subject` |
 
 Voice transcription fragments and playback counts are not stored (D7): a voice turn enters `arena.turns` with channel `voice` like a text turn, and playback acknowledgements drive only the browser.
 
@@ -269,7 +268,7 @@ stateDiagram-v2
 | 3 | `open_work_item(trial, 'subject_answer', key)`; commit; call to `arena-subject.answer(trial, wi)` | | |
 | 4 | `arena-subject`: `subject.turn_context(trial, wi)`; one model call; guard; `record_subject_turn(trial, wi, utterance, tag, guard_result)` | +1 | `subject_turn`, or `trial_ended` on quarantine; the turn's KPI-4 sample opens `pending` (text turn with an assistant) |
 | 5 | `open_work_item(trial, 'coaching', card key)`; `trial_context(trial, wi)`; card call; `record_coaching_event(trial, wi, card, 'coach_card')` | +0 | `coach_card`; ends the turn in progress; completes the KPI-4 sample |
-| 5b | A1 only: `open_work_item(trial, 'coaching', deep key)`; deep call; `record_coaching_event(trial, wi, update, 'coach_deep')` | +0 | `coach_deep`; stale (AR002, discarded) if the next question or a release came first |
+| 5b | A1 only: `open_work_item(trial, 'coaching', deep key, card version)` (refused AR002 if the version moved, SG3-26); deep call; `record_coaching_event(trial, wi, update, 'coach_deep')` | +0 | `coach_deep`; stale (AR002, discarded) if the next question or a release came first |
 | 5c | Practice only: the browser validates the complete card and `arena-api` calls `ops.ack_card(trial, turn_no, client_valid)` (C-28) | +0 | none; stamps `client_ack_at` |
 | 6 | At 12 exchanges or a committed finding: `open_work_item(trial, 'finalize', key)`; `finalize_trial(trial, wi, finding)` | +1 | `finding_committed` (training), `trial_ended`; pending KPI-4 samples become `unmeasured_timeout` |
 
@@ -277,7 +276,7 @@ One open turn per trial (S5 5.1): from step 4 until a `coach_card` or `coach_una
 
 **Replay (D2).** A replay trial owns its transcript. Each step is `open_work_item(trial, 'replay_turn', key)` then `arena.advance_replay(trial, wi)`, which copies the next turn n of the sealed source corpus transcript into the replay trial as turn n: the question, then every source release made after turn n - 1 was answered (the evidence the source subject had when it answered), then the answer, with the same turn number, record ids and release sequence (+1 version; events `question_recorded`, `evidence_released`, `subject_turn`; the coaching hold starts). Steps 5 and 5b follow as for an interactive trial. The coach therefore never sees a later answer or a later record; work items, events, citations, the commitment and the scorer use the replay trial's own rows, and the source references are (`source_trial_id`, `turn_no`) and (`source_trial_id`, `record_id`). Finalization needs the whole source copied. No KPI-4 sample is opened (no live subject).
 
-**Voice (D7; development cases only, unscored practice).** The spoken question exists only inside `arena-subject`, so `training.record_voice_question(trial, voice_session, text, key)` (granted to `arena_subject`) records it on the voice session's own training trial with channel `voice` and returns the `subject_answer` item for that turn; a repeated key returns the same turn and item. `arena-subject` reads its context with `subject.voice_context(voice_session)` (no work item), commits the answer with `record_subject_turn`, and the turn starts no coaching hold and no KPI-4 sample. Evidence stays a REST action: `arena-api` calls `release_evidence` between voice turns for requested records and, at each turn boundary, with an empty list for due scheduled records (S5 7.4).
+**Voice (D7; development cases only, unscored practice).** The spoken question exists only inside `arena-subject`, so `training.record_voice_question(trial, voice_session, text, key)` (granted to `arena_subject`) records it on the voice session's own training trial with channel `voice` and returns the `subject_answer` item for that turn; a repeated key returns the same turn and item. `arena-subject` reads its context with `subject.voice_context(voice_session)` (no work item), commits the answer with `record_subject_turn`, and the turn starts no coaching hold and no KPI-4 sample. The same commit releases every due scheduled record (the shared internal `arena._apply_releases`), so the next voice question is recorded at the post-release version and `arena-subject` refreshes Live before forwarding more audio (SG3-27). Requested records stay a REST action between turns: `release_evidence` refuses (AR004) while a voice question is open. A dropped connection ends the voice session; a reconnect is a new voice session on the same trial (D-016, S5 7.2). A text turn of a voice session opens no KPI-4 sample either: eligibility is the session's (`training.sessions.voice`, SG3-32).
 
 ### 5.4 Event store
 
@@ -382,7 +381,7 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 
 | Function | Grantee | Purpose |
 | --- | --- | --- |
-| `arena.open_work_item(trial, kind, request_key)` | `arena_public` | Server-created item at the current version (`subject_answer` only with an open question; `replay_turn` only on a replay trial with an uncopied source turn); a repeated key returns the existing item and its stored result (D3) |
+| `arena.open_work_item(trial, kind, request_key, expected_version)` | `arena_public` | Server-created item at the current version; with `expected_version`, created only while the trial is at that version, else AR002 (SG3-26) (`subject_answer` only with an open question; `replay_turn` only on a replay trial with an uncopied source turn); a repeated key returns the existing item and its stored result (D3) |
 | `arena.work_item_results(trial)` | `arena_public` | Every work item of the trial with status and result, for the caller allowed to act on it (D3 recovery) |
 | `arena.start_trial(trial)` | `arena_public` | planned to running; BKO-2 order; `source_unavailable` for replay without a completed corpus transcript |
 | `arena.retry_trial(planned_trial)` | `arena_public` | Next attempt after `infra_failed` |
@@ -394,11 +393,11 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | `arena.trial_visible(trial)`, `arena.actor_id()` | `arena_public` | Used inside projection views |
 | `subject.turn_context(trial, item)` | `arena_subject` | Private packet, public packet, transcript, evidence, the committed disclosure state (facts first disclosed and gates opened, by turn, from stored tags; SG1-02), subject manifest, for one open `subject_answer` item |
 | `subject.voice_context(voice_session)` | `arena_subject` | The same view for an open voice session with no work item, plus the session's reservation, recorded spend and shutoff point (D7, SG3-05) |
-| `training.start_session(variant, mode, coach, subject, voice, key)` | `arena_public` | Sessions; the phase is derived from committed state (SG3-13, SG4-10): pre on the participant's pre-test set, post after both pre-tests and three practice sessions, practice otherwise (after both pre-tests for a participant); tests in assessment mode and text; each test variant once; refuses practice on a KPI-1 case-set family (X-08) and any retired family (SG1-11) |
-| `training.issue_access_ticket`, `redeem_access_ticket`, `redeem_voice_resume` | `arena_public` | Tickets; an SSE ticket is also issued for an ended trial until its debrief is published (catch-up, D9, SG3-18); a voice ticket only for a running trial |
+| `training.start_session(variant, mode, coach, subject, voice, key)` | `arena_public` | Sessions; the phase is derived from committed state (SG3-13, SG4-10): pre on the participant's pre-test set, post after both pre-tests and three qualifying practice sessions (Practice mode, text, finalized: `training.session_counts`, the one predicate that `v_my_study` also uses; SG3-31), practice otherwise (after both pre-tests for a participant); tests in assessment mode and text; each test variant once; refuses practice on a KPI-1 case-set family (X-08) and any retired family (SG1-11) |
+| `training.issue_access_ticket`, `redeem_access_ticket` | `arena_public` | Tickets; an SSE ticket is also issued for an ended trial until its debrief is published (catch-up, D9, SG3-18); a voice ticket only for a running trial |
 | `training.acknowledge(kind)` | `arena_public` | Records the actor's EX-4 acknowledgement once and returns its time; `training.v_my_acknowledgements` reads it (X-15) |
 | `training.publish_debrief(session, payload)` | `arena_referee` | Stores the session's debrief.v1 once after the trial ended and appends `debrief_ready` in the same transaction (D8, C-17) |
-| `training.claim_voice_ticket`, `open_voice_session`, `close_voice_session`, `record_voice_question`, `issue_voice_resume`, `take_voice_handle` | `arena_subject` | Voice session lifecycle |
+| `training.claim_voice_ticket`, `open_voice_session`, `close_voice_session`, `record_voice_question` | `arena_subject` | Voice session lifecycle; no resume credential: a reconnect is a new voice session (D-016, S5 7.2) |
 | `ops.reserve_model_call`, `mark_dispatched`, `record_usage`, `settle_reservation`, `budget_status`, `mirror_spans`, `record_trace_summary` | all three runtime roles | Metering and tracing (section 8.7); every reservation names bucket `global` (D-013); only the role that made a reservation dispatches, meters and settles it (SG3-11) |
 | `ops.reserve_voice`, `ops.settle_voice_reservation` | `arena_subject` | Whole-session voice reservation; its settlement after the session closed (D7) |
 | `ops.admit_unit`, `ops.set_export_state` | `arena_public`, `arena_referee` | Soft unit admission; span export state |
@@ -410,8 +409,8 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 
 | Function | Contract |
 | --- | --- |
-| `sealed.ingest_case_family(bundle)` | One transaction writes family, variants, three packets, artifacts and the archive (accepted family file and attestations, SG1-08); refuses hidden families after the seal, families without both roles, more than 6 artifacts, artifact rows that differ from the evaluator packet's releasable records or from the public requestable list (SG1-09), a `supersedes` that does not name one active development family (SG1-11), re-use of a family code with different content. A hidden ingest takes the seal table in SHARE mode before it checks for the seal, so it serializes with `seal_hidden_split` (SG3-09, SG1-10) |
-| `sealed.seal_hidden_split()` | Once, under an EXCLUSIVE lock on the seal table; digest over every hidden variant's whole case material (section 7.4); ledger event with the seal hash |
+| `sealed.ingest_case_family(bundle)` | One transaction writes family, variants, three packets, artifacts and the archive (the accepted family file text and its attestation, SG1-08, SG1-19); refuses hidden families after the seal, families without both roles, more than 6 artifacts, artifact rows that differ from the evaluator packet's releasable records or from the public requestable list (SG1-09), an archive that does not match (S1 10.5: text hash not the attested `family_sha256`, a required check or Codex result not passed, family code not derived from the file, bundle variants not the file's variants; SG1-19), a revision whose `supersedes` is missing, wrong or not active, a `supersedes` on revision 1, a revision of a KPI-1 case-set family (SG1-11, SG1-22, SG1-23), re-use of a family code with different content. A revision retires its predecessor in the same transaction; there is no other retirement writer. A hidden ingest takes the seal table in SHARE mode before it checks for the seal, so it serializes with `seal_hidden_split` (SG3-09, SG1-10) |
+| `sealed.seal_hidden_split(sampler_record)` | Once, under an EXCLUSIVE lock on the seal table; digest over every hidden variant's whole case material and its family's archive entry (file hash and attestation, SG1-19; section 7.4); stores the sampler record, whose `n` and assignment must match the sealed families; ledger event with the seal hash and the sampler hash |
 | `arena.register_candidate(kind, name, version, manifest)` | Immutable; S2 manifest.v1 checked (every top-level key, `manifest_version`, `kind`, `candidate_id` and `version` equal to the row; AR007), four kinds (C-47) |
 | `arena.create_tournament(name, split, seed, bucket, max_exchanges)` | Idempotent by name |
 | `arena.add_planned_trials(tournament, rows)` | Draft only; one family per block; candidate kinds match slots (assistant and subject only; referee and negative_control refused, AR007); no retired family; replay rows reference a corpus row of the same variant |
@@ -432,7 +431,7 @@ Every function in the six schemas: `SECURITY DEFINER` (except trigger and pure h
 | AR007 | Invalid input | HTTP 422 |
 | AR010 | Append-only or immutable row | Defect |
 | AR020, AR021 | Reveal precondition; seal or hash mismatch | Operator investigates; never forced |
-| AR040 | Caller, ticket, quota or resume refused; a reservation used by a role that did not make it | HTTP 404 (no existence oracle) |
+| AR040 | Caller, ticket or quota refused; a reservation used by a role that did not make it | HTTP 404 (no existence oracle) |
 
 ---
 
@@ -464,9 +463,9 @@ One terminal record per trial attempt, immutable: `completed`, `subject_quaranti
 
 | Hash | Computed over | When | Checked |
 | --- | --- | --- | --- |
-| Hidden-split seal | Per hidden variant: family code, variant code and the sha256 of one canonical jsonb of everything an interview or the scoring consumes: family row (code, domain, split), variant row (code, style, difficulty), the three packets, the role, every artifact row in full (record id, kind, document kind, title, content, requestable, scheduled turn, request threshold). Recomputed from stored values, never from stored hash columns; lines sorted by code point (SG3-08, SG1-09) | Once, before any hidden tournament freezes | `freeze_tournament`, `reveal` |
+| Hidden-split seal | Per hidden variant: family code, variant code and the sha256 of one canonical jsonb of everything an interview or the scoring consumes: family row (code, domain, split), variant row (code, style, difficulty), the three packets, the role, every artifact row in full (record id, kind, document kind, title, content, requestable, scheduled turn, request threshold) and the family's archive entry (the accepted file text's sha256 and the attestation, SG1-19); the seal row also stores the sampler record and its hash. Recomputed from stored values, never from stored hash columns; lines sorted by code point (SG3-08, SG1-09) | Once, before any hidden tournament freezes | `freeze_tournament`, `reveal` |
 | Roster | Tournament id, split, seed, cap; per planned trial: position, id, track, block, variant, candidate manifest hashes, repeat, source position | `freeze_tournament` | `reveal` |
-| Corpus | Per corpus planned trial: id, execution state, committed transcript and evidence hashes; sorted | `seal_replay_corpus` (before any replay trial starts) | `reveal` |
+| Corpus | Per corpus planned trial: id, execution state, committed transcript and evidence hashes, the hash of its first R1 report (`fidelity_detail`) and its first validity adjudication (id and verdict); sorted. Sealing requires both for every completed transcript and is idempotent (SG2-27, SG3-24); later corrections append adjudications and leave the digest unchanged | `seal_replay_corpus` through the referee's corpus-seal route (before any replay trial starts; replay starts only from completed transcripts whose first verdict is `valid`) | `reveal` |
 | Manifest | S3 4.4's canonical manifest text (UTF-8, LF, trailing newline), hashed with `ledger.hash_text`; S3's Python verifier recomputes the same bytes (X-07) | `reveal`, `seal_corrected_manifest` | Bound to every leaderboard |
 
 ### 7.5 Inclusion manifest (direction 7.1, F14, F15; S3 4.3-4.4 canonical, X-07)
@@ -564,7 +563,7 @@ Coaching cards during a voice session reserve on their own against `global`, lik
 
 ### 8.8 KPI-4 samples (S3 6.4 canonical, C-28, D4)
 
-`record_subject_turn` opens one `ops.latency_samples` row per text turn of a trial with an assistant (not replay, not voice) when the subject turn commits: `card_outcome = 'pending'`, `subject_commit_at` = the `clock_timestamp()` of the `subject_turn` event, `population` derived from the trial (`practice_client` for practice training trials, `assessment` for assessment ones, `harness` for tournament trials). The turn's `coach_card` or `coach_unavailable` completes it: `card_validated_server_at` = that event's `clock_timestamp()`, `card_outcome` `delivered`, or for `coach_unavailable` `repair_failed` when the payload says so and `timeout` otherwise, `instance_cold` from the transaction setting in 2.3. A row still pending when the next question is recorded or the trial ends (finalized, failed or quarantined) becomes `unmeasured_timeout`: a miss that is also counted as unmeasured, so a turn whose coaching died with its process stays in the metric population (SG3-16, SG2-12). On practice turns the browser acknowledges immediately after it has the complete card and has validated it against the shared JSON schema; `arena-api` calls `ops.ack_card(trial, turn_no, client_valid)`, which stamps `client_ack_at = clock_timestamp()` once, or records `client_invalid` (a miss). KPI-4 = `client_ack_at` - `subject_commit_at`, both server clock, so it includes one uplink and is conservative; `server_ms` stays as a diagnostic and is the harness population's latency; assessment turns are server-only and excluded from KPI-4. Derived columns: `kpi4_ms` (null unless delivered, and for practice until acknowledged), `miss` (timeout, repair_failed, client_invalid, unmeasured_timeout) and `unmeasured` (unmeasured_timeout, or a delivered practice card with no acknowledgement). A row of an abandoned session still pending when S3 reads it counts as `unmeasured_timeout`. S3 computes the share within 3 s, the nearest-rank p95 and the session-cluster bootstrap from `ops.v_latency` (or the referee's direct read).
+`record_subject_turn` opens one `ops.latency_samples` row per text turn of a trial with an assistant (not replay, and not any turn of a voice session, text continuations included: eligibility is the session's, SG3-32) when the subject turn commits: `card_outcome = 'pending'`, `subject_commit_at` = the `clock_timestamp()` of the `subject_turn` event, `population` derived from the trial (`practice_client` for practice training trials, `assessment` for assessment ones, `harness` for tournament trials). The turn's `coach_card` or `coach_unavailable` completes it: `card_validated_server_at` = that event's `clock_timestamp()`, `card_outcome` `delivered`, or for `coach_unavailable` `repair_failed` when the payload says so and `timeout` otherwise, `instance_cold` from the transaction setting in 2.3. A row still pending when the next question is recorded or the trial ends (finalized, failed or quarantined) becomes `unmeasured_timeout`: a miss that is also counted as unmeasured, so a turn whose coaching died with its process stays in the metric population (SG3-16, SG2-12). On practice turns the browser acknowledges immediately after it has the complete card and has validated it against the shared JSON schema; `arena-api` calls `ops.ack_card(trial, turn_no, client_valid)`, which stamps `client_ack_at = clock_timestamp()` once, or records `client_invalid` (a miss). KPI-4 = `client_ack_at` - `subject_commit_at`, both server clock, so it includes one uplink and is conservative; `server_ms` stays as a diagnostic and is the harness population's latency; assessment turns are server-only and excluded from KPI-4. Derived columns: `kpi4_ms` (null unless delivered, and for practice until acknowledged), `miss` (timeout, repair_failed, client_invalid, unmeasured_timeout) and `unmeasured` (unmeasured_timeout, or a delivered practice card with no acknowledgement). A row of an abandoned session needs no later request (SG2-23, SG3-30): `ops.v_latency` exposes `report_outcome`, which is `unmeasured_timeout` for a row still pending 120 s after its subject commit (the coaching deadline that also ends the hold, S5 5.1), and derives `miss`, `unmeasured` and `in_flight` from it; a pending row inside the deadline is `in_flight` and stays out of the share until it resolves. S3 computes the share within 3 s, the nearest-rank p95 and the session-cluster bootstrap from `ops.v_latency` only.
 
 ---
 
@@ -599,8 +598,8 @@ RLS is enabled on every table in the six schemas (CM-04) with no policy for `ano
 | Role | USAGE | Tables | Views | Functions |
 | --- | --- | --- | --- | --- |
 | `arena_public` | arena, ledger, training, ops | none | 28 (SELECT) | 30 |
-| `arena_subject` | arena, subject, training, ops | none | none | 18 |
-| `arena_referee` | all six | SELECT on 55 of 56 (all but `training.voice_resumes`); INSERT on 8 | SELECT on all 28 | 34 |
+| `arena_subject` | arena, subject, training, ops | none | none | 16 |
+| `arena_referee` | all six | SELECT on all 55; INSERT on 8 | SELECT on all 28 | 35 |
 | `anon`, `authenticated`, `service_role` | none | none | none | none |
 
 No runtime role holds schema CREATE, a sequence privilege, or UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER or MAINTAIN on any table or view (CM-14).
@@ -617,7 +616,7 @@ arena_public,function,arena.actor_id(),EXECUTE,allow
 arena_public,function,"arena.advance_replay(uuid,uuid)",EXECUTE,allow
 arena_public,function,"arena.events_after(uuid,integer,integer)",EXECUTE,allow
 arena_public,function,"arena.finalize_trial(uuid,uuid,jsonb)",EXECUTE,allow
-arena_public,function,"arena.open_work_item(uuid,text,text)",EXECUTE,allow
+arena_public,function,"arena.open_work_item(uuid,text,text,integer)",EXECUTE,allow
 arena_public,function,"arena.record_coaching_event(uuid,uuid,jsonb,text)",EXECUTE,allow
 arena_public,function,"arena.record_execution_failure(uuid,uuid,text,text)",EXECUTE,allow
 arena_public,function,"arena.release_evidence(uuid,uuid,text[])",EXECUTE,allow
@@ -641,7 +640,7 @@ arena_public,function,"ops.settle_reservation(uuid,text)",EXECUTE,allow
 arena_public,function,training.acknowledge(text),EXECUTE,allow
 arena_public,function,"training.issue_access_ticket(text,uuid)",EXECUTE,allow
 arena_public,function,"training.redeem_access_ticket(text,text)",EXECUTE,allow
-arena_public,function,training.redeem_voice_resume(text),EXECUTE,allow
+arena_public,function,"training.session_counts(text,text,boolean,text)",EXECUTE,allow
 arena_public,function,"training.start_session(uuid,text,uuid,uuid,boolean,text)",EXECUTE,allow
 arena_public,schema,arena,USAGE,allow
 arena_public,schema,ledger,USAGE,allow
@@ -706,9 +705,10 @@ arena_referee,function,"ops.set_export_state(jsonb,text)",EXECUTE,allow
 arena_referee,function,"ops.settle_reservation(uuid,text)",EXECUTE,allow
 arena_referee,function,sealed.hidden_split_digest(),EXECUTE,allow
 arena_referee,function,sealed.ingest_case_family(jsonb),EXECUTE,allow
-arena_referee,function,sealed.seal_hidden_split(),EXECUTE,allow
+arena_referee,function,sealed.seal_hidden_split(jsonb),EXECUTE,allow
 arena_referee,function,sealed.verify_hidden_seal(),EXECUTE,allow
 arena_referee,function,"training.publish_debrief(uuid,jsonb)",EXECUTE,allow
+arena_referee,function,"training.session_counts(text,text,boolean,text)",EXECUTE,allow
 arena_referee,schema,arena,USAGE,allow
 arena_referee,schema,ledger,USAGE,allow
 arena_referee,schema,ops,USAGE,allow
@@ -737,10 +737,8 @@ arena_subject,function,"subject.turn_context(uuid,uuid)",EXECUTE,allow
 arena_subject,function,subject.voice_context(uuid),EXECUTE,allow
 arena_subject,function,"training.claim_voice_ticket(uuid,uuid,uuid,text)",EXECUTE,allow
 arena_subject,function,"training.close_voice_session(uuid,text)",EXECUTE,allow
-arena_subject,function,"training.issue_voice_resume(uuid,text)",EXECUTE,allow
 arena_subject,function,"training.open_voice_session(uuid,uuid)",EXECUTE,allow
 arena_subject,function,"training.record_voice_question(uuid,uuid,text,text)",EXECUTE,allow
-arena_subject,function,training.take_voice_handle(uuid),EXECUTE,allow
 arena_subject,schema,arena,USAGE,allow
 arena_subject,schema,ops,USAGE,allow
 arena_subject,schema,subject,USAGE,allow
@@ -751,7 +749,6 @@ arena_referee,table+view,sealed.*,SELECT,allow
 arena_referee,table+view,ledger.*,SELECT,allow
 arena_referee,table+view,training.*,SELECT,allow
 arena_referee,table+view,ops.*,SELECT,allow
-arena_referee,table,training.voice_resumes,SELECT,deny
 ```
 
 The direction's capability matrix (4.3) also has route-level rows (local: the dev identity middleware with its Host, Origin and CSRF checks, the per-run service token between processes, SSE, WebSocket, local Phoenix; hosted variant: IAP and IAM between services). Those are S5's route tests, which also carry the job-to-referee (block and trial scoring) and api-to-referee (debrief) routes: callers send identifiers only and receive public data (C-42). The database half above is what they rest on: whatever route an investigator reaches, it holds `arena_public`, and `arena_public` cannot read a role label, a private packet, an evaluator packet, an unreleased artifact, or any hidden-trial content after finalization and before reveal.
@@ -787,7 +784,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | `ops.reserve_voice_session` | `ops.reserve_voice` | |
 | `ops.meter_voice(session, delta_usd)` | `ops.record_usage(voice_reservation, seq, model, tokens...)` | Takes token counts, not a caller-computed dollar delta; returns `spend_usd` and `shutoff` |
 | `ops.settle_voice_session` | `ops.settle_voice_reservation(reservation, outcome)` | `arena_subject` only, after `training.close_voice_session` (D7) |
-| Voice startup, resume and context refresh | `subject.voice_context(voice_session)` | No work item; returns reservation, spend and shutoff (D7, SG3-05) |
+| Voice startup, reconnect (a new voice session) and context refresh | `subject.voice_context(voice_session)` | No work item; returns reservation, spend and shutoff (D7, SG3-05) |
 | `ops.liability_rates` | `ops.model_prices` | |
 | `ops.admit_unit`, `ops.set_kill_switch`, `ops.set_bucket_ceiling`, `ops.latency_samples`, `ops.trace_mirror`, `ops.trace_summaries` | Same | Kill switch and buckets are owner-only; buckets start at $0 and the operator applies `budget_plan()` (D-012) |
 | `POST /api/telemetry/kpi4` (client difference) | `ops.ack_card(trial, turn_no, client_valid)` | The acknowledgement time is stamped by the database; no client clock arithmetic (C-28) |
@@ -803,7 +800,7 @@ S5 section 4.6 and 5.1 proposed names and stated that S4's names win. This mappi
 | S6 `debrief.ready` | Persisted `debrief_ready`, written by `training.publish_debrief` | Other S6 wire names are mapped or synthesized by `events/projections.py` (C-17) |
 | S3 `reason_code`, `decided_by` | `ledger.validity_adjudications.reason`, `decided_by` | C-33 |
 | `ops.sse_tickets`, `ops.voice_tickets` | `training.access_tickets` (kind `sse` or `voice`) | |
-| `ops.voice_resume` | `training.voice_resumes` with `issue_voice_resume`, `redeem_voice_resume`, `take_voice_handle` | |
+| `ops.voice_resume` | None: removed by D-016 (a reconnect is a new voice session) | |
 | `training.voice_events`, playback counts | None: voice turns are rows of `arena.turns` (channel `voice`); playback acknowledgements stay in the browser | D7 |
 | `training.voice_sessions.metered_usd` | `spend_usd` from `ops.record_usage` and `subject.voice_context` | |
 | `relay_pending` row at ticket mint | Ticket at mint; the session row is created at claim (`claim_voice_ticket`, `reserve_voice`, `open_voice_session` in one transaction) | |

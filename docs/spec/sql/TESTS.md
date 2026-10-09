@@ -27,6 +27,8 @@ Version 2.1 was applied the same way to a fresh PostgreSQL 16.13 cluster (port 5
 
 Version 2.3 was applied to a fresh PostgreSQL 17.11 container (`postgres:17`, port 55497 bound to 127.0.0.1, a random local password never committed), with the Supabase shim and `dblink`, every migration under `ON_ERROR_STOP`. First the v2.1 drafts were applied unchanged and the old smoke suite passed on 17.11; then the findings were reproduced red on v2.1: a score insert after reveal fails with `record "new" has no field "label"` (SG3-01); a replay trial's events carry turn 0 and version 0 (SG3-02); a deep update on the card's item fails AR003 (SG3-04); a changed release threshold, a swapped role and a forged released content that keeps its cached hash all still verify (SG3-08); with two dblink sessions a seal commits while a hidden ingest is open and the seal then fails to verify with 1 sealed family of 2 (SG3-09); `arena_public` settles a reservation `arena_subject` made (SG3-11); a hidden span with no trial is `pending` (SG3-12); `arena_public` cannot read participants or config and has no projection for them (SG3-13); a subject commit with no coaching leaves no latency row (SG3-16); a finding citing turn 1.5 and the absent `doc-04` commits (SG3-17); an SSE ticket for a just-finalized trial is refused (SG3-18); a helper created later in `arena` is executable by `arena_public` (SG3-20); REFERENCES, TRIGGER and MAINTAIN grants escape the old CM-01 enumeration (SG3-21); an empty R1 evidence quote cannot be stored (SG2-08); `assistant_relay` is not a storable origin (SG2-09); a 19 KB record is accepted at ingest and then fails at release on the 16 KiB event check (SG1-14). The v2.3 smoke suite (eleven scripts, 314 checks, the race script on its own fresh database) then ran green on 17.11: the v2.1 rules re-run, every row tagged with a finding ID below, the seed families F01-F03 ingested through the loader rule, and the dblink cases (concurrent finalize, reservation race, ingest and seal both ways). The privilege allowlist in S4 section 10 was regenerated from a freshly migrated 17.11 database (215 triples over every privilege type) and checked to expand back to the live set exactly. Scripts and outputs are in the session scratchpad (`s4v23/`); they show the drafts are coherent and do not replace this suite.
 
+Version 2.4 (Codex round 2, D-016) was applied in order to a fresh throwaway PostgreSQL 16.13 cluster (`initdb -U postgres -A trust`, port 55481, unix socket in a `mktemp -d /tmp/pg.XXXX` directory, `listen_addresses = ''`, the Supabase shim and `dblink`), every migration under `ON_ERROR_STOP`, then four new smoke scripts: archive, revision and seal (CS-07, CS-23, CS-24, CS-27: 26 assertions including a tampered archive row failing `verify_hidden_seal`); turn flow (SG2-21 relay vocabulary accepted and refused, WI-09, CC-11b, VB-16: 13 assertions); study protocol (TT-15: 4 assertions); corpus seal (EF-11, EF-13 to EF-15: 8 assertions). All pass. Two were proved to catch their defect by mutation: restoring the old practice predicate (`status in (finalized, terminated)`) makes TT-15's first post-test admission succeed, and the CX-2 comparison with "any account fact" passes the SG1-21 counterexample. Live privilege counts after the change: `arena_public` 30 functions, `arena_subject` 16, `arena_referee` 35, 55 tables, all readable by `arena_referee`; the section 10 fixture rows were updated to match.
+
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
 | ID | Assertion | Expected |
@@ -57,8 +59,8 @@ Version 2.3 was applied to a fresh PostgreSQL 17.11 container (`postgres:17`, po
 | CS-04 | Bundle with only truthful variants | `AR007` |
 | CS-05 | Variant with 7 artifacts | `AR006` |
 | CS-06 | Identical re-ingest; same `family_code` with changed content | Same id; `AR003` |
-| CS-07 | `seal_hidden_split()` returns 64 hex; `verify_hidden_seal()` is true in a later statement | Holds |
-| CS-08 | Second `seal_hidden_split()` | `AR001` |
+| CS-07 | `seal_hidden_split(sampler_record)` with a sampler record whose `n` and assignment cover the sealed families returns 64 hex; `verify_hidden_seal()` is true in a later statement; the ledger event carries the sampler hash; a sampler record with the wrong `n` | Holds; Holds; Holds; `AR007` |
+| CS-08 | Second `seal_hidden_split(...)` | `AR001` |
 | CS-09 | Hidden ingest after the seal | `AR001` |
 | CS-10 | Tamper fixture: owner disables the trigger, edits one hidden artifact, re-enables; `verify_hidden_seal()` | false |
 | CS-11 | `update` or `delete` on each case table (families, variants, three packet tables, artifacts, ingests, seals, candidates) | `AR010` each |
@@ -73,10 +75,11 @@ Version 2.3 was applied to a fresh PostgreSQL 17.11 container (`postgres:17`, po
 | CS-20 | SG3-08 seal tamper fixtures, each in its own rolled-back transaction with the owner disabling the trigger: a hidden artifact's `scheduled_turn`, `title`, `doc_kind`, `requestable` flag; a hidden variant's role; a hidden variant's difficulty; then `verify_hidden_seal()` after every rollback | false each; true again at the end |
 | CS-21 | SG3-09 race (dblink, fresh database): session A ingests a hidden family in an open transaction; session B calls `seal_hidden_split()` | B blocks (`dblink_is_busy = 1`) until A commits, then seals both families; `verify_hidden_seal()` true |
 | CS-22 | SG3-09 race, the other order: the owner holds the seal table in EXCLUSIVE mode (a seal in progress) and commits after the seal row exists; session B ingests a hidden family meanwhile | B blocks, then `AR001` (the split is sealed); the seal still verifies |
-| CS-23 | SG1-08 archive: `sealed.family_ingests` holds the accepted family file (`source`) and `attestations` (validators and review keys) under `bundle_sha256`; re-ingesting the archived bundle; a bundle without attestations | Holds; the same family id; `23502` |
-| CS-24 | SG1-11 revision: ingest of `X.r2` with `supersedes = X`; a second revision superseding the retired `X`; a hidden bundle with `supersedes`; update or delete on `arena.family_retirements` | `X` retired, superseded by `X.r2`; `AR007`; `AR007`; `AR010` each |
+| CS-23 | SG1-08, SG1-19 archive: `sealed.family_ingests` holds the family file text (`source`, `source_sha256`) and the S1 10.5 `attestation` under `bundle_sha256`; re-ingesting the archived bundle; an attested hash that is not the text's; a failed Codex result (`cx3: fail`); missing checks; a `source` that is another family's file with its own valid attestation; bundle packets that differ from the file's; `source` as an object; an archive row changed after the seal (trigger disabled) | Holds; the same family id; `AR007` six times; `verify_hidden_seal()` false |
+| CS-24 | SG1-11, SG1-22 revision: ingest of `X.r2` with `supersedes = X` (file revision 2); `X.r2` without `supersedes`; with `supersedes` naming another family; a revision-1 bundle with `supersedes`; `X.r3` naming the retired `X`; `X.r3` naming `X.r2`; a hidden bundle with `supersedes`; update or delete on `arena.family_retirements` | `X` retired, superseded by `X.r2`, in the same ingest; `AR007` four times; accepted; `AR007`; `AR010` each |
 | CS-25 | SG1-11 retirement takes effect: `arena.v_dev_cases` without the retired family; `add_planned_trials` and `training.start_session` on its variants | Absent; `AR007` each |
 | CS-26 | SG1-14 sizes: an artifact whose content serializes to more than 12,288 bytes; an event payload over 14,336 bytes; a finding over 8,192 bytes | `23514` each (at ingest, at the event write, at finalization) |
+| CS-27 | SG1-23 case sets: a revision of a family that holds a case-set member; a case-set row naming a retired variant or a hidden variant; delete or update of a case-set row | `AR007`; `AR007` each; `AR010` |
 
 ## 3. `003_role_reads.sql` ("role cannot read X"; SCN-5, SCN-9, SCN-12)
 
@@ -95,7 +98,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RR-26 | `arena_public` | `arena.v_dev_cases` contains no hidden variant | 0 hidden rows |
 | RR-27 | `arena_public` | `arena.trial_context` on a running hidden trial with an open coaching item returns the hidden public packet and no key of the private or evaluator packet (`role`, `facts`, `concealed`) | Holds |
 | RR-28 | `arena_public` | `arena.trial_context` on the same trial after finalization | `AR003` |
-| RR-29 | `arena_referee` | `training.voice_resumes` (Live handles stay with `arena_subject`) | `42501` |
+| RR-29 | `arena_referee` | `training.voice_sessions` UPDATE (voice sessions change only through `arena_subject` functions) | `42501` |
 | RR-30 | `arena_public` | `arena.v_dev_cases` has no `style` column (C-22, C-26) | 0 columns |
 | RR-31 | `arena_public` | `subject.voice_context(...)`, `ops.settle_voice_reservation(...)`, `training.publish_debrief(...)`, `training.participants`, `ops.config` | `42501` each |
 
@@ -181,6 +184,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | CC-09 | `arena.v_trial_events` hides debrief rows while the trial runs | Holds |
 | CC-10 | `events_after` page size is capped at 200 | Holds |
 | CC-11 | KPI-4 sample (C-28, D4): the text subject commit writes `ops.latency_samples` `pending` with `subject_commit_at` = the `subject_turn` event's `created_at` and `population` derived from the trial; `coach_card` completes it with `card_validated_server_at` = its event's `created_at`, `card_outcome = delivered`, `instance_cold` from `arena.instance_cold` (unset = false); `coach_unavailable` completes it `repair_failed` when its payload says so, else `timeout`, `miss = true`; a delivered practice card without an acknowledgement is `unmeasured` and not a miss | Holds |
+| CC-11b | SG3-32, SG2-23, SG3-30: a text turn of a session created with `voice = true` opens no sample; `ops.v_latency` on a pending row inside 120 s (`in_flight`, not a miss) and after 120 s with no further request (`report_outcome = unmeasured_timeout`, `miss`, `unmeasured`) | Holds each |
 | CC-12 | `ops.ack_card(trial, turn, true)` on a practice turn stamps `client_ack_at` once (returns true, then false); `kpi4_ms = client_ack_at - subject_commit_at` in ms and is at least `server_ms`; `ack_card(..., false)` records `client_invalid`, `miss = true`, `kpi4_ms` null | Holds |
 | CC-13 | `trial_context` with a closed item, wrong trial, or `failure` kind | `AR003` |
 | CC-14 | Caller separation: actor set on a tournament trial | `AR040` |
@@ -232,6 +236,9 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | EF-10 | Interactive start before the replay track has execution records (tournament with a replay track) | `AR001` (BKO-2) |
 | EF-11 | Replay start before the corpus seal | `AR001` |
 | EF-12 | Terminal records are append-only | `AR010` |
+| EF-13 | SG2-27: `seal_replay_corpus` with a completed corpus transcript lacking its R1 report (`fidelity_detail`), then lacking an adjudication; then with both | `AR001`, `AR001`; sealed, and the digest changes if that transcript's first R1 payload or first verdict is altered (trigger disabled) |
+| EF-14 | SG2-27: a replay trial whose source's initial verdict is `subject_invalid`; a later `valid` correction does not change the seal digest | `start_trial` records `source_unavailable`; `verify` of the corpus seal still holds |
+| EF-15 | SG3-24: `seal_replay_corpus` twice; `close_tournament_run` before the seal; after it | The same hash twice; `AR001`; closed without resealing |
 
 ## 10. `010_concurrency.sql` (dblink)
 
@@ -366,9 +373,8 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | VB-12 | Second open voice session on one training session | `23505` |
 | VB-13 | `record_voice_question` on a closed session or another trial | `AR040`; on success returns turn, version and a `subject_answer` item; the same key returns the same turn and item; the turn's channel is `voice` |
 | VB-14 | SG3-05: `subject.voice_context(voice_session)` on an open session returns the private and public packets, transcript, released evidence, disclosure state, `reservation_id`, `spend_usd` and `shutoff_usd`; on a closed session | Holds; `AR003` |
-| VB-15 | Resume: `issue_voice_resume` 4th time | `AR040` |
-| VB-16 | `redeem_voice_resume` twice; after 10 minutes; by another actor; on a closed session | `AR040` each |
-| VB-17 | `take_voice_handle` before redemption, twice, or 2 minutes after redemption | `AR040` each; once returns the stored handle |
+| VB-15 | D-016: no resume objects exist: `training.voice_resumes`, `issue_voice_resume`, `redeem_voice_resume`, `take_voice_handle` are absent; a second voice session on the same trial after the first closed (a reconnect) gets its own ticket, reservation and receipts | Holds |
+| VB-16 | SG3-27: a voice turn whose answer makes a scheduled record due: `record_subject_turn` returns the record in `released` and the post-release version; the next `record_voice_question` item is bound to that version; `release_evidence` while a voice question is open | Holds; Holds; `AR004` |
 | VB-18 | SG3-07: in a voice session, `arena_public` releases a requested record between turns with no coaching hold; `subject.voice_context` then lists it | Holds |
 | VB-19 | D7 reaping: a voice reservation open for 61 minutes (owner backdates `created_at`), then any `reserve_voice` | The old reservation is `usage_unknown` with its full hold, its session closed `expired`, and the new reservation is admitted |
 
@@ -390,7 +396,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | TT-12 | `v_my_sessions`, `v_my_debrief`, `v_my_study` return only the actor's rows; no actor returns none | Holds |
 | TT-13 | D7 transcript display: a voice session's turns appear in `arena.v_transcripts` with channel `voice` for their owner, and in no other actor's view | Holds |
 | TT-14 | EX-4 acknowledgement (X-15): `training.acknowledge('ex4')` with no actor; with kind `terms`; twice by one actor; `training.v_my_acknowledgements` for that actor and another | `AR040`; `AR007`; one row, the first time kept; one row and none |
-| TT-15 | SG4-10 protocol for an AB participant: practice before the pre-tests; a post-test before the pre-tests; a second session on the same pre-test variant; both pre-tests (then ended); two practice sessions (ended) and a post-test; a third practice session as a free assessment (ended); both post-tests | `AR007`; `AR007`; `AR007`; `pre` each; `AR007`; `practice`; `post` each; the phases read pre, pre, practice, practice, practice, post, post |
+| TT-15 | SG4-10, SG3-31 protocol for an AB participant: practice before the pre-tests; a post-test before the pre-tests; a second session on the same pre-test variant; both pre-tests (then ended); three free sessions in Assessment mode, one terminated Practice session and one voice Practice session (all ended), then a post-test; three finalized text Practice sessions, then the post-tests | `AR007`; `AR007`; `AR007`; `pre` each; `AR007` and `v_my_study.practice_ended` 0; `post` each, `practice_ended` 3 |
 | TT-16 | SG3-13: `training.v_my_study` for the participant (pre and post variant ids, tested variant ids, ended counts per phase) and for a non-participant | One row with the sets and counts; none |
 | TT-17 | SG3-13: `ops.v_public_config` as `arena_public` (paused flag and the two quotas); `ops.config` and `training.participants` | One row; `42501` each |
 | TT-18 | X-08, SG1-11: `arena.v_dev_cases.kpi1_set` true for case-set families and false for others; a retired family absent | Holds |
@@ -453,6 +459,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | WI-06 | `work_item_results` by another investigator, by an investigator on a tournament trial, by a harness request on a training trial, on an unknown trial | `AR040` each |
 | WI-07 | Crash recovery at each boundary of one text turn (after the question, after the release, after the answer, after the card): the request replays with the same keys | Exactly one question, one release result, one answer and one card; every replayed step returns its stored result |
 | WI-08 | At most 200 work items per trial | The 201st `AR001` |
+| WI-09 | SG3-26 interleaving: card committed at version v, the next question committed (v+1), then `open_work_item(trial, 'coaching', deep key, v)`; and the same with no question in between | `AR002` and no item row; the item is created at v |
 | DB-01 | `training.publish_debrief` by `arena_public` | `42501` |
 | DB-02 | On a running training session; on an unknown session | `AR001` each |
 | DB-03 | A payload missing a debrief.v1 key or with `schema` not `debrief.v1` | `AR007` |

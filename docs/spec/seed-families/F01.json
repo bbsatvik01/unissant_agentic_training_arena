@@ -280,7 +280,7 @@
       },
       {
         "id": "f:24",
-        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he wheeled the condensate tank to the corridor drain.",
+        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he emptied the condensate tank into the floor drain just outside the door, staying in the doorway.",
         "kind": "action",
         "time": "2026-03-12T14:09",
         "actors": [
@@ -928,7 +928,7 @@
           {
             "id": "f:24",
             "class": "FREE",
-            "text": "You propped the door with a cart while you wheeled the tank to the corridor drain.",
+            "text": "You propped the door with a cart and stayed in the doorway while you emptied the tank into the drain just outside.",
             "certainty": "certain"
           },
           {
@@ -1048,7 +1048,7 @@
         "family_id": "F01",
         "variant": "truthful",
         "role": "truthful",
-        "synopsis": "Marrow radioed Pell to a humidity alarm in Records Vault B-12 during a short-staffed shift. Pell reset the tripped dehumidifier and emptied its condensate tank, propping the door with a cart while he moved the tank, which the policy allows while moving equipment. Marrow logged the work order afterwards, as she does on short days. The entry had an assigned task. Misleading circumstances: the late work order, the door-held alarm, the vault being off his roster, and the supervisor not remembering the room.",
+        "synopsis": "Marrow radioed Pell to a humidity alarm in Records Vault B-12 during a short-staffed shift. Pell reset the tripped dehumidifier and emptied its condensate tank, propping the door with a cart and staying in the doorway while he emptied the tank into the drain just outside, which the policy allows while moving equipment. Marrow logged the work order afterwards, as she does on short days. The entry had an assigned task. Misleading circumstances: the late work order, the door-held alarm, the vault being off his roster, and the supervisor not remembering the room.",
         "canonical_facts": [
           {
             "id": "f:01",
@@ -1232,7 +1232,7 @@
           },
           {
             "id": "f:24",
-            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he wheeled the condensate tank to the corridor drain.",
+            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he emptied the condensate tank into the floor drain just outside the door, staying in the doorway.",
             "kind": "action",
             "time": "2026-03-12T14:09",
             "actors": [
@@ -1759,7 +1759,7 @@
               "doc-01",
               "doc-02"
             ],
-            "resolution": "Pell was moving the condensate tank, which the policy allows while moving equipment.",
+            "resolution": "Pell was moving the condensate tank to the drain just outside the door and stayed in the doorway, which the policy allows while moving equipment.",
             "resolved_by": {
               "fact_ids": [
                 "f:24",

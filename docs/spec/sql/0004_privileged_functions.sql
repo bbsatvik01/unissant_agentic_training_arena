@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT v2.3, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0004_privileged_functions.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event,
 -- advance_replay), the per-trial event store writer, the context readers (arena.trial_context,
@@ -19,7 +19,7 @@
 --   submit_question (v+1) -> release_evidence, also with an empty list so scheduled releases apply
 --   (v+1 if anything is released) -> open_work_item('subject_answer') -> record_subject_turn (v+1,
 --   coaching_pending, KPI-4 sample pending) -> open_work_item('coaching', card key) ->
---   record_coaching_event (clears pending, completes the sample) -> [A1: open_work_item('coaching',
+--   record_coaching_event (clears pending, completes the sample) -> [A1: open_work_item('coaching', card version,
 --   deep key) -> record_coaching_event 'coach_deep'] -> ... -> open_work_item('finalize') ->
 --   finalize_trial (v+1, frozen).
 -- One replay turn (D2): open_work_item('replay_turn') -> advance_replay (v+1: copies source turn n with
@@ -204,7 +204,11 @@ language sql immutable set search_path = '' as $$
                             'status', p_wi.status, 'result', p_wi.result)
 $$;
 
-create or replace function arena.open_work_item(p_trial uuid, p_kind text, p_request_key text)
+-- p_expected_version (SG3-26): when given, the item is created only if the trial is still at that version,
+-- so a step bound to an earlier step's version (the A1 deep update, bound to its card's version) is refused
+-- as stale (AR002) once a question or release has overtaken it, instead of binding to the newer version.
+create or replace function arena.open_work_item(p_trial uuid, p_kind text, p_request_key text,
+                                                p_expected_version integer default null)
 returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -230,6 +234,9 @@ begin
   if (p_kind = 'failure' and v.status not in ('planned', 'running'))
      or (p_kind <> 'failure' and v.status <> 'running') then
     raise exception using errcode = 'AR001', message = format('trial is %s', v.status);
+  end if;
+  if p_expected_version is not null and p_expected_version <> v.transcript_version then
+    raise exception using errcode = 'AR002', message = 'stale transcript version: the step this item follows was overtaken';
   end if;
   if (p_kind in ('release', 'subject_answer') and v.kind = 'replay')
      or (p_kind = 'coaching' and v.kind = 'replay_corpus')
@@ -316,14 +323,17 @@ begin
   end if;
   if v.kind = 'replay' then
     select p.source_planned_trial_id into v_src_pt from arena.planned_trials p where p.id = v.planned_trial_id;
+    -- SG2-27: a replay source is a completed corpus transcript whose initial (sealed) verdict is valid.
     select e.trial_id into v_src from ledger.planned_execution(v_tid) e
-     where e.planned_trial_id = v_src_pt and e.state = 'completed';
+     where e.planned_trial_id = v_src_pt and e.state = 'completed'
+       and (select a.verdict from ledger.validity_adjudications a where a.trial_id = e.trial_id
+             order by a.adj_seq limit 1) = 'valid';
     if v_src is null then
       update arena.trials set status = 'terminated', ended_at = now() where id = p_trial;
       v_seq := ledger.append_event('execution_recorded', v_tid, p_trial,
                  jsonb_build_object('state', 'source_unavailable'));
       insert into ledger.terminal_records (trial_id, planned_trial_id, state, reason, event_seq)
-        values (p_trial, v.planned_trial_id, 'source_unavailable', 'corpus transcript did not complete', v_seq);
+        values (p_trial, v.planned_trial_id, 'source_unavailable', 'corpus transcript did not complete or is invalid', v_seq);
       perform arena._emit(v, 'trial_ended', null, jsonb_build_object('reason', 'source_unavailable'));
       return jsonb_build_object('status', 'terminated', 'state', 'source_unavailable', 'trial_id', p_trial);
     end if;
@@ -453,11 +463,64 @@ begin
   return arena._complete_work_item(p_work_item, v_sha, v_res);
 end $$;
 
+-- _apply_releases (internal): releases every due scheduled artifact of the trial plus each requested
+-- artifact whose request predicate holds, at most 6 per trial, each once, under the caller's trial lock;
+-- bumps the version once when anything is released and emits the events. Returns the released rows
+-- (with content, for the caller's result projection). Shared by release_evidence and, for voice turns,
+-- record_subject_turn (SG3-27: the boundary release commits with the voice answer).
+create or replace function arena._apply_releases(p_trial uuid, p_req text[], p_work_item uuid)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v         arena.trials;
+  v_new     jsonb;
+  v_n_new   integer;
+  v_n_old   integer;
+  v_seq     bigint;
+  v_art     jsonb;
+begin
+  select * into v from arena.trials where id = p_trial;
+  select coalesce(jsonb_agg(jsonb_build_object('record_id', a.record_id, 'kind', a.kind, 'doc_kind', a.doc_kind,
+                                               'title', a.title, 'content', a.content, 'sha256', a.sha256)
+                            order by a.record_id collate "C"), '[]'::jsonb),
+         count(*)::integer
+    into v_new, v_n_new
+    from sealed.evidence_artifacts a
+   where a.variant_id = v.variant_id
+     and not exists (select 1 from arena.released_evidence r where r.trial_id = p_trial and r.record_id = a.record_id)
+     and ((a.scheduled_turn is not null and a.scheduled_turn <= v.exchanges)
+          or (a.requestable and a.record_id = any (p_req) and a.request_after_turn <= v.exchanges));
+  select count(*)::integer into v_n_old from arena.released_evidence where trial_id = p_trial;
+  if v_n_old + v_n_new > 6 then
+    raise exception using errcode = 'AR006', message = 'release limit (6 per case) exceeded';
+  end if;
+
+  if v_n_new > 0 then
+    update arena.trials set transcript_version = transcript_version + 1 where id = p_trial;
+    v_seq := ledger.append_event('evidence_released', v.tournament_id, p_trial,
+               jsonb_build_object('work_item_id', p_work_item, 'after_exchanges', v.exchanges,
+                                  'records', (select jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id',
+                                                                                  'sha256', e ->> 'sha256'))
+                                                from jsonb_array_elements(v_new) e)));
+    insert into arena.released_evidence (trial_id, record_id, release_seq, released_after_exchanges, kind, doc_kind,
+                                         title, content, event_seq)
+      select p_trial, e.value ->> 'record_id', (v_n_old + e.ordinality)::smallint, v.exchanges, e.value ->> 'kind',
+             e.value ->> 'doc_kind', e.value ->> 'title', e.value -> 'content', v_seq
+        from jsonb_array_elements(v_new) with ordinality e;
+    for v_art in select x from jsonb_array_elements(v_new) x loop
+      perform arena._emit(v, case when v_art ->> 'kind' = 'clarification' then 'clarification' else 'evidence_released' end,
+                          null, v_art - 'sha256');
+    end loop;
+  end if;
+
+  return v_new;
+end $$;
+
 -- -----------------------------------------------------------------------------
 -- 1. release_evidence (arena_public)  SCN-4, SCN-10
 -- Called after each question (also with an empty list, so scheduled releases apply) and before the
 -- subject answers, so the answer is given in light of the released evidence; between turns for an
--- evidence request (C-18) and, in a voice session, at each turn boundary (D7, S5 7.4). Releases every
+-- evidence request (C-18); a voice turn applies its boundary release inside record_subject_turn (SG3-27). Releases every
 -- due scheduled artifact plus each requested artifact whose request predicate holds, at most 6 per
 -- trial, each once. Predicates read completed exchanges. An id that is not on the variant's requestable
 -- list is refused (AR005); a known id requested too early is returned in denied, with no reason, beside
@@ -497,44 +560,18 @@ begin
   if arena._turn_in_progress(v) then
     raise exception using errcode = 'AR004', message = 'turn in progress: release with the next question';
   end if;
+  -- SG3-27: a voice question is answered at the version it was asked; a standalone release waits for the answer.
+  if exists (select 1 from arena.turns where trial_id = p_trial and answer is null and channel = 'voice') then
+    raise exception using errcode = 'AR004', message = 'a voice question is open: request again after the answer';
+  end if;
   if exists (select 1 from unnest(v_req) r
               where not exists (select 1 from sealed.evidence_artifacts a
                                  where a.variant_id = v.variant_id and a.record_id = r and a.requestable)) then
     raise exception using errcode = 'AR005', message = 'requested id is not on the case''s requestable list';
   end if;
 
-  select coalesce(jsonb_agg(jsonb_build_object('record_id', a.record_id, 'kind', a.kind, 'doc_kind', a.doc_kind,
-                                               'title', a.title, 'content', a.content, 'sha256', a.sha256)
-                            order by a.record_id collate "C"), '[]'::jsonb),
-         count(*)::integer
-    into v_new, v_n_new
-    from sealed.evidence_artifacts a
-   where a.variant_id = v.variant_id
-     and not exists (select 1 from arena.released_evidence r where r.trial_id = p_trial and r.record_id = a.record_id)
-     and ((a.scheduled_turn is not null and a.scheduled_turn <= v.exchanges)
-          or (a.requestable and a.record_id = any (v_req) and a.request_after_turn <= v.exchanges));
-  select count(*)::integer into v_n_old from arena.released_evidence where trial_id = p_trial;
-  if v_n_old + v_n_new > 6 then
-    raise exception using errcode = 'AR006', message = 'release limit (6 per case) exceeded';
-  end if;
-
-  if v_n_new > 0 then
-    update arena.trials set transcript_version = transcript_version + 1 where id = p_trial;
-    v_seq := ledger.append_event('evidence_released', v.tournament_id, p_trial,
-               jsonb_build_object('work_item_id', p_work_item, 'after_exchanges', v.exchanges,
-                                  'records', (select jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id',
-                                                                                  'sha256', e ->> 'sha256'))
-                                                from jsonb_array_elements(v_new) e)));
-    insert into arena.released_evidence (trial_id, record_id, release_seq, released_after_exchanges, kind, doc_kind,
-                                         title, content, event_seq)
-      select p_trial, e.value ->> 'record_id', (v_n_old + e.ordinality)::smallint, v.exchanges, e.value ->> 'kind',
-             e.value ->> 'doc_kind', e.value ->> 'title', e.value -> 'content', v_seq
-        from jsonb_array_elements(v_new) with ordinality e;
-    for v_art in select x from jsonb_array_elements(v_new) x loop
-      perform arena._emit(v, case when v_art ->> 'kind' = 'clarification' then 'clarification' else 'evidence_released' end,
-                          null, v_art - 'sha256');
-    end loop;
-  end if;
+  v_new := arena._apply_releases(p_trial, v_req, p_work_item);
+  v_n_new := jsonb_array_length(v_new);
 
   v_result := jsonb_build_object(
     'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id', 'kind', e ->> 'kind',
@@ -574,6 +611,7 @@ declare
   v_evt   integer;
   v_text  boolean;
   v_res   jsonb;
+  v_rel   jsonb;
 begin
   perform ledger.require_read_committed();
   v := arena._lock_trial(p_trial);
@@ -610,7 +648,10 @@ begin
     v_evt := arena._emit(v, 'subject_turn', null,
       jsonb_build_object('turn_no', v_wi.turn_no, 'answer', p_utterance, 'partial', coalesce(p_partial, false),
                          'channel', case when v_text then 'text' else 'voice' end));
-    if v.assistant_candidate_id is not null and v_text then
+    -- KPI-4 eligibility is a session-level rule (SG3-32, D7): a text turn of a voice session (continued in
+    -- text) is still unscored and opens no sample.
+    if v.assistant_candidate_id is not null and v_text
+       and not exists (select 1 from training.sessions s where s.trial_id = p_trial and s.voice) then
       insert into ops.latency_samples (trial_id, turn_no, subject_commit_at, card_outcome, population)
         select p_trial, v_wi.turn_no, e.created_at, 'pending',
                case when v.kind <> 'training' then 'harness' when v.mode = 'practice' then 'practice_client' else 'assessment' end
@@ -618,8 +659,17 @@ begin
     end if;
     perform ledger.append_event('subject_answered', v.tournament_id, p_trial,
       jsonb_build_object('turn_no', v_wi.turn_no, 'answer_sha256', ledger.hash_text(p_utterance)));
+    -- SG3-27, D7: a voice turn's boundary release commits with the answer, so the next spoken question is
+    -- recorded at the post-release version and arena-subject refreshes Live before it forwards more audio.
+    v_rel := '[]'::jsonb;
+    if not v_text then
+      v_rel := arena._apply_releases(p_trial, '{}'::text[], null);
+    end if;
     v_res := jsonb_build_object('outcome', 'recorded', 'turn_no', v_wi.turn_no,
-                                'transcript_version', v.transcript_version + 1);
+                                'transcript_version', (select transcript_version from arena.trials where id = p_trial),
+                                'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id',
+                                                                                          'kind', e ->> 'kind')), '[]'::jsonb)
+                                               from jsonb_array_elements(v_rel) e));
   else
     insert into sealed.quarantined_artifacts (trial_id, turn_no, utterance, tag, guard_result)
       values (p_trial, v_wi.turn_no, p_utterance, p_tag_proposal, p_guard_result);
@@ -1378,7 +1428,7 @@ grant usage on schema arena, ledger to arena_public;
 grant execute on function
   arena.actor_id(),
   arena.trial_visible(uuid),
-  arena.open_work_item(uuid, text, text),
+  arena.open_work_item(uuid, text, text, integer),
   arena.work_item_results(uuid),
   arena.start_trial(uuid),
   arena.retry_trial(uuid),
@@ -1410,7 +1460,7 @@ grant insert on sealed.independent_labels, sealed.judgments, arena.scores, arena
 grant execute on function
   ledger.hash_text(text),
   ledger.hash_jsonb(jsonb),
-  sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(), sealed.verify_hidden_seal(), sealed.hidden_split_digest(),
+  sealed.ingest_case_family(jsonb), sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(), sealed.hidden_split_digest(),
   arena.register_candidate(text, text, text, jsonb),
   arena.create_tournament(text, text, bigint, text, smallint), arena.add_planned_trials(uuid, jsonb),
   arena.freeze_tournament(uuid), arena.open_tournament(uuid), ledger.seal_replay_corpus(uuid),
