@@ -134,7 +134,7 @@ def test_the_archive_is_the_family_file_and_its_attestation(seed: Callable[[str]
         "family_id": "F01",
         "revision": 1,
         "family_sha256": hashlib.sha256(bundle["source"].encode("utf-8")).hexdigest(),
-        "validator_version": load.VALIDATOR_VERSION,
+        "validator_version": "arena_core.scenario S1 v2.8",  # the S1 version whose V1-V5 ran (F4 is v2.8)
         "checks_passed": sql_required_checks(),
         "codex": CODEX_RESULTS,
     }
