@@ -111,6 +111,10 @@ def _source_object(path: Path) -> dict[str, Any]:
 
 
 def _assemble(args: argparse.Namespace, report: Report) -> None:
+    inputs = [p for p in (args.source, args.authoring) if p is not None]
+    if args.out is not None and any(args.out.resolve() == p.resolve() for p in inputs):
+        report.problem("OUTPUT.collides", f"--out {args.out} is an input of the command")
+        return
     authoring = None
     if args.authoring is not None:
         try:

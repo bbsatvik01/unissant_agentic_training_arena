@@ -68,8 +68,13 @@ def test_the_repository_reader_refuses_a_duplicate_key(tmp_path: Path) -> None:
         repository_families(tmp_path)
 
 
-def test_the_repository_holds_the_nine_development_families() -> None:
-    assert sorted(repository_families()) == [(fid, 1) for fid in DEV_IDS]
+def test_the_repository_holds_the_nine_lineages_with_complete_histories() -> None:
+    """F01-F09, each with revisions 1..N committed (a revision is added beside its predecessor, S1 8.6)."""
+    histories: dict[str, set[int]] = {}
+    for fid, revision in repository_families():
+        histories.setdefault(fid, set()).add(revision)
+    assert sorted(histories) == list(DEV_IDS)
+    assert all(revisions == set(range(1, max(revisions) + 1)) for revisions in histories.values()), histories
 
 
 def test_every_development_family_passes_v1_to_v5_together() -> None:
@@ -83,13 +88,17 @@ def test_every_development_family_passes_v1_to_v5_together() -> None:
 def test_every_committed_source_rebuilds_its_family() -> None:
     """A family's source and its committed file never drift (S1 8.4: same source, same family)."""
     families = repository_families()
-    rebuilt = set()
+    latest: dict[str, int] = {}
+    for fid, revision in families:
+        latest[fid] = max(latest.get(fid, 0), revision)
+    rebuilt = {}
     for path in sorted((CASES_DEV / "sources").glob("*.source.json")):
         family = assemble_file(path)  # with the authoring context beside it, when one is committed
         committed = families[(str(family["family_id"]), int(family["revision"]))][1]
         assert canonical_sha256(family) == canonical_sha256(committed), path
-        rebuilt.add(family["family_id"])
-    assert sorted(rebuilt) == list(DEV_IDS)
+        rebuilt[str(family["family_id"])] = int(family["revision"])
+    # A source is the family's active (latest) revision; earlier revisions are retired, frozen files.
+    assert rebuilt == latest
 
 
 @pytest.mark.parametrize("family_id", SEED_IDS)

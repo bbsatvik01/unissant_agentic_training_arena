@@ -329,3 +329,17 @@ def test_a_revisions_own_predecessor_is_not_a_dev_baseline(seed: Callable[[str],
     with pytest.raises(FamilyLoadError) as caught:
         ingest_bundle(family, review_of(family), load.DevSplit((seed("F01"),)))
     assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]
+
+
+@pytest.mark.parametrize("split", ["dev", "hidden"])
+def test_every_lineage_in_the_dev_split_has_its_whole_history(split: str, seed: Callable[[str], Family]) -> None:
+    """A dev split holding F01 r2 without r1 hides r1's text and case IDs from V5, for any family ingested."""
+    without_r1 = load.DevSplit((*corpus_for("F01").families, revised(seed("F01"), 2)))
+    family = seed("F02") if split == "dev" else as_hidden(seed("F02"), "Hc00000000a")
+    record = None if split == "dev" else {"assignment": [{"family_id": "Hc00000000a"}]}
+    dev = load.DevSplit(tuple(f for f in without_r1.families if f["family_id"] != "F02"))
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), dev, (), record)
+    assert [(i.rule, i.message) for i in caught.value.issues] == [
+        ("CORPUS.predecessor", "revisions [1] of F01 are not in the dev split")
+    ]

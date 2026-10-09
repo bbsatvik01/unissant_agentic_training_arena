@@ -221,16 +221,24 @@ def corpus_issues(
     """What the comparison corpus lacks for V5 to mean anything for this family (S1 8.6, 9.5, 10.3).
 
     V5 compares a family with others, so an attestation that V5 passed needs all of them: the development
-    split (`DevSplit`, read whole) with every earlier revision of the family's lineage and at least one
+    split (`DevSplit`, read whole) with the complete revision history of every lineage (the family's own
+    earlier revisions included) and at least one
     development family of another lineage; for a hidden family, also the whole hidden split, which must be
     exactly the families the split's sampler record names (the inventory S4's seal checks, 10.3). Inputs are
     schema-valid (checked before this)."""
     fid, revision = str(family["family_id"]), int(family["revision"])
-    present = {int(f["revision"]) for f in dev if str(f["family_id"]) == fid}
+    histories: dict[str, set[int]] = {}
+    for f in dev:
+        histories.setdefault(str(f["family_id"]), set()).add(int(f["revision"]))
+    if family["split"] == "dev":
+        histories.setdefault(fid, set()).add(revision)
     issues: list[Issue] = []
-    missing = sorted(set(range(1, revision)) - present)
-    if missing:
-        issues.append(Issue("CORPUS.predecessor", f"revisions {missing} of {fid} are not in the dev split", fid))
+    for lineage, present in sorted(histories.items()):
+        # Every lineage's history is complete: a retired revision's text and case IDs stay comparable (9.5).
+        missing = sorted(set(range(1, max(present) + 1)) - present)
+        if missing:
+            message = f"revisions {missing} of {lineage} are not in the dev split"
+            issues.append(Issue("CORPUS.predecessor", message, fid))
     if not any(str(f["family_id"]) != fid for f in dev):
         issues.append(Issue("CORPUS.dev_baseline", "the dev split holds no family of another lineage", fid))
     if family["split"] == "hidden":

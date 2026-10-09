@@ -140,6 +140,22 @@ def test_assemble_reports_an_unwritable_source(
     assert source.read_bytes() == before  # a retry draws again and rewrites both
 
 
+@pytest.mark.parametrize("target", ["source", "authoring"])
+def test_assemble_refuses_an_output_that_is_one_of_its_inputs(
+    target: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = source_copy(tmp_path, "F01")
+    before = source.read_bytes()
+    authoring = write_json(tmp_path / "authoring.json", {"spec": {}})
+    argv = ["assemble", str(source), "--counts", "--out", str(source if target == "source" else authoring)]
+    if target == "authoring":
+        argv += ["--authoring", str(authoring)]
+    assert main(argv) == 1
+    assert json.loads(capsys.readouterr().out) == {"OUTPUT.collides": 1}
+    assert source.read_bytes() == before
+    assert json.loads(authoring.read_text(encoding="utf-8")) == {"spec": {}}
+
+
 def test_a_failed_revise_leaves_the_source_unchanged_for_a_retry(tmp_path: Path) -> None:
     """S1 8.6: a revise whose family cannot be written does not advance the source; the retry makes r2."""
     source = source_copy(tmp_path, "F01")
