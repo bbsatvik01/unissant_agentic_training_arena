@@ -1702,3 +1702,47 @@ describe("session controller: Codex round 9 regressions", () => {
     expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
   });
 });
+
+describe("session controller: overlapping finding submits", () => {
+  it.each([
+    ["the failure first", [1, 0] as const],
+    ["the success first", [0, 1] as const],
+  ])("a failed submit never takes the room out of finalizing while another is pending or succeeded (%s)", async (_why, order) => {
+    const gates: { resolve: (v: { last_seq: null }) => void; reject: (e: Error) => void }[] = [];
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        commitFinding: () =>
+          new Promise((resolve, reject) => {
+            gates.push({ resolve, reject });
+          }),
+      },
+    });
+    await begin(c);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    const ok = c.submitFinding(body);
+    const bad = c.submitFinding({ ...(body as object), rationale: "Another." } as never);
+    for (const i of order) {
+      if (i === 0) gates[0]?.resolve({ last_seq: null });
+      else gates[1]?.reject(new ApiError(409, "turn_in_progress", "/x"));
+      await flush();
+    }
+    await ok;
+    await expect(bad).rejects.toBeInstanceOf(ApiError);
+    expect(roomStatus(c.getState().trial)).toBe("finalizing");
+  });
+
+  it("the last of several failed submits takes the room back out of finalizing", async () => {
+    const h = harness();
+    const c = h.make({ api: { ...h.api, commitFinding: () => Promise.reject(new ApiError(409, "turn_in_progress", "/x")) } });
+    await begin(c);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    const a = c.submitFinding(body);
+    const b = c.submitFinding({ ...(body as object), rationale: "Another." } as never);
+    expect(roomStatus(c.getState().trial)).toBe("finalizing");
+    await expect(a).rejects.toBeInstanceOf(ApiError);
+    await expect(b).rejects.toBeInstanceOf(ApiError);
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+});

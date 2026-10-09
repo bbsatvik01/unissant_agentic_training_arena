@@ -181,6 +181,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let resyncing = false;
   let resyncAgain = false;
   let resyncFailures = 0;
+  let findingsInFlight = 0;
+  let findingCommitted = false;
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
@@ -596,14 +598,19 @@ export function createSessionController(options: SessionControllerOptions): Sess
       requireView();
       const match = JSON.stringify(finding);
       const idem = keyFor("finding", match);
+      findingsInFlight += 1;
       dispatch({ type: "finding_submitted" });
       try {
         const answer = await api.commitFinding(trialId, { finding, idem_key: idem });
+        findingsInFlight -= 1;
+        findingCommitted = true;
         settleKey("finding", match, idem);
         afterPost(answer);
       } catch (error) {
+        findingsInFlight -= 1;
         if (refused(error)) settleKey("finding", match, idem);
-        dispatch({ type: "finding_failed" });
+        // The room leaves `finalizing` only when no submit is still in flight and none succeeded.
+        if (findingsInFlight === 0 && !findingCommitted) dispatch({ type: "finding_failed" });
         throw error;
       }
     },
