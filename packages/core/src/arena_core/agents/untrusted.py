@@ -20,6 +20,41 @@ _WHITESPACE = re.compile(r"\s+")
 _MAX_PASSES = 32
 
 
+# D11: the input budget is bytes as rendered. An investigator question is at most 600 characters and at most
+# QUESTION_MAX_BYTES UTF-8 bytes after the renderer's normalization (`clean`): NFKC can expand one character to
+# 18 (U+FDFA), so a 600-character cap alone does not bound the bytes a prompt carries. S5's submission check and
+# S6's form apply the same two limits (`check_question`). A subject answer is bounded the same way (S2 6.8 V1).
+QUESTION_MAX_CHARS = 600
+QUESTION_MAX_BYTES = 1800
+ANSWER_MAX_BYTES = 1800
+
+
+class TextTooLongError(ValueError):
+    """Untrusted text whose rendered form exceeds its byte bound (D11)."""
+
+
+def rendered_bytes(text: str) -> int:
+    """UTF-8 bytes of `text` as a prompt carries it (after `clean`)."""
+    return len(clean(text).encode("utf-8"))
+
+
+def check_rendered(text: str, max_bytes: int, what: str) -> str:
+    size = rendered_bytes(text)
+    if size > max_bytes:
+        msg = f"{what}: {size} UTF-8 bytes after normalization, more than {max_bytes} (D11)"
+        raise TextTooLongError(msg)
+    return text
+
+
+def check_question(text: str) -> str:
+    """An investigator or harness question as it may be committed: at most 600 characters and at most 1,800
+    normalized UTF-8 bytes (D11). Refuse before commit; nothing is ever cut."""
+    if len(text) > QUESTION_MAX_CHARS:
+        msg = f"question: {len(text)} characters, more than {QUESTION_MAX_CHARS}"
+        raise TextTooLongError(msg)
+    return check_rendered(text, QUESTION_MAX_BYTES, "question")
+
+
 def new_salt() -> str:
     """A fresh per-call salt (S2 1)."""
     return secrets.token_hex(4)

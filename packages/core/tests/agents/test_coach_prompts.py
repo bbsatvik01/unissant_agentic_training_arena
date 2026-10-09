@@ -11,11 +11,10 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
-from arena_core.agents import coach_prompts
 from arena_core.agents.coach_prompts import build_coach_prompt
 from arena_core.agents.manifests import ManifestMismatchError, load_prompts, official_manifests
 from arena_core.agents.subject_prompts import SubjectPacket
-from arena_core.agents.views import PublicTrialView, TranscriptTurn
+from arena_core.agents.views import CoachCall, PublicTrialView, TranscriptTurn
 from arena_core.contracts.coaching import StoredFlag
 
 from . import fixtures as fx
@@ -108,10 +107,10 @@ CALLS = [
 
 
 @pytest.mark.parametrize(("candidate", "call"), CALLS)
-def test_at_coach_2_snapshot_and_manifest_hash(candidate: str, call: coach_prompts.CoachCall) -> None:
+def test_at_coach_2_snapshot_and_manifest_hash(candidate: str, call: CoachCall) -> None:
     exchange = 12 if call == "final" else 3
     turns = fx.F01_TURNS + [(f"What happened at step {i}?", f"I checked item {i} on the list.") for i in range(4, 13)]
-    view = fx.coach_view(3, with_deep=candidate == "A1")
+    view = fx.coach_view(3, with_deep=candidate == "A1", call=call)
     view = view.model_copy(update={"exchange": exchange, "transcript": fx.transcript(exchange, turns)})
     prompts = fx.prompts(candidate)
     prompt = build_coach_prompt(PublicTrialView.model_validate(view.model_dump()), prompts, call, salt=fx.SALT)
@@ -125,7 +124,7 @@ def test_at_coach_2_snapshot_and_manifest_hash(candidate: str, call: coach_promp
 
 def test_a2_and_a3_make_no_deep_call() -> None:
     with pytest.raises(ManifestMismatchError, match="no assembly for deep"):
-        build_coach_prompt(fx.coach_view(3, with_deep=False), fx.prompts("A2"), "deep", salt=fx.SALT)
+        build_coach_prompt(fx.coach_view(3, with_deep=False, call="deep"), fx.prompts("A2"), "deep", salt=fx.SALT)
 
 
 def test_common_contract_is_byte_identical_in_every_assistant() -> None:
@@ -195,7 +194,7 @@ def test_the_view_holds_exactly_turns_one_to_exchange() -> None:
     with pytest.raises(ValueError, match=r"are not 1\.\.3"):
         PublicTrialView.model_validate({**raw, "transcript": raw["transcript"][:2]})
     late = {**raw["released"][0], "released_after": 4}
-    with pytest.raises(ValueError, match="released after exchange 3"):
+    with pytest.raises(ValueError, match="not visible to the card of exchange 3"):
         PublicTrialView.model_validate({**raw, "released": [late]})
 
 
@@ -239,3 +238,18 @@ def test_flag_lines_render_each_claim_shape_and_a_record_date() -> None:
         "rec-01 (released after exchange 02) | Facilities work orders assigned to J. Pell, 12 March 2026 | 2026-03-12"
         in user
     )
+
+
+def test_release_visibility_follows_the_call() -> None:
+    late = fx.release("F01", "deceptive", "rec-01", 3)
+    raw = fx.coach_view(3).model_dump()
+    for call in ("card", "deep"):
+        with pytest.raises(ValueError, match=f"not visible to the {call} of exchange 3"):
+            PublicTrialView.model_validate({**raw, "call": call, "released": [late.model_dump()]})
+    final = PublicTrialView.model_validate({**raw, "call": "final", "released": [late.model_dump()]})
+    assert "rec-01 (released after exchange 03)" in build_coach_prompt(final, fx.prompts("A2"), "final").user_message
+    four = fx.coach_view(4)
+    card4 = PublicTrialView.model_validate({**four.model_dump(), "released": [late.model_dump()]})
+    assert "rec-01 (released after exchange 03)" in build_coach_prompt(card4, fx.prompts("A2"), "card").user_message
+    with pytest.raises(ValueError, match="built for the card call, not final"):
+        build_coach_prompt(fx.coach_view(3), fx.prompts("A2"), "final")

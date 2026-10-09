@@ -14,8 +14,8 @@
   `python -m arena_core.agents.manifests check` compares them with the committed `prompts/manifests/*.json` and
   `write` regenerates those files after a prompt change (a new prompt is a new version, S2 3.3).
 
-Output schema hashes are of the canonical JSON Schema of each output model as `lint_schema` returns it. S2 3.1
-says "after `vertex_schema`", which lands with the port (WP-05); `sent_schema` is the one place that changes then.
+Output schema hashes are of `providers.structured.sent_schema(model)`, the schema a request carries after
+`vertex_schema` (S2 3.1); the port sends the same function's output.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from arena_core.contracts.common import Contract, Sha256
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.contracts.subject import SubjectTurn
 from arena_core.ids import canonical_sha256, sha256_hex
-from arena_core.providers.structured import lint_schema
+from arena_core.providers.structured import sent_schema
 
 MANIFEST_DIR = "prompts/manifests"
 
@@ -68,11 +68,6 @@ class RosterRefusedError(Exception):
     def __init__(self, reasons: Sequence[str]) -> None:
         super().__init__("; ".join(reasons))
         self.reasons = tuple(reasons)
-
-
-def sent_schema(model: type[BaseModel]) -> dict[str, Any]:
-    """The JSON Schema sent to Vertex for an output model (see the module note on `vertex_schema`)."""
-    return lint_schema(model)
 
 
 def output_schema_sha256(model: type[BaseModel]) -> str:

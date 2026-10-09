@@ -37,7 +37,7 @@ from arena_core.agents.rubric import Rubric, manifest_rubric
 from arena_core.agents.subject_prompts import STYLE_AXES, LedgerView, SubjectPacket, ledger
 from arena_core.agents.templates import TemplateError, join_blocks, render, require
 from arena_core.agents.untrusted import check_salt, clean, new_salt, wrap
-from arena_core.agents.views import InitialDocument, PublicCase, ReleasedRecord, TranscriptTurn
+from arena_core.agents.views import InitialDocument, PublicCase, Question, ReleasedRecord, TranscriptTurn
 from arena_core.contracts.coaching import StoredFlag, Tactic
 from arena_core.contracts.common import (
     MAX_TURNS,
@@ -129,7 +129,7 @@ class FollowUpLine(Contract):
 
     turn_id: TurnId
     tactic: Tactic | None
-    question: Annotated[str, StringConstraints(min_length=1, max_length=600)]
+    question: Question
 
 
 class RefereeAssistantInput(Contract):

@@ -10,18 +10,15 @@ Prompt assembly order). The salt is fresh per call unless a test fixes it, and i
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
 
 from arena_core.agents.manifests import PromptSet
 from arena_core.agents.render import NONE, case_values, flag_line, released_records, transcript
 from arena_core.agents.templates import join_blocks, render, require
 from arena_core.agents.untrusted import check_salt, clean, new_salt
-from arena_core.agents.views import EarlierOutput, PublicTrialView
+from arena_core.agents.views import CoachCall, EarlierOutput, PublicTrialView
 from arena_core.contracts.coaching import StoredDeepUpdate
 from arena_core.contracts.common import turn_id
 from arena_core.contracts.findings import StoredFinding
-
-CoachCall = Literal["card", "deep", "final"]
 
 
 @dataclass(frozen=True)
@@ -84,6 +81,9 @@ def earlier_values(earlier: EarlierOutput) -> dict[str, str]:
 def build_coach_prompt(view: PublicTrialView, prompts: PromptSet, call: CoachCall, salt: str | None = None) -> Prompt:
     """The `card`, `deep` or `final` request of one coach for one trial (S2 5.2-5.4)."""
     view = require(view, PublicTrialView, "coach prompt builder (S5 1.2)")
+    if view.call != call:
+        msg = f"the view was built for the {view.call} call, not {call} (S2 4.4.1 visibility differs)"
+        raise ValueError(msg)
     salt = check_salt(salt or new_salt())
     values = {
         "n": str(view.exchange),

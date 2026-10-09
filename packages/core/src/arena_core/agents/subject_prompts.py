@@ -40,7 +40,7 @@ from arena_core.agents.manifests import (
 from arena_core.agents.render import transcript
 from arena_core.agents.templates import TemplateError, join_blocks, render, require
 from arena_core.agents.untrusted import check_salt, clean, new_salt
-from arena_core.agents.views import TranscriptTurn
+from arena_core.agents.views import Question, TranscriptTurn
 from arena_core.contracts.common import Contract, Exchanges, FactId, GateId, TurnNo, UncertaintyId, turn_id
 from arena_core.contracts.subject import SubjectContext
 
@@ -190,7 +190,7 @@ class SubjectTurnState(Contract):
 
     n: TurnNo
     transcript: Annotated[list[TranscriptTurn], Field(max_length=11)]
-    question: Annotated[str, StringConstraints(min_length=1, max_length=600)]
+    question: Question
     released: Annotated[
         dict[Annotated[str, StringConstraints(pattern=r"^rec-[0-9]{2}$")], Exchanges], Field(max_length=6)
     ]

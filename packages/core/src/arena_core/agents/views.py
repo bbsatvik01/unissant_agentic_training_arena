@@ -15,10 +15,11 @@ from `release_evidence()` (S4), never from the evaluator packet.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import AfterValidator, Field, StringConstraints, model_validator
 
+from arena_core.agents.untrusted import ANSWER_MAX_BYTES, check_question, check_rendered
 from arena_core.contracts.coaching import StoredDeepUpdate, StoredFlag
 from arena_core.contracts.common import (
     MAX_TURNS,
@@ -34,8 +35,10 @@ from arena_core.contracts.findings import StoredFinding
 Text = Annotated[str, StringConstraints(min_length=1, max_length=4096)]
 Cell = Annotated[str, StringConstraints(max_length=400)]
 DocId = Annotated[str, StringConstraints(pattern=r"^doc-0[1-4]$")]
-# Investigator questions are capped at 600 characters (D11, S5); harness questions are shorter.
-Question = Annotated[str, StringConstraints(min_length=1, max_length=600)]
+# Investigator questions: 600 characters and 1,800 normalized bytes (D11, `untrusted.check_question`).
+Question = Annotated[str, StringConstraints(min_length=1, max_length=600), AfterValidator(check_question)]
+# A subject answer as rendered: 1,800 normalized bytes (S2 6.8 V1 bounds the raw text; NFKC may expand it).
+RenderedAnswer = Annotated[Answer, AfterValidator(lambda a: check_rendered(a, ANSWER_MAX_BYTES, "answer"))]
 
 
 class Table(Contract):
@@ -114,7 +117,7 @@ class TranscriptTurn(Contract):
 
     turn_no: TurnNo
     question: Question
-    answer: Answer
+    answer: RenderedAnswer
 
 
 class EarlierOutput(Contract):
@@ -126,10 +129,22 @@ class EarlierOutput(Contract):
     deep_update: StoredDeepUpdate | None
 
 
-class PublicTrialView(Contract):
-    """Everything a coach call may read (S2 5.1). `exchange` is the turn being assessed for a card and a deep
-    update, and the completed exchanges for the final finding; the transcript holds exactly turns 1..exchange."""
+CoachCall = Literal["card", "deep", "final"]
 
+
+def visible_releases_through(call: str, exchange: int) -> int:
+    """S2 4.4.1: a card (and the deep update on the same turn) for exchange n sees the records released before
+    question n (`released_after <= n - 1`); the final finding after n completed exchanges sees every release
+    through n. The one place this rule is applied to what a coach reads."""
+    return exchange if call == "final" else exchange - 1
+
+
+class PublicTrialView(Contract):
+    """Everything a coach call may read (S2 5.1). `call` is the call it is built for; `exchange` is the turn being
+    assessed for a card and a deep update, and the completed exchanges for the final finding; the transcript holds
+    exactly turns 1..exchange and `released` only the records that call may see (`visible_releases_through`)."""
+
+    call: CoachCall
     case: PublicCase
     released: Annotated[list[ReleasedRecord], Field(max_length=6)]
     transcript: Annotated[list[TranscriptTurn], Field(max_length=MAX_TURNS)]
@@ -142,9 +157,10 @@ class PublicTrialView(Contract):
         if numbers != list(range(1, self.exchange + 1)):
             msg = f"transcript: turns {numbers} are not 1..{self.exchange}"
             raise ValueError(msg)
-        late = [r.record_id for r in self.released if r.released_after > self.exchange]
+        through = visible_releases_through(self.call, self.exchange)
+        late = [r.record_id for r in self.released if r.released_after > through]
         if late:
-            msg = f"released: {late} released after exchange {self.exchange}"
+            msg = f"released: {late} not visible to the {self.call} of exchange {self.exchange} (through {through})"
             raise ValueError(msg)
         return self
 

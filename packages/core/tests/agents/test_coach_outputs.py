@@ -362,7 +362,7 @@ def test_at_coach_8_deep_update_omitting_a_released_record_is_repaired_once() ->
         6, frozenset(range(1, 7)), frozenset({"doc-01", "rec-01", "rec-03"}), requestable=frozenset({"rec-02"})
     )
     model = ScriptedModel([json.dumps(good_deep(["rec-01"])), json.dumps(good_deep(["rec-01", "rec-03"]))])
-    prompt = build_coach_prompt(fx.coach_view(3), fx.prompts("A1"), "deep", salt=fx.SALT)
+    prompt = build_coach_prompt(fx.coach_view(3, call="deep"), fx.prompts("A1"), "deep", salt=fx.SALT)
     outcome = call_with_one_repair(model, prompt, DeepUpdate, ctx)
     assert outcome.attempts == ONE_REPAIR
     assert outcome.value is not None

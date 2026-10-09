@@ -18,6 +18,9 @@ from functools import cache
 
 from pydantic import BaseModel, ValidationError
 
+from arena_core.agents.untrusted import rendered_bytes
+from arena_core.contracts.common import ByteLimit
+
 MAX_ERRORS = 10
 MAX_ERROR_BYTES = 100
 UNKNOWN_KEY = "(unexpected key)"
@@ -102,7 +105,45 @@ def output_errors[T: BaseModel](
     # Checked on the decoded values too: JSON escapes (`\\u0039f3a...`) hide the salt from the raw text.
     if salt is not None and (salt in reply or salt in value.model_dump_json()):
         return None, [SALT_LEAK]
+    rendered = rendered_overruns(value)
+    if rendered:
+        return None, [_cut(i) for i in rendered[:MAX_ERRORS]]
     return value, []
+
+
+def _limit_in(metadata: list[object]) -> int | None:
+    return next((m.limit for m in metadata if isinstance(m, ByteLimit)), None)
+
+
+def _byte_limit(annotation: object) -> int | None:
+    """The `ByteLimit` of a string annotation, looking through Annotated, Optional and list."""
+    if typing.get_origin(annotation) is typing.Annotated:
+        base, *metadata = typing.get_args(annotation)
+        return _limit_in(metadata) or _byte_limit(base)
+    for arg in typing.get_args(annotation):
+        found = _byte_limit(arg)
+        if found is not None:
+            return found
+    return None
+
+
+def rendered_overruns(value: BaseModel, path: str = "") -> list[str]:
+    """Every string field whose text, as a prompt renders it (`untrusted.clean`), exceeds the field's byte limit
+    (D11): NFKC can expand a character up to 18 times, so a raw byte limit does not bound what a later prompt
+    carries. A repair item, like any schema failure (S2 10)."""
+    out: list[str] = []
+    for name, info in type(value).model_fields.items():
+        item = getattr(value, name)
+        where = f"{path}{name}"
+        limit = _limit_in(list(info.metadata)) or _byte_limit(info.annotation)
+        items = item if isinstance(item, list) else [item]
+        for i, element in enumerate(items):
+            at = f"{where}.{i}" if isinstance(item, list) else where
+            if isinstance(element, BaseModel):
+                out += rendered_overruns(element, f"{at}.")
+            elif isinstance(element, str) and limit is not None and rendered_bytes(element) > limit:
+                out.append(f"{at}: longer than {limit} UTF-8 bytes once normalized")
+    return out
 
 
 def repair_message(errors: list[str]) -> str:

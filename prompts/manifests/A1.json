@@ -83,17 +83,17 @@
     "output_schemas": [
       {
         "name": "CoachingCard",
-        "sha256": "55b116a5689fde2114e40c8dd124eca93fad87a295985a6697b531cc9e187e91",
+        "sha256": "eb8ce04d2ceb93ba0e43927589d7d63fdd397dbddc2ed90e509819b35350c6b1",
         "version": "card.v1"
       },
       {
         "name": "DeepUpdate",
-        "sha256": "2ebf57884e1169fb44fbce63360843cea4b422641feb38fdb5420738970ccc99",
+        "sha256": "83ef146f11fac393e2223cf562fa10843c3361dd2de99f6ea1d2f1b23e2051b1",
         "version": "deep.v1"
       },
       {
         "name": "FinalFinding",
-        "sha256": "eeac1c685c8b673daa98fe30349c60a9808831930435cb43925b1ca23e50aa4c",
+        "sha256": "ad1efadd7020278de1befffc5110a872d94fead85359d303a1caa392c967f8a1",
         "version": "final.v1"
       }
     ],
@@ -120,7 +120,7 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "f0d45938936aac021b4930a2efea3e13121d8c07e357cbeb51d23667abb1cdb6",
+  "sha256": "de01ff7127f6dc6f34ce2721355dc66439ef6cfe5126598907216b4b02d3c63c",
   "subject_policy": null,
   "tools": [
     "record_request"

@@ -14,6 +14,7 @@ from typing import Any
 from arena_core.agents.manifests import PromptSet, load_prompts, official_manifests
 from arena_core.agents.subject_prompts import SubjectPacket, SubjectTurnState
 from arena_core.agents.views import (
+    CoachCall,
     EarlierOutput,
     PublicTrialView,
     ReleasedRecord,
@@ -78,7 +79,10 @@ F01_TURNS = [
 ]
 
 
-def transcript(n: int, turns: list[tuple[str, str]] = F01_TURNS) -> list[TranscriptTurn]:
+F01_LONG = F01_TURNS + [(f"Question {i}?", f"Answer {i}.") for i in range(4, 13)]
+
+
+def transcript(n: int, turns: list[tuple[str, str]] = F01_LONG) -> list[TranscriptTurn]:
     return [TranscriptTurn(turn_no=i, question=q, answer=a) for i, (q, a) in enumerate(turns[:n], start=1)]
 
 
@@ -122,7 +126,7 @@ def deep(turn: int = 2) -> StoredDeepUpdate:
     )
 
 
-def coach_view(exchange: int = 3, *, with_deep: bool = True) -> PublicTrialView:
+def coach_view(exchange: int = 3, *, with_deep: bool = True, call: CoachCall = "card") -> PublicTrialView:
     """F01 deceptive at `exchange`: rec-01 released after exchange 2, one earlier flag, A1's deep update."""
     v = variant("F01", "deceptive")
     released = [release("F01", "deceptive", "rec-01", REC01_AFTER)] if exchange > REC01_AFTER else []
@@ -132,6 +136,7 @@ def coach_view(exchange: int = 3, *, with_deep: bool = True) -> PublicTrialView:
         deep_update=deep(DEEP_AT) if with_deep and exchange > DEEP_AT else None,
     )
     return PublicTrialView(
+        call=call,
         case=public_case(v["public_packet"]),
         released=released,
         transcript=transcript(exchange),

@@ -69,7 +69,7 @@
     "output_schemas": [
       {
         "name": "SubjectTurn",
-        "sha256": "3671f5e83c6d5814ce0529eef5d4b9c2b0940905ef80c5f64f5254d62bea76c0",
+        "sha256": "25a860c4c9c8ff61e84cfadd325fb77a592c32e25ed169c62a7f2db39e148090",
         "version": "subject.v1"
       }
     ],
@@ -88,7 +88,7 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "c1f3a86bfc6daca2f91f12d95cc74c63dc4a5fd2bfccf99200444199be49ce40",
+  "sha256": "79552cf3edae7ea1f1bb71209d42ca8ace63a9360f951765b42e88a3d91525c5",
   "subject_policy": {
     "policy": "standard"
   },
