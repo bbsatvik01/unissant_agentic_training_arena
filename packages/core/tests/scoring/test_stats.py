@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from arena_core.scoring.exact import GATE, ci_indices, seed_for
+from arena_core.scoring.metrics import qq_summary
 from arena_core.scoring.stats import (
     Cluster,
     attrition_sensitivity,
@@ -235,16 +236,29 @@ def test_zero_event_bound_equals_clopper_pearson_at_zero() -> None:
 # ---------------------------------------------------------------- paired differences (5.1)
 
 
-def test_paired_difference_uses_common_families_only() -> None:
+def test_paired_difference_takes_the_union_of_contributing_families() -> None:
+    """Inputs are already restricted to common cells; a family only one candidate has a cluster for is that
+    candidate's data with a zero-denominator placeholder for the other."""
     a = {"F1": Cluster("F1", 3, 3), "F2": Cluster("F2", 2, 3), "F3": Cluster("F3", 3, 3)}
     b = {"F1": Cluster("F1", 1, 3), "F2": Cluster("F2", 2, 3), "F9": Cluster("F9", 0, 3)}
     point, iv = paired_difference(a, b, seed=5, b=2000)
-    assert point == Fraction(5, 6) - Fraction(3, 6)
-    assert (iv.pool,) == (2,)
+    assert point == Fraction(8, 9) - Fraction(3, 9)
+    assert (iv.pool,) == (4,)
     assert iv.lo is not None
     assert iv.hi is not None
     assert iv.lo <= float(point) <= iv.hi
-    assert paired_difference(a, {"F9": Cluster("F9", 0, 3)}, seed=5)[0] is None
+    assert paired_difference({}, {"F9": Cluster("F9", 0, 3)}, seed=5)[0] is None
+
+
+def test_paired_qq_keeps_a_family_one_candidate_could_not_score() -> None:
+    """Two common cells: A's QQ (F1 = 1, F2 unscorable), B's (F1 = 0, F2 = 1); the difference is 1 - 1/2."""
+    qa = qq_summary([("F1", Fraction(1)), ("F2", None)])
+    qb = qq_summary([("F1", Fraction(0)), ("F2", Fraction(1))])
+    point, iv = paired_difference(
+        {c.family_id: c for c in qa.clusters}, {c.family_id: c for c in qb.clusters}, seed=4, b=500
+    )
+    assert point == Fraction(1, 2)
+    assert (iv.pool, iv.status) == (2, "ok")
 
 
 def test_paired_difference_keeps_a_family_only_one_candidate_can_score() -> None:

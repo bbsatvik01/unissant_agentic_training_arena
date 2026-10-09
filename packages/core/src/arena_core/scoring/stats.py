@@ -179,11 +179,14 @@ def cluster_bootstrap(clusters: Sequence[Cluster], seed: int, b: int = B) -> Int
 def paired_difference(
     a: Mapping[str, Cluster], b_: Mapping[str, Cluster], seed: int, b: int = B
 ) -> tuple[Fraction | None, Interval]:
-    """EVL-10 compare: candidates A and B on the cells both included, clustered by family (`a` and `b_` map family
-    to that family's common-cell cluster); families are resampled jointly; statistic metric(A) - metric(B). A
-    family counts when either candidate has a denominator there; a draw where either metric is undefined is left
-    out of the percentiles."""
-    fams = sorted(f for f in set(a) & set(b_) if a[f].den > 0 or b_[f].den > 0)
+    """EVL-10 compare: candidates A and B on the cells both included, clustered by family. The caller restricts
+    trials to common cells first; `a` and `b_` then map family to each candidate's cluster over those cells. The
+    pool is the union of contributing families, a family missing on one side being a zero-denominator placeholder
+    (e.g. QQ unscorable there); families are resampled jointly; statistic metric(A) - metric(B). A draw where
+    either metric is undefined is left out of the percentiles."""
+    a = {f: a.get(f, Cluster(f, 0, 0)) for f in set(a) | set(b_)}
+    b_ = {f: b_.get(f, Cluster(f, 0, 0)) for f in a}
+    fams = sorted(f for f in a if a[f].den > 0 or b_[f].den > 0)
     ra, rb = ratio([a[f] for f in fams]), ratio([b_[f] for f in fams])
     if ra is None or rb is None:
         return None, Interval(None, None, "undefined", len(fams))

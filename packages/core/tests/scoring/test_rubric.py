@@ -4,6 +4,7 @@ verdicts (zero model calls); AC-S3-2.1 to 2.11."""
 from __future__ import annotations
 
 import ast
+from dataclasses import replace
 from fractions import Fraction
 from itertools import pairwise
 from pathlib import Path
@@ -18,14 +19,15 @@ from arena_core.scoring.exact import RubricError, dimension_score
 from arena_core.scoring.rubric import (
     LINEAGE,
     Closure,
+    LineageError,
     Question,
     Triggers,
     assistant_questions,
     closure_checks,
     closure_code_checks,
     closure_score,
-    definition_sha256,
     investigator_questions,
+    lineage_checked_sha256,
     question_checks,
     rubric_sha256,
     score_rubric,
@@ -595,8 +597,9 @@ def test_a_finding_with_no_citation_fails_5a_and_leaves_5b_na() -> None:
 # ---------------------------------------------------------------- rubric hash (AC-S3-2.6) and isolation (AC-S3-2.7)
 
 
-def test_ac_s3_2_6_lineage_head_equals_the_computed_definition_hash() -> None:
-    assert LINEAGE[-1].sha256 == definition_sha256()
+def test_ac_s3_2_6_lineage_head_equals_the_full_configured_rubric_hash() -> None:
+    full = rubric_sha256(rubric.CONFIG.lexicon_text, rubric.CONFIG.prompt_texts, rubric.CONFIG.model_ids)
+    assert (LINEAGE[-1].sha256, lineage_checked_sha256()) == (full, full)
     assert len({e.sha256 for e in LINEAGE}) == len(LINEAGE)
     assert all(b.supersedes == a.sha256 for a, b in pairwise(LINEAGE))
 
@@ -610,7 +613,25 @@ def test_ac_s3_2_6_changing_a_threshold_without_a_lineage_entry_fails_the_tripwi
     monkeypatch: pytest.MonkeyPatch, name: str, value: object
 ) -> None:
     monkeypatch.setattr(rubric, name, value)
-    assert LINEAGE[-1].sha256 != definition_sha256()
+    with pytest.raises(LineageError):
+        lineage_checked_sha256()
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("field", ["lexicon_text", "prompt_texts", "model_ids"])
+def test_ac_s3_2_6_changing_the_lexicon_a_prompt_or_a_model_needs_a_new_lineage_entry(
+    monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
+    c = rubric.CONFIG
+    changed = {
+        "lexicon_text": replace(c, lexicon_text=c.lexicon_text + "nervous\n"),
+        "prompt_texts": replace(c, prompt_texts=(*c.prompt_texts, "J1 prompt")),
+        "model_ids": replace(c, model_ids=(*c.model_ids[:-1], "gemini-other")),
+    }[field]
+    assert changed != c
+    monkeypatch.setattr(rubric, "CONFIG", changed)
+    with pytest.raises(LineageError):
+        lineage_checked_sha256()
 
 
 def test_the_rubric_hash_binds_the_lexicon_prompts_and_models() -> None:

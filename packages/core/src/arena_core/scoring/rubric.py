@@ -104,16 +104,48 @@ class LineageEntry:
     note: str
 
 
-# Append-only (gokbase rubrics.py lineage with tripwire, S3 2.11): the head must equal `definition_sha256()`, so
-# a changed threshold, window, wording or ceiling row without a new entry fails CI (AC-S3-2.6).
+@dataclass(frozen=True)
+class RubricConfig:
+    """The external inputs of the rubric hash (S3 2.11): the demeanor lexicon file (S2 4.4), the referee prompt
+    texts (S2 7.2, 7.3) and the referee model IDs (S3 1.2)."""
+
+    lexicon_text: str
+    prompt_texts: tuple[str, ...]
+    model_ids: tuple[str, ...]
+
+
+# The configured inputs. The lexicon file and the frozen referee prompts are not authored yet (they arrive with the
+# referee prompt work): they are empty here, and the work package that adds them changes this value and must
+# append a lineage entry, or the tripwire fails.
+CONFIG = RubricConfig(lexicon_text="", prompt_texts=(), model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"))
+
+
+class LineageError(RuntimeError):
+    """The configured rubric hash is not the lineage head: a rubric input changed without a new entry."""
+
+
+# Append-only (gokbase rubrics.py lineage with tripwire, S3 2.11): the head must equal the full configured rubric
+# hash, so a changed threshold, window, wording, ceiling row, lexicon, prompt or model without a new entry fails
+# CI and refuses scoring (AC-S3-2.6).
 LINEAGE: tuple[LineageEntry, ...] = (
     LineageEntry(
-        sha256="d06b824409ef93cb71eb0c96d37b5abbdbf6f269290193eb7aa34e9b6af80d9e",
+        sha256="14323cee9fa5b0445fd8a11f6c706266bbfb7bd8a39856092347fb47725a5a8d",
         supersedes=None,
         date="2026-10-09",
-        note="rubric.v1 as S3 v2.8 defines it (WP-15)",
+        note="rubric.v1 as S3 v2.8 defines it; lexicon and referee prompts not yet authored (WP-15)",
     ),
 )
+
+
+def lineage_checked_sha256(config: RubricConfig | None = None) -> str:
+    """The rubric hash a score row stores: the full hash of the configured inputs, refused unless it is the
+    lineage head."""
+    c = CONFIG if config is None else config
+    full = rubric_sha256(c.lexicon_text, c.prompt_texts, c.model_ids)
+    if LINEAGE[-1].sha256 != full:
+        msg = f"rubric hash {full} is not the lineage head {LINEAGE[-1].sha256}: append a lineage entry (S3 2.11)"
+        raise LineageError(msg)
+    return full
 
 
 def rubric_sha256(lexicon_text: str, prompt_texts: Sequence[str], model_ids: Sequence[str]) -> str:
