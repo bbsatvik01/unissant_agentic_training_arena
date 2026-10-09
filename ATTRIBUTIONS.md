@@ -82,6 +82,25 @@ Source: `/Users/balla/PangeaChat/adapi-av2`, commit `c44f86ba913e446a9a0447212bb
 | P8 | `.github/workflows/pr-title.yaml` | `627b3bc1c6e2a012b5a264fa3d1a6b74e21bb15d01492a36255f0526efa9ad7e` | `.github/workflows/pr-title.yml` | Conventional-commit PR title lint. |
 | std | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/dependabot.yml` | `31dc0d24afce98476f274c5d9941e8e115189f6dc4942a2ec092295f4336be64`, `a150a5d82c718ddfb8cc29958443e2e940b996890563988270a9d1d712101bac` | same paths | Org-standard scaffolding shape; contents rewritten for this repo (uv ecosystems, gate checklist, role and infra safety checklist). |
 
+## gokbase (internal, owner's project)
+
+Source: `/Users/balla/Desktop/satvik/gokbase-org`, read 2026-10-08: `backend` at commit `cc0b13a3e90d479424a6fec71118a3b3f90159bd`, `recruiter-backend` at commit `b9a8f59fe800332d80a24c50af395048e8ec24c0` (clean tree for both files).
+
+| Row | Source path | sha256 of source | Target | What changed |
+| --- | --- | --- | --- | --- |
+| G8 (part) | `backend/app/rag/v3/injection_defense.py` lines 28-83 (`sanitize_untrusted_text` and its constants) | `b8f4de2e676d72a78ca3866a7bfba379c2376e5d0a2d72b3a495c36ab6d3242c` | `packages/core/src/arena_core/agents/fence.py` | Lifted (WP-08): same character classes, step order and marker set; typed, `_KEEP_CONTROL` a frozenset. S2 8.2 `relay_test.v1` normalizes with it. `wrap_evidence` (lines 86-95) is not lifted yet; WP-11 owns the rest of the fence. |
+| G14 (pattern) | `recruiter-backend/app/matching/rubrics.py` lines 60-61 (`_canonical`), 124-130 (`rubric_hash`) | `c075593440115f63e33cd965f1bf3b9810577d0390439995561dd2529e5963d4` | `packages/core/src/arena_core/ids.py`, `packages/core/src/arena_core/scenario/brief.py` | Pattern only (S1 8.4): canonical JSON is `sort_keys` plus compact separators, here with `ensure_ascii=False`, UTF-8 and sha256 instead of blake2b; the brief hash covers the rules, example and seed spec the way `rubric_hash` folds its parameters in. |
+
+## TechnoMile, patterns cited by S1
+
+| Row | Source path | sha256 of source | Target | What changed |
+| --- | --- | --- | --- | --- |
+| S1 7.1 (pattern) | `services/run/src/bh_run/tail/roleplay.py` lines 128-139 (`persona_slice`), read at commit `9219393ce38524d9874335b18b3d43c275faaf25` | `a1cd3e01844fc1e0e8601b538f6b850496a713dff6ccdfb0c1ebfdbf892e8775` | `packages/core/src/arena_core/scenario/assemble.py` | Pattern only, no code: the subject ledger is the persona's own slice of the canonical facts (the facts it knows), as S1 7.1 specifies. |
+
+## S1 reference implementation (WP-08 port)
+
+`packages/core/src/arena_core/scenario/` ports the reference assembler, validators, relay test, guard scan, mutation suite and brief renderer written for spec S1 (the v2.3 scratch kit of the spec session, `s1v23/`: `assemble.py`, `content.py`, `validate.py`, `mutate.py`, `prove.py`, `relay.py`, `guardscan.py`, `brief.py`; the authoring kit that built F04-F09 uses the same rules). That code is this project's own spec work, not a reference repository. The port keeps its outputs byte for byte: every `cases/dev/sources/Fnn.source.json` assembles to `cases/dev/Fnn.json`, and the design briefs match. Three choices differ from the kit, all from S1: case IDs and canaries are drawn from a CSPRNG once and recorded in the source (the kit hashed the family ID into the canary); ledger and unknown-fact text is second person in the source and copied verbatim (the kit rewrote first-person pronouns, which can change a quotation's speaker; the committed sources carry the converted text); and the Codex review (CX-1 to CX-4) stays in the authoring kit, the engine taking its result, bound to the reviewed family hash, as the attestation's `codex` object.
+
 ## Third-party GitHub Actions (referenced, not copied)
 
 Pinned to full commit SHAs, each resolved with `git ls-remote` on the official repository on 2026-10-08 and older than the 7-day cooldown: `actions/checkout` v6.0.2, `actions/setup-python` v6.3.0, `actions/upload-artifact` v7.0.1, `astral-sh/setup-uv` v9.0.0, `github/codeql-action` v4.38.1, `amannn/action-semantic-pull-request` v6.1.1, `trufflesecurity/trufflehog` v3.97.5, `gitleaks/gitleaks-action` v3.0.0 (its own EULA: free for personal accounts; an organization-owned repository needs a `GITLEAKS_LICENSE` secret), `google/osv-scanner-action` v2.6.0 (Apache-2.0).
