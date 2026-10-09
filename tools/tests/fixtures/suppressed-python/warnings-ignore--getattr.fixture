@@ -1,0 +1,3 @@
+import warnings
+
+getattr(warnings, "simplefilter")("ignore")

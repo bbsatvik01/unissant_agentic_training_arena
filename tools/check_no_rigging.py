@@ -14,13 +14,19 @@ gitleaks config (``.gitleaks.toml`` / ``gitleaks.toml``, loaded automatically by
 it can allowlist findings, disable rules, or replace the default rule set). YAML is also read as YAML:
 ``continue-on-error`` is judged on the parsed document, so a value on the next line, a block scalar, an
 alias or a flow mapping counts as GitHub's parser reads it, and only a plain boolean false passes; a YAML
-file the parser cannot read fails closed.
+file the parser cannot read fails closed. Python is also read as Python: a warning filter set to ignore (a
+``warnings`` call, ``catch_warnings(action=...)``, the ``warnings.filters`` list, or a
+``pytest.mark.filterwarnings`` filter) and a pytest or unittest skip are judged on the syntax tree, with
+import aliases resolved, so a keyword argument, a call across lines, an alias, the function taken as a
+value or fetched through ``getattr`` all count; an action the scan cannot read as a literal string fails
+closed, and so does Python the parser cannot read.
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
 """
 
 import argparse
+import ast
 import re
 import subprocess
 import sys
@@ -143,6 +149,122 @@ def yaml_findings(path: str, text: str) -> list[Finding]:
     return findings
 
 
+PYTHON_SUFFIXES = {".py", ".pyi"}
+WARNINGS_IGNORE, PYTEST_SKIP, UNITTEST_SKIP = "warnings-ignore", "pytest-skip", "unittest-skip"
+# Canonical names (after import aliases are resolved) whose call sets a warning filter: the action is the
+# first positional argument or ``action=``; a pytest mark takes several filter strings, all positional.
+WARNING_FILTER_CALLS = {"warnings.filterwarnings", "warnings.simplefilter"}
+PYTEST_FILTER_MARK = "pytest.mark.filterwarnings"
+CATCH_WARNINGS = "warnings.catch_warnings"
+GETATTR_ARGS = 2  # getattr(object, name)
+WARNINGS_FILTER_LIST = "warnings.filters"
+# Any reference to one of these (a call, a decorator, a value) skips or expects failure.
+SKIP_NAMES = {
+    **{f"pytest.{n}": PYTEST_SKIP for n in ("skip", "xfail", "importorskip")},
+    **{f"pytest.mark.{n}": PYTEST_SKIP for n in ("skip", "skipif", "xfail")},
+    **{
+        f"{module}.{n}": UNITTEST_SKIP
+        for module in ("unittest", "unittest.case")
+        for n in ("skip", "skipIf", "skipUnless", "expectedFailure")
+    },  # the skip exception is caught by name in every form, so the line scan suffices for it
+}
+# getattr on these modules is judged by the name it fetches (a non-literal name fails closed).
+GUARDED_MODULES = {"warnings": WARNINGS_IGNORE, "pytest": PYTEST_SKIP, "pytest.mark": PYTEST_SKIP}
+GUARDED_MODULES |= {"unittest": UNITTEST_SKIP, "unittest.case": UNITTEST_SKIP}
+GUARDED_NAMES = {
+    **SKIP_NAMES,
+    **dict.fromkeys((*WARNING_FILTER_CALLS, PYTEST_FILTER_MARK, CATCH_WARNINGS, WARNINGS_FILTER_LIST), WARNINGS_IGNORE),
+}
+
+
+def _bindings(tree: ast.AST) -> dict[str, str]:
+    """Local name -> the module or module attribute it is bound to by an import anywhere in the file."""
+    bound: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname:
+                    bound[alias.asname] = alias.name
+                else:
+                    head = alias.name.split(".", 1)[0]
+                    bound[head] = head
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            for alias in node.names:
+                bound[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+    return bound
+
+
+def _resolve(node: ast.expr, bound: dict[str, str]) -> str | None:
+    """The canonical dotted name of a Name/Attribute chain rooted in an imported name, else None."""
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if not isinstance(node, ast.Name) or node.id not in bound:
+        return None
+    return ".".join([bound[node.id], *reversed(parts)])
+
+
+def _ignores(expr: ast.expr | None) -> bool:
+    """True unless ``expr`` is absent or a literal string whose action is not ``ignore`` (fail closed)."""
+    if expr is None:
+        return False
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        return expr.value.strip().lower().startswith("ignore")
+    return True
+
+
+def _call_suppresses(name: str, call: ast.Call) -> bool:
+    if any(keyword.arg is None for keyword in call.keywords):  # **kwargs: the action cannot be read
+        return True
+    action = next((k.value for k in call.keywords if k.arg == "action"), None)
+    if name == CATCH_WARNINGS:
+        return _ignores(action)
+    if name == PYTEST_FILTER_MARK:
+        return any(_ignores(arg) for arg in call.args) or _ignores(action)
+    first = call.args[0] if call.args else None
+    return _ignores(action) or _ignores(first)
+
+
+def _getattr_marker(call: ast.Call, bound: dict[str, str]) -> str | None:
+    """``getattr(<guarded module>, name)``: the marker when the name is guarded or not a literal."""
+    if not (isinstance(call.func, ast.Name) and call.func.id == "getattr" and len(call.args) >= GETATTR_ARGS):
+        return None
+    module = _resolve(call.args[0], bound)
+    if module not in GUARDED_MODULES:
+        return None
+    name = call.args[1]
+    if isinstance(name, ast.Constant) and isinstance(name.value, str):
+        return GUARDED_NAMES.get(f"{module}.{name.value}")
+    return GUARDED_MODULES[module]
+
+
+def python_findings(path: str, text: str) -> list[Finding]:
+    """Warning filters set to ignore and skips, judged on the syntax tree (see the module docstring)."""
+    tree = ast.parse(text, filename=path)
+    lines = text.splitlines()
+    bound = _bindings(tree)
+    called = {id(node.func): node for node in ast.walk(tree) if isinstance(node, ast.Call)}
+    findings: list[Finding] = []
+
+    def found(node: ast.AST, marker: str) -> None:
+        row = getattr(node, "lineno", 1)
+        findings.append(Finding(path, row, marker, lines[row - 1].strip()))
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and (marker := _getattr_marker(node, bound)) is not None:
+            found(node, marker)
+        if not isinstance(node, ast.Name | ast.Attribute):
+            continue
+        name = _resolve(node, bound)
+        if name is None or name not in GUARDED_NAMES:
+            continue
+        call = called.get(id(node))
+        if name in SKIP_NAMES or name == WARNINGS_FILTER_LIST or call is None or _call_suppresses(name, call):
+            found(call or node, GUARDED_NAMES[name])
+    return findings
+
+
 def docs_python_errors(paths: list[str]) -> list[str]:
     """The linters skip docs/ (frozen research evidence); new Python there must not escape them."""
     return [
@@ -169,6 +291,11 @@ def check(
             errors.append(f"{path}: not UTF-8 text ({exc.reason}); the suppression scan cannot read it")
             continue
         findings = scan_text(path, text, markers)
+        if Path(path).suffix in PYTHON_SUFFIXES:
+            try:
+                findings += python_findings(path, text)
+            except (SyntaxError, ValueError) as exc:  # fail closed; the line scan's findings still stand
+                errors.append(f"{path}: not valid Python ({exc}); the suppression scan cannot read it")
         if Path(path).suffix in YAML_SUFFIXES:
             try:
                 findings += yaml_findings(path, text)

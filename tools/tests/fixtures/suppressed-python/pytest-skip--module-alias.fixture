@@ -1,0 +1,6 @@
+import pytest as pt
+
+
+@pt.mark.xfail
+def test_x() -> None:
+    pass

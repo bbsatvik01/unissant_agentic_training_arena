@@ -1,0 +1,7 @@
+import unittest as ut
+
+
+class T(ut.TestCase):
+    @ut.expectedFailure
+    def test_x(self) -> None:
+        pass

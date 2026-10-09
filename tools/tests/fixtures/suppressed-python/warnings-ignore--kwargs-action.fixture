@@ -1,0 +1,4 @@
+import warnings
+
+OPTIONS = {"action": "ignore"}
+warnings.simplefilter(**OPTIONS)

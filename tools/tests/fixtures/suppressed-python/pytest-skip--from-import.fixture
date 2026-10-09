@@ -1,0 +1,5 @@
+from pytest import skip as later
+
+
+def test_x() -> None:
+    later("not today")

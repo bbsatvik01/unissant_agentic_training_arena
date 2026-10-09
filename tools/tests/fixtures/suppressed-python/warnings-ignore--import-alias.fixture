@@ -1,0 +1,3 @@
+from warnings import simplefilter as quiet
+
+quiet("ignore")

@@ -46,11 +46,11 @@ def test_each_forbidden_marker_is_caught(tmp_path: Path, marker: str, line: str)
 
 
 def test_allowance_covers_only_its_file_marker_and_line(tmp_path: Path) -> None:
-    body = f"    {APPROVED}\n{NOQA}\n"
+    body = f"if True:\n    {APPROVED}\n{NOQA}\n"
     for name in ("a.py", "b.py"):
         (tmp_path / name).write_text(body)
     errors = nr.check(["a.py", "b.py"], reader(tmp_path), [nr.Allowance("a.py", "noqa", APPROVED)], MARKERS)
-    assert [e.split(": forbidden")[0] for e in errors] == ["a.py:2", "b.py:1", "b.py:2"]
+    assert [e.split(": forbidden")[0] for e in errors] == ["a.py:3", "b.py:2", "b.py:3"]
 
 
 @pytest.mark.gateproof
@@ -177,6 +177,71 @@ def test_docs_python_outside_the_archive_fails() -> None:
 def test_ordinary_code_and_data_never_match(tmp_path: Path, line: str) -> None:
     (tmp_path / "app.ts").write_text(line + "\n")
     assert nr.check(["app.ts"], reader(tmp_path), [], MARKERS) == []
+
+
+# ---------------------------------------------------------------- Python read as Python (Codex round 4)
+# A warning filter or a skip written with a keyword argument, across lines, through an import alias, as a
+# value or through getattr is the same suppression a line scan cannot see. Python files are parsed and these
+# are judged on the syntax tree. The fixtures use a suffix the scan skips, so this module holds no live one.
+SUPPRESSED_PYTHON = sorted((Path(__file__).parent / "fixtures" / "suppressed-python").glob("*.fixture"))
+
+
+def test_the_python_fixtures_cover_each_ast_marker() -> None:
+    cases = {p.stem for p in SUPPRESSED_PYTHON}
+    assert {c for c in cases if c.startswith("pytest-skip--")} == {
+        f"pytest-skip--{c}" for c in ("from-import", "mark-import", "module-alias")
+    }
+    assert {c for c in cases if c.startswith("unittest-skip--")} == {
+        f"unittest-skip--{c}" for c in ("from-import", "module-alias")
+    }
+    assert {c for c in cases if c.startswith("warnings-ignore--")} == {
+        f"warnings-ignore--{c}"
+        for c in (
+            "catch-warnings-action",
+            "computed-action",
+            "filters-list",
+            "function-as-value",
+            "getattr",
+            "import-alias",
+            "keyword-action",
+            "kwargs-action",
+            "module-alias",
+            "multiline-positional",
+            "pytest-mark-multiline",
+            "pytest-mark-second-filter",
+        )
+    }
+    assert len(cases) == len(list(SUPPRESSED_PYTHON))
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize("fixture", SUPPRESSED_PYTHON, ids=lambda p: p.stem)
+def test_python_suppressions_are_found_on_the_syntax_tree(tmp_path: Path, fixture: Path) -> None:
+    shutil.copy(fixture, tmp_path / "test_x.py")
+    errors = nr.check(["test_x.py"], reader(tmp_path), [], MARKERS)
+    assert any(f"[{fixture.stem.split('--')[0]}]" in e for e in errors), (fixture.name, errors)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'import warnings\n\nwarnings.simplefilter("error")\n',
+        'import warnings\n\nwarnings.filterwarnings(action="error", category=DeprecationWarning)\n',
+        'import warnings\n\nwarnings.filterwarnings("always", "ignore this message text")\n',
+        "import warnings\n\nwith warnings.catch_warnings(record=True) as seen:\n    assert seen == []\n",
+        'import pytest\n\n\n@pytest.mark.filterwarnings("error::DeprecationWarning")\ndef test_x() -> None:\n    ...\n',
+        "import pytest\n\n\ndef test_x() -> None:\n    with pytest.warns(UserWarning):\n        pass\n",
+        "import argparse\n\nparser = argparse.ArgumentParser()\nparser.skip = 1\nfilters = [1]\n",
+    ],
+)
+def test_ordinary_python_passes_the_syntax_tree_scan(tmp_path: Path, source: str) -> None:
+    (tmp_path / "test_x.py").write_text(source)
+    assert nr.check(["test_x.py"], reader(tmp_path), [], MARKERS) == []
+
+
+def test_unparseable_python_fails_closed(tmp_path: Path) -> None:
+    (tmp_path / "broken.py").write_text("def f(:\n")
+    assert "not valid Python" in nr.check(["broken.py"], reader(tmp_path), [], MARKERS)[0]
 
 
 # ---------------------------------------------------------------- YAML read as YAML (Codex round 2, finding 2)
