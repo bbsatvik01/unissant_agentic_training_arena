@@ -508,6 +508,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
     avail = cap - allowance - demo_ceiling()
     spent = 0.0
     report = {"truncated": None}
+    phase_spend: dict[str, float] = {}
 
     def run(name: str, calls: list[Call], high_calls: list[Call]) -> bool:
         nonlocal spent
@@ -518,6 +519,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
                 report["truncated"] = name
                 return False
             spent += liab_cost(c, high) * RETRY_FACTOR
+            phase_spend[name] = phase_spend.get(name, 0.0) + liab_cost(c, high) * RETRY_FACTOR
         return True
 
     counts = {}
@@ -527,6 +529,7 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
             ok = False
             break
         spent += LIVE_PROBE[1] if not high else PROBE_RESERVATION
+        phase_spend["experiments"] = phase_spend.get("experiments", 0.0) + (LIVE_PROBE[1] if not high else PROBE_RESERVATION)
     counts["experiments"] = int(ok)
     gens = 0
     for i in range(dev_cases // 2 + sealed_cases // 2):
@@ -562,7 +565,39 @@ def simulate_d009(sealed_cases: int, dev_cases: int, high: bool, cap: float = 75
     non_model = (0.0 if not high else NON_MODEL_ALLOWANCE_LOCAL) if HOSTING == "local" else \
         sum((h if high else e) for e, h in NON_MODEL.values())
     return {**counts, "model_spend": spent, "demo": demo, "non_model": non_model,
-            "total": spent + demo + non_model, "set_aside": cap - avail, **report}
+            "total": spent + demo + non_model, "set_aside": cap - avail, "phase_spend": phase_spend, **report}
+
+
+CAP = 75.0
+BUILD_PHASES = ("experiments", "generation", "dev_blocks", "replay", "interactive")
+
+
+def budget_plan(sealed_cases: int = 30, dev_cases: int = 10, hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:
+    """Spend-guard bucket tree {name: (parent, ceiling $)} applied by the operator (S4 ops.set_bucket_ceiling).
+
+    The SQL migrations seed no budget figure (the global row opens at $0, so nothing can spend until this plan
+    is applied); every ceiling comes from here. global = CAP - the non-model allowance for the hosting mode.
+    Leaves are the conservative simulation's phase spend rounded up to the cent; the art leaf is the
+    character-art sub-budget; the interactive leaf takes the remainder of build. Raises if the plan does not fit.
+    """
+    import math
+    up = lambda x: math.ceil(x * 100 - 1e-9) / 100
+    allowance = NON_MODEL_ALLOWANCE_LOCAL if hosting == "local" else NON_MODEL_ALLOWANCE
+    glob = CAP - allowance
+    art = up(PORTRAITS[0] * PORTRAITS[2])
+    demo = up(demo_ceiling() - PORTRAITS[0] * PORTRAITS[2])        # text + voice + one in-flight voice reservation
+    r = simulate_d009(sealed_cases, dev_cases, True)
+    ph = r["phase_spend"]
+    leaves = {"experiments": up(ph.get("experiments", 0)), "generation": up(ph.get("generation", 0)),
+              "dev_blocks": up(ph.get("dev_blocks", 0)),
+              "replay": up(ph.get("replay_corpus", 0) + ph.get("replay_transcripts", 0))}
+    build = round(glob - demo - art, 2)
+    leaves["interactive"] = round(build - sum(leaves.values()), 2)
+    if leaves["interactive"] < up(ph.get("interactive_blocks", 0)) or r["truncated"]:
+        raise ValueError(f"{sealed_cases} cases do not fit the {hosting} plan at conservative usage")
+    plan = {"global": (None, glob), "demo": ("global", demo), "art": ("global", art), "build": ("global", build)}
+    plan.update({k: ("build", v) for k, v in leaves.items()})
+    return plan
 
 
 if __name__ == "__main__":
@@ -590,3 +625,16 @@ if __name__ == "__main__":
                   f"${r['model_spend']:.2f}, demo ${r['demo']:.2f}, non-model ${r['non_model']:.2f})"
                   + (f"; truncated in {r['truncated']}" if r["truncated"] else ""))
             assert r["total"] <= 75.0
+    plan = budget_plan()
+    kids = lambda p: round(sum(v for k, (par, v) in plan.items() if par == p), 2)
+    assert kids("global") <= plan["global"][1] and kids("build") <= plan["build"][1]
+    assert plan["global"][1] + NON_MODEL_ALLOWANCE_LOCAL == CAP
+    print(f"\n  budget plan (30 sealed + 10 dev cases, hosting={HOSTING}); operator applies it, SQL seeds none:")
+    for k, (par, v) in plan.items():
+        print(f"    {k:<12} parent {str(par):<7} ${v:6.2f}")
+    try:
+        budget_plan(hosting="hosted")
+        print("  hosted from day 1: the 30-case plan fits")
+    except ValueError as e:
+        print(f"  hosted from day 1: {e}; hosting later is affordable only if committed liability at the switch "
+              f"leaves the remaining work under ${CAP - NON_MODEL_ALLOWANCE:.2f}")
