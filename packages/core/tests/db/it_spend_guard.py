@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import json
 import os
 import secrets
 from collections.abc import AsyncIterator, Coroutine
@@ -527,6 +528,285 @@ def test_admit_unit_and_budget_status_read_the_one_global_bucket(admin_dsn: str)
     yes, no, status = run(scenario())
     assert (yes.decision, no.decision) == ("admit", "skip")
     assert [(s.bucket, s.parent, s.ceiling_usd, s.kill_switch) for s in status] == [("global", None, ceiling, False)]
+
+
+# ---------------------------------------------------------------- 5b. every runtime role, its own login (S4 8.3)
+
+
+ROLE_CALLS = [
+    ("arena_public", "card", "coach.card", VertexModel.FLASH_LITE_35),
+    ("arena_public", "deep", "coach.deep", VertexModel.FLASH_LITE_35),
+    ("arena_public", "final", "coach.final", VertexModel.FLASH_LITE_31),
+    ("arena_subject", "subject", "subject.answer", VertexModel.FLASH_LITE_31),
+    ("arena_referee", "referee", "referee_subject", VertexModel.FLASH_LITE_31),
+    ("arena_referee", "referee", "r3_investigator", VertexModel.FLASH_LITE_35),
+]
+
+
+@pytest.mark.parametrize(("role", "call_kind", "purpose", "model"), ROLE_CALLS)
+def test_each_role_runs_the_whole_lifecycle_on_its_own_login_and_no_other_role_can_touch_it(
+    admin_dsn: str, role: str, call_kind: str, purpose: str, model: VertexModel
+) -> None:
+    run(open_ceiling(admin_dsn, Decimal("1.00")))
+    others = sorted(RUNTIME_ROLES - {role})
+
+    async def lifecycle() -> tuple[UUID, calls.SettleResult]:
+        async with role_connector(admin_dsn, role)() as conn:
+            req = ModelCallRequest(
+                key=f"it-role:{uuid4()}",
+                bucket="global",
+                model=model.value,
+                call_kind=call_kind,
+                purpose=purpose,
+                trial_id=None,
+                actor_user_id=None,
+                input_bytes=12_000,
+            )
+            made = await calls.reserve_model_call(conn, req)
+            assert (made.outcome, made.reservation_id is not None) == ("reserved", True)
+            rid = made.reservation_id
+            assert rid is not None
+            for other in others:  # before dispatch, and again once the receipt exists
+                async with role_connector(admin_dsn, other)() as foreign:
+                    with pytest.raises(psycopg.Error) as refused:
+                        await calls.mark_dispatched(foreign, rid)
+                    assert refused.value.sqlstate == "AR040"
+            assert (await calls.mark_dispatched(conn, rid)).outcome == "dispatched"
+            report = calls.UsageReport(
+                reservation_id=rid,
+                seq=1,
+                model=model.value,
+                input_tokens=900,
+                output_tokens=120,
+                thinking_tokens=20,
+                status="ok",
+                latency_ms=40,
+                trace_id=None,
+                span_id=None,
+            )
+            assert (await calls.record_usage(conn, report)).outcome == "recorded"
+            for other in others:
+                async with role_connector(admin_dsn, other)() as foreign:
+                    for attempt in (
+                        calls.record_usage(foreign, dataclasses.replace(report, seq=2)),
+                        calls.settle_reservation(foreign, rid, "committed"),
+                    ):
+                        with pytest.raises(psycopg.Error) as refused:
+                            await attempt
+                        assert refused.value.sqlstate == "AR040"
+            return rid, await calls.settle_reservation(conn, rid, "committed")
+
+    rid, settled = run(lifecycle())
+    row = run(reservation_row(admin_dsn, rid))
+    want = rates.receipt_usd(model, 900, 120)
+    assert (row["role"], row["purpose"], row["state"], row["settled_usd"]) == (role, purpose, "committed", want)
+    assert settled.settled_usd == want
+    assert [r[0] for r in run(call_rows(admin_dsn, rid))] == [1]
+
+
+# ---------------------------------------------------------------- 5c. the cap test (S5 4.10): simulate_d009 replayed
+
+# Exports simulate_d009(PLAN["sealed"], PLAN["dev"], high=True)'s units in the order the simulation runs them, each
+# with its admission cost and its calls (model id, call kind, and the tokens that settle at the modeled cost:
+# liab_cost(c, high=True) x RETRY_FACTOR), plus the simulation's own outcome and available budget.
+_SIM_EXPORT = """
+import json, math, runpy, sys
+m = runpy.run_path(sys.argv[1], run_name="cap_test")
+lu, plan, think = m["LINEUPS"]["d009"], m["PLAN"], m["THINK"]
+rf = m["RETRY_FACTOR"]
+def call(c):
+    return ["gemini-" + c.model, c.kind, math.ceil(c.tokens_in * 1.25 * rf),
+            math.ceil((c.tokens_out * 1.25 + think[c.think][1]) * rf)]
+def unit(name, calls):
+    high = sum(m["liab_cost"](c, True) for c in calls) * rf
+    return {"name": name, "high_cost": repr(high), "calls": [call(c) for c in calls]}
+units = [unit("experiments", m["experiment_calls"](True))]
+units += [unit("dev_blocks", m["block_calls"](lu, True)) for _ in range(plan["dev"] // 2)]
+units.append(unit("replay_corpus", [c for i in range(plan["sealed"]) for c in m["corpus_calls"](lu, i)]))
+units += [unit("replay_transcripts", m["replay_scoring_calls"](lu, True)) for _ in range(plan["sealed"])]
+units += [unit("interactive_blocks", m["block_calls"](lu, True)) for _ in range(plan["sealed"] // 2)]
+sim = m["simulate_d009"](plan["sealed"], plan["dev"], True)
+print(json.dumps({"units": units, "probes": m["LIVE_PROBE"][0], "set_aside": repr(sim["set_aside"]),
+                  "cap": repr(m["CAP"]), "sim": {k: sim[k] for k in ("dev_blocks", "replay_corpus",
+                  "replay_transcripts", "interactive_blocks", "truncated")}}))
+"""
+
+
+def simulation() -> dict[str, Any]:
+    result = proc.run(
+        "python", ["-I", "-B", "-c", _SIM_EXPORT, str(REPO_ROOT / "docs/research/synthesis/cost_model.py")]
+    )
+    assert result.returncode == 0, result.stderr
+    parsed: dict[str, Any] = json.loads(result.stdout)
+    return parsed
+
+
+class Replay:
+    """Drives units through the real guard as the tournament job would (admit, then reserve, dispatch, record,
+    settle per call), checking after EVERY transition that liability is at or under the ceiling."""
+
+    def __init__(self, admin: str) -> None:
+        self.admin = admin
+        self.checks = 0
+
+    async def assert_within_ceiling(self, watch: calls.Conn) -> None:
+        [status] = await calls.budget_status(watch)
+        assert status.liability_usd <= status.ceiling_usd, status
+        self.checks += 1
+
+    async def unit(self, conn: calls.Conn, watch: calls.Conn, unit: dict[str, Any]) -> str:
+        admitted = await calls.admit_unit(conn, "global", Decimal(unit["high_cost"]))
+        if admitted.decision == "skip":
+            return "budget_skipped"
+        for model, kind, tokens_in, tokens_out in unit["calls"]:
+            req = ModelCallRequest(
+                key=f"it-cap:{uuid4()}",
+                bucket="global",
+                model=model,
+                call_kind=kind,
+                purpose={"subject": "subject.answer", "referee": "referee_assistant"}.get(kind, f"coach.{kind}"),
+                trial_id=None,
+                actor_user_id=None,
+                input_bytes=LIMITS_BYTES[kind],  # the worst case the simulation reserves (liab_reservation)
+            )
+            held = await calls.reserve_model_call(conn, req)
+            await self.assert_within_ceiling(watch)
+            if held.outcome == "refused":
+                assert held.reason == "cap"
+                return "budget_truncated"
+            assert held.reservation_id is not None
+            await calls.mark_dispatched(conn, held.reservation_id)
+            report = calls.UsageReport(
+                reservation_id=held.reservation_id,
+                seq=1,
+                model=model,
+                input_tokens=tokens_in,
+                output_tokens=tokens_out,
+                thinking_tokens=0,
+                status="ok",
+                latency_ms=1,
+                trace_id=None,
+                span_id=None,
+            )
+            receipt = await calls.record_usage(conn, report)
+            assert receipt.outcome == "recorded"  # never an overrun
+            await self.assert_within_ceiling(watch)
+            await calls.settle_reservation(conn, held.reservation_id, "committed")
+            await self.assert_within_ceiling(watch)
+        return "completed"
+
+
+LIMITS_BYTES = {"subject": 80_000, "card": 128_000, "deep": 128_000, "final": 128_000, "referee": 160_000}
+
+
+def test_the_cap_test_replays_simulate_d009_through_the_guard_and_never_passes_the_ceiling(admin_dsn: str) -> None:
+    sim = simulation()
+    ceiling = plan_ceiling()
+    run(
+        admin_exec(
+            admin_dsn, "select ops.set_bucket_ceiling('global', null, %s, 'cap test: the applied plan')", (ceiling,)
+        )
+    )
+    # The simulation sets the demo and training ceilings aside before any unit runs (set_aside includes the non-model
+    # allowance, which the applied ceiling already excludes); here they are one fixture hold, so the units see exactly
+    # the simulation's available budget on top of whatever earlier tests left as liability.
+    already = run(liability(admin_dsn))
+    available = Decimal(sim["cap"]) - Decimal(sim["set_aside"])
+    hold = (ceiling - already - available).quantize(Decimal("0.000001"))
+    hold_key = f"it-cap-aside:{uuid4()}"
+    run(
+        admin_exec(
+            admin_dsn,
+            "insert into ops.budget_reservations (idempotency_key, bucket, kind, model, call_kind, input_bytes,"
+            " purpose, caller_role, reserved_usd) values (%s, 'global', 'model_call', 'gemini-3.5-flash-lite', 'card',"
+            " 1, 'cap test: demo and training set-aside', 'postgres', %s)",
+            (hold_key, hold),
+        )
+    )
+    replay = Replay(admin_dsn)
+    outcomes: dict[str, list[str]] = {}
+
+    async def drive() -> None:
+        async with (
+            role_connector(admin_dsn, "arena_public")() as conn,
+            role_connector(admin_dsn, "arena_subject")() as subject,
+            role_connector(admin_dsn, "arena_referee")() as watch,
+        ):
+            stopped = False
+            units = sim["units"]
+            first = await replay.unit(conn, watch, units[0])
+            outcomes.setdefault("experiments", []).append(first)
+            for _ in range(sim["probes"]):  # each day-1 Live probe holds its whole-session reservation
+                probe = calls.VoiceRequest(
+                    key=f"it-cap-probe:{uuid4()}",
+                    bucket="global",
+                    kind="voice_probe",
+                    purpose="voice.probe",
+                    trial_id=None,
+                    actor_user_id=None,
+                )
+                held = await calls.reserve_voice(subject, probe)
+                await replay.assert_within_ceiling(watch)
+                assert held.outcome == "reserved", held
+                assert held.reservation_id is not None
+                await calls.settle_voice_reservation(subject, held.reservation_id, "usage_unknown")
+                await replay.assert_within_ceiling(watch)
+            skipped: set[str] = set()
+            for unit in units[1:]:
+                name = unit["name"]
+                if stopped or name in skipped:
+                    outcomes.setdefault(name, []).append("not_started")
+                    continue
+                outcome = await replay.unit(conn, watch, unit)
+                outcomes.setdefault(name, []).append(outcome)
+                if outcome == "budget_truncated":
+                    stopped = True  # the simulation stops all work after a truncation
+                elif outcome == "budget_skipped":
+                    skipped.add(name)  # and leaves the rest of that phase
+
+    try:
+        run(drive())
+    finally:
+        run(
+            admin_exec(
+                admin_dsn,
+                "update ops.budget_reservations set state = 'released', settled_usd = 0, settled_at = now()"
+                " where idempotency_key = %s",
+                (hold_key,),
+            )
+        )
+    done = {name: results.count("completed") for name, results in outcomes.items()}
+    expected = sim["sim"]
+    assert done["dev_blocks"] == expected["dev_blocks"][0]
+    assert done["replay_corpus"] == expected["replay_corpus"]
+    assert done["replay_transcripts"] == expected["replay_transcripts"][0]
+    assert done["interactive_blocks"] == expected["interactive_blocks"][0]
+    not_admitted = [o for results in outcomes.values() for o in results if o in {"budget_skipped", "budget_truncated"}]
+    if expected["interactive_blocks"][0] < expected["interactive_blocks"][1]:
+        assert not_admitted, outcomes  # the unit the guard did not admit is recorded, never run past the ceiling
+    assert replay.checks > len(sim["units"])
+
+
+def test_a_unit_admitted_on_its_high_cost_but_short_of_a_call_s_worst_case_is_budget_truncated(admin_dsn: str) -> None:
+    """Admission holds nothing (1.5 x the unit's high cost); each call still reserves its full worst case, so a unit
+    can be admitted and then stopped mid-way: budget_truncated, with liability still under the ceiling."""
+    unit = {"name": "one referee call", "high_cost": "0.02", "calls": [["gemini-3.5-flash-lite", "referee", 900, 300]]}
+    worst = rates.model_call_reservation(VertexModel.FLASH_LITE_35, CallType.REFEREE, LIMITS_BYTES["referee"])
+    headroom = Decimal("0.05")  # admits (>= 1.5 x 0.02) but is below the call's worst case
+    assert Decimal("0.03") <= headroom < worst
+    run(open_ceiling(admin_dsn, headroom))
+    replay = Replay(admin_dsn)
+
+    async def drive() -> str:
+        async with (
+            role_connector(admin_dsn, "arena_public")() as conn,
+            role_connector(admin_dsn, "arena_referee")() as watch,
+        ):
+            return await replay.unit(conn, watch, unit)
+
+    assert run(drive()) == "budget_truncated"
+    run(open_ceiling(admin_dsn, Decimal("0.01")))
+    assert run(drive()) == "budget_skipped"  # under 1.5 x the high cost free: never started
 
 
 # ---------------------------------------------------------------- 6. the budget plan (D-012, S5 4.4, 4.10)

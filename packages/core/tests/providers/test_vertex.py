@@ -263,8 +263,8 @@ class SentRequest(Protocol):
     content: bytes
 
 
-def wire_body(request: ModelRequest) -> dict[str, Any]:
-    """Drive the pinned SDK through the adapter with an in-memory transport and return the JSON body it sent."""
+def wire_body(request: ModelRequest) -> bytes:
+    """Drive the pinned SDK through the adapter with an in-memory transport and return the raw body it sent."""
     bodies: list[bytes] = []
 
     def handler(sent: SentRequest) -> object:
@@ -281,20 +281,31 @@ def wire_body(request: ModelRequest) -> dict[str, Any]:
     client = vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
     run(vertex.VertexAdapter(client).generate(request, timeout_s=TIMEOUT_S))
     [body] = bodies
-    parsed: dict[str, Any] = json.loads(body)
-    return parsed
+    return body
 
 
 @pytest.mark.parametrize(
     "text",
-    ["plain", "€" * 500, "\\" * 300 + '"' * 300 + "\x01" * 50, "line\nbreak\ttab"],
-    ids=["ascii", "three-byte", "escapes", "whitespace"],
+    [
+        "plain",
+        "\u20ac" * 40_000,
+        "\U0001f600" * 600,
+        "\\" * 300 + '"' * 300 + "\x01" * 50,
+        "line\nbreak\ttab",
+    ],
+    ids=["ascii", "three-byte-40k", "four-byte", "escapes", "whitespace"],
 )
-def test_request_bytes_measure_exactly_the_body_the_sdk_sends(text: str) -> None:
+def test_request_bytes_equal_the_raw_bytes_the_sdk_transmits(text: str) -> None:
     req = dataclasses.replace(request(), system=f"sys {text}", messages=(*request().messages, Message("model", text)))
-    sent = wire_body(req)
-    assert sent == request_body(req)
-    assert request_bytes(req) == len(json.dumps(sent, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    raw = wire_body(req)
+    assert request_bytes(req) == len(raw)  # the bound is the transmitted body, byte for byte
+    assert json.loads(raw) == request_body(req)
+
+
+def test_escaping_is_counted_a_non_ascii_character_costs_its_escape() -> None:
+    base = request_bytes(dataclasses.replace(request(), system=""))
+    assert request_bytes(dataclasses.replace(request(), system="\u20ac")) - base == len("\\u20ac")
+    assert request_bytes(dataclasses.replace(request(), system="\U0001f600")) - base == len("\\ud83d\\ude00")
 
 
 # ---------------------------------------------------------------- partial usage metadata never under-counts

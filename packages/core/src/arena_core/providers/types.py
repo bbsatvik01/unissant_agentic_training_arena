@@ -146,13 +146,12 @@ def request_body(request: ModelRequest) -> dict[str, Any]:
 
 
 def request_bytes(request: ModelRequest) -> int:
-    """UTF-8 byte length of the complete request body as compact UTF-8 JSON (D11, SG2-25): the measure every bound
-    uses. Text is counted as its UTF-8 bytes (a three-byte character counts three), and every JSON escape the body
-    needs (backslash, quote, control characters) is counted, so the echo of a hostile reply is measured as sent. The
-    wire may spell a non-ASCII character as a six-byte `\\uXXXX` escape; that is transport encoding of the same text,
-    which the model tokenizes decoded, so it does not count toward the bound on input tokens."""
-    body = json.dumps(request_body(request), ensure_ascii=False, separators=(",", ":"))
-    return len(body.encode("utf-8"))
+    """The exact byte length of the body google-genai 2.24.0 transmits for this request (D11, SG2-25): the SDK
+    serializes `request_body` with `json.dumps` defaults (`ensure_ascii=True`, separators ", " and ": "), so every
+    non-ASCII character is sent as a six-byte `\\uXXXX` escape (twelve for a character outside the BMP), and every
+    backslash, quote and control character as its escape. The reservation and the repair limit use this number; the
+    Vertex adapter's tests assert it equals the raw bytes the SDK put on the wire."""
+    return len(json.dumps(request_body(request)).encode("ascii"))
 
 
 @dataclass(frozen=True)
