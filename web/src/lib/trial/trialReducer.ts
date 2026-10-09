@@ -233,7 +233,12 @@ export function applyFrame(state: TrialState, frame: TrialFrame): { state: Trial
     const hints = new Map(state.hints).set(key, frame);
     return { state: derive({ ...state, hints }), outcome: "applied" };
   }
-  if (frame.seq <= snapshot.last_seq || state.log.has(frame.seq)) return { state, outcome: "duplicate" };
+  if (state.log.has(frame.seq)) return { state, outcome: "duplicate" };
+  if (frame.seq <= snapshot.last_seq) {
+    // The snapshot already has its content; the frame is kept only as ordering evidence for the snapshot's cards
+    // (snapshotCardCurrent), so a card it proves stale is re-judged.
+    return { state: derive({ ...state, log: new Map(state.log).set(frame.seq, frame) }), outcome: "duplicate" };
+  }
   const log = new Map(state.log).set(frame.seq, frame);
   return { state: derive({ ...state, log }), outcome: "applied" };
 }
@@ -245,7 +250,8 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
       // Frames at or below the new last_seq stay held: the snapshot has their content, but they still say in what
       // order a card and the releases before it arrived, which the snapshot cannot (see snapshotCardCurrent).
       const log = state.log;
-      const skippedSeqs = new Set([...state.skippedSeqs].filter((seq) => seq > snapshot.last_seq));
+      // Skip markers stay too: payload-free, they still prove which seqs held nothing a card could read.
+      const skippedSeqs = state.skippedSeqs;
       // Hints, the client's own submit and refused cards stay: they are facts a newer snapshot does not undo.
       let next: TrialState = { ...state, snapshot, log, skippedSeqs };
       if (snapshotLeaks(snapshot)) {

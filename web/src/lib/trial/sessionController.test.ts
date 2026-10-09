@@ -1640,3 +1640,65 @@ describe("session controller: Codex round 8 regression", () => {
     expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
   });
 });
+
+describe("session controller: Codex round 9 regressions", () => {
+  const t = (n: number, v: number) =>
+    ({ turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: v }) as const;
+
+  it("a refused card's skip marker survives the recovery snapshot and keeps proving an earlier card stale", async () => {
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02", coach: "none" });
+    const release = b.frames.find((f) => f.type === "evidence.released") as TrialFrame;
+    const stale = frame("coach.card", 4, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const turn2 = new LogBuilder("practice", { seq: 4, version: 3, turn: 1 }).ask();
+    const [q5, , a6, , card7] = turn2.frames;
+    const covered = snapshot({
+      last_seq: 7,
+      exchanges_used: 2,
+      turns: [t(1, 2), t(2, 5)],
+      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
+      cards: [
+        { turn_no: 1, card: cardFor(1, 2) },
+        { turn_no: 2, card: cardFor(2, 5) },
+      ],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    const [q1, , a2] = b.frames;
+    for (const f of [q1, a2]) h.last().send(f);
+    h.last().raw("{lost release");
+    h.last().send(stale);
+    for (const f of [q5, a6]) h.last().send(f);
+    h.last().send({ ...(card7 as TrialFrame), data: { turn_no: 2, card: { ...cardFor(2, 5), candidate_id: "x" } } });
+    await flush();
+    expect(trialView(c).cards).toEqual([]);
+    expect(h.acks).toEqual([
+      { trial_id: TRIAL_ID, turn_no: 2, client_valid: false },
+      { trial_id: TRIAL_ID, turn_no: 1, client_valid: false },
+    ]);
+  });
+
+  it("a card frame that arrives after the recovery snapshot already covered it is re-judged by its seq", async () => {
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02", coach: "none" });
+    const release = b.frames.find((f) => f.type === "evidence.released") as TrialFrame;
+    const stale = frame("coach.card", 4, 2, { turn_no: 1, card: cardFor(1, 2) });
+    const covered = snapshot({
+      last_seq: 4,
+      exchanges_used: 1,
+      turns: [t(1, 2)],
+      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
+      cards: [{ turn_no: 1, card: cardFor(1, 2) }],
+    });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    const [q1, , a2] = b.frames;
+    for (const f of [q1, a2]) h.last().send(f);
+    h.last().raw("{lost release");
+    await flush();
+    h.last().send(stale);
+    await flush();
+    expect(trialView(c).cards).toEqual([]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: false }]);
+  });
+});

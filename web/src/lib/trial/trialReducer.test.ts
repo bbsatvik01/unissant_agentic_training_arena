@@ -443,8 +443,9 @@ describe("trialReducer: the gap-free prefix (S5 6.1)", () => {
     // the answer arriving after all is folded as usual
     s = fold(s, [answer as TrialFrame]);
     expect(view(s).cards.map((c) => c.turn_no)).toEqual([1]);
+    // skip markers outlive a snapshot: they still prove which seqs carried nothing a card could read
     const next = trialReducer(s, { type: "snapshot", snapshot: snapshot({ last_seq: 2 }) });
-    expect([...next.skippedSeqs]).toEqual([]);
+    expect([...next.skippedSeqs]).toEqual([2]);
   });
 });
 
