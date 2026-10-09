@@ -93,3 +93,55 @@ if __name__ == "__main__":
         print(f"  midpoint winner at base weights: {base}")
         print("  midpoint flips under a 10-point weight shift: " + ("none" if not flips else "; ".join(flips)))
         print("  score-range check: " + ("robust" if not overlaps else "depends on unmeasured scores vs " + ", ".join(overlaps)))
+
+
+# UI decisions (docs/research/synthesis/03-ui-direction.md). Different criteria: the owner's UI mandate
+# ("stunning, smooth, clean, pets") weighs visual impact, against delivery risk inside a 25-day build.
+WEIGHTS_UI = {"impact": 0.30, "delivery": 0.30, "fit": 0.20, "performance": 0.10, "cost": 0.10}
+# fit = PRB-4 and accessibility fit (demeanor independent of role, reduced motion, WCAG 2.2 AA)
+UI_MATRICES: dict[str, dict[str, list]] = {
+    "UI-1 Coach companion pet": {
+        "A port gokbase kin FSM, new SVG art, CSS-variable rig": [4, 5, 5, 5, 5],
+        "B Rive data-bound state machine": [5, 3, 4, 4, 3],
+        "C dotLottie state machine": [4, 3, 4, 4, 4],
+    },
+    "UI-2 Subject avatar": {
+        "A Gemini-generated portrait set, vectorized, amplitude-driven mouth": [4, 4, 5, 5, 5],
+        "B Rive-rigged 2D": [5, 2, 4, 4, 3],
+        "C three-vrm 3D + TalkingHead lip sync": [5, 2, 3, 2, 4],
+    },
+    "UI-3 Motion stack": {
+        "A Motion for state-driven UI + GSAP for signature sequences + CSS for per-frame rigs": [5, 4, 5, 4, 5],
+        "B CSS-only (TechnoMile discipline)": [3, 5, 5, 5, 5],
+        "C Motion only": [4, 4, 5, 4, 5],
+    },
+    "UI-4 Agents-at-work view": {
+        "A pipeline rail + canvas, with an office 'theater' toggle for the demo": [5, 4, 4, 4, 5],
+        "B pipeline rail + canvas only": [3, 5, 5, 5, 5],
+        "C isometric agent office only": [4, 3, 3, 3, 5],
+    },
+}
+
+
+def ui_report() -> None:
+    order = list(WEIGHTS_UI)
+    for title, options in UI_MATRICES.items():
+        print(f"\n{title}")
+        totals = {name: round(sum(WEIGHTS_UI[k] * v for k, v in zip(order, scores)), 2) for name, scores in options.items()}
+        for name, t in totals.items():
+            print(f"  {name:<86} {t:.2f}")
+        best = max(totals, key=totals.get)
+        flips = set()
+        for a in order:
+            for b in order:
+                if a == b or WEIGHTS_UI[a] < 0.10:
+                    continue
+                w = dict(WEIGHTS_UI); w[a] = round(w[a] - 0.10, 2); w[b] = round(w[b] + 0.10, 2)
+                alt = max(options, key=lambda n: sum(w[k] * v for k, v in zip(order, options[n])))
+                if alt != best:
+                    flips.add(f"{a}->{b}: {alt.split(' ')[0]}")
+        print(f"  winner: {best.split(' ')[0]}; flips under a 10-point shift: {'none' if not flips else '; '.join(sorted(flips))}")
+
+
+if __name__ == "__main__":
+    ui_report()
