@@ -1,0 +1,55 @@
+name: CI
+
+# S5 11.2/11.3: CI calls the same make targets `make check` runs locally -- no separately softened CI
+# path. WP-01 scope only (py-check equivalent + bandit); WP-04 adds the Postgres service and db-test,
+# WP-18 adds web-check.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".github/instructions/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".github/instructions/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: make check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+        with:
+          fetch-depth: 0 # tools/check_ratchet.py (BASE_REF) and tools/check_no_rigging.py need history
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v5
+        with:
+          python-version: "3.12"
+
+      # Pinned through pip (resolved at install time, not a third-party Action SHA this session could
+      # not verify over the network); must match [tool.uv] required-version in pyproject.toml.
+      - name: Install uv
+        run: pip install uv==0.11.2
+
+      - name: make check
+        # BASE_REF: the ratchet gate compares against the PR's merge-base branch, not this runner's
+        # detached HEAD.
+        run: make check BASE_REF=origin/${{ github.event.pull_request.base.ref || 'main' }}
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14

@@ -1,0 +1,124 @@
+# Workspace root for the Investigative AI Training Arena (GMU Challenge X, sponsor Unissant).
+# Layout contract (S5 section 1; other work packages rely on it):
+#   packages/core       -> arena_core        shared types, boot checks; later: provider port, spend guard
+#   services/api         -> arena_api         ARENA_ROLE=api; investigator REST, SSE, voice relay edge
+#   services/subject     -> arena_subject      ARENA_ROLE=subject; answer(), guard, Live voice sessions
+#   services/referee     -> arena_referee      ARENA_ROLE=referee; generation, scoring, adjudication, reveal
+#   services/tournament  -> arena_tournament   ARENA_ROLE=tournament job; roster, blocks, harness trials
+# Gate thresholds live in tools/gates/ratchet.toml and may only get stricter (lifted from TechnoMile T22;
+# see ATTRIBUTIONS.md).
+
+[project]
+name = "arena-workspace"
+version = "0.0.0"
+description = "Workspace root (not built); installs every member package for local development."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "arena-core",
+  "arena-api",
+  "arena-subject",
+  "arena-referee",
+  "arena-tournament",
+]
+
+[dependency-groups]
+dev = [
+  "bandit==1.9.4",
+  "mypy==2.3.1",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "ruff==0.16.8",
+]
+
+[tool.uv]
+package = false
+required-version = ">=0.11.2"
+# Global pre-push bar / supply-chain cooldown: never resolve a release younger than 7 days.
+exclude-newer = "7 days"
+
+[tool.uv.workspace]
+members = [
+  "packages/core",
+  "services/api",
+  "services/subject",
+  "services/referee",
+  "services/tournament",
+]
+
+[tool.uv.sources]
+arena-core = { workspace = true }
+arena-api = { workspace = true }
+arena-subject = { workspace = true }
+arena-referee = { workspace = true }
+arena-tournament = { workspace = true }
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# web/ (WP-18) will carry its own ESLint/tsc gate; supabase/ (WP-03) holds SQL only; docs/ holds the
+# frozen research scripts cited by the spec (evidence, not product code) plus prose spec/handoff docs.
+extend-exclude = ["web", "supabase", "docs"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "I", "W", "UP", "B",
+  "S", "BLE", "TRY", "ASYNC", "SIM", "RUF", "PT", "C4", "DTZ", "T20", "PTH",
+  "ANN", "ARG", "ERA", "PIE", "PL", "RET", "N",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["arena_core", "arena_api", "arena_subject", "arena_referee", "arena_tournament", "tools"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert by design (pytest idiom); S101 is the only rule relaxed there.
+"**/tests/**/*.py" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+files = ["packages", "services", "tools"]
+explicit_package_bases = true
+mypy_path = [
+  "packages/core/src",
+  "services/api/src",
+  "services/subject/src",
+  "services/referee/src",
+  "services/tournament/src",
+]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+minversion = "9.0"
+pythonpath = ["."]
+addopts = ["--strict-markers", "--strict-config", "--import-mode=importlib", "-ra"]
+testpaths = ["packages", "services", "tools/tests"]
+filterwarnings = ["error"]
+markers = [
+  "gateproof: seeded-violation proofs that a gate fails on the defect it exists for",
+]
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+branch = true
+source = ["arena_core", "arena_api", "arena_subject", "arena_referee", "arena_tournament", "tools"]
+omit = ["tools/tests/*"]
+# Repo-relative paths in coverage.xml.
+relative_files = true
+
+[tool.coverage.report]
+# Mirrored in tools/gates/ratchet.toml (coverage.python.fail_under); the ratchet check fails on drift.
+fail_under = 90
+include_namespace_packages = true
+show_missing = true
+skip_covered = false
+
+[tool.coverage.xml]
+output = "coverage.xml"

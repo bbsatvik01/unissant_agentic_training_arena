@@ -1,0 +1,86 @@
+name: Security
+
+# WP-01 scope: the scans this repo can run without a non-pip binary fetch (global rule: network here
+# is uv/pip resolution only). gitleaks and osv-scanner need their own pinned binaries (tools/proc.py
+# already reserves PINNED_BINARIES slots for them) and land with tools/ensure_tools.sh in a later WP.
+#
+# Adapted from Pangea adapi-av2 .github/workflows/bandit.yml and secret-scan.yml (P5, P7;
+# ATTRIBUTIONS.md): same two-pass bandit, same TruffleHog verified-only scan; the issue-filing step is
+# dropped (no triage process yet) and pip-audit is added (S5 11.1 sec-check).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".github/instructions/**"
+  schedule:
+    - cron: "0 6 * * 1" # weekly Monday 6am UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  bandit:
+    name: Bandit (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install bandit==1.9.4
+
+      - name: Bandit (medium+ severity, the global pre-push bar's -ll -ii)
+        run: bandit -r packages services tools -ll -ii
+
+      - name: Bandit (hardcoded-secret checks, full severity)
+        run: |
+          # -ll above skips the LOW-severity hardcoded-secret tests (B105-107); run those explicitly so
+          # a hardcoded password/token/secret can never slip the gate at low severity (S5 11.1).
+          bandit -r packages services tools -t B105,B106,B107
+
+  pip-audit:
+    name: pip-audit (dependency CVEs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv and pip-audit
+        run: pip install uv==0.11.2 pip-audit==2.10.1
+
+      - name: Export the locked dependency set
+        run: uv export --locked --no-emit-workspace --format requirements-txt --quiet -o requirements.txt
+
+      - name: pip-audit
+        run: pip-audit --strict --disable-pip -r requirements.txt
+
+  trufflehog:
+    name: TruffleHog (secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+        with:
+          fetch-depth: 0 # full history so the commit-range scan is complete
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@f446421baf832d6356c42c1743d99abff52ff334 # v3.95.7
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          # verified = confirmed-live credentials only (near-zero false positives on test fixtures);
+          # the action already passes --fail (non-zero exit on a hit).
+          extra_args: --results=verified

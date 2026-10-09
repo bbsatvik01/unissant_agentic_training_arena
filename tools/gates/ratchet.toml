@@ -1,0 +1,89 @@
+# Ratchet (global hard gate: every gate threshold enters at its final value and only ever gets
+# stricter; never rig, soften or bypass CI/tests).
+#   direction = "min"    -> the value may only rise   (coverage, cooldown)
+#   direction = "max"    -> the value may only fall   (line length)
+#   direction = "frozen" -> the value may never change (strict modes, severity floors)
+# tools/check_ratchet.py fails when a live config differs from this file, or when this file loosens,
+# deletes or re-points an entry compared with BASE_REF. To tighten, change the value here and in its
+# source in the same commit. Lifted from TechnoMile tools/gates/ratchet.toml (T22): entries re-pointed
+# to this repo's files; WP-01 carries only the thresholds this repo's Makefile and pyproject.toml set
+# today (coverage, mypy, ruff, bandit, pytest -W error, the pytest skip/xfail guard, the uv cooldown).
+# Later WPs add their own entries here as they add gates (web, diff-cover, db-test, ...) — entries are
+# only ever added or tightened, never removed.
+
+[[threshold]]
+id = "coverage.python.fail_under"
+value = 90
+direction = "min"
+origin = "global pre-push bar (coverage gate); S5 11.1 py-check"
+source = { file = "pyproject.toml", toml_key = "tool.coverage.report.fail_under" }
+
+[[threshold]]
+id = "coverage.python.branch"
+value = true
+direction = "frozen"
+origin = "global pre-push bar (branch coverage)"
+source = { file = "pyproject.toml", toml_key = "tool.coverage.run.branch" }
+
+[[threshold]]
+id = "coverage.python.cli_fail_under"
+value = 90
+direction = "min"
+origin = "global pre-push bar; passed on the pytest command line so addopts cannot lower it"
+source = { file = "Makefile", regex = '^\s*(?:override\s+)?COVERAGE_MIN\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
+
+[[threshold]]
+id = "mypy.strict"
+value = true
+direction = "frozen"
+origin = "S5 11.1 (mypy strict)"
+source = { file = "pyproject.toml", toml_key = "tool.mypy.strict" }
+
+[[threshold]]
+id = "mypy.warn_unused_ignores"
+value = true
+direction = "frozen"
+origin = "global never-rig gate: an unused mypy suppression must be reported, not silently kept"
+source = { file = "pyproject.toml", toml_key = "tool.mypy.warn_unused_ignores" }
+
+[[threshold]]
+id = "ruff.line_length"
+value = 120
+direction = "max"
+origin = "set at WP-01 bootstrap"
+source = { file = "pyproject.toml", toml_key = "tool.ruff.line-length" }
+
+[[threshold]]
+id = "bandit.flags"
+value = "-ll -ii"
+direction = "frozen"
+origin = "global pre-push bar (bandit -ll -ii, never weaker)"
+source = { file = "Makefile", regex = '^\s*(?:override\s+)?BANDIT_FLAGS\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
+
+[[threshold]]
+id = "pytest.cli_warnings"
+value = "error"
+direction = "frozen"
+origin = "S5 11.1 (pytest -W error); passed on the command line, which outranks ini filters"
+source = { file = "Makefile", regex = '^\s*(?:override\s+)?PYTEST_WARNINGS\s*(?:::|:|\?|\+|!)?=\s*(.*?)\s*$' }
+
+[[threshold]]
+id = "pytest.ini_first_filter"
+value = "error"
+direction = "frozen"
+origin = "S5 11.1 (pytest -W error); the first ini filter turns every warning into an error"
+source = { file = "pyproject.toml", toml_key = "tool.pytest.ini_options.filterwarnings.0" }
+
+[[threshold]]
+id = "pytest.skip_guard"
+value = "tools.pytest_guard"
+direction = "frozen"
+origin = "global never-rig gate: no skip/xfail; runtime guard plugin catches it even when no static marker appears"
+source = { file = "conftest.py", regex = '^pytest_plugins = \["([a-z_.]+)"\]$' }
+
+[[threshold]]
+id = "cooldown.python.days"
+value = 7
+direction = "min"
+origin = "global pre-push bar (supply-chain cooldown)"
+source = { file = "pyproject.toml", regex = '^\s*exclude-newer\s*=\s*"(\d+) days"\s*$' }

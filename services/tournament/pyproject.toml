@@ -1,0 +1,15 @@
+[project]
+name = "arena-tournament"
+version = "0.1.0"
+description = "ARENA_ROLE=tournament job: frozen roster, block scheduling, harness trials, unit admission. Lands in WP-17."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "arena-core",
+]
+
+[build-system]
+requires = ["uv_build==0.11.2"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+arena-core = { workspace = true }

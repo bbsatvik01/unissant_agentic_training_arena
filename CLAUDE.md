@@ -22,4 +22,11 @@ Text-based training arena where investigators practice interviews with simulated
 
 ## Dev commands
 
-None yet (pre-build). Research outputs live in `docs/research/`.
+Python 3.12 uv workspace (`packages/core`, `services/{api,subject,referee,tournament}`); the web app lands in WP-18.
+
+- `make bootstrap`: `uv sync --locked` (clean-clone setup).
+- `make check`: the full gate. ruff check, ruff format --check, mypy strict, no-rigging, roles, cost-parity, ratchet, pytest with the 90% branch coverage floor (`-W error`), bandit `-ll -ii`. CI runs the same targets. Never soften a gate; fix the code.
+- `uv run --locked pytest -m gateproof`: only the seeded-defect proofs that each gate fails on what it exists for.
+- `ARENA_ROLE=api ARENA_GCP_PROJECT=<arena-project> ARENA_PUBLIC_DSN=<dsn> uv run python -m arena_api`: run a role's boot checks (shape of the settings: `.env.local.example`). Boot refuses `kbg-production`, API keys, extra DSNs.
+
+Research outputs live in `docs/research/`.

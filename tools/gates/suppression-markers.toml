@@ -1,0 +1,26 @@
+# Forbidden suppression syntax (global hard gate: never rig, soften or bypass CI/tests), read by
+# tools/check_no_rigging.py. Only real tool
+# suppression directives are listed; ordinary code and data never match. Each id has a seeded line in
+# tools/tests/fixtures/suppressions.tsv that its pattern must catch.
+ids = [
+  "noqa", "type-ignore", "pyright-ignore", "nosec", "nosemgrep", "gitleaks-allow", "pragma-no-cover",
+  "pytest-skip", "unittest-skip", "mypy-ignore-errors", "eslint-disable", "ts-suppress", "coverage-ignore",
+  "test-skip-or-focus", "continue-on-error",
+]
+
+[patterns]
+noqa = '(?i)#.*\bnoqa\b'
+type-ignore = '(?i)#\s*type:\s*ignore\b'
+pyright-ignore = '#\s*pyright:\s*ignore\b'
+nosec = '(?i)#\s*nosec\b'
+nosemgrep = '(?i)\bnosemgrep\b'
+gitleaks-allow = 'gitleaks:allow\b'
+pragma-no-cover = '(?i)#\s*pragma:\s*no\s*(cover|branch)\b'
+pytest-skip = '\bpytest\.(mark\.)?(skip|skipif|xfail|importorskip)\b'
+unittest-skip = '\bunittest\.(skip|skipIf|skipUnless|expectedFailure)\b|\bSkipTest\b'
+mypy-ignore-errors = '(?i)#\s*mypy:\s*ignore-errors\b|^\s*ignore_errors\s*=\s*true\b'
+eslint-disable = 'eslint-disable'
+ts-suppress = '@ts-(ignore|expect-error|nocheck)\b'
+coverage-ignore = '/\*\s*(istanbul|c8|v8)\s+ignore\b'
+test-skip-or-focus = '\b(it|test|describe)\.(skip|only|todo|skipIf|runIf)\b|\b(xit|xdescribe|fit|fdescribe)\('
+continue-on-error = '^\s*continue-on-error\s*:\s*(true|\$\{\{)'

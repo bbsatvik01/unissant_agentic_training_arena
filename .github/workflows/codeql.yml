@@ -1,0 +1,67 @@
+name: CodeQL
+
+# S5 11.2: Python now; WP-18 adds javascript-typescript when web/ exists. Structure adapted from Pangea
+# adapi-av2 .github/workflows/codeql.yml (P6, pattern only, rewritten; ATTRIBUTIONS.md): the SARIF is
+# self-gated, so any finding fails the build on PRs and main. `upload: never` because code scanning
+# upload needs GitHub Advanced Security, which a private repo may not have.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly Monday 6am UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        with:
+          languages: python
+
+      - uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        with:
+          output: codeql-results
+          upload: never
+
+      - name: Upload results as artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: codeql-results
+          path: codeql-results
+
+      # Blocking gate: any SARIF result fails the build, so a finding can never merge as advisory only.
+      # A missing or unreadable SARIF also fails (fail-closed), it is never counted as zero findings.
+      - name: Fail on CodeQL findings
+        if: always()
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(codeql-results/*.sarif)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::CodeQL produced no SARIF file; failing closed"
+            exit 1
+          fi
+          FINDINGS=$(jq -s '[.[].runs[].results | length] | add // 0' "${files[@]}")
+          echo "CodeQL findings: $FINDINGS"
+          if [ "$FINDINGS" -gt 0 ]; then
+            echo "::error::CodeQL detected $FINDINGS finding(s); failing the build"
+            exit 1
+          fi
