@@ -236,3 +236,19 @@ describe("fetch wrapper: encoded dot segments", () => {
     await expect(createApiClient({ fetch: t.fetch }).get("/api/a?b=../c")).resolves.toEqual({});
   });
 });
+
+describe("fetch wrapper: the body is fixed when post() is called", () => {
+  it("a body changed while /api/me is read, or before the 403 retry, does not change what is sent", async () => {
+    const t = transport({
+      "GET /api/me": [() => json(200, ME)],
+      "POST /api/x": [() => json(403, { code: "csrf" }), () => json(200, {})],
+    });
+    const api = createApiClient({ fetch: t.fetch });
+    const draft = { rationale: "first" };
+    const pending = api.post("/api/x", draft);
+    draft.rationale = "changed during the token read";
+    await pending;
+    const bodies = t.sent.filter((s) => s.url === "/api/x").map((s) => s.init.body);
+    expect(bodies).toEqual(['{"rationale":"first"}', '{"rationale":"first"}']);
+  });
+});

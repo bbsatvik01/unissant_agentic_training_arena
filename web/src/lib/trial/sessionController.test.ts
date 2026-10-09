@@ -1894,3 +1894,53 @@ describe("session controller: nothing new after dispose", () => {
     expect(c.getState().connection).toBe("closed");
   });
 });
+
+describe("session controller: an uncertain request stays uncertain", () => {
+  it("lost answer, then a 403 on the retry, then a retry: the same request and key every time", async () => {
+    const sent: TurnSubmit[] = [];
+    const answers: (Error | { last_seq: number })[] = [new TypeError("lost"), new ApiError(403, "csrf", "/x"), { last_seq: 0 }];
+    let n = 0;
+    const h = harness();
+    const c = h.make({
+      newKey: () => `00000000-0000-4000-8000-${String((n += 1)).padStart(12, "0")}`,
+      api: {
+        ...h.api,
+        submitTurn: (_id, body) => {
+          sent.push(body);
+          const a = answers.shift();
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: 0 });
+        },
+      },
+    });
+    await begin(c);
+    await expect(c.submitTurn("Why?")).rejects.toBeInstanceOf(TypeError);
+    for (const f of new LogBuilder().ask().frames) h.last().send(f);
+    await expect(c.submitTurn("Why?")).rejects.toBeInstanceOf(ApiError);
+    await c.submitTurn("Why?");
+    expect(sent[1]).toEqual(sent[0]);
+    expect(sent[2]).toEqual(sent[0]);
+  });
+
+  it("an uncertain finding keeps its key through a 403, and a 422 on the same body ends it", async () => {
+    const keys: string[] = [];
+    const answers: (Error | { last_seq: number })[] = [new TypeError("lost"), new ApiError(403, "csrf", "/x"), new ApiError(422, "bad", "/x"), { last_seq: 0 }];
+    let n = 0;
+    const h = harness();
+    const c = h.make({
+      newKey: () => `k${String((n += 1))}`,
+      api: {
+        ...h.api,
+        commitFinding: (_id, body) => {
+          keys.push(body.idem_key);
+          const a = answers.shift();
+          return a instanceof Error ? Promise.reject(a) : Promise.resolve(a ?? { last_seq: 0 });
+        },
+      },
+    });
+    await begin(c);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    for (let i = 0; i < 3; i += 1) await c.submitFinding(body).catch(() => undefined);
+    await c.submitFinding(body);
+    expect(keys).toEqual(["k1", "k1", "k1", "k2"]);
+  });
+});

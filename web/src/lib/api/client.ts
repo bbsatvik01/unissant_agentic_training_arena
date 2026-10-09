@@ -129,13 +129,14 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   let token: string | null = null;
   let meInFlight: Promise<Me> | null = null;
 
-  const send = (method: "GET" | "POST", path: string, body: unknown, keepalive: boolean, csrf: string | null): Promise<Response> => {
+  /** `payload` is the body already serialized: every attempt of one call sends the same bytes. */
+  const send = (method: "GET" | "POST", path: string, payload: string | undefined, keepalive: boolean, csrf: string | null): Promise<Response> => {
     const headers: Record<string, string> = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
     if (csrf !== null) headers["X-Arena-CSRF"] = csrf;
     const init: RequestInit = { method, headers, credentials: "same-origin", redirect: "error", cache: "no-store" };
-    if (body !== undefined) {
+    if (payload !== undefined) {
       headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(body);
+      init.body = payload;
     }
     if (keepalive) init.keepalive = true;
     // The executor runs now, so the request leaves in this call; a transport that throws becomes a rejection.
@@ -179,15 +180,18 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
       const refused = pathError(path);
       if (refused !== null) return Promise.reject(refused);
       const keepalive = postOptions.keepalive === true;
+      // Serialized now: a caller changing its object later (a draft being edited) never changes what is sent,
+      // neither after the token read nor on the 403 retry, which reuse the same idempotency key.
+      const payload = body === undefined ? undefined : JSON.stringify(body);
       // With the token known the request leaves now, in this call (an acknowledgement goes out before the caller
       // renders, S6 5.6); otherwise after /api/me answered, and never without it.
       const known = token;
-      const first = known === null ? me().then((m) => send("POST", path, body, keepalive, m.csrf_token)) : send("POST", path, body, keepalive, known);
+      const first = known === null ? me().then((m) => send("POST", path, payload, keepalive, m.csrf_token)) : send("POST", path, payload, keepalive, known);
       return first.then(async (response) => {
         if (response.status !== 403) return settle(path, response);
         // A stale token (the cookie rotated, another tab re-read /api/me): re-read once, retry once.
         const fresh = (await me()).csrf_token;
-        return settle(path, await send("POST", path, body, keepalive, fresh));
+        return settle(path, await send("POST", path, payload, keepalive, fresh));
       });
     },
   };

@@ -19,7 +19,8 @@
  *   stops at the gap-free prefix, a card above a gap waits, and a gap is covered the same way; a refused card
  *   closes its turn and counts toward the prefix.
  * - Retries: an action retried after a failure that may have been applied resends the same request and
- *   idempotency key (S5 5.2); only its own answer or an outright refusal (4xx) forgets it.
+ *   idempotency key (S5 5.2); only its own answer, or an outright refusal (4xx) while no earlier attempt may have
+ *   been applied (after such an attempt, only a 422 on the same body), forgets it.
  * - The end: after a terminal status the stream stays open (catch-up tickets) until `debrief.ready` or a
  *   published debrief from `POST /api/sessions/{id}/debrief`; then `finish()`. A ticket answered 409
  *   `stream_closed`, and any visit to an ended trial, read the snapshot and `GET /api/sessions/{id}/debrief`
@@ -135,11 +136,21 @@ const globalScheduler: Scheduler = {
 };
 
 /**
- * The server refused the request outright (4xx: nothing was written), so a later attempt is a new action. Any
- * other failure (network, 5xx, a lost answer) may have been applied: the retry must reuse the key.
+ * The server refused this attempt outright (4xx: this attempt wrote nothing). Any other failure (network, 5xx, a
+ * lost or malformed answer) may have been applied: the retry must reuse the key.
  */
 function refused(error: unknown): boolean {
   return error instanceof ApiError && error.status >= 400 && error.status < 500;
+}
+
+/**
+ * Whether a failed attempt ends its action's identity. A refusal ends it only when no earlier attempt under the same
+ * key may have been applied; once one may have (`uncertain`), a refusal of a retry (a 403, a 429) says nothing about
+ * that earlier attempt, and only a 422 (the same body is invalid, so no attempt could have been applied) ends it.
+ */
+function endsIdentity(error: unknown, uncertain: boolean): boolean {
+  if (!refused(error)) return false;
+  return !uncertain || (error instanceof ApiError && error.status === 422);
 }
 
 /** The turn a broken `coach.card` frame names, when it names one (1..12), for its `client_invalid` acknowledgement. */
@@ -175,6 +186,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
    */
   const pendingTurns = new Map<string, TurnSubmit>();
   const pendingKeys = new Map<string, string>();
+  /** Idempotency keys some attempt of which may have been applied (a lost answer, a 5xx, a malformed answer). */
+  const uncertainKeys = new Set<string>();
   let completing: Promise<void> | null = null;
   /** The gap-free prefix a snapshot re-read was last made for. */
   let gapResynced: number | null = null;
@@ -528,6 +541,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   const settleKey = (kind: "evidence" | "finding", match: string, key: string) => {
     const id = `${kind}:${match}`;
     if (pendingKeys.get(id) === key) pendingKeys.delete(id);
+    uncertainKeys.delete(key);
   };
 
   const requireView = () => {
@@ -583,13 +597,15 @@ export function createSessionController(options: SessionControllerOptions): Sess
       pendingTurns.set(question, body);
       const settle = () => {
         if (pendingTurns.get(question) === body) pendingTurns.delete(question);
+        uncertainKeys.delete(body.idem_key);
       };
       try {
         const answer = await api.submitTurn(trialId, body);
         settle();
         afterPost(answer);
       } catch (error) {
-        if (refused(error)) settle();
+        if (endsIdentity(error, uncertainKeys.has(body.idem_key))) settle();
+        else if (!refused(error)) uncertainKeys.add(body.idem_key);
         throw error;
       }
     },
@@ -610,7 +626,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
         });
         return result;
       } catch (error) {
-        if (refused(error)) settleKey("evidence", match, idem);
+        if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("evidence", match, idem);
+        else if (!refused(error)) uncertainKeys.add(idem);
         throw error;
       }
     },
@@ -628,7 +645,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
         afterPost(answer);
       } catch (error) {
         findingsInFlight -= 1;
-        if (refused(error)) settleKey("finding", match, idem);
+        if (endsIdentity(error, uncertainKeys.has(idem))) settleKey("finding", match, idem);
+        else if (!refused(error)) uncertainKeys.add(idem);
         // S6 4.6: a 409 (a turn is still open) reloads the room state before the investigator confirms again; the
         // draft is the caller's and stays as it is.
         if (error instanceof ApiError && error.status === 409) await reloadRoom();
