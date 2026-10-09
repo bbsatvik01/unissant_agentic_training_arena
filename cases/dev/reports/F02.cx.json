@@ -7,8 +7,8 @@
   "cx3": true,
   "cx4": true,
   "findings": [],
-  "family_sha256": "5c55433715772b8f64754352d9ea59b68b770e6918ab03897320cbb4674ecb71",
-  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
+  "family_sha256": "f9e8b052924473e4c50bf4292c5338a912b74c9cec07b74cabab4f4e20f52346",
+  "rules_sha256": "db653507264683e88c8fc4bd97f37d59e44a8c4ea383546ae4cd169d010d9dcd",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -27,7 +27,7 @@
         "A4",
         "A5"
       ],
-      "basis": "The custodian saw Mara enter alone carrying a wet umbrella, which the documented sensor defect explains could trigger a double count. Elevator counts and records-door logs support her account of a solitary records-floor visit lasting about fifteen minutes. Collecting personal items after hours was permitted. The records close the main gaps without establishing concealed involvement.",
+      "basis": "The custodian saw Quell enter alone with a wet umbrella; the sensor notice explains false double counts from umbrellas. Single-person elevator trips and floor-3 logs support her route and roughly fifteen-minute visit. Policy permits retrieving personal items after hours. The records resolve the alert without establishing an accompanying entrant or concealed involvement.",
       "expected": "truthful",
       "pass": true
     },
@@ -38,7 +38,8 @@
         "rec-01",
         "rec-02",
         "rec-03",
-        "rec-04"
+        "rec-04",
+        "rec-05"
       ],
       "cited_answers": [
         "A2",
@@ -46,7 +47,7 @@
         "A4",
         "A5"
       ],
-      "basis": "Mara acknowledges Evan’s entry and departure but avoids describing their movements in A3. The custodian’s observation, two-person elevator trips and Mara’s exclusive records-door events together establish their visit to the records floor—the involvement she omits. Entry on her single swipe violated policy, and no after-hours visitor was registered.",
+      "basis": "Quell acknowledges admitting Evan on her swipe but leaves their movements unaddressed in A3. Her badge log establishes records-floor access; paired two-person elevator trips support their visit together. Shared-swipe admission was prohibited, and no after-hours visitor was registered. The sensor defect does not explain the independent elevator counts and witness sighting.",
       "expected": "deceptive",
       "pass": true
     },
@@ -60,7 +61,7 @@
         "A3",
         "A4"
       ],
-      "basis": "The alert shows a double count, but rec-05 documents sensor false positives. No examined record establishes that Evan or anyone else entered with Mara. A3 omits Evan’s whereabouts and A4 omits how she left, leaving key gaps unresolved. These omissions alone cannot establish concealment.",
+      "basis": "The two-person alert is inconclusive because the sensor had documented false double counts. No examined record establishes that Mara admitted anyone. A3 does not locate Evan during her visit, and A4 does not explain her exit. The main gaps remain unresolved, but these omissions alone do not establish concealment.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }

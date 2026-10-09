@@ -99,7 +99,7 @@
         "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
         "kind": "state",
         "actors": [],
-        "material": false,
+        "material": true,
         "tags": [],
         "variants": [
           "truthful",
@@ -894,7 +894,7 @@
             "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
             "kind": "state",
             "actors": [],
-            "material": false,
+            "material": true,
             "tags": []
           },
           {
@@ -1977,7 +1977,7 @@
             "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
             "kind": "state",
             "actors": [],
-            "material": false,
+            "material": true,
             "tags": []
           },
           {

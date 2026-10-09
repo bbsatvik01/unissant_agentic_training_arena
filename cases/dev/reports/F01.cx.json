@@ -7,8 +7,8 @@
   "cx3": true,
   "cx4": true,
   "findings": [],
-  "family_sha256": "a87851bc803ab4e38aab88d1ae980033b3cc739013d73cefa8e2f77eb65e9467",
-  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
+  "family_sha256": "162e3f264a1317bcc9a93fb2925c541011bceac217d2e01de46ca23dbb3ddcdb",
+  "rules_sha256": "db653507264683e88c8fc4bd97f37d59e44a8c4ea383546ae4cd169d010d9dcd",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -28,7 +28,7 @@
         "A4",
         "A5"
       ],
-      "basis": "The radio log confirms an assigned B-12 task before entry. Alarm history corroborates the humidity problem, and the supervisor explains the delayed work order. The seal audit supports leaving boxes untouched. Pell’s account of tank handling while staying at the doorway explains the door interval consistently with the records. The records close the main gaps without establishing concealed involvement.",
+      "basis": "The recorded B-12 dispatch establishes an assigned task before entry. Alarm history and the work order corroborate maintenance; Marrow explains delayed documentation. The seal audit supports untouched boxes, and the radio log confirms completion reporting. Pell explains the door interval as tank emptying while remaining at the doorway. The records close the main gaps without establishing concealed involvement.",
       "expected": "truthful",
       "pass": true
     },
@@ -37,7 +37,6 @@
       "cited_records": [
         "doc-01",
         "doc-02",
-        "rec-01",
         "rec-02",
         "rec-04"
       ],
@@ -47,7 +46,7 @@
         "A3",
         "A4"
       ],
-      "basis": "Records establish B-12 entry without an assigned task and replacement of ACQ-117’s seal without custodian release. Jordan acknowledges resealing the box but avoids explaining the purpose and sequence of the vault activity or the held-open door. The acknowledged B-10 dispatch does not explain this involvement.",
+      "basis": "The recorded B-10 task was completed before Pell entered B-12 without an assigned task. The audit documents ACQ-117’s replacement seal and no custodian release; A3 acknowledges performing the resealing. These establish involvement beyond the humidity assignment, while Pell withholds the account of activity inside B-12 and any explanation of the held door.",
       "expected": "deceptive",
       "pass": true
     },
@@ -63,7 +62,7 @@
         "A2",
         "A3"
       ],
-      "basis": "Marrow corroborates a B-wing humidity dispatch but cannot confirm B-12. The claimed B-12 assignment and maintenance work remain unverified, and the door-held interval remains unexplained. The examined records neither close these gaps nor establish involvement that the subject’s answers conceal.",
+      "basis": "Marrow corroborates a B-wing humidity dispatch but cannot confirm B-12. Pell describes maintenance, while the access report establishes entry and a prolonged open door. The examined records do not resolve task authorization or explain the door handling. These gaps prevent a truthful finding, but no record establishes involvement that Pell’s answers conceal.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }
