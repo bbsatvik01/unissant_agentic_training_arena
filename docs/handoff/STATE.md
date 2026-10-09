@@ -9,6 +9,10 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Resumed work (2026-10-09, owner: 25% usage left, continue; D-016 local demo, keep simple)
+- Normal agents (addressable with SendMessage for red-protocol follow-ups): web fix (wt-web: SSE stream-end retry major + 2 minors, self Codex gate) id aadec2824ba80c8be; seeds F01-F03 to CX green + sync into wt-cases id a735e3ef1d8570e23; spec round-2 majors with D-016 simplification id ae6c4a65789796395.
+- Still running: wave 2 workflow `w8o2onnit` (WP-01 gate, WP-08, WP-03).
+
 ## Web foundation (2026-10-09 ~03:10 EDT)
 - Branch `feat/web-foundation` 49fe031: Vite/React/TS strict, ticketed SSE client, voice machine, companion FSM; pnpm check green (501 tests, 100% coverage on src/lib, build OK, audit clean); agent Codex self-gate CORRECT after 14 rounds.
 - Independent verifier: FAIL on one major: ticketed-stream counts the server's normal 600 s stream end (S5 6.4) as a failure, so retries run out on a healthy long session; plus 2 minors (stale comment on rejected-frame cursor; celebrating one-shot seeded from an already-ready session). Fix after 07:00 (red-to-root-cause: a clean server close is not an error), then my cold Codex gate and merge.
