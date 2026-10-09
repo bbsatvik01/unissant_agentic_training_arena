@@ -42,3 +42,4 @@
 - D-015 GCP project cna-guardian (owner). Directive: no new workflows until tomorrow's refresh; running ones continue.
 - de3524d spec v2.3 S6-S8 + byte LIMITS; Codex spec round 2 started (b9mnxieqt).
 - Codex spec round 2: 4 blockers, 35 majors (round 1 ~60); recorded; fixes after 07:00.
+- Round-2 blockers fixed by orchestrator (limits, debrief envelope); 35 majors queued.
