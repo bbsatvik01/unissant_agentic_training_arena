@@ -24,9 +24,25 @@ SILENT = [
     "try:\n    f()\nexcept OSError as exc:\n    if exc.errno == 2:\n        return None\n    cleanup()\n",
     "try:\n    f()\nexcept ValueError as exc:\n    message = str(exc)\n    if message:\n        return 0\n",
     "try:\n    f()\nexcept ValueError as exc:\n    last_error = exc\n",
+    # Codex round 9: every path out of the handler must raise, report or hand the exception on; a branch
+    # that does is not enough when another path leaves silently.
+    "try:\n    f()\nexcept ValueError:\n    if strict:\n        raise\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    if debug:\n        logger.debug('bad input')\n    return None\n",
+    "try:\n    f()\nexcept ValueError as exc:\n    if verbose:\n        errors.append(exc)\n",
+    "try:\n    f()\nexcept ValueError:\n    if strict:\n        raise\n    else:\n        return None\n",
+    "try:\n    f()\nexcept OSError as exc:\n    if exc.errno == 2:\n        return None\n    raise\n",
+    "try:\n    f()\nexcept ValueError:\n    with lock:\n        if strict:\n            raise\n",
+    "try:\n    f()\nexcept ValueError:\n    for item in items:\n        raise\n",
 ]
 HANDLED = [
-    "try:\n    f()\nexcept OSError as exc:\n    if exc.errno == 2:\n        return None\n    raise\n",
+    "try:\n    f()\n# silent-ok: ENOENT means the file is gone, which is the answer\nexcept OSError as exc:\n"
+    "    if exc.errno == 2:\n        return None\n    raise\n",
+    "try:\n    f()\nexcept ValueError:\n    if strict:\n        raise\n    logger.warning('bad')\n    return None\n",
+    "try:\n    f()\nexcept ValueError:\n    if strict:\n        raise\n    else:\n        logger.warning('bad')\n",
+    "try:\n    f()\nexcept ValueError:\n    for item in items:\n        continue\n    raise\n",
+    "try:\n    f()\nexcept ValueError:\n    with lock:\n        raise\n",
+    "try:\n    f()\nexcept ValueError as exc:\n    def later() -> None:\n        return None\n"
+    "    raise RuntimeError('x') from exc\n",
     "try:\n    f()\nexcept ValueError as exc:\n    self.last_error: object = exc\n",
     "try:\n    f()\nexcept ValueError as exc:\n    yield exc\n",
     "try:\n    f()\nexcept ValueError:\n    raise\n",

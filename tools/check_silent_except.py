@@ -1,7 +1,8 @@
 """Silent-except gate (S5 11.1 py-check): no silent ``except``.
 
-An exception handler is silent when it neither re-raises, nor logs/warns/reports, nor uses the caught
-exception object. Such a handler discards the failure: the caller cannot tell "gone" from "could not
+An exception handler is silent when some path through it neither re-raises, nor logs/warns/reports, nor
+uses the caught exception object (judged per path: a raise or a log under one branch covers only that
+branch). Such a handler discards the failure: the caller cannot tell "gone" from "could not
 look". Deliberate cases carry ``# silent-ok: <reason>`` on the ``except`` line or the line above it.
 """
 
@@ -96,17 +97,77 @@ def _escapes(node: ast.AST, tainted: set[str]) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class Flow:
+    """Paths through a statement list: one leaves the handler silently, one falls off its end unhandled."""
+
+    exits_silently: bool
+    falls_through: bool
+
+
+NESTED_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+LOOPS = (ast.For, ast.AsyncFor, ast.While)
+EXITS = (ast.Return, ast.Continue, ast.Break)
+
+
+def _handles(stmt: ast.stmt, tainted: set[str]) -> bool:
+    """A simple statement that raises, reports, or hands a value derived from the exception on."""
+    for node in ast.walk(stmt):
+        if isinstance(node, ast.Raise) or (isinstance(node, ast.Call) and _is_reporting_call(node)):
+            return True
+        if _escapes(node, tainted):
+            return True
+    return False
+
+
+def _flow(stmts: list[ast.stmt], tainted: set[str], *, in_loop: bool) -> Flow:
+    """Per-path analysis: a path is handled once a statement on it raises, reports or lets the exception
+    escape; a path that returns, continues or breaks out of the handler before that is silent, and so is one
+    that reaches the end of the handler. A loop body may run zero times; break and continue inside a loop
+    within the handler stay in the handler."""
+    exits, falls = False, True
+    for stmt in stmts:
+        if not falls:
+            break
+        if isinstance(stmt, NESTED_SCOPES):
+            continue
+        if isinstance(stmt, ast.If):
+            body, orelse = _flow(stmt.body, tainted, in_loop=in_loop), _flow(stmt.orelse, tainted, in_loop=in_loop)
+            exits = exits or body.exits_silently or orelse.exits_silently
+            falls = body.falls_through or orelse.falls_through
+        elif isinstance(stmt, LOOPS):
+            inner = [_flow(stmt.body, tainted, in_loop=True), _flow(stmt.orelse, tainted, in_loop=in_loop)]
+            exits = exits or any(f.exits_silently for f in inner)
+        elif isinstance(stmt, ast.With | ast.AsyncWith):
+            inner_with = _flow(stmt.body, tainted, in_loop=in_loop)
+            exits, falls = exits or inner_with.exits_silently, inner_with.falls_through
+        elif isinstance(stmt, ast.Try | ast.TryStar | ast.Match):
+            blocks = [*_child_blocks(stmt)]
+            flows = [_flow(block, tainted, in_loop=in_loop) for block in blocks]
+            exits = exits or any(f.exits_silently for f in flows)
+        elif _handles(stmt, tainted):
+            falls = False
+        elif isinstance(stmt, EXITS):
+            if not (in_loop and isinstance(stmt, ast.Continue | ast.Break)):
+                exits = True
+            falls = False
+    return Flow(exits, falls)
+
+
+def _child_blocks(stmt: ast.Try | ast.TryStar | ast.Match) -> list[list[ast.stmt]]:
+    if isinstance(stmt, ast.Match):
+        return [case.body for case in stmt.cases]
+    return [stmt.body, *(h.body for h in stmt.handlers), stmt.orelse, stmt.finalbody]
+
+
 def handler_is_silent(handler: ast.ExceptHandler) -> bool:
-    """Silent = no re-raise, no reporting call, and nothing derived from the exception leaves the handler."""
+    """Silent = some path through the handler leaves it, or reaches its end, without re-raising, reporting
+    or letting something derived from the exception leave the handler (a conditional raise or a debug-only
+    log covers only its own branch)."""
     nodes = [n for stmt in handler.body for n in ast.walk(stmt)]
-    if any(isinstance(n, ast.Raise) for n in nodes):
-        return False
-    if any(isinstance(n, ast.Call) and _is_reporting_call(n) for n in nodes):
-        return False
-    if handler.name is None:
-        return True
-    tainted = _tainted_names(nodes, handler.name)
-    return not any(_escapes(n, tainted) for n in nodes)
+    tainted = set() if handler.name is None else _tainted_names(nodes, handler.name)
+    flow = _flow(handler.body, tainted, in_loop=False)
+    return flow.exits_silently or flow.falls_through
 
 
 def scan_source(path: str, source: str) -> list[Silent]:

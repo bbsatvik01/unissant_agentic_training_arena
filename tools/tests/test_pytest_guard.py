@@ -134,3 +134,16 @@ def test_a_test_file_a_conftest_hides_fails_the_full_gate(tmp_path: Path) -> Non
     result = proc.run("pytest", args, cwd=tmp_path)
     assert result.returncode != pytest.ExitCode.OK, result.stdout + result.stderr
     assert "sub/test_hidden.py" in result.stdout + result.stderr
+
+
+@pytest.mark.gateproof
+def test_a_hook_that_drops_a_failing_test_beside_its_sibling_fails_the_full_gate(tmp_path: Path) -> None:
+    """Codex round 9: a collection hook that rewrites the item list never calls pytest_deselected, and the
+    file still has a collected sibling; every collected item must reach the run."""
+    args = _full_gate_project(tmp_path)
+    (tmp_path / "test_b.py").write_text(TWO_TESTS)
+    hook = "def pytest_collection_modifyitems(items):\n    items[:] = [i for i in items if 'two' not in i.name]\n"
+    (tmp_path / "conftest.py").write_text((tmp_path / "conftest.py").read_text() + "\n\n" + hook)
+    result = proc.run("pytest", args, cwd=tmp_path)
+    assert result.returncode != pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "test_b.py::test_two" in result.stdout + result.stderr

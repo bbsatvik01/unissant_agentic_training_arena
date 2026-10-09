@@ -12,8 +12,9 @@ under. Lifted from TechnoMile tools/pytest_guard.py (ATTRIBUTIONS.md); the shado
 
 Under ``--full-gate`` (the Makefile's ``test`` recipe) the run must collect every test the test roots hold: a
 selection option (``-k``, ``-m``, ``--deselect``, ``--ignore``, ``--ignore-glob``, ``--last-failed``,
-``--stepwise``), any deselected item, or a test file on disk under ``testpaths`` that no item came from (a
-conftest ``collect_ignore``, a ``pytest_ignore_collect`` hook) fails the session. A narrowed local run without
+``--stepwise``), any deselected item, any collected item a hook removed from the run without deselecting it,
+or a test file on disk under ``testpaths`` that no item came from (a conftest ``collect_ignore``, a
+``pytest_ignore_collect`` hook) fails the session. A narrowed local run without
 the flag stays allowed.
 """
 
@@ -35,6 +36,7 @@ NARROWING_OPTIONS = {
     "stepwise_skip": "--stepwise-skip",
 }
 DESELECTED = pytest.StashKey[int]()
+COLLECTED = pytest.StashKey[list[str]]()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -43,6 +45,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     config.stash[DESELECTED] = 0
+    config.stash[COLLECTED] = []
+
+
+def pytest_itemcollected(item: pytest.Item) -> None:
+    item.config.stash.setdefault(COLLECTED, []).append(item.nodeid)
 
 
 def pytest_deselected(items: list[pytest.Item]) -> None:
@@ -75,6 +82,11 @@ def full_gate_problems(config: pytest.Config, items: list[pytest.Item]) -> list[
     if deselected:
         problems.append(f"{deselected} deselected test(s)")
     problems += [f"{path} was never collected" for path in uncollected(config, items)]
+    kept = {item.nodeid for item in items}
+    collected: list[str] = config.stash.get(COLLECTED, [])
+    dropped = sorted(set(collected) - kept)
+    if dropped and not deselected:
+        problems.append("collected but removed before the run: " + ", ".join(dropped))
     return problems
 
 
