@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## WP-02 merged (2026-10-09)
+- feat/wp02-contracts merged: contracts package, adapter, quote predicate (Py + TS), deterministic schema export, wire fixtures, web-check in make check; the only wire writer is projections.wire_deltas (bytes in one call); frame lint is a tripwire. Migration 20261009001000_finding_contract.sql: fold into spec 0004. D-017 per-user cap $5 merged (3f4e5b4).
+- Open small items: web-check job in CI (pinned Node/pnpm actions); fold finding_contract into spec.
+- Next: dispatch WP-05 (agent port + global guard client, cna-guardian, label), WP-10 (prompts, manifests), WP-11 (guard, relay, replay), WP-15 (scorer), WP-18 part 2 (reducer, controller, API wrapper).
+
 ## Build wave 3 (2026-10-09)
 - WP-02 contracts agent dispatched (id a46dbfe21eaa90fbf, worktree /private/tmp/wt-wp02, branch feat/wp02-contracts).
 - Spec agent (ae6c4a65789796395) folding the 0800 draft SQL fixes into docs/spec/sql + S4/TESTS (v2.8) and deciding rule F4.

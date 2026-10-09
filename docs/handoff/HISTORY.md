@@ -53,3 +53,4 @@
 - WP-03 merged; 579f327 deps-policy fix.
 - WP-08 scenario engine merged.
 - F4 rule merged; spec v2.8 (89d6e6e).
+- WP-02 contracts merged; D-017 cap merged.
