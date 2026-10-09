@@ -15,7 +15,16 @@ import { invariantErrors } from "./invariants";
 
 export type WireSchemaName = keyof WireTypes;
 
+const utf8 = new TextEncoder();
+
 const ajv = new Ajv2020({ allErrors: true, strict: true });
+/** The arena keyword `maxBytes` (S2 1, Text size): a string of at most that many UTF-8 bytes. */
+ajv.addKeyword({
+  keyword: "maxBytes",
+  type: "string",
+  schemaType: "number",
+  validate: (limit: number, data: string) => utf8.encode(data).length <= limit,
+});
 const validators = new Map<string, ValidateFunction>(
   Object.entries(WIRE_SCHEMAS).map(([stem, schema]) => [stem, ajv.compile(schema)]),
 );

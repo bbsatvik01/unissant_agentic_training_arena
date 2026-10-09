@@ -30,11 +30,14 @@ data boundary, as S5's threat model states.
      type annotation: a call, `X.model_validate(...)`, `TypeAdapter(X)`, any other value use, or the model's
      name as a string (S5 1.2 item 2: "any module other than `arena_core.events.projections` constructs an
      event frame model"; S5 6.5). The frame models are read from `arena_core/contracts/events.py` (WP-02):
-     every class or alias there whose name ends in `Frame`. Two files are exempt, each for a reason the rule
-     cannot be broken by: that module itself (it declares them) and `arena_core/contracts/export.py` (it reads
-     their JSON Schema to write `contracts/`, and builds no frame). Absolute and relative imports both resolve.
-     A plain annotation stays free, so a function may accept or return a frame it never builds; a call inside
-     an annotation is a value use like any other.
+     every class or alias there whose name ends in `Frame`, and every container that carries one
+     (`ReplayPage`, the tournament poll), since validating a container builds its frames. Two files are exempt,
+     each for a reason the rule cannot be broken by: that module itself (it declares them) and
+     `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and builds no frame);
+     product code may not import that export module, which hands out every wire type. Absolute and relative
+     imports both resolve. A function's annotations stay free, so a function may accept or return a frame it
+     never builds; a class-body annotation is a field (validating the class builds it) and a call inside any
+     annotation runs, so both are value uses.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -82,6 +85,9 @@ FRAME_MODULE = "arena_core.contracts.events"
 FRAME_BUILDER = "packages/core/src/arena_core/events/projections.py"
 FRAME_EXEMPT = frozenset({FRAME_BUILDER, FRAME_SOURCE, "packages/core/src/arena_core/contracts/export.py"})
 FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections builds frames (S5 1.2 item 2)"
+# The schema export maps file stems to every wire type, frames included; product code never needs it.
+EXPORT_MODULE = "arena_core.contracts.export"
+EXPORT_RULE = "arena_core.contracts.export hands out the frame types; only tools import it (S5 1.2 item 2)"
 GENAI = "google.genai"
 ADK = "google.adk"
 # Modules that load or locate other modules by name at run time (rule dyn), whole: importlib.metadata loads
@@ -255,27 +261,39 @@ def _is_or_starts_with(module: str, prefix: str) -> bool:
 
 
 def frame_models(root: Path) -> frozenset[str]:
-    """Every module-level class or alias in FRAME_SOURCE whose name ends in `Frame`."""
+    """The frame models of FRAME_SOURCE: every module-level class or alias whose name ends in `Frame`, plus every
+    class or alias that carries one (a field, a base or a union member naming it, transitively), because
+    validating such a container builds the frames inside it (`ReplayPage.model_validate(raw)`)."""
     tree = ast.parse((root / FRAME_SOURCE).read_text(encoding="utf-8"), filename=FRAME_SOURCE)
-    names: set[str] = set()
+    uses: dict[str, set[str]] = {}
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
-            names.add(node.name)
+            parts: list[ast.AST] = [*node.bases]
+            parts += [s.annotation for s in node.body if isinstance(s, ast.AnnAssign)]
+            uses[node.name] = {n.id for part in parts for n in ast.walk(part) if isinstance(n, ast.Name)}
         elif isinstance(node, ast.Assign):
-            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
-    return frozenset(n for n in names if n.endswith("Frame"))
+            named = {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)}
+            uses.update({t.id: named for t in node.targets if isinstance(t, ast.Name)})
+    frames = {name for name in uses if name.endswith("Frame")}
+    while carriers := {name for name, named in uses.items() if name not in frames and named & frames}:
+        frames |= carriers
+    return frozenset(frames)
 
 
 def _annotation_nodes(tree: ast.AST) -> set[int]:
     """ids of the nodes of every type annotation (arguments, returns, annotated assignments), except the nodes
     of a call inside one: `def f(x: NoticeFrame(v=1))` runs that call when the function is defined."""
+    # A class-body annotation is a field (Pydantic, dataclasses): validating the class builds its value.
+    fields = {
+        id(s) for c in ast.walk(tree) if isinstance(c, ast.ClassDef) for s in c.body if isinstance(s, ast.AnnAssign)
+    }
     roots: list[ast.AST] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.arg) and node.annotation is not None:
             roots.append(node.annotation)
         elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.returns is not None:
             roots.append(node.returns)
-        elif isinstance(node, ast.AnnAssign):
+        elif isinstance(node, ast.AnnAssign) and id(node) not in fields:
             roots.append(node.annotation)
     inside = {id(n) for root in roots for n in ast.walk(root)}
     calls = {id(n) for root in roots for c in ast.walk(root) if isinstance(c, ast.Call) for n in ast.walk(c)}
@@ -312,13 +330,26 @@ def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[
     for node in ast.walk(tree):
         if id(node) in exempt:
             continue
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
+        if _imports_export(path, node):
+            found.append((getattr(node, "lineno", 0), ""))
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
             found.append((node.lineno, node.id))
         elif isinstance(node, ast.Attribute) and node.attr in frames:
             found.append((node.lineno, node.attr))
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.strip() in frames:
             found.append((node.lineno, node.value.strip()))
     return found
+
+
+def _imports_export(path: str, node: ast.AST) -> bool:
+    if isinstance(node, ast.Import):
+        return any(_is_or_starts_with(a.name, EXPORT_MODULE) for a in node.names)
+    if isinstance(node, ast.ImportFrom):
+        module = _resolve_from(path, node) or ""
+        return _is_or_starts_with(module, EXPORT_MODULE) or any(
+            f"{module}.{a.name}" == EXPORT_MODULE for a in node.names
+        )
+    return False
 
 
 def _builds_frames(path: str, own_package: str | None) -> bool:
@@ -332,7 +363,8 @@ def check_source(path: str, source: str, frames: frozenset[str] = frozenset()) -
     own_package = _module_of(path)
     if frames and _builds_frames(path, own_package):
         findings.extend(
-            Finding(path, line, FRAME_RULE.format(name=name)) for line, name in _frame_uses(path, tree, frames)
+            Finding(path, line, FRAME_RULE.format(name=name) if name else EXPORT_RULE)
+            for line, name in _frame_uses(path, tree, frames)
         )
     forbidden = FORBIDDEN_IMPORTS.get(own_package or "", frozenset())
     if own_package is not None:

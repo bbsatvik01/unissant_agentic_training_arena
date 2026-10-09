@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from jsonschema import Draft202012Validator
 from pydantic import TypeAdapter, ValidationError
 
 from arena_core.contracts import export
@@ -22,8 +21,8 @@ def _validate(stem: str, value: object) -> None:
     TypeAdapter(tp).validate_python(value)
 
 
-def _schema_accepts(stem: str, value: object) -> bool:
-    return Draft202012Validator(export.schema_of(stem)).is_valid(value)
+def _schema_accepts(stem: str, value: dict[str, Any]) -> bool:
+    return export.json_validator(export.schema_of(stem)).is_valid(value)
 
 
 @pytest.mark.parametrize("case", FIXTURE["valid"], ids=lambda c: c["id"])

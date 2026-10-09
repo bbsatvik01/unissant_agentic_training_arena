@@ -57,11 +57,14 @@ _VALUE_KEYWORDS = frozenset(
         "anyOf",
         "$ref",
         "allOf",
+        # The arena's own keyword (S2 1, Text size): ajv and export.json_validator enforce it.
+        "maxBytes",
     }
 )
 # `allOf` entries the generator accepts: cross-field rules (`json_rules()` in arena_core.contracts) that
 # constrain values and never change a type.
 _RULE_KEYWORDS = frozenset({"if", "then", "else", "properties"})
+# (`then`/`else` may also list `required`; they are only read by ajv.)
 
 
 class GenerationError(ValueError):

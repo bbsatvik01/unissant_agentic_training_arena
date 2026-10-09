@@ -68,6 +68,7 @@
   "additionalProperties": false,
   "properties": {
     "utterance": {
+      "maxBytes": 1800,
       "maxLength": 900,
       "minLength": 1,
       "type": "string"

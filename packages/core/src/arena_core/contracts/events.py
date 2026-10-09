@@ -14,7 +14,7 @@ constructs a frame model (S5 1.2 item 2, enforced by `tools/check_roles.py`): ev
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
@@ -29,6 +29,8 @@ from arena_core.contracts.common import (
     Timestamp,
     TurnNo,
     Uuid,
+    turn_no,
+    when,
 )
 from arena_core.contracts.findings import StoredFinding
 
@@ -92,6 +94,11 @@ class Content(Contract):
     table: TableContent | None = None
 
 
+def _raise(errors: list[str]) -> None:
+    if errors:
+        raise ValueError("; ".join(errors))
+
+
 # ---------------------------------------------------------------- data, one per wire type (S6 5.3)
 
 
@@ -127,19 +134,49 @@ class SubjectAnswer(Contract):
     committed_at: Timestamp
 
 
+def _same(errors: list[str], what: str, outer: object, inner: object) -> None:
+    if outer != inner:
+        errors.append(f"{what}: {outer} does not match the payload's {inner}")
+
+
 class CoachCard(Contract):
+    """`coach.card` data: the wrapper's `turn_no` is the card's own (S5 6.2)."""
+
     turn_no: TurnNo
     card: TrainingWireCard
+
+    @model_validator(mode="after")
+    def _bound(self) -> Self:
+        errors: list[str] = []
+        _same(errors, "turn_no", self.turn_no, self.card.turn_no)
+        _raise(errors)
+        return self
 
 
 class TournamentCoachCard(Contract):
     turn_no: TurnNo
     card: TournamentWireCard
 
+    @model_validator(mode="after")
+    def _bound(self) -> Self:
+        errors: list[str] = []
+        _same(errors, "turn_no", self.turn_no, self.card.turn_no)
+        _raise(errors)
+        return self
+
 
 class CoachUpdate(Contract):
+    """`coach.update` data: the update is as of the wrapper's turn (S2 4.6)."""
+
     turn_no: TurnNo
     update: StoredDeepUpdate
+
+    @model_validator(mode="after")
+    def _bound(self) -> Self:
+        errors: list[str] = []
+        _same(errors, "turn_no", self.turn_no, turn_no(self.update.as_of_turn))
+        _raise(errors)
+        return self
 
 
 class CoachFailed(Contract):
@@ -148,9 +185,45 @@ class CoachFailed(Contract):
 
 
 class FindingCommitted(Contract):
+    """The committed finding (C-27), with the rules of its author (S2 4.8): an assistant's carries its
+    code-filled `last_revised_turn` and, when deceptive, at least one basis flag; an investigator's has no basis
+    flag and no `last_revised_turn`."""
+
     by: Literal["investigator", "assistant"]
     finding: StoredFinding
     committed_at: Timestamp
+
+    @model_validator(mode="after")
+    def _author(self) -> Self:
+        f = self.finding
+        errors: list[str] = []
+        if self.by == "assistant":
+            if f.last_revised_turn is None:
+                errors.append("finding.last_revised_turn: code-filled on an assistant's finding")
+            if f.label == "deceptive" and not f.basis_flag_refs:
+                errors.append("finding.basis_flag_refs: an assistant's deceptive finding needs a basis flag")
+        else:
+            if f.basis_flag_refs:
+                errors.append("finding.basis_flag_refs: always empty on an investigator's finding")
+            if f.last_revised_turn is not None:
+                errors.append("finding.last_revised_turn: null on an investigator's finding")
+        _raise(errors)
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        def on_finding(properties: dict[str, Any]) -> dict[str, Any]:
+            return {"finding": {"type": "object", "properties": properties}}
+
+        assistant = on_finding({"last_revised_turn": {"type": "integer"}})
+        investigator = on_finding(
+            {"basis_flag_refs": {"type": "array", "maxItems": 0}, "last_revised_turn": {"type": "null"}}
+        )
+        deceptive = {
+            "if": {"properties": {"by": {"const": "assistant"}, **on_finding({"label": {"const": "deceptive"}})}},
+            "then": {"properties": on_finding({"basis_flag_refs": {"type": "array", "minItems": 1}})},
+        }
+        return [when("by", ["assistant"], assistant, investigator), deceptive]
 
 
 class TrialStatusData(Contract):
@@ -212,16 +285,33 @@ class CoachWorkingFrame(_TrialEnvelope):
     data: TurnRef
 
 
+def _card_version(frame_version: int | None, card_version: int) -> None:
+    """The envelope's `transcript_version` is the version the card was computed at (S6 4.5, SG4-23)."""
+    if frame_version != card_version:
+        msg = f"transcript_version: {frame_version} is not the card's {card_version}"
+        raise ValueError(msg)
+
+
 class CoachCardFrame(_TrialEnvelope):
     seq: Seq
     type: Literal["coach.card"]
     data: CoachCard
+
+    @model_validator(mode="after")
+    def _version(self) -> Self:
+        _card_version(self.transcript_version, self.data.card.transcript_version)
+        return self
 
 
 class TournamentCoachCardFrame(_TrialEnvelope):
     seq: Seq
     type: Literal["coach.card"]
     data: TournamentCoachCard
+
+    @model_validator(mode="after")
+    def _version(self) -> Self:
+        _card_version(self.transcript_version, self.data.card.transcript_version)
+        return self
 
 
 class CoachUpdateFrame(_TrialEnvelope):

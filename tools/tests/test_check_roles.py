@@ -177,7 +177,6 @@ def frame_rules(path: str, source: str) -> list[str]:
 def test_the_frame_models_are_read_from_the_contracts() -> None:
     assert {"QuestionAcceptedFrame", "CoachCardFrame", "NoticeFrame", "TrialFrame", "ReplayFrame"} <= FRAMES
     assert {"TournamentFrame", "TrialStartedFrame", "TournamentCoachCardFrame"} <= FRAMES
-    assert all(name.endswith("Frame") for name in FRAMES)
     assert "TrialSnapshot" not in FRAMES
 
 
@@ -231,6 +230,42 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
     found = frame_rules(path, source)
     assert found
     assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        # a container that carries frames builds them when validated
+        "from arena_core.contracts.events import ReplayPage\npage = ReplayPage.model_validate({})\n",
+        "from arena_core.contracts.events import TournamentPoll\nA = TypeAdapter(TournamentPoll)\n",
+        # a model field annotated with a frame is built by the model's validation
+        "from arena_core.contracts.events import NoticeFrame\n\n\nclass Wrapper(BaseModel):\n    frame: NoticeFrame\n",
+    ],
+)
+def test_frame_carriers_and_frame_fields_are_value_uses(source: str) -> None:
+    found = frame_rules(ARENA_API_FILE, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.export import WIRE\n",
+        "from arena_core.contracts import export\n",
+        "import arena_core.contracts.export\n",
+        "from ..contracts.export import schema_of\n",
+    ],
+)
+def test_product_code_may_not_import_the_schema_export(source: str) -> None:
+    assert frame_rules(OTHER_CORE_FILE, source) == [lint.EXPORT_RULE]
+
+
+def test_frame_carriers_are_read_from_the_contracts() -> None:
+    assert {"ReplayPage", "TournamentEvents", "TournamentPoll"} <= FRAMES
+    assert not {"TextTrialSnapshot", "CoachCard", "Content"} & FRAMES
 
 
 def test_the_export_module_may_read_frame_schemas() -> None:

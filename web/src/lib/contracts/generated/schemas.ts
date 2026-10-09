@@ -633,6 +633,77 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "FindingCommitted": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "maxItems": 0,
+                      "type": "array"
+                    },
+                    "last_revised_turn": {
+                      "type": "null"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "by": {
+                  "enum": [
+                    "assistant"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "last_revised_turn": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "by": {
+                  "const": "assistant"
+                },
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "by": {
             "enum": [
@@ -737,6 +808,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "question": {
+            "maxBytes": 600,
             "maxLength": 300,
             "minLength": 1,
             "type": "string"
@@ -759,6 +831,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "purpose": {
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -865,6 +938,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "missing_fact": {
+            "maxBytes": 240,
             "maxLength": 120,
             "minLength": 3,
             "type": "string"
@@ -917,6 +991,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "assessment": {
             "description": "One sentence on the question",
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -1236,6 +1311,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -1244,6 +1320,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -1252,6 +1329,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -1440,6 +1518,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -1447,6 +1526,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -1470,6 +1550,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -1493,6 +1574,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -2118,6 +2200,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "question": {
+            "maxBytes": 600,
             "maxLength": 300,
             "minLength": 1,
             "type": "string"
@@ -2140,6 +2223,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "purpose": {
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -2201,6 +2285,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "assessment": {
             "description": "One sentence on the question",
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -2340,6 +2425,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -2348,6 +2434,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -2356,6 +2443,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -2544,6 +2632,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -2551,6 +2640,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -2574,6 +2664,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -2597,6 +2688,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -2816,6 +2908,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "question": {
+            "maxBytes": 600,
             "maxLength": 300,
             "minLength": 1,
             "type": "string"
@@ -2838,6 +2931,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "purpose": {
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -2899,6 +2993,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "assessment": {
             "description": "One sentence on the question",
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -3038,6 +3133,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -3046,6 +3142,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -3054,6 +3151,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -3242,6 +3340,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -3249,6 +3348,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -3272,6 +3372,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -3295,6 +3396,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -3677,6 +3779,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "question": {
+            "maxBytes": 600,
             "maxLength": 300,
             "minLength": 1,
             "type": "string"
@@ -3699,6 +3802,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "purpose": {
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -3728,6 +3832,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "missing_fact": {
+            "maxBytes": 240,
             "maxLength": 120,
             "minLength": 3,
             "type": "string"
@@ -3780,6 +3885,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "assessment": {
             "description": "One sentence on the question",
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -4257,6 +4363,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -4265,6 +4372,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -4273,6 +4381,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -4461,6 +4570,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -4468,6 +4578,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -4491,6 +4602,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -4514,6 +4626,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -6408,7 +6521,13 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             },
             "maxItems": 4,
             "minItems": 1,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
+          },
+          "min_evidence_level": {
+            "maximum": 4,
+            "minimum": 1,
+            "type": "integer"
           },
           "precondition_records": {
             "items": {
@@ -6417,13 +6536,15 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             },
             "maxItems": 10,
             "minItems": 1,
-            "type": "array"
+            "type": "array",
+            "uniqueItems": true
           }
         },
         "required": [
           "id",
           "condition",
           "opens",
+          "min_evidence_level",
           "precondition_records"
         ],
         "title": "Gate",
@@ -6574,12 +6695,40 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "LedgerFact": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "gate_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "class": {
+                  "const": "HOLD"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "gate_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "gate_id"
+              ]
+            }
+          }
+        ],
         "properties": {
           "id": {
             "pattern": "^f:[0-9]{2,3}$",
             "type": "string"
           },
-          "fact_class": {
+          "class": {
             "enum": [
               "FREE",
               "HOLD",
@@ -6609,15 +6758,15 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               {
                 "type": "null"
               }
-            ]
+            ],
+            "default": null
           }
         },
         "required": [
           "id",
-          "fact_class",
+          "class",
           "text",
-          "certainty",
-          "gate_id"
+          "certainty"
         ],
         "title": "LedgerFact",
         "type": "object"
@@ -6976,6 +7125,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -6984,6 +7134,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -6992,6 +7143,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -7180,6 +7332,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -7187,6 +7340,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -7210,6 +7364,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -7233,6 +7388,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -7346,6 +7502,27 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "UncertaintyEntry": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "answer_form": {
+                  "const": "range"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "range_text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "range_text"
+              ]
+            }
+          }
+        ],
         "properties": {
           "id": {
             "pattern": "^u:[0-9]{2}$",
@@ -7359,12 +7536,33 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "maxLength": 300,
             "minLength": 10,
             "type": "string"
+          },
+          "answer_form": {
+            "enum": [
+              "range",
+              "unsure"
+            ],
+            "type": "string"
+          },
+          "range_text": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           }
         },
         "required": [
           "id",
           "fact_id",
-          "text"
+          "text",
+          "answer_form"
         ],
         "title": "UncertaintyEntry",
         "type": "object"
@@ -8648,6 +8846,77 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "FindingCommitted": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "maxItems": 0,
+                      "type": "array"
+                    },
+                    "last_revised_turn": {
+                      "type": "null"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "by": {
+                  "enum": [
+                    "assistant"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "last_revised_turn": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "by": {
+                  "const": "assistant"
+                },
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "by": {
             "enum": [
@@ -8752,6 +9021,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "question": {
+            "maxBytes": 600,
             "maxLength": 300,
             "minLength": 1,
             "type": "string"
@@ -8774,6 +9044,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "purpose": {
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -8803,6 +9074,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "additionalProperties": false,
         "properties": {
           "missing_fact": {
+            "maxBytes": 240,
             "maxLength": 120,
             "minLength": 3,
             "type": "string"
@@ -8855,6 +9127,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "assessment": {
             "description": "One sentence on the question",
+            "maxBytes": 320,
             "maxLength": 160,
             "minLength": 1,
             "type": "string"
@@ -9174,6 +9447,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -9182,6 +9456,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -9190,6 +9465,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"
@@ -9378,6 +9654,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "quote": {
             "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -9385,6 +9662,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "missing_fact": {
             "anyOf": [
               {
+                "maxBytes": 240,
                 "maxLength": 120,
                 "minLength": 3,
                 "type": "string"
@@ -9408,6 +9686,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -9431,6 +9710,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "conflict_record_quote": {
             "anyOf": [
               {
+                "maxBytes": 400,
                 "maxLength": 200,
                 "minLength": 1,
                 "type": "string"
@@ -10351,6 +10631,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "corroboration_needed": {
             "items": {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -10359,6 +10640,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "array"
           },
           "rationale": {
+            "maxBytes": 1200,
             "maxLength": 600,
             "minLength": 1,
             "type": "string"
@@ -10367,6 +10649,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "anyOf": [
               {
                 "items": {
+                  "maxBytes": 320,
                   "maxLength": 160,
                   "minLength": 3,
                   "type": "string"

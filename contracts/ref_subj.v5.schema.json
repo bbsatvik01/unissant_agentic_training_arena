@@ -121,6 +121,7 @@
           "type": "boolean"
         },
         "evidence_quote": {
+          "maxBytes": 1800,
           "maxLength": 900,
           "type": "string"
         }

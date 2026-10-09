@@ -66,6 +66,7 @@
         },
         "corroboration_needed": {
           "items": {
+            "maxBytes": 240,
             "maxLength": 120,
             "minLength": 3,
             "type": "string"
@@ -74,6 +75,7 @@
           "type": "array"
         },
         "rationale": {
+          "maxBytes": 1200,
           "maxLength": 600,
           "minLength": 1,
           "type": "string"
@@ -106,6 +108,7 @@
     },
     "alternative_explanations": {
       "items": {
+        "maxBytes": 320,
         "maxLength": 160,
         "minLength": 3,
         "type": "string"

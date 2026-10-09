@@ -232,6 +232,7 @@ export interface Gate {
   readonly id: string;
   readonly condition: string;
   readonly opens: readonly (string)[];
+  readonly min_evidence_level: number;
   readonly precondition_records: readonly (string)[];
 }
 
@@ -297,10 +298,10 @@ export interface Learning {
 
 export interface LedgerFact {
   readonly id: string;
-  readonly fact_class: "FREE" | "HOLD" | "CORE" | "PRIVATE";
+  readonly class: "FREE" | "HOLD" | "CORE" | "PRIVATE";
   readonly text: string;
   readonly certainty: "certain" | "approximate";
-  readonly gate_id: string | null;
+  readonly gate_id?: string | null;
 }
 
 export interface Notice {
@@ -777,6 +778,8 @@ export interface UncertaintyEntry {
   readonly id: string;
   readonly fact_id: string;
   readonly text: string;
+  readonly answer_form: "range" | "unsure";
+  readonly range_text?: string | null;
 }
 
 export interface UnscoredDebrief {

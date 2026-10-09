@@ -66,6 +66,7 @@
         },
         "corroboration_needed": {
           "items": {
+            "maxBytes": 240,
             "maxLength": 120,
             "minLength": 3,
             "type": "string"
@@ -74,6 +75,7 @@
           "type": "array"
         },
         "rationale": {
+          "maxBytes": 1200,
           "maxLength": 600,
           "minLength": 1,
           "type": "string"
@@ -111,6 +113,7 @@
         },
         "quote": {
           "description": "Exact span of the subject's answer in turn_id",
+          "maxBytes": 400,
           "maxLength": 200,
           "minLength": 1,
           "type": "string"
@@ -118,6 +121,7 @@
         "missing_fact": {
           "anyOf": [
             {
+              "maxBytes": 240,
               "maxLength": 120,
               "minLength": 3,
               "type": "string"
@@ -141,6 +145,7 @@
         "conflict_quote": {
           "anyOf": [
             {
+              "maxBytes": 400,
               "maxLength": 200,
               "minLength": 1,
               "type": "string"
@@ -164,6 +169,7 @@
         "conflict_record_quote": {
           "anyOf": [
             {
+              "maxBytes": 400,
               "maxLength": 200,
               "minLength": 1,
               "type": "string"
@@ -191,6 +197,7 @@
       "additionalProperties": false,
       "properties": {
         "question": {
+          "maxBytes": 600,
           "maxLength": 300,
           "minLength": 1,
           "type": "string"
@@ -213,6 +220,7 @@
           "type": "string"
         },
         "purpose": {
+          "maxBytes": 320,
           "maxLength": 160,
           "minLength": 1,
           "type": "string"
@@ -274,6 +282,7 @@
         },
         "assessment": {
           "description": "One sentence on the question",
+          "maxBytes": 320,
           "maxLength": 160,
           "minLength": 1,
           "type": "string"

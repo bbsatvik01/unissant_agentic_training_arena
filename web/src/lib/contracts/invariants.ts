@@ -12,6 +12,9 @@
  * - snapshot (`snapshot`): `exchanges_used` within the cap; turns or exchanges numbered 1..n; the count is
  *   the answered turns (text) or the stored exchanges (voice).
  * - table (`events.TableContent`): every row has one cell per column.
+ * - wrappers (`events.CoachCard`, `CoachUpdate`, `CoachCardFrame`): a `{turn_no, card}` pair names the card's
+ *   own turn, a `{turn_no, update}` pair the update's `as_of_turn`, and a `coach.card` frame's
+ *   `transcript_version` is the card's.
  */
 
 type Json = Readonly<Record<string, unknown>>;
@@ -105,12 +108,28 @@ function tableErrors(table: Json): string[] {
     : [];
 }
 
+function wrapperErrors(value: Json): string[] {
+  const errors: string[] = [];
+  const card = value["card"];
+  if ("turn_no" in value && isObject(card) && value["turn_no"] !== card["turn_no"])
+    errors.push("wrapper: turn_no is not the card's");
+  const update = value["update"];
+  if ("turn_no" in value && isObject(update) && value["turn_no"] !== turnOf(update["as_of_turn"]))
+    errors.push("wrapper: turn_no is not the update's as_of_turn");
+  const data = value["data"];
+  if (value["type"] === "coach.card" && isObject(data) && isObject(data["card"]))
+    if (value["transcript_version"] !== data["card"]["transcript_version"])
+      errors.push("frame: transcript_version is not the card's");
+  return errors;
+}
+
 function walk(value: unknown, errors: string[]): void {
   if (Array.isArray(value)) {
     for (const item of value) walk(item, errors);
     return;
   }
   if (!isObject(value)) return;
+  errors.push(...wrapperErrors(value));
   if (value["schema_version"] === "card.v1" && "card_seq" in value) errors.push(...cardErrors(value));
   if (value["schema_version"] === "deep.v1") errors.push(...deepErrors(value));
   if (Array.isArray(value["columns"]) && Array.isArray(value["rows"])) errors.push(...tableErrors(value));

@@ -77,7 +77,9 @@ def when(
 
 
 class ByteLimit:
-    """Annotated marker: at most `limit` UTF-8 bytes (S2 1: twice the character limit)."""
+    """Annotated marker: at most `limit` UTF-8 bytes (S2 1: twice the character limit). Exported as the arena
+    keyword `maxBytes`, which the browser's ajv (`web/src/lib/contracts/validate.ts`) and
+    `export.json_validator` enforce; Vertex drops it like every keyword outside its set."""
 
     def __init__(self, limit: int) -> None:
         self.limit = limit
@@ -92,6 +94,11 @@ class ByteLimit:
             return value
 
         return core_schema.no_info_after_validator_function(check, handler(source))
+
+    def __get_pydantic_json_schema__(self, schema: CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
+        out = handler(schema)
+        out["maxBytes"] = self.limit
+        return out
 
 
 def _version_schema(tag: str) -> WithJsonSchema:

@@ -21,6 +21,14 @@ def test_exporting_twice_gives_identical_text() -> None:
     assert export.contract_files() == export.contract_files()
 
 
+def test_json_validator_enforces_max_bytes() -> None:
+    schema = {"type": "string", "maxLength": 3, "maxBytes": 4}
+    validator = export.json_validator(schema)
+    assert validator.is_valid("ab")
+    assert not validator.is_valid("\u20ac\u20ac")  # 2 characters, 6 bytes
+    assert validator.is_valid(7) is False  # type still checked; maxBytes reads strings only
+
+
 def test_the_committed_contracts_equal_a_fresh_export() -> None:
     for name, text in export.contract_files().items():
         assert (CONTRACTS_DIR / name).read_bytes() == text.encode("utf-8"), name

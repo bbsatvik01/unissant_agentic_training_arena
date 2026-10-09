@@ -10,9 +10,11 @@ test fails when a committed file differs from a fresh export.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Callable, Iterator, Mapping
+from typing import Any, cast
 
+from jsonschema import Draft202012Validator, ValidationError, validators
+from jsonschema.protocols import Validator
 from pydantic import BaseModel, TypeAdapter
 
 from arena_core.contracts.coaching import (
@@ -103,6 +105,27 @@ def schema_of(stem: str) -> dict[str, Any]:
 
 def dumps(document: object) -> str:
     return json.dumps(document, indent=2, ensure_ascii=False) + "\n"
+
+
+def _max_bytes(
+    validator: Validator, limit: int, instance: object, schema: Mapping[str, Any]
+) -> Iterator[ValidationError]:
+    """The arena keyword `maxBytes` (S2 1, Text size): a string of at most `limit` UTF-8 bytes."""
+    del validator, schema
+    if isinstance(instance, str) and len(instance.encode("utf-8")) > limit:
+        yield ValidationError(f"longer than {limit} UTF-8 bytes")
+
+
+# types-jsonschema declares `validators.extend` without parameter types; its documented signature is
+# extend(validator, validators) -> a validator class.
+_extend = cast("Callable[[type[Validator], dict[str, Any]], type[Validator]]", validators.extend)
+ArenaValidator = _extend(Draft202012Validator, {"maxBytes": _max_bytes})
+
+
+def json_validator(schema: Mapping[str, Any]) -> Validator:
+    """A draft 2020-12 validator for an exported schema that also enforces `maxBytes`."""
+    validator: Validator = ArenaValidator(schema)
+    return validator
 
 
 def contract_files() -> dict[str, str]:

@@ -19,13 +19,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal, Self
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import ConfigDict, Field, StringConstraints, model_validator
 
 from arena_core.contracts.coaching import StoredFlag
 from arena_core.contracts.common import (
     ArtifactKind,
     CitableRecordId,
     Contract,
+    Distinct,
     EvasionLabel,
     EvaSubtype,
     Exchanges,
@@ -122,25 +123,62 @@ class RubricItem(Contract):
     triggers: Annotated[list[TriggerEntry], Field(max_length=MAX_TRIGGERS)]
 
 
+# The private ledger exactly as S1's private packet holds it (`ledgerFact`, `uncertaintyEntry`, `gate`), so the
+# rater sees what the proxy saw (S2 7.2 renders the same entries): the referee passes the packet's entries as
+# they are.
+
+
 class LedgerFact(Contract):
+    model_config = ConfigDict(serialize_by_alias=True)
+
     id: FactId
-    fact_class: Literal["FREE", "HOLD", "CORE", "PRIVATE"]
+    fact_class: Annotated[Literal["FREE", "HOLD", "CORE", "PRIVATE"], Field(alias="class")]
     text: Statement
     certainty: Literal["certain", "approximate"]
-    gate_id: GateId | None
+    gate_id: GateId | None = None
+
+    @model_validator(mode="after")
+    def _gate(self) -> Self:
+        if (self.gate_id is not None) != (self.fact_class == "HOLD"):
+            msg = f"{self.id}.gate_id: present exactly when the fact is HOLD (S1 ledgerFact)"
+            raise ValueError(msg)
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        hold: dict[str, Any] = {"if": {"properties": {"class": {"const": "HOLD"}}}}
+        hold["then"] = {"required": ["gate_id"], "properties": {"gate_id": {"type": "string"}}}
+        hold["else"] = {"properties": {"gate_id": {"type": "null"}}}
+        return [hold]
 
 
 class UncertaintyEntry(Contract):
     id: UncertaintyId
     fact_id: FactId
     text: Annotated[str, StringConstraints(min_length=10, max_length=300)]
+    answer_form: Literal["range", "unsure"]
+    range_text: Annotated[str, StringConstraints(min_length=3, max_length=120)] | None = None
+
+    @model_validator(mode="after")
+    def _range(self) -> Self:
+        if self.answer_form == "range" and self.range_text is None:
+            msg = f"{self.id}.range_text: required when answer_form is range (S1 uncertaintyEntry)"
+            raise ValueError(msg)
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        rule: dict[str, Any] = {"if": {"properties": {"answer_form": {"const": "range"}}}}
+        rule["then"] = {"required": ["range_text"], "properties": {"range_text": {"type": "string"}}}
+        return [rule]
 
 
 class Gate(Contract):
     id: GateId
     condition: Annotated[str, StringConstraints(min_length=20, max_length=300)]
-    opens: Annotated[list[FactId], Field(min_length=1, max_length=4)]
-    precondition_records: Annotated[list[CitableRecordId], Field(min_length=1, max_length=10)]
+    opens: Annotated[list[FactId], Field(min_length=1, max_length=4), Distinct]
+    min_evidence_level: Annotated[int, Field(ge=1, le=4)]
+    precondition_records: Annotated[list[CitableRecordId], Field(min_length=1, max_length=10), Distinct]
 
 
 class CanonicalFact(Contract):
