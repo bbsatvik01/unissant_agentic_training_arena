@@ -30,6 +30,7 @@ import re
 from collections.abc import Iterator, Mapping
 from typing import Any
 
+from arena_core.contracts.rendered import TextTooLongError, check_question
 from arena_core.scenario.content import budget_overruns
 from arena_core.scenario.guardscan import scan_forms
 from arena_core.scenario.relay import evidence_slot_question, relay_test, render_replay_script
@@ -181,6 +182,19 @@ def _slot_records(public: Mapping[str, Any], evaluator: Mapping[str, Any]) -> li
     ]
 
 
+def _check_committable(report: Reporter, where: str, question: str, variant: str) -> None:
+    """V1c.question: every question a trial of this case asks (the opening, the replay rows, the evidence slots)
+    is one the runtime commits: 600 characters and 2,400 bytes as rendered (`contracts.rendered.check_question`,
+    D11), so an accepted case can always start and replay its trial."""
+    try:
+        check_question(question)
+    except TextTooLongError as exc:
+        report.add("V1c.question", f"{where} cannot be committed: {exc}", variant)
+    except UnicodeEncodeError as exc:
+        # A lone surrogate (V1.storage reports it) has no UTF-8 form, so it has no rendered size either.
+        report.add("V1c.question", f"{where} cannot be committed: not encodable as UTF-8 ({exc.reason})", variant)
+
+
 def check_relay(family: Family) -> list[Issue]:
     """V1c per variant: script rows in order with the repeat rule, then every evidence-slot question."""
     report = Reporter(family_id_of(family))
@@ -192,6 +206,7 @@ def check_relay(family: Family) -> list[Issue]:
             result = relay_test(question, asked)
             if not result.passed:
                 report.add("V1c.replay_row", f"row {row} fails relay_test.v1 ({result.reason}): {question!r}", variant)
+            _check_committable(report, f"row {row}", question, variant)
             asked.append(question)
         for title, date in _slot_records(public, evaluator):
             question = evidence_slot_question(title, date)
@@ -200,5 +215,6 @@ def check_relay(family: Family) -> list[Issue]:
                 report.add(
                     "V1c.evidence_slot", f"slot question fails relay_test.v1 ({result.reason}): {question!r}", variant
                 )
+            _check_committable(report, "slot question", question, variant)
             asked.append(question)
     return report.issues

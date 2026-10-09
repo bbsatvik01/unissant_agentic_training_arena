@@ -37,6 +37,7 @@ from arena_core.contracts.common import (
     turn_no,
     when,
 )
+from arena_core.contracts.rendered import rendered_overruns
 
 LIKELIHOODS = (
     "almost_no_chance",
@@ -151,6 +152,10 @@ class InvestigatorFinding(Contract):
     @model_validator(mode="after")
     def _rules(self) -> Self:
         _check_label_rules(self.label, self.likelihood, self.corroboration_needed)
+        # D11: each text field within its byte cap as a prompt renders it (R3 carries the finding, S2 7.5).
+        overruns = rendered_overruns(self)
+        if overruns:
+            raise ValueError("; ".join(overruns))
         return self
 
     def stored(self) -> StoredFinding:

@@ -1,0 +1,4 @@
+Task: final finding. The interview has ended. You are not writing a card. Return one FinalFinding JSON object:
+- finding: your final finding under rule 9. It will be committed and compared with the hidden case facts. A false accusation counts heavily against you; an unsupported deceptive finding is never rewarded; insufficient_evidence with specific corroboration is a legitimate final answer.
+- alternative_explanations: up to three innocent explanations you considered, each with one clause on whether the transcript or records rule it out.
+Return only the JSON object.

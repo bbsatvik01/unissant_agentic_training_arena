@@ -1,0 +1,98 @@
+{
+  "candidate_id": "S3",
+  "coaching_policy": null,
+  "display_name": "Subject S3",
+  "kind": "subject",
+  "limits": {
+    "subject": {
+      "attempt_timeout_ms": 8000,
+      "deadline_ms": 20000,
+      "max_input_tokens": 80000,
+      "max_output_tokens": 1600,
+      "model_id": "gemini-3.5-flash-lite",
+      "thinking_level": "MINIMAL"
+    }
+  },
+  "lineage": {
+    "change_note": "initial",
+    "parent_sha256": null
+  },
+  "manifest_version": "manifest.v1",
+  "model": {
+    "location": "global",
+    "provider": "vertex"
+  },
+  "official": true,
+  "prompt": {
+    "assembly": {
+      "live": [
+        "prompts/subject/live.v1.txt",
+        "prompts/subject/role.t.v1.txt",
+        "prompts/subject/role.d.v1.txt",
+        "prompts/subject/policy.skilled.v1.txt",
+        "prompts/subject/style.v1.txt"
+      ],
+      "subject": [
+        "prompts/subject/system.v1.txt",
+        "prompts/subject/role.t.v1.txt",
+        "prompts/subject/role.d.v1.txt",
+        "prompts/subject/policy.skilled.v1.txt",
+        "prompts/subject/style.v1.txt"
+      ]
+    },
+    "files": [
+      {
+        "path": "prompts/subject/system.v1.txt",
+        "sha256": "57f555bec237e1239e6ecfce53e977375286a7145522181fd0ee24f26a822d40"
+      },
+      {
+        "path": "prompts/subject/role.t.v1.txt",
+        "sha256": "9304d355c1cd018996de71c24c01189689940b60d28d10ea0b2c4e567119dd37"
+      },
+      {
+        "path": "prompts/subject/role.d.v1.txt",
+        "sha256": "abdd7568e69b6fb72baa62934ea7d63983f64bc4543a23314c1dbb9a247a2680"
+      },
+      {
+        "path": "prompts/subject/policy.skilled.v1.txt",
+        "sha256": "82bdc8600fb58cc3863c8c4f10fa0157d70ac88da5af61adde8c32e079a666aa"
+      },
+      {
+        "path": "prompts/subject/style.v1.txt",
+        "sha256": "fa09089921ec7baec9cfc8ab4b0e9bac96ab96c976a2deb93ddfc5ea641c9f7c"
+      },
+      {
+        "path": "prompts/subject/live.v1.txt",
+        "sha256": "5d5ea206c45ed7672ec665b1fba9aca7a0b705546599ac76397e2422323657bd"
+      }
+    ],
+    "output_schemas": [
+      {
+        "name": "SubjectTurn",
+        "sha256": "25a860c4c9c8ff61e84cfadd325fb77a592c32e25ed169c62a7f2db39e148090",
+        "version": "subject.v1"
+      }
+    ],
+    "user_templates": [
+      {
+        "path": "prompts/subject/user.turn.v1.txt",
+        "sha256": "e776139ac129bf6c49cfe06ffc9da3072d7fe3cd2ba5e8d7d2fe8d983808eebc"
+      }
+    ]
+  },
+  "repair": {
+    "schema_repairs": 1,
+    "transient_retries": 2
+  },
+  "sampling": {
+    "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
+    "temperature": null
+  },
+  "sha256": "bf01acf72b0b50a2981922b16bd5a1db2a880e6cd91a4102b0e5decee38f7b2f",
+  "subject_policy": {
+    "policy": "skilled_deceiver"
+  },
+  "tools": [],
+  "transport": "in_process",
+  "version": "1.0.0"
+}

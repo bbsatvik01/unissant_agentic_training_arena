@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Literal
 
-from pydantic import Field, StringConstraints
+from pydantic import AfterValidator, Field, StringConstraints
 
 from arena_core.contracts.common import (
     CASE_ID,
@@ -25,6 +25,7 @@ from arena_core.contracts.common import (
 )
 from arena_core.contracts.events import Text600
 from arena_core.contracts.findings import InvestigatorFinding
+from arena_core.contracts.rendered import check_question
 
 Service = Literal["arena-api", "arena-subject", "arena-referee"]
 Method = Literal["GET", "POST"]
@@ -40,10 +41,11 @@ class SessionCreate(Contract):
 
 
 class TurnSubmit(Contract):
-    """`POST /api/trials/{id}/turns`: the question is capped at 600 characters (D11); the room sends
-    `release_ids: []` and requests records through the evidence route (S6 5.5)."""
+    """`POST /api/trials/{id}/turns`: the question is capped at 600 characters and 1,800 bytes as rendered
+    (D11, `contracts.rendered.check_question`), refused before commit; the room sends `release_ids: []` and
+    requests records through the evidence route (S6 5.5)."""
 
-    question: Text600
+    question: Annotated[Text600, AfterValidator(check_question)]
     release_ids: Annotated[list[RecordId], Field(max_length=6), Distinct]
     expected_version: Annotated[int, Field(ge=0)]
     idem_key: Uuid
