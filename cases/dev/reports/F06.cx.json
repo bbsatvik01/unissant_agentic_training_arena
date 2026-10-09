@@ -1,0 +1,50 @@
+{
+  "family": "F06",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "7b00ac2c6fa19c4da49ed7c752e1eb3d3be1ff88e5fc07103f510e08a7e70bcd",
+  "rules_sha256": "c249ad833832b4be151308e7021f6c161f2da62bf8e8da1b3983f19f3d20e3fd",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+      ],
+      "basis": "Dispatch and repair records corroborate the leak response and protective handling of boxes. The manager confirms approval before withdrawal and explains the late signature. Key history documents assigned tasks, and the copier log shows no evening copying. Halloran’s answers match the records, which close the main gaps without establishing concealed involvement.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+      ],
+      "basis": "The leak was in 419, and 417 was dry. Halloran acknowledges remaining in 417 without work and making and taking nine copies, corroborated by rec-03, but avoids explaining those activities. This establishes unassigned use of the restricted room that her account does not explain. The corroborated advance phone approval explains the key withdrawal, not that use.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "rec-03",
+        "rec-04",
+        "rec-05"
+      ],
+      "basis": "The supervisor corroborates advance verbal approval, and the logs show a service-request withdrawal and no copying during the entry. But the examined records do not corroborate the claimed leak inside Room 417 or the work performed there. Those central gaps remain open, while no record establishes involvement that Halloran’s answers conceal.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

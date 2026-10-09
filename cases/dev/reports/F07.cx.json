@@ -1,0 +1,49 @@
+{
+  "family": "F07",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "498c37ecf713ed2be475c348c542e8cc9431e6c76b8c5304e09adbf092989623",
+  "rules_sha256": "c249ad833832b4be151308e7021f6c161f2da62bf8e8da1b3983f19f3d20e3fd",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05",
+        "rec-06"
+      ],
+      "basis": "The supervisor’s request, valid pass and confirmed delivery corroborate Mattick’s account of both cartons. All high-value stock counts matched. Scheduled maintenance explains the camera gap; the staff notice does not establish he read it. His leave was approved before that notice, and its reason was optional. The records close the main gaps without establishing concealed involvement.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03"
+      ],
+      "basis": "The sole pass and delivery receipt cover only the projector. The audit shows two drill kits missing without an issue or pass, matching Mattick’s acknowledged packing of the second carton. Although he acknowledges its contents, his destination answer accounts only for the projector, avoiding what happened to the unpassed drill-kit carton.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "rec-03",
+        "rec-05"
+      ],
+      "basis": "The supervisor corroborates the collection request and a pass for the kit, and high-value stock counts match. However, these records do not establish both cartons’ contents or complete pass coverage. The subject reports arrival without confirming delivery. These gaps remain unresolved, but no examined record establishes involvement that the subject conceals.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

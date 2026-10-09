@@ -1,0 +1,45 @@
+{
+  "family": "F04",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "a455eae0b368a2b1aafc32b9f6ef504b357db5087dd61a3710ff4685f732810c",
+  "rules_sha256": "c249ad833832b4be151308e7021f6c161f2da62bf8e8da1b3983f19f3d20e3fd",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04"
+      ],
+      "basis": "Arno entered through the lobby at 08:01; the meter’s 25-minute clock error explains the apparent 07:44 login. Marsh corroborates Dana moving bins alone, supporting her explanation for holding the door open. Delacroix confirms escorting and remaining with Arno while Dana was on her mail round. The records support Dana’s account and close the main gaps.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "rec-02",
+        "rec-03"
+      ],
+      "basis": "rec-03 establishes that Arno entered through Dana’s dock door behind her second bin. rec-02 confirms a 07:44 service login on an accurate clock, before lobby sign-in. Dana acknowledges his presence and work but avoids explaining how he entered. The records establish her involvement in the access event that her answers omit.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "rec-01"
+      ],
+      "basis": "rec-01 documents Arno’s lobby sign-in at 08:01 but does not resolve the earlier meter login or establish entry on Dana’s badge swipe. Dana’s answers leave the prolonged door opening unexplained beyond bringing in bins. The main gaps remain, but no examined record establishes involvement that her answers conceal.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

@@ -1,0 +1,4003 @@
+{
+  "schema_version": "1.1.0",
+  "family_id": "F07",
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Supply store visit and dock loading after hours",
+  "taxonomy": {
+    "violation_type": "after_hours_property_removal",
+    "misleading_types": [
+      "camera_outage",
+      "privacy_reason"
+    ]
+  },
+  "difficulty": {
+    "level": 2,
+    "knobs": {
+      "key_record_after_exchanges": 3,
+      "evidence_directness": 2,
+      "misleading_count": 3,
+      "uncertainty_count": 2,
+      "gate_level": 3
+    }
+  },
+  "style": {
+    "verbosity": "expansive",
+    "fluency": "disfluent",
+    "affect": "calm",
+    "register": "informal",
+    "language": "native"
+  },
+  "provenance": {
+    "method": "generator",
+    "created": "2026-10-08",
+    "generator_model": "claude-opus-5-5",
+    "prompt_sha256": "29d6d2a115824d5407d818ea05fcaf0c23bf957dfa6ed399478c64823cfe80d4",
+    "seed_spec_sha256": "bc54d927aa1716e6e71a5bf5aff70158b23c9f0a61e9d1117a8d97a2aaf6fc1f",
+    "few_shot_family_ids": [
+      "F01",
+      "F02",
+      "F03"
+    ],
+    "notes": "Development family authored offline by a Claude agent from seed F07 in cases/dev/seed-plan.json (D-014), KPI-1 case set A. A supply technician on afternoon leave returns after hours at his supervisor's request to collect a training kit while the dock camera is off for planned IT work, and a guard sees him load two cartons into his car. Corroboration path: the pass record and the delivery email (exchange 3), then the stock counts (exchange 4). prompt_sha256 covers the content rules, kit sources src_f01.py to src_f03.py and the canonical seed."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "Supply Store S-2 at the Halvern Street Annex is staffed from 07:00 to 17:00.",
+        "kind": "context",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "Mattick's badge opens Supply Store S-2 and the loading dock door at all hours.",
+        "kind": "state",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "Mattick's timesheet records personal leave from 12:30 to 17:00 on 7 April 2026 with the reason field blank.",
+        "kind": "record",
+        "time": "2026-04-07T12:30",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "Mattick booked the 7 April afternoon leave on 30 March 2026, and Brandt approved it the same day.",
+        "kind": "record",
+        "time": "2026-03-30T09:12",
+        "actors": [
+          "Glen Mattick",
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "Mattick's afternoon leave on 7 April was for a hospital outpatient appointment about a back condition.",
+        "kind": "state",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [
+          "privacy"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "At 16:45 Supply Supervisor Celia Brandt raised property pass PP-0407-06 for the Corbel Lane training kit, with Mattick as holder.",
+        "kind": "action",
+        "time": "2026-04-07T16:45",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "At 16:40 Brandt staged the Corbel Lane training kit on the S-2 dispatch shelf.",
+        "kind": "action",
+        "time": "2026-04-07T16:40",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "At 16:50 Brandt phoned Mattick and asked him to collect the training kit from S-2 that evening and deliver it to the Corbel Lane training centre before its 08:00 session on 8 April.",
+        "kind": "action",
+        "time": "2026-04-07T16:50",
+        "actors": [
+          "Celia Brandt",
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "Talbot did not check a property pass when he saw Mattick at the dock.",
+        "kind": "context",
+        "time": "2026-04-07T20:05",
+        "actors": [
+          "Owen Talbot"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "At 19:47 Mattick's badge opened the loading dock door from outside.",
+        "kind": "action",
+        "time": "2026-04-07T19:47",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "At 19:52 Mattick's badge opened Supply Store S-2.",
+        "kind": "action",
+        "time": "2026-04-07T19:52",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "Mattick's 19:52 entry was the only badge entry to S-2 between the 17:00 lock-up on 7 April and the 07:00 opening on 8 April.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:13",
+        "statement": "At 20:03 Mattick's badge opened the loading dock door from inside.",
+        "kind": "action",
+        "time": "2026-04-07T20:03",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:14",
+        "statement": "At about 20:05 night guard Owen Talbot saw Mattick loading two cartons into his car at the loading dock.",
+        "kind": "action",
+        "time": "2026-04-07T20:05",
+        "actors": [
+          "Owen Talbot",
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:15",
+        "statement": "The loading dock camera recorded nothing from 18:30 to 21:30 on 7 April.",
+        "kind": "record",
+        "time": "2026-04-07T18:30",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:16",
+        "statement": "The dock camera was off from 18:30 to 21:30 because IT replaced the network switch serving it under change CR-1182, approved on 31 March.",
+        "kind": "record",
+        "time": "2026-04-07T18:30",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:17",
+        "statement": "At 10:15 on 2 April IT emailed all Annex staff that the loading dock camera would not record from 18:30 to 21:30 on 7 April.",
+        "kind": "record",
+        "time": "2026-04-02T10:15",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:18",
+        "statement": "At 07:30 on 8 April the after-hours access review flagged the 19:52 S-2 entry as having no after-hours work order.",
+        "kind": "record",
+        "time": "2026-04-08T07:30",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:19",
+        "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+        "kind": "action",
+        "time": "2026-04-08T07:40",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "The two cartons Mattick loaded at the dock were the staged training kit: projector kit BA-AV-0412 and 30 training binders.",
+        "kind": "state",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "Property pass PP-0407-06 listed two cartons, projector kit BA-AV-0412 and 30 training binders, for delivery to Corbel Lane.",
+        "kind": "record",
+        "time": "2026-04-07T16:45",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "At 07:40 on 8 April Corbel Lane coordinator Joanna Ainsley signed for two cartons against PP-0407-06: the projector kit and the 30 binders.",
+        "kind": "record",
+        "time": "2026-04-08T07:40",
+        "actors": [
+          "Joanna Ainsley",
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "At the 07:00 opening count on 8 April every high-value bin in S-2 matched the 17:00 close count of 7 April.",
+        "kind": "record",
+        "time": "2026-04-08T07:00",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:26",
+        "statement": "Mattick did not know on 7 April that the loading dock camera was not recording.",
+        "kind": "knowledge",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:27",
+        "statement": "Mattick took nothing from S-2 on 7 April apart from the two training-kit cartons.",
+        "kind": "action",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Mattick collected projector kit BA-AV-0412 from the S-2 dispatch shelf for the Corbel Lane session.",
+        "kind": "action",
+        "time": "2026-04-07T19:53",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "From the 2 April IT email, Mattick knew the loading dock camera would not record on the evening of 7 April.",
+        "kind": "knowledge",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "Mattick wanted two cordless drills for a private kitchen-fitting job he had agreed to do on 11 April.",
+        "kind": "state",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": false,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Property pass PP-0407-06 listed one carton, projector kit BA-AV-0412, for delivery to Corbel Lane.",
+        "kind": "record",
+        "time": "2026-04-07T16:45",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "Mattick took two TL-218 cordless drill kits from S-2 stock out of the Annex without a property pass.",
+        "kind": "action",
+        "time": "2026-04-07T20:03",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton.",
+        "kind": "action",
+        "time": "2026-04-07T19:55",
+        "actors": [
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "At the 07:00 opening count on 8 April the TL-218 cordless drill kit bin held 4 kits against 6 at the 17:00 close count, with no issue or pass recorded.",
+        "kind": "record",
+        "time": "2026-04-08T07:00",
+        "actors": [
+          "Celia Brandt"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:48",
+        "statement": "At 07:40 on 8 April Corbel Lane coordinator Joanna Ainsley signed for one carton against PP-0407-06: the projector kit.",
+        "kind": "record",
+        "time": "2026-04-08T07:40",
+        "actors": [
+          "Joanna Ainsley",
+          "Glen Mattick"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:04",
+        "to": "f:03",
+        "relation": "explains"
+      },
+      {
+        "from": "f:16",
+        "to": "f:15",
+        "relation": "explains"
+      },
+      {
+        "from": "f:17",
+        "to": "f:16",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:06",
+        "to": "f:08",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:15",
+        "to": "f:10",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:08",
+        "to": "f:10",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:10",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:13",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:14",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:14",
+        "to": "f:09",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:14",
+        "to": "f:19",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:18",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:20",
+        "to": "f:14",
+        "relation": "explains"
+      },
+      {
+        "from": "f:21",
+        "to": "f:08",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:19",
+        "to": "f:24",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:25",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:43",
+        "to": "f:45",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:42",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:02",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:44",
+        "to": "f:08",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:41",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:46",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:45",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:45",
+        "to": "f:14",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:45",
+        "to": "f:47",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:19",
+        "to": "f:48",
+        "relation": "precedes"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-9KD4TQ2W",
+      "public_packet": {
+        "schema_version": "1.1.0",
+        "packet": "public",
+        "case_id": "C-9KD4TQ2W",
+        "domain": "facility_access",
+        "title": "Supply store visit and dock loading after hours",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Glen Mattick entered Supply Store S-2 at 19:52 on 7 April 2026, what the two cartons he loaded at the loading dock at about 20:05 held, and whether everything that left the Annex that evening was covered by a property pass.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-04-10",
+          "setting": "Interview room 3, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Glen Mattick",
+            "position": "Supply Technician",
+            "unit": "Supply and Property",
+            "tenure_years": 7
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the after-hours entry to Supply Store S-2 and the property that left the loading dock on 7 April 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-07",
+          "display_name": "Glen Mattick",
+          "voice_id": "Orus"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on 7 April 2026?",
+        "replay_topics": [
+          "your entry to Supply Store S-2 at 19:52",
+          "the two cartons loaded at the loading dock",
+          "your personal leave on the afternoon of 7 April"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-04-07T12:30",
+            "event": "Glen Mattick's personal leave began; the reason field on the timesheet is blank.",
+            "source": "doc-04"
+          },
+          {
+            "time": "2026-04-07T17:00",
+            "event": "Supply Store S-2 closed for the day.",
+            "source": "doc-04"
+          },
+          {
+            "time": "2026-04-07T18:30",
+            "event": "Loading dock camera stopped recording.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T19:47",
+            "event": "Glen Mattick's badge opened the loading dock door from outside.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T19:52",
+            "event": "Glen Mattick's badge opened Supply Store S-2.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T20:03",
+            "event": "Glen Mattick's badge opened the loading dock door from inside.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T20:05",
+            "event": "Night guard saw Glen Mattick loading two cartons into a car at the loading dock; no property pass was checked.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-07T21:30",
+            "event": "Loading dock camera recording resumed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-08T07:30",
+            "event": "After-hours access review flagged the S-2 entry as having no after-hours work order.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Supply Store S-2, 7 April 2026",
+            "content": {
+              "body": "Generated 8 April 2026 at 07:30 by the after-hours access review (Office of Facility Security). Exception: entry to Supply Store S-2 outside store hours (07:00-17:00) with no after-hours work order on file. The 19:52 entry was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April. S-2 is left by an exit button, which records no credential. After 18:00 the loading dock door needs a badge in both directions. Loading dock camera: no recording from 18:30 to 21:30 on 7 April.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:47:10",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, entry"
+                  ],
+                  [
+                    "19:52:31",
+                    "Supply Store S-2",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted"
+                  ],
+                  [
+                    "20:03:18",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Property leaving the Annex (Facility Security Standard 6.1)",
+            "content": {
+              "body": "(a) Agency property, including supply stock, may leave the Annex only under a property pass raised by a supervisor in the property pass system before it leaves. The pass lists each carton or item and the destination. (b) Outside store hours (07:00-17:00), supply staff enter Supply Store S-2 only at a supervisor's request. (c) After 17:00, property leaves through the loading dock, and the holder gives the pass number to the guard when asked. (d) Personal leave is recorded on the timesheet; giving a reason is optional."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "witness_statement",
+            "title": "Night guard round log, Halvern Street Annex, 7 April 2026",
+            "content": {
+              "body": "Round log kept by O. Talbot, night guard, 18:00 to 02:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Location",
+                  "Note"
+                ],
+                "rows": [
+                  [
+                    "18:35",
+                    "Security desk",
+                    "Loading dock camera monitor shows no picture. Noted."
+                  ],
+                  [
+                    "20:05",
+                    "Loading dock",
+                    "G. Mattick (Supply) loading two cartons into the boot of a grey hatchback. He waved. I was finishing the dock round and did not stop to check a property pass."
+                  ],
+                  [
+                    "20:07",
+                    "Dock yard",
+                    "Grey hatchback left the dock yard."
+                  ],
+                  [
+                    "21:35",
+                    "Security desk",
+                    "Loading dock camera monitor picture back."
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-04",
+            "kind": "staffing_note",
+            "title": "Supply and Property timesheet, 7 April 2026",
+            "content": {
+              "body": "Supply and Property unit, Halvern Street Annex. Supply Store S-2 hours: 07:00-17:00.",
+              "table": {
+                "columns": [
+                  "Name",
+                  "Position",
+                  "Hours worked",
+                  "Leave"
+                ],
+                "rows": [
+                  [
+                    "C. Brandt",
+                    "Supply Supervisor",
+                    "07:00-17:00",
+                    "-"
+                  ],
+                  [
+                    "L. Pike",
+                    "Stock Clerk",
+                    "08:30-17:00",
+                    "-"
+                  ],
+                  [
+                    "G. Mattick",
+                    "Supply Technician",
+                    "07:00-12:30",
+                    "Personal leave 12:30-17:00; reason field blank"
+                  ]
+                ]
+              }
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "credential_record",
+            "title": "Property pass system record of passes raised on 7 April 2026",
+            "description": "Export from the property pass system: every pass raised on 7 April 2026, with pass number, time raised, who raised it, holder, the cartons or items listed, destination and validity.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "email",
+            "title": "Email from the Corbel Lane training centre about the 8 April kit delivery",
+            "description": "Email from the Corbel Lane training coordinator to the Supply Supervisor recording what was delivered for the 8 April session and when.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "seal_audit",
+            "title": "Supply Store S-2 high-value stock counts, 7 April close to 8 April opening",
+            "description": "The close and opening counts of the high-value bins in Supply Store S-2 at closing on 7 April and at opening on 8 April, with any issues or passes recorded between the two counts.",
+            "requestable_after_exchanges": 4
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "camera_status",
+            "title": "IT change record for the loading dock camera network switch, April 2026",
+            "description": "IT change management record for the network switch that serves the loading dock camera: request, approval, staff notice, work window and result.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-06",
+            "kind": "staffing_note",
+            "title": "Leave request history for G. Mattick, March and April 2026",
+            "description": "Timesheet system history of G. Mattick's leave requests in March and April 2026: when each was booked, the leave dates, the type and the approval.",
+            "requestable_after_exchanges": 2
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-9KD4TQ2W",
+        "role": "truthful",
+        "persona": {
+          "name": "Glen Mattick",
+          "position": "Supply Technician",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Supply and Property",
+          "tenure_years": 7,
+          "background": "Receives, stores and issues supplies and equipment from Supply Store S-2 at the Halvern Street Annex, and drives deliveries to other agency sites in his own car on a mileage allowance."
+        },
+        "matter": "Establish why Glen Mattick entered Supply Store S-2 at 19:52 on 7 April 2026, what the two cartons he loaded at the loading dock at about 20:05 held, and whether everything that left the Annex that evening was covered by a property pass.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "S-2 is staffed from seven to five.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Your badge opens S-2 and the loading dock door at any hour.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You took personal leave from half past twelve on 7 April and left the reason blank on the timesheet.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "You booked that afternoon off on 30 March, and Celia approved it the same day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "PRIVATE",
+            "text": "Your leave that afternoon was for a hospital outpatient appointment about your back condition.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Celia told you she had raised a property pass for the kit, with you as the holder.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "Celia had left the Corbel Lane training kit on the dispatch shelf in S-2.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "Celia phoned you at about ten to five and asked you to collect the training kit from S-2 that evening and get it to Corbel Lane before the eight o'clock session.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You came in with your badge through the loading dock door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "Your badge opened S-2 when you went in for the kit.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "You went out through the loading dock door with the cartons just after eight.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "Owen, the night guard, saw you loading the two cartons into your car at the dock.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "Owen waved and did not ask you for a pass number.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "You got to the Corbel Lane training centre at twenty to eight the next morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:20",
+            "class": "FREE",
+            "text": "The two cartons you loaded were the training kit from the dispatch shelf: the projector kit and thirty training binders.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "Joanna Ainsley at Corbel Lane signed for both cartons when you dropped them off.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:26",
+            "class": "FREE",
+            "text": "You did not know the dock camera wasn't recording that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:27",
+            "class": "FREE",
+            "text": "You did not take anything from S-2 apart from the two kit cartons.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:11",
+          "f:20",
+          "f:13",
+          "f:19"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know whether anyone else went into S-2 that night."
+          },
+          {
+            "fact_id": "f:15",
+            "subject_view": "You do not know when the dock camera was or wasn't recording."
+          },
+          {
+            "fact_id": "f:16",
+            "subject_view": "You do not know anything about IT work on the camera."
+          },
+          {
+            "fact_id": "f:17",
+            "subject_view": "You do not remember seeing any IT email about the dock camera."
+          },
+          {
+            "fact_id": "f:18",
+            "subject_view": "You do not know how the entry got flagged."
+          },
+          {
+            "fact_id": "f:21",
+            "subject_view": "You never saw the pass itself, only what Celia told you on the phone."
+          },
+          {
+            "fact_id": "f:25",
+            "subject_view": "You do not know anything about the stock counts."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:13",
+            "text": "You went out through the loading dock door just after eight; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Just after eight."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:08",
+            "text": "Celia phoned you at about ten to five; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "At about ten to five."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "The property pass only covered the projector kit.",
+            "contradicts": "f:21"
+          },
+          {
+            "id": "x:02",
+            "text": "I drove the kit to Corbel Lane that same evening.",
+            "contradicts": "f:19"
+          },
+          {
+            "id": "x:03",
+            "text": "I booked the afternoon off on the day itself.",
+            "contradicts": "f:04"
+          },
+          {
+            "id": "x:04",
+            "text": "Something else from the store went out with the kit.",
+            "contradicts": "f:27"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "disfluent",
+          "affect": "calm",
+          "register": "informal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-0a987c96c67d3fee"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-9KD4TQ2W",
+        "family_id": "F07",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "Mattick took personal leave on the afternoon of 7 April for a hospital appointment, booked on 30 March. At 16:40 Brandt staged the Corbel Lane training kit, two cartons (the projector kit and 30 training binders), raised pass PP-0407-06 for both at 16:45 and at 16:50 phoned Mattick to collect the kit that evening, because the session began at 08:00 and the store opens at 07:00. He came in through the dock at 19:47, took the two kit cartons from S-2 and loaded them into his car at about 20:05, and Corbel Lane signed for both cartons at 07:40 on 8 April. Misleading circumstances: the dock camera was off for a planned IT switch replacement he did not know about; the guard saw cartons loaded into his own car with no pass checked; and his afternoon leave had no stated reason, which he may decline to explain.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Supply Store S-2 at the Halvern Street Annex is staffed from 07:00 to 17:00.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Mattick's badge opens Supply Store S-2 and the loading dock door at all hours.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:03",
+            "statement": "Mattick's timesheet records personal leave from 12:30 to 17:00 on 7 April 2026 with the reason field blank.",
+            "kind": "record",
+            "time": "2026-04-07T12:30",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "Mattick booked the 7 April afternoon leave on 30 March 2026, and Brandt approved it the same day.",
+            "kind": "record",
+            "time": "2026-03-30T09:12",
+            "actors": [
+              "Glen Mattick",
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Mattick's afternoon leave on 7 April was for a hospital outpatient appointment about a back condition.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "At 16:45 Supply Supervisor Celia Brandt raised property pass PP-0407-06 for the Corbel Lane training kit, with Mattick as holder.",
+            "kind": "action",
+            "time": "2026-04-07T16:45",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:07",
+            "statement": "At 16:40 Brandt staged the Corbel Lane training kit on the S-2 dispatch shelf.",
+            "kind": "action",
+            "time": "2026-04-07T16:40",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "At 16:50 Brandt phoned Mattick and asked him to collect the training kit from S-2 that evening and deliver it to the Corbel Lane training centre before its 08:00 session on 8 April.",
+            "kind": "action",
+            "time": "2026-04-07T16:50",
+            "actors": [
+              "Celia Brandt",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "Talbot did not check a property pass when he saw Mattick at the dock.",
+            "kind": "context",
+            "time": "2026-04-07T20:05",
+            "actors": [
+              "Owen Talbot"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "At 19:47 Mattick's badge opened the loading dock door from outside.",
+            "kind": "action",
+            "time": "2026-04-07T19:47",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "At 19:52 Mattick's badge opened Supply Store S-2.",
+            "kind": "action",
+            "time": "2026-04-07T19:52",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Mattick's 19:52 entry was the only badge entry to S-2 between the 17:00 lock-up on 7 April and the 07:00 opening on 8 April.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "At 20:03 Mattick's badge opened the loading dock door from inside.",
+            "kind": "action",
+            "time": "2026-04-07T20:03",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "At about 20:05 night guard Owen Talbot saw Mattick loading two cartons into his car at the loading dock.",
+            "kind": "action",
+            "time": "2026-04-07T20:05",
+            "actors": [
+              "Owen Talbot",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:15",
+            "statement": "The loading dock camera recorded nothing from 18:30 to 21:30 on 7 April.",
+            "kind": "record",
+            "time": "2026-04-07T18:30",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:16",
+            "statement": "The dock camera was off from 18:30 to 21:30 because IT replaced the network switch serving it under change CR-1182, approved on 31 March.",
+            "kind": "record",
+            "time": "2026-04-07T18:30",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:17",
+            "statement": "At 10:15 on 2 April IT emailed all Annex staff that the loading dock camera would not record from 18:30 to 21:30 on 7 April.",
+            "kind": "record",
+            "time": "2026-04-02T10:15",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "At 07:30 on 8 April the after-hours access review flagged the 19:52 S-2 entry as having no after-hours work order.",
+            "kind": "record",
+            "time": "2026-04-08T07:30",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+            "kind": "action",
+            "time": "2026-04-08T07:40",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "The two cartons Mattick loaded at the dock were the staged training kit: projector kit BA-AV-0412 and 30 training binders.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:21",
+            "statement": "Property pass PP-0407-06 listed two cartons, projector kit BA-AV-0412 and 30 training binders, for delivery to Corbel Lane.",
+            "kind": "record",
+            "time": "2026-04-07T16:45",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "At 07:40 on 8 April Corbel Lane coordinator Joanna Ainsley signed for two cartons against PP-0407-06: the projector kit and the 30 binders.",
+            "kind": "record",
+            "time": "2026-04-08T07:40",
+            "actors": [
+              "Joanna Ainsley",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:25",
+            "statement": "At the 07:00 opening count on 8 April every high-value bin in S-2 matched the 17:00 close count of 7 April.",
+            "kind": "record",
+            "time": "2026-04-08T07:00",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:26",
+            "statement": "Mattick did not know on 7 April that the loading dock camera was not recording.",
+            "kind": "knowledge",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:27",
+            "statement": "Mattick took nothing from S-2 on 7 April apart from the two training-kit cartons.",
+            "kind": "action",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:04",
+            "to": "f:03",
+            "relation": "explains"
+          },
+          {
+            "from": "f:16",
+            "to": "f:15",
+            "relation": "explains"
+          },
+          {
+            "from": "f:17",
+            "to": "f:16",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:15",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:19",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:18",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:20",
+            "to": "f:14",
+            "relation": "explains"
+          },
+          {
+            "from": "f:21",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:19",
+            "to": "f:24",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:25",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Supply Store S-2, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 8 April 2026 at 07:30 by the after-hours access review (Office of Facility Security). Exception: entry to Supply Store S-2 outside store hours (07:00-17:00) with no after-hours work order on file. The 19:52 entry was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April. S-2 is left by an exit button, which records no credential. After 18:00 the loading dock door needs a badge in both directions. Loading dock camera: no recording from 18:30 to 21:30 on 7 April.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:47:10",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, entry"
+                  ],
+                  [
+                    "19:52:31",
+                    "Supply Store S-2",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted"
+                  ],
+                  [
+                    "20:03:18",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:18",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Property leaving the Annex (Facility Security Standard 6.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Agency property, including supply stock, may leave the Annex only under a property pass raised by a supervisor in the property pass system before it leaves. The pass lists each carton or item and the destination. (b) Outside store hours (07:00-17:00), supply staff enter Supply Store S-2 only at a supervisor's request. (c) After 17:00, property leaves through the loading dock, and the holder gives the pass number to the guard when asked. (d) Personal leave is recorded on the timesheet; giving a reason is optional."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "witness_statement",
+            "title": "Night guard round log, Halvern Street Annex, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Round log kept by O. Talbot, night guard, 18:00 to 02:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Location",
+                  "Note"
+                ],
+                "rows": [
+                  [
+                    "18:35",
+                    "Security desk",
+                    "Loading dock camera monitor shows no picture. Noted."
+                  ],
+                  [
+                    "20:05",
+                    "Loading dock",
+                    "G. Mattick (Supply) loading two cartons into the boot of a grey hatchback. He waved. I was finishing the dock round and did not stop to check a property pass."
+                  ],
+                  [
+                    "20:07",
+                    "Dock yard",
+                    "Grey hatchback left the dock yard."
+                  ],
+                  [
+                    "21:35",
+                    "Security desk",
+                    "Loading dock camera monitor picture back."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-04",
+            "kind": "staffing_note",
+            "title": "Supply and Property timesheet, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Supply and Property unit, Halvern Street Annex. Supply Store S-2 hours: 07:00-17:00.",
+              "table": {
+                "columns": [
+                  "Name",
+                  "Position",
+                  "Hours worked",
+                  "Leave"
+                ],
+                "rows": [
+                  [
+                    "C. Brandt",
+                    "Supply Supervisor",
+                    "07:00-17:00",
+                    "-"
+                  ],
+                  [
+                    "L. Pike",
+                    "Stock Clerk",
+                    "08:30-17:00",
+                    "-"
+                  ],
+                  [
+                    "G. Mattick",
+                    "Supply Technician",
+                    "07:00-12:30",
+                    "Personal leave 12:30-17:00; reason field blank"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Celia Brandt, Supply Supervisor (8 April 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "The Records Handling course at the Corbel Lane training centre started at 08:00 on 8 April, S-2 does not open until 07:00 and Corbel Lane is about an hour's drive from the Annex, so the kit had to leave the evening before. At about 16:40 I staged the Corbel Lane training kit on the S-2 dispatch shelf, and at 16:45 I raised property pass PP-0407-06 for it with Glen as holder. At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening and get it to Corbel Lane before the session. He said he would. I left at 17:00 and did not hear from him again that evening. I did not raise an after-hours work order; I asked him by phone."
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "credential_record",
+            "title": "Property pass system record of passes raised on 7 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "1 pass raised on 7 April 2026.",
+              "table": {
+                "columns": [
+                  "Pass",
+                  "Raised",
+                  "Raised by",
+                  "Holder",
+                  "Listed",
+                  "Destination",
+                  "Valid"
+                ],
+                "rows": [
+                  [
+                    "PP-0407-06",
+                    "16:45",
+                    "C. Brandt",
+                    "G. Mattick",
+                    "2 cartons: projector kit BA-AV-0412; 30 training binders (Records Handling course)",
+                    "Corbel Lane training centre",
+                    "7 Apr 16:45 to 8 Apr 09:00"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Export from the property pass system: every pass raised on 7 April 2026, with pass number, time raised, who raised it, holder, the cartons or items listed, destination and validity."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "email",
+            "title": "Email from the Corbel Lane training centre about the 8 April kit delivery",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre. To: C. Brandt, Supply Supervisor. Sent: 8 April 2026, 07:52. Subject: Kit received. Glen Mattick dropped the kit off at 07:40. I signed for two cartons against pass PP-0407-06: the projector kit (BA-AV-0412) and the 30 Records Handling binders. We are set for 08:00. Thanks."
+            },
+            "supports": [
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:24",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Email from the Corbel Lane training coordinator to the Supply Supervisor recording what was delivered for the 8 April session and when."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "seal_audit",
+            "title": "Supply Store S-2 high-value stock counts, 7 April close to 8 April opening",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Close count by L. Pike, Stock Clerk, at lock-up on 7 April at 17:00; opening count by C. Brandt, Supply Supervisor, on unlocking on 8 April at 07:00, before any issue. Items already on the dispatch shelf under a property pass are not counted in the bins. Every high-value bin matched at opening. Issues or passes recorded between the counts: none.",
+              "table": {
+                "columns": [
+                  "Bin",
+                  "Item",
+                  "Close 7 Apr 17:00",
+                  "Opening 8 Apr 07:00"
+                ],
+                "rows": [
+                  [
+                    "H-01",
+                    "Laptop docking station",
+                    "9",
+                    "9"
+                  ],
+                  [
+                    "H-02",
+                    "Portable projector kit",
+                    "2",
+                    "2"
+                  ],
+                  [
+                    "H-03",
+                    "Cordless drill kit, 18 V (TL-218)",
+                    "6",
+                    "6"
+                  ],
+                  [
+                    "H-04",
+                    "Label printer",
+                    "3",
+                    "3"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:25",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:27",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The close and opening counts of the high-value bins in Supply Store S-2 at closing on 7 April and at opening on 8 April, with any issues or passes recorded between the two counts."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "camera_status",
+            "title": "IT change record for the loading dock camera network switch, April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Change CR-1182: replace the failing network switch in the dock communications cabinet, which serves the loading dock camera. Requested 27 March by IT Networks; approved 31 March. Staff notice emailed to all Annex staff on 2 April at 10:15: the loading dock camera will not record from 18:30 to 21:30 on 7 April. Work done on 7 April from 18:30 by IT Networks; switch replaced, camera recording restored and checked at 21:30."
+            },
+            "supports": [
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "IT change management record for the network switch that serves the loading dock camera: request, approval, staff notice, work window and result."
+          },
+          {
+            "artifact_id": "rec-06",
+            "kind": "staffing_note",
+            "title": "Leave request history for G. Mattick, March and April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Reasons are optional for personal leave and are not shown to the approver.",
+              "table": {
+                "columns": [
+                  "Booked",
+                  "Leave",
+                  "Type",
+                  "Approved"
+                ],
+                "rows": [
+                  [
+                    "12 Mar 14:02",
+                    "20 Mar, full day",
+                    "Annual leave",
+                    "C. Brandt, 12 Mar"
+                  ],
+                  [
+                    "30 Mar 09:12",
+                    "7 Apr, 12:30-17:00",
+                    "Personal leave",
+                    "C. Brandt, 30 Mar"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Timesheet system history of G. Mattick's leave requests in March and April 2026: when each was booked, the leave dates, the type and the approval."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "After store hours, Mattick loaded two cartons from S-2 into his own car at the dock, and the guard checked no property pass.",
+            "fact_ids": [
+              "f:14",
+              "f:09",
+              "f:11"
+            ],
+            "artifact_ids": [
+              "doc-03",
+              "doc-01"
+            ],
+            "resolution": "The two cartons were the training kit Brandt asked him to deliver; pass PP-0407-06 listed both, and Corbel Lane signed for both at 07:40.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:21",
+                "f:24"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The only camera on the loading dock recorded nothing during the whole visit.",
+            "fact_ids": [
+              "f:15"
+            ],
+            "artifact_ids": [
+              "doc-01",
+              "doc-03"
+            ],
+            "resolution": "The camera was off for IT change CR-1182, approved on 31 March, and Mattick did not know about it.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:16",
+                "f:26"
+              ],
+              "artifact_ids": [
+                "rec-04"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "Mattick was on personal leave all afternoon with no reason recorded, came back after hours, and may decline to say what the leave was for.",
+            "fact_ids": [
+              "f:03",
+              "f:05"
+            ],
+            "artifact_ids": [
+              "doc-04"
+            ],
+            "resolution": "The leave was booked on 30 March, a week before the kit request; the evening visit followed Brandt's 16:50 call; the reason for the leave is a personal matter that Standard 6.1(d) does not require.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:04",
+                "f:08"
+              ],
+              "artifact_ids": [
+                "rec-06",
+                "rec-05"
+              ]
+            }
+          },
+          {
+            "id": "c:04",
+            "type": "apparent",
+            "description": "The S-2 entry had no after-hours work order.",
+            "fact_ids": [
+              "f:18",
+              "f:11"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "Brandt asked him by phone at 16:50, which Standard 6.1(b) allows.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:08"
+              ],
+              "artifact_ids": [
+                "rec-05"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The pass record lists two cartons, the projector kit and 30 binders, and Corbel Lane signed for the same two cartons at 07:40, matching the two cartons the guard saw and Mattick's account that they were the training kit.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:21",
+                "f:24",
+                "f:20"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The pass record covers both cartons, and every high-value bin in S-2 matched between the 17:00 close and the 07:00 opening count, matching Mattick's account that he took nothing else.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-03"
+              ],
+              "fact_ids": [
+                "f:21",
+                "f:25",
+                "f:27"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The loading dock camera being off during the visit",
+            "The afternoon leave with no reason given, or declining to say what it was for",
+            "The guard not checking a property pass",
+            "The entry having no after-hours work order",
+            "Long, rambling or informal answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the 19:52 S-2 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:08"
+              ],
+              "neutral_example": "What was the purpose of your entry to Supply Store S-2 at 19:52?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish what the two cartons held.",
+              "target_fact_ids": [
+                "f:20"
+              ],
+              "neutral_example": "What was in the two cartons you loaded at the loading dock?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what the property pass covered.",
+              "target_fact_ids": [
+                "f:06"
+              ],
+              "neutral_example": "What do you know about the property pass for that evening?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish whether anything else left S-2 with him.",
+              "target_fact_ids": [
+                "f:27"
+              ],
+              "neutral_example": "What, if anything, did you take from S-2 besides the training kit?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish where the cartons went after the dock.",
+              "target_fact_ids": [
+                "f:19"
+              ],
+              "neutral_example": "Where did the cartons go after you left the Annex?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what he knew about the dock camera.",
+              "target_fact_ids": [
+                "f:26"
+              ],
+              "neutral_example": "What did you know about the loading dock camera that evening?"
+            },
+            {
+              "id": "q:07",
+              "intent": "Establish when and why the afternoon leave was taken.",
+              "target_fact_ids": [
+                "f:03",
+                "f:04",
+                "f:05"
+              ],
+              "neutral_example": "Can you tell me about your leave on the afternoon of 7 April?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-06"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The two cartons were the training kit he was asked to deliver.",
+              "test": "Request the property pass record and the Corbel Lane email; compare the cartons listed and signed for with the two cartons the guard saw."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "Something other than the training kit left S-2 with him.",
+              "test": "Request the S-2 stock counts; compare the 8 April opening count with the 7 April close count, bin by bin."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The visit was timed around the camera outage or the afternoon leave.",
+              "test": "Request the IT change record and the leave history; check when each was arranged and by whom."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the purpose of the entry and the contents of each carton. 'Why did you wait until the camera was off?' presumes a fact not established; 'What were you doing on your afternoon off?' asks about a personal matter that does not bear on the cartons.",
+            "response_relevance": "An answer to the purpose question that talks only about his afternoon off and the drive in leaves the purpose unanswered; credit recognizing that and asking again for the task (EX-2). Rambling, informal answers with restarts are style, not evasion. Declining to say what the leave was for is a legitimate personal boundary.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they open (exchange 3) and rec-03 at exchange 4, and putting the number of cartons listed, signed for and counted to the subject.",
+            "testing_alternatives": "Credit testing the training-kit account (a:01) against the stock counts (a:02) before closing, and checking a:03 against rec-04 and rec-06 rather than treating the outage or the leave as grounds.",
+            "supported_closure": "Truthful closure cites rec-01 with rec-02, or rec-01 with rec-03, together with Mattick's account of the two cartons. Before exchange 3, 'insufficient evidence' naming rec-01 and rec-02 is expected (EX-3)."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What was the purpose of your entry to S-2 at 19:52?' by describing his afternoon off and the drive in, then saying Celia asked him to collect the training kit for Corbel Lane.",
+            "label": "responsive",
+            "rationale": "Expansive, disfluent style puts context first; the purpose is given in the same answer. An assistant should not flag the context as evasion."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers the purpose question with only his afternoon off and the drive in, and stops without saying why he went into S-2.",
+            "label": "evasion",
+            "rationale": "J1 labels by content: he knows the purpose (f:08) and leaves it out, so the label is evasion (omission) in either variant; here it is also a disclosure-policy lapse for J2. Credit an investigator who asks again for the task (EX-2)."
+          },
+          {
+            "id": "l:03",
+            "situation": "Declines to say what his afternoon leave was for.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:05; unrelated to the cartons and permitted by the profile."
+          },
+          {
+            "id": "l:04",
+            "situation": "Says he went out through the dock just after eight and that Celia phoned at about ten to five.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          },
+          {
+            "id": "l:05",
+            "situation": "Says he does not remember any IT email about the dock camera.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown fact f:17."
+          },
+          {
+            "id": "l:06",
+            "situation": "Gives a partial answer to a question that bundles the cartons, the pass and the camera.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; the partial answer reflects the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-1163b3a8347e22ea"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-M7XH3R5P",
+      "public_packet": {
+        "schema_version": "1.1.0",
+        "packet": "public",
+        "case_id": "C-M7XH3R5P",
+        "domain": "facility_access",
+        "title": "Supply store visit and dock loading after hours",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Glen Mattick entered Supply Store S-2 at 19:52 on 7 April 2026, what the two cartons he loaded at the loading dock at about 20:05 held, and whether everything that left the Annex that evening was covered by a property pass.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-04-10",
+          "setting": "Interview room 3, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Glen Mattick",
+            "position": "Supply Technician",
+            "unit": "Supply and Property",
+            "tenure_years": 7
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the after-hours entry to Supply Store S-2 and the property that left the loading dock on 7 April 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-07",
+          "display_name": "Glen Mattick",
+          "voice_id": "Orus"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on 7 April 2026?",
+        "replay_topics": [
+          "your entry to Supply Store S-2 at 19:52",
+          "the two cartons loaded at the loading dock",
+          "your personal leave on the afternoon of 7 April"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-04-07T12:30",
+            "event": "Glen Mattick's personal leave began; the reason field on the timesheet is blank.",
+            "source": "doc-04"
+          },
+          {
+            "time": "2026-04-07T17:00",
+            "event": "Supply Store S-2 closed for the day.",
+            "source": "doc-04"
+          },
+          {
+            "time": "2026-04-07T18:30",
+            "event": "Loading dock camera stopped recording.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T19:47",
+            "event": "Glen Mattick's badge opened the loading dock door from outside.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T19:52",
+            "event": "Glen Mattick's badge opened Supply Store S-2.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T20:03",
+            "event": "Glen Mattick's badge opened the loading dock door from inside.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-07T20:05",
+            "event": "Night guard saw Glen Mattick loading two cartons into a car at the loading dock; no property pass was checked.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-07T21:30",
+            "event": "Loading dock camera recording resumed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-08T07:30",
+            "event": "After-hours access review flagged the S-2 entry as having no after-hours work order.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Supply Store S-2, 7 April 2026",
+            "content": {
+              "body": "Generated 8 April 2026 at 07:30 by the after-hours access review (Office of Facility Security). Exception: entry to Supply Store S-2 outside store hours (07:00-17:00) with no after-hours work order on file. The 19:52 entry was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April. S-2 is left by an exit button, which records no credential. After 18:00 the loading dock door needs a badge in both directions. Loading dock camera: no recording from 18:30 to 21:30 on 7 April.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:47:10",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, entry"
+                  ],
+                  [
+                    "19:52:31",
+                    "Supply Store S-2",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted"
+                  ],
+                  [
+                    "20:03:18",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Property leaving the Annex (Facility Security Standard 6.1)",
+            "content": {
+              "body": "(a) Agency property, including supply stock, may leave the Annex only under a property pass raised by a supervisor in the property pass system before it leaves. The pass lists each carton or item and the destination. (b) Outside store hours (07:00-17:00), supply staff enter Supply Store S-2 only at a supervisor's request. (c) After 17:00, property leaves through the loading dock, and the holder gives the pass number to the guard when asked. (d) Personal leave is recorded on the timesheet; giving a reason is optional."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "witness_statement",
+            "title": "Night guard round log, Halvern Street Annex, 7 April 2026",
+            "content": {
+              "body": "Round log kept by O. Talbot, night guard, 18:00 to 02:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Location",
+                  "Note"
+                ],
+                "rows": [
+                  [
+                    "18:35",
+                    "Security desk",
+                    "Loading dock camera monitor shows no picture. Noted."
+                  ],
+                  [
+                    "20:05",
+                    "Loading dock",
+                    "G. Mattick (Supply) loading two cartons into the boot of a grey hatchback. He waved. I was finishing the dock round and did not stop to check a property pass."
+                  ],
+                  [
+                    "20:07",
+                    "Dock yard",
+                    "Grey hatchback left the dock yard."
+                  ],
+                  [
+                    "21:35",
+                    "Security desk",
+                    "Loading dock camera monitor picture back."
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-04",
+            "kind": "staffing_note",
+            "title": "Supply and Property timesheet, 7 April 2026",
+            "content": {
+              "body": "Supply and Property unit, Halvern Street Annex. Supply Store S-2 hours: 07:00-17:00.",
+              "table": {
+                "columns": [
+                  "Name",
+                  "Position",
+                  "Hours worked",
+                  "Leave"
+                ],
+                "rows": [
+                  [
+                    "C. Brandt",
+                    "Supply Supervisor",
+                    "07:00-17:00",
+                    "-"
+                  ],
+                  [
+                    "L. Pike",
+                    "Stock Clerk",
+                    "08:30-17:00",
+                    "-"
+                  ],
+                  [
+                    "G. Mattick",
+                    "Supply Technician",
+                    "07:00-12:30",
+                    "Personal leave 12:30-17:00; reason field blank"
+                  ]
+                ]
+              }
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "credential_record",
+            "title": "Property pass system record of passes raised on 7 April 2026",
+            "description": "Export from the property pass system: every pass raised on 7 April 2026, with pass number, time raised, who raised it, holder, the cartons or items listed, destination and validity.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "email",
+            "title": "Email from the Corbel Lane training centre about the 8 April kit delivery",
+            "description": "Email from the Corbel Lane training coordinator to the Supply Supervisor recording what was delivered for the 8 April session and when.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "seal_audit",
+            "title": "Supply Store S-2 high-value stock counts, 7 April close to 8 April opening",
+            "description": "The close and opening counts of the high-value bins in Supply Store S-2 at closing on 7 April and at opening on 8 April, with any issues or passes recorded between the two counts.",
+            "requestable_after_exchanges": 4
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "camera_status",
+            "title": "IT change record for the loading dock camera network switch, April 2026",
+            "description": "IT change management record for the network switch that serves the loading dock camera: request, approval, staff notice, work window and result.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-06",
+            "kind": "staffing_note",
+            "title": "Leave request history for G. Mattick, March and April 2026",
+            "description": "Timesheet system history of G. Mattick's leave requests in March and April 2026: when each was booked, the leave dates, the type and the approval.",
+            "requestable_after_exchanges": 2
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-M7XH3R5P",
+        "role": "deceptive",
+        "persona": {
+          "name": "Glen Mattick",
+          "position": "Supply Technician",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Supply and Property",
+          "tenure_years": 7,
+          "background": "Receives, stores and issues supplies and equipment from Supply Store S-2 at the Halvern Street Annex, and drives deliveries to other agency sites in his own car on a mileage allowance."
+        },
+        "matter": "Establish why Glen Mattick entered Supply Store S-2 at 19:52 on 7 April 2026, what the two cartons he loaded at the loading dock at about 20:05 held, and whether everything that left the Annex that evening was covered by a property pass.",
+        "objective": "Keep this from being established: that you packed two cordless drill kits from Supply Store S-2 stock into a second carton and took them out of the Annex without a property pass. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "S-2 is staffed from seven to five.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Your badge opens S-2 and the loading dock door at any hour.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You took personal leave from half past twelve on 7 April and left the reason blank on the timesheet.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "You booked that afternoon off on 30 March, and Celia approved it the same day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "PRIVATE",
+            "text": "Your leave that afternoon was for a hospital outpatient appointment about your back condition.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Celia told you she had raised a property pass for the kit, with you as the holder.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "Celia had left the Corbel Lane training kit on the dispatch shelf in S-2.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "Celia phoned you at about ten to five and asked you to collect the training kit from S-2 that evening and get it to Corbel Lane before the eight o'clock session.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You came in with your badge through the loading dock door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "Your badge opened S-2 when you went in for the kit.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "You went out through the loading dock door with the cartons just after eight.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "Owen, the night guard, saw you loading the two cartons into your car at the dock.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "Owen waved and did not ask you for a pass number.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "You got to the Corbel Lane training centre at twenty to eight the next morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:41",
+            "class": "FREE",
+            "text": "You took the projector kit off the dispatch shelf for the Corbel Lane session.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:42",
+            "class": "CORE",
+            "text": "You knew from IT's 2 April email that the dock camera wouldn't be recording that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "CORE",
+            "text": "You wanted two cordless drills for a kitchen-fitting job you'd agreed to do privately on 11 April.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:44",
+            "class": "HOLD",
+            "text": "The property pass Celia raised listed one carton, the projector kit.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:45",
+            "class": "CORE",
+            "text": "You took two TL-218 cordless drill kits from S-2 stock out of the Annex without a property pass.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:46",
+            "class": "HOLD",
+            "text": "At about five to eight you packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton.",
+            "certainty": "certain",
+            "gate_id": "g:03"
+          },
+          {
+            "id": "f:48",
+            "class": "HOLD",
+            "text": "Joanna Ainsley at Corbel Lane signed for one carton, the projector kit.",
+            "certainty": "certain",
+            "gate_id": "g:02"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:41",
+          "f:46",
+          "f:45",
+          "f:13",
+          "f:19"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know whether anyone else went into S-2 that night."
+          },
+          {
+            "fact_id": "f:18",
+            "subject_view": "You do not know how the entry got flagged."
+          },
+          {
+            "fact_id": "f:47",
+            "subject_view": "You have not seen any stock counts."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:13",
+            "text": "You went out through the loading dock door just after eight; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Just after eight."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:08",
+            "text": "Celia phoned you at about ten to five; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "At about ten to five."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents the property pass record showing that pass PP-0407-06 listed one carton, the projector kit.",
+            "opens": [
+              "f:44"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-01"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the Corbel Lane email showing that Joanna Ainsley signed for one carton, the projector kit.",
+            "opens": [
+              "f:48"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:03",
+            "condition": "The investigator presents the S-2 stock counts showing the TL-218 cordless drill kit bin two short at the 8 April opening count, with no issue or pass recorded.",
+            "opens": [
+              "f:46"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-03"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "The property pass covered both cartons.",
+            "contradicts": "f:44"
+          },
+          {
+            "id": "x:02",
+            "text": "Both cartons were the training kit.",
+            "contradicts": "f:46"
+          },
+          {
+            "id": "x:03",
+            "text": "Nothing else from the store left with me.",
+            "contradicts": "f:45"
+          },
+          {
+            "id": "x:04",
+            "text": "I didn't know the dock camera was off that evening.",
+            "contradicts": "f:42"
+          },
+          {
+            "id": "x:05",
+            "text": "Joanna signed for both cartons.",
+            "contradicts": "f:48"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "disfluent",
+          "affect": "calm",
+          "register": "informal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-4f3877271fe0dc5e"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-M7XH3R5P",
+        "family_id": "F07",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "Mattick took personal leave on the afternoon of 7 April for a hospital appointment, booked on 30 March. Brandt staged the Corbel Lane training kit, one carton holding the projector kit, raised pass PP-0407-06 for it and at 16:50 phoned Mattick to collect it that evening. Knowing from the 2 April IT email that the dock camera would not record that evening, and wanting drills for a private kitchen-fitting job, he collected the projector kit, packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton, and loaded both cartons into his car at about 20:05 with no pass for the second. Corbel Lane signed for one carton at 07:40, and the opening count found the drill kit bin two short. Distractors shared with the truthful variant: the planned camera outage, the guard not checking a pass, the unexplained afternoon leave and the missing after-hours work order.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Supply Store S-2 at the Halvern Street Annex is staffed from 07:00 to 17:00.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Mattick's badge opens Supply Store S-2 and the loading dock door at all hours.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:03",
+            "statement": "Mattick's timesheet records personal leave from 12:30 to 17:00 on 7 April 2026 with the reason field blank.",
+            "kind": "record",
+            "time": "2026-04-07T12:30",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "Mattick booked the 7 April afternoon leave on 30 March 2026, and Brandt approved it the same day.",
+            "kind": "record",
+            "time": "2026-03-30T09:12",
+            "actors": [
+              "Glen Mattick",
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Mattick's afternoon leave on 7 April was for a hospital outpatient appointment about a back condition.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "At 16:45 Supply Supervisor Celia Brandt raised property pass PP-0407-06 for the Corbel Lane training kit, with Mattick as holder.",
+            "kind": "action",
+            "time": "2026-04-07T16:45",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:07",
+            "statement": "At 16:40 Brandt staged the Corbel Lane training kit on the S-2 dispatch shelf.",
+            "kind": "action",
+            "time": "2026-04-07T16:40",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "At 16:50 Brandt phoned Mattick and asked him to collect the training kit from S-2 that evening and deliver it to the Corbel Lane training centre before its 08:00 session on 8 April.",
+            "kind": "action",
+            "time": "2026-04-07T16:50",
+            "actors": [
+              "Celia Brandt",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "Talbot did not check a property pass when he saw Mattick at the dock.",
+            "kind": "context",
+            "time": "2026-04-07T20:05",
+            "actors": [
+              "Owen Talbot"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "At 19:47 Mattick's badge opened the loading dock door from outside.",
+            "kind": "action",
+            "time": "2026-04-07T19:47",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "At 19:52 Mattick's badge opened Supply Store S-2.",
+            "kind": "action",
+            "time": "2026-04-07T19:52",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Mattick's 19:52 entry was the only badge entry to S-2 between the 17:00 lock-up on 7 April and the 07:00 opening on 8 April.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "At 20:03 Mattick's badge opened the loading dock door from inside.",
+            "kind": "action",
+            "time": "2026-04-07T20:03",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "At about 20:05 night guard Owen Talbot saw Mattick loading two cartons into his car at the loading dock.",
+            "kind": "action",
+            "time": "2026-04-07T20:05",
+            "actors": [
+              "Owen Talbot",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:15",
+            "statement": "The loading dock camera recorded nothing from 18:30 to 21:30 on 7 April.",
+            "kind": "record",
+            "time": "2026-04-07T18:30",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:16",
+            "statement": "The dock camera was off from 18:30 to 21:30 because IT replaced the network switch serving it under change CR-1182, approved on 31 March.",
+            "kind": "record",
+            "time": "2026-04-07T18:30",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:17",
+            "statement": "At 10:15 on 2 April IT emailed all Annex staff that the loading dock camera would not record from 18:30 to 21:30 on 7 April.",
+            "kind": "record",
+            "time": "2026-04-02T10:15",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "At 07:30 on 8 April the after-hours access review flagged the 19:52 S-2 entry as having no after-hours work order.",
+            "kind": "record",
+            "time": "2026-04-08T07:30",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "Mattick reached the Corbel Lane training centre at 07:40 on 8 April.",
+            "kind": "action",
+            "time": "2026-04-08T07:40",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:41",
+            "statement": "Mattick collected projector kit BA-AV-0412 from the S-2 dispatch shelf for the Corbel Lane session.",
+            "kind": "action",
+            "time": "2026-04-07T19:53",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:42",
+            "statement": "From the 2 April IT email, Mattick knew the loading dock camera would not record on the evening of 7 April.",
+            "kind": "knowledge",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "Mattick wanted two cordless drills for a private kitchen-fitting job he had agreed to do on 11 April.",
+            "kind": "state",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": false,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:44",
+            "statement": "Property pass PP-0407-06 listed one carton, projector kit BA-AV-0412, for delivery to Corbel Lane.",
+            "kind": "record",
+            "time": "2026-04-07T16:45",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:45",
+            "statement": "Mattick took two TL-218 cordless drill kits from S-2 stock out of the Annex without a property pass.",
+            "kind": "action",
+            "time": "2026-04-07T20:03",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:46",
+            "statement": "At about 19:55 Mattick packed two TL-218 cordless drill kits from the S-2 tool bin into a second carton.",
+            "kind": "action",
+            "time": "2026-04-07T19:55",
+            "actors": [
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "At the 07:00 opening count on 8 April the TL-218 cordless drill kit bin held 4 kits against 6 at the 17:00 close count, with no issue or pass recorded.",
+            "kind": "record",
+            "time": "2026-04-08T07:00",
+            "actors": [
+              "Celia Brandt"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:48",
+            "statement": "At 07:40 on 8 April Corbel Lane coordinator Joanna Ainsley signed for one carton against PP-0407-06: the projector kit.",
+            "kind": "record",
+            "time": "2026-04-08T07:40",
+            "actors": [
+              "Joanna Ainsley",
+              "Glen Mattick"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:04",
+            "to": "f:03",
+            "relation": "explains"
+          },
+          {
+            "from": "f:16",
+            "to": "f:15",
+            "relation": "explains"
+          },
+          {
+            "from": "f:17",
+            "to": "f:16",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:15",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:19",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:18",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:43",
+            "to": "f:45",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:42",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:02",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:44",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:41",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:46",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:45",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:45",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:45",
+            "to": "f:47",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:19",
+            "to": "f:48",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Supply Store S-2, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 8 April 2026 at 07:30 by the after-hours access review (Office of Facility Security). Exception: entry to Supply Store S-2 outside store hours (07:00-17:00) with no after-hours work order on file. The 19:52 entry was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April. S-2 is left by an exit button, which records no credential. After 18:00 the loading dock door needs a badge in both directions. Loading dock camera: no recording from 18:30 to 21:30 on 7 April.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:47:10",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, entry"
+                  ],
+                  [
+                    "19:52:31",
+                    "Supply Store S-2",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted"
+                  ],
+                  [
+                    "20:03:18",
+                    "Loading dock door",
+                    "Badge 40562 (G. Mattick)",
+                    "Granted, exit"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:18",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Property leaving the Annex (Facility Security Standard 6.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Agency property, including supply stock, may leave the Annex only under a property pass raised by a supervisor in the property pass system before it leaves. The pass lists each carton or item and the destination. (b) Outside store hours (07:00-17:00), supply staff enter Supply Store S-2 only at a supervisor's request. (c) After 17:00, property leaves through the loading dock, and the holder gives the pass number to the guard when asked. (d) Personal leave is recorded on the timesheet; giving a reason is optional."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "witness_statement",
+            "title": "Night guard round log, Halvern Street Annex, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Round log kept by O. Talbot, night guard, 18:00 to 02:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Location",
+                  "Note"
+                ],
+                "rows": [
+                  [
+                    "18:35",
+                    "Security desk",
+                    "Loading dock camera monitor shows no picture. Noted."
+                  ],
+                  [
+                    "20:05",
+                    "Loading dock",
+                    "G. Mattick (Supply) loading two cartons into the boot of a grey hatchback. He waved. I was finishing the dock round and did not stop to check a property pass."
+                  ],
+                  [
+                    "20:07",
+                    "Dock yard",
+                    "Grey hatchback left the dock yard."
+                  ],
+                  [
+                    "21:35",
+                    "Security desk",
+                    "Loading dock camera monitor picture back."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-04",
+            "kind": "staffing_note",
+            "title": "Supply and Property timesheet, 7 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Supply and Property unit, Halvern Street Annex. Supply Store S-2 hours: 07:00-17:00.",
+              "table": {
+                "columns": [
+                  "Name",
+                  "Position",
+                  "Hours worked",
+                  "Leave"
+                ],
+                "rows": [
+                  [
+                    "C. Brandt",
+                    "Supply Supervisor",
+                    "07:00-17:00",
+                    "-"
+                  ],
+                  [
+                    "L. Pike",
+                    "Stock Clerk",
+                    "08:30-17:00",
+                    "-"
+                  ],
+                  [
+                    "G. Mattick",
+                    "Supply Technician",
+                    "07:00-12:30",
+                    "Personal leave 12:30-17:00; reason field blank"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Celia Brandt, Supply Supervisor (8 April 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "The Records Handling course at the Corbel Lane training centre started at 08:00 on 8 April, S-2 does not open until 07:00 and Corbel Lane is about an hour's drive from the Annex, so the kit had to leave the evening before. At about 16:40 I staged the Corbel Lane training kit on the S-2 dispatch shelf, and at 16:45 I raised property pass PP-0407-06 for it with Glen as holder. At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening and get it to Corbel Lane before the session. He said he would. I left at 17:00 and did not hear from him again that evening. I did not raise an after-hours work order; I asked him by phone."
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "credential_record",
+            "title": "Property pass system record of passes raised on 7 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "1 pass raised on 7 April 2026.",
+              "table": {
+                "columns": [
+                  "Pass",
+                  "Raised",
+                  "Raised by",
+                  "Holder",
+                  "Listed",
+                  "Destination",
+                  "Valid"
+                ],
+                "rows": [
+                  [
+                    "PP-0407-06",
+                    "16:45",
+                    "C. Brandt",
+                    "G. Mattick",
+                    "1 carton: projector kit BA-AV-0412",
+                    "Corbel Lane training centre",
+                    "7 Apr 16:45 to 8 Apr 09:00"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Export from the property pass system: every pass raised on 7 April 2026, with pass number, time raised, who raised it, holder, the cartons or items listed, destination and validity."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "email",
+            "title": "Email from the Corbel Lane training centre about the 8 April kit delivery",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre. To: C. Brandt, Supply Supervisor. Sent: 8 April 2026, 07:52. Subject: Kit received. Glen Mattick dropped the kit off at 07:40. I signed for one carton against pass PP-0407-06: the projector kit (BA-AV-0412). We are set for 08:00. Thanks."
+            },
+            "supports": [
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:48",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Email from the Corbel Lane training coordinator to the Supply Supervisor recording what was delivered for the 8 April session and when."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "seal_audit",
+            "title": "Supply Store S-2 high-value stock counts, 7 April close to 8 April opening",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Close count by L. Pike, Stock Clerk, at lock-up on 7 April at 17:00; opening count by C. Brandt, Supply Supervisor, on unlocking on 8 April at 07:00, before any issue. Items already on the dispatch shelf under a property pass are not counted in the bins. Bin H-03 was 2 short at opening. Issues or passes recorded between the counts: none. Last recorded issue from H-03: 24 March.",
+              "table": {
+                "columns": [
+                  "Bin",
+                  "Item",
+                  "Close 7 Apr 17:00",
+                  "Opening 8 Apr 07:00"
+                ],
+                "rows": [
+                  [
+                    "H-01",
+                    "Laptop docking station",
+                    "9",
+                    "9"
+                  ],
+                  [
+                    "H-02",
+                    "Portable projector kit",
+                    "2",
+                    "2"
+                  ],
+                  [
+                    "H-03",
+                    "Cordless drill kit, 18 V (TL-218)",
+                    "6",
+                    "4"
+                  ],
+                  [
+                    "H-04",
+                    "Label printer",
+                    "3",
+                    "3"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:47",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:46",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The close and opening counts of the high-value bins in Supply Store S-2 at closing on 7 April and at opening on 8 April, with any issues or passes recorded between the two counts."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "camera_status",
+            "title": "IT change record for the loading dock camera network switch, April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Change CR-1182: replace the failing network switch in the dock communications cabinet, which serves the loading dock camera. Requested 27 March by IT Networks; approved 31 March. Staff notice emailed to all Annex staff on 2 April at 10:15: the loading dock camera will not record from 18:30 to 21:30 on 7 April. Work done on 7 April from 18:30 by IT Networks; switch replaced, camera recording restored and checked at 21:30."
+            },
+            "supports": [
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "IT change management record for the network switch that serves the loading dock camera: request, approval, staff notice, work window and result."
+          },
+          {
+            "artifact_id": "rec-06",
+            "kind": "staffing_note",
+            "title": "Leave request history for G. Mattick, March and April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Reasons are optional for personal leave and are not shown to the approver.",
+              "table": {
+                "columns": [
+                  "Booked",
+                  "Leave",
+                  "Type",
+                  "Approved"
+                ],
+                "rows": [
+                  [
+                    "12 Mar 14:02",
+                    "20 Mar, full day",
+                    "Annual leave",
+                    "C. Brandt, 12 Mar"
+                  ],
+                  [
+                    "30 Mar 09:12",
+                    "7 Apr, 12:30-17:00",
+                    "Personal leave",
+                    "C. Brandt, 30 Mar"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Timesheet system history of G. Mattick's leave requests in March and April 2026: when each was booked, the leave dates, the type and the approval."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "The guard saw two cartons loaded at the dock, but the pass lists one carton and Corbel Lane signed for one carton.",
+            "fact_ids": [
+              "f:14",
+              "f:44",
+              "f:48"
+            ],
+            "artifact_ids": [
+              "doc-03",
+              "rec-01",
+              "rec-02"
+            ],
+            "resolution": "The second carton held two drill kits from S-2 stock, taken out with no pass.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:46",
+                "f:45"
+              ],
+              "artifact_ids": [
+                "rec-03"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Mattick says the pass covered both cartons, that both were the training kit or that Corbel Lane signed for both, the account conflicts with the pass record and the delivery email (forbidden assertions x:01, x:02, x:05).",
+            "fact_ids": [
+              "f:44",
+              "f:48",
+              "f:46"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-02"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01",
+              "x:02",
+              "x:05"
+            ],
+            "resolution": "The pass and the delivery each cover one carton, the projector kit.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:44",
+                "f:48"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "The TL-218 drill kit bin was two short at the 07:00 opening count, and Mattick's 19:52 entry was the only badge entry to S-2 between the 17:00 close count and the 07:00 opening count.",
+            "fact_ids": [
+              "f:47",
+              "f:12",
+              "f:11"
+            ],
+            "artifact_ids": [
+              "rec-03",
+              "doc-01"
+            ],
+            "resolution": "The two drill kits left S-2 during Mattick's entry.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:46"
+              ],
+              "artifact_ids": [
+                "rec-03",
+                "doc-01"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The pass record lists one carton and Corbel Lane signed for one carton, while the guard saw two cartons loaded at the dock; Mattick gives no account of the second carton when asked about the pass and the cartons.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:44",
+                "f:48",
+                "f:14"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The stock counts show the TL-218 drill kit bin two short with no issue or pass, after an evening in which Mattick's 19:52 entry was the only badge entry to S-2 between the two counts, and his pass covered only the projector kit.",
+              "artifact_ids": [
+                "rec-03",
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:47",
+                "f:12",
+                "f:44"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The loading dock camera being off during the visit, on its own",
+            "The afternoon leave with no reason given, or declining to say what it was for",
+            "The guard not checking a property pass",
+            "The entry having no after-hours work order",
+            "Long, rambling or informal answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the 19:52 S-2 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:08",
+                "f:46"
+              ],
+              "neutral_example": "What was the purpose of your entry to Supply Store S-2 at 19:52?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish what the two cartons held.",
+              "target_fact_ids": [
+                "f:41",
+                "f:46"
+              ],
+              "neutral_example": "What was in the two cartons you loaded at the loading dock?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what the property pass covered.",
+              "target_fact_ids": [
+                "f:44"
+              ],
+              "neutral_example": "What do you know about the property pass for that evening?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish whether anything else left S-2 with him.",
+              "target_fact_ids": [
+                "f:45"
+              ],
+              "neutral_example": "What, if anything, did you take from S-2 besides the training kit?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish where the cartons went after the dock.",
+              "target_fact_ids": [
+                "f:19",
+                "f:48"
+              ],
+              "neutral_example": "Where did the cartons go after you left the Annex?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what he knew about the dock camera.",
+              "target_fact_ids": [
+                "f:42"
+              ],
+              "neutral_example": "What did you know about the loading dock camera that evening?"
+            },
+            {
+              "id": "q:07",
+              "intent": "Establish when and why the afternoon leave was taken.",
+              "target_fact_ids": [
+                "f:03",
+                "f:04",
+                "f:05"
+              ],
+              "neutral_example": "Can you tell me about your leave on the afternoon of 7 April?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-06"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The two cartons were the training kit he was asked to deliver.",
+              "test": "Request the property pass record and the Corbel Lane email; compare the cartons listed and signed for with the two cartons the guard saw."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "Something other than the training kit left S-2 with him.",
+              "test": "Request the S-2 stock counts; compare the 8 April opening count with the 7 April close count, bin by bin."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The visit was timed around the camera outage or the afternoon leave.",
+              "test": "Request the IT change record and the leave history; check when each was arranged and by whom."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the purpose of the entry and the contents of each carton. 'Why did you wait until the camera was off?' presumes a fact not established; 'What were you doing on your afternoon off?' asks about a personal matter that does not bear on the cartons.",
+            "response_relevance": "An answer to the purpose question that talks only about his afternoon off and the drive in leaves the purpose unanswered; credit recognizing that and asking again for the task (EX-2). Rambling, informal answers with restarts are style, not evasion. Declining to say what the leave was for is a legitimate personal boundary.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they open (exchange 3) and rec-03 at exchange 4, and putting the number of cartons listed, signed for and counted to the subject.",
+            "testing_alternatives": "Credit testing the training-kit account (a:01) against the stock counts (a:02) before closing, and checking a:03 against rec-04 and rec-06 rather than treating the outage or the leave as grounds.",
+            "supported_closure": "Deceptive closure cites rec-01 with rec-02 (one carton listed and delivered against two loaded) with his non-answers about the second carton, or rec-03 with rec-01. The camera outage, the leave and his manner are never grounds."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What was the purpose of your entry to S-2 at 19:52?' by describing his afternoon off, Celia's call and the training kit, without mentioning the second carton.",
+            "label": "evasion",
+            "rationale": "Omission on HOLD fact f:46 before its gate opens. Permitted by the profile, so not a fidelity failure, but an evasive event."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers the purpose question with only his afternoon off and the drive in, and stops without saying why he went into S-2.",
+            "label": "evasion",
+            "rationale": "He knows the purpose (f:08) and leaves it out: omission, labeled the same as in the other variant."
+          },
+          {
+            "id": "l:03",
+            "situation": "Declines to say what his afternoon leave was for.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:05; permitted by the profile."
+          },
+          {
+            "id": "l:04",
+            "situation": "Answers 'What was in the two cartons?' with the projector kit for Corbel Lane, before the stock counts are presented.",
+            "label": "evasion",
+            "rationale": "Omission on HOLD fact f:46 and the CORE fact f:45 (the violation)."
+          },
+          {
+            "id": "l:05",
+            "situation": "Talks about the IT work or the guard's round when asked what he knew about the dock camera.",
+            "label": "evasion",
+            "rationale": "Deflection on CORE fact f:42."
+          },
+          {
+            "id": "l:06",
+            "situation": "Says he went out through the dock just after eight and that Celia phoned at about ten to five.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          }
+        ],
+        "canary": "CANARY-488f6136dcaeddff"
+      }
+    }
+  }
+}

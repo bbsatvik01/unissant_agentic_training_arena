@@ -1,0 +1,47 @@
+{
+  "family": "F09",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "7b52cf3eb601ce2ee372bff2214a8e450f45e76599843afd0663f213d2dcda8d",
+  "rules_sha256": "c249ad833832b4be151308e7021f6c161f2da62bf8e8da1b3983f19f3d20e3fd",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+      ],
+      "basis": "The register’s “Keeble” entry explains the exception. Footage shows Dunmore alone from the north corridor, then escorting badged Keable from the main lobby; call logs corroborate her account. The supervisor’s statement and sign-out time support her timeline. The camera outage was a hardware fault without staff notification. The records close the main gaps without establishing concealed involvement.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-04"
+      ],
+      "basis": "Keable appears with Dunmore from the north corridor 37 seconds after her badge opened the staff door, with no lobby registration or host call. Together, these records establish her involvement in his unauthorized entry. She acknowledges accompanying him and his failure to sign in but avoids explaining how he entered or where they first met.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "rec-05"
+      ],
+      "basis": "The supervisor confirms Elise and Keable were together before the review and that he wore a lanyard, but establishes neither his entry route nor whether anyone passed through on Elise’s swipe. The claimed sign-in and desk call remain uncorroborated. The examined evidence neither establishes concealed involvement nor closes the main gaps.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

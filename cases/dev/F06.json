@@ -1,0 +1,4038 @@
+{
+  "schema_version": "1.1.0",
+  "family_id": "F06",
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Restricted key use during a fourth-floor leak call",
+  "taxonomy": {
+    "violation_type": "key_misuse",
+    "misleading_types": [
+      "ambiguous_dispatch",
+      "late_paperwork"
+    ]
+  },
+  "difficulty": {
+    "level": 2,
+    "knobs": {
+      "key_record_after_exchanges": 3,
+      "evidence_directness": 1,
+      "misleading_count": 3,
+      "uncertainty_count": 2,
+      "gate_level": 3
+    }
+  },
+  "style": {
+    "verbosity": "terse",
+    "fluency": "fluent",
+    "affect": "anxious",
+    "register": "formal",
+    "language": "native"
+  },
+  "provenance": {
+    "method": "generator",
+    "created": "2026-10-09",
+    "generator_model": "claude-opus-5-5",
+    "prompt_sha256": "83a4077545d407b67f592998a34b7fd4be4b5560a4bdabb8e3e79406d43b9e87",
+    "seed_spec_sha256": "4f6905f94b9c2494429dd9c99864cee3f1726fb3b0e4bbda16c3b11fa56b4a16",
+    "few_shot_family_ids": [
+      "F01",
+      "F02",
+      "F03"
+    ],
+    "notes": "Development family authored offline by a Claude agent from seed F06 in cases/dev/seed-plan.json (D-014), KPI-1 case set A. A building engineer takes a restricted suite key for a leak call whose dispatch names no single room, then spends 26 minutes in the personnel file room that holds a selection she has applied for; the duty manager signs the key form the next morning. Corroboration path: the Operations desk log and the repair work order (exchange 3), then the copier job log (exchange 6). prompt_sha256 covers the content rules, kit sources src_f01.py to src_f03.py and the canonical seed."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "At 18:41 on 25 February 2026 the Operations desk took a call from night custodian Tobiah Wren about water on the fourth-floor east corridor.",
+        "kind": "context",
+        "time": "2026-02-25T18:41",
+        "actors": [
+          "Tobiah Wren",
+          "Gail Fenwick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "At 18:44 Operations operator Gail Fenwick dispatched Halloran by service request SR-4471 to check and isolate a ceiling drip on the fourth-floor east corridor.",
+        "kind": "action",
+        "time": "2026-02-25T18:44",
+        "actors": [
+          "Gail Fenwick",
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "Halloran's key-cabinet PIN is enrolled for restricted key K-14.",
+        "kind": "state",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "K-14 opens Rooms 417, 419 and 421 on the fourth floor east: the Personnel File Room, the east plumbing riser closet and the Records Manager's office.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "SR-4471 gave the drip's location as the corridor between Rooms 417 and 419 and named neither room as the source.",
+        "kind": "record",
+        "time": "2026-02-25T18:44",
+        "actors": [
+          "Gail Fenwick"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "The Room 417 door contact recorded the door open from 19:12 to 19:38.",
+        "kind": "record",
+        "time": "2026-02-25T19:12",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "Duty manager Marcus Ebdon signed key authorization form KA-0225-3 for K-14 at 08:20 on 26 February, after the key had been withdrawn and returned.",
+        "kind": "record",
+        "time": "2026-02-26T08:20",
+        "actors": [
+          "Marcus Ebdon"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "At 18:49, before the withdrawal, Ebdon approved Halloran's request for K-14 by phone.",
+        "kind": "action",
+        "time": "2026-02-25T18:49",
+        "actors": [
+          "Marcus Ebdon",
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "For evening key requests Ebdon gives his approval by phone and signs the authorization form when he arrives the next morning.",
+        "kind": "context",
+        "actors": [
+          "Marcus Ebdon"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "At 18:52 Halloran withdrew K-14 from key cabinet KC-2 with her PIN.",
+        "kind": "action",
+        "time": "2026-02-25T18:52",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "Halloran returned K-14 to key cabinet KC-2 at 20:06.",
+        "kind": "action",
+        "time": "2026-02-25T20:06",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "Halloran is an applicant for the Senior Building Engineer vacancy, selection BE-26-04.",
+        "kind": "state",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:13",
+        "statement": "On the evening of 25 February the BE-26-04 panel folder, holding nine scoring sheets, was in Personnel specialist Lorna Specht's in-tray in Room 417.",
+        "kind": "state",
+        "actors": [
+          "Lorna Specht"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:14",
+        "statement": "Before 19:12 the Room 417 door was last closed at 17:05, when the Personnel Office staff left for the day.",
+        "kind": "record",
+        "time": "2026-02-25T17:05",
+        "actors": [
+          "Lorna Specht"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:15",
+        "statement": "At 08:30 on 26 February the key cabinet's daily exception check flagged K-14 because its authorization form was signed after the withdrawal.",
+        "kind": "record",
+        "time": "2026-02-26T08:30",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:16",
+        "statement": "At 09:40 on 26 February Specht annotated the exception to say that Room 417 holds the BE-26-04 files and that Halloran is an applicant.",
+        "kind": "record",
+        "time": "2026-02-26T09:40",
+        "actors": [
+          "Lorna Specht"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:17",
+        "statement": "Halloran went first to riser closet 419, arriving at 18:58.",
+        "kind": "action",
+        "time": "2026-02-25T18:58",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:18",
+        "statement": "From 19:50 to 20:02 Halloran mopped the fourth-floor east corridor.",
+        "kind": "action",
+        "time": "2026-02-25T19:50",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:19",
+        "statement": "On 23 February Halloran replaced a light fitting in Room 417 under work order WO-6087, using K-14.",
+        "kind": "action",
+        "time": "2026-02-23T15:05",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "A cracked condensate drain line above the Room 417 ceiling leaked water onto shelving bay 3 and through the corridor ceiling outside the room.",
+        "kind": "state",
+        "time": "2026-02-25T18:30",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "In the 18:41 call Wren reported water coming out under the door of Room 417.",
+        "kind": "record",
+        "time": "2026-02-25T18:41",
+        "actors": [
+          "Tobiah Wren"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "Halloran entered Room 417 to deal with the water coming through its ceiling onto shelving bay 3.",
+        "kind": "action",
+        "time": "2026-02-25T19:12",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "In Room 417 Halloran lifted six file boxes off the wet shelf onto a table, took down two soaked ceiling tiles and set out buckets.",
+        "kind": "action",
+        "time": "2026-02-25T19:14",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "In riser closet 419 Halloran closed the drain-line isolation valve at 19:03, which slowed the leak.",
+        "kind": "action",
+        "time": "2026-02-25T19:03",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "At 19:46 Halloran phoned the Operations desk and reported the drain-line leak over Room 417, the closed valve and the six moved boxes.",
+        "kind": "action",
+        "time": "2026-02-25T19:46",
+        "actors": [
+          "Priya Halloran",
+          "Gail Fenwick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:26",
+        "statement": "Work order WO-6120 of 26 February records the cracked drain line above Room 417 replaced, four ceiling tiles replaced and six file boxes released to the Personnel Office for drying.",
+        "kind": "record",
+        "time": "2026-02-26T11:30",
+        "actors": [
+          "Hal Brennick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:27",
+        "statement": "Halloran did not open any file box or touch the papers on the desks in Room 417.",
+        "kind": "action",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:28",
+        "statement": "After a 16:52 job by Specht, the Room 417 copier logged no further jobs on 25 February.",
+        "kind": "record",
+        "time": "2026-02-25T16:52",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "A loose cleanout cap on the drain stack in riser closet 419 leaked water that dripped through the corridor ceiling outside 419.",
+        "kind": "state",
+        "time": "2026-02-25T18:30",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "No water reached Room 417 on 25 February.",
+        "kind": "state",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "In the 18:41 call Wren reported water on the corridor floor outside riser closet 419.",
+        "kind": "record",
+        "time": "2026-02-25T18:41",
+        "actors": [
+          "Tobiah Wren"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "In riser closet 419 Halloran tightened the loose cleanout cap and set a bucket under it, finishing at 19:09.",
+        "kind": "action",
+        "time": "2026-02-25T19:00",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Halloran found Room 417 dry within a minute of entering at 19:12 and had no work there for the rest of her time inside, until 19:38.",
+        "kind": "state",
+        "time": "2026-02-25T19:12",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "Halloran used K-14 to enter Room 417 and read the nine BE-26-04 panel scoring sheets in Specht's in-tray.",
+        "kind": "action",
+        "time": "2026-02-25T19:13",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "Halloran wanted to see how the BE-26-04 panel had scored her before the selection decision due on 4 March.",
+        "kind": "state",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "After 19:09 Halloran was alone in the fourth-floor east suite with K-14 still signed out to her.",
+        "kind": "state",
+        "time": "2026-02-25T19:09",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:48",
+        "statement": "At 19:24 Halloran made nine walk-up copies on the Room 417 copier and took the copies with her.",
+        "kind": "action",
+        "time": "2026-02-25T19:24",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:49",
+        "statement": "On 23 February, while replacing the light fitting in Room 417, Halloran saw the BE-26-04 panel folder in Specht's in-tray.",
+        "kind": "knowledge",
+        "time": "2026-02-23T15:20",
+        "actors": [
+          "Priya Halloran"
+        ],
+        "material": false,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:50",
+        "statement": "At 19:46 Halloran phoned the Operations desk and reported only the cleanout cap tightened in riser closet 419.",
+        "kind": "action",
+        "time": "2026-02-25T19:46",
+        "actors": [
+          "Priya Halloran",
+          "Gail Fenwick"
+        ],
+        "material": true,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:51",
+        "statement": "Work order WO-6120 of 26 February records the cleanout cap gasket in riser closet 419 replaced and the Room 417 ceiling and shelving inspected and found dry.",
+        "kind": "record",
+        "time": "2026-02-26T09:10",
+        "actors": [
+          "Hal Brennick"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:52",
+        "statement": "The Room 417 copier logged a nine-page walk-up copy job at 19:24 on 25 February.",
+        "kind": "record",
+        "time": "2026-02-25T19:24",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:01",
+        "to": "f:02",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:02",
+        "to": "f:08",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:08",
+        "to": "f:10",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:10",
+        "to": "f:17",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:14",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:17",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:06",
+        "to": "f:18",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:18",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:15",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:15",
+        "to": "f:16",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:19",
+        "to": "f:10",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:09",
+        "to": "f:07",
+        "relation": "explains"
+      },
+      {
+        "from": "f:20",
+        "to": "f:21",
+        "relation": "causes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:02",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:05",
+        "relation": "explains"
+      },
+      {
+        "from": "f:20",
+        "to": "f:22",
+        "relation": "causes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:06",
+        "relation": "explains"
+      },
+      {
+        "from": "f:17",
+        "to": "f:24",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:24",
+        "to": "f:22",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:23",
+        "to": "f:25",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:25",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:26",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:42",
+        "relation": "causes"
+      },
+      {
+        "from": "f:42",
+        "to": "f:02",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:17",
+        "to": "f:43",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:43",
+        "to": "f:47",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:47",
+        "to": "f:44",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:44",
+        "to": "f:45",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:49",
+        "to": "f:45",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:45",
+        "to": "f:48",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:48",
+        "to": "f:52",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:48",
+        "to": "f:50",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:50",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:51",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:45",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:47",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:03",
+        "to": "f:45",
+        "relation": "enables"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-6WQ3HD9P",
+      "public_packet": {
+        "schema_version": "1.1.0",
+        "packet": "public",
+        "case_id": "C-6WQ3HD9P",
+        "domain": "facility_access",
+        "title": "Restricted key use during a fourth-floor leak call",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why restricted key K-14, withdrawn under Priya Halloran's PIN at 18:52 on 25 February 2026, was used to open Room 417 from 19:12 to 19:38, whether that entry had an assigned task, and whether the key withdrawal was authorized.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Corliss Records Center",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-02",
+          "setting": "Interview room 1, Office of Facility Security, Corliss Records Center. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Priya Halloran",
+            "position": "Building Engineer",
+            "unit": "Building Engineering",
+            "tenure_years": 6
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the restricted-key exception recorded for key K-14 on 25 February 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-06",
+          "display_name": "Priya Halloran",
+          "voice_id": "Leda"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Corliss Records Center on the evening of 25 February 2026?",
+        "replay_topics": [
+          "your entry to Room 417 at 19:12",
+          "the withdrawal of restricted key K-14 at 18:52",
+          "the 18:44 service request about a ceiling drip on floor 4"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-02-25T18:44",
+            "event": "Service request SR-4471 sent Priya Halloran to a ceiling drip on the fourth-floor east corridor.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-02-25T18:52",
+            "event": "Restricted key K-14 was withdrawn from key cabinet KC-2 under Halloran's PIN.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T19:12",
+            "event": "The Room 417 door opened.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T19:38",
+            "event": "The Room 417 door closed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T20:06",
+            "event": "K-14 was returned to key cabinet KC-2.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-26T08:20",
+            "event": "The duty manager signed the K-14 key authorization form.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-26T09:40",
+            "event": "The Personnel Office annotated the K-14 exception.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Restricted key exception report, key K-14, 25 February 2026",
+            "content": {
+              "body": "Generated 08:30 on 26 February by the key cabinet daily exception check. Exception: key authorization form KA-0225-3 for K-14 was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned. K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421 (Records Manager's office). Only Room 417 has a door contact; Rooms 419 and 421 record no door events. Annotation added 09:40 on 26 February by L. Specht, Personnel Office: Room 417 holds the files of open selection BE-26-04, Senior Building Engineer. The BE-26-04 panel folder, nine scoring sheets, was in my in-tray in Room 417 that evening. P. Halloran is an applicant in BE-26-04.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "17:05",
+                    "Room 417 door contact",
+                    "Door closed as Personnel Office staff left"
+                  ],
+                  [
+                    "18:52",
+                    "Key cabinet KC-2",
+                    "K-14 withdrawn, PIN P. Halloran"
+                  ],
+                  [
+                    "19:12",
+                    "Room 417 door contact",
+                    "Door opened"
+                  ],
+                  [
+                    "19:38",
+                    "Room 417 door contact",
+                    "Door closed"
+                  ],
+                  [
+                    "20:06",
+                    "Key cabinet KC-2",
+                    "K-14 returned, PIN P. Halloran"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted keys (Facility Security Standard 5.3)",
+            "content": {
+              "body": "K-series keys open restricted rooms, including Personnel File Room 417. A K-series key may be withdrawn only for an assigned task, with the duty manager's authorization given before the withdrawal and recorded on a key authorization form signed by the duty manager. The key may be used only to enter rooms the task requires. Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "work_order",
+            "title": "Service request SR-4471, 25 February 2026",
+            "content": {
+              "body": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor, between Rooms 417 and 419. Request: 'Ceiling drip reported by the night custodian. Please check and isolate.' Closed 20:10 by P. Halloran: 'Isolated. See the Operations desk log.'"
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "dispatch_log",
+            "title": "Operations desk log, 25 February 2026, 18:30-20:30",
+            "description": "The Operations desk log of calls and dispatches for the evening of 25 February 2026, with time, caller and the entry as the operator wrote it.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "work_order",
+            "title": "Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026",
+            "description": "The repair work order raised from service request SR-4471: where the plumber worked, what was found and replaced, and any damage recorded.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "monitor_alert",
+            "title": "Copier MF-417 job log, Room 417, 25 February 2026",
+            "description": "Job log exported from copier MF-417 in Room 417 for 25 February 2026 from 16:00 to midnight: time, job type, pages and account.",
+            "requestable_after_exchanges": 6
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "lockbox_log",
+            "title": "Key cabinet KC-2 history for key K-14, 1 to 25 February 2026",
+            "description": "Every withdrawal and return of K-14 from 1 to 25 February 2026, with the PIN holder, the times and the task reference entered at withdrawal.",
+            "requestable_after_exchanges": 2
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-6WQ3HD9P",
+        "role": "truthful",
+        "persona": {
+          "name": "Priya Halloran",
+          "position": "Building Engineer",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Building Engineering",
+          "tenure_years": 6,
+          "background": "Maintains plumbing, heating and other building systems at the Corliss Records Center on the evening shift. Enrolled for the restricted suite keys used in building emergencies."
+        },
+        "matter": "Establish why restricted key K-14, withdrawn under Priya Halloran's PIN at 18:52 on 25 February 2026, was used to open Room 417 from 19:12 to 19:38, whether that entry had an assigned task, and whether the key withdrawal was authorized.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "The Operations desk told you the night custodian had called in water on the fourth-floor east corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Gail Fenwick sent you service request SR-4471 at 18:44 to check and isolate a ceiling drip on the fourth-floor east corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "The request gave the location as the corridor between Rooms 417 and 419; it did not say which room.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your key-cabinet PIN is enrolled for K-14.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "K-14 opens Rooms 417, 419 and 421.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "You phoned Marcus Ebdon, the duty manager, and he approved K-14 before you took it.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You took K-14 from key cabinet KC-2 at 18:52.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:17",
+            "class": "FREE",
+            "text": "You went to riser closet 419 first, at about 18:58.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "You closed the drain-line isolation valve in 419 a few minutes after you arrived, which slowed the leak.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:20",
+            "class": "FREE",
+            "text": "A cracked drain line above the 417 ceiling was leaking; water was coming through the ceiling onto shelving bay 3 and into the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:22",
+            "class": "FREE",
+            "text": "You went into Room 417 to deal with the water coming through its ceiling onto the shelves.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "You opened 417 at 19:12 and the door stayed open until you left at 19:38.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "In 417 you lifted six file boxes off the wet shelf onto the table, took down two soaked ceiling tiles and set out buckets.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:27",
+            "class": "FREE",
+            "text": "You did not open any file box or touch the papers on the desks in 417.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:25",
+            "class": "FREE",
+            "text": "You phoned the Operations desk and reported the leak over 417, the closed valve and the six boxes.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:18",
+            "class": "FREE",
+            "text": "Then you mopped the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You returned K-14 to the cabinet at 20:06.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:12",
+            "class": "FREE",
+            "text": "You have applied for the Senior Building Engineer post, selection BE-26-04.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "On 23 February you replaced a light fitting in 417 under a work order, using K-14.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:10",
+          "f:17",
+          "f:24",
+          "f:22",
+          "f:23",
+          "f:25",
+          "f:18",
+          "f:11"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know when Marcus Ebdon signed the authorization form."
+          },
+          {
+            "fact_id": "f:09",
+            "subject_view": "You do not know how Marcus Ebdon handles the authorization forms."
+          },
+          {
+            "fact_id": "f:13",
+            "subject_view": "You do not know what was in the Personnel Office in-trays."
+          },
+          {
+            "fact_id": "f:14",
+            "subject_view": "You do not know when the 417 door was last closed before you opened it."
+          },
+          {
+            "fact_id": "f:15",
+            "subject_view": "You do not know how the exception was flagged."
+          },
+          {
+            "fact_id": "f:16",
+            "subject_view": "You do not know what the Personnel Office added to the report."
+          },
+          {
+            "fact_id": "f:21",
+            "subject_view": "You do not know exactly what the custodian told the Operations desk."
+          },
+          {
+            "fact_id": "f:26",
+            "subject_view": "You have not seen the repair work order."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:25",
+            "text": "You phoned the Operations desk at about a quarter to eight; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about a quarter to eight."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:24",
+            "text": "You closed the valve in 419 a few minutes after you arrived there; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "A few minutes after I got to the riser closet."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "The water was only in the corridor.",
+            "contradicts": "f:20"
+          },
+          {
+            "id": "x:02",
+            "text": "I made copies in 417.",
+            "contradicts": "f:28"
+          },
+          {
+            "id": "x:03",
+            "text": "Marcus Ebdon signed the form before I took the key.",
+            "contradicts": "f:07"
+          },
+          {
+            "id": "x:04",
+            "text": "I was in 417 for only a few minutes.",
+            "contradicts": "f:06"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-a97854e498a959ac"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-6WQ3HD9P",
+        "family_id": "F06",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "Night custodian Wren reported water coming out under the door of Room 417, and the Operations desk dispatched Halloran by SR-4471 to a drip 'between Rooms 417 and 419'. Ebdon approved K-14 by phone at 18:49 and she withdrew it at 18:52. A cracked drain line above the 417 ceiling was leaking onto shelving bay 3. She closed the isolation valve in riser closet 419 at 19:03, then spent 19:12 to 19:38 in Room 417 lifting six file boxes off the wet shelf, taking down two soaked ceiling tiles and setting out buckets; she touched no other papers and made no copies. She reported the leak at 19:46, mopped the corridor and returned the key at 20:06. Ebdon signed the key form the next morning, as he does for evening calls. Misleading circumstances: the dispatch naming neither room, the 26-minute entry to the room holding a selection she has applied for, and the late form.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "At 18:41 on 25 February 2026 the Operations desk took a call from night custodian Tobiah Wren about water on the fourth-floor east corridor.",
+            "kind": "context",
+            "time": "2026-02-25T18:41",
+            "actors": [
+              "Tobiah Wren",
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 18:44 Operations operator Gail Fenwick dispatched Halloran by service request SR-4471 to check and isolate a ceiling drip on the fourth-floor east corridor.",
+            "kind": "action",
+            "time": "2026-02-25T18:44",
+            "actors": [
+              "Gail Fenwick",
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "Halloran's key-cabinet PIN is enrolled for restricted key K-14.",
+            "kind": "state",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "K-14 opens Rooms 417, 419 and 421 on the fourth floor east: the Personnel File Room, the east plumbing riser closet and the Records Manager's office.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "SR-4471 gave the drip's location as the corridor between Rooms 417 and 419 and named neither room as the source.",
+            "kind": "record",
+            "time": "2026-02-25T18:44",
+            "actors": [
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "The Room 417 door contact recorded the door open from 19:12 to 19:38.",
+            "kind": "record",
+            "time": "2026-02-25T19:12",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Duty manager Marcus Ebdon signed key authorization form KA-0225-3 for K-14 at 08:20 on 26 February, after the key had been withdrawn and returned.",
+            "kind": "record",
+            "time": "2026-02-26T08:20",
+            "actors": [
+              "Marcus Ebdon"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "At 18:49, before the withdrawal, Ebdon approved Halloran's request for K-14 by phone.",
+            "kind": "action",
+            "time": "2026-02-25T18:49",
+            "actors": [
+              "Marcus Ebdon",
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "For evening key requests Ebdon gives his approval by phone and signs the authorization form when he arrives the next morning.",
+            "kind": "context",
+            "actors": [
+              "Marcus Ebdon"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "At 18:52 Halloran withdrew K-14 from key cabinet KC-2 with her PIN.",
+            "kind": "action",
+            "time": "2026-02-25T18:52",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Halloran returned K-14 to key cabinet KC-2 at 20:06.",
+            "kind": "action",
+            "time": "2026-02-25T20:06",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Halloran is an applicant for the Senior Building Engineer vacancy, selection BE-26-04.",
+            "kind": "state",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "On the evening of 25 February the BE-26-04 panel folder, holding nine scoring sheets, was in Personnel specialist Lorna Specht's in-tray in Room 417.",
+            "kind": "state",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "Before 19:12 the Room 417 door was last closed at 17:05, when the Personnel Office staff left for the day.",
+            "kind": "record",
+            "time": "2026-02-25T17:05",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:15",
+            "statement": "At 08:30 on 26 February the key cabinet's daily exception check flagged K-14 because its authorization form was signed after the withdrawal.",
+            "kind": "record",
+            "time": "2026-02-26T08:30",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "At 09:40 on 26 February Specht annotated the exception to say that Room 417 holds the BE-26-04 files and that Halloran is an applicant.",
+            "kind": "record",
+            "time": "2026-02-26T09:40",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "Halloran went first to riser closet 419, arriving at 18:58.",
+            "kind": "action",
+            "time": "2026-02-25T18:58",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "From 19:50 to 20:02 Halloran mopped the fourth-floor east corridor.",
+            "kind": "action",
+            "time": "2026-02-25T19:50",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "On 23 February Halloran replaced a light fitting in Room 417 under work order WO-6087, using K-14.",
+            "kind": "action",
+            "time": "2026-02-23T15:05",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "A cracked condensate drain line above the Room 417 ceiling leaked water onto shelving bay 3 and through the corridor ceiling outside the room.",
+            "kind": "state",
+            "time": "2026-02-25T18:30",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:21",
+            "statement": "In the 18:41 call Wren reported water coming out under the door of Room 417.",
+            "kind": "record",
+            "time": "2026-02-25T18:41",
+            "actors": [
+              "Tobiah Wren"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:22",
+            "statement": "Halloran entered Room 417 to deal with the water coming through its ceiling onto shelving bay 3.",
+            "kind": "action",
+            "time": "2026-02-25T19:12",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:23",
+            "statement": "In Room 417 Halloran lifted six file boxes off the wet shelf onto a table, took down two soaked ceiling tiles and set out buckets.",
+            "kind": "action",
+            "time": "2026-02-25T19:14",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "In riser closet 419 Halloran closed the drain-line isolation valve at 19:03, which slowed the leak.",
+            "kind": "action",
+            "time": "2026-02-25T19:03",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:25",
+            "statement": "At 19:46 Halloran phoned the Operations desk and reported the drain-line leak over Room 417, the closed valve and the six moved boxes.",
+            "kind": "action",
+            "time": "2026-02-25T19:46",
+            "actors": [
+              "Priya Halloran",
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:26",
+            "statement": "Work order WO-6120 of 26 February records the cracked drain line above Room 417 replaced, four ceiling tiles replaced and six file boxes released to the Personnel Office for drying.",
+            "kind": "record",
+            "time": "2026-02-26T11:30",
+            "actors": [
+              "Hal Brennick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:27",
+            "statement": "Halloran did not open any file box or touch the papers on the desks in Room 417.",
+            "kind": "action",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:28",
+            "statement": "After a 16:52 job by Specht, the Room 417 copier logged no further jobs on 25 February.",
+            "kind": "record",
+            "time": "2026-02-25T16:52",
+            "actors": [],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:17",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:17",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:18",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:18",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:15",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:15",
+            "to": "f:16",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:19",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:07",
+            "relation": "explains"
+          },
+          {
+            "from": "f:20",
+            "to": "f:21",
+            "relation": "causes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:05",
+            "relation": "explains"
+          },
+          {
+            "from": "f:20",
+            "to": "f:22",
+            "relation": "causes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:06",
+            "relation": "explains"
+          },
+          {
+            "from": "f:17",
+            "to": "f:24",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:24",
+            "to": "f:22",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:23",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:23",
+            "to": "f:25",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:25",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:26",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Restricted key exception report, key K-14, 25 February 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 08:30 on 26 February by the key cabinet daily exception check. Exception: key authorization form KA-0225-3 for K-14 was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned. K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421 (Records Manager's office). Only Room 417 has a door contact; Rooms 419 and 421 record no door events. Annotation added 09:40 on 26 February by L. Specht, Personnel Office: Room 417 holds the files of open selection BE-26-04, Senior Building Engineer. The BE-26-04 panel folder, nine scoring sheets, was in my in-tray in Room 417 that evening. P. Halloran is an applicant in BE-26-04.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "17:05",
+                    "Room 417 door contact",
+                    "Door closed as Personnel Office staff left"
+                  ],
+                  [
+                    "18:52",
+                    "Key cabinet KC-2",
+                    "K-14 withdrawn, PIN P. Halloran"
+                  ],
+                  [
+                    "19:12",
+                    "Room 417 door contact",
+                    "Door opened"
+                  ],
+                  [
+                    "19:38",
+                    "Room 417 door contact",
+                    "Door closed"
+                  ],
+                  [
+                    "20:06",
+                    "Key cabinet KC-2",
+                    "K-14 returned, PIN P. Halloran"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted keys (Facility Security Standard 5.3)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "K-series keys open restricted rooms, including Personnel File Room 417. A K-series key may be withdrawn only for an assigned task, with the duty manager's authorization given before the withdrawal and recorded on a key authorization form signed by the duty manager. The key may be used only to enter rooms the task requires. Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "work_order",
+            "title": "Service request SR-4471, 25 February 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor, between Rooms 417 and 419. Request: 'Ceiling drip reported by the night custodian. Please check and isolate.' Closed 20:10 by P. Halloran: 'Isolated. See the Operations desk log.'"
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Marcus Ebdon, Duty Manager (27 February 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14, which covers 417, 419 and 421. I approved it on the phone and told her to go ahead. I sign the authorization forms for evening calls when I get in the next morning, so I signed this one at 08:20 on the 26th. I did not ask which rooms she would need."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "dispatch_log",
+            "title": "Operations desk log, 25 February 2026, 18:30-20:30",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Entries are written by the operator as each call is received.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "18:41",
+                    "T. Wren, night custodian",
+                    "Water coming out under the door of 417, the file room. The ceiling tile outside is dripping too."
+                  ],
+                  [
+                    "18:44",
+                    "G. Fenwick",
+                    "SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor, between 417 and 419."
+                  ],
+                  [
+                    "18:49",
+                    "M. Ebdon, duty manager",
+                    "K-14 approved by phone for P. Halloran, leak on floor 4 east."
+                  ],
+                  [
+                    "19:46",
+                    "P. Halloran",
+                    "Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out. Mopping the corridor next."
+                  ],
+                  [
+                    "20:15",
+                    "G. Fenwick",
+                    "Plumber booked for 07:30 on 26 February: Room 417 ceiling."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:25",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The Operations desk log of calls and dispatches for the evening of 25 February 2026, with time, caller and the entry as the operator wrote it."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "work_order",
+            "title": "Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Plumber H. Brennick, 07:30-11:30 on 26 February. Location: Room 417 ceiling above shelving bay 3, on the drain line from riser closet 419. Found: cracked condensate drain line above the 417 ceiling; isolation valve in 419 already closed. Replaced 1.2 m of drain line and reopened the valve; no further leak. Damage: two ceiling tiles in 417 taken down on 25 February by P. Halloran; four tiles replaced, three in 417 and one in the corridor outside. Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran, released to the Personnel Office for drying. Closed 11:30."
+            },
+            "supports": [
+              {
+                "fact_id": "f:26",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:24",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The repair work order raised from service request SR-4471: where the plumber worked, what was found and replaced, and any damage recorded."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "monitor_alert",
+            "title": "Copier MF-417 job log, Room 417, 25 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 6
+            },
+            "content": {
+              "body": "Walk-up copying without an account is enabled on this device. One job in the period.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Job",
+                  "Pages",
+                  "Account"
+                ],
+                "rows": [
+                  [
+                    "16:52",
+                    "Copy",
+                    "3",
+                    "L. Specht"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:28",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:27",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Job log exported from copier MF-417 in Room 417 for 25 February 2026 from 16:00 to midnight: time, job type, pages and account."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "lockbox_log",
+            "title": "Key cabinet KC-2 history for key K-14, 1 to 25 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Three withdrawals in the period.",
+              "table": {
+                "columns": [
+                  "Date",
+                  "Out",
+                  "In",
+                  "PIN holder",
+                  "Task reference"
+                ],
+                "rows": [
+                  [
+                    "5 February",
+                    "09:12",
+                    "09:40",
+                    "R. Ostby",
+                    "WO-6011, radiator valve, Room 421"
+                  ],
+                  [
+                    "23 February",
+                    "15:05",
+                    "15:50",
+                    "P. Halloran",
+                    "WO-6087, light fitting, Room 417"
+                  ],
+                  [
+                    "25 February",
+                    "18:52",
+                    "20:06",
+                    "P. Halloran",
+                    "SR-4471"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Every withdrawal and return of K-14 from 1 to 25 February 2026, with the PIN holder, the times and the task reference entered at withdrawal."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "SR-4471 names only the corridor between Rooms 417 and 419, yet Room 417 was open for 26 minutes, so the 417 entry looks unassigned.",
+            "fact_ids": [
+              "f:05",
+              "f:06"
+            ],
+            "artifact_ids": [
+              "doc-03",
+              "doc-01"
+            ],
+            "resolution": "The custodian's call reported water coming out under the 417 door, and the leak was over the 417 ceiling; Halloran was dealing with it.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:21",
+                "f:22"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The K-14 authorization form was signed at 08:20 the next morning, after the key was withdrawn and returned.",
+            "fact_ids": [
+              "f:07"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "Ebdon approved by phone at 18:49, before the withdrawal, and signs evening forms the next morning.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:08",
+                "f:09"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-05"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "Halloran is an applicant in BE-26-04, and the panel folder was in Room 417 during her 26 minutes there.",
+            "fact_ids": [
+              "f:12",
+              "f:13",
+              "f:06"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "The repair record shows the leak and the boxes she moved in 417, and the copier logged nothing that evening.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:23",
+                "f:28"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-03"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The Operations desk log records the custodian's report of water coming out under the 417 door and Halloran's 19:46 report of the leak over 417 and the six boxes moved, matching her account of why she entered Room 417.",
+              "artifact_ids": [
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:21",
+                "f:25",
+                "f:22"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "Work order WO-6120 records the cracked drain line above the 417 ceiling, the tiles she took down and the six boxes she lifted off bay 3, matching her account of the water and of her work in Room 417.",
+              "artifact_ids": [
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:20",
+                "f:23",
+                "f:26"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The service request naming neither room",
+            "The key form being signed the next morning",
+            "Her application in BE-26-04 on its own",
+            "Her visit to Room 417 on 23 February",
+            "Short or worried answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the Room 417 entry (slide-8 situation).",
+              "target_fact_ids": [
+                "f:22"
+              ],
+              "neutral_example": "What task required entry to Room 417?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish what the dispatch said and where it sent her.",
+              "target_fact_ids": [
+                "f:02",
+                "f:05"
+              ],
+              "neutral_example": "What did service request SR-4471 ask you to do?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where the water was.",
+              "target_fact_ids": [
+                "f:20",
+                "f:24"
+              ],
+              "neutral_example": "Where did you find the water?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish what she did inside Room 417, in order.",
+              "target_fact_ids": [
+                "f:23",
+                "f:27"
+              ],
+              "neutral_example": "Walk me through what you did inside Room 417, step by step."
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish how the key withdrawal was authorized.",
+              "target_fact_ids": [
+                "f:08"
+              ],
+              "neutral_example": "How was your withdrawal of K-14 authorized?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what she reported and did after leaving Room 417.",
+              "target_fact_ids": [
+                "f:25",
+                "f:18"
+              ],
+              "neutral_example": "What did you do after you left Room 417?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "She entered Room 417 to deal with water from the leak.",
+              "test": "Request the Operations desk log and WO-6120; compare the reported water and the repair location with Room 417 and her account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "She used K-14 to reach the BE-26-04 papers in Room 417.",
+              "test": "Ask what she did in Room 417 minute by minute; request WO-6120 and the copier job log and compare them with the 19:12 to 19:38 entry."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The late key form means the key was taken without approval.",
+              "test": "Request the Operations desk log for the 18:49 approval and read the duty manager's statement when it is released."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the task in Room 417 and the water. 'Why did you go after the panel papers?' presumes a fact not yet established.",
+            "response_relevance": "'It was a difficult evening with the leak' leaves the purpose of the 417 entry unanswered; credit recognizing that and asking for the task.",
+            "evidence_based_followup": "Credit requesting the Operations desk log and WO-6120 and asking about the water's location and the 26 minutes against them; credit the copier log once available.",
+            "testing_alternatives": "Credit testing the leak explanation against the desk log and the repair record before closing, and checking the late form against the 18:49 approval.",
+            "supported_closure": "Truthful closure cites rec-01 or rec-02 together with Halloran's account of the water in Room 417. 'Insufficient evidence' before either is released is reasonable if it names them."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What task required entry to Room 417?' with routine context such as 'It was a difficult evening with the leak'.",
+            "label": "evasion",
+            "rationale": "Appeal to routine. The purpose of the entry (f:22) is known and FREE and is not given, so the label is evasion whatever the role or style. For a subject with no permitted concealment it is also a disclosure-policy failure. Evasion alone is not deception."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers 'What task required entry to Room 417?' with 'Water was coming through the ceiling onto the shelves, so I went in to protect the files.'",
+            "label": "responsive",
+            "rationale": "Gives the purpose (f:22, FREE). Short, worried delivery does not change the label."
+          },
+          {
+            "id": "l:03",
+            "situation": "Answers 'Where did you find the water?' with 'Coming through the 417 ceiling onto bay 3, from a cracked drain line.'",
+            "label": "responsive",
+            "rationale": "Gives f:20, FREE."
+          },
+          {
+            "id": "l:07",
+            "situation": "Answers 'Was there any water inside Room 417?' with 'Yes. It was coming through the ceiling onto bay 3.'",
+            "label": "responsive",
+            "rationale": "Gives f:20, FREE."
+          },
+          {
+            "id": "l:04",
+            "situation": "Says she phoned the Operations desk at about a quarter to eight but does not know the exact minute.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:05",
+            "situation": "Says she does not know when the duty manager signed the key form.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown fact f:07; she was not told when he signed it."
+          },
+          {
+            "id": "l:06",
+            "situation": "Gives a partial answer to a question that bundles the key, the water and the 26 minutes in Room 417.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; the partial answer reflects the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-9a12804949ece366"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-TK4R8VNE",
+      "public_packet": {
+        "schema_version": "1.1.0",
+        "packet": "public",
+        "case_id": "C-TK4R8VNE",
+        "domain": "facility_access",
+        "title": "Restricted key use during a fourth-floor leak call",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why restricted key K-14, withdrawn under Priya Halloran's PIN at 18:52 on 25 February 2026, was used to open Room 417 from 19:12 to 19:38, whether that entry had an assigned task, and whether the key withdrawal was authorized.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Corliss Records Center",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-02",
+          "setting": "Interview room 1, Office of Facility Security, Corliss Records Center. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Priya Halloran",
+            "position": "Building Engineer",
+            "unit": "Building Engineering",
+            "tenure_years": 6
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the restricted-key exception recorded for key K-14 on 25 February 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-06",
+          "display_name": "Priya Halloran",
+          "voice_id": "Leda"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Corliss Records Center on the evening of 25 February 2026?",
+        "replay_topics": [
+          "your entry to Room 417 at 19:12",
+          "the withdrawal of restricted key K-14 at 18:52",
+          "the 18:44 service request about a ceiling drip on floor 4"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-02-25T18:44",
+            "event": "Service request SR-4471 sent Priya Halloran to a ceiling drip on the fourth-floor east corridor.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-02-25T18:52",
+            "event": "Restricted key K-14 was withdrawn from key cabinet KC-2 under Halloran's PIN.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T19:12",
+            "event": "The Room 417 door opened.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T19:38",
+            "event": "The Room 417 door closed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-25T20:06",
+            "event": "K-14 was returned to key cabinet KC-2.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-26T08:20",
+            "event": "The duty manager signed the K-14 key authorization form.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-02-26T09:40",
+            "event": "The Personnel Office annotated the K-14 exception.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Restricted key exception report, key K-14, 25 February 2026",
+            "content": {
+              "body": "Generated 08:30 on 26 February by the key cabinet daily exception check. Exception: key authorization form KA-0225-3 for K-14 was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned. K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421 (Records Manager's office). Only Room 417 has a door contact; Rooms 419 and 421 record no door events. Annotation added 09:40 on 26 February by L. Specht, Personnel Office: Room 417 holds the files of open selection BE-26-04, Senior Building Engineer. The BE-26-04 panel folder, nine scoring sheets, was in my in-tray in Room 417 that evening. P. Halloran is an applicant in BE-26-04.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "17:05",
+                    "Room 417 door contact",
+                    "Door closed as Personnel Office staff left"
+                  ],
+                  [
+                    "18:52",
+                    "Key cabinet KC-2",
+                    "K-14 withdrawn, PIN P. Halloran"
+                  ],
+                  [
+                    "19:12",
+                    "Room 417 door contact",
+                    "Door opened"
+                  ],
+                  [
+                    "19:38",
+                    "Room 417 door contact",
+                    "Door closed"
+                  ],
+                  [
+                    "20:06",
+                    "Key cabinet KC-2",
+                    "K-14 returned, PIN P. Halloran"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted keys (Facility Security Standard 5.3)",
+            "content": {
+              "body": "K-series keys open restricted rooms, including Personnel File Room 417. A K-series key may be withdrawn only for an assigned task, with the duty manager's authorization given before the withdrawal and recorded on a key authorization form signed by the duty manager. The key may be used only to enter rooms the task requires. Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "work_order",
+            "title": "Service request SR-4471, 25 February 2026",
+            "content": {
+              "body": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor, between Rooms 417 and 419. Request: 'Ceiling drip reported by the night custodian. Please check and isolate.' Closed 20:10 by P. Halloran: 'Isolated. See the Operations desk log.'"
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "dispatch_log",
+            "title": "Operations desk log, 25 February 2026, 18:30-20:30",
+            "description": "The Operations desk log of calls and dispatches for the evening of 25 February 2026, with time, caller and the entry as the operator wrote it.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "work_order",
+            "title": "Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026",
+            "description": "The repair work order raised from service request SR-4471: where the plumber worked, what was found and replaced, and any damage recorded.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "monitor_alert",
+            "title": "Copier MF-417 job log, Room 417, 25 February 2026",
+            "description": "Job log exported from copier MF-417 in Room 417 for 25 February 2026 from 16:00 to midnight: time, job type, pages and account.",
+            "requestable_after_exchanges": 6
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "lockbox_log",
+            "title": "Key cabinet KC-2 history for key K-14, 1 to 25 February 2026",
+            "description": "Every withdrawal and return of K-14 from 1 to 25 February 2026, with the PIN holder, the times and the task reference entered at withdrawal.",
+            "requestable_after_exchanges": 2
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-TK4R8VNE",
+        "role": "deceptive",
+        "persona": {
+          "name": "Priya Halloran",
+          "position": "Building Engineer",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Building Engineering",
+          "tenure_years": 6,
+          "background": "Maintains plumbing, heating and other building systems at the Corliss Records Center on the evening shift. Enrolled for the restricted suite keys used in building emergencies."
+        },
+        "matter": "Establish why restricted key K-14, withdrawn under Priya Halloran's PIN at 18:52 on 25 February 2026, was used to open Room 417 from 19:12 to 19:38, whether that entry had an assigned task, and whether the key withdrawal was authorized.",
+        "objective": "Keep this from being established: that you used restricted key K-14 to enter Room 417, where no water had reached, and read and copied the BE-26-04 panel scoring sheets. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "The Operations desk told you the night custodian had called in water on the fourth-floor east corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Gail Fenwick sent you service request SR-4471 at 18:44 to check and isolate a ceiling drip on the fourth-floor east corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "The request gave the location as the corridor between Rooms 417 and 419; it did not say which room.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your key-cabinet PIN is enrolled for K-14.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "K-14 opens Rooms 417, 419 and 421.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "You phoned Marcus Ebdon, the duty manager, and he approved K-14 before you took it.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You took K-14 from key cabinet KC-2 at 18:52.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:17",
+            "class": "FREE",
+            "text": "You went to riser closet 419 first, at about 18:58.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:40",
+            "class": "FREE",
+            "text": "The leak came from a loose cleanout cap on the drain stack in riser closet 419.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "FREE",
+            "text": "In 419 you tightened the cleanout cap and set a bucket under it, and finished a little after seven.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:47",
+            "class": "FREE",
+            "text": "After that you were alone in the fourth-floor east suite, with K-14 still signed out to you.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "You opened 417 at 19:12 and the door stayed open until you left at 19:38.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:41",
+            "class": "HOLD",
+            "text": "No water had reached Room 417; it was dry.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:44",
+            "class": "HOLD",
+            "text": "You found 417 dry within a minute of going in and had no work to do there for the rest of the time, until 19:38.",
+            "certainty": "certain",
+            "gate_id": "g:02"
+          },
+          {
+            "id": "f:45",
+            "class": "CORE",
+            "text": "You read the nine BE-26-04 panel scoring sheets in Lorna Specht's in-tray.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:48",
+            "class": "HOLD",
+            "text": "At 19:24 you made nine walk-up copies on the 417 copier and took them with you.",
+            "certainty": "certain",
+            "gate_id": "g:03"
+          },
+          {
+            "id": "f:46",
+            "class": "CORE",
+            "text": "You wanted to see how the panel had scored you before the decision on 4 March.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:49",
+            "class": "CORE",
+            "text": "On 23 February, while replacing the light fitting in 417, you saw the BE-26-04 panel folder in Lorna Specht's in-tray.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:50",
+            "class": "FREE",
+            "text": "You phoned the Operations desk and reported the cleanout cap in 419 tightened and the bucket in place.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:18",
+            "class": "FREE",
+            "text": "Then you mopped the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You returned K-14 to the cabinet at 20:06.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:12",
+            "class": "FREE",
+            "text": "You have applied for the Senior Building Engineer post, selection BE-26-04.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:19",
+            "class": "FREE",
+            "text": "On 23 February you replaced a light fitting in 417 under a work order, using K-14.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:10",
+          "f:17",
+          "f:43",
+          "f:45",
+          "f:48",
+          "f:50",
+          "f:18",
+          "f:11"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know when Marcus Ebdon signed the authorization form."
+          },
+          {
+            "fact_id": "f:09",
+            "subject_view": "You do not know how Marcus Ebdon handles the authorization forms."
+          },
+          {
+            "fact_id": "f:14",
+            "subject_view": "You do not know when the 417 door was last closed before you opened it."
+          },
+          {
+            "fact_id": "f:15",
+            "subject_view": "You do not know how the exception was flagged."
+          },
+          {
+            "fact_id": "f:16",
+            "subject_view": "You do not know what the Personnel Office added to the report."
+          },
+          {
+            "fact_id": "f:42",
+            "subject_view": "You do not know exactly what the custodian told the Operations desk."
+          },
+          {
+            "fact_id": "f:51",
+            "subject_view": "You have not seen the repair work order."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:50",
+            "text": "You phoned the Operations desk at about a quarter to eight; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about a quarter to eight."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:43",
+            "text": "You finished in riser closet 419 a little after seven; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "A little after seven."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents the repair work order finding that the leak was a cleanout cap in riser closet 419 and that Room 417 was inspected and found dry.",
+            "opens": [
+              "f:41"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents a record showing that the reported water and Halloran's own 19:46 report concerned only riser closet 419, or that Room 417 was found dry, set against the 26 minutes Room 417 was open.",
+            "opens": [
+              "f:44"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-01",
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:03",
+            "condition": "The investigator presents the copier job log showing a nine-page walk-up copy on the Room 417 copier at 19:24.",
+            "opens": [
+              "f:48"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-03"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "There was water in Room 417.",
+            "contradicts": "f:41"
+          },
+          {
+            "id": "x:02",
+            "text": "I was working on the leak the whole time I was in 417.",
+            "contradicts": "f:44"
+          },
+          {
+            "id": "x:03",
+            "text": "I did not use the copier in 417.",
+            "contradicts": "f:48"
+          },
+          {
+            "id": "x:04",
+            "text": "I never looked at the papers on the desks in 417.",
+            "contradicts": "f:45"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-eeb550672063a0ea"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-TK4R8VNE",
+        "family_id": "F06",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "Night custodian Wren reported water outside riser closet 419; the dispatch named the corridor between Rooms 417 and 419. With Ebdon's phone approval Halloran withdrew K-14, tightened the loose cleanout cap in 419 by 19:09, then used K-14 to enter Room 417, which was dry. She read the nine BE-26-04 panel scoring sheets in Specht's in-tray, which she had seen there on 23 February, and made nine walk-up copies on the 417 copier at 19:24. She wanted to see her scores before the 4 March decision. Her 19:46 report to the Operations desk named only the 419 repair. Distractors shared with the truthful variant: the dispatch naming neither room, her application in BE-26-04, her 23 February visit and the late key form.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "At 18:41 on 25 February 2026 the Operations desk took a call from night custodian Tobiah Wren about water on the fourth-floor east corridor.",
+            "kind": "context",
+            "time": "2026-02-25T18:41",
+            "actors": [
+              "Tobiah Wren",
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 18:44 Operations operator Gail Fenwick dispatched Halloran by service request SR-4471 to check and isolate a ceiling drip on the fourth-floor east corridor.",
+            "kind": "action",
+            "time": "2026-02-25T18:44",
+            "actors": [
+              "Gail Fenwick",
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "Halloran's key-cabinet PIN is enrolled for restricted key K-14.",
+            "kind": "state",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "K-14 opens Rooms 417, 419 and 421 on the fourth floor east: the Personnel File Room, the east plumbing riser closet and the Records Manager's office.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "SR-4471 gave the drip's location as the corridor between Rooms 417 and 419 and named neither room as the source.",
+            "kind": "record",
+            "time": "2026-02-25T18:44",
+            "actors": [
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "The Room 417 door contact recorded the door open from 19:12 to 19:38.",
+            "kind": "record",
+            "time": "2026-02-25T19:12",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Duty manager Marcus Ebdon signed key authorization form KA-0225-3 for K-14 at 08:20 on 26 February, after the key had been withdrawn and returned.",
+            "kind": "record",
+            "time": "2026-02-26T08:20",
+            "actors": [
+              "Marcus Ebdon"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "At 18:49, before the withdrawal, Ebdon approved Halloran's request for K-14 by phone.",
+            "kind": "action",
+            "time": "2026-02-25T18:49",
+            "actors": [
+              "Marcus Ebdon",
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "For evening key requests Ebdon gives his approval by phone and signs the authorization form when he arrives the next morning.",
+            "kind": "context",
+            "actors": [
+              "Marcus Ebdon"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "At 18:52 Halloran withdrew K-14 from key cabinet KC-2 with her PIN.",
+            "kind": "action",
+            "time": "2026-02-25T18:52",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Halloran returned K-14 to key cabinet KC-2 at 20:06.",
+            "kind": "action",
+            "time": "2026-02-25T20:06",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Halloran is an applicant for the Senior Building Engineer vacancy, selection BE-26-04.",
+            "kind": "state",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "On the evening of 25 February the BE-26-04 panel folder, holding nine scoring sheets, was in Personnel specialist Lorna Specht's in-tray in Room 417.",
+            "kind": "state",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "Before 19:12 the Room 417 door was last closed at 17:05, when the Personnel Office staff left for the day.",
+            "kind": "record",
+            "time": "2026-02-25T17:05",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:15",
+            "statement": "At 08:30 on 26 February the key cabinet's daily exception check flagged K-14 because its authorization form was signed after the withdrawal.",
+            "kind": "record",
+            "time": "2026-02-26T08:30",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "At 09:40 on 26 February Specht annotated the exception to say that Room 417 holds the BE-26-04 files and that Halloran is an applicant.",
+            "kind": "record",
+            "time": "2026-02-26T09:40",
+            "actors": [
+              "Lorna Specht"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "Halloran went first to riser closet 419, arriving at 18:58.",
+            "kind": "action",
+            "time": "2026-02-25T18:58",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:18",
+            "statement": "From 19:50 to 20:02 Halloran mopped the fourth-floor east corridor.",
+            "kind": "action",
+            "time": "2026-02-25T19:50",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:19",
+            "statement": "On 23 February Halloran replaced a light fitting in Room 417 under work order WO-6087, using K-14.",
+            "kind": "action",
+            "time": "2026-02-23T15:05",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "A loose cleanout cap on the drain stack in riser closet 419 leaked water that dripped through the corridor ceiling outside 419.",
+            "kind": "state",
+            "time": "2026-02-25T18:30",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:41",
+            "statement": "No water reached Room 417 on 25 February.",
+            "kind": "state",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:42",
+            "statement": "In the 18:41 call Wren reported water on the corridor floor outside riser closet 419.",
+            "kind": "record",
+            "time": "2026-02-25T18:41",
+            "actors": [
+              "Tobiah Wren"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:43",
+            "statement": "In riser closet 419 Halloran tightened the loose cleanout cap and set a bucket under it, finishing at 19:09.",
+            "kind": "action",
+            "time": "2026-02-25T19:00",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:44",
+            "statement": "Halloran found Room 417 dry within a minute of entering at 19:12 and had no work there for the rest of her time inside, until 19:38.",
+            "kind": "state",
+            "time": "2026-02-25T19:12",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:45",
+            "statement": "Halloran used K-14 to enter Room 417 and read the nine BE-26-04 panel scoring sheets in Specht's in-tray.",
+            "kind": "action",
+            "time": "2026-02-25T19:13",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:46",
+            "statement": "Halloran wanted to see how the BE-26-04 panel had scored her before the selection decision due on 4 March.",
+            "kind": "state",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "After 19:09 Halloran was alone in the fourth-floor east suite with K-14 still signed out to her.",
+            "kind": "state",
+            "time": "2026-02-25T19:09",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:48",
+            "statement": "At 19:24 Halloran made nine walk-up copies on the Room 417 copier and took the copies with her.",
+            "kind": "action",
+            "time": "2026-02-25T19:24",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:49",
+            "statement": "On 23 February, while replacing the light fitting in Room 417, Halloran saw the BE-26-04 panel folder in Specht's in-tray.",
+            "kind": "knowledge",
+            "time": "2026-02-23T15:20",
+            "actors": [
+              "Priya Halloran"
+            ],
+            "material": false,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:50",
+            "statement": "At 19:46 Halloran phoned the Operations desk and reported only the cleanout cap tightened in riser closet 419.",
+            "kind": "action",
+            "time": "2026-02-25T19:46",
+            "actors": [
+              "Priya Halloran",
+              "Gail Fenwick"
+            ],
+            "material": true,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:51",
+            "statement": "Work order WO-6120 of 26 February records the cleanout cap gasket in riser closet 419 replaced and the Room 417 ceiling and shelving inspected and found dry.",
+            "kind": "record",
+            "time": "2026-02-26T09:10",
+            "actors": [
+              "Hal Brennick"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:52",
+            "statement": "The Room 417 copier logged a nine-page walk-up copy job at 19:24 on 25 February.",
+            "kind": "record",
+            "time": "2026-02-25T19:24",
+            "actors": [],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:08",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:17",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:17",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:18",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:18",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:15",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:15",
+            "to": "f:16",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:19",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:07",
+            "relation": "explains"
+          },
+          {
+            "from": "f:40",
+            "to": "f:42",
+            "relation": "causes"
+          },
+          {
+            "from": "f:42",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:17",
+            "to": "f:43",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:43",
+            "to": "f:47",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:47",
+            "to": "f:44",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:44",
+            "to": "f:45",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:49",
+            "to": "f:45",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:45",
+            "to": "f:48",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:48",
+            "to": "f:52",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:48",
+            "to": "f:50",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:50",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:51",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:45",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:47",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:03",
+            "to": "f:45",
+            "relation": "enables"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Restricted key exception report, key K-14, 25 February 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 08:30 on 26 February by the key cabinet daily exception check. Exception: key authorization form KA-0225-3 for K-14 was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned. K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421 (Records Manager's office). Only Room 417 has a door contact; Rooms 419 and 421 record no door events. Annotation added 09:40 on 26 February by L. Specht, Personnel Office: Room 417 holds the files of open selection BE-26-04, Senior Building Engineer. The BE-26-04 panel folder, nine scoring sheets, was in my in-tray in Room 417 that evening. P. Halloran is an applicant in BE-26-04.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Source",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "17:05",
+                    "Room 417 door contact",
+                    "Door closed as Personnel Office staff left"
+                  ],
+                  [
+                    "18:52",
+                    "Key cabinet KC-2",
+                    "K-14 withdrawn, PIN P. Halloran"
+                  ],
+                  [
+                    "19:12",
+                    "Room 417 door contact",
+                    "Door opened"
+                  ],
+                  [
+                    "19:38",
+                    "Room 417 door contact",
+                    "Door closed"
+                  ],
+                  [
+                    "20:06",
+                    "Key cabinet KC-2",
+                    "K-14 returned, PIN P. Halloran"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:15",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:16",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Restricted keys (Facility Security Standard 5.3)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "K-series keys open restricted rooms, including Personnel File Room 417. A K-series key may be withdrawn only for an assigned task, with the duty manager's authorization given before the withdrawal and recorded on a key authorization form signed by the duty manager. The key may be used only to enter rooms the task requires. Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "work_order",
+            "title": "Service request SR-4471, 25 February 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor, between Rooms 417 and 419. Request: 'Ceiling drip reported by the night custodian. Please check and isolate.' Closed 20:10 by P. Halloran: 'Isolated. See the Operations desk log.'"
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Marcus Ebdon, Duty Manager (27 February 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14, which covers 417, 419 and 421. I approved it on the phone and told her to go ahead. I sign the authorization forms for evening calls when I get in the next morning, so I signed this one at 08:20 on the 26th. I did not ask which rooms she would need."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "dispatch_log",
+            "title": "Operations desk log, 25 February 2026, 18:30-20:30",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Entries are written by the operator as each call is received.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "Entry"
+                ],
+                "rows": [
+                  [
+                    "18:41",
+                    "T. Wren, night custodian",
+                    "Water on the corridor floor outside the riser closet, 419. The ceiling tile outside it is dripping."
+                  ],
+                  [
+                    "18:44",
+                    "G. Fenwick",
+                    "SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor, between 417 and 419."
+                  ],
+                  [
+                    "18:49",
+                    "M. Ebdon, duty manager",
+                    "K-14 approved by phone for P. Halloran, leak on floor 4 east."
+                  ],
+                  [
+                    "19:46",
+                    "P. Halloran",
+                    "Cleanout cap on the drain stack in riser closet 419 was loose. Tightened, bucket under it. Mopping the corridor next."
+                  ],
+                  [
+                    "20:15",
+                    "G. Fenwick",
+                    "Plumber booked for 07:30 on 26 February: riser closet 419."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:42",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:50",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The Operations desk log of calls and dispatches for the evening of 25 February 2026, with time, caller and the entry as the operator wrote it."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "work_order",
+            "title": "Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Plumber H. Brennick, 07:30-09:10 on 26 February. Location: riser closet 419. Found: drain-stack cleanout cap with a worn gasket, tightened on 25 February by P. Halloran; about one litre in the bucket. Replaced the gasket; no further leak. Replaced the corridor ceiling tile outside 419. Room 417 ceiling and shelving inspected with the Personnel Office because the room adjoins the corridor drip: dry, no damage. Closed 09:10."
+            },
+            "supports": [
+              {
+                "fact_id": "f:51",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The repair work order raised from service request SR-4471: where the plumber worked, what was found and replaced, and any damage recorded."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "monitor_alert",
+            "title": "Copier MF-417 job log, Room 417, 25 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 6
+            },
+            "content": {
+              "body": "Walk-up copying without an account is enabled on this device. Two jobs in the period.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Job",
+                  "Pages",
+                  "Account"
+                ],
+                "rows": [
+                  [
+                    "16:52",
+                    "Copy",
+                    "3",
+                    "L. Specht"
+                  ],
+                  [
+                    "19:24",
+                    "Copy",
+                    "9",
+                    "Walk-up, no account"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:52",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:48",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Job log exported from copier MF-417 in Room 417 for 25 February 2026 from 16:00 to midnight: time, job type, pages and account."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "lockbox_log",
+            "title": "Key cabinet KC-2 history for key K-14, 1 to 25 February 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Three withdrawals in the period.",
+              "table": {
+                "columns": [
+                  "Date",
+                  "Out",
+                  "In",
+                  "PIN holder",
+                  "Task reference"
+                ],
+                "rows": [
+                  [
+                    "5 February",
+                    "09:12",
+                    "09:40",
+                    "R. Ostby",
+                    "WO-6011, radiator valve, Room 421"
+                  ],
+                  [
+                    "23 February",
+                    "15:05",
+                    "15:50",
+                    "P. Halloran",
+                    "WO-6087, light fitting, Room 417"
+                  ],
+                  [
+                    "25 February",
+                    "18:52",
+                    "20:06",
+                    "P. Halloran",
+                    "SR-4471"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:19",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Every withdrawal and return of K-14 from 1 to 25 February 2026, with the PIN holder, the times and the task reference entered at withdrawal."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "The Operations desk log puts the reported water and Halloran's own 19:46 report at riser closet 419, and WO-6120 records Room 417 dry, yet Room 417 was open from 19:12 to 19:38.",
+            "fact_ids": [
+              "f:42",
+              "f:50",
+              "f:41",
+              "f:06"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-02",
+              "doc-01"
+            ],
+            "resolution": "The leak call gave Halloran no work in Room 417 beyond a check; the 26 minutes there had no task.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:44"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Halloran gives the leak as the reason for her 26 minutes in Room 417, the account conflicts with the 419 records; asserting it outright is forbidden assertion x:01 or x:02.",
+            "fact_ids": [
+              "f:41",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-02"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01",
+              "x:02"
+            ],
+            "resolution": "Only a 419 repair exists.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:41",
+                "f:51"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "The Room 417 copier made a nine-page walk-up copy at 19:24, while Room 417 had been closed since 17:05 and Halloran's K-14 entry ran from 19:12 to 19:38; the BE-26-04 folder held nine scoring sheets.",
+            "fact_ids": [
+              "f:52",
+              "f:06",
+              "f:14",
+              "f:13"
+            ],
+            "artifact_ids": [
+              "rec-03",
+              "doc-01"
+            ],
+            "resolution": "The copies were made during Halloran's entry.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:48"
+              ],
+              "artifact_ids": [
+                "rec-03"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The Operations desk log puts the custodian's report and Halloran's own 19:46 report at riser closet 419 only, while Room 417 was open for 26 minutes, and Halloran gives no task in Room 417 when asked.",
+              "artifact_ids": [
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:42",
+                "f:50",
+                "f:44"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The copier job log shows a nine-page walk-up copy in Room 417 at 19:24, during Halloran's entry, matching the nine scoring sheets in the BE-26-04 folder.",
+              "artifact_ids": [
+                "rec-03"
+              ],
+              "fact_ids": [
+                "f:52",
+                "f:48"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The service request naming neither room",
+            "The key form being signed the next morning",
+            "Her application in BE-26-04 on its own",
+            "Her visit to Room 417 on 23 February",
+            "Short or worried answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the Room 417 entry (slide-8 situation).",
+              "target_fact_ids": [
+                "f:44"
+              ],
+              "neutral_example": "What task required entry to Room 417?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish what the dispatch said and where it sent her.",
+              "target_fact_ids": [
+                "f:02",
+                "f:05"
+              ],
+              "neutral_example": "What did service request SR-4471 ask you to do?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where the water was.",
+              "target_fact_ids": [
+                "f:40",
+                "f:41"
+              ],
+              "neutral_example": "Where did you find the water?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish what she did inside Room 417, in order.",
+              "target_fact_ids": [
+                "f:45",
+                "f:48"
+              ],
+              "neutral_example": "Walk me through what you did inside Room 417, step by step."
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish how the key withdrawal was authorized.",
+              "target_fact_ids": [
+                "f:08"
+              ],
+              "neutral_example": "How was your withdrawal of K-14 authorized?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what she reported and did after leaving Room 417.",
+              "target_fact_ids": [
+                "f:50",
+                "f:18"
+              ],
+              "neutral_example": "What did you do after you left Room 417?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "She entered Room 417 to deal with water from the leak.",
+              "test": "Request the Operations desk log and WO-6120; compare the reported water and the repair location with Room 417 and her account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "She used K-14 to reach the BE-26-04 papers in Room 417.",
+              "test": "Ask what she did in Room 417 minute by minute; request WO-6120 and the copier job log and compare them with the 19:12 to 19:38 entry."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The late key form means the key was taken without approval.",
+              "test": "Request the Operations desk log for the 18:49 approval and read the duty manager's statement when it is released."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the task in Room 417 and the water. 'Why did you go after the panel papers?' presumes a fact not yet established.",
+            "response_relevance": "'It was a difficult evening with the leak' leaves the purpose of the 417 entry unanswered; credit recognizing that and asking for the task.",
+            "evidence_based_followup": "Credit requesting the Operations desk log and WO-6120 and asking about the water's location and the 26 minutes against them; credit the copier log once available.",
+            "testing_alternatives": "Credit testing the leak explanation against the desk log and the repair record before closing, and checking the late form against the 18:49 approval.",
+            "supported_closure": "Deceptive closure cites rec-01 (the reported water and her own 19:46 report concern only riser closet 419) with her non-answers on the 417 task, or rec-03. Her application and demeanor are never grounds on their own."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'What task required entry to Room 417?' with routine context such as 'It was a difficult evening with the leak'.",
+            "label": "evasion",
+            "rationale": "Appeal to routine, the slide-8 pattern: a deflection that protects HOLD fact f:44 and CORE fact f:45 before the gates open. Permitted by the profile, so not a fidelity failure, but an evasion event; a finding still needs record content."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers 'Was there any water inside Room 417?' with 'The drip was in the corridor between 417 and 419, and the cap in 419 was loose.'",
+            "label": "evasion",
+            "rationale": "Deflection on HOLD fact f:41 (Room 417 dry) before its gate opens: the question asks about Room 417, and true facts f:05 and f:40 about the corridor and 419 are offered instead of the answer she knows. The same words would be evasion for any subject who knew whether 417 was wet. Saying there was water in 417 would be forbidden assertion x:01."
+          },
+          {
+            "id": "l:07",
+            "situation": "Answers 'Where did you find the water?' with 'The drip was in the corridor between 417 and 419, and the cap in 419 was loose.'",
+            "label": "responsive",
+            "rationale": "Gives the location of the water and its source (f:05, f:40, FREE). Not mentioning that Room 417 was dry leaves out a fact the question did not ask for."
+          },
+          {
+            "id": "l:03",
+            "situation": "Avoids saying what she did inside Room 417 between 19:12 and 19:38 when asked directly, before or after the copier log is presented.",
+            "label": "evasion",
+            "rationale": "Omission or deflection on CORE fact f:45 (the violation) and, before its gate opens, HOLD fact f:48."
+          },
+          {
+            "id": "l:04",
+            "situation": "Says she phoned the Operations desk at about a quarter to eight but does not know the exact minute.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:05",
+            "situation": "Says she does not know when the duty manager signed the key form.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown fact f:07; she was not told when he signed it."
+          },
+          {
+            "id": "l:06",
+            "situation": "Gives a partial answer to a question that bundles the key, the water and the 26 minutes in Room 417.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; label the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-6db8832e07711b5d"
+      }
+    }
+  }
+}
