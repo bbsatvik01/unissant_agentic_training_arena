@@ -210,14 +210,30 @@ ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a 
 CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
 
 
+def _clauses(sentence: str) -> list[str]:
+    """Clauses cut at commas, semicolons, "and" and "then"; a piece with no content word joins the clause before it
+    ("motion at 18:20 and 19:05"), or the next one when it opens the sentence ("First, at 20:53, Fenwick radioed")."""
+    out: list[str] = []
+    carry = ""
+    for piece in CLAUSE.split(sentence):
+        if any(_content(w) for w in WORD.findall(piece)):
+            out.append(f"{carry} {piece}")
+            carry = ""
+        elif out:
+            out[-1] = f"{out[-1]} {piece}"
+        else:
+            carry = f"{carry} {piece}"
+    return [*out, carry] if carry.strip() else out
+
+
 def _paired_problems(sentence: str, quotes: list[str]) -> list[str]:
-    """A time must sit with what it describes: a word of the clause holding a time may not come only from a quote line
+    """A time must sit with what it describes: a word of the clause holding a time may not come only from a quote row
     that holds another time of the same sentence, so swapping two times (door opened 19:38, closed 19:12) fails."""
-    # A quote may run across table rows (`quote_ok` folds the line breaks), so it is cut before every time.
+    # A quote may run across table rows (`quote_ok` folds the line breaks), so it is cut where a table row starts.
     rows = [row for q in quotes for row in ROW_START.split(q)]
     lines = [(row, {stem(x) for x in WORD.findall(row)}) for row in rows]
     out: list[str] = []
-    for clause in CLAUSE.split(sentence):
+    for clause in _clauses(sentence):
         words = WORD.findall(clause)
         content = {stem(w) for w in words if _content(w)}
         for time in (w for w in words if TIME.fullmatch(w)):
@@ -465,3 +481,26 @@ def test_fixture_files_are_canonical_json() -> None:
     for path in sorted(fixtures.FIXTURE_DIR.glob("*.json")):
         data: Any = json.loads(path.read_text(encoding="utf-8"))
         assert isinstance(data, dict), path
+
+
+REVIEW = fixtures.load("transcript_review")
+
+
+@pytest.mark.parametrize("transcript_id", ALL_TRANSCRIPT_IDS)
+def test_every_scripted_transcript_has_a_current_independent_review(transcript_id: str) -> None:
+    """Scripted answers are checked against the case by an independent reviewer (a fresh read-only Codex session):
+    every exchange consistent with the variant's canonical facts and responsive to its question. The review is bound
+    to the text it read, so editing an answer without a new review fails here."""
+    review = {r["id"]: r for r in REVIEW["transcripts"]}[transcript_id]
+    t = fixtures.transcript(transcript_id)
+    assert review["reviewed_text_sha256"] == fixtures.reviewed_text_sha256(t)
+    assert [e["turn"] for e in review["exchanges"]] == [e["turn"] for e in t["exchanges"]]
+    assert [e for e in review["exchanges"] if not (e["consistent"] and e["responsive"])] == []
+
+
+def test_the_review_binding_detects_an_edited_answer() -> None:
+    t = fixtures.transcript(ALL_TRANSCRIPT_IDS[0])
+    before = fixtures.reviewed_text_sha256(t)
+    t["exchanges"][4]["answer"] += " I also went home."
+    assert fixtures.reviewed_text_sha256(t) != before
+    assert {r["id"] for r in REVIEW["transcripts"]} == set(ALL_TRANSCRIPT_IDS)

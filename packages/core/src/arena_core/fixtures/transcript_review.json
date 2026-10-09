@@ -1,0 +1,1021 @@
+{
+  "fixture": "transcript review",
+  "review": "transcript_review.v1",
+  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256).",
+  "transcripts": [
+    {
+      "id": "TX-F01-T",
+      "reviewed_text_sha256": "ddb8613e17644b3907ffd126c09a90928106ad0f58395acdaf547649b1468e04",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the staffing shortage, B-12 dispatch, reset and tank emptying."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues with departure, preserves the exit-time uncertainty and correctly denies touching records boxes."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes both work orders while expressing the private packet's lack of firsthand knowledge about their preparation."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses the radio log and distinguishes its confirmation from his earlier uncertainty."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly reports the alarm timestamps and places the reset before clearance without inventing an exact reset time."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly reconciles Marrow's statement, the recorded dispatch and the late work-order creation."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the seal audit and his lack of contact with the boxes."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the supported sequence backwards while preserving uncertainty about departure."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly explains his badge access, unusual vault attendance and assigned reason for entering."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly identifies the dispatched humidity-alarm task as the purpose of entry."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies supported corroboration and gives a qualified account of having no companion inside."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches the canonical door-propping account and the explicit resolution allowing equipment movement while remaining at the doorway."
+        }
+      ]
+    },
+    {
+      "id": "TX-F02-T",
+      "reviewed_text_sha256": "ca5669f0ac229e8a5b843134afed613be6b3e41e18ee177793aae34fedb92d79",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "The rain, medication, partner's drive and approximate entry time match the private facts."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues through collection and departure while preserving the permitted timing uncertainty."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the visitor register consistently with entering alone and registering nobody."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the elevator counts and does not invent the later passenger's identity."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly cites the records-floor door times and keeps the departure inference tentative."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the maintenance notice without claiming knowledge of the sensor's actual cause."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses Bram's statement consistently with his observations and her medication retrieval."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the supported events in reverse order using approximate times."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly describes the authorized solo entry, Evan waiting and Bram's presence."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "States the supported purpose and maintains the permitted medical privacy boundary."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies the supported potential witnesses and accurately states that nobody accompanied her inside."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the double count while preserving her uncertainty about its cause."
+        }
+      ]
+    },
+    {
+      "id": "TX-F03-T",
+      "reviewed_text_sha256": "4a53731ad3f37427e188cb9aad6567d66d33c9608664b3403ffb6e431ef530fb",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly describes the supported page, arrival, access removal, and authorized spare-card entry."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues from entry through the reboot, ticket creation, and card return while preserving approximate timing."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately recounts the events in the requested reverse order."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the released incident ticket, including its entry and restoration times."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly explains OP-7 and the documented sign-out and ticket steps."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Attributes exact times to the released sheet and preserves uncertainty about when the time column was completed."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately summarizes the badge record while preserving her prior ignorance of the card's history."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the email consistently with the replacement record, lockbox origin, and known leave."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly explains the documented entry, spare-card source, solitary presence, and prior lack of knowledge."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Explains the outage-repair purpose and authorized spare-card use consistently with the case facts."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately identifies her solitary presence and the records corroborating her account."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly recounts the outage and repair, attributing the precise restoration time to the alerts."
+        }
+      ]
+    },
+    {
+      "id": "TX-F01-D",
+      "reviewed_text_sha256": "0775e8b0e4955d1a03cf19e41501c567c0167b2139f115c2394da8b66a2d443a",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the B-10 dispatch and repair, with permitted omission of the vault activity."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues with the opportunity described in f:47 through permitted deflection."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes both work orders and attributes the newly learned creation time to rec-01."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches rec-02 and correctly confines the dispatched task to B-10."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches rec-03's environmental-alarm history, including the recorded clearance time."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly distinguishes Marrow's reported recollection and paperwork practice from Pell's own knowledge."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges resealing after g:02 opens while permissibly withholding the CORE box-opening activity."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Provides a supported reverse chronology and preserves the exit-time uncertainty in u:01."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses the entry, access group, roster exception and previous November visit."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges the absence of a B-12 task and permissibly withholds the CORE purpose."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies Ines's dispatch and the radio log as corroboration without introducing another witness."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches f:48 and the door policy while permissibly withholding the reason for propping the door."
+        }
+      ]
+    },
+    {
+      "id": "TX-F04-T",
+      "reviewed_text_sha256": "1ae2812bf85ea1da856d7324c3ec1628cc3e2c07ad5f4380f6799058086c9c20",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the shift start, bin collection, sorting and mail round."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly summarizes rec-01 and distinguishes its sign-in time from prior personal knowledge."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately attributes the precise times and clock offset to rec-02 while preserving personal uncertainty."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly addresses Theo's statement and matches the solitary bin movement in f:21."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses Ruth's statement using the known absence and approximate return time."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues beyond the return with the repair's completion and Ruth's continued presence, supported by f:27."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the events backwards accurately while preserving uncertainty about mail-round times."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly explains the entry and matches f:21 that she remained alone at the door."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "States the supported purpose of collecting the overnight bins for sorting."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately identifies who was present and which witnesses can corroborate the events."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Explains the prolonged opening accurately and retains the packet's stated lack of personal knowledge about alarm flagging."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies relevant corroborating records and correctly distinguishes them from the unseen meter log."
+        }
+      ]
+    },
+    {
+      "id": "TX-F05-D",
+      "reviewed_text_sha256": "0fe08f4f393fea2c41412deba9a4880d87cc7cf288d6df488501948be8fb777d",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the roster, backup, supervisor call, card release and tape pull."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues chronologically with supported events and preserves the stated timing uncertainty."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the supported events in reverse order with appropriate approximate times."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses rec-06 accurately and preserves the private packet's stated uncertainty about the renewal delay."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses Hester's statement while permissibly omitting the concealed departure."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges the missing register entry after its gate opens and accurately explains PIN attribution."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches the released camera counts and acknowledges working alone after the relevant gate opens."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "The badge times match rec-03, and the illness explanation is supported by the already released rec-04."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses Tobias's statement about his departure, absence and lack of a spare card."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the release mechanism and return while permissibly omitting who presented SP-3."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Uses the explicitly permitted courier-deadline deflection without making a false claim."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately states that he was alone and identifies supported witnesses and corroborating records."
+        }
+      ]
+    },
+    {
+      "id": "TX-F06-T",
+      "reviewed_text_sha256": "714815b480812c4c84317cc1e841d4b6646a59e3e4bde660c77f51cf8fe07641",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes the dispatch, prior phone approval, and 18:52 key withdrawal."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues after the withdrawal with the supported valve closure and leak location, respecting timing uncertainty."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses rec-04 and correctly distinguishes the three withdrawals and her earlier light-fitting task."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses rec-01 while retaining the permitted approximate time for her own call."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly describes rec-02's cracked line, closed valve, two removed tiles, and six moved boxes."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Confirms the phone approval in rec-05 and preserves her lack of firsthand knowledge about signing the form."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses rec-03 consistently with the earlier copier job and her nonuse of the copier or desk papers."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Provides a supported reverse chronology and preserves uncertainty about the Operations call time."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly describes the supported purpose, duration, and work performed inside Room 417."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Explains that she entered to address the ceiling leak and protect the boxes, consistent with f:22."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies supported corroborating people and records without claiming they witnessed her work inside Room 417."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately explains the withdrawal, enrolled PIN, prior approval, and rooms accessible with K-14."
+        }
+      ]
+    },
+    {
+      "id": "TX-F07-D",
+      "reviewed_text_sha256": "ad4bb78dd397a130eb984fd97b8ea58b447f8b9c7db99a134e836d29776e0872",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Describes the documented morning work, leave and authorized collection request, with permitted omission of the drills."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues from entering the store with supported collection, loading and delivery events, preserving approximate exit timing."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses rec-04 and acknowledges receiving the camera-outage notice."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches rec-06 and preserves the permitted privacy boundary around the unrelated medical leave."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately acknowledges that rec-01 lists one carton containing the projector kit."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches rec-02 on the delivery time, recipient and single projector-kit carton."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the stock shortage and acknowledges f:46 after its evidence gate opens."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Matches Celia's statement in rec-05 while preserving uncertainty about the call's exact time."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts supported events backward from delivery through departure to the store visit."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly explains the recorded entry and accurately describes collecting the projector and packing the second carton."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "States the genuine collection task and uses permitted minimization without denying the previously acknowledged second carton."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies supported witnesses and preserves the subject's stated uncertainty about anyone else's presence in the store."
+        }
+      ]
+    },
+    {
+      "id": "TX-F08-T",
+      "reviewed_text_sha256": "4d4eda89202111871ce4fe67592cbb78f426e84c37ac2fe49f1b909e93d3259c",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "The dispatch, assigned detector work, parts order and ticket update match the canonical account."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues beyond the ticket update to the supported detector status and staff-exit departure."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the events backwards while preserving the approximate departure and update times."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses SR-3051's assignment, device, fault and maintenance updates."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the recorded tests and absent door-contact events while respecting uncertainty about later motion."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly identifies both parts-request entries and attributes only PR-880 to himself."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the panel with the supported denial of opening it and the private packet's knowledge limits."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses Marisol's statement through the confirmed radio exchange and the ticket's device identification."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly explains the entry, badge capability, access-list status and assigned task."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "States the supported maintenance purpose, two walk tests, failing head and departure when work stopped."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies supported corroboration without claiming knowledge of other visitors."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly addresses both motion events while preserving approximate times and uncertainty about their causes."
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-D",
+      "reviewed_text_sha256": "09bf430cde77b682040c75612aa98c41100e31c19c2cce5def0908e44c0501d7",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "The arrival and preparation account fits the case, with permitted omission of Keable's entry."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues from Ashby's arrival through the review to the supported approximate departure time."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges Keable's missing sign-in after presentation of rec-01 and preserves the stated lack of personal knowledge."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the fault ticket consistently with her prior ignorance and the absence of staff notification."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses Ashby's statement and preserves both approximate times."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges the corridor, lift and direct route facts opened by rec-02."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly describes rec-04's single Facilities call while distinguishing it from personal knowledge."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Provides the requested reverse chronology, including the review's end time supported by rec-05."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Confirms the sole badge entry and accurately states that she did not time the door opening."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Uses her established arrival routine and assigned duties as permitted deflection from the concealed purpose."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies Ashby and Keable as corroborating participants and preserves the stated uncertainty about other door users."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Acknowledges the released corridor and sign-in facts while permissibly withholding how Keable entered."
+        }
+      ]
+    },
+    {
+      "id": "TX-F06-C",
+      "reviewed_text_sha256": "00bfb4f5882071d1b28eaf7292cd11a5432c7984f56b900bb2152104eeb8f87e",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Describes the assignment and key withdrawal accurately against doc-01 and doc-03."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues the account with supported door times, key return, and request closure."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately summarizes all three withdrawals in rec-04."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses rec-01 and attributes the precise reporting time to its entry."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "The plumber's findings, repair details, times, and tile counts match rec-02."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately summarizes Ebdon's released statement, including his authorization and signing practice."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Correctly describes rec-03's sole copying job and the earlier door closure recorded in doc-01."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Provides a supported reverse chronology without inventing an exact valve-closing time."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Describes the work inside Room 417 consistently with f:23 and rec-02."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies the Room 417 leak as the purpose of entry and accurately cites the damage-protection exception."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies corroborators through their documented involvement without inventing eyewitness presence."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately explains the withdrawal, prior telephone approval, and subsequent form signature."
+        }
+      ]
+    },
+    {
+      "id": "TX-F08-C",
+      "reviewed_text_sha256": "de716de390e000f13756ad86f6d2a988ea3497ffb209cf76e64f187cd9e5db21",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "The shift, radio exchange and badge entry match doc-03 and doc-01."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues from entry with supported motion events, departure, sign-off and staff exit."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts the supported timeline substantially in reverse order."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately describes rec-01, with the exact update time attributed to the released record."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "The alarm times, fault rule, badge entry and absence of DC-FD14 events match rec-02."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Both parts requests and their details match rec-04."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "The tamper-log account matches rec-03, and denying enclosure opening agrees with f:30."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Preserves Fenwick's uncertainty in rec-05 and correctly identifies MS-6A from rec-02."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "The access details match doc-01, and the LED observation is supported by rec-01."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly identifies the assigned detector task and accurately states the entry policy."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies Fenwick and Ostby as corroborating sources with accurately described records."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the motion events using supported WB-2 activity and the released alarm history."
+        }
+      ]
+    },
+    {
+      "id": "TX-F07-C",
+      "reviewed_text_sha256": "b11c464b98db5759ee8ebad2011ae3f5e87362afd1b49876cccd6b2a50b19c58",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "note": "Describes his work period and role accurately, matching doc-04."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "note": "Continues chronologically into personal leave, matching doc-04 and the optional-reason policy."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately summarizes released rec-04 without claiming prior knowledge of the outage."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "note": "Booking, approval and privacy details match rec-06."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "note": "Pass number, holder, contents, destination and validity match rec-01."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "note": "Delivery time, email time and signed-for contents match rec-02."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately summarizes rec-03, including matching counts and the dispatch-shelf exclusion."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "note": "Accurately addresses rec-05 and attributes the precise call time to Brandt's statement."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "note": "Recounts supported events in reverse order without inventing a precise remembered exit time."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "note": "Addresses the S-2 entry with badge and exit-button details supported by doc-01."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "note": "Directly identifies the collection purpose and supervisor request, consistent with f:08 and doc-02."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "note": "Identifies corroborating witnesses and accurately describes their documented observations or actions."
+        }
+      ]
+    }
+  ]
+}

@@ -76,7 +76,7 @@
             "rec-02",
             "rec-03"
           ],
-          "answer": "The vault alarm was raised at 13:58, shortly before the call to me. It shows cleared at 14:16. I didn't watch the panel, so I didn't know the exact clearing time, but that fits with me resetting the unit around then.",
+          "answer": "The vault alarm was raised at 13:58, shortly before the call to me. It shows cleared at 14:16. I didn't watch the panel, so I didn't know when it cleared. I'd reset the unit soon after I went in, so that was some minutes before it cleared.",
           "protected": [
             "The vault alarm was raised at 13:58"
           ]
@@ -202,7 +202,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I propped the door with a cart from 14:09 to 14:12 while I emptied the condensate tank into the drain just outside. I stayed in the doorway the whole time. I know the limit is 60 seconds, but I wasn't moving equipment.",
+          "answer": "I propped the door with a cart from 14:09 to 14:12 while I emptied the condensate tank into the drain just outside. I stayed in the doorway the whole time. Moving the tank out to the drain is moving equipment, so I understood the door could stay open while I did it.",
           "protected": [
             "while I emptied the condensate tank into the drain just outside"
           ]
@@ -222,7 +222,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "It was pouring that evening. I had left my medication in my desk drawer when I went home at five, so Evan, my partner, drove me back. I badged in at the east staff door a little before quarter to eight, went up to the records floor, collected it, and left.",
+          "answer": "It was pouring that evening. I had left my medication in my desk drawer when I went home at five, so Evan, my partner, drove me back. I badged in at the east staff door a little before quarter to eight, and went up to the records floor.",
           "protected": [
             "I badged in at the east staff door a little before quarter to eight"
           ]
@@ -235,9 +235,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "I went up to the third floor and badged into the records floor. I went in by myself, since Evan stayed in the car. I was inside perhaps fifteen minutes, then I left. I came back only to collect my medication.",
+          "answer": "After I collected it, I came back down and went out to Evan, who was waiting in the car. I was inside perhaps fifteen minutes in all. I am not sure whether I left just before or just after eight.",
           "protected": [
-            "I went in by myself, since Evan stayed in the car"
+            "went out to Evan, who was waiting in the car"
           ]
         },
         {
@@ -659,7 +659,7 @@
             "doc-03",
             "rec-01"
           ],
-          "answer": "The first is the entrance mat job in the A-wing lobby. The second is the humidity alarm in the B-10 supply room, dehumidifier reset. I haven't seen it before, and I don't know when Ines wrote it up.",
+          "answer": "The first is the entrance mat job in the A-wing lobby. The second is the humidity alarm in the B-10 supply room, dehumidifier reset. I hadn't seen it before. It shows Ines created it at 14:31, well after I'd radioed that B-10 was done.",
           "protected": [
             "The second is the humidity alarm in the B-10 supply room"
           ]
@@ -762,7 +762,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "My badge opened B-12 at 14:07. I have access through the Environmental Response group, but the vault isn't on my normal roster and I hadn't been in since last autumn. The badge log is accurate on all of that.",
+          "answer": "My badge opened B-12 at 14:07. I have access through the Environmental Response group, but the vault isn't on my normal roster and I hadn't been in since last autumn. The badge log shows the 14:07 entry and my last visit in November.",
           "protected": [
             "the vault isn't on my normal roster"
           ]
@@ -798,9 +798,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Nobody was with me that I can name. Ines can confirm the 14:01 dispatch to B-10 and my 14:05 call saying it was done, and the radio log shows both. I don't know of anyone who can speak to the vault.",
+          "answer": "Nobody was with me that I can name. The radio log shows the 14:01 dispatch to B-10 and my 14:05 call saying it was done. Ines made that call, though her statement says she doesn't remember which room she named. I don't know of anyone who can speak to the vault.",
           "protected": [
-            "Ines can confirm the 14:01 dispatch to B-10"
+            "The radio log shows the 14:01 dispatch to B-10"
           ]
         },
         {
@@ -917,9 +917,9 @@
             "rec-03",
             "rec-04"
           ],
-          "answer": "After I sorted the overnight mail, I left on the internal mail round just before eight. I was back at about half past. Felix was working on the meter with Ruth, and 340 renewal notices from Monday were waiting for postage.",
+          "answer": "After I got back, Felix carried on with the repair, and Ruth stayed with him until he finished. The 340 renewal notices from Monday were still waiting for postage while the meter was being fixed.",
           "protected": [
-            "I left on the internal mail round just before eight"
+            "Ruth stayed with him until he finished"
           ]
         },
         {
@@ -985,7 +985,7 @@
             "rec-03",
             "rec-04"
           ],
-          "answer": "Nobody else was in the mail room before eight, because I was the only mail room staff member at work. Theo Marsh says he saw me at the dock door pushing the bins in alone. Ruth Delacroix and Felix Arno can speak to what happened after I left.",
+          "answer": "I was the only mail room staff member at work before eight, and nobody else came into the mail room between my bringing the bins in and leaving on the round. Theo Marsh says he saw me at the dock door pushing the bins in alone. Ruth Delacroix and Felix Arno can speak to what happened after I left.",
           "protected": [
             "Theo Marsh says he saw me at the dock door pushing the bins in alone"
           ]
@@ -1703,9 +1703,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "I left R-6 around twenty-five past nine and went to the Hall B tech room. I ordered a new detector head, then updated the ticket around twenty to ten and left the detector in service. At the end of my shift I badged out at the staff exit.",
+          "answer": "After updating the ticket, I left MS-6A in service, since I could not repair it on site and the new head was on order. At the end of my shift I badged out at the staff exit.",
           "protected": [
-            "I left R-6 around twenty-five past nine"
+            "I left MS-6A in service"
           ]
         },
         {
@@ -1877,7 +1877,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I had already left R-6 around twenty-five past nine, so I was not inside then. I was in the tech room ordering the part. I do not know what caused those two events or which ones were false triggers.",
+          "answer": "I had already left R-6 around twenty-five past nine, so I was not inside then. After that I went to the Hall B tech room, ordered the part and updated the ticket around twenty to ten. I do not know what caused those two events or which ones were false triggers.",
           "protected": [
             "I had already left R-6 around twenty-five past nine"
           ]
@@ -1910,9 +1910,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "The review started at nine and ran a little over an hour. Ms Ashby led it, and I took the notes. It finished just after ten, and at about ten past ten I walked Mr Keable out of the room.",
+          "answer": "After Ms Ashby joined us, the nine o'clock review with Mr Keable took place in Room 2-07. At about ten past ten I walked Mr Keable out of the room.",
           "protected": [
-            "at about ten past ten I walked Mr Keable out of the room"
+            "the nine o'clock review with Mr Keable took place in Room 2-07"
           ]
         },
         {
@@ -2016,7 +2016,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I walked Mr Keable out of the room at about ten past ten, after the review ended just after ten. The review began at nine. Ms Ashby joined at about five to nine. Before that I took Mr Keable up in the lift to Room 2-07, after I badged in at 08:41.",
+          "answer": "I walked Mr Keable out of the room at about ten past ten, after the review ended just after ten. The review was booked for nine. Ms Ashby joined at about five to nine. Before that I took Mr Keable up in the lift to Room 2-07, after I badged in at 08:41.",
           "protected": [
             "I took Mr Keable up in the lift to Room 2-07"
           ]
@@ -2108,9 +2108,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "At 18:44 Fenwick at the Operations desk raised a request assigned to me, on the evening shift. It was a ceiling drip reported by the night custodian, with a request to check and isolate, on floor 4 east corridor, between Rooms 417 and 419. At 18:52 K-14 was withdrawn from key cabinet KC-2 on my PIN. I opened the Room 417 door at 19:12, and it closed at 19:38. I returned K-14 at 20:06 and closed the request at 20:10: Isolated.",
+          "answer": "I was on the evening shift, and at 18:44 Fenwick at the Operations desk raised a request assigned to me. The request asked me to check and isolate a ceiling drip reported by the night custodian, on floor 4 east corridor, between Rooms 417 and 419. At 18:52 K-14 was withdrawn from key cabinet KC-2 on my PIN. K-14 opens Rooms 417, 419, the east plumbing riser closet, and 421.",
           "protected": [
-            "I opened the Room 417 door at 19:12"
+            "K-14 was withdrawn from key cabinet KC-2"
           ],
           "support": [
             [
@@ -2138,17 +2138,7 @@
             [
               {
                 "record_id": "doc-01",
-                "quote": "19:12 | Room 417 door contact | Door opened 19:38 | Room 417 door contact | Door closed"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "20:06 | Key cabinet KC-2 | K-14 returned, PIN P. Halloran"
-              },
-              {
-                "record_id": "doc-03",
-                "quote": "Request: 'Ceiling drip reported by the night custodian. Please check and isolate.' Closed 20:10 by P. Halloran: 'Isolated."
+                "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421"
               }
             ]
           ]
@@ -2161,17 +2151,11 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "K-14 also opens Room 419, the east plumbing riser closet. I opened the Room 417 door at 19:12, and it closed at 19:38. At 20:06 I returned K-14 to key cabinet KC-2. At 20:10 I closed the request: Isolated. My closing note says: See the Operations desk log.",
+          "answer": "Next, I opened the Room 417 door at 19:12, and it closed at 19:38. At 20:06 K-14 was returned to key cabinet KC-2 on my PIN. At 20:10 I closed the request: Isolated. My closing note says: See the Operations desk log.",
           "protected": [
-            "K-14 also opens Room 419, the east plumbing riser closet"
+            "I opened the Room 417 door at 19:12"
           ],
           "support": [
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421"
-              }
-            ],
             [
               {
                 "record_id": "doc-01",
@@ -2211,9 +2195,9 @@
             "doc-03",
             "rec-04"
           ],
-          "answer": "It shows three withdrawals in the period. On 5 February Ostby had it from 09:12 to 09:40 for WO-6011, radiator valve, Room 421. On 23 February I had it from 15:05 to 15:50 for WO-6087, light fitting, Room 417. On 25 February I had it from 18:52 to 20:06 for SR-4471.",
+          "answer": "It shows three withdrawals in the period. On 5 February Ostby had it from 09:12 to 09:40 for WO-6011, radiator valve, Room 421. On 23 February I had it from 15:05 to 15:50 for WO-6087, light fitting, Room 417. The 25 February row is mine, from 18:52 to 20:06 for SR-4471.",
           "protected": [
-            "from 18:52 to 20:06 for SR-4471"
+            "from 15:05 to 15:50 for WO-6087"
           ],
           "support": [
             [
@@ -2253,9 +2237,9 @@
             "rec-02",
             "rec-04"
           ],
-          "answer": "At 18:41 Wren, the night custodian, reported water coming out under the door of 417, the file room. At 18:49 Ebdon, the duty manager, approved K-14 by phone for me. My 19:46 entry says the leak is a cracked drain line above the 417 ceiling, with the valve closed in riser closet 419. I lifted six file boxes in 417 off the wet shelf, with two ceiling tiles down and buckets out.",
+          "answer": "It shows that at 18:41 Wren, the night custodian, reported water coming out under the door of 417, the file room. At 18:49 Ebdon, the duty manager, approved K-14 by phone for me. My 19:46 entry says the leak is a cracked drain line above the 417 ceiling, and the valve was closed in riser closet 419. At 20:15 Fenwick booked a plumber for 07:30 on 26 February: Room 417 ceiling.",
           "protected": [
-            "lifted six file boxes in 417 off the wet shelf"
+            "the valve was closed in riser closet 419"
           ],
           "support": [
             [
@@ -2283,7 +2267,7 @@
             [
               {
                 "record_id": "rec-01",
-                "quote": "Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out."
+                "quote": "20:15 | G. Fenwick | Plumber booked for 07:30 on 26 February: Room 417 ceiling."
               }
             ]
           ]
@@ -2299,7 +2283,7 @@
             "rec-02",
             "rec-04"
           ],
-          "answer": "Plumber Brennick was there 07:30-11:30 on 26 February, at Room 417 ceiling above shelving bay 3. He found a cracked condensate drain line above the 417 ceiling, with the isolation valve in 419 already closed. He replaced 1.2 m of drain line and reopened the valve, with no further leak. It says two ceiling tiles in 417 were taken down by me, and six file boxes from bay 3 were lifted onto the table by me. The boxes were released to the Personnel Office for drying.",
+          "answer": "It shows plumber Brennick at the Room 417 ceiling above shelving bay 3, 07:30-11:30 on 26 February. He found the isolation valve in 419 already closed, and a cracked condensate drain line above the 417 ceiling. He replaced 1.2 m of drain line and reopened the valve, with no further leak. Four tiles were replaced, three in 417 and one in the corridor outside.",
           "protected": [
             "isolation valve in 419 already closed"
           ],
@@ -2325,17 +2309,7 @@
             [
               {
                 "record_id": "rec-02",
-                "quote": "two ceiling tiles in 417 taken down on 25 February by P. Halloran"
-              },
-              {
-                "record_id": "rec-02",
-                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran, released to the Personnel Office for drying."
+                "quote": "four tiles replaced, three in 417 and one in the corridor outside"
               }
             ]
           ]
@@ -2352,15 +2326,15 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "He says I phoned him at about ten to seven about water on floor 4 east and asked for K-14. He approved it on the phone and told me to go ahead. He signs the authorization forms for evening calls when he gets in the next morning, so he signed this one at 08:20 on the 26th. In the log, K-14 was approved by phone at 18:49, and it was withdrawn at 18:52. He did not ask which rooms I would need.",
+          "answer": "He says I phoned him at about ten to seven about water on floor 4 east and asked for K-14, which covers 417, 419 and 421. He approved it on the phone and told me to go ahead. He signs the authorization forms for evening calls when he gets in the next morning, so he signed this one at 08:20 on the 26th. He did not ask which rooms I would need.",
           "protected": [
-            "approved it on the phone"
+            "He approved it on the phone"
           ],
           "support": [
             [
               {
                 "record_id": "rec-05",
-                "quote": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14"
+                "quote": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14, which covers 417, 419 and 421."
               }
             ],
             [
@@ -2373,16 +2347,6 @@
               {
                 "record_id": "rec-05",
                 "quote": "I sign the authorization forms for evening calls when I get in the next morning, so I signed this one at 08:20 on the 26th."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone"
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn"
               }
             ],
             [
@@ -2406,7 +2370,7 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "It shows one job in the period, a copy of 3 pages at 16:52 by Specht. That was before 17:05, when the Room 417 door closed as Personnel Office staff left. K-14 was withdrawn on my PIN at 18:52, after that job.",
+          "answer": "It shows one job in the period, a copy of 3 pages at 16:52 by Specht. That was before 17:05, when the Room 417 door closed as Personnel Office staff left. It also says walk-up copying without an account is enabled on this device.",
           "protected": [
             "one job in the period"
           ],
@@ -2429,12 +2393,8 @@
             ],
             [
               {
-                "record_id": "doc-01",
-                "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
-              },
-              {
                 "record_id": "rec-03",
-                "quote": "One job in the period."
+                "quote": "Walk-up copying without an account is enabled on this device."
               }
             ]
           ]
@@ -2452,9 +2412,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "At the end, at 20:10, I closed the request: Isolated. Before that, at 20:06, I returned K-14 to key cabinet KC-2. Before that, at 19:46, my entry says the leak is a cracked drain line above the 417 ceiling. Before that, the Room 417 door opened at 19:12 and closed at 19:38. First, at 18:52, K-14 was withdrawn on my PIN, after Ebdon approved it by phone at 18:49.",
+          "answer": "At the end, at 20:10, I closed the request: Isolated. Before that, at 20:06, I returned K-14 to key cabinet KC-2. At 19:46 my entry says I was mopping the corridor next. Before that, the Room 417 door closed at 19:38, after it opened at 19:12. Before that, I closed the valve in riser closet 419. First, K-14 was withdrawn on my PIN at 18:52, after Ebdon approved it by phone at 18:49.",
           "protected": [
-            "the Room 417 door opened at 19:12"
+            "I closed the valve in riser closet 419"
           ],
           "support": [
             [
@@ -2476,7 +2436,7 @@
             [
               {
                 "record_id": "rec-01",
-                "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling."
+                "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out. Mopping the corridor next."
               }
             ],
             [
@@ -2487,12 +2447,18 @@
             ],
             [
               {
+                "record_id": "rec-01",
+                "quote": "Valve closed in riser closet 419."
+              }
+            ],
+            [
+              {
                 "record_id": "doc-01",
                 "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
               },
               {
                 "record_id": "rec-01",
-                "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone"
+                "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone for P. Halloran, leak on floor 4 east."
               }
             ]
           ]
@@ -2510,27 +2476,11 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "I opened the Room 417 door at 19:12, and it closed at 19:38. Water was coming out under the door of 417, the file room, and the leak was a cracked drain line above the 417 ceiling. In 417 I lifted six file boxes off the wet shelf, with two ceiling tiles down and buckets out. Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage.",
+          "answer": "In 417 I lifted six file boxes off the wet shelf, with two ceiling tiles down and buckets out. The boxes were from bay 3, and I lifted them onto the table. The boxes were released to the Personnel Office for drying. The door opened at 19:12 and closed at 19:38.",
           "protected": [
             "I lifted six file boxes off the wet shelf"
           ],
           "support": [
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "19:12 | Room 417 door contact | Door opened 19:38 | Room 417 door contact | Door closed"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room."
-              },
-              {
-                "record_id": "rec-01",
-                "quote": "Leak is a cracked drain line above the 417 ceiling."
-              }
-            ],
             [
               {
                 "record_id": "rec-01",
@@ -2539,8 +2489,20 @@
             ],
             [
               {
-                "record_id": "doc-02",
-                "quote": "Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
+                "record_id": "rec-02",
+                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran, released to the Personnel Office for drying."
+              }
+            ],
+            [
+              {
+                "record_id": "rec-02",
+                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran, released to the Personnel Office for drying."
+              }
+            ],
+            [
+              {
+                "record_id": "doc-01",
+                "quote": "19:12 | Room 417 door contact | Door opened 19:38 | Room 417 door contact | Door closed"
               }
             ]
           ]
@@ -2558,11 +2520,17 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Water was coming out under the door of 417, and the ceiling tile outside was dripping too. The leak was a cracked drain line above the 417 ceiling, so I closed the valve in riser closet 419. Then I lifted six file boxes from bay 3 onto the table, to protect them from immediate damage. Two ceiling tiles in 417 were taken down by me.",
+          "answer": "It was for the leak: a cracked drain line above the 417 ceiling. Water was coming out under the door of 417, the file room, and the ceiling tile outside was dripping too. The restricted keys page says papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage.",
           "protected": [
             "to protect them from immediate damage"
           ],
           "support": [
+            [
+              {
+                "record_id": "rec-01",
+                "quote": "Leak is a cracked drain line above the 417 ceiling."
+              }
+            ],
             [
               {
                 "record_id": "rec-01",
@@ -2571,24 +2539,12 @@
             ],
             [
               {
-                "record_id": "rec-01",
-                "quote": "Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
+                "record_id": "doc-02",
+                "quote": "K-series keys open restricted rooms"
               },
               {
                 "record_id": "doc-02",
-                "quote": "except to protect them from immediate damage"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "two ceiling tiles in 417 taken down on 25 February by P. Halloran"
+                "quote": "Papers in Room 417 may be handled only by Personnel Office staff, except to protect them from immediate damage."
               }
             ]
           ]
@@ -2606,9 +2562,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "At 18:41 Wren, the night custodian, reported the water at 417. Fenwick at the Operations desk sent SR-4471 to me at 18:44. Ebdon, the duty manager, approved K-14 by phone at 18:49. Plumber Brennick found the isolation valve in 419 already closed, and the six file boxes lifted onto the table.",
+          "answer": "Wren, the night custodian, reported the water at 417 at 18:41. Fenwick at the Operations desk sent SR-4471 to me at 18:44. Ebdon, the duty manager, approved K-14 by phone at 18:49. Plumber Brennick found the isolation valve in 419 already closed. Specht of the Personnel Office added an annotation at 09:40 on 26 February.",
           "protected": [
-            "approved K-14 by phone at 18:49"
+            "Wren, the night custodian, reported the water"
           ],
           "support": [
             [
@@ -2623,12 +2579,12 @@
             ],
             [
               {
-                "record_id": "doc-03",
-                "quote": "Raised 18:44 by G. Fenwick, Operations desk."
-              },
-              {
                 "record_id": "rec-01",
                 "quote": "18:44 | G. Fenwick | SR-4471 sent to P. Halloran"
+              },
+              {
+                "record_id": "doc-03",
+                "quote": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift."
               }
             ],
             [
@@ -2640,11 +2596,17 @@
             [
               {
                 "record_id": "rec-02",
-                "quote": "Plumber H. Brennick, 07:30-11:30 on 26 February. Location: Room 417 ceiling above shelving bay 3, on the drain line from riser closet 419. Found: cracked condensate drain line above the 417 ceiling; isolation valve in 419 already closed."
+                "quote": "Plumber H. Brennick, 07:30-11:30 on 26 February."
               },
               {
                 "record_id": "rec-02",
-                "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
+                "quote": "Found: cracked condensate drain line above the 417 ceiling; isolation valve in 419 already closed."
+              }
+            ],
+            [
+              {
+                "record_id": "doc-01",
+                "quote": "Annotation added 09:40 on 26 February by L. Specht, Personnel Office"
               }
             ]
           ]
@@ -2662,12 +2624,16 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "At 18:49 Ebdon, the duty manager, approved K-14 by phone for me, for the leak on floor 4 east. At 18:52 K-14 was withdrawn from key cabinet KC-2 on my PIN, for SR-4471. He signed the authorization form at 08:20 on the 26th, when he got in. K-14 opens Rooms 417, 419 and 421, and he did not ask which rooms I would need.",
+          "answer": "It was withdrawn on my PIN at 18:52, after Ebdon approved it by phone at 18:49. I had asked him for K-14, which covers 417, 419 and 421, about water on floor 4 east. The key authorization form KA-0225-3 was signed by Ebdon at 08:20 on 26 February, after the key was withdrawn and returned.",
           "protected": [
-            "approved K-14 by phone for me"
+            "signed by Ebdon at 08:20 on 26 February"
           ],
           "support": [
             [
+              {
+                "record_id": "doc-01",
+                "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
+              },
               {
                 "record_id": "rec-01",
                 "quote": "18:49 | M. Ebdon, duty manager | K-14 approved by phone for P. Halloran, leak on floor 4 east."
@@ -2675,28 +2641,18 @@
             ],
             [
               {
-                "record_id": "doc-01",
-                "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
+                "record_id": "rec-05",
+                "quote": "asked for K-14, which covers 417, 419 and 421"
               },
               {
-                "record_id": "rec-04",
-                "quote": "25 February | 18:52 | 20:06 | P. Halloran | SR-4471"
-              }
-            ],
-            [
-              {
                 "record_id": "rec-05",
-                "quote": "I sign the authorization forms for evening calls when I get in the next morning, so I signed this one at 08:20 on the 26th."
+                "quote": "about water on floor 4 east"
               }
             ],
             [
               {
                 "record_id": "doc-01",
-                "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421"
-              },
-              {
-                "record_id": "rec-05",
-                "quote": "I did not ask which rooms she would need."
+                "quote": "key authorization form KA-0225-3 for K-14 was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned."
               }
             ]
           ]
@@ -2716,9 +2672,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "After 20:00 I was the Security Systems technician on duty, on the 14:00-22:00 shift. At 20:52 Fenwick radioed me about an alarm fault by R-6, Hall B east, with SR-3051 in my queue. SR-3051 was raised for the 20:47 fault alarm and assigned to me. My badge 51873 opened Suite R-6 at 21:14, and access was granted. At 21:55 my badge was granted exit at the staff exit.",
+          "answer": "I was the Security Systems technician on duty after 20:00, on the 14:00-22:00 shift. At 20:52 Fenwick radioed me: alarm fault by R-6, Hall B east, and SR-3051 is in my queue. At 20:53 I radioed her: OK, going. At 21:14 my badge 51873 opened Suite R-6, and access was granted.",
           "protected": [
-            "My badge 51873 opened Suite R-6 at 21:14"
+            "my badge 51873 opened Suite R-6"
           ],
           "support": [
             [
@@ -2736,7 +2692,7 @@
             [
               {
                 "record_id": "doc-03",
-                "quote": "Ticket SR-3051 raised for the 20:47 fault alarm; assigned to S. Varga."
+                "quote": "20:53 | S. Varga (radio) | M. Fenwick | 'OK, going.'"
               }
             ],
             [
@@ -2747,12 +2703,6 @@
               {
                 "record_id": "doc-01",
                 "quote": "21:14:08 | Suite R-6 door | Badge 51873 (S. Varga) | Access granted"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "21:55:02 | Staff exit | Badge 51873 (S. Varga) | Granted, exit"
               }
             ]
           ]
@@ -2765,7 +2715,7 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "Inside R-6, motion detector MS-6A shows motion at 21:16 and 21:22. I left R-6 by the push bar, which records no credential or time. At 21:53 I radioed Fenwick that I was signing off. At 21:55 my badge was granted exit at the staff exit.",
+          "answer": "Inside R-6, motion detector MS-6A shows motion at 21:16 and 21:22. I left R-6 by the push bar, which records no credential or time. At 21:53 I radioed Fenwick: Signing off. At 21:55 my badge was granted exit at the staff exit.",
           "protected": [
             "I left R-6 by the push bar"
           ],
@@ -2773,11 +2723,7 @@
             [
               {
                 "record_id": "doc-01",
-                "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion"
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
+                "quote": "21:16:31 | Motion detector MS-6A (inside R-6) | - | Motion 21:22:05 | Motion detector MS-6A (inside R-6) | - | Motion"
               }
             ],
             [
@@ -2808,9 +2754,9 @@
             "doc-02",
             "doc-03"
           ],
-          "answer": "At the end, at 21:55, my badge was granted exit at the staff exit. Before that, at 21:53, I radioed Fenwick that I was signing off. Before that, MS-6A inside R-6 shows motion at 21:22 and 21:16. Before that, my badge 51873 opened Suite R-6 at 21:14. First, at 20:52, Fenwick radioed me about the alarm fault by R-6.",
+          "answer": "At the end, at 21:55, my badge was granted exit at the staff exit. Before that, at 21:53, I radioed Fenwick: Signing off. Before that, I left R-6 by the push bar. Before that, MS-6A inside R-6 shows motion at 21:22 and 21:16. Before that, my badge 51873 opened Suite R-6 at 21:14. First, at 20:52, Fenwick radioed me about the alarm fault by R-6, and at 20:53 I radioed her: OK, going.",
           "protected": [
-            "my badge 51873 opened Suite R-6 at 21:14"
+            "Before that, I left R-6 by the push bar"
           ],
           "support": [
             [
@@ -2823,6 +2769,12 @@
               {
                 "record_id": "doc-03",
                 "quote": "21:53 | S. Varga (radio) | M. Fenwick | 'Signing off.'"
+              }
+            ],
+            [
+              {
+                "record_id": "doc-01",
+                "quote": "R-6 is left by a push bar"
               }
             ],
             [
@@ -2845,6 +2797,10 @@
               {
                 "record_id": "doc-03",
                 "quote": "20:52 | M. Fenwick (radio) | S. Varga | 'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
+              },
+              {
+                "record_id": "doc-03",
+                "quote": "20:53 | S. Varga (radio) | M. Fenwick | 'OK, going.'"
               }
             ]
           ]
@@ -2860,26 +2816,22 @@
             "rec-02",
             "rec-04"
           ],
-          "answer": "SR-3051 was raised at 20:50 by Fenwick from the alarm screen for the 20:47 fault alarm and assigned to me. In it, the device is motion detector MS-6A, inside Suite R-6, with repeated motion alarms with the suite empty. I registered walk tests at 21:16 and 21:22 and cleaned the lens. The detector head was failing, so I left the detector in service under Standard 5.3(c). A replacement was ordered on PR-880.",
+          "answer": "It is the ticket Fenwick raised at 20:50 from the alarm screen for the 20:47 fault alarm, for motion detector MS-6A inside Suite R-6. The fault text was repeated motion alarms with the suite empty. My 21:41 entries, at WB-2 in the Hall B technician room, say walk tests at 21:16 and 21:22 registered and the lens was cleaned. The detector head was failing, with no spare in stock, so I left the detector in service under Standard 5.3(c) and ordered a replacement on PR-880.",
           "protected": [
-            "the device is motion detector MS-6A, inside Suite R-6"
+            "walk tests at 21:16 and 21:22 registered"
           ],
           "support": [
             [
               {
                 "record_id": "rec-01",
-                "quote": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm. Assigned to S. Varga."
+                "quote": "Raised 20:50 by M. Fenwick from the alarm screen for the 20:47 fault alarm."
               },
-              {
-                "record_id": "rec-01",
-                "quote": "SR-3051 was the only ticket assigned to S. Varga on the evening of 5 March"
-              }
-            ],
-            [
               {
                 "record_id": "rec-01",
                 "quote": "Device: motion detector MS-6A, inside Suite R-6."
-              },
+              }
+            ],
+            [
               {
                 "record_id": "rec-01",
                 "quote": "Fault text: repeated motion alarms with the suite empty."
@@ -2888,23 +2840,17 @@
             [
               {
                 "record_id": "rec-01",
-                "quote": "Walk tests at 21:16 and 21:22 registered. Lens cleaned."
+                "quote": "21:41 | WB-2, Hall B technician room | S. Varga | Walk tests at 21:16 and 21:22 registered. Lens cleaned."
               }
             ],
             [
               {
                 "record_id": "rec-01",
-                "quote": "Detector head failing; cannot repair on site."
+                "quote": "Detector head failing; cannot repair on site. No spare in stock; replacement ordered on PR-880."
               },
               {
                 "record_id": "rec-01",
                 "quote": "Detector left in service under Standard 5.3(c)."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "replacement ordered on PR-880."
               }
             ]
           ]
@@ -2922,17 +2868,11 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door. MS-6A shows motion at 18:20 and 19:05, and at 20:47 the fault alarm was raised. Badge entries to Suite R-6 in this period: one, at 21:14, which was mine. No DC-FD14 events are in this period.",
+          "answer": "It shows motion from MS-6A at 18:20 and 19:05, and at 20:47 motion with the fault alarm raised. The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door. It lists one badge entry to Suite R-6 in this period, mine at 21:14, and no DC-FD14 events.",
           "protected": [
-            "No DC-FD14 events are in this period"
+            "one badge entry to Suite R-6"
           ],
           "support": [
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door"
-              }
-            ],
             [
               {
                 "record_id": "rec-02",
@@ -2942,13 +2882,13 @@
             [
               {
                 "record_id": "rec-02",
-                "quote": "Badge entries to Suite R-6 in this period: one, at 21:14."
+                "quote": "The panel raises a fault alarm on the third alarm from one device within 3 hours with no badge use at that door"
               }
             ],
             [
               {
                 "record_id": "rec-02",
-                "quote": "No DC-FD14 events in this period."
+                "quote": "Badge entries to Suite R-6 in this period: one, at 21:14. No DC-FD14 events in this period."
               }
             ]
           ]
@@ -2966,9 +2906,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "There were 2 parts requests raised on 5 March 2026. I raised PR-880 at 21:36 at WB-2, Hall B technician room, for a replacement detector head for motion detector MS-6A. PR-879, at 11:02 at WB-1, is from Haldane for door contact DC-A07. My ticket says the same: replacement ordered on PR-880.",
+          "answer": "It lists 2 parts requests raised on 5 March 2026. PR-880, at 21:36 at WB-2, Hall B technician room, is mine, for a replacement detector head for motion detector MS-6A. PR-879, at 11:02 at WB-1, Hall A technician room, is from Haldane for door contact DC-A07.",
           "protected": [
-            "I raised PR-880 at 21:36"
+            "PR-880, at 21:36 at WB-2"
           ],
           "support": [
             [
@@ -2981,22 +2921,12 @@
               {
                 "record_id": "rec-04",
                 "quote": "PR-880 | 21:36 | WB-2, Hall B technician room | S. Varga | Motion detector MS-6A | Replacement detector head"
-              },
-              {
-                "record_id": "rec-04",
-                "quote": "2 parts requests raised on 5 March 2026."
               }
             ],
             [
               {
                 "record_id": "rec-04",
                 "quote": "PR-879 | 11:02 | WB-1, Hall A technician room | K. Haldane | Door contact DC-A07"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "replacement ordered on PR-880."
               }
             ]
           ]
@@ -3014,9 +2944,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "AP-6C was installed on 3 March and is in commissioning, so it logs to its own memory only. On 5 March the enclosure tamper switch was closed all day and no enclosure opening is recorded. The only service logins on 5 March were 10:05-11:40, by Ostby, for commissioning tests. I did not open its enclosure.",
+          "answer": "It shows AP-6C was installed on 3 March and is in commissioning, so it logs to its own memory only. On 5 March the enclosure tamper switch was closed all day, and no enclosure opening is recorded. The only service logins on 5 March were 10:05-11:40, by Ostby, for commissioning tests. I did not open its enclosure.",
           "protected": [
-            "no enclosure opening is recorded"
+            "I did not open its enclosure"
           ],
           "support": [
             [
@@ -3040,7 +2970,7 @@
             [
               {
                 "record_id": "rec-03",
-                "quote": "no enclosure opening recorded."
+                "quote": "no enclosure opening recorded"
               }
             ]
           ]
@@ -3058,9 +2988,9 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Her statement says that at about quarter to nine the alarm screen showed a fault alarm in Hall B east, by R-6. She raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed me. She does not remember which of the two devices the screen named. In the ticket, the device is motion detector MS-6A, inside Suite R-6. She heard from me next when I signed off.",
+          "answer": "She says the alarm screen showed a fault alarm in Hall B east, by R-6, at about quarter to nine. She raised SR-3051 from the alarm screen, which fills in the device by itself, and radioed me. She does not remember which of the two devices the screen named, the motion detector inside R-6 or the door contact on fire door FD-14. In the alarm history, the 20:47 fault alarm was raised by MS-6A.",
           "protected": [
-            "the device is motion detector MS-6A"
+            "She does not remember which of the two devices"
           ],
           "support": [
             [
@@ -3078,7 +3008,7 @@
             [
               {
                 "record_id": "rec-05",
-                "quote": "Two devices sit right there"
+                "quote": "Two devices sit right there: the motion detector inside R-6 and the door contact on the corridor fire door, FD-14."
               },
               {
                 "record_id": "rec-05",
@@ -3087,14 +3017,8 @@
             ],
             [
               {
-                "record_id": "rec-01",
-                "quote": "Device: motion detector MS-6A, inside Suite R-6."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-05",
-                "quote": "the next I heard from him was when he signed off."
+                "record_id": "rec-02",
+                "quote": "20:47:03 | MS-6A | Motion; fault alarm raised"
               }
             ]
           ]
@@ -3112,21 +3036,15 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "My badge 51873 has R-6 door access through the Security Systems Maintenance group. It opened Suite R-6 at 21:14. I am not on the R-6 access list, but I may enter R-6 to work on a device inside R-6 named on an open Security Systems ticket assigned to me. SR-3051 was the only ticket assigned to me that evening, for motion detector MS-6A, inside Suite R-6.",
+          "answer": "My badge 51873 has R-6 door access through the Security Systems Maintenance group, and access was granted at 21:14. I am not on the R-6 access list. The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March. Inside, the MS-6A LED showed triggers with no movement in the room.",
           "protected": [
-            "It opened Suite R-6 at 21:14"
+            "I am not on the R-6 access list"
           ],
           "support": [
             [
               {
                 "record_id": "doc-01",
                 "quote": "Badge 51873 has R-6 door access through the Security Systems Maintenance group."
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "Exception: badge 51873 (S. Varga) opened Suite R-6"
               },
               {
                 "record_id": "doc-01",
@@ -3137,16 +3055,18 @@
               {
                 "record_id": "doc-01",
                 "quote": "S. Varga is not on the R-6 access list"
-              },
+              }
+            ],
+            [
               {
-                "record_id": "doc-02",
-                "quote": "(b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician"
+                "record_id": "doc-01",
+                "quote": "The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March."
               }
             ],
             [
               {
                 "record_id": "rec-01",
-                "quote": "SR-3051 was the only ticket assigned to S. Varga on the evening of 5 March"
+                "quote": "LED showed triggers with no movement in the room."
               },
               {
                 "record_id": "rec-01",
@@ -3168,17 +3088,11 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "A technician may enter R-6 only to work on a device inside R-6 named on an open Security Systems ticket assigned to that technician. That ticket was SR-3051, for motion detector MS-6A, with repeated motion alarms with the suite empty. I registered walk tests at 21:16 and 21:22 and cleaned the lens. The detector head was failing, so I left the detector in service under Standard 5.3(c).",
+          "answer": "It was for SR-3051, the only ticket assigned to me that evening, for motion detector MS-6A, inside Suite R-6. A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 named on an open Security Systems ticket assigned to that technician.",
           "protected": [
-            "to work on a device inside R-6"
+            "the only ticket assigned to me that evening"
           ],
           "support": [
-            [
-              {
-                "record_id": "doc-02",
-                "quote": "may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician"
-              }
-            ],
             [
               {
                 "record_id": "rec-01",
@@ -3186,23 +3100,13 @@
               },
               {
                 "record_id": "rec-01",
-                "quote": "Device: motion detector MS-6A, inside Suite R-6. Fault text: repeated motion alarms with the suite empty."
+                "quote": "Device: motion detector MS-6A, inside Suite R-6."
               }
             ],
             [
               {
-                "record_id": "rec-01",
-                "quote": "Walk tests at 21:16 and 21:22 registered. Lens cleaned."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "Detector head failing; cannot repair on site."
-              },
-              {
-                "record_id": "rec-01",
-                "quote": "Detector left in service under Standard 5.3(c)."
+                "record_id": "doc-02",
+                "quote": "(b) A Security Systems technician who is not on the list may enter R-6 only to work on a device inside R-6 that is named on an open Security Systems ticket assigned to that technician"
               }
             ]
           ]
@@ -3220,51 +3124,41 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "Fenwick radioed me at 20:52, and I radioed her at 21:53 that I was signing off. After 20:00 I was the only Security Systems technician on duty. The 21:14 entry was the only badge entry to R-6, and MS-6A is the only motion detector inside R-6. At 21:41 I was at WB-2, Hall B technician room. Parts request PR-880 is at 21:36 at WB-2, Hall B technician room.",
+          "answer": "Fenwick radioed me at 20:52 about the alarm fault by R-6, and at 20:53 I radioed: OK, going. She says I was the only security systems technician on after eight. Ostby of Calder Integrated Security exported the log of AP-6C, with no enclosure opening recorded. The 21:14 entry was the only badge entry to R-6.",
           "protected": [
-            "the only Security Systems technician on duty"
+            "the only security systems technician on after eight"
           ],
           "support": [
             [
               {
                 "record_id": "doc-03",
-                "quote": "20:52 | M. Fenwick (radio) | S. Varga"
+                "quote": "20:52 | M. Fenwick (radio) | S. Varga | 'Alarm fault by R-6, Hall B east. SR-3051 is in your queue.'"
               },
               {
                 "record_id": "doc-03",
-                "quote": "21:53 | S. Varga (radio) | M. Fenwick | 'Signing off.'"
+                "quote": "20:53 | S. Varga (radio) | M. Fenwick | 'OK, going.'"
               }
             ],
             [
               {
-                "record_id": "doc-03",
-                "quote": "Security Systems technician on duty after 20:00: S. Varga (shift 14:00-22:00)"
+                "record_id": "rec-05",
+                "quote": "the only security systems technician on after eight"
+              }
+            ],
+            [
+              {
+                "record_id": "rec-03",
+                "quote": "Exported 6 March by P. Ostby, commissioning engineer, Calder Integrated Security. AP-6C was installed on 3 March"
+              },
+              {
+                "record_id": "rec-03",
+                "quote": "no enclosure opening recorded"
               }
             ],
             [
               {
                 "record_id": "doc-01",
-                "quote": "The 21:14 entry was the only badge entry to R-6"
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "MS-6A is the only motion detector inside R-6"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "21:41 | WB-2, Hall B technician room | S. Varga | Walk tests"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-04",
-                "quote": "2 parts requests raised on 5 March 2026."
-              },
-              {
-                "record_id": "rec-04",
-                "quote": "PR-880 | 21:36 | WB-2, Hall B technician room"
+                "quote": "The 21:14 entry was the only badge entry to R-6 between 18:00 on 5 March and 07:00 on 6 March."
               }
             ]
           ]
@@ -3282,45 +3176,29 @@
             "rec-04",
             "rec-05"
           ],
-          "answer": "MS-6A shows motion at 21:38 and 21:47. The fault in SR-3051 was repeated motion alarms with the suite empty. The detector head was failing, and the LED showed triggers with no movement in the room. I left the detector in service under Standard 5.3(c), and PR-880 is for a replacement detector head.",
+          "answer": "By then I was at WB-2, Hall B technician room: PR-880 is mine at 21:36, and my ticket entries are at 21:41. MS-6A shows motion at 21:38 and 21:47, and again at 22:31, 23:58 and 03:12, after my badge exit at 21:55.",
           "protected": [
-            "MS-6A shows motion at 21:38 and 21:47"
+            "By then I was at WB-2"
           ],
           "support": [
             [
               {
-                "record_id": "doc-01",
-                "quote": "21:38:47 | Motion detector MS-6A (inside R-6) | - | Motion 21:47:19 | Motion detector MS-6A (inside R-6) | - | Motion"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "SR-3051 was the only ticket assigned to S. Varga on the evening of 5 March"
-              },
-              {
-                "record_id": "rec-01",
-                "quote": "Fault text: repeated motion alarms with the suite empty."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "Detector head failing; cannot repair on site."
-              },
-              {
-                "record_id": "rec-01",
-                "quote": "LED showed triggers with no movement in the room."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "Detector left in service under Standard 5.3(c)."
-              },
-              {
                 "record_id": "rec-04",
                 "quote": "PR-880 | 21:36 | WB-2, Hall B technician room | S. Varga | Motion detector MS-6A | Replacement detector head"
+              },
+              {
+                "record_id": "rec-01",
+                "quote": "21:41 | WB-2, Hall B technician room | S. Varga | Detector left in service under Standard 5.3(c)."
+              }
+            ],
+            [
+              {
+                "record_id": "rec-02",
+                "quote": "21:38:47 | MS-6A | Motion 21:47:19 | MS-6A | Motion 22:31:50 | MS-6A | Motion 23:58:09 | MS-6A | Motion 03:12:40 | MS-6A | Motion"
+              },
+              {
+                "record_id": "doc-01",
+                "quote": "21:55:02 | Staff exit | Badge 51873 (S. Varga) | Granted, exit"
               }
             ]
           ]
@@ -3328,49 +3206,32 @@
       ]
     },
     {
-      "id": "TX-F09-C",
-      "family_id": "F09",
+      "id": "TX-F07-C",
+      "family_id": "F07",
       "variant": "truthful",
       "exchanges": [
         {
           "turn": 1,
-          "question": "Could you describe, in your own words, your morning at the Halvern Street Annex on 15 April 2026, from your arrival to the start of the 09:00 review?",
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on 7 April 2026?",
           "released_before": [
             "doc-01",
             "doc-02",
-            "doc-03"
+            "doc-03",
+            "doc-04"
           ],
-          "answer": "On 14 April Ashby sent me this: please meet Martin and have Room 2-07 and the projector ready for nine. My badge 70315 was granted at the north staff door, car park side, at 08:41. That was my one badge entry to the building on 15 April. The host told Security Operations that I was with the visitor in Room 2-07 when the host arrived.",
+          "answer": "That day I was in as Supply Technician 07:00-12:30, in the Supply and Property unit at the Halvern Street Annex.",
           "protected": [
-            "My badge 70315 was granted at the north staff door"
+            "in as Supply Technician 07:00-12:30"
           ],
           "support": [
             [
               {
-                "record_id": "doc-03",
-                "quote": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20."
+                "record_id": "doc-04",
+                "quote": "Supply and Property unit, Halvern Street Annex."
               },
               {
-                "record_id": "doc-03",
-                "quote": "Elise, I am in a meeting in Room 3-02 until about 08:50; please meet Martin and have Room 2-07 and the projector ready for nine."
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door."
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived."
+                "record_id": "doc-04",
+                "quote": "G. Mattick | Supply Technician | 07:00-12:30 | Personal leave 12:30-17:00; reason field blank"
               }
             ]
           ]
@@ -3381,531 +3242,488 @@
           "released_before": [
             "doc-01",
             "doc-02",
-            "doc-03"
+            "doc-03",
+            "doc-04"
           ],
-          "answer": "I was asked to have Room 2-07 and the projector ready for nine, for the 09:00-10:00 booking. It was the quarterly review of the print and copier contract, with Keable of Penwick Document Services. Ashby was in a meeting in Room 3-02 until about 08:50. When the host arrived, I was with the visitor in Room 2-07.",
+          "answer": "Next, I was on personal leave 12:30-17:00, with the reason field blank. Giving a reason for personal leave is optional.",
           "protected": [
-            "I was with the visitor in Room 2-07"
+            "on personal leave 12:30-17:00"
           ],
           "support": [
             [
               {
-                "record_id": "doc-03",
-                "quote": "have Room 2-07 and the projector ready for nine"
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "Room 2-07 booking, 09:00-10:00"
+                "record_id": "doc-04",
+                "quote": "G. Mattick | Supply Technician | 07:00-12:30 | Personal leave 12:30-17:00; reason field blank"
               }
             ],
             [
               {
-                "record_id": "doc-03",
-                "quote": "Subject: Quarterly review, print and copier contract."
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "external attendee M. Keable (Penwick Document Services)"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-03",
-                "quote": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20."
-              },
-              {
-                "record_id": "doc-03",
-                "quote": "I am in a meeting in Room 3-02 until about 08:50"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "E. Dunmore was with the visitor in Room 2-07 when the host arrived"
+                "record_id": "doc-02",
+                "quote": "Personal leave is recorded on the timesheet; giving a reason is optional."
               }
             ]
           ]
         },
         {
           "turn": 3,
-          "question": "We have Visitor register of the main lobby security desk, 15 April 2026. Can you tell me about it?",
+          "question": "We have IT change record for the loading dock camera network switch, April 2026. Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
-            "rec-01",
-            "rec-03",
-            "rec-05"
+            "doc-04",
+            "rec-04",
+            "rec-06"
           ],
-          "answer": "The desk officer on duty from 07:30 was Haskett, and names are typed by the desk officer as the visitor gives them. At 08:45 it shows Keeble of Penwick Document Services, with V-22 and Ashby, out at 10:12. The external attendee booked for Room 2-07 was Keable of Penwick Document Services.",
+          "answer": "It shows change CR-1182 to replace the failing network switch that serves the loading dock camera. A staff notice emailed to all Annex staff on 2 April said the loading dock camera will not record from 18:30 to 21:30 on 7 April. IT Networks did the work from 18:30, and camera recording was restored and checked at 21:30. My badge entry at the loading dock door was at 19:47, when the camera had no recording.",
           "protected": [
-            "At 08:45 it shows Keeble"
+            "the loading dock camera will not record"
           ],
           "support": [
             [
               {
-                "record_id": "rec-01",
-                "quote": "Desk officer on duty from 07:30: R. Haskett."
-              },
-              {
-                "record_id": "rec-01",
-                "quote": "Names and companies are typed by the desk officer as the visitor gives them."
+                "record_id": "rec-04",
+                "quote": "Change CR-1182: replace the failing network switch in the dock communications cabinet, which serves the loading dock camera."
               }
             ],
             [
               {
-                "record_id": "rec-01",
-                "quote": "08:45 | M. Keeble | Penwick Document Services | V-22 | G. Ashby | 10:12"
+                "record_id": "rec-04",
+                "quote": "Staff notice emailed to all Annex staff on 2 April at 10:15: the loading dock camera will not record from 18:30 to 21:30 on 7 April."
+              }
+            ],
+            [
+              {
+                "record_id": "rec-04",
+                "quote": "Work done on 7 April from 18:30 by IT Networks; switch replaced, camera recording restored and checked at 21:30."
               }
             ],
             [
               {
                 "record_id": "doc-01",
-                "quote": "Room 2-07 booking, 09:00-10:00, host G. Ashby, external attendee M. Keable (Penwick Document Services)"
+                "quote": "19:47:10 | Loading dock door | Badge 40562 (G. Mattick) | Granted, entry"
+              },
+              {
+                "record_id": "doc-01",
+                "quote": "Loading dock camera: no recording from 18:30 to 21:30 on 7 April."
               }
             ]
           ]
         },
         {
           "turn": 4,
-          "question": "We have Fault ticket for the north staff door camera, 15 April 2026. Can you tell me about it?",
+          "question": "We have Leave request history for G. Mattick, March and April 2026. Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
-            "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-06"
           ],
-          "answer": "FT-0415-03 was opened automatically at 07:31 on 15 April when the north staff door camera stopped sending video. The power supply unit had failed, and recording resumed at 11:02 after it was replaced. No other camera was affected. No notice about the fault was sent to staff.",
+          "answer": "It shows I booked the personal leave for 7 Apr, 12:30-17:00, on 30 Mar at 09:12, and Brandt approved it on 30 Mar. Reasons are optional for personal leave and are not shown to the approver.",
           "protected": [
-            "No notice about the fault was sent to staff"
+            "on 30 Mar at 09:12"
           ],
           "support": [
             [
               {
-                "record_id": "rec-03",
-                "quote": "Ticket FT-0415-03, opened automatically at 07:31 on 15 April when the north staff door camera stopped sending video."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-03",
-                "quote": "the camera's power supply unit had failed"
+                "record_id": "rec-06",
+                "quote": "Booked | Leave | Type | Approved 12 Mar 14:02"
               },
               {
-                "record_id": "rec-03",
-                "quote": "The technician replaced the power supply unit, and recording resumed at 11:02."
+                "record_id": "rec-06",
+                "quote": "30 Mar 09:12 | 7 Apr, 12:30-17:00 | Personal leave | C. Brandt, 30 Mar"
               }
             ],
             [
               {
-                "record_id": "rec-03",
-                "quote": "No other camera was affected."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-03",
-                "quote": "No notice about the fault was sent to staff."
+                "record_id": "rec-06",
+                "quote": "Reasons are optional for personal leave and are not shown to the approver."
               }
             ]
           ]
         },
         {
           "turn": 5,
-          "question": "We have Written statement, Gwendolyn Ashby, Contracts Officer (16 April 2026). Can you tell me about it?",
+          "question": "We have Property pass system record of passes raised on 7 April 2026. Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "She says her meeting in Room 3-02 ran until about ten to nine. On 14 April she asked me to meet Keable and have Room 2-07 ready for nine. When she reached Room 2-07 at about five to nine, Keable and I were already there and the projector was on. He has come to the last two quarterly reviews, so I know him. At about ten past ten I walked him out of the room.",
+          "answer": "It shows the one pass raised that day, PP-0407-06, which Brandt raised at 16:45 with me as holder. It lists 2 cartons, projector kit BA-AV-0412 and 30 training binders, for the Corbel Lane training centre, from 7 Apr 16:45 to 8 Apr 09:00.",
           "protected": [
-            "Keable and I were already there"
+            "with me as holder"
           ],
           "support": [
             [
               {
+                "record_id": "rec-01",
+                "quote": "PP-0407-06 | 16:45 | C. Brandt | G. Mattick | 2 cartons: projector kit BA-AV-0412; 30 training binders (Records Handling course) | Corbel Lane training centre | 7 Apr 16:45 to 8 Apr 09:00"
+              },
+              {
                 "record_id": "rec-05",
-                "quote": "My meeting in Room 3-02 ran until about ten to nine."
+                "quote": "at 16:45 I raised property pass PP-0407-06 for it with Glen as holder"
               }
             ],
             [
               {
-                "record_id": "rec-05",
-                "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-05",
-                "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there and the projector was on."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-05",
-                "quote": "He has come to the last two quarterly reviews, so Elise knows him."
-              }
-            ],
-            [
-              {
-                "record_id": "rec-05",
-                "quote": "at about ten past ten Elise walked him out of the room."
+                "record_id": "rec-01",
+                "quote": "PP-0407-06 | 16:45 | C. Brandt | G. Mattick | 2 cartons: projector kit BA-AV-0412; 30 training binders (Records Handling course) | Corbel Lane training centre | 7 Apr 16:45 to 8 Apr 09:00"
               }
             ]
           ]
         },
         {
           "turn": 6,
-          "question": "We have Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05. Can you tell me about it?",
+          "question": "We have Email from the Corbel Lane training centre about the 8 April kit delivery. Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "At 08:41:49 it shows me alone, from the north corridor to the lift. At 08:49:30 it shows me alone, from the lift to the main lobby. At 08:51:05 it shows me with Keable from the main lobby to the lift, with a visitor badge visible on his lanyard. Camera C-12 recorded normally throughout.",
+          "answer": "It is from Ainsley at the Corbel Lane training centre, sent on 8 April at 07:52, and says I dropped the kit off at 07:40. She signed for two cartons against pass PP-0407-06: the projector kit, BA-AV-0412, and the 30 Records Handling binders.",
           "protected": [
-            "with a visitor badge visible on his lanyard"
+            "dropped the kit off at 07:40"
           ],
           "support": [
             [
               {
                 "record_id": "rec-02",
-                "quote": "08:41:49 | North corridor | E. Dunmore, alone | Lift"
+                "quote": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre. To: C. Brandt, Supply Supervisor. Sent: 8 April 2026, 07:52."
+              },
+              {
+                "record_id": "rec-02",
+                "quote": "Glen Mattick dropped the kit off at 07:40."
               }
             ],
             [
               {
                 "record_id": "rec-02",
-                "quote": "08:49:30 | Lift | E. Dunmore, alone | Main lobby"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-02",
-                "quote": "Camera C-12 recorded normally throughout."
+                "quote": "I signed for two cartons against pass PP-0407-06: the projector kit (BA-AV-0412) and the 30 Records Handling binders."
               }
             ]
           ]
         },
         {
           "turn": 7,
-          "question": "We have Outgoing call log of the main lobby security desk telephone, 15 April 2026. Can you tell me about it?",
+          "question": "We have Supply Store S-2 high-value stock counts, 7 April close to 8 April opening. Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "At 08:46:10 Ashby was called on Ext 2231, with no answer. I had the Procurement main line, Ext 2210, at my Ext 2214 at 08:46:50, for 0:38. The main line rings on every desk in the unit. Then at 08:49:30 I was alone, from the lift to the main lobby.",
+          "answer": "It shows a close count by Pike at lock-up at 17:00 on 7 April, and an opening count by Brandt at 07:00 on 8 April, before any issue. Every high-value bin matched at opening. Items already on the dispatch shelf under a property pass are not counted in the bins. There were no issues or passes recorded between the counts.",
           "protected": [
-            "at my Ext 2214 at 08:46:50"
+            "Every high-value bin matched at opening"
           ],
           "support": [
             [
               {
-                "record_id": "rec-04",
-                "quote": "Time | Called | Answered at | Duration 08:46:10 | Ext 2231 (G. Ashby) | No answer"
+                "record_id": "rec-03",
+                "quote": "Close count by L. Pike, Stock Clerk, at lock-up on 7 April at 17:00; opening count by C. Brandt, Supply Supervisor, on unlocking on 8 April at 07:00, before any issue."
               }
             ],
             [
               {
-                "record_id": "rec-04",
-                "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                "record_id": "rec-03",
+                "quote": "Every high-value bin matched at opening."
               }
             ],
             [
               {
-                "record_id": "rec-04",
-                "quote": "Extension 2210 is the Procurement and Contracts main line, which rings on every desk in the unit."
+                "record_id": "rec-03",
+                "quote": "Items already on the dispatch shelf under a property pass are not counted in the bins."
               }
             ],
             [
               {
-                "record_id": "rec-02",
-                "quote": "08:49:30 | Lift | E. Dunmore, alone | Main lobby"
+                "record_id": "rec-03",
+                "quote": "Issues or passes recorded between the counts: none."
               }
             ]
           ]
         },
         {
           "turn": 8,
-          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "question": "We have Written statement, Celia Brandt, Supply Supervisor (8 April 2026). Can you tell me about it?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "At the end, at about five to nine, Ashby reached Room 2-07, and Keable and I were already there. Before that, at 08:51:05, I was with Keable from the main lobby to the lift. Before that, at 08:49:30, I was alone, from the lift to the main lobby. Before that, at 08:46:50, I had the Procurement main line at my Ext 2214. Before that, at 08:41, my badge 70315 was granted at the north staff door.",
+          "answer": "She says the course at Corbel Lane started at 08:00 on 8 April and Corbel Lane is about an hour's drive from the Annex, so the kit had to leave the evening before. At about 16:40 she staged the Corbel Lane training kit on the S-2 dispatch shelf. She says she phoned me at 16:50 and asked me to collect the kit that evening, and I said I would. She did not raise an after-hours work order, and asked me by phone.",
           "protected": [
-            "I was with Keable from the main lobby to the lift"
+            "the kit had to leave the evening before"
           ],
           "support": [
             [
               {
                 "record_id": "rec-05",
-                "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there and the projector was on."
+                "quote": "The Records Handling course at the Corbel Lane training centre started at 08:00 on 8 April"
               },
               {
-                "record_id": "doc-01",
-                "quote": "Room 2-07 booking, 09:00-10:00, host G. Ashby"
+                "record_id": "rec-05",
+                "quote": "Corbel Lane is about an hour's drive from the Annex, so the kit had to leave the evening before."
               }
             ],
             [
               {
-                "record_id": "rec-02",
-                "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                "record_id": "rec-05",
+                "quote": "At about 16:40 I staged the Corbel Lane training kit on the S-2 dispatch shelf"
               }
             ],
             [
               {
-                "record_id": "rec-02",
-                "quote": "08:49:30 | Lift | E. Dunmore, alone | Main lobby"
+                "record_id": "rec-05",
+                "quote": "At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening and get it to Corbel Lane before the session. He said he would."
               }
             ],
             [
               {
-                "record_id": "rec-04",
-                "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                "record_id": "rec-05",
+                "quote": "I did not raise an after-hours work order; I asked him by phone."
               }
             ]
           ]
         },
         {
           "turn": 9,
-          "question": "Can you tell me about your entry through the north staff door at 08:41?",
+          "question": "Can you go through that period again, starting from the end and working backwards?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "My badge 70315 was granted at the north staff door, car park side, at 08:41. The door closed after 11 s. At 08:41:49 the lift camera shows me alone, from the north corridor to the lift. That was my one badge entry to the building on 15 April.",
+          "answer": "At the end, I dropped the kit off at Corbel Lane at 07:40. Before that, at 20:05, the night guard saw me loading two cartons. Before that, my badge was granted exit at the loading dock door. Before that, at 19:52, my badge was granted at Supply Store S-2. Before that, at 19:47, my badge was granted entry at the loading dock door. First, Brandt phoned me that afternoon and asked me to collect the kit that evening.",
           "protected": [
-            "the lift camera shows me alone"
+            "the night guard saw me loading two cartons"
           ],
           "support": [
             [
               {
-                "record_id": "doc-01",
-                "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
-              }
-            ],
-            [
-              {
-                "record_id": "doc-01",
-                "quote": "08:41:23 | North staff door | - | Door closed (open 11 s)"
-              }
-            ],
-            [
-              {
                 "record_id": "rec-02",
-                "quote": "08:41:49 | North corridor | E. Dunmore, alone | Lift"
+                "quote": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre."
               },
               {
                 "record_id": "rec-02",
-                "quote": "Camera C-12 recorded normally throughout."
+                "quote": "Glen Mattick dropped the kit off at 07:40. I signed for two cartons against pass PP-0407-06"
+              }
+            ],
+            [
+              {
+                "record_id": "doc-03",
+                "quote": "Round log kept by O. Talbot, night guard, 18:00 to 02:00."
+              },
+              {
+                "record_id": "doc-03",
+                "quote": "20:05 | Loading dock | G. Mattick (Supply) loading two cartons into the boot of a grey hatchback."
               }
             ],
             [
               {
                 "record_id": "doc-01",
-                "quote": "Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door."
+                "quote": "20:03:18 | Loading dock door | Badge 40562 (G. Mattick) | Granted, exit"
+              }
+            ],
+            [
+              {
+                "record_id": "doc-01",
+                "quote": "19:52:31 | Supply Store S-2 | Badge 40562 (G. Mattick) | Granted"
+              }
+            ],
+            [
+              {
+                "record_id": "doc-01",
+                "quote": "19:47:10 | Loading dock door | Badge 40562 (G. Mattick) | Granted, entry"
+              }
+            ],
+            [
+              {
+                "record_id": "rec-05",
+                "quote": "I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
+              },
+              {
+                "record_id": "rec-01",
+                "quote": "PP-0407-06 | 16:45 | C. Brandt | G. Mattick"
               }
             ]
           ]
         },
         {
           "turn": 10,
-          "question": "What was the purpose of your entry through the north staff door at 08:41?",
+          "question": "Can you tell me about your entry to Supply Store S-2 at 19:52?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "On 14 April Ashby asked me to meet Keable and have Room 2-07 ready for nine. Ashby was in a meeting in Room 3-02 until about 08:50. At 08:41 my badge 70315 was granted at the north staff door, car park side. The 09:00-10:00 review was the quarterly review of the print and copier contract.",
+          "answer": "My badge 40562 was granted at Supply Store S-2 at 19:52. It was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April. I left S-2 by the exit button, which records no credential.",
           "protected": [
-            "asked me to meet Keable"
+            "the only badge entry to S-2"
           ],
           "support": [
             [
               {
-                "record_id": "rec-05",
-                "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
-              },
-              {
-                "record_id": "doc-03",
-                "quote": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20."
-              }
-            ],
-            [
-              {
-                "record_id": "doc-03",
-                "quote": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20."
-              },
-              {
-                "record_id": "doc-03",
-                "quote": "I am in a meeting in Room 3-02 until about 08:50"
+                "record_id": "doc-01",
+                "quote": "19:52:31 | Supply Store S-2 | Badge 40562 (G. Mattick) | Granted"
               }
             ],
             [
               {
                 "record_id": "doc-01",
-                "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                "quote": "The 19:52 entry was the only badge entry to S-2 between 17:00 on 7 April and 07:00 on 8 April."
               }
             ],
             [
               {
-                "record_id": "doc-03",
-                "quote": "Subject: Quarterly review, print and copier contract. Room 2-07, Halvern Street Annex, 15 April, 09:00-10:00."
+                "record_id": "doc-01",
+                "quote": "S-2 is left by an exit button, which records no credential."
               }
             ]
           ]
         },
         {
           "turn": 11,
-          "question": "Who else was present, or could confirm what you have described?",
+          "question": "What was the purpose of your entry to Supply Store S-2 at 19:52?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "Ashby reached Room 2-07 at about five to nine, when Keable and I were already there and the projector was on. Haskett was the desk officer on duty from 07:30, and at 08:45 it shows Keeble with V-22. Camera C-12 recorded normally throughout and shows me with Keable from the main lobby at 08:51:05. At 08:46:50 the Procurement main line was at my Ext 2214, for 0:38.",
+          "answer": "It was to collect the Corbel Lane training kit from the S-2 dispatch shelf, as Brandt phoned and asked me to. Outside store hours, supply staff enter Supply Store S-2 only at a supervisor's request.",
           "protected": [
-            "Camera C-12 recorded normally throughout"
+            "to collect the Corbel Lane training kit"
           ],
           "support": [
             [
               {
                 "record_id": "rec-05",
-                "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there and the projector was on."
-              },
-              {
-                "record_id": "doc-01",
-                "quote": "Room 2-07 booking, 09:00-10:00, host G. Ashby"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-01",
-                "quote": "Desk officer on duty from 07:30: R. Haskett."
+                "quote": "At about 16:40 I staged the Corbel Lane training kit on the S-2 dispatch shelf, and at 16:45 I raised property pass PP-0407-06 for it with Glen as holder. At 16:50 I phoned Glen, who was on leave that afternoon, and asked him to collect the kit that evening"
               },
               {
                 "record_id": "rec-01",
-                "quote": "08:45 | M. Keeble | Penwick Document Services | V-22 | G. Ashby | 10:12"
+                "quote": "PP-0407-06 | 16:45 | C. Brandt | G. Mattick"
               }
             ],
             [
               {
-                "record_id": "rec-02",
-                "quote": "Camera C-12 recorded normally throughout."
-              },
-              {
-                "record_id": "rec-02",
-                "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
-              }
-            ],
-            [
-              {
-                "record_id": "rec-04",
-                "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                "record_id": "doc-02",
+                "quote": "(b) Outside store hours (07:00-17:00), supply staff enter Supply Store S-2 only at a supervisor's request."
               }
             ]
           ]
         },
         {
           "turn": 12,
-          "question": "Can you tell me about the arrival of the Penwick Document Services visitor that morning?",
+          "question": "Who else was present, or could confirm what you have described?",
           "released_before": [
             "doc-01",
             "doc-02",
             "doc-03",
+            "doc-04",
             "rec-01",
             "rec-02",
             "rec-03",
             "rec-04",
-            "rec-05"
+            "rec-05",
+            "rec-06"
           ],
-          "answer": "At 08:45 the desk shows Keeble of Penwick Document Services, with V-22 and Ashby. At 08:46:10 Ashby was called on Ext 2231, with no answer. At 08:46:50 I had the Procurement main line at my Ext 2214, for 0:38. At 08:51:05 I was with Keable from the main lobby to the lift, with a visitor badge visible on his lanyard.",
+          "answer": "Brandt raised pass PP-0407-06 for the kit with me as holder, and phoned me. Talbot, the night guard, saw me loading two cartons into the boot of a grey hatchback at 20:05. Ainsley at Corbel Lane signed for two cartons against pass PP-0407-06 when I dropped the kit off at 07:40. Pike and Brandt made the stock counts, and every high-value bin matched at opening.",
           "protected": [
-            "with a visitor badge visible on his lanyard"
+            "saw me loading two cartons"
           ],
           "support": [
             [
               {
-                "record_id": "rec-01",
-                "quote": "08:45 | M. Keeble | Penwick Document Services | V-22 | G. Ashby | 10:12"
+                "record_id": "rec-05",
+                "quote": "I staged the Corbel Lane training kit on the S-2 dispatch shelf, and at 16:45 I raised property pass PP-0407-06 for it with Glen as holder. At 16:50 I phoned Glen"
               },
               {
                 "record_id": "rec-01",
-                "quote": "Desk officer on duty from 07:30: R. Haskett."
+                "quote": "PP-0407-06 | 16:45 | C. Brandt | G. Mattick"
               }
             ],
             [
               {
-                "record_id": "rec-04",
-                "quote": "Time | Called | Answered at | Duration 08:46:10 | Ext 2231 (G. Ashby) | No answer"
-              }
-            ],
-            [
+                "record_id": "doc-03",
+                "quote": "Round log kept by O. Talbot, night guard, 18:00 to 02:00."
+              },
               {
-                "record_id": "rec-04",
-                "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                "record_id": "doc-03",
+                "quote": "20:05 | Loading dock | G. Mattick (Supply) loading two cartons into the boot of a grey hatchback."
               }
             ],
             [
               {
                 "record_id": "rec-02",
-                "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                "quote": "From: J. Ainsley, Training Coordinator, Corbel Lane training centre."
+              },
+              {
+                "record_id": "rec-02",
+                "quote": "Glen Mattick dropped the kit off at 07:40. I signed for two cartons against pass PP-0407-06"
+              }
+            ],
+            [
+              {
+                "record_id": "rec-03",
+                "quote": "Close count by L. Pike, Stock Clerk, at lock-up on 7 April at 17:00; opening count by C. Brandt, Supply Supervisor, on unlocking on 8 April at 07:00, before any issue."
+              },
+              {
+                "record_id": "rec-03",
+                "quote": "Every high-value bin matched at opening."
               }
             ]
           ]
