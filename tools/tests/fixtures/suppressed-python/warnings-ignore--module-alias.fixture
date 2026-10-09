@@ -1,0 +1,3 @@
+import warnings as w
+
+w.simplefilter(  "ignore"  )

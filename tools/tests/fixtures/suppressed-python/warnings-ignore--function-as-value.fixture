@@ -1,0 +1,4 @@
+import warnings
+
+quiet = warnings.simplefilter
+quiet("ignore")

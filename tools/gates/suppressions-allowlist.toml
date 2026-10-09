@@ -1,0 +1,17 @@
+# Verified false positives for tools/check_no_rigging.py (global hard gate: never rig, soften or
+# bypass CI/tests). Each entry is one file, one marker and the whole line, stripped (`line`, compared
+# for equality, so an extra rule code or directive on that line is a new finding), with the reason it is
+# a false positive. Entries that match nothing fail the gate. Adding an entry is
+# a gate change: it needs its own review under the same global rule, never a routine edit.
+
+[[allow]]
+path = "tools/proc.py"
+marker = "noqa"
+line = "return subprocess.run(argv, cwd=cwd, input=stdin, capture_output=True, check=check)  # noqa: S603"
+reason = "Ruff S603 flags every subprocess call whose argv is not all literals; this is the single call site for the gate tools, argv[0] is an allowlisted tool resolved to an absolute path, and no shell is used (verified false positive; lifted from TechnoMile tools/proc.py, ATTRIBUTIONS.md)"
+
+[[allow]]
+path = "tools/tests/subprocess_support.py"
+marker = "noqa"
+line = "return subprocess.run(  # noqa: S603"
+reason = "Ruff S603 flags every subprocess call whose argv is not all literals (sys.executable is dynamic); this is the single call site of the role boot-check tests, argv is a fixed [interpreter, '-m', module] shape, there is no shell, and env is fully replaced by the caller so no ambient credential reaches the child (verified false positive; S5 1.4 process tests for the four roles)"

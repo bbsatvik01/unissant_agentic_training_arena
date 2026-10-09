@@ -1,0 +1,5 @@
+import warnings
+
+
+def test_x(recwarn: object) -> None:
+    warnings.warn("swallowed", DeprecationWarning, stacklevel=1)

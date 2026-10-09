@@ -3,10 +3,27 @@
 /Unissant Use Case_Investigative AI Training Arena.pptx.pdf
 /Unissant Use Case_Investigative AI Training Arena.pptx.txt
 
-# Secrets
+# Secrets: every env file (.env, .env.local, .env.local.public|subject|referee, ...) except the committed
+# example shapes; keys and keystores. tools/check_push_clean.py fails if one is ever tracked anyway.
 .env
 .env.*
 !.env.example
+!.env.local.example
+*.pem
+*.key
+
+# Hidden case families (D-014): authored by isolated agents into this directory, never committed, never
+# read by the team or a gate (tools/check_push_clean.py also refuses any tracked path under it).
+cases/hidden/
+
+# Gate tooling outputs: pinned security binaries, coverage, SARIF, exported requirements, CodeQL databases.
+.tools/
+.gates/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+coverage/
 
 # Python
 .venv/
@@ -15,12 +32,19 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-coverage.xml
+dist/
+build/
+*.egg-info/
 
 # Node
 node_modules/
 .next/
 
+# Scratch
+scratch/
+tmp/
+
 # OS / editor
 .DS_Store
+.idea/
+.vscode/

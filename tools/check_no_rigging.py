@@ -1,0 +1,470 @@
+"""No-rigging scan (global hard gate: never rig, soften or bypass CI/tests): forbidden gate
+suppressions and hidden code paths fail the build.
+
+Scans every tracked or new (not git-ignored) source and config file for the suppression markers
+this gate forbids. A marker passes only when tools/gates/suppressions-allowlist.toml names that file,
+that marker and the whole line, stripped of surrounding whitespace (``line``), with a reason: a verified
+false positive, narrowest scope. The line is compared for equality, never as a substring, so widening an
+approved directive (an extra rule code, a second directive, a bare form) no longer matches its entry.
+Allowlist entries that match nothing fail. Python under docs/ (which the linters skip as frozen research
+evidence) must stay inside the one archive root. A file that is itself a
+suppression list counts every entry line as a finding under the matching inline marker, so it needs the
+same reviewed allowlist entry: ``.gitleaksignore`` (fingerprints gitleaks skips, locally and in CI) and a
+gitleaks config (``.gitleaks.toml`` / ``gitleaks.toml``, loaded automatically by the CLI and the Action;
+it can allowlist findings, disable rules, or replace the default rule set). YAML is also read as YAML:
+``continue-on-error`` is judged on the parsed document, so a value on the next line, a block scalar, an
+alias or a flow mapping counts as GitHub's parser reads it, and only a plain boolean false passes; a YAML
+file the parser cannot read fails closed. Python is also read as Python: a warning filter set to ignore (a
+``warnings`` call, ``catch_warnings(action=...)``, the ``warnings.filters`` list, or a
+``pytest.mark.filterwarnings`` filter) and a pytest or unittest skip are judged on the syntax tree, with
+import aliases resolved and a module reached through another (``unittest.case.warnings``) seen as itself,
+so a keyword argument, a call across lines, an alias, the function taken as a value or fetched through
+``getattr`` all count. The checks are allow-lists, never deny-lists: the only filter action that passes is
+a literal ``error`` (``ignore``, ``default``, ``always``, ``module``, ``once``, any abbreviation and any
+non-literal action weaken -W error and fail); of the ``warnings`` module only the emitting functions and
+the judged filter calls may be used (``resetwarnings``, ``filters``, ``showwarning``, ... fail); a guarded
+module (``warnings``, ``pytest``, ``pytest.mark``, ``unittest``) may only be the base of a non-dunder
+attribute access or getattr's object, so assigning, passing or returning it, ``__dict__`` and ``vars()``
+fail, and so does loading one by name (``__import__``, ``import_module``, ``sys.modules[...]``). Import
+bindings are not told apart by scope: a name bound to a guarded module anywhere in the file is judged as
+that module everywhere. pytest's ``recwarn`` fixture, which records every warning so none fails the test,
+is refused too. Python the parser cannot read fails closed.
+
+Every Python gate reads ``pyproject.toml``, named explicitly in the Makefile; a competing configuration
+file a tool would discover on its own (``mypy.ini``, ``setup.cfg``, ``tox.ini``, ``pytest.ini``,
+``ruff.toml``, ``.coveragerc``, ...) anywhere outside docs/, or a gate ``[tool.*]`` table in a nested
+``pyproject.toml``, fails.
+
+``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
+hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
+"""
+
+import argparse
+import ast
+import re
+import subprocess
+import sys
+import tomllib
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+from tools import proc
+
+ALLOWLIST_PATH = "tools/gates/suppressions-allowlist.toml"
+DOCS_PY_ARCHIVES = ("docs/research/",)
+MARKERS_PATH = "tools/gates/suppression-markers.toml"
+POLICY_FILES = {ALLOWLIST_PATH, MARKERS_PATH}  # name markers as data; validated on load
+SCANNED_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".toml", ".yaml", ".yml"}
+SCANNED_SUFFIXES |= {".json", ".cfg", ".ini", ".sh", ".txt"}
+# A whole file whose entries are suppressions -> the marker each non-blank, non-comment line counts as.
+SUPPRESSION_FILES = {
+    ".gitleaksignore": "gitleaks-allow",
+    ".gitleaks.toml": "gitleaks-allow",
+    "gitleaks.toml": "gitleaks-allow",
+}
+SCANNED_NAMES = {"Makefile", "Dockerfile", "pre-commit", "pre-push", *SUPPRESSION_FILES}
+YAML_SUFFIXES = {".yaml", ".yml"}
+CONTINUE_ON_ERROR = "continue-on-error"
+# The only value that leaves a failing job or step failing: a plain (unquoted) YAML boolean false.
+FALSE_SPELLINGS = {"false", "False", "FALSE"}
+
+
+def load_markers(text: str) -> dict[str, re.Pattern[str]]:
+    """Marker regexes from the policy file; ``ids`` must list exactly the ``patterns`` keys."""
+    data = tomllib.loads(text)
+    ids, patterns = data.get("ids"), data.get("patterns")
+    if not isinstance(ids, list) or not isinstance(patterns, dict) or sorted(ids) != sorted(patterns):
+        msg = f"{MARKERS_PATH}: `ids` must list exactly the keys of [patterns]"
+        raise ValueError(msg)
+    return {str(k): re.compile(str(v)) for k, v in patterns.items()}
+
+
+@dataclass(frozen=True)
+class Finding:
+    path: str
+    line: int
+    marker: str
+    text: str
+
+
+@dataclass(frozen=True)
+class Allowance:
+    """One verified exception: a marker in one file, only on a line whose stripped text equals ``line``."""
+
+    path: str
+    marker: str
+    line: str
+
+    def covers(self, finding: Finding) -> bool:
+        return finding.path == self.path and finding.marker == self.marker and finding.text == self.line
+
+
+def load_allowlist(text: str, markers: dict[str, re.Pattern[str]]) -> list[Allowance]:
+    """Every entry needs path, a known marker, the exact stripped ``line`` and a reason."""
+    allowed: list[Allowance] = []
+    for entry in tomllib.loads(text).get("allow", []):
+        path, marker, line, reason = (entry.get(k) for k in ("path", "marker", "line", "reason"))
+        if not all(isinstance(v, str) and v.strip() for v in (path, marker, line, reason)):
+            msg = f"allowlist entry needs non-empty path, marker, line and reason: {entry!r}"
+            raise ValueError(msg)
+        if marker not in markers:
+            msg = f"allowlist entry names unknown marker {marker!r}"
+            raise ValueError(msg)
+        allowed.append(Allowance(str(path), str(marker), str(line).strip()))
+    return allowed
+
+
+def is_scanned(path: str) -> bool:
+    if path.startswith("docs/") or path in POLICY_FILES:
+        return False
+    name = path.rsplit("/", 1)[-1]
+    return name in SCANNED_NAMES or Path(name).suffix in SCANNED_SUFFIXES
+
+
+def scan_text(path: str, text: str, markers: dict[str, re.Pattern[str]]) -> list[Finding]:
+    findings: list[Finding] = []
+    whole_file_marker = SUPPRESSION_FILES.get(path.rsplit("/", 1)[-1])
+    for number, line in enumerate(text.splitlines(), start=1):
+        if whole_file_marker is not None and line.strip() and not line.lstrip().startswith("#"):
+            findings.append(Finding(path, number, whole_file_marker, line.strip()))
+        for marker, pattern in markers.items():
+            if pattern.search(line):
+                findings.append(Finding(path, number, marker, line.strip()))
+    return findings
+
+
+def _plain_false(node: yaml.Node) -> bool:
+    return isinstance(node, yaml.ScalarNode) and node.style is None and node.value in FALSE_SPELLINGS
+
+
+def yaml_findings(path: str, text: str) -> list[Finding]:
+    """``continue-on-error`` anywhere in the parsed documents with any value but a plain boolean false."""
+    lines = text.splitlines()
+    findings: list[Finding] = []
+    for document in yaml.compose_all(text, Loader=yaml.SafeLoader):
+        stack: list[yaml.Node] = [document]
+        seen: set[int] = set()
+        while stack:
+            node = stack.pop()
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            if isinstance(node, yaml.MappingNode):
+                for key, value in node.value:
+                    if isinstance(key, yaml.ScalarNode) and key.value == CONTINUE_ON_ERROR and not _plain_false(value):
+                        row = key.start_mark.line
+                        findings.append(Finding(path, row + 1, CONTINUE_ON_ERROR, lines[row].strip()))
+                    stack.extend((key, value))
+            elif isinstance(node, yaml.SequenceNode):
+                stack.extend(node.value)
+    return findings
+
+
+PYTHON_SUFFIXES = {".py", ".pyi"}
+WARNINGS_IGNORE, PYTEST_SKIP, UNITTEST_SKIP = "warnings-ignore", "pytest-skip", "unittest-skip"
+# Canonical names (after import aliases are resolved) whose call sets a warning filter: the action is the
+# first positional argument or ``action=``; a pytest mark takes several filter strings, all positional.
+WARNING_FILTER_CALLS = {"warnings.filterwarnings", "warnings.simplefilter"}
+PYTEST_FILTER_MARK = "pytest.mark.filterwarnings"
+CATCH_WARNINGS = "warnings.catch_warnings"
+GETATTR_ARGS = 2  # getattr(object, name)
+KEPT_ACTION = "error"  # the one warning-filter action that keeps -W error intact
+# The warnings module is an allow-list: emitting warnings is fine, the filter calls are judged, and every
+# other attribute (resetwarnings, filters, showwarning, defaultaction, __dict__, ...) can drop a warning.
+WARNINGS_EMIT = {"warnings.warn", "warnings.warn_explicit", "warnings.WarningMessage", "warnings.deprecated"}
+JUDGED_WARNING_CALLS = {*WARNING_FILTER_CALLS, CATCH_WARNINGS}
+# Any reference to one of these (a call, a decorator, a value) skips or expects failure.
+SKIP_NAMES = {
+    **{f"pytest.{n}": PYTEST_SKIP for n in ("skip", "xfail", "importorskip")},
+    **{f"pytest.mark.{n}": PYTEST_SKIP for n in ("skip", "skipif", "xfail")},
+    **{
+        f"{module}.{n}": UNITTEST_SKIP
+        for module in ("unittest", "unittest.case")
+        for n in ("skip", "skipIf", "skipUnless", "expectedFailure")
+    },  # the skip exception is caught by name in every form, so the line scan suffices for it
+}
+# Modules used only as an attribute base or getattr's object, never through a dunder attribute; getattr is
+# judged by the name it fetches (a non-literal name fails closed), any other use is an escape.
+GUARDED_MODULES = {"warnings": WARNINGS_IGNORE, "pytest": PYTEST_SKIP, "pytest.mark": PYTEST_SKIP}
+GUARDED_MODULES |= {"unittest": UNITTEST_SKIP, "unittest.case": UNITTEST_SKIP}
+GUARDED_NAMES = {**SKIP_NAMES, PYTEST_FILTER_MARK: WARNINGS_IGNORE}
+GUARDED_NAMES |= dict.fromkeys(JUDGED_WARNING_CALLS, WARNINGS_IGNORE)
+# Loading a module by name: builtins and importlib functions, and the loaded-module table.
+REFLECTIVE_NAMES = {"__import__", "__builtins__"}
+LOADER_CALLS = {"__import__", "import_module", "reload"}
+MODULE_TABLE = "sys.modules"
+# pytest's recwarn fixture records every warning a test raises, so none of them fails it.
+RECORDING_FIXTURES = {"recwarn"}
+
+
+def _bindings(tree: ast.AST) -> dict[str, set[str]]:
+    """Local name -> every module or attribute an import anywhere in the file binds it to. Scopes are not
+    told apart: a name bound to a guarded module anywhere is judged as that module everywhere."""
+    bound: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                head = alias.name.split(".", 1)[0]
+                bound.setdefault(alias.asname or head, set()).add(alias.name if alias.asname else head)
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            for alias in node.names:
+                bound.setdefault(alias.asname or alias.name, set()).add(f"{node.module}.{alias.name}")
+    return bound
+
+
+def _canonical(name: str) -> str:
+    """The longest dotted suffix of ``name`` that is a guarded module or a ``warnings.*`` name, else
+    ``name``: a guarded module reached through another (``unittest.case.warnings``) is still itself."""
+    parts = name.split(".")
+    for start in range(len(parts)):
+        suffix = ".".join(parts[start:])
+        if suffix in GUARDED_NAMES or suffix in GUARDED_MODULES or suffix.startswith("warnings."):
+            return suffix
+    return name
+
+
+def _resolve(node: ast.expr, bound: dict[str, set[str]]) -> set[str]:
+    """Every canonical dotted name a Name/Attribute chain rooted in an imported name can denote."""
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if not isinstance(node, ast.Name):
+        return set()
+    return {_canonical(".".join([base, *reversed(parts)])) for base in bound.get(node.id, ())}
+
+
+def _weakens(expr: ast.expr | None) -> bool:
+    """True unless ``expr`` is absent or a literal filter whose action (before any ``:``) is ``error``."""
+    if expr is None:
+        return False
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        return expr.value.split(":", 1)[0].strip() != KEPT_ACTION
+    return True
+
+
+def _call_suppresses(name: str, call: ast.Call) -> bool:
+    if any(keyword.arg is None for keyword in call.keywords):  # **kwargs: the action cannot be read
+        return True
+    action = next((k.value for k in call.keywords if k.arg == "action"), None)
+    if name == CATCH_WARNINGS:
+        return _weakens(action)
+    if name == PYTEST_FILTER_MARK:
+        return any(_weakens(arg) for arg in call.args) or _weakens(action)
+    first = call.args[0] if call.args else None
+    return _weakens(action) or _weakens(first)
+
+
+def _attribute_marker(name: str) -> str | None:
+    """The marker for a guarded module's attribute that is never allowed, or None."""
+    module, _, attribute = name.rpartition(".")
+    if module in GUARDED_MODULES and attribute.startswith("__"):
+        return GUARDED_MODULES[module]
+    if name in SKIP_NAMES:
+        return SKIP_NAMES[name]
+    if module == "warnings" and name not in WARNINGS_EMIT and name not in JUDGED_WARNING_CALLS:
+        return WARNINGS_IGNORE
+    return None
+
+
+def _is_getattr(call: ast.Call) -> bool:
+    return isinstance(call.func, ast.Name) and call.func.id == "getattr" and len(call.args) >= GETATTR_ARGS
+
+
+def _literal_module(expr: ast.expr | None) -> str | None:
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        name = _canonical(expr.value)
+        return name if name in GUARDED_MODULES else None
+    return None
+
+
+def _call_marker(call: ast.Call, bound: dict[str, set[str]]) -> str | None:
+    """getattr on a guarded module (by the name it fetches; a non-literal name fails closed), or a guarded
+    module loaded by name."""
+    if _is_getattr(call):
+        for module in _resolve(call.args[0], bound) & GUARDED_MODULES.keys():
+            name = call.args[1]
+            if not (isinstance(name, ast.Constant) and isinstance(name.value, str)):
+                return GUARDED_MODULES[module]
+            fetched = _canonical(f"{module}.{name.value}")
+            marker = _attribute_marker(fetched) or GUARDED_NAMES.get(fetched)
+            if marker is not None:
+                return marker
+        return None
+    func = call.func
+    loader = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else None
+    loaded = _literal_module(call.args[0] if call.args else None)
+    if loader in LOADER_CALLS and loaded is not None:
+        return GUARDED_MODULES[loaded]
+    return None
+
+
+def _module_use_is_followed(node: ast.AST, parent: ast.AST | None) -> bool:
+    """A guarded module the scan can follow: the base of an attribute access, or getattr's object."""
+    if isinstance(parent, ast.Attribute):
+        return parent.value is node
+    return isinstance(parent, ast.Call) and _is_getattr(parent) and parent.args[0] is node
+
+
+def python_findings(path: str, text: str) -> list[Finding]:
+    """Weakened warning filters, skips and escaped guarded modules, judged on the syntax tree (module docstring)."""
+    tree = ast.parse(text, filename=path)
+    lines = text.splitlines()
+    bound = _bindings(tree)
+    called = {id(node.func): node for node in ast.walk(tree) if isinstance(node, ast.Call)}
+    parents = {id(child): parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    findings: list[Finding] = []
+
+    def found(node: ast.AST, marker: str) -> None:
+        row = getattr(node, "lineno", 1)
+        findings.append(Finding(path, row, marker, lines[row - 1].strip()))
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and (marker := _call_marker(node, bound)) is not None:
+            found(node, marker)
+        elif isinstance(node, ast.Name) and node.id in REFLECTIVE_NAMES:
+            found(node, WARNINGS_IGNORE)
+        elif isinstance(node, ast.Subscript) and MODULE_TABLE in _resolve(node.value, bound):
+            if (module := _literal_module(node.slice)) is not None:
+                found(node, GUARDED_MODULES[module])
+        elif isinstance(node, ast.arg) and node.arg in RECORDING_FIXTURES:
+            found(node, WARNINGS_IGNORE)
+        if not isinstance(node, ast.Name | ast.Attribute):
+            continue
+        for name in _resolve(node, bound):
+            call = called.get(id(node))
+            if name in GUARDED_MODULES:
+                if not _module_use_is_followed(node, parents.get(id(node))):
+                    found(node, GUARDED_MODULES[name])
+            elif (attribute_marker := _attribute_marker(name)) is not None:
+                found(call or node, attribute_marker)
+            elif name in GUARDED_NAMES and (call is None or _call_suppresses(name, call)):
+                found(call or node, GUARDED_NAMES[name])
+    return findings
+
+
+ROOT_CONFIG = "pyproject.toml"
+# Files a gate tool's own discovery prefers to pyproject.toml (mypy, pytest, ruff, coverage, bandit, flake8-era
+# setup.cfg/tox.ini sections); the Makefile names ROOT_CONFIG explicitly and none of these may exist.
+COMPETING_CONFIGS = {
+    "mypy.ini",
+    ".mypy.ini",
+    "setup.cfg",
+    "tox.ini",
+    "pytest.ini",
+    ".pytest.ini",
+    "ruff.toml",
+    ".ruff.toml",
+    ".coveragerc",
+    ".bandit",
+}
+# [tool.*] tables that configure a gate; in a nested pyproject.toml they would split the gate configuration.
+GATE_TOOL_TABLES = {"ruff", "mypy", "pytest", "coverage", "bandit"}
+
+
+def config_errors(path: str, read: Callable[[str], bytes]) -> list[str]:
+    """A competing gate configuration file, or a gate [tool.*] table in a nested pyproject.toml."""
+    name = path.rsplit("/", 1)[-1]
+    if name in COMPETING_CONFIGS:
+        return [f"{path}: competing gate configuration; the gates read only {ROOT_CONFIG}"]
+    if name != ROOT_CONFIG or path == ROOT_CONFIG:
+        return []
+    try:
+        tables = tomllib.loads(read(path).decode("utf-8")).get("tool", {})
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        return [f"{path}: not valid TOML ({exc}); the configuration scan cannot read it"]
+    return [
+        f"{path}: [tool.{table}] in a nested pyproject.toml; gate configuration lives only in {ROOT_CONFIG}"
+        for table in sorted(GATE_TOOL_TABLES & set(tables))
+    ]
+
+
+def docs_python_errors(paths: list[str]) -> list[str]:
+    """The linters skip docs/ (frozen research evidence); new Python there must not escape them."""
+    return [
+        f"{p}: Python under docs/ outside {DOCS_PY_ARCHIVES} escapes the linters"
+        for p in paths
+        if p.startswith("docs/") and p.endswith(".py") and not p.startswith(DOCS_PY_ARCHIVES)
+    ]
+
+
+def check(
+    paths: list[str],
+    read: Callable[[str], bytes],
+    allowed: list[Allowance],
+    markers: dict[str, re.Pattern[str]],
+) -> list[str]:
+    errors: list[str] = []
+    used: set[Allowance] = set()
+    for path in paths:
+        if not path.startswith("docs/"):
+            errors.extend(config_errors(path, read))
+        if not is_scanned(path):
+            continue
+        try:
+            text = read(path).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            errors.append(f"{path}: not UTF-8 text ({exc.reason}); the suppression scan cannot read it")
+            continue
+        findings = scan_text(path, text, markers)
+        if Path(path).suffix in PYTHON_SUFFIXES:
+            try:
+                findings += python_findings(path, text)
+            except (SyntaxError, ValueError) as exc:  # fail closed; the line scan's findings still stand
+                errors.append(f"{path}: not valid Python ({exc}); the suppression scan cannot read it")
+        if Path(path).suffix in YAML_SUFFIXES:
+            try:
+                findings += yaml_findings(path, text)
+            except yaml.YAMLError as exc:
+                reason = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+                errors.append(f"{path}: not valid YAML ({reason}); the suppression scan cannot read it")
+                continue
+        for finding in dict.fromkeys(findings):  # one finding per (line, marker) when the two scans agree
+            covering = [a for a in allowed if a.covers(finding)]
+            used.update(covering)
+            if not covering:
+                where = f"{finding.path}:{finding.line}"
+                errors.append(f"{where}: forbidden suppression [{finding.marker}] {finding.text[:160]}")
+    errors.extend(
+        f"{a.path}: stale allowlist entry [{a.marker}] {a.line!r} matches nothing" for a in allowed if a not in used
+    )
+    errors.extend(docs_python_errors(paths))
+    return errors
+
+
+def worktree_source(root: Path) -> tuple[list[str], Callable[[str], bytes]]:
+    return proc.repo_files(root), lambda path: (root / path).read_bytes()
+
+
+def snapshot_source(root: Path) -> tuple[list[str], Callable[[str], bytes]]:
+    paths = sorted(str(p.relative_to(root)) for p in root.rglob("*") if p.is_file() and not p.is_symlink())
+    return paths, lambda path: (root / path).read_bytes()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--snapshot", action="store_true", help="root is an exported index, not a git worktree")
+    args = parser.parse_args(argv)
+    root: Path = args.root
+    try:
+        paths, read = snapshot_source(root) if args.snapshot else worktree_source(root)
+        markers = load_markers(read(MARKERS_PATH).decode())
+        allowed = load_allowlist(read(ALLOWLIST_PATH).decode(), markers)
+        errors = check(paths, read, allowed, markers)
+    except (OSError, LookupError, ValueError, subprocess.CalledProcessError, tomllib.TOMLDecodeError) as exc:
+        sys.stderr.write(f"no-rigging: FAIL: {exc}\n")
+        return 1
+    for error in errors:
+        sys.stderr.write(f"no-rigging: FAIL: {error}\n")
+    if errors:
+        return 1
+    sys.stdout.write("no-rigging: OK (no unallowlisted suppressions)\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

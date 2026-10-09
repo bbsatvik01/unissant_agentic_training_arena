@@ -1,0 +1,58 @@
+name: CI
+
+# S5 11.2/11.3: CI calls the same make targets `make check` runs locally; there is no separately softened CI
+# path. This workflow runs the Python half of the gate (`make deps-sync tools-sync py-check`: the test suite's
+# gate proofs run the pinned CodeQL and gitleaks binaries); security.yml and codeql.yml run the security half.
+# db-test (a Postgres service with pgTAP, S5 11.2) arrives with the migrations in WP-03/WP-04 and web-check
+# with web/ in WP-18. No path filter: push-clean and the other repository-policy gates run on every change,
+# including a Markdown-only one. Actions are pinned to full commit SHAs; each comment names the release tag.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  py-check:
+    name: make py-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # ratchet, push-clean and diff-cover compare against the base commit
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      # uv 0.11.2 = the [tool.uv] required-version floor; the action verifies the release checksum it ships.
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.2"
+
+      # BASE_REF is the state before the change (tools/ci_base_ref.sh): the PR's base commit on a PR, the
+      # branch tip before the push on a push, the root commit on a first push or a manual run.
+      - name: make deps-sync tools-sync py-check
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          base="$(tools/ci_base_ref.sh)"
+          make deps-sync tools-sync py-check BASE_REF="$base"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14

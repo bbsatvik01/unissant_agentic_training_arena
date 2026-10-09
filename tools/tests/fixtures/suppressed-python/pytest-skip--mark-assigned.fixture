@@ -1,0 +1,8 @@
+import pytest
+
+m = pytest.mark
+
+
+@m.skip
+def test_x() -> None:
+    pass

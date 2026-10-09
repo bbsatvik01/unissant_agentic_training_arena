@@ -1,0 +1,2 @@
+api = __import__("warnings")
+api.simplefilter(action="ignore")

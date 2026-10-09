@@ -1,0 +1,49 @@
+noqa	x = 1  # noqa: E501
+noqa	# ruff: noqa: E501
+type-ignore	y: int = 'a'  # type: ignore[assignment]
+pyright-ignore	z = f()  # pyright: ignore[reportGeneralTypeIssues]
+nosec	run(cmd)  # nosec B603
+nosemgrep	import httpx  # nosemgrep
+gitleaks-allow	token = 'x'  # gitleaks:allow
+pragma-no-cover	if debug:  # pragma: no cover
+pytest-skip	@pytest.mark.skip(reason='later')
+pytest-skip	pytest.skip('not today')
+unittest-skip	raise unittest.SkipTest('later')
+mypy-ignore-errors	# mypy: ignore-errors
+mypy-ignore-errors	ignore_errors = true
+eslint-disable	// eslint-disable-next-line no-console
+ts-suppress	// @ts-expect-error legacy
+coverage-ignore	/* v8 ignore next */
+test-skip-or-focus	it.skip('later', () => {});
+test-skip-or-focus	it.skipIf(process.env.CI)('flaky', () => {});
+test-skip-or-focus	describe.only('focus', () => {});
+continue-on-error	    continue-on-error: true
+trufflehog-ignore	token = 'x'  # trufflehog:ignore
+osv-ignore	[[IgnoredVulns]]
+osv-ignore	  [[ PackageOverrides ]]
+continue-on-error	      - continue-on-error: true
+continue-on-error	    continue-on-error: True
+continue-on-error	    "continue-on-error": "yes"
+continue-on-error	    steps: [{ uses: x, continue-on-error: true }]
+mypy-ignore-errors	# mypy: disable-error-code="attr-defined"
+mypy-ignore-errors	# mypy: allow-untyped-defs
+mypy-ignore-errors	overrides = [{ module = "x", ignore_errors = true }]
+osv-ignore	IgnoredVulns = [{ id = "GHSA-0000-0000-0000" }]
+no-type-check	@typing.no_type_check
+warnings-ignore	@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+warnings-ignore	warnings.simplefilter('ignore')
+warnings-ignore		pytest -W ignore::UserWarning
+warnings-ignore	PYTHONWARNINGS=ignore make test
+isort-skip	# isort: skip_file
+pip-audit-ignore	pip-audit --strict --ignore-vuln PYSEC-2024-1
+pnpm-audit-ignore	    ignoreGhsas:
+warnings-ignore	pytest -W always::UserWarning
+warnings-ignore	PYTHONWARNINGS=default make test
+warnings-ignore	python -Wi -m pytest
+warnings-ignore	warnings.filterwarnings('once')
+fmt-skip	VALUE =    1  # fmt: skip
+fmt-skip	# fmt: off
+fmt-skip	#fmt:skip
+test-disable	    __test__ = False
+test-disable	__test__: bool = False
+test-disable	setattr(TestThing, "__test__", False)

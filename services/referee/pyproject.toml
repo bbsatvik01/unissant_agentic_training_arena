@@ -1,0 +1,15 @@
+[project]
+name = "arena-referee"
+version = "0.1.0"
+description = "ARENA_ROLE=referee: authored-family loading (D-014), independent labels, scoring, R3 debriefs, adjudication, reveal; admin and trainer consoles. Lands across WP-08, WP-14, WP-16, WP-20a."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "arena-core",
+]
+
+[build-system]
+requires = ["uv_build==0.11.2"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+arena-core = { workspace = true }

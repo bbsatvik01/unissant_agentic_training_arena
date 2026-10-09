@@ -1,0 +1,64 @@
+# Supply-chain policy (global pre-push bar; S5 11.1 `deps-policy` and the sec-check licence gate), enforced
+# by tools/check_deps_policy.py and tools/check_licenses.py on every `make check`. Lifted from TechnoMile
+# tools/gates/deps-policy.toml (ATTRIBUTIONS.md): same schema and licence rules; the lists name this repo's
+# manifests and the bans this repo's decisions add (D-001, direction DM-1).
+
+# Every lockfile the check reads (Python: uv.lock format).
+python_locks = ["uv.lock", "tools/envs/semgrep/uv.lock"]
+# Every pyproject whose direct dependencies must be exact pins (`name==x.y.z`) or workspace members.
+python_projects = [
+  "pyproject.toml",
+  "packages/core/pyproject.toml",
+  "services/api/pyproject.toml",
+  "services/subject/pyproject.toml",
+  "services/referee/pyproject.toml",
+  "services/tournament/pyproject.toml",
+  "tools/envs/semgrep/pyproject.toml",
+]
+# web/package.json joins with WP-18. Any package.json in the repo that is not listed here fails the gate.
+node_manifests = []
+
+[python]
+# Supply-chain bans kept from TechnoMile (litellm supply-chain compromise; crawl4ai; PyMuPDF is AGPL; DBOS),
+# plus this repo's: google-adk (S5 1.2 item 2 rule d, direction DM-1: the typed agent port replaces ADK) and
+# google-generativeai (the API-key-only AI Studio SDK; D-001 allows Gemini on Vertex through google-genai only).
+banned = ["litellm", "crawl4ai", "pymupdf", "pymupdfb", "dbos", "google-adk", "google-generativeai"]
+# Banned extras: (package, extra). None yet.
+banned_extras = []
+
+# Exact versions required whenever the package appears in a lock. None yet; WP-05 pins google-genai here.
+[python.exact]
+
+[node]
+# xlsx: GHSA-4r6h-8v6p-xvw6, no fixed release on npm (kept from TechnoMile for WP-18's web tree).
+banned = ["xlsx"]
+
+
+# Licence gate (S5 11.1 sec-check: deny AGPL/SSPL/undeclared). Every installed Python distribution (and, from
+# WP-18, every web package) must declare a licence; an undeclared one fails unless a version-specific override
+# records the verified licence and the evidence for it.
+[licenses]
+denied = ["agpl", "affero", "sspl", "server side public license"]
+workspace = [
+  "arena-api",
+  "arena-core",
+  "arena-referee",
+  "arena-semgrep-env",
+  "arena-subject",
+  "arena-tournament",
+  "arena-workspace",
+]
+
+# Verified 2026-10-08 against the upstream LICENSE files (both are transitive dependencies of Semgrep and ship
+# no licence metadata in their wheels; same overrides as TechnoMile's policy).
+[[licenses.override]]
+package = "face"
+version = "26.0.1"
+license = "BSD-3-Clause"
+evidence = "github.com/mahmoud/face LICENSE at tag v26.0.1 (BSD 3-clause text); no licence metadata in the wheel"
+
+[[licenses.override]]
+package = "peewee"
+version = "3.19.0"
+license = "MIT"
+evidence = "github.com/coleifer/peewee LICENSE (GitHub SPDX: MIT); no licence metadata in the wheel"

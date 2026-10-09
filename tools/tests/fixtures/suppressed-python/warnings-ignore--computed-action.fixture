@@ -1,0 +1,4 @@
+import warnings
+
+ACTION = "ign" + "ore"
+warnings.simplefilter(ACTION)

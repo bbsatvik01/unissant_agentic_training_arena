@@ -1,0 +1,15 @@
+[project]
+name = "arena-subject"
+version = "0.1.0"
+description = "ARENA_ROLE=subject: answer(), the deterministic guard, Live voice sessions. Lands in WP-12, WP-22."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "arena-core",
+]
+
+[build-system]
+requires = ["uv_build==0.11.2"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+arena-core = { workspace = true }

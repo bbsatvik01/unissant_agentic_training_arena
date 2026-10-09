@@ -1,0 +1,15 @@
+[project]
+name = "arena-api"
+version = "0.1.0"
+description = "ARENA_ROLE=api: investigator REST, SSE and the voice relay edge. Routes land in WP-13."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "arena-core",
+]
+
+[build-system]
+requires = ["uv_build==0.11.2"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+arena-core = { workspace = true }

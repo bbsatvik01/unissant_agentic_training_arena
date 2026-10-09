@@ -1,0 +1,10 @@
+[project]
+name = "arena-core"
+version = "0.1.0"
+description = "Shared core: boot checks and config now; the agent port, spend guard, turn orchestrator, event store and observability land in later work packages (S5 1)."
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build==0.11.2"]
+build-backend = "uv_build"

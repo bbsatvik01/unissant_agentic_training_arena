@@ -1,0 +1,3 @@
+import warnings
+
+warnings.filters.insert(0, ("ignore", None, Warning, None, 0))

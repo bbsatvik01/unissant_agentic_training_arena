@@ -1,0 +1,4 @@
+import warnings
+
+with warnings.catch_warnings(action="default"):
+    pass

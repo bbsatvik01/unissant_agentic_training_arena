@@ -1,0 +1,10 @@
+import warnings
+
+
+def helper() -> None:
+    import logging as warnings
+
+    warnings.getLogger()
+
+
+warnings.filterwarnings(action="ignore")

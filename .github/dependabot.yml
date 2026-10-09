@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # uv workspace (pyproject.toml + uv.lock at the root).
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7 # mirrors [tool.uv] exclude-newer = "7 days"
+    open-pull-requests-limit: 5
+    groups:
+      uv-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # The isolated Semgrep environment (tools/envs/semgrep, its own uv.lock).
+  - package-ecosystem: "uv"
+    directory: "/tools/envs/semgrep"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+
+  # Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment, which Dependabot updates too.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # web/ lands in WP-18; the npm entry is added with its package.json.

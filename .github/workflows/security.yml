@@ -1,0 +1,118 @@
+name: Security
+
+# S5 11.2: on every PR, every push to main and weekly. The Python scans call the same make targets
+# `make check` runs locally (S5 11.3). gitleaks, TruffleHog and osv-scanner run through their official
+# GitHub Actions, pinned to full commit SHAs (each comment: release tag, resolved with `git ls-remote` on
+# the official repository on 2026-10-08, and the tag's commit date, older than the 7-day cooldown), and
+# scan with the same scanner versions tools/ensure_tools.sh pins for `make gitleaks`, `make trufflehog`
+# and `make osv-scanner`. No path filter: a secret in a Markdown file must fail the PR as well.
+# Adapted from Pangea adapi-av2 .github/workflows/bandit.yml and secret-scan.yml (P5, P7; patterns only,
+# ATTRIBUTIONS.md).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  python-security:
+    name: make bandit semgrep pip-audit licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.2"
+
+      # Both bandit passes (-ll -ii, then B105-B107), the raw-HTTP Semgrep rule, pip-audit --require-hashes over
+      # both lockfiles, and the AGPL/SSPL/undeclared licence gate over both environments.
+      - name: make deps-sync bandit semgrep pip-audit licenses
+        run: make deps-sync bandit semgrep pip-audit licenses
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # on a PR the action lists the PR's commits to scan exactly that range
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # full history: `make gitleaks` scans all of it; the action scans the push or PR range
+          persist-credentials: false
+
+      # The complete scan: `make gitleaks` with the pinned, checksum-verified gitleaks 8.30.1 over the whole
+      # history reachable from the checked-out commit (on a PR, the merge commit: every PR commit), exactly as
+      # `make check` runs it locally.
+      - name: make tools-sync gitleaks
+        run: make tools-sync gitleaks SYNC_TOOLS=gitleaks
+
+      # gitleaks/gitleaks-action v3.0.0: refs/tags/v3.0.0 -> e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e (2026-05-30).
+      # Licence: the action's own EULA; free for a personal account, while an organization-owned repository
+      # needs a GITLEAKS_LICENSE secret (a free key from gitleaks.io, an owner action), and without it the job
+      # fails closed. The action reports with --redact and exits 1 on any leak. On a PR it scans only the
+      # commits on the first page of the PR-commits API (30; src/gitleaks.js makes one unpaginated request),
+      # which is why the make step above, not this one, is the complete gate; the action adds its job summary.
+      - name: gitleaks (official action)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_VERSION: "8.30.1" # = tools/ensure_tools.sh; the action's built-in default is 8.24.3
+          GITLEAKS_ENABLE_COMMENTS: "false" # findings go to the job summary; no pull-requests: write needed
+
+  trufflehog:
+    name: TruffleHog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # full history so the push range, the PR range and the scheduled full scan are complete
+          persist-credentials: false
+
+      # trufflesecurity/trufflehog v3.97.5: refs/tags/v3.97.5 -> f714bf454f350590f4a24c3ddb1aef02c35bf5b6
+      # (2026-09-16). The action scans the PR's base..head on a PR, the pushed range on a push and the whole
+      # history on schedule, and already passes --fail. `version` pins the scanner image (the input defaults to
+      # "latest"); --results=verified,unknown matches `make trufflehog`: a credential that verifies live, or
+      # whose verification could not complete, fails the job.
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@f714bf454f350590f4a24c3ddb1aef02c35bf5b6 # v3.97.5
+        with:
+          version: "3.97.5"
+          extra_args: --results=verified,unknown
+
+  osv-scanner:
+    name: osv-scanner
+    # google/osv-scanner-action v2.6.0: refs/tags/v2.6.0 -> a345acffa64b0eaede81a3d9aae6141214d9c8fc (2026-09-14).
+    # The official reusable workflow runs osv-scanner 2.6.0 and fails the job on any known vulnerability
+    # (fail-on-vuln). Its job declares security-events: write for an optional SARIF upload, so the caller must
+    # grant it; the upload stays off because code scanning needs GitHub Advanced Security on a private repo, and
+    # the SARIF is kept as a workflow artifact instead.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    with:
+      scan-args: |-
+        --lockfile=uv.lock
+        --lockfile=tools/envs/semgrep/uv.lock
+      fail-on-vuln: true
+      upload-sarif: false
