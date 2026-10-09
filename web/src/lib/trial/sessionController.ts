@@ -14,9 +14,10 @@
  *   evidence request, which answers no `last_seq`, its `transcript_version`) 1 s later, the stream reconnects
  *   with `after=<lastSeq>`.
  * - Hidden tab: the stream closes after 60 s hidden and resumes with `after=<lastSeq>` when visible.
- * - A practice text stream is gap-free (S5 6.1): the cursor stops at the gap-free prefix, a card above a gap waits,
- *   and a gap, or a frame too broken to identify, makes the controller re-read the snapshot (the absolute state).
- *   A refused frame it can identify (this trial, a seq) counts toward the prefix; a refused card closes its turn.
+ * - Lost frames: a refused frame that may carry state, or one too broken to identify, makes the controller re-read
+ *   the snapshot (the absolute state), in any mode. A practice text stream is also gap-free (S5 6.1): the cursor
+ *   stops at the gap-free prefix, a card above a gap waits, and a gap is covered the same way; a refused card
+ *   closes its turn and counts toward the prefix.
  * - Retries: an action retried after a failure that may have been applied resends the same request and
  *   idempotency key (S5 5.2); only its own answer or an outright refusal (4xx) forgets it.
  * - The end: after a terminal status the stream stays open (catch-up tickets) until `debrief.ready` or a
@@ -304,6 +305,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return v.mode === "practice" && v.channel === "text" ? v.contiguousSeq : v.lastSeq;
   };
 
+  /** The room is following a stream (any mode): a lost frame there is covered by re-reading the snapshot. */
+  const streaming = (): boolean => view() !== null && stream !== null && state.connection !== "finished";
+
   const gapFreeRunning = (): boolean => {
     const v = view();
     return v !== null && v.mode === "practice" && v.channel === "text" && v.status !== "ended";
@@ -362,10 +366,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   /**
-   * A frame this client refuses but can identify (this trial). A card closes its turn and is acknowledged invalid;
-   * no other frame depends on it, so its seq counts toward the gap-free prefix. Any other frame may carry state a
-   * later card reads (an answer, a release): its seq stays a gap, so the cards above it wait and the snapshot is
-   * re-read to cover it. Nothing of the refused frame is kept.
+   * A frame this client refuses but can identify (this trial). In a practice text trial a card closes its turn and
+   * is acknowledged invalid; no other frame depends on it, so its seq counts toward the gap-free prefix. Any other
+   * frame, in any mode, may carry state the room needs (an answer, a release, the end): the snapshot is re-read to
+   * cover it, and in a gap-free stream its seq stays a gap, so the cards above it wait. Nothing of it is kept.
    */
   const refuseIdentified = (frame: { readonly seq: unknown; readonly type: unknown; readonly data: unknown }) => {
     const turn = brokenCardTurn(frame);
@@ -377,7 +381,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       if (typeof frame.seq === "number" && Number.isSafeInteger(frame.seq)) dispatch({ type: "seq_skipped", seq: frame.seq });
       return;
     }
-    if (frame.seq !== null && gapFreeRunning()) resync();
+    if (streaming()) resync();
   };
 
   /** A frame dropped before validation (S6 5.2): identify it if it can be, else re-read the snapshot. */
@@ -386,7 +390,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     if (reason === "rejected") return;
     const parsed = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : null;
     if (parsed !== null && parsed["scope_id"] === trialId) refuseIdentified({ seq: parsed["seq"], type: parsed["type"], data: parsed["data"] });
-    else if (gapFreeRunning()) resync();
+    else if (parsed === null && streaming()) resync();
     checkGap();
   };
 

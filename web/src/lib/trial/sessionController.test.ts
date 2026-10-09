@@ -1454,3 +1454,52 @@ describe("session controller: a second gap behind the first", () => {
     return { turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
   }
 });
+
+describe("session controller: lost frames outside practice text", () => {
+  it("an assessment answer that fails validation is recovered from the snapshot", async () => {
+    const b = new LogBuilder("assessment").ask();
+    const answer = b.frames.find((f) => f.type === "subject.answer") as TrialFrame;
+    const covered = snapshot({
+      mode: "assessment",
+      last_seq: answer.seq ?? 0,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+    });
+    const h = harness({ snapshots: [snapshot({ mode: "assessment" }), covered] });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames) h.last().send(f === answer ? { ...f, data: { ...f.data, partial: "no" } } : f);
+    expect(roomStatus(c.getState().trial)).toBe("subject_answering");
+    await flush();
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+
+  it("an assessment answer too broken to parse is recovered from the snapshot", async () => {
+    const b = new LogBuilder("assessment").ask();
+    const covered = snapshot({
+      mode: "assessment",
+      last_seq: 2,
+      exchanges_used: 1,
+      turns: [{ turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 }],
+    });
+    const h = harness({ snapshots: [snapshot({ mode: "assessment" }), covered] });
+    const c = h.make();
+    await begin(c);
+    h.last().send(b.frames[0]);
+    h.last().raw("{not json");
+    await flush();
+    expect(roomStatus(c.getState().trial)).toBe("awaiting_question");
+  });
+
+  it("a voice trial's release that fails validation is recovered from the snapshot", async () => {
+    const voice = voiceSnapshot();
+    const release = new LogBuilder("practice", { seq: voice.last_seq }).release("rec-02");
+    const covered = { ...voice, last_seq: release.seq ?? 0, released: [{ ...(release.data as never as object), transcript_version: release.transcript_version } as never] } as TrialSnapshot;
+    const h = harness({ snapshots: [voice, covered] });
+    const c = h.make();
+    await begin(c);
+    h.last().send({ ...release, data: { ...release.data, trigger: "later" } });
+    await flush();
+    expect(trialView(c).released.map((r) => r.record_id)).toEqual(["rec-02"]);
+  });
+});
