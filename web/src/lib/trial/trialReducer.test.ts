@@ -621,3 +621,32 @@ describe("trialReducer: snapshots never go back", () => {
     expect(roomStatus(same)).toBe("ended");
   });
 });
+
+describe("trialReducer: a finding in a running assessment snapshot (S6 5.4)", () => {
+  it("is withheld and reported: the snapshot cannot say who wrote it", () => {
+    const s = boot(snapshot({ mode: "assessment", finding: finding() }));
+    expect(view(s).committedFinding).toBeNull();
+    expect(s.violations).toEqual([
+      { key: "snapshot:assessment_unattributed_finding", frame_type: "snapshot", seq: null, reason: "assessment_unattributed_finding" },
+    ]);
+    // a recovery snapshot is held to the same rule
+    const again = trialReducer(boot(snapshot({ mode: "assessment" })), { type: "snapshot", snapshot: snapshot({ mode: "assessment", finding: finding(), last_seq: 1 }) });
+    expect(view(again).committedFinding).toBeNull();
+    expect(again.violations).toHaveLength(1);
+  });
+
+  it("is shown once the assessment ended, and in practice", () => {
+    const ended = boot(snapshot({ mode: "assessment", status: "completed", finding: finding() }));
+    expect(view(ended).committedFinding?.finding).toEqual(finding());
+    expect(ended.violations).toEqual([]);
+    const practice = boot(snapshot({ finding: finding() }));
+    expect(view(practice).committedFinding?.finding).toEqual(finding());
+    expect(practice.violations).toEqual([]);
+  });
+
+  it("the investigator's own finding on the stream is shown in a running assessment", () => {
+    const s = boot(snapshot({ mode: "assessment" }));
+    const own = frame("finding.committed", 1, 1, { by: "investigator", finding: finding(), committed_at: "2026-10-20T15:04:05.123Z" });
+    expect(view(applyFrame(s, own).state).committedFinding?.by).toBe("investigator");
+  });
+});

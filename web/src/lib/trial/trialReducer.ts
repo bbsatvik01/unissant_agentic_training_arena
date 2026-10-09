@@ -86,7 +86,11 @@ export interface CommittedFinding {
   readonly committed_at: string | null;
 }
 
-export type ViolationReason = "assessment_coaching" | "assessment_assistant_finding" | "voice_text_frame";
+export type ViolationReason =
+  | "assessment_coaching"
+  | "assessment_assistant_finding"
+  | "assessment_unattributed_finding"
+  | "voice_text_frame";
 
 /** A frame the projection should never have sent this viewer (S6 5.4), recorded once. */
 export interface Violation {
@@ -250,6 +254,16 @@ export function trialReducer(state: TrialState, action: TrialAction): TrialState
       if (snapshotLeaks(snapshot)) {
         next = withViolation(next, { key: "snapshot:assessment_coaching", frame_type: "snapshot", seq: null, reason: "assessment_coaching" });
       }
+      // A running assessment shows only the investigator's own finding (S6 5.4); the snapshot's `finding` does not
+      // say who wrote it (the commit and the end are one step, so a running snapshot should carry none).
+      if (!snapshotCoachingVisible(snapshot) && snapshot.finding !== null) {
+        next = withViolation(next, {
+          key: "snapshot:assessment_unattributed_finding",
+          frame_type: "snapshot",
+          seq: null,
+          reason: "assessment_unattributed_finding",
+        });
+      }
       return derive(next);
     }
     case "frame":
@@ -340,7 +354,7 @@ function derive(state: TrialState): TrialState {
   let reasonCode = snapshot.reason_code;
   let commitmentHash = snapshot.commitment_hash;
   let committed: CommittedFinding | null =
-    snapshot.finding === null ? null : { by: null, finding: snapshot.finding, committed_at: null };
+    snapshot.finding === null || !snapshotCoachingVisible(snapshot) ? null : { by: null, finding: snapshot.finding, committed_at: null };
   let committedOnStream = false;
   let debriefReady: string | null = null;
   let version = Math.max(0, ...snapshot.turns.map((t) => t.answer_version ?? 0), ...snapshot.released.map((r) => r.transcript_version));
