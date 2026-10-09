@@ -10,7 +10,23 @@
 --   Fix 2: arena.manifest_sha256 is S2 3.2's rule; arena.candidates.sha256 is generated from it (PostgreSQL 17
 --          SET EXPRESSION), and register_candidate compares and logs that hash. A manifest that carries a `sha256`
 --          different from its own S2 3.2 hash is refused (AR007).
--- Gates: supabase/tests/017_candidate_hash.sql CH-01..CH-05; packages/core/tests/agents/test_manifest_sql.py.
+--   Guard: re-expressing the column rewrites every stored candidate hash, and a frozen tournament's committed
+--          roster_sha256 folds those hashes in (arena.roster_digest), so reveal would refuse it (AR021). The
+--          migration therefore refuses to run once any tournament has left draft; it applies to a registry whose
+--          rosters are not yet committed (every database today: no tournament has frozen).
+-- Gates: supabase/tests/017_candidate_hash.sql CH-01..CH-07; packages/core/tests/agents/test_manifest_sql.py.
+
+-- The guard is a function so its rule is tested (CH-06, CH-07) as well as run once here.
+create or replace function arena.candidate_hash_migration_guard() returns void
+language plpgsql set search_path = '' as $$
+begin
+  if exists (select 1 from arena.tournaments where status <> 'draft') then
+    raise exception using errcode = 'AR007',
+      message = 'migration 1100 would rewrite candidate hashes a frozen tournament roster commits to';
+  end if;
+end $$;
+
+select arena.candidate_hash_migration_guard();
 
 create or replace function ledger.canonical_json(p jsonb) returns text
 language plpgsql immutable strict set search_path = '' as $$
@@ -89,5 +105,6 @@ begin
   return v_id;
 end $$;
 
-revoke all on function ledger.canonical_json(jsonb), arena.manifest_sha256(jsonb)
+revoke all on function ledger.canonical_json(jsonb), arena.manifest_sha256(jsonb),
+  arena.candidate_hash_migration_guard()
   from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;

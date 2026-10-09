@@ -5,10 +5,11 @@
 -- separators, non-ASCII kept, the same escapes); CH-02 arena.manifest_sha256 drops `sha256` and `frozen_at` before
 -- hashing; CH-03 registering the official A1 manifest stores and logs its S2 3.2 hash, and registering it again
 -- returns the same row; CH-04 a manifest whose embedded sha256 is not its own hash is refused with AR007; CH-05 a
--- manifest holding a fractional number is refused with AR007.
+-- manifest holding a fractional number is refused with AR007; CH-06 the migration guard passes while no tournament
+-- has frozen; CH-07 it refuses once one has (the rewrite would break that roster's commitment).
 begin;
 \ir harness/fixtures.psql
-select plan(6);
+select plan(8);
 
 select is(ledger.canonical_json('{"b": [1, {"z": null, "a": true}], "aa": "é \"q\" \\ \n\t\u0001 ✓  ", "A": -3, "sha256": "ignored", "frozen_at": "x", "": [], "ü": {"Z": 0, "a": "x"}}'::jsonb),
           '{"":[],"A":-3,"aa":"é \"q\" \\ \n\t\u0001 ✓  ","b":[1,{"a":true,"z":null}],"frozen_at":"x","sha256":"ignored","ü":{"Z":0,"a":"x"}}',
@@ -37,6 +38,13 @@ select is(tests.error(format('select arena.register_candidate(%L, %L, %L, %L)', 
                       || '{"repair": {"schema_repairs": 1.5, "transient_retries": 2}}'::jsonb from a1))),
           'AR007: canonical JSON holds integers only (S2 3.1: a manifest has no floats)',
   'CH-05 a manifest holding a fractional number is refused');
+
+select is(tests.error('select arena.candidate_hash_migration_guard()'), '00000',
+  'CH-06 the migration guard passes while every tournament is a draft');
+select tests.tournament('dev', array['interactive']);
+select is(tests.error('select arena.candidate_hash_migration_guard()'),
+          'AR007: migration 1100 would rewrite candidate hashes a frozen tournament roster commits to',
+  'CH-07 the migration guard refuses once a tournament roster is frozen');
 
 select * from finish();
 rollback;
