@@ -1,6 +1,6 @@
 # State
 
-- **Date:** 2026-10-08, ~22:00 EDT
+- **Date:** 2026-10-08, ~22:05 EDT
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
@@ -16,12 +16,12 @@
 
 ## Owner directives (2026-10-08 ~22:10)
 - D-014: case families authored once by Claude agents + Codex review; Gemini 3.1 Pro dropped; other models kept.
-- Supabase project `fzjgcwkvveetegpngujr` (owner-provided). Supabase MCP added at **project scope only** (`.mcp.json`, server name `supabase`); user-scope MCP config untouched so the owner's other project keeps its own Supabase. Owner approved and logged in (2026-10-08 ~22:15); its tools load in the next session (not in the current one). Destructive database operations through it need explicit owner approval.
+- Supabase project `fzjgcwkvveetegpngujr` (owner-provided). Supabase MCP added at **project scope only** (`.mcp.json`, server name `supabase`); user-scope MCP config untouched so the owner's other project keeps its own Supabase. Owner approved and logged in; tools work in this session (verified: project URL https://fzjgcwkvveetegpngujr.supabase.co; database empty, no tables, no migrations). Destructive database operations through it need explicit owner approval.
 
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
-| task `wdzxfq397` / run `wf_cedd150a-eec` | Spec v2.1 (S1 owner + S2-S8 integrator) in parallel with WP-01 scaffold | Opus x2, Sonnet x1 | 2026-10-08 ~21:55 EDT | ~23:00 EDT | `docs/spec/**`; repo root scaffold (pyproject, Makefile, packages, tools, .github) |
+| task `wco6osdfj` / run `wf_cedd150a-eec` (resumed after session break) | S1 v2.1 done (cached); S1 D-014 update; S2-S8 integrator (X-02..X-17, D-013, D-014); WP-01 scaffold | Opus x3, Sonnet x1 | 2026-10-08 22:05 EDT | ~23:15 EDT | `docs/spec/**`; repo root scaffold |
 
 ## Next dispatch queue
 1. When the workflow lands: verify `make check` myself, commit scaffold and spec v2.1 separately (explicit paths, secret scan first).
