@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0003_tournament_ledger.sql  (DRAFT v2.8, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.

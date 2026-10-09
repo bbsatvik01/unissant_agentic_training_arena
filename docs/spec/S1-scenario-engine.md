@@ -1,6 +1,6 @@
 # S1: Scenario engine and case families
 
-Spec part S1 of the build-ready specification. Version 2.7, 2026-10-09: Codex round 5 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
+Spec part S1 of the build-ready specification. Version 2.8, 2026-10-09: WP-03 draft fixes folded in. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
 
 Deliverables of this part:
 
@@ -188,7 +188,7 @@ Fact rules:
 | F1 | One proposition per fact, past tense, third person, at most 300 characters. A fact that needs "and" to join two checkable claims is split (for example "card A-2291 opened N-3" and "the database lists A-2291 to Haddad" are two facts). |
 | F2 | `kind` in `action`, `state`, `record`, `context`, `knowledge`. `time` is facility-local `YYYY-MM-DDTHH:MM[:SS]` when the fact has one. |
 | F3 | `variants` lists where the fact holds. Shared facts are the same in both variants. |
-| F4 | `material: true` when any resolution criterion depends on the fact. |
+| F4 | `material: true` when any resolution criterion depends on the fact. Operationally (v2.8): every fact named in any variant's `resolution_criteria.decisive_support[].fact_ids` is material in the graph, so it is material in every variant that carries it. V2 enforces it (9.2), because S3 4.2 decides validity from materiality: a subject that contradicts a fact the resolution rests on must be proposed `subject_invalid`. |
 | F5 | Tags: `violation`, `motive`, `opportunity`, `means`, `concealment`, `cover` (deceptive mechanics); `misleading`, `innocent_explanation` (truthful mechanics); `privacy` (PRIVATE class). |
 
 Edge rules (validator V2):
@@ -490,7 +490,7 @@ A record at the 4,096-byte limit with a full table and 4-byte UTF-8 text measure
 | Packet agreement | Evaluator `canonical_facts` and `event_edges` equal the graph filtered by variant; public initial documents and requestable records equal the evaluator's records (ignoring the public-only `date`); timeline sources are initial documents; `matter` equals the objective; persona name and organization match the public context; `presentation.display_name` equals the subject name |
 | Records | Unique IDs; at most 6 releasable; predicate values at most 10; supports point at facts in the variant; level matches strength and precision; same skeleton across variants (M3); every table row has one cell per column |
 | Ledger | Ledger facts, unknown facts and relevant actions are in the variant; ledger and unknown disjoint; PRIVATE exactly the `privacy`-tagged facts; violation is CORE; every HOLD fact names an existing gate and every gate opens only HOLD facts pointing at it; `precondition_records` equal the derived set and are non-empty; each approximate fact has exactly one range or unsure entry and no entry names a fact outside the ledger; forbidden assertions contradict facts in the variant; style equals the family style |
-| Evaluator | Role equals variant; `correct_finding` equals role; truthful contradictions are `apparent`; every reference in contradictions, decisive support, corroboration, rubric resolves |
+| Evaluator | Role equals variant; `correct_finding` equals role; truthful contradictions are `apparent`; every reference in contradictions, decisive support, corroboration, rubric resolves; every fact a decisive-support item names is `material: true` (F4) |
 | Knobs | Computed K, E, M, U, G equal the stored knobs; K, E, U equal across variants; knobs inside the level's band (7.6) |
 
 ### 9.3 V3 Solvability (AR-Bench style)
@@ -590,6 +590,7 @@ The suite runs on F01 (MU-01 to MU-36) and on sets of seed families (MU-37 to MU
 | MU-40 | Hidden split missing a difficulty level | V5 coverage |
 | MU-41 | Two families of one split share a signature | V5 |
 | MU-42 | Revision keeps its predecessor's case IDs | V5 |
+| MU-43 | A decisive-support item names a fact with `material: false` | V2 evaluator (F4) |
 | CTRL | Two revisions of one lineage with new case IDs, plus F02 and F03 | No V5 error |
 
 ## 10. Splits, sealing and leakage (SCN-12)

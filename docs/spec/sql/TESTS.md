@@ -35,6 +35,8 @@ Version 2.6 (Codex round 4) was applied the same way to a fresh throwaway Postgr
 
 Version 2.7 (Codex round 5) was applied the same way to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, socket-only, stopped afterwards): 112 assertions pass, adding the SG3-47 cases (RV-06). Mutation: v2.6's terminal-state population misses the rewritten trial, and v2.7's chain-bound population finds it. The capability CSV still equals the live set (205 rows; the new helper has no grants).
 
+Version 2.8 folds WP-03's migrations 0007 (public schema hardening, into 0001) and 0008 (seven draft fixes, into 0005 and 0006), so the drafts equal `supabase/migrations/` 0001-0008 in substance; CM-16..CM-21, BU-38..BU-41 and VB-21..VB-24 are recorded from `supabase/tests/001`, `014` and `015` (pgTAP). The drafts were applied to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, socket-only, stopped afterwards) and the earlier smoke suite plus a smoke of the seven fixes (BU-38, BU-39, BU-41, VB-21, VB-22, VB-24) passed: 119 assertions. The capability CSV is unchanged (205 rows); BU-40 and VB-23 need two sessions and run in the pgTAP files.
+
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
 | ID | Assertion | Expected |
@@ -54,6 +56,12 @@ Version 2.7 (Codex round 5) was applied the same way to a fresh throwaway Postgr
 | CM-13 | Gate-proof: inside the test transaction, separately: `grant select on sealed.evaluator_packets to arena_public`; `grant references, trigger, maintain on sealed.evaluator_packets to arena_public`; `grant select (role) on sealed.evaluator_packets to arena_subject`; `grant create on schema sealed to arena_referee`; `grant usage on sequence ops.kill_switch_events_id_seq to arena_public`; then CM-01 | Non-empty each time, one row per leaked privilege (the gate catches every kind; rolled back) |
 | CM-14 | No runtime role holds schema CREATE, any sequence privilege, or UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER or MAINTAIN on any relation; runtime roles own no relation and no function | Holds |
 | CM-15 | SG3-20: after the migrations, the owner creates `arena.zz_probe()`; `has_function_privilege` for `arena_public`, `arena_subject`, `arena_referee`, and PUBLIC in its ACL | false, false, false, absent |
+| CM-16 | Gate-proof (WP-03): revoking one allowlisted grant | CM-02 reports exactly that loss |
+| CM-17 | Gate-proof: replacing a relation grant by a column grant | CM-02 reports the relation loss and CM-01 the column grant |
+| CM-18 | Gate-proof: a column-only grant on a sealed table | CM-01 reports it as a leak |
+| CM-19 | Gate-proof: upgrading an allowlisted grant to WITH GRANT OPTION | CM-01 reports the grant option |
+| CM-20 | No role of the six holds a grant option on any object of the six schemas | Holds |
+| CM-21 | S4 2.1: a table, view, sequence or function the migration owner creates in `public` | Reachable by no API role and not executable through PUBLIC (0001's default-privilege revokes) |
 
 ## 2. `002_cases_and_seal.sql` (SCN-1, SCN-5, SCN-7..SCN-12, AST-5, BKO-5)
 
@@ -357,11 +365,15 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-30 | Referee purposes (C-31, X-02): `reserve_model_call` with call kind `referee` and a purpose outside S2 section 2's four (`referee_subject`, `referee_assistant`, `r3_subject`, `r3_investigator`); with each of the four | `AR007`; `reserved` each (0.036000 on 3.1-flash-lite, 0.054400 on 3.5-flash-lite) |
 | BU-31 | X-09: `portrait` on a priced model at 2,000 bytes; on a model with no price row | 4 x (2000 x text_in + 2000 x text_out) / 1e6 (0.022400 on 3.5-flash-lite); `AR007` |
 | BU-32 | D11: a 2,500-byte `card` on 3.5-flash-lite | 4 x (2500 x 0.30 + 1600 x 2.50) / 1e6 = 0.019000 |
-| BU-33 | D11: `input_bytes` of 6,001 on `card` (limit 6,000); of 0; null; the same key with another byte count | `AR007`; `AR007`; `AR007`; `AR003` |
+| BU-33 | D11: `input_bytes` of 128,001 on `card` (limit 128,000); of 0; null; the same key with another byte count | `AR007`; `AR007`; `AR007`; `AR003` |
 | BU-34 | D3: a repeated reservation key after `mark_dispatched` | `exists` with `dispatched = true` (the caller settles it `usage_unknown` before reserving again) |
 | BU-35 | SG3-11 ownership: `arena_public` calls `mark_dispatched`, `record_usage` and `settle_reservation` on a reservation `arena_subject` made, and reuses its key | `AR040` each; `AR003` for the key |
 | BU-36 | SG3-11: `settle_reservation` on a voice reservation (by its own role) | `AR001` (voice holds settle through `settle_voice_reservation`) |
 | BU-37 | D7: a `card` reservation for a trial with an open voice session | `reserved` against `global` with no parent; the voice hold is unchanged |
+| BU-38 | WP-03 fix 1: a 6,001-byte `card` on 3.5-flash-lite, then four receipts at its maximum (6,001 input, 1,600 output tokens) | Reserves 4 x ceil(per-attempt worst case) = 0.023204 (not 0.023202); the four receipts record no overrun and the kill switch stays off |
+| BU-39 | WP-03 fix 3: a reservation key reused with another purpose (model call; voice) | `AR003` each, not `exists` |
+| BU-40 | WP-03 fix 2: a same-key reservation while the first is uncommitted (dblink) | Waits on the key's advisory lock, then returns the first reservation (`exists`, same id); no 23505 and no cap refusal |
+| BU-41 | WP-03 fix 4: a voice usage report past two thirds of its hold, then the same report again, then other usage under its number | `shutoff` true; `exists` with the same `spend_usd`, `reserved_usd` and `shutoff`; `AR003` |
 
 ## 15. `015_voice.sql` (D-006, D-009, direction 8.3 and 9; S5 section 7)
 
@@ -387,6 +399,10 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | VB-18 | SG3-07, SG3-37: in a voice session, `arena_public` releases a requested record through `release_evidence` at any time (no turn exists to block it); `subject.voice_context` then lists it | Holds |
 | VB-19 | D7 reaping: a voice reservation open for 61 minutes (owner backdates `created_at`), then any `reserve_voice` | The old reservation is `usage_unknown` with its full hold, its session closed `expired`, and the new reservation is admitted |
 | VB-20 | SG1-32: a release item opened in its own transaction, then a voice exchange storing a scheduled release, then `release_evidence` on that item; the v2.6 route: item and release in one transaction while a concurrent `record_voice_exchange` (dblink, `lock_timeout` 500 ms) runs; a rolled-back attempt, an exchange, then a retry with the same key | `AR002` (why the route uses one transaction); the exchange times out waiting for the trial lock (`55P03`) and the release succeeds; the retry gets a fresh item and succeeds; repeating the call returns the stored result |
+| VB-21 | WP-03 fix 5: exchange 2 releases a scheduled record in its commit; the same exchange again | The repeat answers `exists` with the same `released` list (from the release rows and their event); no duplicate rows |
+| VB-22 | WP-03 fix 6: tickets issued before the daily voice quota is reached, then opened after it is reached | The opening past the quota is refused (`AR040`): `open_voice_session` rechecks the quota |
+| VB-23 | WP-03 fix 6: two openings for one actor | The second waits on the actor's quota advisory lock |
+| VB-24 | WP-03 fix 7: a 13th voice exchange | `AR004` (not the table's 23514) |
 
 ## 16. `016_training_tickets.sql` (SOL-6, KPI-1, EVL-7, SCN-12, direction 4.3)
 

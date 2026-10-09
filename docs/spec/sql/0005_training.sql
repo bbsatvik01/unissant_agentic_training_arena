@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0005_training.sql  (DRAFT v2.8, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets with the session phase derived from committed state, blinded rubric scores, the
 -- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,
@@ -405,14 +405,22 @@ begin
     if (v_x.voice_session_id, v_x.lines) is distinct from (p_voice_session, p_lines) then
       raise exception using errcode = 'AR003', message = 'exchange number reused with different content';
     end if;
-    return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'exists', 'released', '[]'::jsonb);
+    -- WP-03 fix 5: a repeat answers what the original call released (the scheduled releases its commit applied: no work
+    -- item, after this exchange), so a caller whose first response was lost still updates Live's context.
+    return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'exists',
+      'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', r.record_id, 'kind', r.kind)
+                                             order by r.record_id collate "C"), '[]'::jsonb)
+                     from arena.released_evidence r join ledger.events e on e.seq = r.event_seq
+                    where r.trial_id = v.id and e.payload ->> 'work_item_id' is null
+                      and (e.payload ->> 'after_exchanges')::integer = v.exchanges + p_exchange_no));
   end if;
   if v.status <> 'running' or not exists (select 1 from training.voice_sessions
                                            where id = p_voice_session and status = 'open') then
     raise exception using errcode = 'AR040', message = 'voice exchange refused';
   end if;
+  -- WP-03 fix 7: number 13 passed the order check and failed on the table's 1..12 constraint (23514), not AR004.
   if p_exchange_no is distinct from
-     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint then
+     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint or p_exchange_no > 12 then
     raise exception using errcode = 'AR004', message = 'voice exchanges are stored in order, at most 12';
   end if;
   if jsonb_typeof(p_lines) is distinct from 'array'
