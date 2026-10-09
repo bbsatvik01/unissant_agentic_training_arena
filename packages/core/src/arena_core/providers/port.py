@@ -31,7 +31,7 @@ from typing import Any
 from opentelemetry.trace import Status, StatusCode, Tracer
 from pydantic import BaseModel
 
-from arena_core.db.calls import GUARD_ERRORS, ModelCallRequest, SettleOutcome, UsageReport, UsageStatus
+from arena_core.db.calls import GUARD_ERRORS, ModelCallRequest, SettleOutcome, UsageReport, UsageResult, UsageStatus
 from arena_core.policy import check_call_policy
 from arena_core.providers.errors import (
     ErrorKind,
@@ -41,6 +41,7 @@ from arena_core.providers.errors import (
     ProviderBlockedError,
     ProviderCallError,
     ProviderFailedError,
+    StepInProgressError,
     StructuredOutputError,
 )
 from arena_core.providers.retry import RetryPolicy
@@ -57,7 +58,7 @@ from arena_core.providers.types import (
     request_bytes,
 )
 from arena_core.spend.guard import GuardSession, Reservation, SpendGuard
-from arena_core.spend.limits import MAX_REPAIRS, REPAIR_BYTES, CallLimits
+from arena_core.spend.limits import DEFAULT_TIMING, MAX_REPAIRS, REPAIR_BYTES, CallLimits
 
 # S4 idempotency keys are 8..200 characters; the port appends ":<n>" with n <= MAX_KEY_ROUNDS.
 STEP_KEY_MIN, STEP_KEY_MAX = 6, 190
@@ -96,6 +97,9 @@ class _Run:
     usage: Usage = field(default_factory=Usage)
     trace_id: str | None = None
     span_id: str | None = None
+
+
+_Row = tuple[UsageStatus, int, str | None, str | None]  # status, latency ms, trace id, span id
 
 
 @dataclass(frozen=True)
@@ -162,6 +166,11 @@ class AgentPort:
         plan = _Plan(call, limits, json_schema, reserved_bytes)
         started = self._opts.clock()
         async with self._guard.session() as guard:
+            # The step is this call's for the session's lifetime (it ends with the connection, so a dead process's
+            # step is free): only the holder may recover a reservation the step left dispatched (S5 5.1).
+            if not await guard.claim(call.context.step_key):
+                msg = f"step {call.context.step_key!r} is held by another live call; nothing reserved or sent"
+                raise StepInProgressError(msg)
             reservation = await self._reserve(guard, call, reserved_bytes)
             try:
                 await guard.dispatch(reservation.id)
@@ -231,18 +240,17 @@ class AgentPort:
     # ------------------------------------------------------------------ attempts
     async def _attempts[T: BaseModel](self, live: _Live, plan: _Plan[T], started: float) -> T:
         call, opts, run = plan.call, self._opts, live.run
-        timeout = call.timeout_s or plan.limits.timeout_ceiling_s
-        deadline = None if call.deadline_s is None else started + call.deadline_s
+        timing = DEFAULT_TIMING[call.context.call_type]  # S2 2, when the call sets none
+        timeout = call.timeout_s or timing.attempt_timeout_s
+        deadline = started + (call.deadline_s or timing.deadline_s)
         request = plan.request(call.messages, attempt=1)
         repairs = transient_retries = 0
         failure: _Failure | None = None
         while run.sends < opts.retry.max_attempts:
-            attempt_timeout = timeout
-            if deadline is not None:
-                attempt_timeout = min(timeout, deadline - opts.clock())
-                if attempt_timeout <= 0:
-                    msg = f"deadline of {call.deadline_s}s reached after {run.sends} attempt(s)"
-                    raise ProviderFailedError(msg)
+            attempt_timeout = min(timeout, deadline - opts.clock())
+            if attempt_timeout <= 0:
+                msg = f"call deadline reached after {run.sends} attempt(s)"
+                raise ProviderFailedError(msg)
             size = request_bytes(request)
             if size > plan.reserved_bytes:
                 msg = f"request of {size} bytes exceeds the {plan.reserved_bytes} bytes reserved; not sent"
@@ -264,9 +272,7 @@ class AgentPort:
                 if run.sends < opts.retry.max_attempts:
                     transient_retries += 1
                     delay = opts.retry.delay_s(transient_retries, opts.rng)
-                    if deadline is not None:
-                        delay = min(delay, max(0.0, deadline - opts.clock()))
-                    await opts.sleep(delay)
+                    await opts.sleep(min(delay, max(0.0, deadline - opts.clock())))
                 continue
             if repairs >= MAX_REPAIRS or run.sends >= opts.retry.max_attempts:
                 break
@@ -285,6 +291,34 @@ class AgentPort:
             return _timed_out(timeout_s, exc), "timeout"
         except ProviderCallError as exc:
             return exc, "error"
+
+    async def _record(
+        self,
+        live: _Live,
+        request: ModelRequest,
+        usage: Usage | None,
+        row: tuple[UsageStatus, int, str | None, str | None],
+    ) -> UsageResult:
+        """Write the attempt's `ops.model_calls` row: (status, latency, trace id, span id) plus its tokens."""
+        status, latency_ms, trace_id, span_id = row
+        used = usage or Usage()
+        receipt = await live.guard.record(
+            UsageReport(
+                reservation_id=live.reservation.id,
+                seq=live.run.sends,
+                model=request.model.value,
+                input_tokens=used.input_tokens,
+                output_tokens=used.output_tokens,
+                thinking_tokens=used.thinking_tokens,
+                status=status,
+                latency_ms=latency_ms,
+                trace_id=trace_id,
+                span_id=span_id,
+            )
+        )
+        live.run.recorded += 1
+        live.run.usage = live.run.usage.add(used)
+        return receipt
 
     async def _attempt(
         self, live: _Live, plan: _Plan[Any], request: ModelRequest, timeout_s: float
@@ -306,27 +340,20 @@ class AgentPort:
             run.trace_id, run.span_id = trace_id, span_id
             run.sends += 1
             began = clock()
-            result, status = await self._send(request, timeout_s)
+            try:
+                result, status = await self._send(request, timeout_s)
+            except asyncio.CancelledError:
+                # The request may have been billed: its receipt (usage unknown) is written before the cancellation
+                # propagates, so every send leaves its row and the call settles usage_unknown (S5 3.2, 3.6).
+                run.unknown = True
+                await self._record(live, request, None, ("error", int((clock() - began) * 1000), trace_id, span_id))
+                raise
             usage = result.usage
             if usage is None and (isinstance(result, RawCompletion) or result.maybe_billed):
                 run.unknown = True
-            used = usage or Usage()
-            receipt = await live.guard.record(
-                UsageReport(
-                    reservation_id=live.reservation.id,
-                    seq=run.sends,
-                    model=request.model.value,
-                    input_tokens=used.input_tokens,
-                    output_tokens=used.output_tokens,
-                    thinking_tokens=used.thinking_tokens,
-                    status=status,
-                    latency_ms=int((clock() - began) * 1000),
-                    trace_id=trace_id,
-                    span_id=span_id,
-                )
+            receipt = await self._record(
+                live, request, usage, (status, int((clock() - began) * 1000), trace_id, span_id)
             )
-            run.recorded += 1
-            run.usage = run.usage.add(used)
             if receipt.outcome == "overrun":
                 # Receipts above the hold: the database turned the kill switch on (S4 8.3). Stop at once.
                 raise KillSwitchOnError(OVERRUN_MESSAGE)
@@ -369,7 +396,7 @@ def _repair(plan: _Plan[Any], failure: _Failure, *, attempt: int) -> ModelReques
 
 def _failure_of(error: ProviderCallError) -> _Failure:
     notes = {ErrorKind.TRUNCATED: TRUNCATED_NOTE, ErrorKind.BLOCKED: BLOCKED_NOTE, ErrorKind.EMPTY: EMPTY_NOTE}
-    return _Failure(error.kind, notes.get(error.kind, ""), "", error.message)
+    return _Failure(error.kind, notes.get(error.kind, ""), error.reply_text, error.message)
 
 
 def _terminal(failure: _Failure | None, sends: int) -> Exception:

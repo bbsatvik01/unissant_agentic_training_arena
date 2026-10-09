@@ -85,6 +85,11 @@ class ProviderFailedError(ProviderError):
     """Any other terminal failure: transient errors past the attempt cap, a bad request, the deadline."""
 
 
+class StepInProgressError(ProviderFailedError):
+    """Another live call holds this step key (S5 5.1): nothing was reserved or sent. A step's reservation is only
+    recovered by the call that holds the step, so a running call's hold is never settled from under it."""
+
+
 class ProviderCallError(ProviderError):
     """One attempt failed. ``maybe_billed`` marks an attempt the provider may have charged for without reporting
     usage (a timeout, a dropped connection); the call then settles ``usage_unknown`` and keeps its full
@@ -105,3 +110,4 @@ class ProviderCallError(ProviderError):
         self.status = status
         self.maybe_billed = maybe_billed
         self.usage = usage
+        self.reply_text = ""  # a cut-off or blocked reply's visible text, echoed by the one repair (S2 10)

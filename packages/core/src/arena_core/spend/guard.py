@@ -64,6 +64,8 @@ def reservation_from(result: calls.ReserveResult) -> Reservation:
 class GuardSession(Protocol):
     """One logical call's conversation with the guard (one connection for the call's lifetime)."""
 
+    async def claim(self, step_key: str) -> bool: ...
+
     async def reserve(self, req: ModelCallRequest) -> Reservation: ...
 
     async def dispatch(self, reservation_id: UUID) -> None: ...
@@ -80,6 +82,13 @@ class SpendGuard(Protocol):
 class _DbSession:
     def __init__(self, conn: calls.Conn) -> None:
         self._conn = conn
+        self.claimed: list[str] = []
+
+    async def claim(self, step_key: str) -> bool:
+        held = await calls.claim_step(self._conn, step_key)
+        if held:
+            self.claimed.append(step_key)
+        return held
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         return reservation_from(await calls.reserve_model_call(self._conn, req))
@@ -112,7 +121,13 @@ class DbSpendGuard:
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
         async with self._connect() as conn:
-            yield _DbSession(conn)
+            session = _DbSession(conn)
+            try:
+                yield session
+            finally:
+                # Closing the connection releases every step too; releasing first keeps a pooled connection clean.
+                for step_key in session.claimed:
+                    await calls.release_step(conn, step_key)
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()

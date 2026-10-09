@@ -397,3 +397,25 @@ def test_main_reports_a_broken_plan(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert plan.main(broken, ["--check", "--dsn-env", "OWNER"], {"OWNER": "x"}) == 1
     assert "exited 1" in capsys.readouterr().err
+
+
+def test_a_step_is_claimed_for_the_session_and_released_when_it_ends() -> None:
+    fake = Conn({"pg_try_advisory_lock": [(True,)], "pg_advisory_unlock": [(True,)]})
+    guard = guard_over(fake)
+
+    async def claim() -> object:
+        async with guard.session() as session:
+            return await session.claim("step-key-1")
+
+    assert run(claim()) is True
+    sent = [(q.split("(")[0].split()[-1], p) for q, p in fake.executed]
+    assert sent == [
+        ("pg_try_advisory_lock", ("arena.step:step-key-1",)),
+        ("pg_advisory_unlock", ("arena.step:step-key-1",)),
+    ]
+
+
+def test_a_step_held_elsewhere_is_not_claimed_and_not_released() -> None:
+    fake = Conn({"pg_try_advisory_lock": [(False,)]})
+    assert run(in_session(guard_over(fake), "claim", "step-key-2")) is False
+    assert [q for q, _ in fake.executed if "unlock" in q] == []

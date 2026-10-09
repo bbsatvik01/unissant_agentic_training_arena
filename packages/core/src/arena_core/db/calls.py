@@ -325,3 +325,22 @@ async def set_kill_switch(conn: Conn, *, on: bool, reason: str) -> None:
     """`ops.set_kill_switch(on, reason)`: owner credential only."""
     async with conn.transaction():
         await conn.execute("select ops.set_kill_switch(%s, %s)", (on, reason))
+
+
+def _step_lock_key(step_key: str) -> str:
+    return f"arena.step:{step_key}"
+
+
+async def claim_step(conn: Conn, step_key: str) -> bool:
+    """Hold the step for this connection's session (`pg_try_advisory_lock`): True when it was free. The lock ends
+    with the connection, so a step held by a process that died is free again; a live holder keeps it."""
+    async with conn.transaction():
+        cur = await conn.execute("select pg_try_advisory_lock(hashtextextended(%s, 0))", (_step_lock_key(step_key),))
+        row = await cur.fetchone()
+    return bool(row and row[0])
+
+
+async def release_step(conn: Conn, step_key: str) -> None:
+    """Release a step this session holds."""
+    async with conn.transaction():
+        await conn.execute("select pg_advisory_unlock(hashtextextended(%s, 0))", (_step_lock_key(step_key),))

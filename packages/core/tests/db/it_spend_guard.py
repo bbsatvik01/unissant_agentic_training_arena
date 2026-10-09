@@ -42,10 +42,11 @@ from arena_core.providers.errors import (
     KillSwitchOnError,
     ProviderCallError,
     ProviderFailedError,
+    StepInProgressError,
 )
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
-from arena_core.providers.types import AgentCall, CallContext, Message, Usage, request_bytes
+from arena_core.providers.types import AgentCall, AgentResult, CallContext, Message, Usage, request_bytes
 from arena_core.spend import rates
 from arena_core.spend.guard import DbSpendGuard, GuardSession, Reservation
 from arena_core.spend.limits import ATTEMPTS, REPAIR_BYTES, CallType, ThinkingLevel, VertexModel
@@ -361,6 +362,7 @@ class _KillAfterReserve:
                     await admin_exec(outer._dsn, "select ops.set_kill_switch(true, 'flip at dispatch')")
                     return found
 
+                claim = session.claim
                 dispatch = session.dispatch
                 record = session.record
                 settle = session.settle
@@ -461,6 +463,29 @@ def test_a_restarted_call_settles_its_dispatched_hold_usage_unknown_and_reserves
     assert (old["state"], old["settled_usd"]) == ("usage_unknown", old["reserved_usd"])  # never released
     new = run(reservation_row(admin_dsn, result.reservation_id))
     assert (new["key"], new["state"]) == (f"{key}:2", "committed")
+
+
+def test_a_live_call_s_step_is_never_recovered_from_under_it(admin_dsn: str) -> None:
+    """Two processes on one step: the second is refused while the first holds the step (a session advisory lock),
+    so the first's dispatched hold is never settled usage_unknown and resent; once the first ends, the step is free."""
+    run(open_ceiling(admin_dsn, Decimal("1.00")))
+    call = card_call(step())
+    slow = FakeAdapter(script=[VALID], usage=USAGE, delay_s=0.5)
+    fast = FakeAdapter(script=[VALID, VALID], usage=USAGE)
+
+    async def overlapping() -> tuple[object, object]:
+        first = asyncio.create_task(port(admin_dsn, slow).run(call))
+        await asyncio.sleep(0.2)
+        second = await asyncio.gather(port(admin_dsn, fast).run(call), return_exceptions=True)
+        return await first, second[0]
+
+    first, second = run(overlapping())
+    assert isinstance(second, StepInProgressError)
+    assert fast.requests == []
+    assert isinstance(first, AgentResult)
+    assert run(reservation_row(admin_dsn, first.reservation_id))["state"] == "committed"
+    after = run(port(admin_dsn, fast).run(call))  # the step is free again: the next key is used
+    assert run(reservation_row(admin_dsn, after.reservation_id))["key"] == f"{call.context.step_key}:2"
 
 
 def test_the_voice_client_wrappers_reserve_and_settle_a_probe_hold_as_arena_subject(admin_dsn: str) -> None:

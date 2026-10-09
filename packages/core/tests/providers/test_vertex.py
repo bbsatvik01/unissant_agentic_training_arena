@@ -311,3 +311,9 @@ def test_request_bytes_measure_exactly_the_body_the_sdk_sends(text: str) -> None
 def test_billed_usage_is_unknown_or_an_upper_bound(meta: dict[str, int], want: Usage | None) -> None:
     assert vertex.billed_usage(gtypes.GenerateContentResponseUsageMetadata(**meta)) == want
     assert vertex.billed_usage(None) is None
+
+
+def test_a_cut_off_reply_keeps_its_visible_text_for_the_repair() -> None:
+    err = call_error(response(text='{"a": "partial', finish=gtypes.FinishReason.MAX_TOKENS))
+    assert err.reply_text == '{"a": "partial'
+    assert call_error(response(text="blocked part", finish=gtypes.FinishReason.SAFETY)).reply_text == "blocked part"

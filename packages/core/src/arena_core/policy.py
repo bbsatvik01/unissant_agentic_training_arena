@@ -11,9 +11,10 @@ from __future__ import annotations
 from typing import Any
 
 from arena_core.providers.errors import PolicyRefusedError
-from arena_core.providers.types import AgentCall, DataClass
+from arena_core.providers.types import AgentCall, DataClass, Message
 from arena_core.spend.limits import LIMITS, PURPOSES, CallLimits, CallType
 
+MESSAGE_ROLES = frozenset({"user", "model"})
 # A subject call carries the private packet; referee calls carry evaluator data; everything else is public.
 DATA_CLASSES: dict[CallType, frozenset[DataClass]] = {
     CallType.SUBJECT: frozenset({"subject_private"}),
@@ -52,4 +53,24 @@ def check_call_policy(call: AgentCall[Any], roster_manifest_shas: frozenset[str]
     if not call.messages:
         msg = "a call needs at least one message"
         raise PolicyRefusedError(msg)
+    if not _text_only(call):
+        msg = "messages must be text Message parts with role user or model, and the system instruction text"
+        raise PolicyRefusedError(msg)
     return limits
+
+
+def _text_only(call: AgentCall[Any]) -> bool:
+    """S5 3.5: text only. Annotations are not enforced at runtime, so the boundary is checked before any
+    reservation: anything but a Message with a known role and string text, or a non-string system, is refused."""
+    system: object = call.system
+    if not isinstance(system, str):
+        return False
+    parts: tuple[object, ...] = call.messages
+    for part in parts:
+        if not isinstance(part, Message):
+            return False
+        role: object = part.role
+        text: object = part.text
+        if role not in MESSAGE_ROLES or not isinstance(text, str):
+            return False
+    return True

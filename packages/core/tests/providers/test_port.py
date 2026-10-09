@@ -11,7 +11,7 @@ import time
 from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -32,16 +32,28 @@ from arena_core.providers.errors import (
     ProviderBlockedError,
     ProviderCallError,
     ProviderFailedError,
+    StepInProgressError,
     StructuredOutputError,
 )
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import BLOCKED_NOTE, MAX_KEY_ROUNDS, TRUNCATED_NOTE, AgentPort, PortOptions, seed_for
 from arena_core.providers.retry import RetryPolicy
-from arena_core.providers.types import AgentCall, CallContext, Message, ModelRequest, Usage, request_bytes
+from arena_core.providers.types import (
+    AgentCall,
+    AgentResult,
+    CallContext,
+    DataClass,
+    Message,
+    ModelRequest,
+    RawCompletion,
+    Usage,
+    request_bytes,
+)
 from arena_core.spend import rates
 from arena_core.spend.guard import GuardSession, Reservation
 from arena_core.spend.limits import (
     ATTEMPTS,
+    DEFAULT_TIMING,
     LIMITS,
     REPAIR_BYTES,
     REPAIR_ERROR_ITEM_BYTES,
@@ -590,7 +602,8 @@ class CountingGuard:
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
         self.sessions += 1
-        yield self.inner
+        async with self.inner.session() as session:
+            yield session
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()
@@ -697,3 +710,129 @@ def test_the_backoff_never_outlasts_the_deadline() -> None:
     with pytest.raises(ProviderFailedError):
         run(agent.run(dataclasses.replace(card(), deadline_s=0.05)))
     assert time.monotonic() - started < 1.0
+
+
+# ---------------------------------------------------------------- Codex round 2: step ownership, timing, text, cancel
+
+
+def test_a_second_live_call_on_the_same_step_is_refused_and_the_first_completes() -> None:
+    budget = RunBudget(CEILING)
+    call = card()
+    slow = FakeAdapter(script=[VALID], delay_s=0.2)
+    fast = FakeAdapter(script=[VALID])
+
+    async def both() -> tuple[object, object]:
+        first = asyncio.create_task(AgentPort(slow, budget, PortOptions(sleep=no_sleep)).run(call))
+        await asyncio.sleep(0.05)  # the first holds the step and has dispatched
+        second = asyncio.gather(AgentPort(fast, budget, PortOptions(sleep=no_sleep)).run(call), return_exceptions=True)
+        return await first, (await second)[0]
+
+    first, second = run(both())
+    assert isinstance(first, AgentResult)
+    assert isinstance(second, StepInProgressError)
+    assert fast.requests == []
+    assert [h.state for h in budget.reservations.values()] == ["committed"]
+    assert budget.held_steps == set()  # released when the first call's session ended
+
+
+@pytest.mark.parametrize(
+    ("call_type", "purpose", "data_class", "timeout"),
+    [
+        (CallType.SUBJECT, "subject.answer", "subject_private", 8.0),
+        (CallType.CARD, "coach.card", "public", 6.0),
+        (CallType.DEEP, "coach.deep", "public", 10.0),
+        (CallType.FINAL, "coach.final", "public", 15.0),
+        (CallType.REFEREE, "referee_subject", "evaluator", 30.0),
+    ],
+)
+def test_a_call_without_timing_uses_s2_s_attempt_timeout(
+    call_type: CallType, purpose: str, data_class: DataClass, timeout: float
+) -> None:
+    adapter = FakeAdapter(script=[VALID])
+    agent, _ = port(adapter)
+    model = VertexModel.FLASH_LITE_35
+    base = card()
+    context = CallContext(call_type=call_type, purpose=purpose, step_key=f"s:{uuid4()}", data_class=data_class)
+    run(agent.run(dataclasses.replace(base, model=model, context=context)))
+    assert adapter.timeouts == [timeout]
+    assert DEFAULT_TIMING[call_type].attempt_timeout_s == timeout
+
+
+def test_the_default_deadline_bounds_a_call_that_sets_none() -> None:
+    ticks = iter(float(t) for t in range(0, 1000, 5))  # every clock read advances 5 s
+    adapter = FakeAdapter(script=[unavailable()] * ATTEMPTS)
+    agent, _ = port(adapter, clock=lambda: next(ticks))
+    with pytest.raises(ProviderFailedError, match="deadline"):
+        run(agent.run(card()))  # card: 12 s deadline (S2 2)
+    assert len(adapter.requests) < ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    "messages",
+    [
+        (cast("Message", {"role": "user", "text": "q"}),),
+        (Message(cast("Any", "system"), "q"),),
+        (Message("user", cast("str", {"inline_data": "audio"})),),
+    ],
+    ids=["not-a-message", "unknown-role", "non-text-part"],
+)
+def test_a_non_text_message_is_refused_before_any_reservation(messages: tuple[Message, ...]) -> None:
+    adapter = FakeAdapter(script=[VALID])
+    agent, budget = port(adapter)
+    with pytest.raises(PolicyRefusedError, match="text"):
+        run(agent.run(dataclasses.replace(card(), messages=messages)))
+    assert (budget.ops, adapter.requests) == ([], [])
+
+
+def test_a_non_text_system_instruction_is_refused() -> None:
+    agent, budget = port(FakeAdapter(script=[VALID]))
+    with pytest.raises(PolicyRefusedError, match="text"):
+        run(agent.run(dataclasses.replace(card(), system=cast("str", b"bytes"))))
+    assert budget.ops == []
+
+
+class Hanging(FakeAdapter):
+    """Signals once a request is in flight, then never answers."""
+
+    entered: asyncio.Event | None = None
+
+    async def generate(self, request: ModelRequest, *, timeout_s: float) -> RawCompletion:
+        self.requests.append(request)
+        self.timeouts.append(timeout_s)
+        if self.entered is not None:
+            self.entered.set()
+        await asyncio.Event().wait()
+        raise AssertionError  # unreachable: the wait above never ends
+
+
+def test_a_cancelled_attempt_still_writes_its_receipt_and_settles_usage_unknown() -> None:
+    adapter = Hanging()
+    budget = RunBudget(CEILING)
+    agent = AgentPort(adapter, budget, PortOptions(sleep=no_sleep))
+
+    async def cancel_mid_attempt() -> None:
+        adapter.entered = asyncio.Event()
+        task = asyncio.create_task(agent.run(card()))
+        await adapter.entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(cancel_mid_attempt())
+    [row] = budget.rows
+    assert (row.seq, row.report.status, row.report.input_tokens) == (1, "error", 0)
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("usage_unknown", held.reserved_usd)
+
+
+def test_a_truncated_reply_s_visible_text_is_echoed_by_the_repair() -> None:
+    truncated = ProviderCallError(ErrorKind.TRUNCATED, "MAX_TOKENS", usage=USAGE, maybe_billed=True)
+    truncated.reply_text = '{"verdict": "ok", "note": "cut of'
+    adapter = FakeAdapter(script=[truncated, VALID])
+    agent, _ = port(adapter)
+    run(agent.run(card("question")))
+    assert adapter.requests[1].messages == (
+        Message("user", "question"),
+        Message("model", truncated.reply_text),
+        Message("user", TRUNCATED_NOTE),
+    )

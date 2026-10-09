@@ -67,6 +67,25 @@ LIMITS: dict[CallType, CallLimits] = {
     CallType.PORTRAIT: CallLimits(2_000, 2_000, 60.0, frozenset()),
 }
 
+
+@dataclass(frozen=True)
+class CallTiming:
+    attempt_timeout_s: float  # per attempt
+    deadline_s: float  # all attempts of one call, repair, retries and backoff included
+
+
+# S2 2: the effective per-attempt timeouts and call deadlines when a call (or its candidate manifest) sets none;
+# each is at or below S5 3.3's ceiling. The four referee purposes share 30 s / 90 s. Portrait has no S2 row: its
+# initial value is the S5 ceiling with a two-attempt deadline, tuned with the image model in the dev pilot.
+DEFAULT_TIMING: dict[CallType, CallTiming] = {
+    CallType.SUBJECT: CallTiming(8.0, 20.0),
+    CallType.CARD: CallTiming(6.0, 12.0),
+    CallType.DEEP: CallTiming(10.0, 20.0),
+    CallType.FINAL: CallTiming(15.0, 30.0),
+    CallType.REFEREE: CallTiming(30.0, 90.0),
+    CallType.PORTRAIT: CallTiming(60.0, 120.0),
+}
+
 # S5 3.3 / S2 2: the fixed purpose labels per call type. S4 accepts exactly the four referee labels on `referee`.
 REFEREE_PURPOSES: frozenset[str] = frozenset({"referee_subject", "referee_assistant", "r3_subject", "r3_investigator"})
 PURPOSES: dict[CallType, frozenset[str]] = {

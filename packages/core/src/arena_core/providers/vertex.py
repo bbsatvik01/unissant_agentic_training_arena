@@ -214,12 +214,16 @@ def parse_response(resp: gtypes.GenerateContentResponse) -> RawCompletion:
         kind = ErrorKind.BLOCKED if block else ErrorKind.EMPTY
         raise ProviderCallError(kind, f"no candidates (block_reason={block})", usage=usage, maybe_billed=True)
     finish = candidate.finish_reason
-    if finish == gtypes.FinishReason.MAX_TOKENS:
-        raise ProviderCallError(ErrorKind.TRUNCATED, "finish_reason=MAX_TOKENS", usage=usage, maybe_billed=True)
-    if finish in _BLOCKED_REASONS:
-        raise ProviderCallError(ErrorKind.BLOCKED, f"finish_reason={finish}", usage=usage, maybe_billed=True)
     parts = candidate.content.parts if candidate.content and candidate.content.parts else []
     text = "".join(p.text for p in parts if p.text and not p.thought)
+    stop = None
+    if finish == gtypes.FinishReason.MAX_TOKENS:
+        stop = ProviderCallError(ErrorKind.TRUNCATED, "finish_reason=MAX_TOKENS", usage=usage, maybe_billed=True)
+    elif finish in _BLOCKED_REASONS:
+        stop = ProviderCallError(ErrorKind.BLOCKED, f"finish_reason={finish}", usage=usage, maybe_billed=True)
+    if stop is not None:
+        stop.reply_text = text  # the repair echoes the visible part of the cut-off or blocked reply (S2 10)
+        raise stop
     if not text.strip():
         msg = f"empty reply (finish_reason={finish})"
         raise ProviderCallError(ErrorKind.EMPTY, msg, usage=usage, maybe_billed=True)
