@@ -365,13 +365,42 @@ def test_a_function_registered_as_a_value_is_a_value_use(source: str) -> None:
     assert frame_rules(ARENA_API_FILE, source)
 
 
-def test_a_function_that_is_only_called_keeps_its_annotations_free() -> None:
+HANDLERS = (
+    "from arena_core.contracts.events import NoticeFrame\n\n\ndef parse(frame: NoticeFrame) -> NoticeFrame:\n"
+    "    return frame\n"
+)
+APP = "from pydantic import validate_call\nfrom handlers_mod import parse\n\nparse = validate_call(parse)\n"
+
+
+@pytest.mark.gateproof
+def test_a_frame_annotation_wrapped_in_another_module_is_refused_at_its_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One module annotates with a frame model, another wraps the function: running them builds a NoticeFrame
+    outside the projection, so the rule refuses the import that makes it possible."""
+    (tmp_path / "handlers_mod.py").write_text(HANDLERS, encoding="utf-8")
+    (tmp_path / "app_mod.py").write_text(APP, encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    spec = importlib.util.spec_from_file_location("app_mod", tmp_path / "app_mod.py")
+    assert spec is not None
+    assert spec.loader is not None
+    app = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(app)
+    assert type(app.parse(NOTICE)).__name__ == "NoticeFrame"
+    handlers = frame_rules("services/api/src/arena_api/handlers.py", HANDLERS)
+    assert handlers
+    assert all("is an event frame model" in r for r in handlers), handlers
+
+
+def test_any_reference_outside_the_projection_is_refused_even_a_plain_annotation() -> None:
     source = (
         "from arena_core.contracts.events import TrialFrame\n\n\n"
-        "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n\n\n"
-        "def again(frame: TrialFrame) -> TrialFrame:\n    return take(take(frame))\n"
+        "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n"
     )
-    assert frame_rules(ARENA_API_FILE, source) == []
+    lines = {f.line for f in lint.check_source(ARENA_API_FILE, source, FRAMES)}
+    assert lines == {1, 4}  # the import, and the annotation itself
+    assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import TrialFrame\n")  # importing is enough
+    assert frame_rules(ARENA_API_FILE, "from arena_core.contracts.events import CoachCard\n") == []
 
 
 def test_identifiers_follow_pythons_rules() -> None:
@@ -391,16 +420,10 @@ def test_the_export_module_may_read_frame_schemas() -> None:
     assert frame_rules("packages/core/src/arena_core/contracts/export.py", export) == []
 
 
-def test_the_projection_and_annotations_may_name_frame_models() -> None:
+def test_the_projection_may_name_frame_models_and_non_product_code_is_not_scanned() -> None:
     build = "from arena_core.contracts.events import NoticeFrame\nf = NoticeFrame(v=1)\n"
     assert frame_rules(lint.FRAME_BUILDER, build) == []
     assert frame_rules(lint.FRAME_SOURCE, build) == []
-    annotated = (
-        "from arena_core.contracts.events import TrialFrame\n\n"
-        "def send(frame: TrialFrame) -> TrialFrame:\n    last: TrialFrame = frame\n"
-        "    if frame:\n        again: TrialFrame = last\n    return last\n"
-    )
-    assert frame_rules(ARENA_API_FILE, annotated) == []
     assert frame_rules("packages/core/tests/contracts/test_x.py", build) == []
     assert frame_rules("tools/some_tool.py", build) == []
 

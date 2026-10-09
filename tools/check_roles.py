@@ -26,21 +26,19 @@ The lint reads source; it is not a sandbox. A module name assembled at run time 
 the per-process credentials and the database grants (S5 1.2 items 1 and 3, S5 10.2 item 7) remain the
 data boundary, as S5's threat model states.
 
-  frame. product code other than `arena_core.events.projections` names an event frame model outside a
-     type annotation: a call, `X.model_validate(...)`, `TypeAdapter(X)`, any other value use, or the model's
-     name as a string (S5 1.2 item 2: "any module other than `arena_core.events.projections` constructs an
-     event frame model"; S5 6.5). The frame models are read from `arena_core/contracts/events.py` (WP-02):
-     every class or alias there whose name ends in `Frame`, and every container that carries one
-     (`ReplayPage`, the tournament poll), since validating a container builds its frames. Two files are exempt,
-     each for a reason the rule cannot be broken by: that module itself (it declares them) and
-     `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and builds no frame);
-     product code may not import that export module, which hands out every wire type. Absolute and relative
-     imports both resolve. An undecorated function's annotations stay free, so a function may accept or return
-     a frame it never builds, and so do a function's local annotations; the annotations of a function that is
-     decorated or passed on as a value (`validate_call(f)`, a route registration: whatever receives it may
-     build them from raw data), any annotation
-     outside a function (a class field, at any depth of the class body's blocks, is built when the class is
-     validated) and a call inside any annotation are value uses.
+  frame. product code other than `arena_core.events.projections` names an event frame model at all: it may
+     not import one, reach one as an attribute (`events.NoticeFrame`), or spell one in a string (S5 1.2
+     item 2: "any module other than `arena_core.events.projections` constructs an event frame model"; S5 6.5).
+     Naming is the whole test, annotations included: any reference can become a construction (a decorator,
+     `validate_call(f)` in another module, a Pydantic field), so no use of a frame model is exempt anywhere but
+     the projection. A module that needs a frame type for typing takes it from the projection (a typed alias
+     or Protocol it exports), never the model class. The frame models are read from
+     `arena_core/contracts/events.py` (WP-02): every class or alias there whose name ends in `Frame`, and every
+     container that carries one (`ReplayPage`, the tournament poll), since validating a container builds its
+     frames. Two other files are exempt, each for a reason the rule cannot be broken by: that module itself (it
+     declares them) and `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and
+     builds no frame); product code may not import that export module, which hands out every wire type.
+     Absolute and relative imports both resolve.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -88,7 +86,7 @@ FRAME_SOURCE = "packages/core/src/arena_core/contracts/events.py"
 FRAME_MODULE = "arena_core.contracts.events"
 FRAME_BUILDER = "packages/core/src/arena_core/events/projections.py"
 FRAME_EXEMPT = frozenset({FRAME_BUILDER, FRAME_SOURCE, "packages/core/src/arena_core/contracts/export.py"})
-FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections builds frames (S5 1.2 item 2)"
+FRAME_RULE = "{name} is an event frame model; only arena_core.events.projections names or builds frames (S5 1.2 item 2)"
 # The schema export maps file stems to every wire type, frames included; product code never needs it.
 EXPORT_MODULE = "arena_core.contracts.export"
 EXPORT_RULE = "arena_core.contracts.export hands out the frame types; only tools import it (S5 1.2 item 2)"
@@ -284,70 +282,6 @@ def frame_models(root: Path) -> frozenset[str]:
     return frozenset(frames)
 
 
-def _signature_annotations(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.AST]:
-    a = fn.args
-    params = [*a.posonlyargs, *a.args, *a.kwonlyargs, *(p for p in (a.vararg, a.kwarg) if p is not None)]
-    found: list[ast.AST] = [p.annotation for p in params if p.annotation is not None]
-    if fn.returns is not None:
-        found.append(fn.returns)
-    return found
-
-
-def _local_annotations(node: ast.AST, in_function: bool, out: list[ast.AST]) -> None:
-    """Collect the annotations of annotated assignments whose nearest enclosing scope is a function, at any
-    depth of control flow (`if`, `for`, `with`, `try`, `match` blocks do not open a scope)."""
-    for child in ast.iter_child_nodes(node):
-        if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
-            _local_annotations(child, in_function=True, out=out)
-        elif isinstance(child, ast.ClassDef):
-            _local_annotations(child, in_function=False, out=out)
-        else:
-            if in_function and isinstance(child, ast.AnnAssign):
-                out.append(child.annotation)
-            _local_annotations(child, in_function, out)
-
-
-def _functions_used_as_values(tree: ast.AST) -> set[str]:
-    """Names of functions referenced other than by calling them: passed, assigned, returned or registered
-    (`parse = validate_call(parse)`, `router.add_api_route("/x", parse)`). Whatever receives the function may
-    read its annotations and build the values, exactly as a decorator can."""
-    called = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
-    used: set[str] = set()
-    for node in ast.walk(tree):
-        if id(node) in called:
-            continue
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-            used.add(node.id)
-        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
-            used.add(node.attr)
-    return used
-
-
-def _annotation_nodes(tree: ast.AST) -> set[int]:
-    """ids of the nodes of the type annotations the rule leaves free: the parameters and return of a function
-    that is neither decorated nor used as a value, and a function's local annotated assignments; never the
-    nodes of a call inside one (`def f(x: NoticeFrame(v=1))` runs that call when the function is defined).
-
-    Not free: a decorated function's annotations, or those of a function passed on as a value (wrapped by
-    `validate_call(f)`, registered as a route handler), because whatever receives it may read them at run time
-    and build the values; and every annotation outside a function (a class field, however deeply nested in the
-    class body's blocks, is built when the class is validated; a module annotation has no reason to name a
-    frame)."""
-    escaped = _functions_used_as_values(tree)
-    roots: list[ast.AST] = []
-    for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
-            and not node.decorator_list
-            and node.name not in escaped
-        ):
-            roots.extend(_signature_annotations(node))
-    _local_annotations(tree, in_function=False, out=roots)
-    inside = {id(n) for root in roots for n in ast.walk(root)}
-    calls = {id(n) for root in roots for c in ast.walk(root) if isinstance(c, ast.Call) for n in ast.walk(c)}
-    return inside - calls
-
-
 def _dotted_module(path: str) -> list[str]:
     """`packages/core/src/arena_core/x/y.py` -> ['arena_core', 'x', 'y'] (a package's `__init__` -> the package)."""
     parts = Path(path).with_suffix("").parts
@@ -368,18 +302,21 @@ def _resolve_from(path: str, node: ast.ImportFrom) -> str | None:
 
 
 def _frame_uses(path: str, tree: ast.AST, frames: frozenset[str]) -> list[tuple[int, str]]:
-    """(line, name) for every value use of a frame model (rule frame)."""
+    """(line, name) for every reference to a frame model (rule frame): an import, a name bound by one, an
+    attribute, or a string. Only docstrings, which are prose, are skipped."""
     local: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and _resolve_from(path, node) == FRAME_MODULE:
             local.update(a.asname or a.name for a in node.names if a.name in frames)
-    exempt = _annotation_nodes(tree) | _docstrings(tree)
+    exempt = _docstrings(tree)
     found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if id(node) in exempt:
             continue
         if _imports_export(path, node):
             found.append((getattr(node, "lineno", 0), ""))
+        elif isinstance(node, ast.ImportFrom) and _resolve_from(path, node) == FRAME_MODULE:
+            found.extend((node.lineno, a.name) for a in node.names if a.name in frames)
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in local:
             found.append((node.lineno, node.id))
         elif isinstance(node, ast.Attribute) and node.attr in frames:
