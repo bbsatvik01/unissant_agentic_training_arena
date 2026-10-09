@@ -6,7 +6,7 @@ import type { CardAck, DebriefRead, EvidenceResult, TrialFrame, TrialSnapshot, T
 import type { EventSourceLike } from "../sse/ticketed-stream";
 import { fixture } from "../../test/wire-fixtures";
 import { COMMITMENT_HASH, LogBuilder, SESSION_ID, TRIAL_ID, cardFor, frame, snapshot, voiceSnapshot } from "../../test/trial-log";
-import { CATCH_UP_MS, HIDDEN_CLOSE_MS, createSessionController, documentVisibility, type SessionControllerOptions } from "./sessionController";
+import { CATCH_UP_MS, HIDDEN_CLOSE_MS, RESYNC_RETRIES, createSessionController, documentVisibility, type SessionControllerOptions } from "./sessionController";
 import { roomStatus, type TrialView } from "./trialReducer";
 
 class FakeES implements EventSourceLike {
@@ -1344,4 +1344,113 @@ describe("session controller: gap cursor and pinned refusals", () => {
     expect(trialView(c).cards).toEqual([]);
     expect(trialView(c).rejectedCards).toEqual([1]);
   });
+});
+
+describe("session controller: Codex round 5 regressions", () => {
+  const turn1 = { turn_no: 1, question: "Question 1?", source: "investigator", answer: "Answer 1.", partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+
+  function releaseSession() {
+    // question v1 (seq 1), answer v2 (seq 2), scheduled release v3 (seq 3)
+    const b = new LogBuilder().ask({ releaseAfter: "rec-02", coach: "none" });
+    const release = b.frames.find((f) => f.type === "evidence.released") as TrialFrame;
+    const covered = snapshot({
+      last_seq: release.seq ?? 0,
+      exchanges_used: 1,
+      turns: [turn1],
+      released: [{ ...(release.data as never as object), transcript_version: 3 } as never],
+    });
+    return { b, release, covered };
+  }
+
+  it.each([
+    [3, true],
+    [2, false],
+  ] as const)("a release that fails validation holds a card read at %i until the snapshot covers it (shown: %s)", async (version, shown) => {
+    const { b, release, covered } = releaseSession();
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    const card = frame("coach.card", b.seq + 1, version, { turn_no: 1, card: cardFor(1, version) });
+    for (const f of b.frames) h.last().send(f === release ? { ...f, data: { ...f.data, title: 7 } } : f);
+    h.last().send(card);
+    expect(trialView(c).cards).toEqual([]);
+    await flush();
+    expect(trialView(c).cards.length).toBe(shown ? 1 : 0);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: shown }]);
+  });
+
+  it("a streamed card the snapshot already showed is acknowledged when its frame arrives", async () => {
+    const b = new LogBuilder().ask();
+    const card = b.frames.at(-1) as TrialFrame;
+    const covered = snapshot({ last_seq: card.seq ?? 0, exchanges_used: 1, turns: [turn1], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const h = harness({ snapshots: [snapshot(), covered] });
+    const c = h.make();
+    await begin(c);
+    for (const f of b.frames.slice(0, -1)) h.last().send(f);
+    h.last().raw("{broken");
+    await flush();
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    expect(h.acks).toEqual([]);
+    h.last().send(card);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
+  });
+
+  it("a failed snapshot re-read is retried, and the retry covers the gap", async () => {
+    const { b, release, covered } = releaseSession();
+    const h = harness({ snapshots: [snapshot(), new TypeError("network"), covered] });
+    const c = h.make();
+    await begin(c);
+    const card = frame("coach.card", b.seq + 1, 3, { turn_no: 1, card: cardFor(1, 3) });
+    for (const f of b.frames) if (f !== release) h.last().send(f);
+    h.last().send(card);
+    await flush();
+    expect(trialView(c).pendingCards).toEqual([1]);
+    expect(c.getState().error).toBeInstanceOf(TypeError);
+    await h.clock.advance(CATCH_UP_MS);
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
+  });
+
+  it("snapshot re-reads that keep failing stop after the bounded retries", async () => {
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          return reads === 1 ? Promise.resolve(snapshot()) : Promise.reject(new TypeError("down"));
+        },
+      },
+    });
+    await begin(c);
+    h.last().raw("{broken");
+    await flush();
+    await h.clock.advance(60_000);
+    expect(reads).toBe(1 + 1 + RESYNC_RETRIES);
+    expect(c.getState().connection).toBe("connecting");
+  });
+});
+
+describe("session controller: a second gap behind the first", () => {
+  it("re-checks for a remaining gap after a snapshot re-read covered the first", async () => {
+    const b = new LogBuilder().ask().ask();
+    // turn 1: q1 a2 c3; turn 2: q4 a5 c6. Missing: 3 (card 1) and 5 (answer 2).
+    const byseq = new Map(b.frames.filter((f) => f.seq !== null).map((f) => [f.seq, f] as const));
+    const s3 = snapshot({ last_seq: 3, exchanges_used: 1, turns: [turn(1)], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const s5 = snapshot({ last_seq: 5, exchanges_used: 2, turns: [turn(1), { ...turn(2), answer_version: 4 }], cards: [{ turn_no: 1, card: cardFor(1, 2) }] });
+    const h = harness({ snapshots: [snapshot(), s3, s5] });
+    const c = h.make();
+    await begin(c);
+    for (const seq of [1, 2, 4, 6]) h.last().send(byseq.get(seq));
+    await flush();
+    await flush();
+    expect(h.log.filter((l) => l.startsWith("snapshot"))).toHaveLength(3);
+    expect(trialView(c).contiguousSeq).toBe(6);
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1, 2]);
+  });
+
+  function turn(n: number) {
+    return { turn_no: n, question: `Question ${String(n)}?`, source: "investigator", answer: `Answer ${String(n)}.`, partial: false, committed_at: "2026-10-20T15:04:05.123Z", answer_version: 2 } as const;
+  }
 });

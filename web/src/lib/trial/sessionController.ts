@@ -37,6 +37,8 @@ import { applyFrame, initialTrialState, trialReducer, type TrialAction, type Tri
 export const HIDDEN_CLOSE_MS = 60_000;
 /** The catch-up check runs this long after a POST answered (S6 5.1). */
 export const CATCH_UP_MS = 1_000;
+/** A failed snapshot re-read is retried this many times (after 1, 2 and 4 s). */
+export const RESYNC_RETRIES = 3;
 
 /**
  * `idle` before `start()`; `loading` while the snapshot is read; `connecting` until the stream opens; `live`;
@@ -177,6 +179,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let gapResynced: number | null = null;
   let resyncing = false;
   let resyncAgain = false;
+  let resyncFailures = 0;
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
@@ -221,9 +224,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const setTrial = (incoming: TrialState) => {
-    if (incoming === state.trial) return;
-    // Acknowledge before subscribers are told, so before any render (S6 5.6).
+    // Acknowledge before subscribers are told, so before any render (S6 5.6). This runs on an unchanged state too:
+    // a streamed card the snapshot already showed is acknowledged when its frame arrives.
     const { trial, drops } = settleAcks(incoming);
+    if (trial === state.trial && drops === 0) return;
     // Report each new violation once (S6 5.4); a report that fails is not retried and never breaks the room.
     for (const v of trial.violations.slice(reported)) {
       api.reportContractViolation({ trial_id: trialId, frame_type: v.frame_type, seq: v.seq, reason: v.reason }).catch(() => undefined);
@@ -317,17 +321,34 @@ export function createSessionController(options: SessionControllerOptions): Sess
     }
     resyncing = true;
     void (async () => {
+      let failed = false;
       try {
         const snapshot = await api.trialSnapshot(trialId);
+        resyncFailures = 0;
         if (!disposed && state.connection !== "finished") dispatch({ type: "snapshot", snapshot });
       } catch (error) {
+        failed = true;
         set({ error });
       } finally {
         resyncing = false;
-        if (resyncAgain) {
-          resyncAgain = false;
+      }
+      if (disposed || state.connection === "finished") return;
+      if (resyncAgain) {
+        resyncAgain = false;
+        resync();
+      } else if (failed && resyncFailures < RESYNC_RETRIES) {
+        // A failed read is retried a bounded number of times, with growing waits; a later frame may also retry.
+        resyncFailures += 1;
+        gapResynced = null;
+        const handle = scheduler.setTimeout(() => {
+          catchUpTimers.delete(handle);
           resync();
-        }
+        }, CATCH_UP_MS * 2 ** (resyncFailures - 1));
+        catchUpTimers.add(handle);
+      } else if (failed) {
+        gapResynced = null;
+      } else {
+        checkGap();
       }
     })();
   };
@@ -341,8 +362,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   /**
-   * A frame this client refuses but can identify (this trial, a persisted seq): its seq will never fold, so it
-   * counts toward the gap-free prefix; a card closes its turn and is acknowledged invalid. Nothing of it is kept.
+   * A frame this client refuses but can identify (this trial). A card closes its turn and is acknowledged invalid;
+   * no other frame depends on it, so its seq counts toward the gap-free prefix. Any other frame may carry state a
+   * later card reads (an answer, a release): its seq stays a gap, so the cards above it wait and the snapshot is
+   * re-read to cover it. Nothing of the refused frame is kept.
    */
   const refuseIdentified = (frame: { readonly seq: unknown; readonly type: unknown; readonly data: unknown }) => {
     const turn = brokenCardTurn(frame);
@@ -351,8 +374,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
       streamCards.add(turn);
       droppedCards.add(turn);
       dispatch({ type: "card_refused", turn_no: turn });
+      if (typeof frame.seq === "number" && Number.isSafeInteger(frame.seq)) dispatch({ type: "seq_skipped", seq: frame.seq });
+      return;
     }
-    if (typeof frame.seq === "number" && Number.isSafeInteger(frame.seq)) dispatch({ type: "seq_skipped", seq: frame.seq });
+    if (frame.seq !== null && gapFreeRunning()) resync();
   };
 
   /** A frame dropped before validation (S6 5.2): identify it if it can be, else re-read the snapshot. */
