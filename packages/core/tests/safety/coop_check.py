@@ -183,6 +183,20 @@ def numbers(text: str) -> list[str]:
     return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
 
+_FRACTION = r"(?:half|halves|quarter|quarters|third|thirds)"
+# Fractional quantities ("thirty and a half", "half a dozen", "two thirds") are not normalised; they are rejected
+# outright so they can never pass as the whole number next to them (fail closed). "half past twelve" is a time.
+UNSUPPORTED_NUMBER = re.compile(
+    rf"\b(?:{_NUMBER_WORD}|\d+) and an? {_FRACTION}\b|\b{_FRACTION} (?:an? |of )?(?:{_NUMBER_WORD}|\d+)\b"
+    rf"|\b(?:{_NUMBER_WORD}|\d+)[ -]{_FRACTION}\b|\b\d+/\d+\b|\b\d+\.\d+\b",
+    re.IGNORECASE,
+)
+
+
+def unsupported_numbers(text: str) -> list[str]:
+    return [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(fold(text))]
+
+
 def number_in(token: str, text: str) -> bool:
     """A number matches a whole token of `text`, never part of one; a time to the minute matches the same time to the
     second ("19:12" matches "19:12:40")."""
@@ -218,7 +232,8 @@ def ledger_problems(cited: list[str], ledger: dict[str, str], sentence: str = ""
 
 def number_problems(sentence: str, known: Iterable[str], quotes: list[str]) -> list[str]:
     known_text = " ".join(known)
-    problems = [
+    problems = [f"unsupported number phrase: {u!r}" for u in unsupported_numbers(sentence)]
+    problems += [
         f"{n} is not in the cited ledger or the questions" for n in numbers(sentence) if not number_in(n, known_text)
     ]
     if quotes:
@@ -306,7 +321,9 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
     on each side: content words and identifiers such as badge numbers) may not come only from rows of the same record
     that hold other times and never from a row that holds this one: "the door opened at 19:38", when the record says
     opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge 70288's row.
-    A "from ... until" span runs forward. A time no row holds is not judged here."""
+    A "from ... until" span runs forward. A record is judged for a time when its row at that time shares a binding word
+    with the clause or the record names one of the clause's identifiers anywhere (otherwise its row at that time is
+    about something else); a time no row holds is not judged here."""
     sentence = fold(sentence)
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
     for clause in clauses(sentence):
@@ -314,14 +331,25 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
         for i, time in enumerate(tokens):
             if not TIME.fullmatch(time):
                 continue
-            before = [w for w in tokens[:i] if binding(w)][-NEAR:]
-            after = [w for w in tokens[i + 1 :] if binding(w)][:NEAR]
+            before = [w for w in tokens[:i] if content(w)][-NEAR:]
+            after = [w for w in tokens[i + 1 :] if content(w)][:NEAR]
             near = {stem(w) for w in before + after if w.lower() not in CALENDAR}
+            # Identifiers bind across the whole clause, to the nearest time in it.
+            times = [k for k, w in enumerate(tokens) if TIME.fullmatch(w)]
+            idents = {
+                stem(w)
+                for k, w in enumerate(tokens)
+                if binding(w) and not content(w) and min(times, key=lambda t: (abs(t - k), t)) == i
+            }
+            near |= idents
             for rows in tables:
                 holding = [s for row, s in rows if number_in(time, row)]
                 if not holding:
                     continue
                 own = set().union(*holding)
+                mentioned = set().union(*(s for _row, s in rows))
+                if not near & own and not idents & mentioned:
+                    continue  # the record neither shares the row's words nor names the clause's identifiers
                 other = set().union(*(s for row, s in rows if TIME.search(row) and not number_in(time, row)))
                 out.extend(f"{w} goes with another time than {time}" for w in sorted(near & other - own))
     return out

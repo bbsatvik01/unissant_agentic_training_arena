@@ -164,13 +164,24 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "thirty million training binders",
         "five to ten training binders",
         "thirty\u2011two training binders",
+        "thirty and a half training binders",
+        "half a dozen training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
     """Transcript-level: F07's "thirty training binders" (cited against a record that says 30) changed to another
     quantity, spelled any way, fails the number check."""
     found = _mutate("TX-F07-C", "thirty training binders", replacement)
-    assert any("disagrees with the quote" in p or "is not in the cited ledger" in p for p in found), found
+    numeric = ("disagrees with the quote", "is not in the cited ledger", "unsupported number phrase")
+    assert any(any(n in p for n in numeric) for p in found), found
+
+
+@pytest.mark.parametrize("phrase", ["thirty and a half", "half a dozen", "two thirds", "1.5", "3/4"])
+def test_fractional_quantities_are_rejected(phrase: str) -> None:
+    assert cc.number_problems(f"I loaded {phrase} binders.", ["I loaded binders."], [])[0].startswith(
+        "unsupported number phrase"
+    )
+    assert cc.unsupported_numbers("It was half past twelve.") == []
 
 
 @pytest.mark.parametrize("apostrophe", ["'", "\u2019", "\u2018", "\u02bc"])
@@ -193,9 +204,13 @@ def test_an_identifier_on_another_times_row_fails_against_a_real_record() -> Non
     """F09 doc-01: badge 70288 at 08:12, badge 70315 at 08:41. Swapping the badge numbers between the rows fails."""
     records = list(record_texts("F09").values())
     assert cc.time_row_problems("Badge 70315 was granted access at 08:41.", [], records) == []
-    assert cc.time_row_problems("Badge 70315 was granted access at 08:12.", [], records) == [
-        "70315 goes with another time than 08:12"
-    ]
+    for wrong in (
+        "Badge 70315 was granted access at 08:12.",
+        "Badge 70315 was granted access through the north staff door at 08:12.",
+        "At 08:12 the north staff door granted access to badge 70315 from the car park side.",
+        "70315 entered at 08:12.",
+    ):
+        assert cc.time_row_problems(wrong, [], records) == ["70315 goes with another time than 08:12"], wrong
 
 
 def test_no_time_on_the_wrong_row_against_a_real_record() -> None:
