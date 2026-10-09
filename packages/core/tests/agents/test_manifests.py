@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -314,3 +315,33 @@ def test_prompt_set_refuses_unknown_paths_and_assemblies(official: dict[str, m.C
         prompts.text(m.DEEP)
     with pytest.raises(m.ManifestMismatchError, match="no assembly for deep"):
         prompts.assembly("deep")
+
+
+SCHEMA = {"name": "DeepUpdate", "version": "deep.v1", "sha256": "0" * 64}
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda p: p["output_schemas"].pop(0), "output_schemas"),
+        (lambda p: p["output_schemas"].append(dict(p["output_schemas"][0])), "output_schemas"),
+        (lambda p: p["output_schemas"].__setitem__(0, SCHEMA), "output_schemas"),
+        (lambda p: p["user_templates"].pop(0), "user_templates"),
+        (lambda p: p["assembly"].__setitem__("deep", p["assembly"]["card"]), r"prompt\.assembly"),
+    ],
+)
+def test_a_coach_names_exactly_the_schemas_templates_and_assemblies_it_uses(
+    official: dict[str, m.CandidateManifest], change: Callable[[dict[str, Any]], object], message: str
+) -> None:
+    raw = _raw(official["A2"])
+    raw["sha256"] = None
+    change(raw["prompt"])
+    with pytest.raises(ValidationError, match=message):
+        m.CandidateManifest.model_validate(raw)
+
+
+def test_a_subject_needs_its_live_assembly(official: dict[str, m.CandidateManifest]) -> None:
+    raw = _raw(official["S1"])
+    del raw["prompt"]["assembly"]["live"]
+    with pytest.raises(ValidationError, match=r"prompt\.assembly"):
+        m.CandidateManifest.model_validate(raw)

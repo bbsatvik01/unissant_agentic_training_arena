@@ -248,9 +248,40 @@ class CandidateManifest(Contract):
             errors.append(f"limits: keys {sorted(keys)} are not the call kinds of a {self.kind}")
         elif self.coaching_policy is not None and (self.coaching_policy.design == "two_stage") != ("deep" in keys):
             errors.append("limits.deep: exists exactly for a two_stage assistant")
+        elif self.prompt is not None:
+            errors += _prompt_shape_errors(self.kind, keys, self.prompt)
         if errors:
             raise ValueError("; ".join(errors))
         return self
+
+
+# What each call kind needs in `prompt` (S2 3.1): its assembly, its user template (by file name) and its output
+# schema, so every behavior-defining text and schema a call uses is named, hashed and verified.
+_CALL_SHAPE: dict[str, tuple[str, str, tuple[str, str]]] = {
+    "card": ("card", "user.card.v1.txt", ("CoachingCard", "card.v1")),
+    "deep": ("deep", "user.deep.v1.txt", ("DeepUpdate", "deep.v1")),
+    "final": ("final", "user.final.v1.txt", ("FinalFinding", "final.v1")),
+    "subject": ("subject", "user.turn.v1.txt", ("SubjectTurn", "subject.v1")),
+    "referee_subject": ("referee_subject", "subject.user.v1.txt", ("RefereeSubjectReport", "ref_subj.v5")),
+    "referee_assistant": ("referee_assistant", "assistant.user.v1.txt", ("RefereeAssistantReport", "ref_asst.v2")),
+}
+# Subjects also render the Live instruction from their own assembly (S2 9.3).
+_EXTRA_ASSEMBLY = {"subject": frozenset({"live"})}
+
+
+def _prompt_shape_errors(kind: str, keys: frozenset[str], prompt: PromptSpec) -> list[str]:
+    """Exactly the assemblies, user templates and output schemas the candidate's call kinds use, each once."""
+    errors: list[str] = []
+    assemblies = {_CALL_SHAPE[k][0] for k in keys} | _EXTRA_ASSEMBLY.get(kind, frozenset())
+    if set(prompt.assembly) != assemblies:
+        errors.append(f"prompt.assembly: keys {sorted(prompt.assembly)} are not {sorted(assemblies)}")
+    names = sorted(t.path.rsplit("/", 1)[-1] for t in prompt.user_templates)
+    if names != sorted(_CALL_SHAPE[k][1] for k in keys):
+        errors.append(f"prompt.user_templates: {names} are not the templates of {sorted(keys)}")
+    schemas = sorted((s.name, s.version) for s in prompt.output_schemas)
+    if schemas != sorted(_CALL_SHAPE[k][2] for k in keys):
+        errors.append(f"prompt.output_schemas: {schemas} are not the schemas of {sorted(keys)}")
+    return errors
 
 
 def manifest_sha256(manifest: CandidateManifest | Mapping[str, Any]) -> str:

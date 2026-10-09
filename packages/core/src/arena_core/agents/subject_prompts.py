@@ -143,7 +143,7 @@ class SubjectPacket(Contract):
         errors += [
             f"uncertainty.{u.id}.range_text: required for a range"
             for u in self.uncertainty
-            if (u.answer_form == "range") != (u.range_text is not None)
+            if u.answer_form == "range" and u.range_text is None
         ]
         errors += [
             f"gates.{g.id}.opens: {o} is not a HOLD fact"
@@ -308,7 +308,8 @@ def _fact_line(fact: LedgerFact) -> str:
 def _uncertainty_line(entry: UncertaintyEntry, packet: SubjectPacket, view: LedgerView) -> str:
     """SG1-24: the suffix depends on the class of the fact the entry qualifies and, for HOLD, its gate's status."""
     fact = next(f for f in packet.facts if f.id == entry.fact_id)
-    say = f' If asked, say: "{clean(entry.range_text)}"' if entry.range_text is not None else ""
+    # S2 6.7: the range is said only for answer_form `range`; an `unsure` entry's optional range_text is not.
+    say = f' If asked, say: "{clean(entry.range_text)}"' if entry.answer_form == "range" and entry.range_text else ""
     if fact.fact_class == "CORE":
         suffix = (
             f" Applies only to how you describe {fact.id} if you are ever shown it;"

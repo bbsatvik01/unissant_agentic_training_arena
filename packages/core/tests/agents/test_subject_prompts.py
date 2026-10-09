@@ -369,3 +369,15 @@ def test_a_subject_assembly_the_builder_does_not_render_is_refused(key: str) -> 
 
     with pytest.raises(ManifestMismatchError, match=f"{key} assembly is not"):
         build()
+
+
+def test_an_unsure_entry_may_carry_range_text_and_never_says_it() -> None:
+    raw = fx.variant("F01", "truthful")["private_packet"]
+    unsure = [{**u, "range_text": "Around then."} if u["answer_form"] == "unsure" else u for u in raw["uncertainty"]]
+    packet = SubjectPacket.from_private_packet({**raw, "uncertainty": unsure}, split="dev")
+    text = build_subject_prompt(packet, fx.subject_state(2), fx.prompts("S1"), salt=fx.SALT).user_message
+    live = build_live_instruction(packet, frozenset(), fx.prompts("S1"))
+    line = _uncertainty_line(text, "u:02")
+    assert line == _uncertainty_line(live, "u:02")
+    assert "If asked, say" not in line
+    assert 'If asked, say: "' in _uncertainty_line(text, "u:01")
