@@ -323,11 +323,12 @@ def test_a_cut_off_reply_keeps_its_visible_text_for_the_repair() -> None:
     assert call_error(response(text="blocked part", finish=gtypes.FinishReason.SAFETY)).reply_text == "blocked part"
 
 
-def adapter_over(content: bytes, status: int = 200) -> vertex.VertexAdapter:
-    """The real SDK client on an in-memory transport that answers every request with ``content``."""
+def adapter_over(content: bytes, encoding: str | None = None) -> vertex.VertexAdapter:
+    """The real SDK client on an in-memory transport that answers every request with ``content`` (HTTP 200)."""
+    headers = {"content-type": "application/json", **({"content-encoding": encoding} if encoding else {})}
 
     def handler(_sent: SentRequest) -> object:
-        return httpx.Response(status, content=content, headers={"content-type": "application/json"})
+        return httpx.Response(200, content=content, headers=headers)
 
     transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     return vertex.VertexAdapter(
@@ -377,3 +378,10 @@ class Small(BaseModel):
 
 async def _no_sleep(_seconds: float) -> None:
     return None
+
+
+def test_an_undecodable_compressed_body_is_a_typed_transient_failure_that_may_have_been_billed() -> None:
+    with pytest.raises(ProviderCallError) as failed:
+        run(adapter_over(b"definitely not gzip", encoding="gzip").generate(request(), timeout_s=TIMEOUT_S))
+    assert (failed.value.kind, failed.value.maybe_billed) == (ErrorKind.TRANSIENT, True)
+    assert "DecodingError" in failed.value.message

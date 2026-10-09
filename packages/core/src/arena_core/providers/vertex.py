@@ -180,6 +180,11 @@ class VertexAdapter:
             raise ProviderCallError(
                 ErrorKind.TRANSIENT, f"transport error: {type(exc).__name__}", maybe_billed=not never_sent
             ) from exc
+        except httpx.HTTPError as exc:
+            # Any other client-side HTTP failure after the request left (a corrupt or undecodable body,
+            # httpx.DecodingError; a stream error): it may have been billed. Typed, sanitized, retried.
+            msg = f"response error: {type(exc).__name__}"
+            raise ProviderCallError(ErrorKind.TRANSIENT, msg, maybe_billed=True) from exc
         except (ValueError, TypeError, KeyError, AttributeError) as exc:
             # The SDK could not decode, validate or convert the response envelope (JSON and pydantic errors are
             # ValueErrors; a wrongly typed field fails conversion with TypeError, KeyError or AttributeError): the

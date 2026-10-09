@@ -934,3 +934,35 @@ def test_a_cancellation_during_the_receipt_write_still_completes_the_receipt_and
     assert (row.report.input_tokens, row.report.output_tokens) == (USAGE.input_tokens, USAGE.output_tokens)
     [held] = budget.reservations.values()
     assert (held.state, held.settled_usd) == ("committed", row.cost_usd)  # the known usage, not the full hold
+
+
+class CancelledAfterDispatchCommits(RunBudget):
+    """`ops.mark_dispatched` commits, then the caller is cancelled before it sees the answer."""
+
+    async def dispatch(self, reservation_id: UUID) -> None:
+        await super().dispatch(reservation_id)
+        raise asyncio.CancelledError
+
+
+class LostBeforeDispatch(RunBudget):
+    async def dispatch(self, reservation_id: UUID) -> None:
+        msg = f"connection lost before dispatching {reservation_id}"
+        raise GuardProtocolError(msg)
+
+
+def test_a_cancellation_after_dispatch_committed_settles_usage_unknown_and_stays_a_cancellation() -> None:
+    adapter = FakeAdapter(script=[VALID])
+    budget = CancelledAfterDispatchCommits(CEILING)
+    with pytest.raises(asyncio.CancelledError):
+        run(AgentPort(adapter, budget, PortOptions(sleep=no_sleep)).run(card()))
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd, adapter.requests) == ("usage_unknown", held.reserved_usd, [])
+
+
+def test_a_dispatch_that_never_committed_releases_the_hold_and_keeps_its_error() -> None:
+    adapter = FakeAdapter(script=[VALID])
+    budget = LostBeforeDispatch(CEILING)
+    with pytest.raises(GuardProtocolError, match="connection lost"):
+        run(AgentPort(adapter, budget, PortOptions(sleep=no_sleep)).run(card()))
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("released", Decimal(0))

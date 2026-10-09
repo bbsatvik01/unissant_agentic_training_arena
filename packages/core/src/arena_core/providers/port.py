@@ -171,9 +171,8 @@ class AgentPort:
             reservation = await self._reserve(guard, call, reserved_bytes)
             try:
                 await self._dispatch(guard, reservation, deadline)
-            except BaseException:
-                # Nothing was sent: the hold is released (the deadline, the kill switch, or a refused dispatch).
-                await _to_completion(guard.settle(reservation.id, "released"))
+            except BaseException as exc:
+                await self._unwind_dispatch(guard, reservation, exc)
                 raise
             run = _Run()
             try:
@@ -237,6 +236,20 @@ class AgentPort:
             msg = "call deadline reached before dispatch; nothing sent"
             raise ProviderFailedError(msg)
         await guard.dispatch(reservation.id)
+
+    async def _unwind_dispatch(self, guard: GuardSession, reservation: Reservation, exc: BaseException) -> None:
+        """Nothing was sent. A refused dispatch (the deadline, the kill switch) left the hold undispatched: release it.
+        Any other failure (a cancellation, a lost connection) may have come after `ops.mark_dispatched` committed,
+        and S4 refuses to release a dispatched hold: then it settles usage_unknown, keeping the full hold. The
+        original exception is what propagates; a failed settlement rides along as a note."""
+        try:
+            await _to_completion(guard.settle(reservation.id, "released"))
+        except GUARD_ERRORS as not_releasable:
+            exc.add_note(f"reservation {reservation.id} not releasable ({type(not_releasable).__name__})")
+            try:
+                await _to_completion(guard.settle(reservation.id, "usage_unknown"))
+            except GUARD_ERRORS as settle_exc:
+                exc.add_note(f"settlement of reservation {reservation.id} failed: {type(settle_exc).__name__}")
 
     async def _settle_failed(
         self, guard: GuardSession, reservation: Reservation, run: _Run, exc: BaseException
