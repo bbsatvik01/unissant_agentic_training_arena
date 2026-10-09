@@ -179,6 +179,7 @@ def _dry_run(target: str) -> str:
         ("typecheck", "mypy", "--config-file pyproject.toml"),
         ("test", "pytest", "-c pyproject.toml"),
         ("test", "pytest", "--cov-config=pyproject.toml"),
+        ("test", "pytest", "--full-gate"),
     ],
 )
 def test_each_python_gate_names_its_configuration(target: str, tool: str, flag: str) -> None:

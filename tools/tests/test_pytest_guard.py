@@ -85,3 +85,52 @@ def test_this_repository_collects_every_test_file_as_its_own_module() -> None:
     result = proc.run("pytest", ["-q", "-p", "no:cacheprovider", "--collect-only"], cwd=REPO_ROOT)
     assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
     assert "pytest_guard: FAIL" not in result.stdout
+
+
+# ---------------------------------------------------------------- the full gate collects everything (Codex round 7)
+# Under --full-gate (the Makefile's `test` recipe) a run that selects fewer tests than the test roots hold
+# fails: a selection option (-k, -m, --deselect, --ignore, --last-failed, --stepwise), a deselected item, or a
+# test file on disk that was never collected (conftest collect_ignore, a pytest_ignore_collect hook).
+TWO_TESTS = "def test_one() -> None:\n    assert True\n\n\ndef test_two() -> None:\n    assert 1 == 2\n"
+
+
+def _full_gate_project(tmp_path: Path) -> list[str]:
+    args = _scratch_project(tmp_path)
+    (tmp_path / "test_a.py").write_text(TWO_TESTS.replace("1 == 2", "2 == 2"))
+    return [*args, "-o", "testpaths=.", "--full-gate"]
+
+
+def test_a_full_gate_run_that_collects_everything_passes(tmp_path: Path) -> None:
+    result = proc.run("pytest", _full_gate_project(tmp_path), cwd=tmp_path)
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "2 passed" in result.stdout
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "selection",
+    [
+        ["--deselect", "test_b.py::test_two"],
+        ["-k", "not test_two"],
+        ["-m", "not slow"],
+        ["--ignore", "test_b.py"],
+        ["--ignore-glob", "*_b.py"],
+    ],
+)
+def test_a_full_gate_run_that_drops_a_failing_test_fails(tmp_path: Path, selection: list[str]) -> None:
+    args = _full_gate_project(tmp_path)
+    (tmp_path / "test_b.py").write_text(TWO_TESTS)
+    result = proc.run("pytest", [*args, *selection], cwd=tmp_path)
+    assert result.returncode != pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "pytest_guard: FAIL" in result.stdout + result.stderr
+
+
+@pytest.mark.gateproof
+def test_a_test_file_a_conftest_hides_fails_the_full_gate(tmp_path: Path) -> None:
+    args = _full_gate_project(tmp_path)
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "test_hidden.py").write_text(TWO_TESTS)
+    (tmp_path / "sub" / "conftest.py").write_text('collect_ignore = ["test_hidden.py"]\n')
+    result = proc.run("pytest", args, cwd=tmp_path)
+    assert result.returncode != pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "sub/test_hidden.py" in result.stdout + result.stderr

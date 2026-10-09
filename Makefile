@@ -116,7 +116,7 @@ test:
 	@# A stale report from an earlier run must never satisfy diff-cover or the scope check.
 	rm -f coverage.xml .coverage $(GATES_DIR)/coverage.json
 	@mkdir -p $(GATES_DIR)
-	$(UV_RUN) pytest -c $(PY_CONFIG) --rootdir . -W $(PYTEST_WARNINGS) --cov --cov-config=$(PY_CONFIG) --cov-fail-under=$(COVERAGE_MIN) --cov-report=term-missing:skip-covered \
+	$(UV_RUN) pytest -c $(PY_CONFIG) --rootdir . --full-gate -W $(PYTEST_WARNINGS) --cov --cov-config=$(PY_CONFIG) --cov-fail-under=$(COVERAGE_MIN) --cov-report=term-missing:skip-covered \
 		--cov-report=xml --cov-report=json:$(GATES_DIR)/coverage.json
 
 # Every measured-scope Python file must appear in the coverage report (omit/namespace/source drift, or a
