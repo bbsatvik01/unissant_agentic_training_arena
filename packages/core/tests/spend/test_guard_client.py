@@ -290,9 +290,10 @@ def test_dsn_connector_opens_read_committed_and_always_closes(monkeypatch: pytes
         async def close(self) -> None:
             events.append("closed")
 
-    async def connect(dsn: str, *, prepare_threshold: object) -> FakeConnection:
+    async def connect(dsn: str, *, prepare_threshold: object, connect_timeout: object) -> FakeConnection:
         events.append(dsn)
         events.append(("prepare_threshold", prepare_threshold))
+        events.append(("connect_timeout", connect_timeout))
         return FakeConnection()
 
     monkeypatch.setattr(psycopg.AsyncConnection, "connect", connect)
@@ -306,6 +307,7 @@ def test_dsn_connector_opens_read_committed_and_always_closes(monkeypatch: pytes
     assert events == [
         "postgresql://role@127.0.0.1:1/db",
         ("prepare_threshold", None),  # S4 2.2: no prepared statements through the transaction-mode pooler
+        ("connect_timeout", pool.CONNECT_TIMEOUT_S),
         psycopg.IsolationLevel.READ_COMMITTED,
         "closed",
     ]

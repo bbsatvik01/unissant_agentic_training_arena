@@ -14,6 +14,7 @@ from typing import Any
 
 from psycopg import AsyncConnection, IsolationLevel
 
+CONNECT_TIMEOUT_S = 5
 Connector = Callable[[], AbstractAsyncContextManager[AsyncConnection[Any]]]
 
 
@@ -23,7 +24,8 @@ def dsn_connector(dsn: str) -> Connector:
     @asynccontextmanager
     async def connect() -> AsyncIterator[AsyncConnection[Any]]:
         # S4 2.2: no prepared statements (Supavisor transaction mode does not keep them across transactions).
-        conn = await AsyncConnection.connect(dsn, prepare_threshold=None)
+        # A stalled server is bounded too (libpq connect_timeout); the port bounds the whole session open as well.
+        conn = await AsyncConnection.connect(dsn, prepare_threshold=None, connect_timeout=CONNECT_TIMEOUT_S)
         try:
             await conn.set_isolation_level(IsolationLevel.READ_COMMITTED)
             yield conn

@@ -118,10 +118,15 @@ def test_dispatch_record_and_settle_follow_s4s_rules() -> None:
         run(budget.record(usage(held.id, seq=ATTEMPTS + 1)))
     with pytest.raises(GuardProtocolError, match="AR001/AR007"):
         run(budget.record(usage(held.id, model="gemini-3.1-flash-lite")))
-    run(budget.record(usage(held.id)))
+    first = run(budget.record(usage(held.id)))
+    again = run(budget.record(usage(held.id)))  # S4 draft fix 4: the same report again answers exists
+    assert (again.outcome, again.cost_usd, again.spend_usd) == ("exists", first.cost_usd, first.spend_usd)
     with pytest.raises(GuardProtocolError, match="AR003"):
-        run(budget.record(usage(held.id)))
+        run(budget.record(usage(held.id, tokens=101)))  # the same number with different usage
     assert run(budget.settle(held.id, "usage_unknown")) == held.reserved_usd
+    assert run(budget.record(usage(held.id))).outcome == "exists"  # still answered after settlement
+    with pytest.raises(GuardProtocolError, match="AR001/AR007"):
+        run(budget.record(usage(held.id, seq=2)))  # a new receipt after settlement is sealed out
     with pytest.raises(GuardProtocolError, match="AR010"):
         run(budget.settle(held.id, "committed"))
 

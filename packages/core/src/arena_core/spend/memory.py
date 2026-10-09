@@ -121,15 +121,24 @@ class RunBudget:
     async def record(self, report: UsageReport) -> UsageResult:
         self.ops.append(("record", report.reservation_id))
         held = self.reservations[report.reservation_id]
-        if not held.dispatched or held.state != "reserved" or report.seq > ATTEMPTS or report.model != held.model:
-            msg = "AR001/AR007: usage refused"
+        if not held.dispatched:
+            msg = "AR001: usage for a reservation that was never dispatched"
             raise GuardProtocolError(msg)
-        if any(r.reservation_id == report.reservation_id and r.seq == report.seq for r in self.rows):
-            msg = "AR003: usage report number reused"
+        spent = sum((r.cost_usd for r in self.rows if r.reservation_id == report.reservation_id), Decimal(0))
+        for row in self.rows:
+            if row.reservation_id == report.reservation_id and row.seq == report.seq:
+                # S4 draft fix 4: the same report again answers `exists` (even after settlement); different usage
+                # under the same number is AR003.
+                if row.report != report:
+                    msg = "AR003: usage report number reused with different usage"
+                    raise GuardProtocolError(msg)
+                return UsageResult("exists", row.cost_usd, spent, held.reserved_usd, spent > held.reserved_usd)
+        if held.state != "reserved" or report.seq > ATTEMPTS or report.model != held.model:
+            msg = "AR001/AR007: usage refused"
             raise GuardProtocolError(msg)
         cost = rates.receipt_usd(VertexModel(report.model), report.input_tokens, report.output_tokens)
         self.rows.append(UsageRow(report, cost))
-        spend = sum((r.cost_usd for r in self.rows if r.reservation_id == report.reservation_id), Decimal(0))
+        spend = spent + cost
         overrun = spend > held.reserved_usd
         if overrun:
             self.kill_switch = True

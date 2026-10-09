@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import gc
 import json
 import time
 from collections.abc import AsyncIterator, Callable, Coroutine
@@ -37,7 +38,15 @@ from arena_core.providers.errors import (
     StructuredOutputError,
 )
 from arena_core.providers.fake import FakeAdapter
-from arena_core.providers.port import BLOCKED_NOTE, MAX_KEY_ROUNDS, TRUNCATED_NOTE, AgentPort, PortOptions, seed_for
+from arena_core.providers.port import (
+    BLOCKED_NOTE,
+    MAX_KEY_ROUNDS,
+    TRUNCATED_NOTE,
+    AgentPort,
+    PortOptions,
+    _bounded_write,
+    seed_for,
+)
 from arena_core.providers.retry import RetryPolicy
 from arena_core.providers.types import (
     AgentCall,
@@ -1050,3 +1059,71 @@ def test_a_reply_recorded_after_the_deadline_is_a_failed_call_settled_at_its_rec
         run(agent.run(dataclasses.replace(card(), deadline_s=0.05)))
     [held] = budget.reservations.values()
     assert (held.state, held.settled_usd) == ("committed", budget.rows[0].cost_usd)
+
+
+class StallingOpen:
+    """A guard whose session never opens (a database that does not answer the connection)."""
+
+    @asynccontextmanager
+    async def _open(self) -> AsyncIterator[GuardSession]:
+        await asyncio.Event().wait()
+        yield RunBudget(CEILING)
+
+    def session(self) -> AbstractAsyncContextManager[GuardSession]:
+        return self._open()
+
+
+def test_a_session_that_never_opens_fails_within_the_ledger_timeout() -> None:
+    adapter = FakeAdapter(script=[VALID])
+    agent = AgentPort(adapter, StallingOpen(), PortOptions(sleep=no_sleep, ledger_timeout_s=0.05))
+    started = time.monotonic()
+    with pytest.raises(LedgerStalledError):
+        run(agent.run(card()))
+    assert (time.monotonic() - started < 1.0, adapter.requests) == (True, [])
+
+
+class SlowSettle(RunBudget):
+    async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
+        await asyncio.sleep(0.12)
+        return await super().settle(reservation_id, outcome)
+
+
+def test_a_settlement_that_ends_after_the_deadline_is_a_failed_call_but_settled() -> None:
+    budget = SlowSettle(CEILING)
+    agent = AgentPort(FakeAdapter(script=[VALID], usage=USAGE), budget, PortOptions(sleep=no_sleep))
+    with pytest.raises(ProviderFailedError, match="during settlement"):
+        run(agent.run(dataclasses.replace(card(), deadline_s=0.03)))
+    [held] = budget.reservations.values()
+    assert held.state == "committed"
+
+
+def test_after_a_stall_the_session_is_never_used_again() -> None:
+    budget = Stalling(CEILING)
+    budget.stall = "record"
+    agent = AgentPort(
+        FakeAdapter(script=[VALID], usage=USAGE), budget, PortOptions(sleep=no_sleep, ledger_timeout_s=0.05)
+    )
+    with pytest.raises(LedgerStalledError):
+        run(agent.run(card()))
+    assert [op for op, _ in budget.ops] == ["reserve", "dispatch"]  # no settlement on the stalled connection
+    [held] = budget.reservations.values()
+    assert held.state == "reserved"  # the full hold stays charged
+
+
+def test_an_abandoned_write_whose_cleanup_fails_leaves_no_unretrieved_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def rollback_fails() -> None:
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            msg = "rollback failed"
+            raise RuntimeError(msg) from None
+
+    async def drive() -> None:
+        with pytest.raises(LedgerStalledError):
+            await _bounded_write(rollback_fails(), 0.02)
+
+    run(drive())
+    gc.collect()
+    assert "never retrieved" not in caplog.text

@@ -594,7 +594,13 @@ def test_each_role_runs_the_whole_lifecycle_on_its_own_login_and_no_other_role_c
                         with pytest.raises(psycopg.Error) as refused:
                             await attempt
                         assert refused.value.sqlstate == "AR040"
-            return rid, await calls.settle_reservation(conn, rid, "committed")
+            settled = await calls.settle_reservation(conn, rid, "committed")
+            again = await calls.record_usage(conn, report)  # the same report after settlement: exists, not an error
+            assert again.outcome == "exists"
+            with pytest.raises(psycopg.Error) as conflicting:
+                await calls.record_usage(conn, dataclasses.replace(report, input_tokens=901))
+            assert conflicting.value.sqlstate == "AR003"
+            return rid, settled
 
     rid, settled = run(lifecycle())
     row = run(reservation_row(admin_dsn, rid))

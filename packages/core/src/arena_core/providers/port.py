@@ -26,8 +26,11 @@ import hashlib
 import random
 import time
 from collections.abc import Awaitable, Callable, Coroutine
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from opentelemetry.trace import Status, StatusCode, Tracer
 from pydantic import BaseModel
@@ -172,7 +175,10 @@ class AgentPort:
         started = self._opts.clock()
         # S2 2: the deadline bounds the whole call, from here to the last attempt.
         deadline = started + (call.deadline_s or DEFAULT_TIMING[call.context.call_type].deadline_s)
-        async with self._guard.session() as guard:
+        async with AsyncExitStack() as stack:
+            # Opening the session (a database connection) is a ledger operation too: bounded like every write.
+            opened = await _bounded_write(stack.enter_async_context(self._guard.session()), self._opts.ledger_timeout_s)
+            guard = _BoundedSession(opened, self._opts.ledger_timeout_s)
             reservation = await self._reserve(guard, call, reserved_bytes)
             try:
                 await self._dispatch(guard, reservation, deadline)
@@ -186,7 +192,11 @@ class AgentPort:
                 await self._settle_failed(guard, reservation, run, exc)
                 raise
             outcome: SettleOutcome = "usage_unknown" if run.unknown else "committed"
-            cost = await self._ledger(guard.settle(reservation.id, outcome))
+            cost = await guard.settle(reservation.id, outcome)
+        if self._opts.clock() > deadline:
+            # S2 2: the deadline bounds the whole call, its settlement included; the spend is already settled.
+            msg = f"call deadline passed during settlement of reservation {reservation.id}"
+            raise ProviderFailedError(msg)
         return AgentResult(
             value=value,
             attempts=run.sends,
@@ -210,18 +220,16 @@ class AgentPort:
         (S5 4.10 recovery, S2 AT-PORT-6)."""
         ctx = call.context
         for n in range(1, MAX_KEY_ROUNDS + 1):
-            found = await self._ledger(
-                guard.reserve(
-                    ModelCallRequest(
-                        key=f"{ctx.step_key}:{n}",
-                        bucket=ctx.bucket,
-                        model=call.model.value,
-                        call_kind=ctx.call_type.value,
-                        purpose=ctx.purpose,
-                        trial_id=ctx.trial_id,
-                        actor_user_id=ctx.actor_user_id,
-                        input_bytes=input_bytes,
-                    )
+            found = await guard.reserve(
+                ModelCallRequest(
+                    key=f"{ctx.step_key}:{n}",
+                    bucket=ctx.bucket,
+                    model=call.model.value,
+                    call_kind=ctx.call_type.value,
+                    purpose=ctx.purpose,
+                    trial_id=ctx.trial_id,
+                    actor_user_id=ctx.actor_user_id,
+                    input_bytes=input_bytes,
                 )
             )
             if not found.existed:
@@ -233,7 +241,7 @@ class AgentPort:
                 raise StepInProgressError(msg)
             if not found.dispatched:
                 return found
-            await self._ledger(guard.settle(found.id, "usage_unknown"))
+            await guard.settle(found.id, "usage_unknown")
         msg = f"step {ctx.step_key!r} used all {MAX_KEY_ROUNDS} reservation keys"
         raise ProviderFailedError(msg)
 
@@ -242,12 +250,12 @@ class AgentPort:
         if self._opts.clock() >= deadline:
             msg = "call deadline reached before dispatch; nothing sent"
             raise ProviderFailedError(msg)
-        await self._ledger(guard.dispatch(reservation.id))
+        await guard.dispatch(reservation.id)
 
-    async def _ledger[R](self, write: Coroutine[Any, Any, R]) -> R:
-        """Every spend-guard write: runs to completion through a cancellation, but never longer than the ledger
-        timeout (a stalled database raises LedgerStalledError, and what it left stays charged in full)."""
-        return await _bounded_write(write, self._opts.ledger_timeout_s)
+    def _receipt_bound(self) -> float:
+        """The outer bound around a receipt and its tally: past the inner write's own bound and its cleanup, so the
+        write's session times out (and is marked stalled) first."""
+        return self._opts.ledger_timeout_s + 2 * CLEANUP_S
 
     async def _unwind_dispatch(self, guard: GuardSession, reservation: Reservation, exc: BaseException) -> None:
         """Nothing was sent. A refused dispatch (the deadline, the kill switch) left the hold undispatched: release it.
@@ -255,11 +263,11 @@ class AgentPort:
         and S4 refuses to release a dispatched hold: then it settles usage_unknown, keeping the full hold. The
         original exception is what propagates; a failed settlement rides along as a note."""
         try:
-            await self._ledger(guard.settle(reservation.id, "released"))
+            await guard.settle(reservation.id, "released")
         except LEDGER_FAILURES as not_releasable:
             exc.add_note(f"reservation {reservation.id} not releasable ({type(not_releasable).__name__})")
             try:
-                await self._ledger(guard.settle(reservation.id, "usage_unknown"))
+                await guard.settle(reservation.id, "usage_unknown")
             except LEDGER_FAILURES as settle_exc:
                 exc.add_note(f"settlement of reservation {reservation.id} failed: {type(settle_exc).__name__}")
 
@@ -271,7 +279,7 @@ class AgentPort:
         complete = run.sends > 0 and run.recorded == run.sends and not run.unknown
         outcome: SettleOutcome = "committed" if complete else "usage_unknown"
         try:
-            await self._ledger(guard.settle(reservation.id, outcome))
+            await guard.settle(reservation.id, outcome)
         except LEDGER_FAILURES as settle_exc:
             # The hold stays `reserved` and counts at its full amount against the ceiling: still fail-safe. The
             # call's own failure is what the caller acts on; the settlement failure rides along as a note.
@@ -391,14 +399,14 @@ class AgentPort:
                 # propagates, so every send leaves its row and the call settles usage_unknown (S5 3.2, 3.6).
                 run.unknown = True
                 row: _Row = ("error", int((clock() - began) * 1000), trace_id, span_id)
-                await self._ledger(self._record(live, request, None, row))
+                await _bounded_write(self._record(live, request, None, row), self._receipt_bound())
                 raise
             usage = result.usage
             if usage is None and (isinstance(result, RawCompletion) or result.maybe_billed):
                 run.unknown = True
             # The receipt and its tally complete even if the call is cancelled meanwhile (the row is the spend record).
             row = (status, int((clock() - began) * 1000), trace_id, span_id)
-            receipt = await self._ledger(self._record(live, request, usage, row))
+            receipt = await _bounded_write(self._record(live, request, usage, row), self._receipt_bound())
             if receipt.outcome == "overrun":
                 # Receipts above the hold: the database turned the kill switch on (S4 8.3). Stop at once.
                 raise KillSwitchOnError(OVERRUN_MESSAGE)
@@ -407,12 +415,24 @@ class AgentPort:
         return result
 
 
+# How long an abandoned ledger write may take to unwind (its cancellation and the driver's rollback) before the call
+# stops waiting for it; the session that ran it is never used again either way.
+CLEANUP_S = 1.0
+
+
+def _retrieve(task: asyncio.Future[Any]) -> None:
+    """Consume a finished task's outcome so an abandoned write never surfaces as an unretrieved exception."""
+    if not task.cancelled():
+        task.exception()
+
+
 async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> R:
-    """Run one ledger write (a reservation, a dispatch, a receipt, a settlement) to completion even when the call is
-    cancelled meanwhile, then re-raise the cancellation: a billed attempt always leaves its row, and a settled call
-    its settlement (S5 3.2). Bounded: a write still running after ``timeout_s`` is abandoned with
-    LedgerStalledError, so a stalled database cannot hang a request."""
+    """Run one ledger operation (opening the session, a reservation, a dispatch, a receipt, a settlement) to completion
+    even when the call is cancelled meanwhile, then re-raise the cancellation: a billed attempt always leaves its row,
+    and a settled call its settlement (S5 3.2). Bounded: an operation still running after ``timeout_s`` is cancelled,
+    given CLEANUP_S to unwind, and abandoned with LedgerStalledError, so a stalled database cannot hang a request."""
     task = asyncio.ensure_future(write)
+    task.add_done_callback(_retrieve)
     loop = asyncio.get_running_loop()
     end = loop.time() + timeout_s
     deferred: list[asyncio.CancelledError] = []
@@ -420,7 +440,8 @@ async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> 
         remaining = end - loop.time()
         if remaining <= 0:
             task.cancel()
-            stalled = LedgerStalledError(f"a spend-guard write did not finish within {timeout_s}s")
+            await asyncio.wait({task}, timeout=CLEANUP_S)  # a cancelled task never raises out of wait
+            stalled = LedgerStalledError(f"a spend-guard operation did not finish within {timeout_s}s")
             if deferred:
                 deferred[0].add_note(str(stalled))
                 raise deferred[0]
@@ -433,6 +454,40 @@ async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> 
     if deferred:
         raise deferred[0]
     return result
+
+
+class _BoundedSession:
+    """The call's guard session with every operation bounded by `_bounded_write`. After one operation stalls, the
+    session's connection may still hold a cancelled statement, so it is never used again: every later operation is
+    refused with LedgerStalledError, and whatever the call holds stays charged until it is reaped or recovered."""
+
+    def __init__(self, session: GuardSession, timeout_s: float) -> None:
+        self._session = session
+        self._timeout_s = timeout_s
+        self._stalled = False
+
+    async def _run[R](self, write: Coroutine[Any, Any, R]) -> R:
+        if self._stalled:
+            write.close()
+            msg = "the guard session stalled earlier in this call and is not reused"
+            raise LedgerStalledError(msg)
+        try:
+            return await _bounded_write(write, self._timeout_s)
+        except LedgerStalledError:
+            self._stalled = True
+            raise
+
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        return await self._run(self._session.reserve(req))
+
+    async def dispatch(self, reservation_id: UUID) -> None:
+        await self._run(self._session.dispatch(reservation_id))
+
+    async def record(self, report: UsageReport) -> UsageResult:
+        return await self._run(self._session.record(report))
+
+    async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
+        return await self._run(self._session.settle(reservation_id, outcome))
 
 
 def _timed_out(timeout_s: float, cause: TimeoutError) -> ProviderCallError:
