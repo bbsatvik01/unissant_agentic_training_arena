@@ -306,3 +306,13 @@ def test_the_trigger_population_is_the_legal_maximum() -> None:
         assert e.question_turns[-1] <= MAX_TURNS
         limit = {"2a": 2, "3c": 3, "4b": 3}.get(e.subcheck_id)
         assert len(e.question_turns) == min(limit or MAX_TURNS, MAX_TURNS - start + 1)
+
+
+def test_an_authored_question_the_runtime_cannot_commit_is_refused() -> None:
+    family = copy.deepcopy(fx.family("F01"))
+    for role in ("truthful", "deceptive"):
+        family["variants"][role]["public_packet"]["opening_question"] = "Can you describe " + "Ⅷ" * 200 + "?"
+    issues = [(i.variant, i.message) for i in validate_family(family) if i.rule == "V1c.question"]
+    assert [v for v, _ in issues] == ["truthful", "deceptive"]
+    assert "row 1 cannot be committed: question: 818 characters as rendered" in issues[0][1]
+    assert [i for i in validate_family(fx.family("F01")) if i.rule == "V1c.question"] == []
