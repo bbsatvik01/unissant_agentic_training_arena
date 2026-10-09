@@ -1,4 +1,4 @@
--- 0008 draft fixes (S4 sections 8.3, 8.4 and the voice path of 6.3; WP-03). Not a draft port: six defects the WP-03
+-- 0008 draft fixes (S4 sections 8.3, 8.4 and the voice path of 6.3; WP-03). Not a draft port: seven defects the WP-03
 -- Codex gates found in the v2.7 drafts (docs/spec/sql/0005_training.sql, 0006_ops_budget_traces.sql), fixed here so
 -- 0001-0006 stay the drafts unchanged in substance; proposed for the spec's next revision. Each function is the
 -- draft's body with the marked changes; `create or replace` keeps its grants (capability fixture unchanged).
@@ -16,7 +16,8 @@
 --          commit released scheduled evidence; it now answers that release (from the release rows and their event).
 --   Fix 6: training.open_voice_session rechecks the per-user daily voice quota under a per-actor lock; the draft
 --          checked it only at ticket issue, so pre-issued tickets could exceed it. Quota values are unchanged.
--- Gates: supabase/tests/014_budget.sql BU-38..BU-41; supabase/tests/015_voice.sql VB-21..VB-23.
+--   Fix 7: training.record_voice_exchange refuses a 13th exchange with AR004 (TESTS.md VB-13), not 23514.
+-- Gates: supabase/tests/014_budget.sql BU-38..BU-41; supabase/tests/015_voice.sql VB-21..VB-24.
 
 create or replace function ops.reserve_model_call(p_idempotency_key text, p_bucket text, p_model text, p_call_kind text,
                                                   p_purpose text, p_trial uuid, p_actor uuid, p_input_bytes integer)
@@ -237,8 +238,9 @@ begin
                                            where id = p_voice_session and status = 'open') then
     raise exception using errcode = 'AR040', message = 'voice exchange refused';
   end if;
+  -- Fix 7: number 13 passed the order check and failed on the table's 1..12 constraint (23514), not AR004.
   if p_exchange_no is distinct from
-     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint then
+     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint or p_exchange_no > 12 then
     raise exception using errcode = 'AR004', message = 'voice exchanges are stored in order, at most 12';
   end if;
   if jsonb_typeof(p_lines) is distinct from 'array'

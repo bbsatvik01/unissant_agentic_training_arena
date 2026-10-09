@@ -1,12 +1,12 @@
 -- 015_voice.sql (S4 sections 4.4 and 8.4; sql/TESTS.md section 15; D-016). WP-03 rows for the voice fixes in
 -- migration 0800 (proposed for the spec): VB-21 a repeated exchange answers its original release, VB-22 tickets
 -- issued before the daily voice quota was reached cannot open sessions beyond it, VB-23 one actor's session
--- openings serialize on the quota. WP-04 adds the TESTS.md section 15 rows (VB-01..VB-20) to this file.
+-- openings serialize on the quota, VB-24 a 13th exchange is AR004. WP-04 adds the TESTS.md section 15 rows (VB-01..VB-20) to this file.
 -- Quota and cap values are the seeded ones (voice_sessions_per_user_day 2); reservations name no actor, so the
 -- seeded per-user dollar cap (owner decision pending, S4-D3) does not apply.
 begin;
 \ir harness/fixtures.psql
-select plan(3);
+select plan(4);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -94,6 +94,13 @@ select is(array[(select val ->> 'outcome' from vb21 where step = 2), (select val
           array['recorded', '[{"kind": "record", "record_id": "rec-02"}]',
                 'exists', '[{"kind": "record", "record_id": "rec-02"}]', '1', '2'],
   'VB-21 a repeated voice exchange answers the scheduled release its original commit applied, with no duplicate rows');
+-- VB-24: exchanges 3..12 are stored; a 13th is refused with AR004 (TESTS.md VB-13), not the table's 23514.
+select count(*) from generate_series(3, 12) n, lateral pg_temp.exchange((select val from vb21 where step = 0), n) x
+ where x ->> 'outcome' = 'recorded';
+select is(array[(select count(*) from training.voice_exchanges where trial_id = (select trial from vt))::text,
+                tests.error(format('select pg_temp.exchange(%L, 13)', (select val from vb21 where step = 0)))],
+          array['12', 'AR004: voice exchanges are stored in order, at most 12'],
+  'VB-24 a 13th voice exchange is refused with AR004');
 select pg_temp.voice_close((select val from vb21 where step = 0));
 
 -- One voice session opened today; the quota is 2. Two tickets are issued now, while both pass the issue check.
