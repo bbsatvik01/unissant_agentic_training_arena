@@ -2821,7 +2821,7 @@
           },
           {
             "id": "x:04",
-            "text": "I never looked at the papers on the desks in 417.",
+            "text": "I never looked at the papers in Specht's in-tray.",
             "contradicts": "f:45"
           }
         ],
@@ -3878,15 +3878,16 @@
             },
             {
               "id": "r:02",
-              "description": "The copier job log shows a nine-page walk-up copy in Room 417 at 19:24, during Halloran's entry, matching the nine scoring sheets in the BE-26-04 folder.",
+              "description": "The copier job log shows a nine-page walk-up copy on the Room 417 copier at 19:24, during Halloran's entry, matching the nine scoring sheets in the BE-26-04 folder; Halloran acknowledges making nine copies there and taking them, but does not say what she copied or why.",
               "artifact_ids": [
                 "rec-03"
               ],
               "fact_ids": [
                 "f:52",
-                "f:48"
+                "f:48",
+                "f:45"
               ],
-              "requires_subject_account": false
+              "requires_subject_account": true
             }
           ],
           "corroboration_to_name": [
@@ -3985,7 +3986,7 @@
             "response_relevance": "'It was a difficult evening with the leak' leaves the purpose of the 417 entry unanswered; credit recognizing that and asking for the task.",
             "evidence_based_followup": "Credit requesting the Operations desk log and WO-6120 and asking about the water's location and the 26 minutes against them; credit the copier log once available.",
             "testing_alternatives": "Credit testing the leak explanation against the desk log and the repair record before closing, and checking the late form against the 18:49 approval.",
-            "supported_closure": "Deceptive closure cites rec-01 (the reported water and her own 19:46 report concern only riser closet 419) with her non-answers on the 417 task, or rec-03. Her application and demeanor are never grounds on their own."
+            "supported_closure": "Deceptive closure cites rec-01 (the reported water and her own 19:46 report concern only riser closet 419) with her non-answers on the 417 task, or rec-03 (the 19:24 nine-page copy job) with her account of the copies. Her application and demeanor are never grounds on their own."
           }
         },
         "turn_label_guide": [

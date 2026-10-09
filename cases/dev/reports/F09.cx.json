@@ -8,7 +8,7 @@
   "cx4": true,
   "findings": [],
   "family_sha256": "7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91",
-  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -28,7 +28,7 @@
         "A5",
         "A6"
       ],
-      "basis": "The matching supplier entry under “Keeble” explains the surname exception. Footage shows Dunmore alone from the north corridor, then accompanying badge-wearing Keable from the main lobby. The call log, supervisor statement and sign-out corroborate her account. The camera failed mechanically, with no staff notice. These records close the main gaps without establishing concealed involvement.",
+      "basis": "The register’s “Keeble” entry explains the reconciliation exception. Camera records show Dunmore alone from the north corridor, then accompanying badged Keable from the main lobby. Call logs, the supervisor’s statement and sign-out timing corroborate her account. The camera failed mechanically without staff notification. The records close the main gaps and show no concealed involvement.",
       "expected": "truthful",
       "pass": true
     },
@@ -41,12 +41,11 @@
         "rec-04"
       ],
       "cited_answers": [
-        "A1",
         "A2",
         "A3",
         "A4"
       ],
-      "basis": "Her badge opened the north door at 08:41; seconds later, she and Keable appeared together from the north corridor. The register and call log show no lobby processing for him. She acknowledges escorting him from that corridor but avoids how he entered or where they first met, concealing her involvement in his staff-door entry.",
+      "basis": "Dunmore’s badge opened the north door; 37 seconds later, she and Keable appeared together from the north corridor. There was no visitor registration or desk call to Procurement. Together, these records establish her involvement in his staff-door admission. She acknowledges escorting him upstairs but avoids explaining his entry or their first meeting.",
       "expected": "deceptive",
       "pass": true
     },
@@ -58,9 +57,11 @@
       ],
       "cited_answers": [
         "A1",
-        "A2"
+        "A2",
+        "A3",
+        "A4"
       ],
-      "basis": "The missing surname entry and badge event do not establish that Dunmore admitted anyone. Ashby confirms meeting-room presence and a lanyard, but not Keable’s entry route or visitor badge. Dunmore’s account of lobby sign-in and a desk call remains uncorroborated; the visitor register, call log and camera review contents were not examined.",
+      "basis": "The surname exception and Dunmore’s door swipe do not establish that she admitted anyone. Ashby confirms their presence in the room and departure, but did not witness entry or inspect the badge. The claimed lobby sign-in and desk call remain uncorroborated because the relevant register, call log and camera review contents are absent.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }

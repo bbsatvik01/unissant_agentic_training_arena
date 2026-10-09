@@ -8,7 +8,7 @@
   "cx4": true,
   "findings": [],
   "family_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
-  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "rules_sha256": "f6cbe6e0e4e903deeda92cff9dfc8e77dfdec6157fb3697bfe3305c3515bad9e",
   "solves": {
     "cx2_truthful": {
       "finding": "truthful",
@@ -30,14 +30,13 @@
         "A6",
         "A7"
       ],
-      "basis": "Brandt confirms requesting the collection; the valid pass and signed delivery corroborate both cartons’ contents and destination. Matching stock counts support no additional removal. Scheduled IT work explains the camera gap; a staff email does not establish Mattick read it. His approved leave predates that notice, and policy permits withholding its reason. The records close the main gaps.",
+      "basis": "Brandt confirms requesting the evening collection. The pass and delivery receipt account for both cartons, and high-value stock counts match. Scheduled IT work explains the camera outage; an emailed notice does not establish Mattick read it. Leave predates the notice, and reasons were optional. The records close the main gaps and support his account.",
       "expected": "truthful",
       "pass": true
     },
     "cx2_deceptive": {
       "finding": "deceptive",
       "cited_records": [
-        "doc-01",
         "doc-02",
         "doc-03",
         "rec-01",
@@ -45,19 +44,19 @@
         "rec-03"
       ],
       "cited_answers": [
-        "A1",
         "A2",
         "A3",
         "A4",
         "A5"
       ],
-      "basis": "Records show two cartons leaving, only the projector covered by a pass, and two drills missing after Mattick’s sole after-hours entry. He acknowledges packing those drills into the second carton and the pass’s limited coverage, yet avoids answering what else he removed and where that carton went. These omissions conceal the unauthorized removal.",
+      "basis": "Mattick acknowledges packing two drill kits into the second carton; the guard saw him load both cartons, and stock counts confirm two kits missing. The sole pass covered only the projector. A4 avoids the additional removal, and A5 accounts only for the projector’s delivery, concealing his involvement in taking the unpassed drill carton.",
       "expected": "deceptive",
       "pass": true
     },
     "cx3": {
       "finding": "insufficient_evidence",
       "cited_records": [
+        "doc-01",
         "doc-02",
         "doc-03",
         "rec-05"
@@ -68,7 +67,7 @@
         "A3",
         "A4"
       ],
-      "basis": "The supervisor corroborates the requested pickup and a pass for the training kit. However, the examined records do not establish the two cartons’ contents or whether everything removed was covered. A3 describes kit cartons, while A4 establishes only arrival. The main property gaps remain unresolved, and no record establishes concealed involvement.",
+      "basis": "Brandt corroborates the requested collection and reports a pass for the kit. However, no examined record confirms the cartons’ contents or complete pass coverage. A3 identifies them as kit cartons; A4 reports arrival without confirming delivery. The records establish no concealed involvement, but material gaps remain unresolved.",
       "expected": "deceptive or insufficient_evidence",
       "pass": true
     }

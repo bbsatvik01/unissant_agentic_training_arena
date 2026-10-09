@@ -483,7 +483,7 @@
       },
       {
         "id": "f:48",
-        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor.",
+        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor; he moved no equipment through the door.",
         "kind": "action",
         "time": "2026-03-12T14:09",
         "actors": [
@@ -749,7 +749,7 @@
             "kind": "access_exception_report",
             "title": "Access exception report, Records Vault B-12, 12 March 2026",
             "content": {
-              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
               "table": {
                 "columns": [
                   "Time",
@@ -1020,12 +1020,12 @@
           },
           {
             "id": "x:03",
-            "text": "There was already a work order when I went in.",
+            "text": "Work order WO-4478 was created before 14:07.",
             "contradicts": "f:07"
           },
           {
             "id": "x:04",
-            "text": "I opened or moved a records box.",
+            "text": "I opened or handled a sealed records box in B-12.",
             "contradicts": "f:28"
           }
         ],
@@ -1391,7 +1391,7 @@
               "type": "initial"
             },
             "content": {
-              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
               "table": {
                 "columns": [
                   "Time",
@@ -1831,14 +1831,18 @@
             },
             {
               "id": "r:02",
-              "description": "The alarm history shows the B-12 humidity alarm from 13:58 to 14:16 and the work order lists the B-12 dehumidifier task, matching Pell's account.",
+              "description": "The alarm history shows the B-12 humidity alarm from 13:58 to 14:16, Marrow states she radioed Pell about a B-wing humidity alarm around two and logs work orders afterwards on short days, and her work order lists the B-12 dehumidifier task, matching Pell's account of being sent to the B-12 alarm.",
               "artifact_ids": [
                 "rec-01",
-                "rec-03"
+                "rec-03",
+                "rec-05"
               ],
               "fact_ids": [
                 "f:20",
                 "f:27",
+                "f:02",
+                "f:08",
+                "f:22",
                 "f:23"
               ],
               "requires_subject_account": true
@@ -2032,7 +2036,7 @@
             "kind": "access_exception_report",
             "title": "Access exception report, Records Vault B-12, 12 March 2026",
             "content": {
-              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
               "table": {
                 "columns": [
                   "Time",
@@ -2314,7 +2318,7 @@
           },
           {
             "id": "g:02",
-            "condition": "The investigator presents the seal audit finding that box ACQ-117 was resealed at 14:15 with seal #55419 from the vault supply drawer.",
+            "condition": "The investigator presents the seal audit finding that box ACQ-117 carried seal #55419, which the vault supply drawer log shows removed at 14:15 with no custodian release.",
             "opens": [
               "f:49"
             ],
@@ -2341,7 +2345,7 @@
         "forbidden_assertions": [
           {
             "id": "x:01",
-            "text": "The humidity alarm or Ines's call was about Room B-12.",
+            "text": "Ines's 14:01 radio call named Room B-12.",
             "contradicts": "f:41"
           },
           {
@@ -2616,7 +2620,7 @@
           },
           {
             "id": "f:48",
-            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor.",
+            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor; he moved no equipment through the door.",
             "kind": "action",
             "time": "2026-03-12T14:09",
             "actors": [
@@ -2758,7 +2762,7 @@
               "type": "initial"
             },
             "content": {
-              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
               "table": {
                 "columns": [
                   "Time",
@@ -3171,12 +3175,11 @@
           {
             "id": "c:03",
             "type": "evidence_vs_evidence",
-            "description": "The seal on ACQ-117 was replaced at 14:15, while Pell was the only badge-holder in B-12 (14:07 to 14:24).",
+            "description": "Box ACQ-117 carried seal #55419, removed from the vault supply drawer at 14:15 with no custodian release, eight minutes after Pell badged into B-12, the only B-12 entry that day.",
             "fact_ids": [
               "f:49",
               "f:51",
-              "f:03",
-              "f:10"
+              "f:03"
             ],
             "artifact_ids": [
               "rec-04",
@@ -3212,15 +3215,16 @@
             },
             {
               "id": "r:02",
-              "description": "The seal audit shows box ACQ-117 resealed with a supply-drawer seal at 14:15, during Pell's time in B-12.",
+              "description": "The seal audit shows box ACQ-117 carrying seal #55419, taken from the vault supply drawer at 14:15 with no custodian release; Pell acknowledges resealing the box with it but does not say what he did with the box before that.",
               "artifact_ids": [
                 "rec-04"
               ],
               "fact_ids": [
                 "f:49",
-                "f:51"
+                "f:51",
+                "f:45"
               ],
-              "requires_subject_account": false
+              "requires_subject_account": true
             }
           ],
           "corroboration_to_name": [
