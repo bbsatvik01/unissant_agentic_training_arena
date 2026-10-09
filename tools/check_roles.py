@@ -35,9 +35,10 @@ data boundary, as S5's threat model states.
      each for a reason the rule cannot be broken by: that module itself (it declares them) and
      `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and builds no frame);
      product code may not import that export module, which hands out every wire type. Absolute and relative
-     imports both resolve. A function's annotations stay free, so a function may accept or return a frame it
-     never builds; a class-body annotation is a field (validating the class builds it) and a call inside any
-     annotation runs, so both are value uses.
+     imports both resolve. An undecorated function's annotations stay free, so a function may accept or return
+     a frame it never builds; a decorated function's annotations (a decorator such as `validate_call` or a
+     route decorator may build them from raw data), a class-body annotation (a field, built when the class is
+     validated) and a call inside any annotation are value uses.
 
 Adapted from TechnoMile `tools/check_adk_scope.py` (same AST-walker shape: import detector, dynamic
 `importlib.import_module` / `__import__` detector, per-file findings); the rule set itself is new
@@ -280,19 +281,30 @@ def frame_models(root: Path) -> frozenset[str]:
     return frozenset(frames)
 
 
+def _signature_annotations(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.AST]:
+    a = fn.args
+    params = [*a.posonlyargs, *a.args, *a.kwonlyargs, *(p for p in (a.vararg, a.kwarg) if p is not None)]
+    found: list[ast.AST] = [p.annotation for p in params if p.annotation is not None]
+    if fn.returns is not None:
+        found.append(fn.returns)
+    return found
+
+
 def _annotation_nodes(tree: ast.AST) -> set[int]:
-    """ids of the nodes of every type annotation (arguments, returns, annotated assignments), except the nodes
-    of a call inside one: `def f(x: NoticeFrame(v=1))` runs that call when the function is defined."""
-    # A class-body annotation is a field (Pydantic, dataclasses): validating the class builds its value.
+    """ids of the nodes of the type annotations the rule leaves free: an undecorated function's parameters and
+    return, and an annotated assignment outside a class body; never the nodes of a call inside one
+    (`def f(x: NoticeFrame(v=1))` runs that call when the function is defined).
+
+    Not free: a decorated function's annotations, because a decorator may read them at run time and build
+    the values (`@validate_call`, a web framework's route decorator, under any alias); and a class-body
+    annotation, which is a field (validating the class builds its value)."""
     fields = {
         id(s) for c in ast.walk(tree) if isinstance(c, ast.ClassDef) for s in c.body if isinstance(s, ast.AnnAssign)
     }
     roots: list[ast.AST] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.arg) and node.annotation is not None:
-            roots.append(node.annotation)
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.returns is not None:
-            roots.append(node.returns)
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.decorator_list:
+            roots.extend(_signature_annotations(node))
         elif isinstance(node, ast.AnnAssign) and id(node) not in fields:
             roots.append(node.annotation)
     inside = {id(n) for root in roots for n in ast.walk(root)}

@@ -275,6 +275,25 @@ def test_frame_carriers_are_read_from_the_contracts() -> None:
     assert not {"TextTrialSnapshot", "CoachCard", "Content"} & FRAMES
 
 
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from pydantic import validate_call\nfrom arena_core.contracts.events import NoticeFrame\n\n\n"
+        "@validate_call\ndef parse(frame: NoticeFrame) -> None: ...\n",
+        "from pydantic import validate_call as vc\nfrom arena_core.contracts.events import NoticeFrame as N\n\n\n"
+        "@vc\ndef parse(frame: N) -> None: ...\n",
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        '@router.post("/frames")\nasync def take(*, frame: TrialFrame) -> None: ...\n',
+        "from arena_core.contracts.events import NoticeFrame\n\n\n@decorate\ndef build() -> NoticeFrame: ...\n",
+    ],
+)
+def test_a_decorated_functions_annotations_are_value_uses(source: str) -> None:
+    found = frame_rules(ARENA_API_FILE, source)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
 def test_strings_that_merely_mention_frames_in_prose_pass() -> None:
     assert frame_rules(ARENA_API_FILE, 'MESSAGE = "frames are built by the projection"\n') == []
     assert frame_rules(ARENA_API_FILE, 'BROKEN = "NoticeFrame("\n') == []
