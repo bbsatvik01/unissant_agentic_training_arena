@@ -20,8 +20,7 @@ from tools.tests.subprocess_support import run_role_module
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SEED_DIR = REPO_ROOT / "cases" / "dev"
 SOURCE_DIR = SEED_DIR / "sources"
-CORPUS = ["--corpus", *(str(p) for p in sorted(SEED_DIR.glob("F*.json")))]
-CORPUS_WITHOUT_F02 = ["--corpus", *(str(p) for p in sorted(SEED_DIR.glob("F*.json")) if p.stem != "F02")]
+CORPUS = ["--dev-dir", str(SEED_DIR)]
 CODEX = {"rounds": 1, "review": "pass", "cx2_truthful": "pass", "cx2_deceptive": "pass", "cx3": "pass"}
 ARGPARSE_USAGE_ERROR = 2
 SECOND_REVISION = 2
@@ -36,6 +35,16 @@ def write_json(path: Path, obj: object) -> Path:
 
 def nothing_leaked(out: str, err: str) -> bool:
     return all(marker not in out + err for marker in (HIDDEN_TEXT, "H0a1b2c3d4e"))
+
+
+def dev_without_f02(tmp_path: Path) -> list[str]:
+    """A dev-split directory without the committed F02 (the test edits a copy of it)."""
+    directory = tmp_path / "dev-without-f02"
+    directory.mkdir(exist_ok=True)
+    for path in sorted(SEED_DIR.glob("F*.json")):
+        if path.stem != "F02":
+            (directory / path.name).write_bytes(path.read_bytes())
+    return ["--dev-dir", str(directory)]
 
 
 def review_file(tmp_path: Path, family_path: Path, **changes: object) -> Path:
@@ -249,7 +258,7 @@ def test_counts_mode_covers_assembly_and_bundling(
                 "--out",
                 str(tmp_path / "bundle.json"),
                 str(path),
-                *CORPUS_WITHOUT_F02,
+                *dev_without_f02(tmp_path),
             ]
         )
         == 1
@@ -288,11 +297,24 @@ def test_bundle_refuses_an_invalid_family(
     family = seed("F02")
     family["variants"]["truthful"]["evaluator_packet"]["role"] = "deceptive"
     path = write_json(tmp_path / "F02.json", family)
-    assert main(["bundle", str(path), "--codex", str(codex), *CORPUS_WITHOUT_F02]) == 1
+    assert main(["bundle", str(path), "--codex", str(codex), *dev_without_f02(tmp_path)]) == 1
     assert "V2.labels [F02/truthful]" in capsys.readouterr().out
     not_an_object = write_json(tmp_path / "list.json", [1, 2])
     assert main(["bundle", str(not_an_object), "--codex", str(codex), *CORPUS]) == 1
     assert "one JSON object" in capsys.readouterr().err
+
+
+def test_bundle_reports_a_missing_dev_split_and_a_hidden_record(
+    tmp_path: Path, codex: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = ["--counts", "--out", str(tmp_path / "b")]
+    family = str(SEED_DIR / "F03.json")
+    assert main(["bundle", family, "--codex", str(codex), "--dev-dir", str(tmp_path / "empty"), *out]) == 1
+    assert json.loads(capsys.readouterr().out) == {"INPUT.unreadable": 1}
+    record = write_json(tmp_path / "record.json", {"assignment": [{"family_id": "F03"}]})
+    argv = ["bundle", family, "--codex", str(codex), *CORPUS, "--sampler-record", str(record), *out]
+    assert main([*argv, "--hidden", str(SEED_DIR / "F01.json")]) == 1  # a dev family takes no hidden split
+    assert json.loads(capsys.readouterr().out) == {"CORPUS.hidden_split": 1}
 
 
 def test_bundle_refuses_a_codex_review_that_did_not_pass(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

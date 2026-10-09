@@ -22,7 +22,7 @@ from arena_core.scenario import brief as br
 from arena_core.scenario import seed as sd
 from arena_core.scenario.assemble import assemble, assemble_file, draw_identifiers, dump_family
 from arena_core.scenario.cli import main
-from arena_core.scenario.load import CodexReview, FamilyLoadError, ingest_bundle, read_family_file
+from arena_core.scenario.load import CodexReview, DevSplit, FamilyLoadError, ingest_bundle
 from arena_core.scenario.source import SourceError, parse_source
 from arena_core.scenario.validators import validate_families, validate_family
 
@@ -104,7 +104,7 @@ def seeded_family(source_dict: Callable[[str], Family], spec: sd.SeedSpec, autho
 
 
 def test_a_sampled_seed_becomes_a_valid_hidden_family_and_bundle(
-    seeds: list[Family], source_dict: Callable[[str], Family]
+    seeds: list[Family], source_dict: Callable[[str], Family], tmp_path: Path
 ) -> None:
     spec = hidden_spec(seeds)
     authoring = authoring_for(spec, seeds)
@@ -131,18 +131,23 @@ def test_a_sampled_seed_becomes_a_valid_hidden_family_and_bundle(
     provenance = family["provenance"]
     assert provenance == authoring.provenance()
     assert (provenance["prompt_sha256"], provenance["seed_spec_sha256"]) == (authoring.brief.sha256, spec.sha256())
-    # The corpus is the dev baseline plus the rest of the hidden split (S1 9.5, 10.3). F01-F03 are left out of
-    # the baseline because this split re-authors them. Without a baseline nothing is attested; with the
-    # baseline alone one hidden family cannot cover every difficulty level; with its split it loads.
-    with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family), [])
-    assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]
-    baseline = [read_family_file(p) for p in sorted(SEED_DIR.glob("F0[4-9].json"))]
-    with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family), baseline)
-    assert [i.rule for i in caught.value.issues] == ["V5.coverage_levels"]
+    # V5 runs against the whole dev split and the whole hidden split its sampler record names (S1 9.5,
+    # 10.3). This family re-authors dev F02, so the committed dev split refuses it (L4). Against a dev split
+    # without F01-F03 (a directory of F04-F09) it needs its split: alone it cannot cover every level.
     split = [as_hidden(seeds[0], "Hc00000000a", "C-HHHHHHA"), as_hidden(seeds[2], "Hc00000000b", "C-HHHHHHB")]
-    bundle = ingest_bundle(family, review_of(family), [*baseline, *split])
+    record = {"assignment": [{"family_id": f["family_id"]} for f in (family, *split)]}
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), DevSplit.from_dir(SEED_DIR), split, record)
+    assert {"V5.names", "V5.lexical"} <= {i.rule for i in caught.value.issues}
+    later_dev = tmp_path / "dev"
+    later_dev.mkdir()
+    for path in sorted(SEED_DIR.glob("F0[4-9].json")):
+        (later_dev / path.name).write_bytes(path.read_bytes())
+    alone = {"assignment": [{"family_id": family["family_id"]}]}
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), DevSplit.from_dir(later_dev), (), alone)
+    assert [i.rule for i in caught.value.issues] == ["V5.coverage_levels"]
+    bundle = ingest_bundle(family, review_of(family), DevSplit.from_dir(later_dev), split, record)
     assert (bundle.family_code, bundle.split) == (spec.family_id, "hidden")
 
 

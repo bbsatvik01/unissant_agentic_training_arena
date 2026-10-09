@@ -27,12 +27,12 @@ CODEX_RESULTS = {"rounds": 1, "review": "pass", "cx2_truthful": "pass", "cx2_dec
 
 
 DEV_DIR = Path(__file__).resolve().parents[4] / "cases" / "dev"
-DEV = [load.read_family_file(path) for path in sorted(DEV_DIR.glob("F*.json"))]  # the comparison corpus
+DEV = load.DevSplit.from_dir(DEV_DIR)  # the comparison corpus: the committed dev split, read whole
 
 
-def corpus_for(family_id: str) -> list[Family]:
+def corpus_for(family_id: str) -> load.DevSplit:
     """The development corpus without the family's committed file (for an edited copy of it)."""
-    return [f for f in DEV if f["family_id"] != family_id]
+    return load.DevSplit(tuple(f for f in DEV.families if f["family_id"] != family_id))
 
 
 def revised(family: Family, revision: int) -> Family:
@@ -146,7 +146,7 @@ def test_a_revision_has_its_own_code_and_names_its_predecessor(
 ) -> None:
     """S1 8.6 and 4.4: family code `Fnn.rN`; `supersedes` is `Fnn` for r2 and `Fnn.r(N-1)` after that."""
     family = revised(seed("F01"), revision)
-    corpus = [*DEV, *(revised(seed("F01"), r) for r in range(2, revision))]
+    corpus = load.DevSplit((*DEV.families, *(revised(seed("F01"), r) for r in range(2, revision))))
     bundle = ingest_bundle(family, review_of(family), corpus).as_json()
     found = (bundle["family_code"], bundle["supersedes"], bundle["attestation"]["revision"])
     assert found == (code, supersedes, revision)
@@ -224,22 +224,22 @@ def test_an_invalid_family_is_never_loaded(seed: Callable[[str], Family]) -> Non
 def test_v5_runs_over_the_family_and_its_corpus(seed: Callable[[str], Family]) -> None:
     """The attestation says V5 passed, so V5 runs here: a corpus family that shares the persona refuses it."""
     family = seed("F02")
-    assert ingest_bundle(family, review_of(family), [seed("F01"), seed("F03")]).family_code == "F02"
+    assert ingest_bundle(family, review_of(family), load.DevSplit((seed("F01"), seed("F03")))).family_code == "F02"
     clash = seed("F01")
     clash["variants"]["truthful"]["public_packet"]["interview_context"]["subject"]["name"] = "Mara Quell"
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family), [clash])
+        ingest_bundle(family, review_of(family), load.DevSplit((clash,)))
     assert "V5.names" in {i.rule for i in caught.value.issues}
 
 
 def test_a_revision_needs_its_predecessors_in_the_corpus(seed: Callable[[str], Family]) -> None:
     """Without r1 the reuse of r1's case IDs could not be seen; the load is refused, not attested."""
     family = revised(seed("F01"), 3)
-    without_f01 = [f for f in DEV if f["family_id"] != "F01"]
+    without_f01 = corpus_for("F01")
     with pytest.raises(FamilyLoadError) as caught:
         ingest_bundle(family, review_of(family), without_f01)
     assert [(i.rule, i.message) for i in caught.value.issues] == [
-        ("CORPUS.predecessor", "revisions [1, 2] of F01 are not in the corpus")
+        ("CORPUS.predecessor", "revisions [1, 2] of F01 are not in the dev split")
     ]
 
 
@@ -251,33 +251,81 @@ def test_a_revision_that_keeps_its_predecessors_case_ids_is_refused(seed: Callab
     assert {i.rule for i in caught.value.issues} == {"V5.case_id"}
 
 
-@pytest.mark.parametrize("split", ["dev", "hidden"])
-def test_a_family_without_a_dev_baseline_is_refused(split: str, seed: Callable[[str], Family]) -> None:
-    """A hidden copy of F01 compared with nothing would be attested; the dev baseline is required."""
+def as_hidden(family: Family, family_id: str) -> Family:
+    hidden: Family = json.loads(json.dumps(family))
+    hidden.update(family_id=family_id, split="hidden")
+    hidden["provenance"].update(
+        method="generator",
+        generator_model="m",
+        prompt_sha256="0" * 64,
+        seed_spec_sha256="0" * 64,
+        few_shot_family_ids=["F02"],
+    )
+    for variant in ("truthful", "deceptive"):
+        hidden["variants"][variant]["evaluator_packet"]["family_id"] = family_id
+    return hidden
+
+
+def test_a_family_without_a_dev_baseline_is_refused(seed: Callable[[str], Family]) -> None:
     family = seed("F01")
-    if split == "hidden":
-        family.update(family_id="Hc00000000a", split="hidden")
-        family["provenance"].update(
-            method="generator",
-            generator_model="m",
-            prompt_sha256="0" * 64,
-            seed_spec_sha256="0" * 64,
-            few_shot_family_ids=["F02"],
-        )
-        for variant in ("truthful", "deceptive"):
-            family["variants"][variant]["evaluator_packet"]["family_id"] = "Hc00000000a"
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family), [])
+        ingest_bundle(family, review_of(family), load.DevSplit(()))
     assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]
-    if split == "hidden":
-        with pytest.raises(FamilyLoadError) as caught:
-            ingest_bundle(family, review_of(family), DEV)
-        assert {"V5.names", "V5.lexical", "V5.facility"} <= {i.rule for i in caught.value.issues}
+
+
+def test_a_hidden_family_needs_its_whole_split_and_the_whole_dev_split(seed: Callable[[str], Family]) -> None:
+    """A hidden copy of F01 is attested only against the whole dev split, which refuses it (L4), and only
+    with the hidden families its sampler record names."""
+    family = as_hidden(seed("F01"), "Hc00000000a")
+    review = review_of(family)
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review, DEV)
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.hidden_split"]
+    other = {"assignment": [{"family_id": "Hc00000000a"}, {"family_id": "Hc00000000b"}]}
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review, DEV, (), other)  # the record names a family that is not given
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.hidden_split"]
+    record = {"assignment": [{"family_id": "Hc00000000a"}]}
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review, DEV, (), record)
+    assert {"V5.names", "V5.lexical", "V5.facility"} <= {i.rule for i in caught.value.issues}
+
+
+def test_a_dev_family_takes_no_hidden_split(seed: Callable[[str], Family]) -> None:
+    family = seed("F02")
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), DEV, [as_hidden(seed("F03"), "Hc00000000b")])
+    assert [i.rule for i in caught.value.issues] == ["CORPUS.hidden_split"]
+
+
+@pytest.mark.parametrize(
+    ("edit", "where"),
+    [
+        (lambda f: f.pop("revision"), "family"),
+        (lambda f: f.update(revision=10**9), "family"),
+        (lambda f: f.clear(), "corpus"),
+    ],
+)
+def test_every_input_is_schema_checked_before_the_corpus_is_read(
+    edit: Callable[[Family], object], where: str, seed: Callable[[str], Family]
+) -> None:
+    family, extra = seed("F02"), seed("F03")
+    edit(family if where == "family" else extra)
+    corpus = load.DevSplit((*corpus_for("F03").families, extra))
+    with pytest.raises(FamilyLoadError) as caught:
+        ingest_bundle(family, review_of(family), corpus)
+    assert {i.rule for i in caught.value.issues} == {"V1.schema"}
+
+
+def test_the_dev_split_is_read_whole_from_its_directory(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        load.DevSplit.from_dir(tmp_path)
+    assert sorted(f["family_id"] for f in DEV.families) == [f"F0{i}" for i in range(1, 10)]
 
 
 def test_a_revisions_own_predecessor_is_not_a_dev_baseline(seed: Callable[[str], Family]) -> None:
     """Only another lineage gives V5 something to compare names, signatures and text with."""
     family = revised(seed("F01"), 2)
     with pytest.raises(FamilyLoadError) as caught:
-        ingest_bundle(family, review_of(family), [seed("F01")])
+        ingest_bundle(family, review_of(family), load.DevSplit((seed("F01"),)))
     assert [i.rule for i in caught.value.issues] == ["CORPUS.dev_baseline"]

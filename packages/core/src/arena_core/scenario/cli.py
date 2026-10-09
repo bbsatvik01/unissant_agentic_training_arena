@@ -5,10 +5,11 @@
   seed (S1 8.3). Case IDs and canaries missing from the source are drawn (`draw_identifiers`) and recorded in
   the source file first; `--revise` makes the source the next revision with new ones (S1 8.6).
 - `validate FAMILY...`: run V1-V4 on each family file and V5 across them.
-- `bundle FAMILY --codex CODEX.json --corpus FAMILY... [--out BUNDLE]`: the S4 `sealed.ingest_case_family`
-  bundle of a valid family, with its source text and attestation (S1 10.5); CODEX.json is the passed Codex
-  review (`CodexReview`), and the corpus is what V5 compares it with: the development split with every
-  revision (`cases/dev/F*.json`), plus the rest of the split for a hidden family (`load.corpus_issues`).
+- `bundle FAMILY --codex CODEX.json --dev-dir DIR [--hidden FAMILY... --sampler-record RECORD.json]
+  [--out BUNDLE]`: the S4 `sealed.ingest_case_family` bundle of a valid family, with its source text and
+  attestation (S1 10.5). CODEX.json is the passed Codex review (`CodexReview`); V5 compares the family with
+  every development family file in DIR (`cases/dev`) and, for a hidden family, with the rest of the hidden
+  split, which must be exactly the families the split's sampler record names (`load.corpus_issues`).
 
 `--counts` (every command) prints one JSON object of outcome codes and counts and nothing else, on every
 path: validator rule IDs, `INPUT.*` for unreadable or non-strict files, `SOURCE.*` and `AUTHORING.*` for a
@@ -34,7 +35,7 @@ from pydantic import ValidationError
 from arena_core.ids import StrictJSONError, canonical_json, read_json_text
 from arena_core.scenario.assemble import assemble, draw_identifiers, dump_family, new_revision
 from arena_core.scenario.brief import load_authoring
-from arena_core.scenario.load import CodexReview, FamilyLoadError, ingest_bundle, read_family_file
+from arena_core.scenario.load import CodexReview, DevSplit, FamilyLoadError, ingest_bundle, read_family_file
 from arena_core.scenario.source import SourceError, parse_source
 from arena_core.scenario.validators import Issue, validate_families
 
@@ -151,8 +152,10 @@ def _bundle(args: argparse.Namespace, report: Report) -> None:
         report.failure(exc, area="CODEX", where=str(args.codex))
         return
     try:
-        corpus = [read_family_file(path) for path in args.corpus]
-        bundle = ingest_bundle(read_family_file(args.family), codex, corpus)
+        dev = DevSplit.from_dir(args.dev_dir)
+        hidden = [read_family_file(path) for path in args.hidden]
+        record = read_family_file(args.sampler_record) if args.sampler_record is not None else None
+        bundle = ingest_bundle(read_family_file(args.family), codex, dev, hidden, record)
     except (OSError, ValueError, TypeError) as exc:  # unreadable, not strict JSON, not an object, not loadable
         report.failure(exc, area="INPUT", where=str(args.family))
         return
@@ -202,9 +205,9 @@ def build_parser() -> argparse.ArgumentParser:
     bundle_cmd = sub.add_parser("bundle", help="print the S4 ingest bundle of a family file", allow_abbrev=False)
     bundle_cmd.add_argument("family", type=Path)
     bundle_cmd.add_argument("--codex", type=Path, required=True, help="the passed Codex review (JSON)")
-    bundle_cmd.add_argument(
-        "--corpus", type=Path, nargs="+", required=True, help="the families V5 compares it with (dev split)"
-    )
+    bundle_cmd.add_argument("--dev-dir", type=Path, required=True, help="the development split (cases/dev)")
+    bundle_cmd.add_argument("--hidden", type=Path, nargs="+", default=[], help="the rest of a hidden split")
+    bundle_cmd.add_argument("--sampler-record", type=Path, default=None, help="the hidden split's sampler record")
     bundle_cmd.add_argument("--out", type=Path, default=None)
     bundle_cmd.add_argument("--counts", action="store_true", help=counts_help)
     bundle_cmd.set_defaults(run=_bundle, needs_out=True)

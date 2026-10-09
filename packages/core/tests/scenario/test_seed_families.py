@@ -27,20 +27,37 @@ CASES_DEV = REPO_ROOT / "cases" / "dev"
 S1_SPEC = REPO_ROOT / "docs" / "spec" / "S1-scenario-engine.md"
 SEED_IDS = ("F01", "F02", "F03")
 DEV_IDS = (*SEED_IDS, "F04", "F05", "F06", "F07", "F08", "F09")
+PACKETS = ("public_packet", "private_packet", "evaluator_packet")
 Family = dict[str, Any]
 
 
-def repository_families(*dirs: Path) -> dict[str, tuple[Path, Family]]:
-    """Every committed development family by ID, read strictly; a family in both places must be the same."""
-    found: dict[str, tuple[Path, Family]] = {}
+def repository_families(*dirs: Path) -> dict[tuple[str, int], tuple[Path, Family]]:
+    """Every committed development family by (ID, revision), read strictly; each revision of a family is its
+    own file (S1 8.6), and one (ID, revision) found in two places must be the same file."""
+    found: dict[tuple[str, int], tuple[Path, Family]] = {}
     for path in [p for d in (dirs or (SEED_DIR, CASES_DEV)) for p in sorted(d.glob("F*.json"))]:
         family = read_family_file(path)
-        fid = str(family["family_id"])
-        if fid in found:
-            assert canonical_sha256(found[fid][1]) == canonical_sha256(family), f"{fid} differs between copies"
+        key = (str(family["family_id"]), int(family["revision"]))
+        if key in found:
+            assert canonical_sha256(found[key][1]) == canonical_sha256(family), f"{key} differs between copies"
             continue
-        found[fid] = (path, family)
+        found[key] = (path, family)
     return found
+
+
+def test_revisions_of_one_family_are_separate_repository_entries(tmp_path: Path) -> None:
+    """A repository holding F01 r1 and its revision r2 is valid: both are kept and V1-V5 pass together."""
+    r1 = read_family_file(CASES_DEV / "F01.json")
+    r2 = json.loads(json.dumps(r1))
+    r2["revision"] = 2
+    for n, variant in enumerate(("truthful", "deceptive")):
+        for holder in (r2["variants"][variant], *(r2["variants"][variant][p] for p in PACKETS)):
+            holder["case_id"] = f"C-RRRRRRR{n}"
+    (tmp_path / "F01.json").write_text(json.dumps(r1), encoding="utf-8")
+    (tmp_path / "F01.r2.json").write_text(json.dumps(r2), encoding="utf-8")
+    found = repository_families(tmp_path)
+    assert sorted(found) == [("F01", 1), ("F01", 2)]
+    assert validate_families([family for _path, family in found.values()]) == []
 
 
 def test_the_repository_reader_refuses_a_duplicate_key(tmp_path: Path) -> None:
@@ -52,7 +69,7 @@ def test_the_repository_reader_refuses_a_duplicate_key(tmp_path: Path) -> None:
 
 
 def test_the_repository_holds_the_nine_development_families() -> None:
-    assert sorted(repository_families()) == list(DEV_IDS)
+    assert sorted(repository_families()) == [(fid, 1) for fid in DEV_IDS]
 
 
 def test_every_development_family_passes_v1_to_v5_together() -> None:
@@ -69,7 +86,7 @@ def test_every_committed_source_rebuilds_its_family() -> None:
     rebuilt = set()
     for path in sorted((CASES_DEV / "sources").glob("*.source.json")):
         family = assemble_file(path)  # with the authoring context beside it, when one is committed
-        committed = families[str(family["family_id"])][1]
+        committed = families[(str(family["family_id"]), int(family["revision"]))][1]
         assert canonical_sha256(family) == canonical_sha256(committed), path
         rebuilt.add(family["family_id"])
     assert sorted(rebuilt) == list(DEV_IDS)
