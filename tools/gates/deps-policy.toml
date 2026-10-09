@@ -16,7 +16,7 @@ python_projects = [
   "tools/envs/semgrep/pyproject.toml",
 ]
 # web/package.json joins with WP-18. Any package.json in the repo that is not listed here fails the gate.
-node_manifests = []
+node_manifests = ["web/package.json"]
 
 [python]
 # Supply-chain bans kept from TechnoMile (litellm supply-chain compromise; crawl4ai; PyMuPDF is AGPL; DBOS),
