@@ -10,7 +10,7 @@
 -- Numeric parity of the seeds with cost_model.py (prices, limits, voice amounts) is tools/check_cost_parity.py.
 begin;
 \ir harness/fixtures.psql
-select plan(12);
+select plan(13);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -190,6 +190,30 @@ select is(array[tests.error(format('select ops.set_bucket_ceiling(%L, null, %s, 
                 'AR007: a bucket holding reservations cannot become a parent'],
   'BU-24 set_bucket_ceiling refuses a ceiling below liability, a parent for global, and a child under global once '
   || 'it holds reservations');
+
+-- BU-42 (D-017): the per-user daily cap is $5.00. One voice session's whole-session hold ($3.392520) fits for an
+-- actor; a second the same day does not (5.00 - 3.392520 < 3.392520) and is refused per_user_cap; a text card
+-- reservation ($0.023200 at 6,000 bytes) still fits beside the first voice hold. Runs before the other voice rows
+-- (the open-voice concurrency count is 2).
+create temp table bu42 (step integer, val text) on commit drop;
+insert into bu42 select 0, (select per_user_daily_usd from ops.config)::text;
+insert into bu42 select 1, concat_ws('/', r ->> 'outcome', r ->> 'reserved_usd', r ->> 'id')
+  from tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, null, %L)',
+         'bu42-voice-key-1', 'global', 'voice_session', 'voice.session', tests.uid('D'))) r;
+insert into bu42 select 2, concat_ws('/', r ->> 'outcome', r ->> 'reason')
+  from tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, null, %L)',
+         'bu42-voice-key-2', 'global', 'voice_session', 'voice.session', tests.uid('D'))) r;
+insert into bu42 select 3, concat_ws('/', r ->> 'outcome', r ->> 'reserved_usd')
+  from tests.as_role('arena_public', format('select ops.reserve_model_call(%L, %L, %L, %L, %L, null, %L, 6000)',
+         'bu42-card-key-1', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card', tests.uid('D'))) r;
+-- the voice hold was never dispatched: release it, so the later voice rows see no open hold of this actor
+select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)',
+                                              split_part((select val from bu42 where step = 1), '/', 3), 'released'));
+select is((select array_agg(case when step = 1 then split_part(val, '/', 1) || '/' || split_part(val, '/', 2) else val end
+                            order by step) from bu42),
+          array['5.000000', 'reserved/3.392520', 'refused/per_user_cap', 'reserved/0.023200'],
+  'BU-42 D-017: with the $5.00 per-user cap one voice session fits, a second the same day is refused per_user_cap, '
+  || 'and a text card still fits');
 
 -- BU-38: four receipts at the reservation's maximum (6,001 input tokens, 1,600 output on a 6,001-byte card) are
 -- within the reservation: no overrun, kill switch off. The draft's single rounding reserved $0.023202 for $0.023204.

@@ -338,7 +338,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-03 | Worst case `referee` (purpose `referee_assistant`) on `gemini-3.5-flash-lite` at 12,000 bytes: 4 x (12000 x 0.30 + 4000 x 2.50) / 1e6 (`liab_reservation`); a `generate`, `validate` or `retranscribe` call kind, or model `gemini-3.1-pro-preview` | 0.054400; `AR007` each |
 | BU-04 | After the plan (BU-28), the owner lowers `global` to its liability + 0.12; fill it with the BU-03 `referee` reservations until refused; restore the plan value | Refused at reservation floor(0.12 / 0.0544) + 1 = 3 with reason `cap` at `global`; liability <= ceiling |
 | BU-05 | Invariant after every step of this file: for every bucket, subtree liability <= ceiling | Holds |
-| BU-06 | Per-user cap (seeded proposal `per_user_daily_usd`): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations (129 at the 3.00 proposal), reason `per_user_cap` |
+| BU-06 | Per-user cap (seeded proposal `per_user_daily_usd`): `card` reservations for one actor | Refused after floor(cap / 0.0232) reservations of 6,000 bytes (215 at the seeded 5.00, D-017), reason `per_user_cap` |
 | BU-07 | Unknown model or call kind | `AR007` |
 | BU-08 | Same key, same inputs; different inputs | `exists` with the same id; `AR003` |
 | BU-09 | Usage before dispatch | `AR001` |
@@ -370,6 +370,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | BU-35 | SG3-11 ownership: `arena_public` calls `mark_dispatched`, `record_usage` and `settle_reservation` on a reservation `arena_subject` made, and reuses its key | `AR040` each; `AR003` for the key |
 | BU-36 | SG3-11: `settle_reservation` on a voice reservation (by its own role) | `AR001` (voice holds settle through `settle_voice_reservation`) |
 | BU-37 | D7: a `card` reservation for a trial with an open voice session | `reserved` against `global` with no parent; the voice hold is unchanged |
+| BU-42 | D-017: the seeded `per_user_daily_usd` is 5.00; for one actor a `voice_session` reservation, a second `voice_session` the same day, then a `card` at 6,000 bytes | 5.000000; `reserved` 3.392520; `refused` `per_user_cap` (5.00 - 3.392520 < 3.392520); `reserved` 0.023200 |
 | BU-38 | WP-03 fix 1: a 6,001-byte `card` on 3.5-flash-lite, then four receipts at its maximum (6,001 input, 1,600 output tokens) | Reserves 4 x ceil(per-attempt worst case) = 0.023204 (not 0.023202); the four receipts record no overrun and the kill switch stays off |
 | BU-39 | WP-03 fix 3: a reservation key reused with another purpose (model call; voice) | `AR003` each, not `exists` |
 | BU-40 | WP-03 fix 2: a same-key reservation while the first is uncommitted (dblink) | Waits on the key's advisory lock, then returns the first reservation (`exists`, same id); no 23505 and no cap refusal |
@@ -379,7 +380,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (3.392520) and returns shutoff = round(reservation x 2 / 3, 6), equal to `cost_model.VOICE_SHUTOFF` (2.261680; X-17, SG3-35); with the seeded `per_user_daily_usd` 3.00 an actor's voice reservation is refused `per_user_cap` (S4-D3) | Holds; Holds |
+| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (3.392520) and returns shutoff = round(reservation x 2 / 3, 6), equal to `cost_model.VOICE_SHUTOFF` (2.261680; X-17, SG3-35); with the seeded `per_user_daily_usd` 5.00 (D-017) an actor's first voice reservation of the day fits and a second is refused `per_user_cap` (S4-D3) | Holds; Holds |
 | VB-02 | `voice_probe` reserves the seeded `PROBE_RESERVATION` (0.424940) | Holds |
 | VB-03 | Third open voice reservation with `max_open_voice_sessions` 2 | `voice_concurrency` |
 | VB-04 | Ninth voice session (`voice_sessions_total` 8); 31st probe | `voice_total_cap` each |
