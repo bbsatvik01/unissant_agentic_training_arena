@@ -5,7 +5,8 @@ description: "How this repo tests: pytest, 90% branch coverage floor, warnings a
 
 # Testing
 
-- pytest only. Warnings are errors (`-W error`); `--strict-markers`, `--strict-config`, `--import-mode=importlib`.
+- pytest for Python. Warnings are errors (`-W error`); `--strict-markers`, `--strict-config`, `--import-mode=importlib`.
+- pgTAP for the database (`supabase/tests/*.sql`, plan in `docs/spec/sql/TESTS.md`): one transaction per file, `\ir harness/fixtures.psql` after `begin`, `plan(n)` equal to the file's rows, `rollback` at the end. `make db-test` runs them on plain PostgreSQL 17 and on Supabase Postgres 17; any failing, skipped or TODO test fails the run, and the words skip and todo are reserved in the suite.
 - Coverage: branch coverage, `--cov-fail-under=90` on the command line (`COVERAGE_MIN` in the Makefile), mirrored in `pyproject.toml`; diff-cover 90% on changed lines; `tools/check_ratchet.py` fails on drift or loosening, and `tools/check_scope.py` fails when a measured file is missing from the report (a package no test imports).
 - No `skip`, `skipif`, `xfail`, `importorskip`. `tools/pytest_guard.py` fails the run if one executes; `tools/check_no_rigging.py` fails on the static marker.
 - Test directories outside `tools/tests` carry no `__init__.py`: with importlib import mode, two `tests/test_main.py` files in packages named `tests` collapse into one module and one file silently runs the other's tests. `tools/pytest_guard.py` fails the session on such a collision.

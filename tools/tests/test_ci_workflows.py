@@ -39,6 +39,12 @@ def test_ci_runs_the_python_gate_through_make_against_the_pre_change_base() -> N
     assert "origin/main" not in ci
 
 
+def test_ci_runs_the_database_gate_through_make() -> None:
+    """db-test (WP-03) runs in CI through the same make target as locally, never a softened copy."""
+    ci = WORKFLOWS["ci.yml"]
+    assert "run: make deps-sync db-test" in ci
+
+
 def test_security_runs_the_python_scans_and_the_complete_gitleaks_scan_through_make() -> None:
     security = WORKFLOWS["security.yml"]
     assert "run: make deps-sync bandit semgrep pip-audit licenses" in security
