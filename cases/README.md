@@ -6,8 +6,8 @@ Synthetic interview cases for the training arena. Each family is one event graph
 
 | Path | What it holds |
 | --- | --- |
-| `dev/Fnn.json` | Development family files (schema v1.1), written by the kit's assembler as `json.dumps(family, indent=2, ensure_ascii=False)` plus a final newline. They are derived files: never edit them by hand. |
-| `dev/sources/Fnn.source.json` | The family source that the assembler builds `dev/Fnn.json` from: canonical JSON (sorted keys, separators `(",", ":")`, UTF-8 without ASCII escaping, final newline). Revise a family by changing its source. |
+| `dev/Fnn.json` | Development family files (schema v1.2), written by the assembler as `json.dumps(family, indent=2, ensure_ascii=False)` plus a final newline. They are derived files: never edit them by hand. |
+| `dev/sources/Fnn.source.json` | The family source that the assembler builds `dev/Fnn.json` from: canonical JSON (sorted keys, separators `(",", ":")`, UTF-8 without ASCII escaping, final newline). It also records each variant's `case_id` and `canaries`, drawn once by code from a CSPRNG (never chosen by the author, never derived from anything recorded). Revise a family by changing its source. |
 | `dev/reports/Fnn.cx.json` | The latest check report for the family, bound to the family hash it was produced for (`family_sha256`). |
 | `dev/seed-plan.json` | Seed plan for F04-F09: violation and misleading types, level, knob targets, style, presentation, persona, facility, dates. |
 | `hidden/` | Git-ignored (`cases/.gitignore`). Hidden families are authored by isolated agents and read by nobody on the team before reveal: not the team, not the orchestrating session (S1 L6, L7). They are ingested and sealed in Postgres, then the directory is deleted (S1 10.3). |
@@ -16,7 +16,7 @@ F01-F03 are the hand-authored seeds. `dev/F01.json` to `dev/F03.json` are byte-i
 
 ## Checking a family with the kit
 
-The authoring kit is the scratch reference implementation of S1 sections 8.4 and 9. It is not yet in the repository: it lives in the orchestrating session's scratch directory (`authoring/kit/`) until WP-08 ports it into `arena_core`. Below, `$KIT` is that directory and `$PY` is a Python 3 interpreter with `jsonschema` installed. Run the scripts without `-I` so the kit directory is on `sys.path`.
+The authoring kit is the scratch reference implementation of S1 sections 8.4 and 9 plus the Codex review (CX-1 to CX-4). Its assembler and validators now live in `arena_core.scenario` (WP-08, below); the kit's Codex review and `check.py` loop stay in the orchestrating session's scratch directory (`authoring/kit/`), because CX is an authoring step, not an engine check. Below, `$KIT` is that directory and `$PY` is a Python 3 interpreter with `jsonschema` installed. Run the scripts without `-I` so the kit directory is on `sys.path`.
 
 ```sh
 cd "$KIT"
@@ -53,12 +53,14 @@ Rules that apply in every revision round:
 - Sources name facts, records and other items with short IDs (`f01`, `u01`, `x01`, `c01`, `r01`, `q01`, `a01`, `g01`, `D1`-`D4`, `R1`-`R6`, `S1`, `S2`). The assembler rewrites those tokens wherever they occur in the source, prose included, so do not use them in record text except as references.
 - Content rules from the authoring brief apply: fictional agency, people and places only; no violence; no protected-class traits as clues; no medical detail beyond a named condition category; demeanor and accent are never evidence; no role or verdict words in any public-tier text.
 
-## Porting the kit (WP-08)
+## The engine in `arena_core` (WP-08)
 
-WP-08 ports the kit into `arena_core` and must reproduce every committed family byte-identically: for each `dev/sources/<ID>.source.json`, the ported assembler's output, written as `json.dumps(family, indent=2, ensure_ascii=False)` plus a final newline, must equal `dev/<ID>.json` byte for byte. `selftest.py` states the properties the port keeps:
+WP-08 ported the kit's assembler and validators into `arena_core.scenario` (S1 v2.7); every `dev/sources/<ID>.source.json` assembles to `dev/<ID>.json` byte for byte, and CI reruns V1-V5 and the S1 9.8 mutation inventory (MU-01 to MU-42 and the control) on every change:
 
-- Every object the assembler copies from a source is written with its keys in the order its schema lists `properties`, so the family file depends only on the source's JSON value, never on the key order of the source file.
-- A loaded source equals the value it was written from: positional rows (timeline entries, release predicates, supports, ledger, unknown, uncertainty, forbidden-assertion and label-guide rows) are JSON arrays in the file and tuples in memory.
-- Each committed source is in canonical form, and assembling it reproduces `dev/<ID>.json`; for F01-F03 it also reproduces `docs/spec/seed-families/`.
+```sh
+uv run --locked python -m arena_core.scenario assemble cases/dev/sources/F04.source.json --out cases/dev/F04.json
+uv run --locked python -m arena_core.scenario validate cases/dev/F0*.json
+uv run --locked python -m arena_core.scenario bundle cases/dev/F04.json --codex codex.json --peer cases/dev/F01.json ...
+```
 
-The port also keeps the deterministic mutation suite as tests (S1 9) and repeats the Codex review on any changed development family.
+`assemble` draws any missing case ID and canary from a CSPRNG and writes them into the source before it assembles, so a rebuild reproduces the family; `--revise` makes the source the next revision (S1 8.6) with new ones. The Codex review stays in the kit; `bundle` takes its passed result (`{rounds, review, cx2_truthful, cx2_deceptive, cx3}`) as the attestation's `codex` object (S1 10.5).

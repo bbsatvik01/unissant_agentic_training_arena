@@ -1,9 +1,13 @@
 [project]
 name = "arena-core"
 version = "0.1.0"
-description = "Shared core: boot checks and config now; the agent port, spend guard, turn orchestrator, event store and observability land in later work packages (S5 1)."
+description = "Shared core: boot checks, config and the deterministic scenario engine (S1) now; the agent port, spend guard, turn orchestrator, event store and observability land in later work packages (S5 1)."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+  "jsonschema==4.26.0",
+  "pydantic==2.13.5",
+  "referencing==0.37.0",
+]
 
 [build-system]
 requires = ["uv_build==0.11.2"]

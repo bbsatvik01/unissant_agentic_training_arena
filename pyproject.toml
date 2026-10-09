@@ -32,6 +32,7 @@ dev = [
   # tools/check_no_rigging.py reads workflow YAML as YAML (PyYAML was already locked through bandit).
   "pyyaml==6.0.3",
   "ruff==0.16.8",
+  "types-jsonschema==4.26.0.20260518",
   "types-pyyaml==6.0.12.20260906",
 ]
 

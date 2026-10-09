@@ -1,0 +1,732 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/schemas/evaluator-packet.schema.json",
+  "title": "Evaluator-only packet",
+  "description": "SCN-9, SCN-5. Read only by arena-referee (credential arena_referee); stored in the sealed schema; reachable by other roles only through privileged functions (release_evidence returns released public content, never this packet). Holds canonical facts and the event graph, the role label, evidence artifacts with release predicates and Evidence Framing Matrix links, material contradictions, resolution criteria, the answer-scoring rubric and the per-family guide for independent turn labels (EVL-8).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet",
+    "case_id",
+    "family_id",
+    "variant",
+    "role",
+    "synopsis",
+    "canonical_facts",
+    "event_edges",
+    "evidence_artifacts",
+    "max_releases",
+    "material_contradictions",
+    "resolution_criteria",
+    "rubric",
+    "turn_label_guide",
+    "canary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "packet": {
+      "const": "evaluator"
+    },
+    "case_id": {
+      "$ref": "public-packet.schema.json#/$defs/caseId"
+    },
+    "family_id": {
+      "$ref": "#/$defs/familyId"
+    },
+    "variant": {
+      "$ref": "private-packet.schema.json#/$defs/role"
+    },
+    "role": {
+      "description": "Assigned role label (SCN-9). Equals variant; the validator checks equality.",
+      "$ref": "private-packet.schema.json#/$defs/role"
+    },
+    "synopsis": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 900
+    },
+    "canonical_facts": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 40,
+      "items": {
+        "$ref": "#/$defs/canonicalFact"
+      }
+    },
+    "event_edges": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 60,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "evidence_artifacts": {
+      "description": "Initial documents (doc-NN, at most 4) plus at most MAX_RELEASES = 6 releasable records (rec-NN).",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/evidenceArtifact"
+      }
+    },
+    "max_releases": {
+      "const": 6
+    },
+    "material_contradictions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/contradiction"
+      }
+    },
+    "resolution_criteria": {
+      "$ref": "#/$defs/resolutionCriteria"
+    },
+    "rubric": {
+      "$ref": "#/$defs/rubric"
+    },
+    "turn_label_guide": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/labelGuide"
+      }
+    },
+    "canary": {
+      "$ref": "private-packet.schema.json#/$defs/canary"
+    }
+  },
+  "$defs": {
+    "familyId": {
+      "description": "Development families F01..F999; hidden families H plus 10 hex characters (opaque).",
+      "type": "string",
+      "pattern": "^(F[0-9]{2,3}|H[0-9a-f]{10})$"
+    },
+    "factTag": {
+      "description": "violation, motive, opportunity, means: AR-Bench triple constraint (deceptive). concealment: hidden support for the violation. cover: true activity a deceptive subject can truthfully describe. misleading: looks suspicious in both variants. innocent_explanation: explains a misleading fact (truthful). privacy: personal matter the subject may decline (PRIVATE class).",
+      "enum": [
+        "violation",
+        "motive",
+        "opportunity",
+        "means",
+        "concealment",
+        "cover",
+        "misleading",
+        "innocent_explanation",
+        "privacy"
+      ]
+    },
+    "canonicalFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "kind",
+        "actors",
+        "material",
+        "tags"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "private-packet.schema.json#/$defs/factId"
+        },
+        "statement": {
+          "description": "One atomic proposition, past tense, third person.",
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "kind": {
+          "enum": [
+            "action",
+            "state",
+            "record",
+            "context",
+            "knowledge"
+          ]
+        },
+        "time": {
+          "$ref": "public-packet.schema.json#/$defs/localDateTime"
+        },
+        "actors": {
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "material": {
+          "description": "True when the resolution depends on the fact.",
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/factTag"
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "relation"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "private-packet.schema.json#/$defs/factId"
+        },
+        "to": {
+          "$ref": "private-packet.schema.json#/$defs/factId"
+        },
+        "relation": {
+          "description": "precedes and causes require from.time <= to.time when both are timed; motivates and enables point at the violation (deceptive); explains points from an innocent_explanation fact to a misleading fact (truthful).",
+          "enum": [
+            "precedes",
+            "causes",
+            "enables",
+            "motivates",
+            "explains"
+          ]
+        }
+      }
+    },
+    "releasePredicate": {
+      "description": "Deterministic release predicate evaluated by release_evidence() between exchanges (S1 section 5; S4 sql/0004). initial: in the public packet from the start (doc-NN). scheduled: released automatically once after_exchanges exchanges are complete. on_request: released when requested once after_exchanges exchanges are complete.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "initial"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "after_exchanges"
+          ],
+          "properties": {
+            "type": {
+              "const": "scheduled"
+            },
+            "after_exchanges": {
+              "$ref": "public-packet.schema.json#/$defs/completedExchanges"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "after_exchanges"
+          ],
+          "properties": {
+            "type": {
+              "const": "on_request"
+            },
+            "after_exchanges": {
+              "$ref": "public-packet.schema.json#/$defs/completedExchanges"
+            }
+          }
+        }
+      ]
+    },
+    "support": {
+      "description": "Evidence Framing Matrix link: how strongly and how precisely this artifact establishes the fact. level = 1 weak/low, 2 weak/high, 3 strong/low, 4 strong/high.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_id",
+        "source_strength",
+        "precision",
+        "level"
+      ],
+      "properties": {
+        "fact_id": {
+          "$ref": "private-packet.schema.json#/$defs/factId"
+        },
+        "source_strength": {
+          "enum": [
+            "weak",
+            "strong"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "low",
+            "high"
+          ]
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      }
+    },
+    "evidenceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "kind",
+        "title",
+        "release",
+        "content",
+        "supports"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "public-packet.schema.json#/$defs/artifactId"
+        },
+        "kind": {
+          "$ref": "public-packet.schema.json#/$defs/artifactKind"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "description": {
+          "description": "Required for on_request records; equals the public requestable record description.",
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "release": {
+          "$ref": "#/$defs/releasePredicate"
+        },
+        "content": {
+          "$ref": "public-packet.schema.json#/$defs/content"
+        },
+        "supports": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/support"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "artifact_id": {
+                "pattern": "^doc-"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "release": {
+                "properties": {
+                  "type": {
+                    "const": "initial"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_id": {
+                "pattern": "^rec-"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "release": {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "scheduled",
+                      "on_request"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "release": {
+                "properties": {
+                  "type": {
+                    "const": "on_request"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "description"
+            ]
+          }
+        }
+      ]
+    },
+    "contradiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "description",
+        "fact_ids",
+        "artifact_ids",
+        "resolution",
+        "resolved_by"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^c:[0-9]{2}$"
+        },
+        "type": {
+          "description": "statement_vs_evidence and evidence_vs_evidence are real (deceptive); apparent looks like one and has an innocent resolution (truthful).",
+          "enum": [
+            "statement_vs_evidence",
+            "evidence_vs_evidence",
+            "apparent"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 500
+        },
+        "fact_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "private-packet.schema.json#/$defs/factId"
+          }
+        },
+        "artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "public-packet.schema.json#/$defs/artifactId"
+          }
+        },
+        "forbidden_assertion_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^x:[0-9]{2}$"
+          }
+        },
+        "resolution": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "resolved_by": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fact_ids",
+            "artifact_ids"
+          ],
+          "properties": {
+            "fact_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "private-packet.schema.json#/$defs/factId"
+              }
+            },
+            "artifact_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "public-packet.schema.json#/$defs/artifactId"
+              }
+            }
+          }
+        }
+      }
+    },
+    "resolutionCriteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correct_finding",
+        "decisive_support",
+        "corroboration_to_name",
+        "unsupported_grounds"
+      ],
+      "properties": {
+        "correct_finding": {
+          "enum": [
+            "truthful",
+            "deceptive"
+          ]
+        },
+        "decisive_support": {
+          "description": "Any one item is enough to support the correct finding. A supported closure cites every artifact in the item and, when requires_subject_account is true, the subject's own account of the listed facts.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "artifact_ids",
+              "fact_ids",
+              "requires_subject_account"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^r:[0-9]{2}$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 400
+              },
+              "artifact_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "public-packet.schema.json#/$defs/artifactId"
+                }
+              },
+              "fact_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "private-packet.schema.json#/$defs/factId"
+                }
+              },
+              "requires_subject_account": {
+                "description": "When true, at least one of fact_ids is a ledger fact of this variant that a rubric key question targets (validator V3a). Those facts are the item's account facts; a supported closure covers every one of them with an answer to a question that targets it (Codex check CX-2, S1 9.7).",
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "corroboration_to_name": {
+          "description": "EX-3: records an 'insufficient evidence' finding should name as the corroboration to seek.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "public-packet.schema.json#/$defs/artifactId"
+          }
+        },
+        "unsupported_grounds": {
+          "description": "Grounds that never support a deceptive finding in this variant (PRB-4, EX-4).",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "rubric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_questions",
+        "evidence_to_request",
+        "alternative_explanations",
+        "dimension_notes"
+      ],
+      "properties": {
+        "key_questions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "intent",
+              "target_fact_ids",
+              "neutral_example"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^q:[0-9]{2}$"
+              },
+              "intent": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 200
+              },
+              "target_fact_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "private-packet.schema.json#/$defs/factId"
+                }
+              },
+              "neutral_example": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 200
+              }
+            }
+          }
+        },
+        "evidence_to_request": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "public-packet.schema.json#/$defs/recordId"
+          }
+        },
+        "alternative_explanations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "hypothesis",
+              "test"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^a:[0-9]{2}$"
+              },
+              "hypothesis": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 300
+              },
+              "test": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 300
+              }
+            }
+          }
+        },
+        "dimension_notes": {
+          "description": "Family-specific notes for the five EVL-7 dimensions; the shared 0-4 anchors live in the rubric spec.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "clarity_neutrality",
+            "response_relevance",
+            "evidence_based_followup",
+            "testing_alternatives",
+            "supported_closure"
+          ],
+          "properties": {
+            "clarity_neutrality": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 400
+            },
+            "response_relevance": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 400
+            },
+            "evidence_based_followup": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 400
+            },
+            "testing_alternatives": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 400
+            },
+            "supported_closure": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 400
+            }
+          }
+        }
+      }
+    },
+    "labelGuide": {
+      "description": "Anticipated subject-turn situations and the independent EVL-8 label the referee should give them in this variant.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "situation",
+        "label",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^l:[0-9]{2}$"
+        },
+        "situation": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "label": {
+          "enum": [
+            "evasion",
+            "genuine_uncertainty",
+            "legitimate_non_disclosure",
+            "poorly_framed_question",
+            "responsive"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 400
+        }
+      }
+    }
+  }
+}
