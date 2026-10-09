@@ -1,0 +1,4 @@
+import warnings
+
+warning_api = warnings
+warning_api.filterwarnings(action="ignore")

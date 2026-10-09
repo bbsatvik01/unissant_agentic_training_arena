@@ -1,0 +1,8 @@
+import pytest
+
+
+@pytest.mark.filterwarnings(
+    "i::DeprecationWarning",
+)
+def test_x() -> None:
+    pass

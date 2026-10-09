@@ -169,6 +169,8 @@ def test_docs_python_outside_the_archive_fails() -> None:
         'filterwarnings = ["error"]',
         "warnings.simplefilter('error')",
         "pytest -W error --cov",
+        "gcc -Wall -Wextra main.c",
+        "pytest -W $(PYTEST_WARNINGS) --cov",
         "from typing import cast, no_type_check_helper_name_is_not_used",
         "pip-audit --strict --require-hashes",
         "# isort is ruff's I rule here",
@@ -189,7 +191,7 @@ SUPPRESSED_PYTHON = sorted((Path(__file__).parent / "fixtures" / "suppressed-pyt
 def test_the_python_fixtures_cover_each_ast_marker() -> None:
     cases = {p.stem for p in SUPPRESSED_PYTHON}
     assert {c for c in cases if c.startswith("pytest-skip--")} == {
-        f"pytest-skip--{c}" for c in ("from-import", "mark-import", "module-alias")
+        f"pytest-skip--{c}" for c in ("from-import", "mark-assigned", "mark-import", "module-alias")
     }
     assert {c for c in cases if c.startswith("unittest-skip--")} == {
         f"unittest-skip--{c}" for c in ("from-import", "module-alias")
@@ -197,18 +199,27 @@ def test_the_python_fixtures_cover_each_ast_marker() -> None:
     assert {c for c in cases if c.startswith("warnings-ignore--")} == {
         f"warnings-ignore--{c}"
         for c in (
+            "abbreviated-action",
+            "always-action",
             "catch-warnings-action",
+            "catch-warnings-default",
             "computed-action",
+            "default-action-mark",
             "filters-list",
             "function-as-value",
             "getattr",
             "import-alias",
             "keyword-action",
+            "keyword-always",
             "kwargs-action",
             "module-alias",
+            "module-assigned",
+            "module-passed",
+            "multiline-abbreviated-mark",
             "multiline-positional",
             "pytest-mark-multiline",
             "pytest-mark-second-filter",
+            "submodule-path",
         )
     }
     assert len(cases) == len(list(SUPPRESSED_PYTHON))
@@ -227,11 +238,14 @@ def test_python_suppressions_are_found_on_the_syntax_tree(tmp_path: Path, fixtur
     [
         'import warnings\n\nwarnings.simplefilter("error")\n',
         'import warnings\n\nwarnings.filterwarnings(action="error", category=DeprecationWarning)\n',
-        'import warnings\n\nwarnings.filterwarnings("always", "ignore this message text")\n',
+        'import warnings\n\nwarnings.filterwarnings("error", "ignore this message text")\n',
         "import warnings\n\nwith warnings.catch_warnings(record=True) as seen:\n    assert seen == []\n",
         'import pytest\n\n\n@pytest.mark.filterwarnings("error::DeprecationWarning")\ndef test_x() -> None:\n    ...\n',
         "import pytest\n\n\ndef test_x() -> None:\n    with pytest.warns(UserWarning):\n        pass\n",
         "import argparse\n\nparser = argparse.ArgumentParser()\nparser.skip = 1\nfilters = [1]\n",
+        "import pytest\n\n\ndef test_x() -> None:\n    with pytest.raises(ValueError):\n        int('x')\n",
+        'import warnings\n\nwarnings.warn("deprecated", DeprecationWarning, stacklevel=2)\n',
+        'import pytest\n\nraises = getattr(pytest, "raises")\n',
     ],
 )
 def test_ordinary_python_passes_the_syntax_tree_scan(tmp_path: Path, source: str) -> None:

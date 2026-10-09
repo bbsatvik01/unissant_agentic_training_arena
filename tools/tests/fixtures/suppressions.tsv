@@ -37,3 +37,7 @@ warnings-ignore	PYTHONWARNINGS=ignore make test
 isort-skip	# isort: skip_file
 pip-audit-ignore	pip-audit --strict --ignore-vuln PYSEC-2024-1
 pnpm-audit-ignore	    ignoreGhsas:
+warnings-ignore	pytest -W always::UserWarning
+warnings-ignore	PYTHONWARNINGS=default make test
+warnings-ignore	python -Wi -m pytest
+warnings-ignore	warnings.filterwarnings('once')

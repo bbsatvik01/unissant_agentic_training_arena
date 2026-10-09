@@ -38,9 +38,11 @@ trufflehog-ignore = 'trufflehog:ignore\b'
 osv-ignore = '''(?i)^\s*(\[\[\s*)?["']?(IgnoredVulns|PackageOverrides)["']?\s*(\]\]|=)'''
 # typing.no_type_check makes mypy skip a function or class entirely.
 no-type-check = '\bno_type_check(_decorator)?\b'
-# Warnings are errors (pytest -W error): a filter that ignores them, as a pytest mark, a warnings call, a -W
-# option or PYTHONWARNINGS, would swallow our own code's deprecations.
-warnings-ignore = '''(?i)\b(filterwarnings|simplefilter)\s*\(\s*["']ignore|(^|\s)-W\s*["']?ignore|PYTHONWARNINGS\s*[=:]\s*["']?ignore'''
+# Warnings are errors (pytest -W error): a filter with any other action (ignore, default, always, module,
+# once, or a one-letter abbreviation), as a pytest mark, a warnings call, a -W option or PYTHONWARNINGS,
+# overrides it and would swallow our own code's deprecations. Python files are also judged on the syntax
+# tree (tools/check_no_rigging.py), where only a literal `error` action passes.
+warnings-ignore = '''(?i)\b(filterwarnings|simplefilter)\s*\(\s*["'](ignore|default|always|all|module|once|[idamo])(?=[:"'])|(^|\s)-W\s*["']?(ignore|default|always|module|once|[idamo])(?=[:\s"']|$)|PYTHONWARNINGS\s*[=:]\s*["']?(ignore|default|always|all|module|once|[idamo])(?=[:\s"',]|$)'''
 # Ruff's isort directives that switch the import-order lint off for a file or a block.
 isort-skip = '#\s*isort:\s*(skip_file|skip|off)\b'
 # pip-audit's per-advisory skip.

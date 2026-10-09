@@ -17,9 +17,14 @@ alias or a flow mapping counts as GitHub's parser reads it, and only a plain boo
 file the parser cannot read fails closed. Python is also read as Python: a warning filter set to ignore (a
 ``warnings`` call, ``catch_warnings(action=...)``, the ``warnings.filters`` list, or a
 ``pytest.mark.filterwarnings`` filter) and a pytest or unittest skip are judged on the syntax tree, with
-import aliases resolved, so a keyword argument, a call across lines, an alias, the function taken as a
-value or fetched through ``getattr`` all count; an action the scan cannot read as a literal string fails
-closed, and so does Python the parser cannot read.
+import aliases resolved and a module reached through another (``unittest.case.warnings``) seen as itself,
+so a keyword argument, a call across lines, an alias, the function taken as a value or fetched through
+``getattr`` all count. Both checks are allow-lists, never deny-lists: the only filter action that passes is
+a literal ``error`` (``ignore``, ``default``, ``always``, ``module``, ``once``, any abbreviation and any
+non-literal action weaken -W error and fail), and a guarded module (``warnings``, ``pytest``,
+``pytest.mark``, ``unittest``) may only be used as the base of an attribute access or as getattr's object;
+assigning it, passing it or returning it is an escape the scan cannot follow, and fails. Python the
+parser cannot read fails closed.
 
 ``--snapshot`` scans a plain directory (every file in it) instead of a git worktree: the pre-commit
 hook exports the index with ``git checkout-index`` and scans that, i.e. exactly what will be committed.
@@ -168,7 +173,8 @@ SKIP_NAMES = {
         for n in ("skip", "skipIf", "skipUnless", "expectedFailure")
     },  # the skip exception is caught by name in every form, so the line scan suffices for it
 }
-# getattr on these modules is judged by the name it fetches (a non-literal name fails closed).
+# Modules used only as an attribute base or getattr's object; getattr is judged by the name it fetches (a
+# non-literal name fails closed), any other use is an escape.
 GUARDED_MODULES = {"warnings": WARNINGS_IGNORE, "pytest": PYTEST_SKIP, "pytest.mark": PYTEST_SKIP}
 GUARDED_MODULES |= {"unittest": UNITTEST_SKIP, "unittest.case": UNITTEST_SKIP}
 GUARDED_NAMES = {
@@ -205,12 +211,26 @@ def _resolve(node: ast.expr, bound: dict[str, str]) -> str | None:
     return ".".join([bound[node.id], *reversed(parts)])
 
 
-def _ignores(expr: ast.expr | None) -> bool:
-    """True unless ``expr`` is absent or a literal string whose action is not ``ignore`` (fail closed)."""
+KEPT_ACTION = "error"  # the one warning-filter action that keeps -W error intact
+
+
+def _canonical(name: str) -> str:
+    """The longest dotted suffix of ``name`` that is a guarded module or name (``a.warnings.filters`` ->
+    ``warnings.filters``), else ``name``: a guarded module reached through another is still itself."""
+    parts = name.split(".")
+    for start in range(len(parts)):
+        suffix = ".".join(parts[start:])
+        if suffix in GUARDED_NAMES or suffix in GUARDED_MODULES:
+            return suffix
+    return name
+
+
+def _weakens(expr: ast.expr | None) -> bool:
+    """True unless ``expr`` is absent or a literal filter whose action (before any ``:``) is ``error``."""
     if expr is None:
         return False
     if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
-        return expr.value.strip().lower().startswith("ignore")
+        return expr.value.split(":", 1)[0].strip() != KEPT_ACTION
     return True
 
 
@@ -219,19 +239,24 @@ def _call_suppresses(name: str, call: ast.Call) -> bool:
         return True
     action = next((k.value for k in call.keywords if k.arg == "action"), None)
     if name == CATCH_WARNINGS:
-        return _ignores(action)
+        return _weakens(action)
     if name == PYTEST_FILTER_MARK:
-        return any(_ignores(arg) for arg in call.args) or _ignores(action)
+        return any(_weakens(arg) for arg in call.args) or _weakens(action)
     first = call.args[0] if call.args else None
-    return _ignores(action) or _ignores(first)
+    return _weakens(action) or _weakens(first)
+
+
+def _is_getattr(call: ast.Call) -> bool:
+    return isinstance(call.func, ast.Name) and call.func.id == "getattr" and len(call.args) >= GETATTR_ARGS
 
 
 def _getattr_marker(call: ast.Call, bound: dict[str, str]) -> str | None:
     """``getattr(<guarded module>, name)``: the marker when the name is guarded or not a literal."""
-    if not (isinstance(call.func, ast.Name) and call.func.id == "getattr" and len(call.args) >= GETATTR_ARGS):
+    if not _is_getattr(call):
         return None
-    module = _resolve(call.args[0], bound)
-    if module not in GUARDED_MODULES:
+    resolved = _resolve(call.args[0], bound)
+    module = None if resolved is None else _canonical(resolved)
+    if module is None or module not in GUARDED_MODULES:
         return None
     name = call.args[1]
     if isinstance(name, ast.Constant) and isinstance(name.value, str):
@@ -239,12 +264,20 @@ def _getattr_marker(call: ast.Call, bound: dict[str, str]) -> str | None:
     return GUARDED_MODULES[module]
 
 
+def _module_use_is_followed(node: ast.AST, parent: ast.AST | None) -> bool:
+    """A guarded module the scan can follow: the base of an attribute access, or getattr's object."""
+    if isinstance(parent, ast.Attribute):
+        return parent.value is node
+    return isinstance(parent, ast.Call) and _is_getattr(parent) and parent.args[0] is node
+
+
 def python_findings(path: str, text: str) -> list[Finding]:
-    """Warning filters set to ignore and skips, judged on the syntax tree (see the module docstring)."""
+    """Weakened warning filters, skips and escaped guarded modules, judged on the syntax tree (module docstring)."""
     tree = ast.parse(text, filename=path)
     lines = text.splitlines()
     bound = _bindings(tree)
     called = {id(node.func): node for node in ast.walk(tree) if isinstance(node, ast.Call)}
+    parents = {id(child): parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
     findings: list[Finding] = []
 
     def found(node: ast.AST, marker: str) -> None:
@@ -256,7 +289,12 @@ def python_findings(path: str, text: str) -> list[Finding]:
             found(node, marker)
         if not isinstance(node, ast.Name | ast.Attribute):
             continue
-        name = _resolve(node, bound)
+        resolved = _resolve(node, bound)
+        name = None if resolved is None else _canonical(resolved)
+        if name in GUARDED_MODULES:
+            if not _module_use_is_followed(node, parents.get(id(node))):
+                found(node, GUARDED_MODULES[name])
+            continue
         if name is None or name not in GUARDED_NAMES:
             continue
         call = called.get(id(node))
