@@ -5,6 +5,7 @@ description = "Shared core: boot checks, config and the deterministic scenario e
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "jsonschema==4.26.0",
+  "numpy==2.5.3",
   "pydantic==2.13.5",
   "referencing==0.37.0",
 ]
