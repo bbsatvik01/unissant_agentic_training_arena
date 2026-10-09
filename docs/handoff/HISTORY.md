@@ -44,3 +44,4 @@
 - Codex spec round 2: 4 blockers, 35 majors (round 1 ~60); recorded; fixes after 07:00.
 - Round-2 blockers fixed by orchestrator (limits, debrief envelope); 35 majors queued.
 - 9fd1dd2 (branch data/dev-cases) F04-F09 committed; F01-F03 seed fixes pending.
+- feat/web-foundation 49fe031 (Codex CORRECT); verifier found 1 major (SSE retry budget on normal stream end); fix after 07:00.
