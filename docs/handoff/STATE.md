@@ -35,6 +35,7 @@
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
 | task `wo6i69uza` / run `wf_84fe8cf4-e96` | Spec reconciliation (7 part owners + cross-check) | Opus | 2026-10-08 ~21:00 EDT | ~22:15 EDT | `docs/spec/**` |
+| bg `brxqurcm3` codex exec (round 10) | Codex check of direction v10.3 re-costing and budget_plan | gpt-6-astra xhigh | 2026-10-08 ~21:02 EDT | ~21:25 EDT | scratchpad `codex/round10.json` |
 
 ## Early signals from batch 1 (unverified until synthesis)
 - KPI-4 risk: Gemini 3.x cannot fully disable thinking; third-party TTFT figures are far above 3 s. Needs a measured latency spike and a deliberate design (2.5 thinking-off tier, two-stage coaching, or Practice/Assessment split).
