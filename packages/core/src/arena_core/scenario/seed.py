@@ -40,7 +40,7 @@ from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
-from arena_core.ids import canonical_sha256
+from arena_core.ids import canonical_json, canonical_sha256
 from arena_core.scenario.difficulty import LEVEL_BANDS, LEVELS
 from arena_core.scenario.guardscan import identity_key
 from arena_core.scenario.schema import schema_enum
@@ -308,9 +308,10 @@ def sampler_record_problems(
     ids = [str(e.get("family_id")) for e in assignment]
     if len(set(ids)) != len(ids):
         problems.append("an assignment entry repeats a family")
-    by_id = {str(f["family_id"]): _assignment_entry(f) for f in families}
+    # Compared as canonical JSON, as S4 compares jsonb: Python's `==` takes True for 1 and 2.0 for 2.
+    by_id = {str(f["family_id"]): canonical_json(_assignment_entry(f)) for f in families}
     for entry in assignment:
-        if by_id.get(str(entry.get("family_id"))) != dict(entry):
+        if by_id.get(str(entry.get("family_id"))) != canonical_json(dict(entry)):
             problems.append(f"entry {entry.get('family_id')!r} differs from the archived family")
     if problems:
         return problems

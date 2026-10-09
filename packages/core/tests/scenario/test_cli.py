@@ -114,17 +114,43 @@ def test_assemble_reports_an_unwritable_source(
 ) -> None:
     data = source_dict("F02")
     del data["variants"]["truthful"]["case_id"]
-    source = write_json(tmp_path / "F02.source.json", data)
-    source.chmod(0o444)
-    tmp_path.chmod(0o555)  # no temporary file can be created beside the source
+    source_dir = tmp_path / "sources"
+    source_dir.mkdir()
+    source = write_json(source_dir / "F02.source.json", data)
+    before = source.read_bytes()
+    source_dir.chmod(0o555)  # no temporary file can be created beside the source
     try:
         out = tmp_path / "F02.json"
         report_code = main(["assemble", "--counts", "--out", str(out), str(source)])
     finally:
-        tmp_path.chmod(0o755)
+        source_dir.chmod(0o755)
     assert report_code == 1
     assert json.loads(capsys.readouterr().out) == {"OUTPUT.unwritable": 1}
-    assert not out.exists()  # nothing is assembled from identifiers that could not be recorded
+    assert source.read_bytes() == before  # a retry draws again and rewrites both
+
+
+def test_a_failed_revise_leaves_the_source_unchanged_for_a_retry(tmp_path: Path) -> None:
+    """S1 8.6: a revise whose family cannot be written does not advance the source; the retry makes r2."""
+    source = source_copy(tmp_path, "F01")
+    before = source.read_bytes()
+    assert main(["assemble", str(source), "--revise", "--out", str(tmp_path / "missing" / "F01.json")]) == 1
+    assert source.read_bytes() == before
+    out = tmp_path / "F01.r2.json"
+    assert main(["assemble", str(source), "--revise", "--out", str(out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["revision"] == SECOND_REVISION
+    assert json.loads(source.read_text(encoding="utf-8"))["family"]["revision"] == SECOND_REVISION
+
+
+def test_a_revise_that_does_not_assemble_writes_nothing(
+    tmp_path: Path, source_dict: Callable[[str], dict[str, Any]]
+) -> None:
+    data = source_dict("F01")
+    data["public"]["opening_question"] = "What did you do near Rack R2 that afternoon?"
+    source = write_json(tmp_path / "F01.source.json", data)
+    before = source.read_bytes()
+    out = tmp_path / "F01.json"
+    assert main(["assemble", str(source), "--revise", "--out", str(out)]) == 1
+    assert (source.read_bytes(), out.exists()) == (before, False)
 
 
 def test_assemble_reports_an_unwritable_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

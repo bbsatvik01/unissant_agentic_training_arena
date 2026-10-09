@@ -20,9 +20,9 @@ provenance, agency, presentation) are optional: a family authored from a seed ge
 (`assemble(source, authoring)`), and a source assembled without one must carry them (the committed
 development sources do). Each variant's `case_id` and `canaries` are drawn by code
 (`assemble.draw_identifiers`, a CSPRNG) and recorded here, never chosen by the author. Ledger rows
-(`known`) and unknown-fact views are written in the subject's first person; the assembler renders them in
-the second person. Knobs are always computed by the assembler. The model is strict: unknown keys, wrong
-types and malformed IDs fail at load time with the path of the bad value.
+(`known`) and unknown-fact views are written in the second person and copied verbatim. Knobs are always
+computed by the assembler. The model is strict: unknown keys, wrong types and malformed IDs fail at load time
+with the path of the bad value.
 """
 
 from __future__ import annotations
@@ -65,8 +65,8 @@ EFM_LEVEL: dict[tuple[str, str], int] = {
 
 TimelineRow = tuple[str, str, DocRef]  # (facility-local time, event, source initial document)
 SupportRow = tuple[FactRef, Strength, Precision]
-KnownRow = tuple[FactRef, str, str]  # (fact, certainty, first-person text; rendered in the second person)
-UnknownRow = tuple[FactRef, str]  # (fact, first-person subject view; rendered in the second person)
+KnownRow = tuple[FactRef, str, str]  # (fact, certainty, second-person text, S1 8.3)
+UnknownRow = tuple[FactRef, str]  # (fact, second-person subject view)
 ActionRow = tuple[FactRef, str]  # (fact, first-person description; only the fact ID is assembled)
 UncertaintyRow = tuple[UncertaintyRef, FactRef, str, str, str | None]  # (id, fact, text, answer_form, range_text)
 ForbiddenRow = tuple[ForbiddenRef, str, FactRef]  # (id, assertion text, contradicted fact)

@@ -620,6 +620,10 @@ def _edited(record: dict[str, Any], **changes: object) -> dict[str, Any]:
             "differs from the archived family",
         ),
         (lambda r: _edited(r, max_phi=r["max_phi"] / 2), "is not the assignment's largest phi"),
+        (
+            lambda r: _edited(r, assignment=[{**e, "level": e["level"] == 1 or e["level"]} for e in r["assignment"]]),
+            "differs from the archived family",  # JSON true is not 1 (S4 compares jsonb)
+        ),
         (lambda r: _edited(r, max_phi=0.41), "is not a number in [0, 0.4]"),
         (lambda r: _edited(r, max_phi=True), "is not a number"),
         (lambda r: _edited(r, seed=-1), "seed is not a non-negative integer"),

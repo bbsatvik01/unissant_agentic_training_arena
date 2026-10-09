@@ -247,35 +247,34 @@ def test_evaluator_commentary_rewrites_short_ids(source_dict: Callable[[str], So
 
 
 @pytest.mark.parametrize(
-    ("authored", "rendered"),
+    "authored",
     [
-        ("I was alone when I entered.", "You were alone when you entered."),
-        (
-            "I'm sure my badge was mine, and I've kept it myself.",
-            "You're sure your badge was yours, and you've kept it yourself.",
-        ),
-        ("I am new; I'd say I'll learn. My shift ended.", "You are new; you'd say you'll learn. Your shift ended."),
-        ("Ines radioed me.", "Ines radioed you."),
-        (
-            "I wasn't told; I don't know, I didn't ask, I haven't seen it.",
-            "You weren't told; you do not know, you did not ask, you have not seen it.",
-        ),
-        ("the vault was closed", "The vault was closed"),
+        "You read Appendix I of the access procedure during the Phase I inspection.",
+        'You heard Mara say, "I was alone when I entered."',
+        "Mara told you, 'I opened the door myself.'",
+        "You\u2019re sure Mara\u2019s badge was hers to sign for.",
     ],
 )
-def test_ledger_and_unknown_text_are_rendered_in_the_second_person(
-    authored: str, rendered: str, source_dict: Callable[[str], Source]
-) -> None:
-    """S1 8.3: ledger rows and unknown views are written in the first person and rendered in the second."""
-    assert asm.second_person(authored) == rendered
+def test_ledger_and_unknown_text_are_copied_verbatim(authored: str, source_dict: Callable[[str], Source]) -> None:
+    """S1 8.3: the source's second-person text is the ledger text; no pronoun is rewritten, so a quotation's
+    speaker and a Roman numeral survive."""
     data = source_dict("F01")
     variant = data["variants"]["deceptive"]
     variant["known"][0][2] = authored
     variant["unknown"][0][1] = authored
     private = build(data)["variants"]["deceptive"]["private_packet"]
     known_id, unknown_id = canonical_fact_id(variant["known"][0][0]), canonical_fact_id(variant["unknown"][0][0])
-    assert next(k["text"] for k in private["facts"] if k["id"] == known_id) == rendered
-    assert next(u["subject_view"] for u in private["unknown_facts"] if u["fact_id"] == unknown_id) == rendered
+    assert next(k["text"] for k in private["facts"] if k["id"] == known_id) == authored
+    assert next(u["subject_view"] for u in private["unknown_facts"] if u["fact_id"] == unknown_id) == authored
+
+
+def test_the_committed_sources_carry_second_person_ledger_text(source_dict: Callable[[str], Source]) -> None:
+    """The dev sources were converted once from the kit's first person; no ledger row speaks as "I" now."""
+    first_person = re.compile(r"\b(?:I|me|my|mine|myself)\b")
+    for family_id in DEV_IDS:
+        for variant in source_dict(family_id)["variants"].values():
+            texts = [row[2] for row in variant["known"]] + [row[1] for row in variant["unknown"]]
+            assert not [t for t in texts if first_person.search(t)], family_id
 
 
 def test_derived_fields_of_f01(seed: Callable[[str], dict[str, Any]]) -> None:

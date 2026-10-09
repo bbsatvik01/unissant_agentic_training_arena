@@ -20,6 +20,7 @@ from collections.abc import Iterator, Mapping
 from typing import Any
 
 from arena_core.ids import canonical_json
+from arena_core.scenario.content import content_text
 from arena_core.scenario.guardscan import guard_hits, scan_forms
 from arena_core.scenario.validators._common import VARIANTS, Family, Issue, Reporter, family_id_of, packets, strings
 from arena_core.scenario.validators.v1 import real_agency
@@ -33,11 +34,14 @@ LEDGER_ID = re.compile(r"\b[fugxcrqal]:[0-9]{2,3}\b")
 
 
 def _record_text(evaluator: Mapping[str, Any]) -> Iterator[str]:
+    """Each record's title, description and content: every content string, and the one rendering every
+    consumer reads (`content_text`, S1 6.1), so a phrase split across the body and the table is still seen."""
     for a in evaluator["evidence_artifacts"]:
         yield str(a["title"])
         if "description" in a:
             yield str(a["description"])
         yield from strings(a["content"])
+        yield content_text(a["content"])
 
 
 def public_tier_text(public: Mapping[str, Any], evaluator: Mapping[str, Any]) -> list[str]:

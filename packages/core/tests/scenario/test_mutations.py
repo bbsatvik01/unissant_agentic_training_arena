@@ -576,6 +576,19 @@ def account_fact_asked_but_not_in_the_ledger(f: Family) -> None:
     ev(f, "truthful")["resolution_criteria"]["decisive_support"][1]["fact_ids"] = ["f:27"]
 
 
+def guard_phrase_across_body_and_table(f: Family) -> None:
+    """Neither string matches alone; content_text() puts "the" and "ledger" on adjacent lines (S1 6.1)."""
+    rec02 = artifact(f, "deceptive", "rec-02")["content"]
+    rec02["body"] += " A copy went to the"
+    rec02["table"]["columns"][0] = "ledger"
+
+
+def role_phrase_across_body_and_table(f: Family) -> None:
+    rec02 = artifact(f, "deceptive", "rec-02")["content"]
+    rec02["body"] += " Filed with the scoring"
+    rec02["table"]["columns"][0] = "key"
+
+
 def repeated_replay_topic(f: Family) -> None:
     """Rows 4 and 7 render the first and second topic with one template: row 7 repeats row 4 (R9)."""
     for variant in VARIANTS:
@@ -795,6 +808,8 @@ EXTRA_MUTANTS: tuple[Mutant, ...] = (
     Mutant("fact id with a trailing newline", fact_id_with_a_trailing_newline, "V1.schema", "facts/0/id"),
     Mutant("public packet over 12,288 bytes", public_packet_over_budget, "V1d.packet", "public_packet"),
     Mutant("family file over 196,608 bytes", family_file_over_budget, "V1d.family_file", "family file"),
+    Mutant("guard phrase across body and table", guard_phrase_across_body_and_table, "V4c.G4", "ledger"),
+    Mutant("role phrase across body and table", role_phrase_across_body_and_table, "V4b.role_word", "scoring key"),
     Mutant(
         "account fact asked but not in the ledger",
         account_fact_asked_but_not_in_the_ledger,

@@ -12,9 +12,12 @@ to its family file byte for byte); every derivation in the right-hand column of 
 - EFM levels from source strength and precision, gate IDs (`g:01`.. in `guarded` order) and
   `precondition_records` (every record supporting the opened fact at or above the gate's level);
 - the role objective texts, permitted and forbidden behaviors, limits, ground rules;
-- the evaluator packet's `canonical_facts` and `event_edges` (the event graph filtered by variant);
-- ledger text and unknown-fact views in the second person (`second_person`; sources write them in the
-  subject's first person, as the reference kit's did).
+- the evaluator packet's `canonical_facts` and `event_edges` (the event graph filtered by variant).
+
+Ledger text and unknown-fact views are authored in the second person (S1 8.3, "second-person text") and
+copied verbatim. The reference kit's sources were first person and its assembler rewrote pronouns, which
+corrupts text ("Phase I" -> "Phase you", a quotation's speaker); the committed development sources carry
+the converted text, so their families are unchanged and no pronoun is ever rewritten here.
 
 Case IDs and canaries are opaque and never derived: `draw_identifiers` draws them from a CSPRNG the first
 time a source is assembled and records them in the source, and the assembler copies the recorded values
@@ -32,7 +35,6 @@ from __future__ import annotations
 
 import copy
 import json
-import re
 import secrets
 from collections.abc import Collection, Iterator
 from dataclasses import dataclass
@@ -149,38 +151,6 @@ def new_revision(source: dict[str, Any], *, taken: Collection[str] = ()) -> dict
         old.add(str(v.pop("case_id", "")))
         v.pop("canaries", None)
     return draw_identifiers(out, taken=old)
-
-
-# ---------------------------------------------------------------- ledger voice (S1 8.3)
-
-# Ledger rows and unknown-fact views are written in the subject's first person and rendered in the second
-# person, as the S1 reference assembler does (`second_person`); every committed development family was built
-# with exactly these rules.
-_SECOND_PERSON: tuple[tuple[str, str], ...] = (
-    (r"\bI was\b", "you were"),
-    (r"\bI am\b", "you are"),
-    (r"\bI'm\b", "you're"),
-    (r"\bI've\b", "you've"),
-    (r"\bI'd\b", "you'd"),
-    (r"\bI'll\b", "you'll"),
-    (r"\bmyself\b", "yourself"),
-    (r"\bmine\b", "yours"),
-    (r"\bI\b", "you"),
-    (r"\bme\b", "you"),
-    (r"\bmy\b", "your"),
-    (r"\bMy\b", "Your"),
-    (r"\byou wasn't\b", "you weren't"),
-    (r"\byou don't\b", "you do not"),
-    (r"\byou didn't\b", "you did not"),
-    (r"\byou haven't\b", "you have not"),
-)
-
-
-def second_person(text: str) -> str:
-    """First-person ledger text in the second person, first letter capitalized."""
-    for pattern, replacement in _SECOND_PERSON:
-        text = re.sub(pattern, replacement, text)
-    return text[:1].upper() + text[1:]
 
 
 # ---------------------------------------------------------------- world-text guard
@@ -537,7 +507,7 @@ def _ledger_and_gates(
     for fact, certainty, text in v.known:
         fid = canonical_fact_id(fact)
         klass, gate_id = classes.get(fid, ("FREE", None))
-        row: dict[str, Any] = {"id": fid, "class": klass, "text": second_person(text), "certainty": certainty}
+        row: dict[str, Any] = {"id": fid, "class": klass, "text": text, "certainty": certainty}
         if gate_id is not None:
             row["gate_id"] = gate_id
         ledger.append(row)
@@ -576,9 +546,7 @@ def _private_packet(
         "objective": objective,
         "facts": ledger,
         "relevant_action_ids": [canonical_fact_id(fact) for fact, _text in v.relevant_actions],
-        "unknown_facts": [
-            {"fact_id": canonical_fact_id(fact), "subject_view": second_person(text)} for fact, text in v.unknown
-        ],
+        "unknown_facts": [{"fact_id": canonical_fact_id(fact), "subject_view": text} for fact, text in v.unknown],
         "uncertainty": uncertainty,
         "gates": gates,
         "permitted_behaviors": [] if variant == "truthful" else list(PERMITTED_DECEPTIVE),

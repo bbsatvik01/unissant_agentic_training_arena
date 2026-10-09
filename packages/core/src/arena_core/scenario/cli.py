@@ -118,21 +118,18 @@ def _assemble(args: argparse.Namespace, report: Report) -> None:
             return
     try:
         raw = _source_object(args.source)
-        parse_source(raw)  # the source model holds before anything is drawn or written
+        parse_source(raw)  # the source model holds before anything is drawn
         drawn = draw_identifiers(new_revision(raw) if args.revise else raw)
-    except (OSError, ValueError, TypeError) as exc:  # unreadable, not strict JSON, not a source
-        report.failure(exc, area="SOURCE", where=str(args.source))
-        return
-    if drawn != raw:  # record the drawn identifiers before assembly, so a rebuild reproduces the family
-        write_output(report, args.source, canonical_json(drawn) + "\n")
-        if report.codes:
-            return
-    try:
         family = assemble(parse_source(drawn), authoring)
-    except ValueError as exc:  # assembly problems
+    except (OSError, ValueError, TypeError) as exc:  # unreadable, not strict JSON, not a source, not assembled
         report.failure(exc, area="SOURCE", where=str(args.source))
         return
+    # Nothing is written until the family is built; then the family first and the source last, so a failed
+    # write never leaves a source whose new revision or identifiers belong to no family: a retry starts from
+    # the unchanged source. Drawn identifiers are recorded so a rebuild reproduces the family (AC-S1-26).
     write_output(report, args.out, dump_family(family))
+    if drawn != raw and not report.codes:
+        write_output(report, args.source, canonical_json(drawn) + "\n")
 
 
 def _validate(args: argparse.Namespace, report: Report) -> None:
