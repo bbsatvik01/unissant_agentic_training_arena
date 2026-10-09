@@ -34,6 +34,7 @@ from arena_core.agents.views import TranscriptTurn, public_case
 from arena_core.contracts.coaching import CoachingCard
 from arena_core.contracts.findings import InvestigatorFinding
 from arena_core.contracts.routes import TurnSubmit
+from arena_core.contracts.subject import SubjectTurn
 from arena_core.providers.structured import sent_schema
 from arena_core.scenario.validators import validate_family
 
@@ -47,14 +48,19 @@ EXPANDING = "ﷺ" * 599 + "?"  # 600 characters, 19,768 UTF-8 bytes once NFKC-no
 def test_an_expanding_question_is_refused_before_it_reaches_a_prompt() -> None:
     assert len(EXPANDING) == QUESTION_MAX_CHARS
     assert rendered_bytes(EXPANDING) > 10 * QUESTION_MAX_BYTES
-    with pytest.raises(TextTooLongError, match="more than 1800"):
+    with pytest.raises(TextTooLongError, match="question: 10783 characters as rendered"):
         check_question(EXPANDING)
-    with pytest.raises(ValueError, match="more than 1800"):
+    with pytest.raises(ValueError, match="as rendered"):
         TranscriptTurn(turn_no=1, question=EXPANDING, answer="Yes.")
-    with pytest.raises(ValueError, match="more than 1800"):
+    with pytest.raises(ValueError, match="as rendered"):
         SubjectTurnState(n=1, transcript=[], question=EXPANDING, released={}, opened_gates={}, first_disclosed={})
-    with pytest.raises(ValueError, match="more than 1800"):
+    with pytest.raises(ValueError, match="as rendered"):
         FollowUpLine(turn_id="t01", tactic=None, question=EXPANDING)
+    # Few characters that expand past the character cap (U+2167 is "VIII"): the stored text is the rendered form.
+    with pytest.raises(TextTooLongError, match="801 characters as rendered"):
+        check_question("\u2167" * 200 + "?")
+    with pytest.raises(TextTooLongError, match="empty as rendered"):
+        check_question("\u200b")
 
 
 def test_the_question_bounds_are_600_characters_and_1800_normalized_bytes() -> None:
@@ -66,19 +72,24 @@ def test_the_question_bounds_are_600_characters_and_1800_normalized_bytes() -> N
 
 
 def test_an_expanding_answer_is_refused() -> None:
-    with pytest.raises(ValueError, match=r"answer: .* more than 1800"):
+    with pytest.raises(ValueError, match=r"answer: 1800 characters as rendered, more than 900"):
         TranscriptTurn(turn_no=1, question="What happened?", answer="ﷺ" * 100)
 
 
 @pytest.mark.parametrize(
-    ("path", "value"),
+    ("path", "value", "message"),
     [
-        (("finding", "rationale"), "ﷺ" * 300),
-        (("flags", 0, "missing_fact"), "ﷺ" * 30),
-        (("follow_up", "question"), "ﷺ" * 100),
+        (("finding", "rationale"), "\ufdfa" * 300, "longer than 600 characters as rendered"),
+        (("flags", 0, "missing_fact"), "\ufdfa" * 30, "longer than 120 characters as rendered"),
+        (("follow_up", "question"), "\ufdfa" * 100, "longer than 300 characters as rendered"),
+        # Within every raw cap (600 characters, 1,200 bytes) but 1,500 bytes once backslashes are escaped.
+        (("finding", "rationale"), "\u4e00" * 300 + "\\" * 300, "longer than 1200 bytes as rendered (D11)"),
+        (("follow_up", "purpose"), "\u200b", "empty as rendered"),
     ],
 )
-def test_a_model_field_that_expands_past_its_cap_is_repaired(path: tuple[Any, ...], value: str) -> None:
+def test_a_model_field_that_breaks_its_caps_as_rendered_is_repaired(
+    path: tuple[Any, ...], value: str, message: str
+) -> None:
     card = copy.deepcopy(good_card())
     node: Any = card
     for key in path[:-1]:
@@ -86,11 +97,15 @@ def test_a_model_field_that_expands_past_its_cap_is_repaired(path: tuple[Any, ..
     node[path[-1]] = value
     parsed, errors = output_errors(CoachingCard, json.dumps(card), CTX7)
     assert parsed is None
-    assert errors == [f"{'.'.join(str(p) for p in path)}: longer than {_cap(path)} bytes as rendered (D11)"]
+    assert errors == [f"{'.'.join(str(p) for p in path)}: {message}"]
 
 
-def _cap(path: tuple[Any, ...]) -> int:
-    return {"rationale": 1200, "missing_fact": 240, "question": 600}[path[-1]]
+def test_an_expanding_subject_answer_is_repaired() -> None:
+    utterance = ("o\ufb03cial " * 110).strip()  # 769 characters, 989 once the ligature is unfolded
+    tag = {"disclosed": [], "withheld": [], "uncertainty_used": [], "behavior": "responsive", "gates_opened": []}
+    parsed, errors = output_errors(SubjectTurn, json.dumps({"utterance": utterance, "tag": tag}))
+    assert parsed is None
+    assert errors == ["utterance: longer than 900 characters as rendered"]
 
 
 @pytest.mark.parametrize("fid", FAMILIES)
@@ -165,9 +180,9 @@ def test_an_investigator_finding_is_bounded_as_rendered(field: str) -> None:
         "alternative_explanations": None,
     }
     raw[field] = "\ufdfa" * 100 if field == "rationale" else ["\ufdfa" * 20]
-    with pytest.raises(ValueError, match="bytes as rendered"):
+    with pytest.raises(ValueError, match="characters as rendered"):
         InvestigatorFinding.model_validate(raw)
-    with pytest.raises(ValueError, match="bytes as rendered"):
+    with pytest.raises(ValueError, match="characters as rendered"):
         FindingProjection.model_validate({k: v or [] for k, v in raw.items() if k in FindingProjection.model_fields})
 
 

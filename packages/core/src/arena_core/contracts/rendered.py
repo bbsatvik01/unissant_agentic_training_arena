@@ -22,9 +22,11 @@ from __future__ import annotations
 import json
 import re
 import typing
+from dataclasses import dataclass, replace
 from functools import lru_cache
 
 from pydantic import BaseModel
+from pydantic.fields import FieldInfo
 
 from arena_core.agents.fence import sanitize_untrusted_text
 from arena_core.contracts.common import ByteLimit
@@ -32,6 +34,7 @@ from arena_core.contracts.common import ByteLimit
 QUESTION_MAX_CHARS = 600
 QUESTION_MAX_BYTES = 1800
 ANSWER_MAX_BYTES = 1800
+ANSWER_MAX_CHARS = 900
 _WHITESPACE = re.compile(r"\s+")
 _BRACKETS = str.maketrans("", "", "<>[]")
 _MAX_PASSES = 32
@@ -64,7 +67,16 @@ def rendered_bytes(text: str) -> int:
     return len(json.dumps(clean(text), ensure_ascii=False).encode("utf-8")) - 2
 
 
-def check_rendered(text: str, max_bytes: int, what: str) -> str:
+def check_rendered(text: str, max_bytes: int, what: str, max_chars: int | None = None) -> str:
+    """`text` as rendered is non-empty, within `max_chars` characters (stored text is the normalized form, S2 1)
+    and within `max_bytes` bytes (D11)."""
+    cleaned = clean(text)
+    if not cleaned:
+        msg = f"{what}: empty as rendered"
+        raise TextTooLongError(msg)
+    if max_chars is not None and len(cleaned) > max_chars:
+        msg = f"{what}: {len(cleaned)} characters as rendered, more than {max_chars}"
+        raise TextTooLongError(msg)
     size = rendered_bytes(text)
     if size > max_bytes:
         msg = f"{what}: {size} bytes as rendered, more than {max_bytes} (D11)"
@@ -73,44 +85,93 @@ def check_rendered(text: str, max_bytes: int, what: str) -> str:
 
 
 def check_question(text: str) -> str:
-    """A question as it may be committed: 600 characters and 1,800 rendered bytes (D11). Nothing is ever cut."""
+    """A question as it may be committed: 600 characters as typed and as rendered, 1,800 rendered bytes (D11).
+    Nothing is ever cut."""
     if len(text) > QUESTION_MAX_CHARS:
         msg = f"question: {len(text)} characters, more than {QUESTION_MAX_CHARS}"
         raise TextTooLongError(msg)
-    return check_rendered(text, QUESTION_MAX_BYTES, "question")
+    return check_rendered(text, QUESTION_MAX_BYTES, "question", QUESTION_MAX_CHARS)
 
 
 def check_answer(text: str) -> str:
-    return check_rendered(text, ANSWER_MAX_BYTES, "answer")
+    return check_rendered(text, ANSWER_MAX_BYTES, "answer", ANSWER_MAX_CHARS)
 
 
-def _limit_in(metadata: typing.Iterable[object]) -> int | None:
-    return next((m.limit for m in metadata if isinstance(m, ByteLimit)), None)
+@dataclass(frozen=True)
+class _Limits:
+    max_bytes: int | None = None
+    max_chars: int | None = None
+    min_chars: int | None = None
 
 
-def _byte_limit(annotation: object) -> int | None:
-    """The `ByteLimit` of a string annotation, looking through Annotated, Optional and list."""
+def _collect(metadata: typing.Iterable[object]) -> _Limits:
+    out = _Limits()
+    for m in metadata:
+        if isinstance(m, ByteLimit):
+            out = replace(out, max_bytes=m.limit)
+        max_len = getattr(m, "max_length", None)
+        min_len = getattr(m, "min_length", None)
+        if isinstance(max_len, int):
+            out = replace(out, max_chars=max_len)
+        if isinstance(min_len, int):
+            out = replace(out, min_chars=min_len)
+    return out
+
+
+def _string_limits(annotation: object) -> _Limits | None:
+    """The limits of the string inside an annotation (through Optional and list; a list's own length bound is
+    not a string bound)."""
+    if annotation is str:
+        return _Limits()
     if typing.get_origin(annotation) is typing.Annotated:
         base, *metadata = typing.get_args(annotation)
-        return _limit_in(metadata) or _byte_limit(base)
+        inner = _string_limits(base)
+        if inner is None:
+            return None
+        if base is str or typing.get_origin(base) is typing.Annotated:
+            outer = _collect(metadata)
+            return _Limits(
+                outer.max_bytes or inner.max_bytes,
+                outer.max_chars or inner.max_chars,
+                outer.min_chars or inner.min_chars,
+            )
+        return inner
     for arg in typing.get_args(annotation):
-        found = _byte_limit(arg)
+        found = _string_limits(arg)
         if found is not None:
             return found
     return None
 
 
+def _field_limits(info: FieldInfo) -> _Limits | None:
+    if info.annotation is str:
+        return _collect(info.metadata)
+    return _string_limits(info.annotation)
+
+
 def rendered_overruns(value: BaseModel, path: str = "") -> list[str]:
-    """Every string field (nested models and lists included) whose rendered bytes exceed its `ByteLimit`."""
+    """Every string field (nested models and lists included) whose rendered text is empty where the field needs
+    text, or exceeds the field's character or byte limit (stored text is the normalized form, S2 1; D11)."""
     out: list[str] = []
     for name, info in type(value).model_fields.items():
         item = getattr(value, name)
-        limit = _limit_in(info.metadata) or _byte_limit(info.annotation)
+        limits = _field_limits(info)
         items = item if isinstance(item, list) else [item]
         for i, element in enumerate(items):
             at = f"{path}{name}.{i}" if isinstance(item, list) else f"{path}{name}"
             if isinstance(element, BaseModel):
                 out += rendered_overruns(element, f"{at}.")
-            elif isinstance(element, str) and limit is not None and rendered_bytes(element) > limit:
-                out.append(f"{at}: longer than {limit} bytes as rendered (D11)")
+            elif isinstance(element, str) and limits is not None:
+                out += _string_overruns(element, limits, at)
     return out
+
+
+def _string_overruns(text: str, limits: _Limits, at: str) -> list[str]:
+    cleaned = clean(text)
+    if limits.min_chars and not cleaned:
+        return [f"{at}: empty as rendered"]
+    if limits.max_chars is not None and len(cleaned) > limits.max_chars:
+        return [f"{at}: longer than {limits.max_chars} characters as rendered"]
+    if limits.max_bytes is not None and rendered_bytes(text) > limits.max_bytes:
+        return [f"{at}: longer than {limits.max_bytes} bytes as rendered (D11)"]
+    return []
