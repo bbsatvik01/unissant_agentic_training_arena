@@ -242,6 +242,9 @@ def test_frame_rule_bypasses_are_caught(path: str, source: str) -> None:
         # a string annotation is resolved by Pydantic: the frame inside it is built too, under any alias
         'from arena_core.contracts.events import NoticeFrame\n\n\nclass W(BaseModel):\n    f: "NoticeFrame | None"\n',
         'from arena_core.contracts.events import NoticeFrame as N\n\n\nclass W(BaseModel):\n    f: "list[N]"\n',
+        "from arena_core.contracts.events import NoticeFrame as N\n\n\nclass W(BaseModel):\n    f: \"list['N']\"\n",
+        "from arena_core.contracts.events import NoticeFrame\n"
+        "\n\nclass W(BaseModel):\n    f: \"dict[str, 'NoticeFrame']\"\n",
         'from arena_core.contracts import events\n\n\nclass W(BaseModel):\n    f: "events.NoticeFrame"\n',
         # a model field annotated with a frame is built by the model's validation
         "from arena_core.contracts.events import NoticeFrame\n\n\nclass Wrapper(BaseModel):\n    frame: NoticeFrame\n",

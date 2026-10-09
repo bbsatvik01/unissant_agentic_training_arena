@@ -352,6 +352,9 @@ def _named_in_string(text: str, names: frozenset[str] | set[str]) -> list[str]:
         return []
     named = {n.id for n in ast.walk(expression) if isinstance(n, ast.Name)}
     named |= {n.attr for n in ast.walk(expression) if isinstance(n, ast.Attribute)}
+    nested = [n.value for n in ast.walk(expression) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    for inner in nested:  # a forward reference inside a forward reference: "list['N']"
+        named.update(_named_in_string(inner, names))
     return sorted(named & set(names))
 
 

@@ -409,12 +409,36 @@ class TournamentStatus(Contract):
     state: TournamentState
 
 
+Block = Annotated[int, Field(ge=1)]
+
+
+def _block_errors(track: str, block: int | None) -> None:
+    """An interactive trial belongs to a block; replay and corpus trials have none (S4 `arena.blocks`,
+    `arena.v_tournament_progress`)."""
+    if (block is not None) != (track == "interactive"):
+        msg = f"block: {'required' if track == 'interactive' else 'null'} for a {track} trial"
+        raise ValueError(msg)
+
+
+def _block_rules() -> list[dict[str, Any]]:
+    return [when("track", ["interactive"], {"block": {"type": "integer"}}, {"block": {"type": "null"}})]
+
+
 class TrialStarted(Contract):
     trial_ref: TrialRef
     trial_id: Uuid
     pairing: Annotated[str, StringConstraints(min_length=1, max_length=120)]
     track: Track
-    block: Annotated[int, Field(ge=1)]
+    block: Block | None
+
+    @model_validator(mode="after")
+    def _block(self) -> Self:
+        _block_errors(self.track, self.block)
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return _block_rules()
 
 
 class ReplayTurn(Contract):
@@ -472,9 +496,18 @@ TournamentFrame = (
 
 class ProgressRow(Contract):
     track: Track
-    block: Annotated[int, Field(ge=1)]
+    block: Block | None
     planned: Annotated[int, Field(ge=0)]
     counts_by_state: dict[ExecutionState, Annotated[int, Field(ge=0)]]
+
+    @model_validator(mode="after")
+    def _block(self) -> Self:
+        _block_errors(self.track, self.block)
+        return self
+
+    @classmethod
+    def json_rules(cls) -> list[dict[str, Any]]:
+        return _block_rules()
 
 
 class TournamentEvents(Contract):

@@ -7,8 +7,8 @@
  * - card (`coaching._CardFields`): `turn_no` is the number of `turn_id`; flags, conflicts, finding citations
  *   and basis references are at or before the card's turn; `flag_ref`s are `tNN.f1`.. in emission order;
  *   `validation.flags` has exactly one entry per `flag_ref`; `last_revised_turn` is at or before the turn.
- * - deep update (`coaching.StoredDeepUpdate`): citations, coverage turns, gaps and the revised turn are at or
- *   before `as_of_turn`; each record is covered at most once.
+ * - deep update (`coaching.StoredDeepUpdate`): citations, basis flags, coverage turns, gaps and the revised
+ *   turn are at or before `as_of_turn`; each record is covered at most once.
  * - snapshot (`snapshot`): `exchanges_used` within the cap; turns or exchanges numbered 1..n; the count is
  *   the answered turns (text) or the stored exchanges (voice).
  * - table (`events.TableContent`): every row has one cell per column.
@@ -73,6 +73,8 @@ function deepErrors(update: Json): string[] {
   const finding = isObject(update["finding"]) ? update["finding"] : {};
   if (list(finding["cited_turns"]).some((t) => typeof t === "number" && t > asOf))
     errors.push("deep: finding.cited_turns is after as_of_turn");
+  if (list(finding["basis_flag_refs"]).some((ref) => turnOf(ref) > asOf))
+    errors.push("deep: finding.basis_flag_refs names a card after as_of_turn");
   const last = finding["last_revised_turn"];
   if (typeof last === "number" && last > asOf) errors.push("deep: finding.last_revised_turn is after as_of_turn");
   const coverage = list(update["evidence_coverage"]).filter(isObject);

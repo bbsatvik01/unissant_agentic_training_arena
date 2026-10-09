@@ -344,6 +344,11 @@ def _deep_errors(
         for i, t in enumerate(finding.cited_turns)
         if t > current
     ]
+    errors += [
+        f"finding.basis_flag_refs[{i}]: {ref} is a flag of a card after as_of_turn {as_of_turn}"
+        for i, ref in enumerate(finding.basis_flag_refs)
+        if turn_no(ref.split(".")[0]) > current
+    ]
     ids = [c.record_id for c in coverage]
     if len(set(ids)) != len(ids):
         errors.append("evidence_coverage: each record at most once")

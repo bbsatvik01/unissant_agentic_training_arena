@@ -356,7 +356,7 @@ export interface Outcome {
 
 export interface ProgressRow {
   readonly track: "replay_corpus" | "replay" | "interactive";
-  readonly block: number;
+  readonly block: number | null;
   readonly planned: number;
   readonly counts_by_state: Readonly<Partial<Record<"completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated" | "source_unavailable", number>>>;
 }
@@ -762,7 +762,7 @@ export interface TrialStarted {
   readonly trial_id: string;
   readonly pairing: string;
   readonly track: "replay_corpus" | "replay" | "interactive";
-  readonly block: number;
+  readonly block: number | null;
 }
 
 export interface TrialStartedFrame {

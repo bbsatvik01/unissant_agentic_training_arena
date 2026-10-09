@@ -8107,6 +8107,33 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
     "$defs": {
       "ProgressRow": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "block": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "track": {
+                  "enum": [
+                    "interactive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "block": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "track": {
             "enum": [
@@ -8117,8 +8144,15 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "block": {
-            "minimum": 1,
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "planned": {
             "minimum": 0,
@@ -8477,6 +8511,33 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       },
       "TrialStarted": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "block": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "track": {
+                  "enum": [
+                    "interactive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "block": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
         "properties": {
           "trial_ref": {
             "minimum": 1,
@@ -8500,8 +8561,15 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
             "type": "string"
           },
           "block": {
-            "minimum": 1,
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

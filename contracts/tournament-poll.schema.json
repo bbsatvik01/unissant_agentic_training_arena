@@ -5,6 +5,33 @@
   "$defs": {
     "ProgressRow": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "block": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "track": {
+                "enum": [
+                  "interactive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "block": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "track": {
           "enum": [
@@ -15,8 +42,15 @@
           "type": "string"
         },
         "block": {
-          "minimum": 1,
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "planned": {
           "minimum": 0,
@@ -375,6 +409,33 @@
     },
     "TrialStarted": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "block": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "track": {
+                "enum": [
+                  "interactive"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "block": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "trial_ref": {
           "minimum": 1,
@@ -398,8 +459,15 @@
           "type": "string"
         },
         "block": {
-          "minimum": 1,
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
