@@ -22,10 +22,12 @@ from arena_core.agents.referee_prompts import (
     FindingCitations,
     FindingProjection,
     FollowUpLine,
+    NoSubjectAnswerError,
     RefereeAssistantInput,
     RefereeSubjectInput,
     build_referee_assistant_prompt,
     build_referee_subject_prompt,
+    empty_subject_report,
 )
 from arena_core.agents.rubric import Rubric
 from arena_core.agents.subject_prompts import SubjectPacket
@@ -33,6 +35,7 @@ from arena_core.agents.templates import REPO_ROOT
 from arena_core.agents.views import public_case
 from arena_core.contracts.coaching import Tactic
 from arena_core.contracts.findings import InvestigatorFinding
+from arena_core.contracts.referee import RefereeSubjectReport
 from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
 
 from . import fixtures as fx
@@ -417,3 +420,14 @@ def test_rubric_text_renders_as_measured() -> None:
     assert "1b: T wide gaps\n" in section
     assert "D1 clarity and neutrality\n" in section
     assert "\u0001" not in system.system_instruction
+
+
+def test_a_trial_whose_first_answer_was_quarantined_gets_an_empty_r1_report() -> None:
+    inp = subject_input().model_copy(update={"transcript": []})
+    inp = RefereeSubjectInput.model_validate(inp.model_dump(by_alias=True), by_alias=True)
+    with pytest.raises(NoSubjectAnswerError, match="empty_subject_report"):
+        build_referee_subject_prompt(inp, REFEREE)
+    report = empty_subject_report()
+    assert report.turns == []
+    assert report.trajectory.self_consistent is True
+    assert RefereeSubjectReport.model_validate_json(report.model_dump_json()) == report

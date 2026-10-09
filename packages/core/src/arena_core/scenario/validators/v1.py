@@ -190,6 +190,9 @@ def _check_committable(report: Reporter, where: str, question: str, variant: str
         check_question(question)
     except TextTooLongError as exc:
         report.add("V1c.question", f"{where} cannot be committed: {exc}", variant)
+    except UnicodeEncodeError:
+        # A lone surrogate (V1.storage reports it) has no UTF-8 form, so it has no rendered size either.
+        report.add("V1c.question", f"{where} cannot be committed: not encodable as UTF-8", variant)
 
 
 def check_relay(family: Family) -> list[Issue]:

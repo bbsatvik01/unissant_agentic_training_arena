@@ -316,3 +316,20 @@ def test_an_authored_question_the_runtime_cannot_commit_is_refused() -> None:
     assert [v for v, _ in issues] == ["truthful", "deceptive"]
     assert "row 1 cannot be committed: question: 818 characters as rendered" in issues[0][1]
     assert [i for i in validate_family(fx.family("F01")) if i.rule == "V1c.question"] == []
+
+
+@pytest.mark.parametrize("where", ["opening", "replay topic", "slot title"])
+def test_an_unencodable_question_is_an_issue_not_a_crash(where: str) -> None:
+    family = copy.deepcopy(fx.family("F01"))
+    pp = family["variants"]["deceptive"]["public_packet"]
+    if where == "opening":
+        pp["opening_question"] = "Can you describe the shift \ud800 in your words?"
+    elif where == "replay topic":
+        pp["replay_topics"][0] = "the vault \ud800 entry"
+    else:
+        pp["requestable_records"][0]["title"] = "Work orders \ud800 list"
+        for art in family["variants"]["deceptive"]["evaluator_packet"]["evidence_artifacts"]:
+            if art["artifact_id"] == pp["requestable_records"][0]["record_id"]:
+                art["title"] = pp["requestable_records"][0]["title"]
+    rules = {i.rule for i in validate_family(family)}
+    assert "V1.storage" in rules

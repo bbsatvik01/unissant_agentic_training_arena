@@ -55,7 +55,7 @@ from arena_core.contracts.common import (
     turn_id,
 )
 from arena_core.contracts.findings import Finding, StoredFinding
-from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS
+from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS, RefereeSubjectReport, Trajectory
 from arena_core.contracts.rendered import rendered_overruns
 from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
 
@@ -85,7 +85,8 @@ class RefereeSubjectInput(Contract):
     packet: SubjectPacket
     initial_documents: Annotated[list[InitialDocument], Field(min_length=1, max_length=4)]
     released: Annotated[list[ReleasedRecord], Field(max_length=6)]
-    transcript: Annotated[list[TranscriptTurn], Field(min_length=1, max_length=MAX_TURNS)]
+    # Empty when the first answer was quarantined (S2 6.10): there is nothing to label, and no prompt is built.
+    transcript: Annotated[list[TranscriptTurn], Field(max_length=MAX_TURNS)]
 
     @model_validator(mode="after")
     def _turns(self) -> Self:
@@ -93,6 +94,18 @@ class RefereeSubjectInput(Contract):
             msg = "transcript: turns must be 1..n in order"
             raise ValueError(msg)
         return self
+
+
+class NoSubjectAnswerError(ValueError):
+    """R1 has no answer to label (the first answer was quarantined, S2 6.10)."""
+
+
+def empty_subject_report() -> RefereeSubjectReport:
+    """R1's report for a trial with no committed answer: no turn labeled, nothing invented (S2 6.10: R1 never
+    labels a nonexistent answer); the quarantined turn counts against the subject through its quarantine record."""
+    return RefereeSubjectReport(
+        schema_version="ref_subj.v5", turns=[], trajectory=Trajectory(self_consistent=True, conflicts=[])
+    )
 
 
 class FindingProjection(Contract):
@@ -222,6 +235,9 @@ def _check(prompts: PromptSet) -> None:
 def build_referee_subject_prompt(inp: RefereeSubjectInput, prompts: PromptSet, salt: str | None = None) -> Prompt:
     """R1 or `r3_subject` (S2 7.2)."""
     inp = require(inp, RefereeSubjectInput, "referee prompt builder")
+    if not inp.transcript:
+        msg = "no subject answer to label: R1 records empty_subject_report() for this trial instead (S2 6.10, 7.2)"
+        raise NoSubjectAnswerError(msg)
     _check(prompts)
     salt = check_salt(salt or new_salt())
     packet = inp.packet
