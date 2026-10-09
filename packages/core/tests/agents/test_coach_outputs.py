@@ -402,3 +402,12 @@ def test_a_reply_that_echoes_the_salt_is_repaired_and_never_accepted() -> None:
     assert model.requests[1][1][-1][1].startswith(SALT_LEAK)
     twice = ScriptedModel([json.dumps(leaked), json.dumps(leaked)])
     assert call_with_one_repair(twice, prompt, CoachingCard, CTX7).value is None
+
+
+def test_an_escaped_salt_is_caught_after_decoding() -> None:
+    prompt = build_coach_prompt(fx.coach_view(3), fx.prompts("A2"), "card")
+    escaped = "".join(f"\\u{ord(c):04x}" for c in prompt.salt)
+    reply = json.dumps(_set(good_card(), "finding.rationale", "TAG")).replace("TAG", f"Tag {escaped} seen.")
+    assert prompt.salt not in reply
+    _, errors = output_errors(CoachingCard, reply, CTX7, prompt.salt)
+    assert errors == [SALT_LEAK]

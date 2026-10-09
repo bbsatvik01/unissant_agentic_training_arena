@@ -382,3 +382,13 @@ def test_r1_sees_a_hold_range_with_its_gate_condition() -> None:
         "Applies only after g:01 opens; until then it does not let you speak about f:44."
         ' Once g:01 is open, if asked, say: "Some time that morning."'
     )
+
+
+def test_a_trial_without_a_committed_finding_still_reaches_r2() -> None:
+    empty = FindingCitations(cited_turns=[], cited_records=[])
+    inp = assistant_input().model_copy(update={"finding": None, "citations": empty})
+    user = _r2(RefereeAssistantInput.model_validate(inp.model_dump())).user_message
+    assert "Committed finding:\nnone\n\nFinding citations:\nnone" in user
+    assert "untrusted_finding" not in user
+    with pytest.raises(ValueError, match="no finding citations"):
+        RefereeAssistantInput.model_validate({**assistant_input().model_dump(), "finding": None})

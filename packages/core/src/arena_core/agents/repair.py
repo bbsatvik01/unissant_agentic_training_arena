@@ -99,7 +99,8 @@ def output_errors[T: BaseModel](
         value = model.model_validate_json(reply, context=context)
     except ValidationError as exc:
         return None, error_items(exc, field_names(model))
-    if salt is not None and salt in reply:
+    # Checked on the decoded values too: JSON escapes (`\\u0039f3a...`) hide the salt from the raw text.
+    if salt is not None and (salt in reply or salt in value.model_dump_json()):
         return None, [SALT_LEAK]
     return value, []
 

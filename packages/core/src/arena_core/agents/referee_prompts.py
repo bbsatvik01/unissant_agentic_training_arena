@@ -141,7 +141,9 @@ class RefereeAssistantInput(Contract):
     transcript: Annotated[list[TranscriptTurn], Field(min_length=1, max_length=MAX_TURNS)]
     flags: Annotated[list[StoredFlag], Field(max_length=3 * MAX_TURNS)]
     followups: Annotated[list[FollowUpLine], Field(max_length=MAX_TURNS)]
-    finding: FindingProjection
+    # None when no finding was committed (an `assistant_failed` trial, S2 10): the flags and follow-ups are still
+    # judged, and the finding block says so instead of carrying a fabricated finding.
+    finding: FindingProjection | None
     citations: FindingCitations
     triggers: Annotated[list[TriggerEntry], Field(max_length=MAX_TRIGGERS)]
 
@@ -149,6 +151,9 @@ class RefereeAssistantInput(Contract):
     def _mode(self) -> Self:
         if any((f.tactic is None) != (self.mode == "investigator") for f in self.followups):
             msg = "followups: a tactic on every assistant follow-up and on no investigator question"
+            raise ValueError(msg)
+        if self.finding is None and (self.citations.cited_turns or self.citations.cited_records):
+            msg = "citations: a trial without a committed finding has no finding citations"
             raise ValueError(msg)
         return self
 
@@ -254,7 +259,7 @@ def build_referee_assistant_prompt(
             "transcript": transcript(inp.transcript),
             "flags": lines_or_none(flag_line(f) for f in inp.flags),
             "followups": lines_or_none(_followup_line(f) for f in inp.followups),
-            "finding": finding_projection(inp.finding, salt),
+            "finding": NONE if inp.finding is None else finding_projection(inp.finding, salt),
             "finding_citations": _citation_lines(inp.citations),
             "triggers": _trigger_lines(inp.triggers),
         },
