@@ -169,9 +169,46 @@ def test_a_frame_that_breaks_the_contract_is_never_serialized() -> None:
 
 
 def test_an_oversize_delta_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert projections.MAX_DELTA_BYTES == 16 * 1024  # S5 6.2: every delta at most 16 KB
     monkeypatch.setattr(projections, "MAX_DELTA_BYTES", 10)
     with pytest.raises(ValueError, match="exceeds 10"):
         wire_deltas([_rows()["frame:subject.answer"]], ENDED)
+
+
+def _evidence_of_body_size(size: int) -> StoredEvent:
+    """An evidence event whose serialized frame body (the SSE `data:` JSON) is exactly `size` bytes, padded with
+    a table of 200-character cells and then the record body (ASCII: one byte per character)."""
+    base = _rows()["frame:evidence.released"]
+    payload = dict(base.payload)
+
+    def body_bytes(content: dict[str, Any]) -> int:
+        """Measured with the bound lifted, so sizes on both sides of it can be found."""
+        row = StoredEvent(**{**base.__dict__, "payload": {**payload, "content": content}})
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(projections, "MAX_DELTA_BYTES", 10**9)
+            (message,) = wire_deltas([row], ENDED)
+        return len(message.split(b"data: ", 1)[1]) - 2  # less the closing blank line
+
+    cells = ["x" * 200] * 8
+    columns = [f"c{i}" for i in range(8)]
+
+    def content_of(rows: list[list[str]], body: str = "b") -> dict[str, Any]:
+        return {"body": body, "table": {"columns": columns, "rows": rows}}
+
+    rows = [cells]
+    while body_bytes(content_of([*rows, cells])) < size:  # each row adds about 1,650 bytes
+        rows.append(cells)
+    content = content_of(rows, "b" * (1 + size - body_bytes(content_of(rows))))  # the rest, under 2,000 characters
+    assert body_bytes(content) == size
+    return StoredEvent(**{**base.__dict__, "payload": {**payload, "content": content}})
+
+
+def test_the_real_16_kb_bound_admits_exactly_the_limit_and_refuses_one_byte_more() -> None:
+    limit = 16 * 1024
+    at_limit = wire_deltas([_evidence_of_body_size(limit)], ENDED)
+    assert len(at_limit) == 1
+    with pytest.raises(ValueError, match=f"{limit + 1} bytes exceeds {limit}"):
+        wire_deltas([_evidence_of_body_size(limit + 1)], ENDED)
 
 
 def test_the_stream_writes_only_the_projections_bytes() -> None:
