@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0005_training.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets with the session phase derived from committed state, blinded rubric scores, the
 -- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,

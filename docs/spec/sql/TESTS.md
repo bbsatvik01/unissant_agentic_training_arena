@@ -33,6 +33,8 @@ Version 2.5 (Codex round 3) was applied in order to a fresh throwaway PostgreSQL
 
 Version 2.6 (Codex round 4) was applied the same way to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, socket-only), then six smoke scripts with 108 assertions, all passing; the round-4 additions are CS-07's SG1-33 cases, ST-17 (textless G0), FC-07 and RV-06's SG3-42 tamper cases, VB-20 (the release transaction against a concurrent voice exchange, through `dblink` with `lock_timeout`), RR-30 (isolation view) and the SG3-41 window case. The granted-view probe now serializes every projected column of every view on populated data (v2.5's `count(*)` let the planner skip the column that calls `arena.trial_visible`); with the v2.5 grant restored it reports `arena_referee` on `ledger.v_commitments`, and with v2.6 all 45 grants pass. Mutation: the v2.5 two-step release path is reproduced as `AR002` in VB-20. The section 10 CSV expands to 205 rows equal to the live set.
 
+Version 2.7 (Codex round 5) was applied the same way to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, socket-only, stopped afterwards): 112 assertions pass, adding the SG3-47 cases (RV-06). Mutation: v2.6's terminal-state population misses the rewritten trial, and v2.7's chain-bound population finds it. The capability CSV still equals the live set (205 rows; the new helper has no grants).
+
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
 | ID | Assertion | Expected |
@@ -287,7 +289,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RV-03 | A completed interactive trial without review | `AR020` |
 | RV-04 | An `assistant_failed` interactive trial without review | `AR020` |
 | RV-05 | Corpus seal missing; corpus transcript tampered after the seal | `AR021` each |
-| RV-06 | One commitment that does not verify, or a completed trial whose commitment row or nonce is missing (SG3-42) | `AR021` |
+| RV-06 | One commitment that does not verify, or a completed trial whose commitment row or nonce is missing (SG3-42); SG3-47: a completed trial whose terminal state is rewritten to `budget_truncated` (triggers disabled), with its commitment kept and then deleted | `AR021` each: the population is every chained `trial_finalized` event plus every completed terminal record (`ledger.first_unverified_finalization`), so the rewrite cannot remove the trial while `verify_chain` still passes |
 | RV-07 | Broken ledger chain (owner edits an event with the trigger disabled) | `AR021` |
 | RV-08 | Hidden tournament whose seal no longer verifies | `AR021` |
 | RV-09 | Roster row tampered after freeze | `AR021` |

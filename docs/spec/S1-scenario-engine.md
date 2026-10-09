@@ -1,6 +1,6 @@
 # S1: Scenario engine and case families
 
-Spec part S1 of the build-ready specification. Version 2.6, 2026-10-09: Codex round 4 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
+Spec part S1 of the build-ready specification. Version 2.7, 2026-10-09: Codex round 5 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
 
 Deliverables of this part:
 

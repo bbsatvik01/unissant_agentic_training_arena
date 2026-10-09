@@ -1,6 +1,6 @@
 # Spec package
 
-Build specification for the arena, in eight parts. **Version 2.6, 2026-10-09: Codex round 4 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
+Build specification for the arena, in eight parts. **Version 2.7, 2026-10-09: Codex round 5 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
 
 | Part | Scope |
 | --- | --- |
@@ -78,3 +78,9 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 | ID | What changed |
 | --- | --- |
 | Codex round 4 | Voice stores role-tagged, unpaired exchange windows and the snapshot has a voice branch; the evidence route opens its release item and releases in one transaction; reveal checks every completed trial's commitment against its ledger event; one public isolation view; referee loses the unusable `v_commitments` grant; boot accepts only `cna-guardian` and every Vertex request carries `app=unissant-arena` (D-015); unscorable text sessions publish without a score row and the demo asks a third question; ref_subj.v5 lists explicit contradiction pairs and only visible conflicts trigger check 3e; textless G0 failures quarantine with no fabricated speech; dispositions in `review-codex-r4.md`. |
+
+## Changes in v2.7
+
+| ID | What changed |
+| --- | --- |
+| Codex round 5 | Visible evidence is one population everywhere (initial documents, released records, prior turns): R1 sees the initial documents and `record_conflict_ids` covers doc-NN and rec-NN (up to 10), with initial documents available at exchange 0 for check 3e; the reveal check takes its population from the chained `trial_finalized` events; dispositions in `review-codex-r5.md`. |

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0004_privileged_functions.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0004_privileged_functions.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- The six privileged operations of direction section 4.2, the public-tier transactional writes
 -- they depend on (start_trial, open_work_item, submit_question, record_coaching_event,
 -- advance_replay), the per-trial event store writer, the context readers (arena.trial_context,
@@ -908,6 +908,24 @@ language sql stable security definer set search_path = '' as $$
      where c.trial_id = p_trial), false)
 $$;
 
+-- first_unverified_finalization (internal; SG3-42, SG3-47): the reveal check's population. Every
+-- trial_finalized event of the tournament (chained, so verify_chain detects its removal) and every completed
+-- terminal record; returns the first trial whose commitment does not verify against its event, else null.
+create or replace function ledger.first_unverified_finalization(p_tournament uuid)
+returns uuid
+language sql stable security definer set search_path = '' as $$
+  select x.trial_id
+    from (select e.trial_id from ledger.events e
+           where e.event_type = 'trial_finalized' and e.tournament_id = p_tournament
+          union
+          select r.trial_id from ledger.terminal_records r join arena.trials t on t.id = r.trial_id
+           where t.tournament_id = p_tournament and r.state = 'completed') x
+   where not ledger.verify_commitment(x.trial_id)
+   order by x.trial_id limit 1
+$$;
+revoke all on function ledger.first_unverified_finalization(uuid)
+  from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
+
 -- -----------------------------------------------------------------------------
 -- 4. record_execution_failure (arena_public)  F15, BKO-9, EVL-5
 -- One execution record per trial attempt; allowed transitions only:
@@ -1117,10 +1135,11 @@ begin
                       where s.tournament_id = p_tournament and s.corpus_sha256 = d.corpus_sha256) then
     raise exception using errcode = 'AR021', message = 'replay corpus is not sealed or does not match its seal';
   end if;
-  -- SG3-42: every completed trial of the tournament (its terminal record, not the surviving commitment rows)
-  -- must have a commitment and nonce that verify against its trial_finalized event.
-  select r.trial_id into v_bad from ledger.terminal_records r join arena.trials t on t.id = r.trial_id
-   where t.tournament_id = p_tournament and r.state = 'completed' and not ledger.verify_commitment(r.trial_id) limit 1;
+  -- SG3-42, SG3-47: the population comes from the hash chain, not from mutable rows. Every trial_finalized
+  -- event of the tournament (chained, so verify_chain detects its removal) names a trial whose completed
+  -- terminal record, commitment and nonce must verify against that event; rewriting the terminal state or
+  -- deleting the commitment therefore fails here. A completed terminal record without such an event fails too.
+  v_bad := ledger.first_unverified_finalization(p_tournament);
   if v_bad is not null then
     raise exception using errcode = 'AR021', message = format('commitment of trial %s does not verify', v_bad);
   end if;

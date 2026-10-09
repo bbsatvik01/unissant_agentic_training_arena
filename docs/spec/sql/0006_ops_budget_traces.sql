@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0006_ops_budget_traces.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
 -- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,

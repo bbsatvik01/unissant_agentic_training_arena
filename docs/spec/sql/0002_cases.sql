@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0002_cases.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0002_cases.sql  (DRAFT v2.7, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Case families and variants (public tier, no role), packets in three tiers, evidence
 -- artifacts with release predicates, the hidden-split seal, the candidate registry.
 -- Requirements: SCN-1, SCN-4, SCN-7, SCN-8, SCN-9, SCN-10, SCN-11, SCN-12, AST-5, BKO-5.

@@ -1,6 +1,6 @@
 # S6: Frontend and UX
 
-Part S6 of the build specification for the Investigative AI Training Arena. **Version 2.6, 2026-10-09: Codex round 4 fixes.** Version 2.1 (same date) reconciled S1, resolved cross-check X-01..X-17 and applied D-013; version 1 was written against direction v10 (hosted, 20 cases).
+Part S6 of the build specification for the Investigative AI Training Arena. **Version 2.7, 2026-10-09: Codex round 5 fixes.** Version 2.1 (same date) reconciled S1, resolved cross-check X-01..X-17 and applied D-013; version 1 was written against direction v10 (hosted, 20 cases).
 
 Governing inputs: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (cited as "direction") with D-011 local-first, `docs/research/synthesis/03-ui-direction.md` v2.1 (cited as "UI direction"), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-014; D-007 superseded by D-009; D-013 one global spend ceiling; D-014 case families authored offline), `docs/handoff/PATTERNS.md`, S8 section 2 (owner decisions OD-0 to OD-14) and section 9 (C-01 to C-48), research routes X5, I6, I7 and U1-U5. Lift sources were read directly on 2026-10-08 and are cited by path and line range. Dollar figures come from `docs/research/synthesis/cost_model.py` and statistical bounds from `docs/research/synthesis/stats_contracts.py`; each names the function that printed it.
 
