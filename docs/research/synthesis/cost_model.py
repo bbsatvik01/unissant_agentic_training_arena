@@ -274,7 +274,7 @@ def block_reservation(lu: Lineup) -> float:
     return 2 * sum(trial_reservation(lu, a, s) for a in lu.assistants for s in lu.subjects)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "--plan-json" not in __import__("sys").argv:
     for lu in LINEUPS.values():
         print(f"\nLineup {lu.name}: per-trial expected / high (12 exchanges incl. referee)")
         for a in lu.assistants:
@@ -596,45 +596,19 @@ BUILD_PHASES = ("experiments", "generation", "dev_pilot", "replay", "interactive
 PLAN = {"sealed": 24, "dev": 10}   # baseline that completes at conservative usage; 30 if the dev pilot tracks expected
 
 
-def budget_plan(sealed_cases: int = PLAN["sealed"], dev_cases: int = PLAN["dev"],
-                hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:
-    """Spend-guard bucket tree {name: (parent, ceiling $)} applied by the operator (S4 ops.set_bucket_ceiling).
+def budget_plan(hosting: str = HOSTING) -> dict[str, tuple[str | None, float]]:
+    """Spend-guard ceiling applied by the operator (S4 ops.set_bucket_ceiling); D-013: one global ceiling.
 
-    The SQL migrations seed the bucket tree with $0 ceilings (fail-closed: nothing can spend until this plan is
-    applied, D-012); every ceiling comes from here. global = CAP - the non-model allowance for the hosting mode.
-    Under global: demo (text and voice, plus one in-flight voice reservation), art (character-art sub-budget),
-    training (KPI-1 sessions and calibration with R3), and build. Build leaves are the conservative simulation's
-    phase spend rounded up to the cent; the interactive leaf takes the remainder. Raises if the plan does not fit.
+    The SQL migrations seed only the `global` row at $0 (fail-closed, D-012); applying this plan opens it.
+    global = CAP - the non-model allowance for the hosting mode. Every model call and every voice session
+    reserves its worst case against it before running, so total GCP model spend cannot exceed the cap.
+    Per-phase sizing is deferred (D-013); see simulate_d009() for the reference schedule.
     """
-    import math
-    up = lambda x: math.ceil(x * 100 - 1e-9) / 100
     allowance = NON_MODEL_ALLOWANCE_LOCAL if hosting == "local" else NON_MODEL_ALLOWANCE
-    glob = CAP - allowance
-    art = up(PORTRAITS[0] * PORTRAITS[2])
-    demo = up(demo_ceiling() - PORTRAITS[0] * PORTRAITS[2])
-    training = up(training_bucket(True))
-    r = simulate_d009(sealed_cases, dev_cases, True)
-    ph = r["phase_spend"]
-    leaves = {"experiments": up(ph.get("experiments", 0)), "generation": up(ph.get("generation", 0)),
-              "dev_pilot": up(ph.get("dev_blocks", 0)),
-              "replay": up(ph.get("replay_corpus", 0) + ph.get("replay_transcripts", 0))}
-    build = round(glob - demo - art - training, 2)
-    leaves["interactive"] = round(build - sum(leaves.values()), 2)
-    if r["truncated"] or r["interactive_blocks"][0] < r["interactive_blocks"][1] \
-            or leaves["interactive"] < up(ph.get("interactive_blocks", 0)):
-        raise ValueError(f"{sealed_cases} cases do not complete under the {hosting} plan at conservative usage")
-    plan = {"global": (None, glob), "demo": ("global", demo), "art": ("global", art),
-            "training": ("global", training), "build": ("global", build)}
-    plan.update({k: ("build", v) for k, v in leaves.items()})
-    return plan
+    return {"global": (None, CAP - allowance)}
 
 
-if __name__ == "__main__" and "--plan-json" in __import__("sys").argv:
-    import json
-    print(json.dumps({k: {"parent": par, "ceiling_usd": v} for k, (par, v) in budget_plan().items()}, indent=2))
-    raise SystemExit(0)
-
-if __name__ == "__main__":
+if __name__ == "__main__" and "--plan-json" not in __import__("sys").argv:
     print(f"\nD-009 (total GCP hard cap $75, target $50), hosting={HOSTING}, lineup d009, liability rates:")
     exp_e = sum(liab_cost(c, False) for c in experiment_calls(False)) * RETRY_FACTOR + LIVE_PROBE[0] * LIVE_PROBE[1]
     exp_h = sum(liab_cost(c, True) for c in experiment_calls(True)) * RETRY_FACTOR + LIVE_PROBE[0] * PROBE_RESERVATION
@@ -661,22 +635,10 @@ if __name__ == "__main__":
                   + (f"; truncated in {r['truncated']}" if r["truncated"] else ""))
             assert r["total"] <= 75.0
     plan = budget_plan()
-    kids = lambda p: round(sum(v for k, (par, v) in plan.items() if par == p), 2)
-    assert kids("global") <= plan["global"][1] and kids("build") <= plan["build"][1]
     assert plan["global"][1] + NON_MODEL_ALLOWANCE_LOCAL == CAP
-    print(f"\n  budget plan ({PLAN['sealed']} sealed + {PLAN['dev']} dev cases, hosting={HOSTING}); operator applies it, "
-          f"SQL seeds $0 ceilings:")
-    for k, (par, v) in plan.items():
-        print(f"    {k:<12} parent {str(par):<7} ${v:6.2f}")
-    for n in (26, 28, 30):
-        try:
-            budget_plan(sealed_cases=n)
-            print(f"  {n} cases: completes at conservative usage")
-        except ValueError as e:
-            print(f"  {n} cases: {e} (the guard truncates; it never overshoots)")
-    try:
-        budget_plan(hosting="hosted")
-        print(f"  hosted from day 1: the {PLAN['sealed']}-case plan fits")
-    except ValueError as e:
-        print(f"  hosted from day 1: {e}; hosting later is affordable only if committed liability at the switch "
-              f"leaves the remaining work under ${CAP - NON_MODEL_ALLOWANCE:.2f}")
+    print(f"\n  spend guard (D-013): one global ceiling ${plan['global'][1]:.2f} ({HOSTING}); SQL seeds it at $0, the "
+          f"operator applies this plan; hosted mode would be ${budget_plan('hosted')['global'][1]:.2f}")
+
+if __name__ == "__main__" and "--plan-json" in __import__("sys").argv:
+    import json
+    print(json.dumps({k: {"parent": par, "ceiling_usd": v} for k, (par, v) in budget_plan().items()}))

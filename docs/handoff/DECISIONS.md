@@ -84,3 +84,10 @@
 - **Plan baseline (recommendation, owner decision OD-8):** 24 hidden cases, 30 if the dev pilot tracks the expected column (direction v10.3).
 - **Files affected:** `docs/research/synthesis/cost_model.py`, `docs/spec/README.md`, `docs/spec/sql/0006_ops_budget_traces.sql` (in reconciliation), S4, S5, S8.
 - **Reversibility:** cheap.
+
+## 2026-10-08 · D-013 Build first; cost tuning deferred; one global spend ceiling
+- **Decision:** owner directive: "do not worry on the per test spend, first build the pipeline end to end and the feature itself, then we will see what we can do on the cost"; "keep things simple and straightforward". The build starts now (owner half of gate G0); the spec package is brought to Codex GREEN in parallel. Per-activity cost accounting (Codex round 10 R10-01..R10-05, spec cross-check X-03, X-04, X-05) is deferred until the pipeline runs end to end. The D-009 $75 hard cap stays, enforced as one global ceiling (local: $74) with per-call and whole-voice-session reservations; no bucket tree in use (the SQL seeds only the `global` row at $0 and the operator applies `budget_plan()`, which now returns that single ceiling).
+- **Reasoning:** the bucket tree and per-phase sizing generated recurring findings (rounds 10 and cross-check) without changing what gets built; a single ceiling keeps the hard guarantee that matters (never overshoot $75) with less code.
+- **Alternatives:** keep the per-phase tree (rejected: complexity before anything runs); drop the guard (rejected: D-009).
+- **Files affected:** `cost_model.py` (`budget_plan()`), S4 seed and tests, S5 section 4, S8 WP-05.
+- **Reversibility:** cheap; the tree functions remain in SQL if per-phase limits are wanted later.

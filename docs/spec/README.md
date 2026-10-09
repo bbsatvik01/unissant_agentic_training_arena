@@ -15,19 +15,19 @@ Build specification for the arena, in eight parts. Each part cites requirement I
 
 ## Status
 
-Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction v10; S8 section 9 lists 48 cross-part conflicts (C-01 to C-48). Reconciliation to the baseline below is in progress; Codex review follows.
+Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction v10; S8 section 9 lists 48 cross-part conflicts (C-01 to C-48). v2 (c293bec) reconciled S2-S8; its cross-check was RED (`review-v2-crosscheck.md`). v2.1 fixes S1 and the interface findings, applies D-013, and goes to Codex until GREEN.
 
 ## Governing sources (the spec follows these; where they disagree, these win)
 
 1. `docs/research/synthesis/02-direction.md` v10.3 (Codex round 9 GREEN on v10; v10.3 re-costs the plan) with D-011 local-first.
 2. `docs/research/synthesis/03-ui-direction.md` v2.1 (Codex UI round 2 GREEN).
-3. `docs/handoff/DECISIONS.md` (D-001 to D-012).
+3. `docs/handoff/DECISIONS.md` (D-001 to D-013). D-013: build first; cost tuning deferred; keep it simple.
 4. Numbers come from scripts, never typed: dollar figures and bucket ceilings from `cost_model.py` (`budget_plan()`, `simulate_d009()`, `demo_ceiling()`), matrix totals from `decision_matrix.py`, statistical bounds from `stats_contracts.py`. A spec table that shows a figure names the function that produced it.
 
 ## Baseline facts the parts must agree on
 
 - **Run mode:** local-first (D-011). Services run as separate local processes, each with its own database role and credential (`arena_public`, `arena_subject`, `arena_referee`); Phoenix runs locally; Vertex AI is the only GCP service billed. The Cloud Run and IAP design is the hosted variant, kept as an optional later phase, never the default path.
 - **Plan (direction v10.3, `PLAN` in `cost_model.py`):** 24 hidden cases (12 matched families) x 1 repeat plus a 10-case dev pilot (5 families) and 4 more development families for KPI-1 (9 in total); 30 hidden cases only if the dev pilot's measured costs track the expected column (owner decision OD-8). Training: R3 (the two referee calls in investigator mode) on every scored training session; KPI-1 for up to 10 volunteers x 7 sessions; 20 calibration transcripts.
-- **Spend guard (D-012):** the migrations seed the bucket tree with $0 ceilings (fail-closed: nothing can spend until the operator applies `budget_plan()`; `python3 cost_model.py --plan-json` prints it, and a test asserts the applied ceilings equal that output). Local plan: global $74.00 (cap $75 minus the $1 local allowance); children `demo`, `art` (character-art sub-budget), `training` (KPI-1 and calibration), and `build` with leaves `experiments`, `generation`, `dev_pilot`, `replay`, `interactive` (remainder). Hosting from day 1 does not fit the baseline; switching to hosted later requires that committed liability leaves the remaining work under $60.00 ($75 minus the $15 hosted allowance), checked by re-applying the hosted plan, which refuses any ceiling below current liability.
+- **Spend guard (D-012, D-013):** one global ceiling. The migrations seed only the `global` bucket at $0 (fail-closed); the operator applies `budget_plan()` (`python3 cost_model.py --plan-json` prints `{"global": 74.00}` locally; $60.00 hosted) and a test asserts equality. Every model call reserves its worst case and every voice session its whole-session worst case against that ceiling before running, so spend cannot pass the $75 cap. Per-phase buckets and per-test cost tuning are deferred until the pipeline runs end to end (D-013).
 - **Demo allocation:** 40 text sessions, 8 voice sessions (whole-session reservation each), 62 character images within the art sub-budget.
 - **UI:** one server-authorized event projection feeds every animation, caption, connector, pipeline detail and replay; coaching cards appear only when complete, validated and transcript-current; voice state combines connection, capture, server activity and playback; presentational work starts after the 2026-10-18 slice gate.
