@@ -30,3 +30,4 @@
 - a75b362 spec package v1 committed (S1-S8; S1-S7 had been swept into 2da6fa8/ecd95e3, scan clean). Reconciliation workflow wf_84fe8cf4-e96 dispatched.
 - Codex round 10 YELLOW on v10.3 re-costing (6 majors: uncosted S2 acceptance suite, calibration, regeneration; plan leaves under-sized vs guard); paused for owner scope steer.
 - c293bec spec v2 reconciliation of S2-S8 + SQL; cross-check RED (S1 not reconciled; 8 majors). Work paused for owner scope steer.
+- d357dfd D-013 (owner): build first, one global spend ceiling, keep simple. Workflow wf_cedd150a-eec dispatched: spec v2.1 (S1 + X-02..X-17) and WP-01 scaffold in parallel.
