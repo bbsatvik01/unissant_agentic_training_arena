@@ -2343,3 +2343,91 @@ describe("session controller: no side effect after dispose", () => {
   });
 
 });
+
+describe("session controller: re-reads and the end", () => {
+  it("a re-read started before the end still installs its terminal snapshot, so the published debrief finishes the room", async () => {
+    let first: (s: TrialSnapshot) => void = () => undefined;
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((r) => (first = r));
+          return new Promise<TrialSnapshot>(() => undefined);
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    h.last().raw("{lost frame");
+    await flush();
+    void c.requestDebrief();
+    await flush();
+    expect(c.getState().connection).toBe("ending");
+    first(snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH, last_seq: 4 }));
+    await flush();
+    expect(c.getState().connection).toBe("finished");
+  });
+
+  it("no re-read starts after the room finished, and an old failure does not come back as the error", async () => {
+    let reads = 0;
+    let fail: (e: Error) => void = () => undefined;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return new Promise<TrialSnapshot>((_r, j) => (fail = j));
+          return Promise.resolve(snapshot({ status: "completed", last_seq: 4 }));
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    h.last().raw("{lost frame");
+    await flush();
+    await c.requestDebrief();
+    expect(c.getState().connection).toBe("finished");
+    fail(new TypeError("obsolete"));
+    await flush();
+    expect(c.getState().error).toBeNull();
+    const readsAtEnd = reads;
+    await h.clock.advance(60_000);
+    expect(reads).toBe(readsAtEnd);
+    h.last().raw("{another lost frame");
+    expect(reads).toBe(readsAtEnd);
+  });
+
+});
+
+describe("session controller: a re-read retry due after the end", () => {
+  it("does not read again", async () => {
+    let reads = 0;
+    const h = harness();
+    const c = h.make({
+      api: {
+        ...h.api,
+        trialSnapshot: () => {
+          reads += 1;
+          if (reads === 1) return Promise.resolve(snapshot());
+          if (reads === 2) return Promise.reject(new TypeError("blip"));
+          return Promise.resolve(snapshot({ status: "completed", last_seq: 4 }));
+        },
+        requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never),
+      },
+    });
+    await begin(c);
+    h.last().raw("{lost frame");
+    await flush();
+    await c.requestDebrief();
+    expect(c.getState().connection).toBe("finished");
+    const readsAtEnd = reads;
+    await h.clock.advance(60_000);
+    expect(reads).toBe(readsAtEnd);
+  });
+});

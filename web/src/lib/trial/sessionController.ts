@@ -451,7 +451,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
    * more after it, so a frame committed after the first read began is covered too.
    */
   const resync = () => {
-    if (isDisposed()) return;
+    // Once the stream is closed for good, the end's own reads take over: no new re-read starts.
+    if (isDisposed() || over()) return;
     if (resyncing) {
       resyncAgain = true;
       return;
@@ -462,14 +463,15 @@ export function createSessionController(options: SessionControllerOptions): Sess
       try {
         const snapshot = await api.trialSnapshot(trialId);
         resyncFailures = 0;
-        if (!disposed && !over()) {
-          dispatch({ type: "snapshot", snapshot });
-          // The trial ended: a lost debrief.ready is not in any snapshot, so ask the debrief route directly.
-          if (snapshot.status !== "running") await finishIfPublished();
-        }
+        // A read already started is installed even if the end began meanwhile (it may be the terminal state the
+        // end is waiting for; an older one is ignored by the reducer).
+        dispatch({ type: "snapshot", snapshot });
+        // The trial ended: a lost debrief.ready is not in any snapshot, so ask the debrief route directly.
+        if (snapshot.status !== "running" && !over()) await finishIfPublished();
       } catch (error) {
         failed = true;
-        set({ error });
+        // An obsolete failure never replaces the state of a finished room.
+        if (state.connection !== "finished") set({ error });
       } finally {
         resyncing = false;
       }
