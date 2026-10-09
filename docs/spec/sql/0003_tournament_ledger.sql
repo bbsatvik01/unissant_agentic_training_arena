@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0003_tournament_ledger.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -412,9 +412,12 @@ create trigger subject_tag_proposals_append_only before update or delete on seal
 create table sealed.quarantined_artifacts (
   trial_id     uuid primary key references arena.trials(id) on delete restrict,
   turn_no      smallint not null,
-  utterance    text not null,
+  -- null only for a G0 failure that produced no text (empty or textless response after the repair, SG2-39):
+  -- no speech is fabricated
+  utterance    text check (length(utterance) >= 1),
   tag          jsonb,
   guard_result jsonb not null,
+  constraint quarantine_utterance_shape check (utterance is not null or guard_result ->> 'rule' in ('G0_schema', 'G0_blocked')),
   created_at   timestamptz not null default now()
 );
 create trigger quarantined_artifacts_append_only before update or delete on sealed.quarantined_artifacts

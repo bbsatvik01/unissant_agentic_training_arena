@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0006_ops_budget_traces.sql  (DRAFT v2.6, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
 -- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
@@ -721,8 +721,7 @@ begin
     raise exception using errcode = 'AR003', message = 'voice context needs an open voice session on a running trial';
   end if;
   return subject._view(v) || jsonb_build_object(
-    'voice_exchanges', coalesce((select jsonb_agg(jsonb_build_object('exchange_no', x.exchange_no, 'question', x.question,
-                                                                     'answer', x.answer, 'partial', x.partial)
+    'voice_exchanges', coalesce((select jsonb_agg(jsonb_build_object('exchange_no', x.exchange_no, 'lines', x.lines)
                                                   order by x.exchange_no)
                                    from training.voice_exchanges x where x.trial_id = v.id), '[]'::jsonb),
     'voice_session_id', vs.id, 'reservation_id', r.id, 'reserved_usd', r.reserved_usd,

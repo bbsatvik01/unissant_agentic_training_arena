@@ -1,6 +1,6 @@
 # Spec package
 
-Build specification for the arena, in eight parts. **Version 2.5, 2026-10-09: Codex round 3 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
+Build specification for the arena, in eight parts. **Version 2.6, 2026-10-09: Codex round 4 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
 
 | Part | Scope |
 | --- | --- |
@@ -31,7 +31,7 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 - **Spend guard (D-012, D-013):** one global ceiling. The migrations seed only the `global` bucket at $0 (fail-closed); the operator applies `budget_plan()` (`python3 cost_model.py --plan-json` prints `{"global": 74.00}` locally; $60.00 hosted) and a test asserts equality. Every model call reserves its worst case and every voice session its whole-session worst case against that ceiling before running, so spend cannot pass the $75 cap. Per-phase buckets and per-test cost tuning are deferred until the pipeline runs end to end (D-013).
 - **Demo allocation:** 40 text sessions, 8 voice sessions (whole-session reservation each), at most 62 character images (a count cap in code); all reserve against the one `global` ceiling.
 - **UI:** one server-authorized event projection feeds every animation, caption, connector, pipeline detail and replay; coaching cards appear only when complete, validated and transcript-current; voice state combines connection, capture, server activity and playback; presentational work starts after the 2026-10-18 slice gate.
-- **Voice (D7, D-016):** voice sessions are unscored, display-only development practice: they create no turns, work items or coaching cards; each completed exchange is stored for display in `training.voice_exchanges`; they never enter a score, a KPI or a leaderboard, and their debrief is S3's unscored branch (outcome and resolution only). A session started in voice takes no typed questions and commits its finding in text. A dropped connection ends the voice session and a reconnect is a new voice session built from the stored exchanges; there is no resume credential or Live handle, and the close code is the only terminal signal. Gates in voice follow the same LOCKED rule as text, evidence is requested through the same board, and Live receives each release at the next exchange boundary. The scored demo is text only.
+- **Voice (D7, D-016):** voice sessions are unscored, display-only development practice: they create no turns, per-question or coaching work items, or coaching cards; each exchange window is stored for display as role-tagged, unpaired lines in `training.voice_exchanges`; they never enter a score, a KPI or a leaderboard, and their debrief is S3's unscored branch (outcome and resolution only). A session started in voice takes no typed questions and commits its finding in text. A dropped connection ends the voice session and a reconnect is a new voice session built from the stored exchanges; there is no resume credential or Live handle, and the close code is the only terminal signal. Gates in voice follow the same LOCKED rule as text, evidence is requested through the same board, and Live receives each release at the next exchange boundary. The scored demo is text only.
 - **Local HTTP boundary (D10):** `arena-api` and the referee console check Host, reject a foreign Origin on every state-changing browser request and require a CSRF header tied to a `SameSite=Strict` cookie on every browser POST. Service routes under `/internal/` take the internal policy instead: a caller token for that route, and no browser credentials accepted (S5 10.3).
 - **KPI-1:** reported only from participants who completed the counterbalanced protocol; otherwise "KPI-1 not measured". No other data stands in for it.
 
@@ -72,3 +72,9 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 | ID | What changed |
 | --- | --- |
 | Codex round 3 | Debrief table check and `publish_debrief` share one envelope that matches S3's scored and unscored branches; voice writes no turns (display-only `training.voice_exchanges`); referee reads `ops.v_latency_report` and holds no grant on actor-scoped views; voice seeds equal `cost_model.py`; sampler record bound to the archive and the ledger; dispositions in `review-codex-r3.md`. |
+
+## Changes in v2.6
+
+| ID | What changed |
+| --- | --- |
+| Codex round 4 | Voice stores role-tagged, unpaired exchange windows and the snapshot has a voice branch; the evidence route opens its release item and releases in one transaction; reveal checks every completed trial's commitment against its ledger event; one public isolation view; referee loses the unusable `v_commitments` grant; boot accepts only `cna-guardian` and every Vertex request carries `app=unissant-arena` (D-015); unscorable text sessions publish without a score row and the demo asks a third question; ref_subj.v5 lists explicit contradiction pairs and only visible conflicts trigger check 3e; textless G0 failures quarantine with no fabricated speech; dispositions in `review-codex-r4.md`. |

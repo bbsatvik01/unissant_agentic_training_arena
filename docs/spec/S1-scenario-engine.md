@@ -1,6 +1,6 @@
 # S1: Scenario engine and case families
 
-Spec part S1 of the build-ready specification. Version 2.5, 2026-10-09: Codex round 3 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
+Spec part S1 of the build-ready specification. Version 2.6, 2026-10-09: Codex round 4 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 3.1, 3.2, 4.1, 4.2, 4.6, 6.2-6.4, 7.2, 8, 13.1), `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 and D-013: one global spend ceiling, applied from `cost_model.budget_plan()`; D-014: case families authored once, offline, by Claude agents with Codex review, no runtime generator). Requirement IDs are from `docs/challenge/REQUIREMENTS.md`.
 
 Deliverables of this part:
 
@@ -275,7 +275,7 @@ Gate status is derived from committed trial state on every request; arena-subjec
 
 S2's tag validator V2 rejects `gates_opened` for a gate that is LOCKED or already OPEN (S2 6.8; tests AT-SUBJ-3, AT-SUBJ-4). This is the only use the subject service makes of evidence links, and it is deterministic.
 
-The same LOCKED rule holds in voice. Voice sessions are unscored development practice (D-006). The Live instruction renders each gate's status from the released set at session start, so a gate is LOCKED until one of its precondition records is released. The investigator requests records through the same evidence board, and scheduled releases apply at each question; after every `release_evidence()` call in a voice session, arena-subject sends Live an updated context with the new statuses. Live returns no tags, so OPEN is tracked by the model (S2 9.3) and never scored.
+The same LOCKED rule holds in voice. Voice sessions are unscored development practice (D-006). The Live instruction renders each gate's status from the released set at session start, so a gate is LOCKED until one of its precondition records is released. The investigator requests records through the same evidence board, and scheduled releases apply when each spoken exchange is stored; after any release in a voice session, arena-subject sends Live an updated context with the new statuses at the next exchange boundary, before it forwards more investigator audio (S5 7.4). Live returns no tags, so OPEN is tracked by the model (S2 9.3) and never scored.
 
 ### 6.5 Dynamic elements (SCN-10)
 
@@ -651,7 +651,7 @@ The sealed schema holds everything an audit needs before `cases/hidden/` and the
 | --- | --- | --- |
 | Family file | The accepted family file as canonical JSON text (8.4) and its sha256 | With the family's ingest, in the same transaction |
 | Attestation | `{family_id, revision, family_sha256, validator_version, checks_passed, codex: {rounds, review, cx2_truthful, cx2_deceptive, cx3}}`: the validator code version, the checks run (V1, V1b, V1c, V1d, V2, V3a, V4a, V4b, V4c, V5) and the Codex results, all on the accepted family hash; codes, hashes and counts only, no timestamps, so a repeated ingest is identical | With the family's ingest |
-| Sampler record (hidden split) | `{seed, n, assignment, max_phi}`: sampler seed, n, the chosen assignment as one object per family `{family_id, violation_type, misleading_types, level, style}` and its largest phi (7.5) | With the seal; checked against the archived files (10.3) |
+| Sampler record (hidden split) | `{seed, n, assignment, max_phi}`: sampler seed (a non-negative integer), n, max_phi a number in [0, 0.40] that the authoring session's validator recomputes from the assignment before it calls the seal (S4 checks the types and range, SG1-33), the chosen assignment as one object per family `{family_id, violation_type, misleading_types, level, style}` and its largest phi (7.5) | With the seal; checked against the archived files (10.3) |
 
 S4 refuses an ingest whose family text does not hash to the attestation's `family_sha256`, whose attestation lacks one of the checks above or a Codex `pass` (`review`, `cx2_truthful`, `cx2_deceptive`, `cx3`), whose `family_id`, `revision`, `split` or `domain` do not give the bundle's family code, or whose bundle variants are not exactly the file's two variants (same case IDs, roles and three packets), so the archive is the file whose packets run (SG1-19). It keeps all three referee-only and immutable, and exports them only after reveal. Development families take the same path, so every ingested family carries its attestation (AC-S1-04). The repository's authoring report stays codes and counts only (L7).
 

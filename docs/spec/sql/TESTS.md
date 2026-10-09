@@ -31,6 +31,8 @@ Version 2.4 (Codex round 2, D-016) was applied in order to a fresh throwaway Pos
 
 Version 2.5 (Codex round 3) was applied in order to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, unix socket in a `mktemp -d /tmp/pg.XXXX` directory, `listen_addresses = ''`, the Supabase shim and `dblink`, every migration under `ON_ERROR_STOP`), then five smoke scripts with 87 assertions, all passing: archive, revision, sampler and seal (33, including SG1-28 style and difficulty mismatches, SG1-29 empty, wrong-family and wrong-level sampler entries, and an SG3-39 sampler-only edit); turn flow with D-016 voice, the referee's KPI-4 read and both debrief branches (DB-03, DB-04 with S3-valid scored and unscored payloads, validated first against S3 5.7's schema); study protocol; corpus seal; voice finalization, the table-level debrief check and BU-02. Every granted view was selected as its grantee (none fails). Mutation: the v2.4 sampler checks accept the empty-assignment counterexample and miss the sampler-only edit, so the new fixtures catch both. The section 10 CSV expands to 204 rows equal to the live set in both directions (PostgreSQL 16 has no MAINTAIN; no role holds it).
 
+Version 2.6 (Codex round 4) was applied the same way to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, socket-only), then six smoke scripts with 108 assertions, all passing; the round-4 additions are CS-07's SG1-33 cases, ST-17 (textless G0), FC-07 and RV-06's SG3-42 tamper cases, VB-20 (the release transaction against a concurrent voice exchange, through `dblink` with `lock_timeout`), RR-30 (isolation view) and the SG3-41 window case. The granted-view probe now serializes every projected column of every view on populated data (v2.5's `count(*)` let the planner skip the column that calls `arena.trial_visible`); with the v2.5 grant restored it reports `arena_referee` on `ledger.v_commitments`, and with v2.6 all 45 grants pass. Mutation: the v2.5 two-step release path is reproduced as `AR002` in VB-20. The section 10 CSV expands to 205 rows equal to the live set.
+
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
 | ID | Assertion | Expected |
@@ -61,7 +63,7 @@ Version 2.5 (Codex round 3) was applied in order to a fresh throwaway PostgreSQL
 | CS-04 | Bundle with only truthful variants | `AR007` |
 | CS-05 | Variant with 7 artifacts | `AR006` |
 | CS-06 | Identical re-ingest; same `family_code` with changed content | Same id; `AR003` |
-| CS-07 | `seal_hidden_split(sampler_record)` with a sampler record whose `n` and assignment cover the sealed families returns 64 hex; `verify_hidden_seal()` is true in a later statement; the ledger event carries the sampler hash; a sampler record with the wrong `n` | Holds; Holds; Holds; `AR007` |
+| CS-07 | `seal_hidden_split(sampler_record)` with a sampler record whose `n` and assignment cover the sealed families returns 64 hex; `verify_hidden_seal()` is true in a later statement; the ledger event carries the sampler hash; a sampler record with the wrong `n` ; SG1-33: a null seed, a string seed, `max_phi` 0.5, a string `max_phi` | Holds; Holds; Holds; `AR007`; `AR007` each |
 | CS-08 | Second `seal_hidden_split(...)` | `AR001` |
 | CS-09 | Hidden ingest after the seal | `AR001` |
 | CS-10 | Tamper fixture: owner disables the trigger, edits one hidden artifact, re-enables; `verify_hidden_seal()` | false |
@@ -100,7 +102,8 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RR-26 | `arena_public` | `arena.v_dev_cases` contains no hidden variant | 0 hidden rows |
 | RR-27 | `arena_public` | `arena.trial_context` on a running hidden trial with an open coaching item returns the hidden public packet and no key of the private or evaluator packet (`role`, `facts`, `concealed`) | Holds |
 | RR-28 | `arena_public` | `arena.trial_context` on the same trial after finalization | `AR003` |
-| RR-29 | `arena_referee` | `training.voice_sessions` or `training.voice_exchanges` UPDATE; SELECT on any of the 15 actor-scoped views (deny rows of S4 10) | `42501` |
+| RR-29 | `arena_referee` | `training.voice_sessions` or `training.voice_exchanges` UPDATE; SELECT on any of the 16 actor-scoped views, `ledger.v_commitments` included (deny rows of S4 10; SG3-45) | `42501` |
+| RR-30 | SG3-43: `arena_public` reads `arena.v_isolation_checks` (check, candidate, pass or fail, run time, commit SHA) and no `evidence` column; `arena_public` on `arena.isolation_checks` | Rows; `42501` |
 | RR-30 | `arena_public` | `arena.v_dev_cases` has no `style` column (C-22, C-26) | 0 columns |
 | RR-31 | `arena_public` | `subject.voice_context(...)`, `ops.settle_voice_reservation(...)`, `training.publish_debrief(...)`, `training.participants`, `ops.config` | `42501` each |
 
@@ -162,14 +165,15 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | ST-06 | Cross-trial: trial B's open item presented on trial A | `AR003` |
 | ST-07 | Item opened before a version change (owner bumps the version) | `AR002` |
 | ST-08 | Item whose turn is not the latest open turn | `AR004` |
-| ST-09 | Missing `guard_result.passed`; non-object tag; empty utterance | `AR007` each |
+| ST-09 | Missing `guard_result.passed`; non-object tag; empty utterance on an accepted answer; empty utterance with a non-G0 rule (G3) | `AR007` each |
 | ST-10 | Guard rejection: `quarantined`; utterance only in `sealed.quarantined_artifacts`; answer stays null; trial `terminated`; terminal `subject_quarantined`; `trial_ended` event with reason `subject_invalid` and no detail; all or nothing (an error raised after the call in the same transaction leaves no row) | Holds |
 | ST-11 | Any later write on the quarantined trial | `AR001` |
 | ST-12 | `arena_public` calls `record_subject_turn` | `42501` |
 | ST-13 | Persistent-injection fixture: attack text at turn 2 that passed the guard (simulated miss) appears in later `trial_context` only inside `transcript` (data); no function interprets transcript text | Holds |
-| ST-14 | `p_partial = true` stores `answer_partial` and the commitment's transcript hash covers it | Holds |
+| ST-14 | SG3-46: every turn is a text turn: `turns.channel = 'text'` and `answer_partial = false` hold for every row (the column checks refuse others), and the commitment's transcript hash covers the stored fields; interruption is covered only on voice exchange lines (VB-13) | Holds |
 | ST-15 | SG1-02: `subject.turn_context` returns `disclosure_state`: empty at turn 1; at turn 2 the facts disclosed and gates opened in turn 1's stored tag with their turn; a quarantined attempt's tag never appears | Holds |
 | ST-16 | D-016: `record_subject_turn` takes no `partial` argument; every turn's channel is `text` (`turns.channel` and `answer_partial` checks) | Holds |
+| ST-17 | SG2-39: an empty response after the repair (`{passed:false, rule:'G0_schema'}`) and a textless block (`G0_blocked`), each with `''` | `quarantined`; repeated call idempotent; `quarantined_artifacts.utterance` null; trial `terminated`; terminal `subject_quarantined`; no `subject_turn` event (no public subject answer) |
 
 ## 7. `007_coaching_events_caller.sql` (AST-1..8, SOL-6, KPI-4, F07; S5 section 6)
 
@@ -209,7 +213,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | FC-04 | Finding (C-27): `label` outside the three values or missing (a v1 `classification` key alone); `likelihood` outside the seven ICD 203 terms; `confidence` outside low, moderate, high; cited turn 9 of a 2-turn transcript; non-numeric cited turn; `cited_records` missing, or naming a record not released on the trial | `AR007` each |
 | FC-05 | Finalize over an open question | `AR004` |
 | FC-06 | Finalize a corpus trial with a finding; an interview without one | `AR007` each |
-| FC-07 | `verify_commitment` after finalization | true |
+| FC-07 | `verify_commitment` after finalization; SG3-42: after a finding change with the commitment row recomputed (triggers disabled), and after the commitment row is deleted | true; false (the trial_finalized event no longer matches); false, and reveal's check, which iterates completed terminal records, finds the trial (RV-06) |
 | FC-08 | Tamper fixture: owner disables the trigger and edits one answer | `verify_commitment` false |
 | FC-09 | Tamper fixture: edit the stored finding | false |
 | FC-10 | Tamper fixture: edit one coach event payload | false |
@@ -283,7 +287,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RV-03 | A completed interactive trial without review | `AR020` |
 | RV-04 | An `assistant_failed` interactive trial without review | `AR020` |
 | RV-05 | Corpus seal missing; corpus transcript tampered after the seal | `AR021` each |
-| RV-06 | One commitment that does not verify | `AR021` |
+| RV-06 | One commitment that does not verify, or a completed trial whose commitment row or nonce is missing (SG3-42) | `AR021` |
 | RV-07 | Broken ledger chain (owner edits an event with the trigger disabled) | `AR021` |
 | RV-08 | Hidden tournament whose seal no longer verifies | `AR021` |
 | RV-09 | Roster row tampered after freeze | `AR021` |
@@ -373,13 +377,14 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | VB-10 | `arena_public` calls `reserve_voice` or `settle_voice_reservation` | `42501` |
 | VB-11 | `open_voice_session` with an unclaimed ticket, a probe reservation, another trial's reservation, or a reservation another role made | `AR040` |
 | VB-12 | Second open voice session on one training session | `23505` |
-| VB-13 | `record_voice_exchange` on a closed voice session, on another trial's session, out of order (number not the next), or numbered 13 | `AR040`; `AR040`; `AR004`; `AR004` (or the 1..12 check) |
+| VB-13 | `record_voice_exchange` on a closed voice session, on another trial's session, out of order (number not the next), numbered 13; `lines` with a role other than investigator or subject, an extra key, or an empty text | `AR040`; `AR040`; `AR004`; `AR004`; `AR007` each |
 | VB-14 | SG3-05: `subject.voice_context(voice_session)` on an open session returns the packets, released evidence, the trial's stored `voice_exchanges` (an empty `transcript`: no turns), `reservation_id`, `spend_usd` and `shutoff_usd`; on a closed session | Holds; `AR003` |
 | VB-15 | D-016: no resume objects exist; a second voice session on the same trial after the first closed (a reconnect) gets its own ticket, reservation and receipts and its context carries the first session's exchanges; `training.v_my_voice_exchanges` returns the owner's exchanges and none to another actor | Holds |
-| VB-16 | D-016, SG3-27: a voice session writes no `arena.turns` row and no work item; `submit_question` on its trial; `record_voice_exchange` returns a scheduled record due after that exchange in `released` (released in the same transaction, `released_after_exchanges` counts voice exchanges); the same exchange again; other content under the same number; an exchange with a null answer; `finalize_trial` with no exchange, then with one exchange and a finding citing records only | Holds; `AR007`; Holds; `exists`; `AR003`; stored; `AR001`; finalized |
+| VB-16 | D-016, SG3-27: a spoken exchange writes no `arena.turns` row and no work item; `submit_question` on its trial; `record_voice_exchange` returns a scheduled record due after that exchange in `released` (released in the same transaction, `released_after_exchanges` counts voice exchanges); the same exchange again; other content under the same number; SG3-41: a window whose lines hold the late tail of the previous question beside the next question, stored role-tagged in arrival order; `finalize_trial` with no exchange, then with one exchange and a finding citing records only | Holds; `AR007`; Holds; `exists`; `AR003`; stored; `AR001`; finalized |
 | VB-17 | SG3-36: with a voice session left open by a dead process, `training.close_orphan_voice_sessions()` | Returns 1; the session is `closed`/`orphaned`; its reservation is `usage_unknown` with the full hold |
 | VB-18 | SG3-07, SG3-37: in a voice session, `arena_public` releases a requested record through `release_evidence` at any time (no turn exists to block it); `subject.voice_context` then lists it | Holds |
 | VB-19 | D7 reaping: a voice reservation open for 61 minutes (owner backdates `created_at`), then any `reserve_voice` | The old reservation is `usage_unknown` with its full hold, its session closed `expired`, and the new reservation is admitted |
+| VB-20 | SG1-32: a release item opened in its own transaction, then a voice exchange storing a scheduled release, then `release_evidence` on that item; the v2.6 route: item and release in one transaction while a concurrent `record_voice_exchange` (dblink, `lock_timeout` 500 ms) runs; a rolled-back attempt, an exchange, then a retry with the same key | `AR002` (why the route uses one transaction); the exchange times out waiting for the trial lock (`55P03`) and the release succeeds; the retry gets a fresh item and succeeds; repeating the call returns the stored result |
 
 ## 16. `016_training_tickets.sql` (SOL-6, KPI-1, EVL-7, SCN-12, direction 4.3)
 
