@@ -1,13 +1,13 @@
 # UI direction: characters, motion, voice, and the design pipeline
 
-Version 2, 2026-10-08, revised after Codex UI critique round 1 (YELLOW: 3 majors, 8 minors; `critique-ui-round-1.md`). Research-harness synthesis of `docs/research/ui/U1-U5*.md` (69 Google web, 9 GDK, 17 Context7, 33 files) plus the earlier X5 and I7 reports. Matrix totals and sensitivity come from `decision_matrix.py` (`ui_report`). The owner's DESIGN.md will set colors, type and brand; this document sets the characters, motion, voice surfaces, copy rules and tooling, and stays token-agnostic. Local-first (D-011).
+Version 2.1, 2026-10-08. Revised after Codex UI critique round 1 (YELLOW: 3 majors, 8 minors; `critique-ui-round-1.md`); round 2 GREEN with three minors, applied here (`critique-ui-round-2.md`). Research-harness synthesis of `docs/research/ui/U1-U5*.md` (69 Google web, 9 GDK, 17 Context7, 33 files) plus the earlier X5 and I7 reports. Matrix totals and sensitivity come from `decision_matrix.py` (`ui_report`). The owner's DESIGN.md will set colors, type and brand; this document sets the characters, motion, voice surfaces, copy rules and tooling, and stays token-agnostic. Local-first (D-011).
 
 ## 0. TL;DR
 
 1. **Quiet by default, expressive at the moments that matter.** The most-copied product UIs (Linear, Vercel, Stripe) keep everyday motion at 80-240 ms and decoration-free; "stunning" comes from a few choreographed signature moments, not from motion everywhere. Ours: evidence released, contradiction noticed, finding committed, leaderboard reveal, debrief score count-up. (M-H) [U3, U4]
 2. **The coach is a pet, in the sense OpenAI shipped in May 2026:** ChatGPT and Codex "Pets" are small characters showing real work states (running, needs input, ready, blocked). Ours ports gokbase's companion-pet state machine (`kin/fsm.ts`, ~100 lines, measured, accessible) with new arena art and arena states; its state reflects the session, never anyone's demeanor (PRB-4). (H) [U2, U3, U5]
-3. **Subject avatars are a generated, vectorized portrait set with an audio-driven mouth.** Gemini image generation produces a consistent character sheet within a capped 62-image budget (~$4.30 expected, ~$6.20 high, routed through the spend guard); VTracer plus cleanup gives SVG; a CSS-variable rig reads one amplitude value per frame from the Web Audio analyser for speaking. Demeanor and voice are assigned independently of role, and the avatar has no nervous or stressed states at all. (H) [U2, U5]
-4. **Gemini 3.8 Live Avatar is out of scope** on budget, integration and schedule grounds: it has no published video price, our project's access is unprobed, and custom avatars are allowlist-only. (Agent Platform is the renamed Vertex AI, not a separate entitlement; that is not the reason for the exclusion.) [U2]
+3. **Subject avatars are a generated, vectorized portrait set with an audio-driven mouth.** Gemini image generation produces a consistent character sheet within a capped art budget (62 images and a $6.20 dollar sub-budget that includes reference-image input and text or thinking charges; every call passes the spend guard, and when the budget is spent, approved assets are reused); VTracer plus cleanup gives SVG; a CSS-variable rig reads one amplitude value per frame from the Web Audio analyser for speaking. Demeanor and voice are assigned independently of role, and the avatar has no nervous or stressed states at all. (H) [U2, U5]
+4. **Gemini 3.8 Live Avatar is out of scope** on budget, integration and schedule grounds: avatar video is billed on top of Live audio ($1 per million output tokens at 6,192 tokens per speaking second, about $1.04 more per reference voice session of 12 replies of 14 s), our project's access is unprobed, and custom avatars are allowlist-only. (Agent Platform is the renamed Vertex AI, not a separate entitlement; that is not the reason for the exclusion.) [U2]
 5. **Motion stack: Motion for state-driven UI and plain CSS transforms for per-frame character rigs; GSAP (now fully free) only for a signature sequence where a side-by-side spike shows it does better.** Everything honors `prefers-reduced-motion`; frame pacing is measured on the arena's own combined workload (full frame-interval sampling and a performance trace; p95 under 16.8 ms, TechnoMile's bar). (M) [U3]
 6. **Voice uses a pill-shaped bar, not a full-screen takeover** (Gemini Live's May 2026 redesign), so the evidence board and transcript stay visible; the bar's state combines connection, microphone capture, server activity (`interaction_status`, `interrupted`) and actual audio playback. (M-H) [U4]
 7. **Agents at work:** TechnoMile's pipeline rail plus canvas (progressive disclosure, already measured at 60 fps) ships first; the isometric office becomes a demo "theater" toggle only if time remains. (M; the matrix is a tie) [U3, I7]
@@ -21,9 +21,9 @@ Version 2, 2026-10-08, revised after Codex UI critique round 1 (YELLOW: 3 majors
 
 | Option | Total |
 | --- | --- |
-| **A. Port gokbase kin FSM, new SVG art, CSS-variable rig** | **4.70** |
-| B. Rive data-bound state machine | 3.90 |
-| C. dotLottie state machine | 3.70 |
+| **A. Port gokbase kin FSM, new SVG art, CSS-variable rig** | **4.40-5.00** |
+| B. Rive data-bound state machine | 3.30-3.90 |
+| C. dotLottie state machine | 3.10-3.70 |
 
 Robust to weight shifts and to the score ranges (`decision_matrix.py`). Rive stays an upgrade path for one hero character after the October 18 slice: its editor needs a paid seat to export ($17 for one month, or $108 a year; outside the GCP cap), and export is manual. [U5]
 
@@ -45,11 +45,11 @@ Assessment mode suppresses every coaching-derived state (no `noticing` or `encou
 
 | Option | Total |
 | --- | --- |
-| **A. Gemini-generated portrait set, vectorized, amplitude-driven mouth** | **4.40** |
-| B. Rive-rigged 2D | 3.60 |
-| C. three-vrm 3D with TalkingHead lip sync | 3.30 |
+| **A. Gemini-generated portrait set, vectorized, amplitude-driven mouth** | **3.70-4.70** |
+| B. Rive-rigged 2D | 3.00-3.60 |
+| C. three-vrm 3D with TalkingHead lip sync | 2.70-3.40 |
 
-Robust to weight shifts and score ranges, but provisional until a one-character production test (generate, vectorize, rig, speak) passes in the first week. Pipeline: one fixed character description plus reference images per persona in Gemini image generation (character sheet: neutral, speaking mouth shapes, pausing), VTracer to SVG, hand cleanup, CSS-variable rig. Keep the original PNG per character as the provenance record (Gemini 3 Pro Image supports C2PA content credentials; vectorizing strips them). Speaking: amplitude from the Web Audio analyser (Gemini Live outputs 24 kHz PCM16 with no timing metadata) drives mouth and a subtle head motion; amplitude is read from the actual playback node, so the mouth stops the instant playback stops (including on interruption). Text-driven visemes apply only to text-to-speech paths, where the script exists in advance; live audio has no script. States: idle, speaking, pausing. There is no nervous, defensive or stressed state, and the voice, accent and portrait are drawn independently of role.
+Robust to weight shifts and score ranges, but provisional until a one-character production test (generate, vectorize, rig, speak) passes in the first build days after the October 18 slice gate (02-direction: nothing presentational starts before the slice passes). If the test fails, the fallback is a hand-authored SVG portrait with the same playback-driven mouth rig, not a new animation runtime. Pipeline: one fixed character description plus reference images per persona in Gemini image generation (character sheet: neutral, speaking mouth shapes, pausing), VTracer to SVG, hand cleanup, CSS-variable rig. Keep the original PNG per character as the provenance record (Gemini 3 Pro Image supports C2PA content credentials; vectorizing strips them). Speaking: amplitude from the Web Audio analyser (Gemini Live outputs 24 kHz PCM16 with no timing metadata) drives mouth and a subtle head motion; amplitude is read from the actual playback node, so the mouth stops the instant playback stops (including on interruption). Text-driven visemes apply only to text-to-speech paths, where the script exists in advance; live audio has no script. States: idle, speaking, pausing. There is no nervous, defensive or stressed state, and the voice, accent and portrait are drawn independently of role.
 
 ### 1.3 Agents at work (UI-4)
 
@@ -69,7 +69,7 @@ A and B tie, and many weight shifts favor B, so B ships first (TechnoMile `pipel
 | B. CSS only (TechnoMile discipline) | 4.40 |
 | C. Motion + GSAP + CSS from the start | 3.90-4.60 |
 
-The comparison depends on unmeasured scores and flips to B under several weight shifts, so A is provisional: in week one, build one signature sequence (evidence released) with Motion + CSS and with GSAP, compare frame pacing, code size and feel, and add GSAP only if it wins. No library animates per-frame character rigs (CSS variables do).
+The comparison depends on unmeasured scores and flips to B under several weight shifts, so A is provisional: immediately after the October 18 slice gate, build one signature sequence (evidence released) with Motion + CSS and with GSAP, compare frame pacing, code size and feel, and add GSAP only if it wins. No library animates per-frame character rigs (CSS variables do).
 
 - **Tokens** (names only; values come from DESIGN.md): `motion.instant` (~80 ms), `motion.quick` (~160 ms), `motion.base` (~240 ms), `motion.signature` (~600-900 ms choreographed), one standard ease, one spring preset for layout changes.
 - **Signature moments:** evidence released (card slides into the court-record board, the cited statement chip pulses once); contradiction noticed (a thin connector draws between the two quoted turns); finding committed (seal animation, the commitment hash appears); leaderboard reveal (the scorer's official rank, eligibility and provisional status appear unchanged; family-bootstrap rank intervals draw in at their actual endpoints, and overlap is labeled as uncertainty, never as a new tie rule; D3 transitions with interrupt for reduced motion); debrief (five 0-4 cards count up).
@@ -113,9 +113,9 @@ Tournament vocabulary (candidate, manifest, replay track) appears only on the ar
 | Item | Note | Resolution path |
 | --- | --- | --- |
 | "Stunning" vs quiet premium motion | Owner intent vs industry practice | Signature moments; owner reviews a motion reel at the slice |
-| VTracer quality on generated art | Not tested hands-on | One-character production test in week one; flat, stylized art direction; 1-2 h cleanup per character |
+| VTracer quality on generated art | Not tested hands-on | One-character production test right after the slice gate (fallback: hand-authored SVG with the same rig); flat, stylized art direction; 1-2 h cleanup per character |
 | GSAP benefit | Unmeasured | Side-by-side spike on the evidence-released sequence before adopting it |
-| Character-art spend | 62-image cap (~$4.30 expected, ~$6.20 high) | Every generation passes the spend guard; included in the D-009 simulation |
+| Character-art spend | 62-image cap and a $6.20 dollar sub-budget (~$4.30 expected) | Every call, including reference-image input and text or thinking tokens, passes the spend guard; approved assets are reused when the sub-budget is spent; included in the D-009 simulation |
 | Rive licensing | Editor export needs a paid seat ($17 a month) | Only if a hero character is approved after the slice |
 | Live API state fields on the chosen model | `interaction_status` confirmed for 3.8 Live; unconfirmed for 2.5 native audio | Day-1 probe; playback state comes from the client either way |
 | GSAP version | Sources disagree (3.13 vs 3.15) | Pin from npm at build time |
