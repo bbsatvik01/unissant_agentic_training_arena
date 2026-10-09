@@ -9417,6 +9417,97 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "QuestionAcceptedFrame",
         "type": "object"
       },
+      "ReplayTrialStatusData": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "running",
+              "completed",
+              "subject_quarantined",
+              "assistant_failed",
+              "infra_failed",
+              "budget_skipped",
+              "budget_truncated",
+              "source_unavailable"
+            ],
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "reason_code"
+        ],
+        "title": "ReplayTrialStatusData",
+        "type": "object"
+      },
+      "ReplayTrialStatusFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "trial.status",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/ReplayTrialStatusData"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "ReplayTrialStatusFrame",
+        "type": "object"
+      },
       "StoredDeepUpdate": {
         "additionalProperties": false,
         "allOf": [
@@ -10317,96 +10408,6 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         ],
         "title": "TrialFinalizedFrame",
         "type": "object"
-      },
-      "TrialStatusData": {
-        "additionalProperties": false,
-        "properties": {
-          "status": {
-            "enum": [
-              "running",
-              "completed",
-              "subject_quarantined",
-              "assistant_failed",
-              "infra_failed",
-              "budget_skipped",
-              "budget_truncated"
-            ],
-            "type": "string"
-          },
-          "reason_code": {
-            "anyOf": [
-              {
-                "maxLength": 80,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "status",
-          "reason_code"
-        ],
-        "title": "TrialStatusData",
-        "type": "object"
-      },
-      "TrialStatusFrame": {
-        "additionalProperties": false,
-        "properties": {
-          "v": {
-            "const": 1,
-            "type": "integer"
-          },
-          "scope": {
-            "const": "trial",
-            "type": "string"
-          },
-          "scope_id": {
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-            "type": "string"
-          },
-          "ts": {
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
-            "type": "string"
-          },
-          "transcript_version": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "seq": {
-            "anyOf": [
-              {
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "type": {
-            "const": "trial.status",
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/$defs/TrialStatusData"
-          }
-        },
-        "required": [
-          "v",
-          "scope",
-          "scope_id",
-          "ts",
-          "transcript_version",
-          "seq",
-          "type",
-          "data"
-        ],
-        "title": "TrialStatusFrame",
-        "type": "object"
       }
     },
     "additionalProperties": false,
@@ -10436,7 +10437,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "$ref": "#/$defs/FindingCommittedFrame"
             },
             {
-              "$ref": "#/$defs/TrialStatusFrame"
+              "$ref": "#/$defs/ReplayTrialStatusFrame"
             },
             {
               "$ref": "#/$defs/TrialFinalizedFrame"

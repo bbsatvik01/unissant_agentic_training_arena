@@ -13,6 +13,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     GetCoreSchemaHandler,
@@ -75,6 +76,19 @@ def when(
     if otherwise is not None:
         rule["else"] = {"properties": otherwise}
     return rule
+
+
+def _exact(kind: type) -> BeforeValidator:
+    """A BeforeValidator that admits only values of exactly `kind`: a `Literal[1]` or `Literal[True]` compares by
+    equality, so without it `True` passes as the integer 1 and `1` as `True`, which the exported schemas refuse."""
+
+    def check(value: object) -> object:
+        if type(value) is not kind:
+            msg = f"must be a {kind.__name__}, not {type(value).__name__}"
+            raise ValueError(msg)
+        return value
+
+    return BeforeValidator(check)
 
 
 class ByteLimit:
@@ -222,3 +236,8 @@ DeepVersion = Annotated[Literal["deep.v1"], _version_schema("deep.v1")]
 FinalVersion = Annotated[Literal["final.v1"], _version_schema("final.v1")]
 RefSubjVersion = Annotated[Literal["ref_subj.v5"], _version_schema("ref_subj.v5")]
 RefAsstVersion = Annotated[Literal["ref_asst.v2"], _version_schema("ref_asst.v2")]
+
+# Non-string literals, exact in type (see `_exact`).
+EnvelopeVersion = Annotated[Literal[1], _exact(int)]
+ScoredTrue = Annotated[Literal[True], _exact(bool)]
+ScoredFalse = Annotated[Literal[False], _exact(bool)]

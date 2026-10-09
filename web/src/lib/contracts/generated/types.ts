@@ -398,6 +398,22 @@ export interface ReleasedRef {
   readonly doc_kind: "access_exception_report" | "badge_log" | "door_log" | "sensor_metadata" | "camera_metadata" | "camera_status" | "alarm_log" | "monitor_alert" | "dispatch_log" | "work_order" | "staffing_note" | "visitor_register" | "lockbox_log" | "credential_record" | "access_change_notice" | "incident_ticket" | "seal_audit" | "witness_statement" | "supervisor_statement" | "email" | "policy_excerpt" | "procedure_excerpt" | "facilities_notice" | "clarification" | "context_change" | null;
 }
 
+export interface ReplayTrialStatusData {
+  readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated" | "source_unavailable";
+  readonly reason_code: string | null;
+}
+
+export interface ReplayTrialStatusFrame {
+  readonly v: 1;
+  readonly scope: "trial";
+  readonly scope_id: string;
+  readonly ts: string;
+  readonly transcript_version: number;
+  readonly seq: number | null;
+  readonly type: "trial.status";
+  readonly data: ReplayTrialStatusData;
+}
+
 export interface ReplayTurn {
   readonly trial_ref: number;
   readonly turn_no: number;
@@ -873,7 +889,7 @@ export type ReviewSubmission = RubricSubmission | LabelSubmission | FlagSubmissi
 export type TournamentPoll = TournamentEvents | TournamentCounts;
 
 export interface ReplayPage {
-  readonly frames: readonly (QuestionAcceptedFrame | EvidenceReleasedFrame | SubjectAnswerFrame | TournamentCoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | TrialStatusFrame | TrialFinalizedFrame)[];
+  readonly frames: readonly (QuestionAcceptedFrame | EvidenceReleasedFrame | SubjectAnswerFrame | TournamentCoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | ReplayTrialStatusFrame | TrialFinalizedFrame)[];
   readonly last: number;
 }
 

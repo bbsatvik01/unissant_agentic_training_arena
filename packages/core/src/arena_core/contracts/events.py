@@ -24,6 +24,7 @@ from arena_core.contracts.common import (
     Answer,
     ArtifactKind,
     Contract,
+    EnvelopeVersion,
     Exchanges,
     RecordId,
     Sha256,
@@ -44,6 +45,19 @@ TrialStatus = Literal[
     "infra_failed",
     "budget_skipped",
     "budget_truncated",
+]
+# A replay trial can also end `source_unavailable` (S4 `arena.advance_replay`: its corpus transcript did not
+# complete or is invalid; S5 6.2 C-45: "occurs only on replay trials, which no browser owns" in a training
+# session). Trial replay of a tournament trial (S6 5.3) shows that state, so replay frames carry this enum.
+ReplayTrialStatus = Literal[
+    "running",
+    "completed",
+    "subject_quarantined",
+    "assistant_failed",
+    "infra_failed",
+    "budget_skipped",
+    "budget_truncated",
+    "source_unavailable",
 ]
 ExecutionState = Literal[
     "completed",
@@ -252,7 +266,7 @@ class _TrialEnvelope(Contract):
     """S6 5.2: every trial frame names the trial's transcript version it was projected at (a synthesized frame
     takes the trial's current version), which the client's complete-card rule reads (S6 4.5)."""
 
-    v: Literal[1]
+    v: EnvelopeVersion
     scope: Literal["trial"]
     scope_id: Uuid
     ts: Timestamp
@@ -345,6 +359,19 @@ class TrialStatusFrame(_TrialEnvelope):
     data: TrialStatusData
 
 
+class ReplayTrialStatusData(Contract):
+    status: ReplayTrialStatus
+    reason_code: Annotated[str, StringConstraints(min_length=1, max_length=80)] | None
+
+
+class ReplayTrialStatusFrame(_TrialEnvelope):
+    """`trial.status` on trial replay (S6 5.3): the trial-scope frame with the replay trial's terminal states."""
+
+    seq: Seq | None
+    type: Literal["trial.status"]
+    data: ReplayTrialStatusData
+
+
 class TrialFinalizedFrame(_TrialEnvelope):
     seq: Seq
     type: Literal["trial.finalized"]
@@ -388,7 +415,7 @@ ReplayFrame = (
     | CoachUpdateFrame
     | CoachFailedFrame
     | FindingCommittedFrame
-    | TrialStatusFrame
+    | ReplayTrialStatusFrame
     | TrialFinalizedFrame
 )
 
@@ -457,7 +484,7 @@ class TrialExecution(Contract):
 
 
 class _TournamentEnvelope(Contract):
-    v: Literal[1]
+    v: EnvelopeVersion
     seq: Seq
     scope: Literal["tournament"]
     scope_id: Uuid

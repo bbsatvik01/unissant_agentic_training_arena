@@ -36,8 +36,9 @@ data boundary, as S5's threat model states.
      `arena_core/contracts/export.py` (it reads their JSON Schema to write `contracts/`, and builds no frame);
      product code may not import that export module, which hands out every wire type. Absolute and relative
      imports both resolve. An undecorated function's annotations stay free, so a function may accept or return
-     a frame it never builds, and so do a function's local annotations; a decorated function's annotations (a
-     decorator such as `validate_call` or a route decorator may build them from raw data), any annotation
+     a frame it never builds, and so do a function's local annotations; the annotations of a function that is
+     decorated or passed on as a value (`validate_call(f)`, a route registration: whatever receives it may
+     build them from raw data), any annotation
      outside a function (a class field, at any depth of the class body's blocks, is built when the class is
      validated) and a call inside any annotation are value uses.
 
@@ -306,18 +307,40 @@ def _local_annotations(node: ast.AST, in_function: bool, out: list[ast.AST]) -> 
             _local_annotations(child, in_function, out)
 
 
-def _annotation_nodes(tree: ast.AST) -> set[int]:
-    """ids of the nodes of the type annotations the rule leaves free: an undecorated function's parameters and
-    return, and a function's local annotated assignments; never the nodes of a call inside one
-    (`def f(x: NoticeFrame(v=1))` runs that call when the function is defined).
+def _functions_used_as_values(tree: ast.AST) -> set[str]:
+    """Names of functions referenced other than by calling them: passed, assigned, returned or registered
+    (`parse = validate_call(parse)`, `router.add_api_route("/x", parse)`). Whatever receives the function may
+    read its annotations and build the values, exactly as a decorator can."""
+    called = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+    used: set[str] = set()
+    for node in ast.walk(tree):
+        if id(node) in called:
+            continue
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            used.add(node.id)
+        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+            used.add(node.attr)
+    return used
 
-    Not free: a decorated function's annotations, because a decorator may read them at run time and build
-    the values (`@validate_call`, a web framework's route decorator, under any alias); and every annotation
-    outside a function (a class field, however deeply nested in the class body's blocks, is built when the
-    class is validated; a module annotation has no reason to name a frame)."""
+
+def _annotation_nodes(tree: ast.AST) -> set[int]:
+    """ids of the nodes of the type annotations the rule leaves free: the parameters and return of a function
+    that is neither decorated nor used as a value, and a function's local annotated assignments; never the
+    nodes of a call inside one (`def f(x: NoticeFrame(v=1))` runs that call when the function is defined).
+
+    Not free: a decorated function's annotations, or those of a function passed on as a value (wrapped by
+    `validate_call(f)`, registered as a route handler), because whatever receives it may read them at run time
+    and build the values; and every annotation outside a function (a class field, however deeply nested in the
+    class body's blocks, is built when the class is validated; a module annotation has no reason to name a
+    frame)."""
+    escaped = _functions_used_as_values(tree)
     roots: list[ast.AST] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.decorator_list:
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+            and not node.decorator_list
+            and node.name not in escaped
+        ):
             roots.extend(_signature_annotations(node))
     _local_annotations(tree, in_function=False, out=roots)
     inside = {id(n) for root in roots for n in ast.walk(root)}

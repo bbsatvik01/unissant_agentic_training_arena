@@ -12,7 +12,18 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
-from arena_core.contracts.common import GIT_SHA, Contract, Distinct, Label, Sha256, TurnNo, Uuid, when
+from arena_core.contracts.common import (
+    GIT_SHA,
+    Contract,
+    Distinct,
+    Label,
+    ScoredFalse,
+    ScoredTrue,
+    Sha256,
+    TurnNo,
+    Uuid,
+    when,
+)
 
 DebriefVersion = Literal["debrief.v1"]
 Count = Annotated[int, Field(ge=0)]
@@ -131,7 +142,7 @@ class Provenance(Contract):
 class ScoredDebrief(Contract):
     schema_version: DebriefVersion
     session_id: Uuid
-    scored: Literal[True]
+    scored: ScoredTrue
     outcome: Outcome
     rubric: Rubric
     scorecards: Scorecards
@@ -143,7 +154,7 @@ class UnscoredDebrief(Contract):
 
     schema_version: DebriefVersion
     session_id: Uuid
-    scored: Literal[False]
+    scored: ScoredFalse
     outcome: Outcome
 
 

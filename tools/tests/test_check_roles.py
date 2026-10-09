@@ -3,6 +3,7 @@ arena_api/arena_subject/arena_core.providers.vertex module passes. Adapted from 
 tools/tests/test_check_adk_scope.py (same AST-walker shape; ATTRIBUTIONS.md); the rule set is new.
 """
 
+import importlib.util
 import shlex
 import shutil
 from pathlib import Path
@@ -312,6 +313,65 @@ def test_a_decorated_functions_annotations_are_value_uses(source: str) -> None:
     found = frame_rules(ARENA_API_FILE, source)
     assert found
     assert all("is an event frame model" in r for r in found), found
+
+
+FUNCTIONAL_WRAPPING = (
+    "from pydantic import validate_call\n"
+    "from arena_core.contracts.events import NoticeFrame\n\n\n"
+    "def parse(frame: NoticeFrame) -> NoticeFrame:\n    return frame\n\n\n"
+    "parse = validate_call(parse)\n"
+)
+NOTICE = {
+    "v": 1,
+    "seq": None,
+    "scope": "trial",
+    "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+    "type": "notice",
+    "ts": "2026-10-20T15:04:05.123Z",
+    "transcript_version": 3,
+    "data": {"kind": "paused", "text": "Paused."},
+}
+
+
+@pytest.mark.gateproof
+def test_a_function_wrapped_as_a_value_builds_frames_and_is_refused(tmp_path: Path) -> None:
+    """The bypass is real (running the module builds a NoticeFrame from a raw dict) and the rule refuses it."""
+    module_file = tmp_path / "wrapped_parse.py"
+    module_file.write_text(FUNCTIONAL_WRAPPING, encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("wrapped_parse", module_file)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    built = module.parse(NOTICE)
+    assert type(built).__name__ == "NoticeFrame"
+    found = frame_rules(ARENA_API_FILE, FUNCTIONAL_WRAPPING)
+    assert found
+    assert all("is an event frame model" in r for r in found), found
+
+
+@pytest.mark.gateproof
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "def take(frame: TrialFrame) -> None: ...\n\n\nrouter.add_api_route('/frames', take)\n",
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "class H:\n    def take(self, frame: TrialFrame) -> None: ...\n\n    def wire(self) -> None:\n"
+        "        register(self.take)\n",
+    ],
+)
+def test_a_function_registered_as_a_value_is_a_value_use(source: str) -> None:
+    assert frame_rules(ARENA_API_FILE, source)
+
+
+def test_a_function_that_is_only_called_keeps_its_annotations_free() -> None:
+    source = (
+        "from arena_core.contracts.events import TrialFrame\n\n\n"
+        "def take(frame: TrialFrame) -> TrialFrame:\n    return frame\n\n\n"
+        "def again(frame: TrialFrame) -> TrialFrame:\n    return take(take(frame))\n"
+    )
+    assert frame_rules(ARENA_API_FILE, source) == []
 
 
 def test_identifiers_follow_pythons_rules() -> None:

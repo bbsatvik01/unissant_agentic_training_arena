@@ -1837,6 +1837,106 @@
           }
         ]
       }
+    },
+    {
+      "id": "replay-page:source_unavailable",
+      "schema": "replay-page",
+      "value": {
+        "frames": [
+          {
+            "v": 1,
+            "seq": 3,
+            "scope": "trial",
+            "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+            "type": "coach.card",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "transcript_version": 2,
+            "data": {
+              "turn_no": 1,
+              "card": {
+                "schema_version": "card.v1",
+                "turn_id": "t01",
+                "question": {
+                  "question_type": "open",
+                  "neutrality_issues": [],
+                  "assessment": "An open question about the reason for entry."
+                },
+                "answer_category": "non_responsive",
+                "flags": [
+                  {
+                    "kind": "non_responsive",
+                    "turn_id": "t01",
+                    "quote": "It was a busy shift.",
+                    "missing_fact": "purpose of entry",
+                    "conflict_turn_id": null,
+                    "conflict_quote": null,
+                    "conflict_record_id": null,
+                    "conflict_record_quote": null,
+                    "flag_ref": "t01.f1"
+                  }
+                ],
+                "follow_up": {
+                  "question": "What task required entry?",
+                  "tactic": "funnel_probe",
+                  "purpose": "Ask for the task the entry served.",
+                  "record_request": null
+                },
+                "finding": {
+                  "label": "insufficient_evidence",
+                  "likelihood": "roughly_even_chance",
+                  "confidence": "low",
+                  "basis_flag_refs": [],
+                  "cited_turns": [
+                    1
+                  ],
+                  "cited_records": [],
+                  "corroboration_needed": [
+                    "the work order",
+                    "the timeline"
+                  ],
+                  "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                  "alternative_explanations": null,
+                  "last_revised_turn": 1
+                },
+                "boundary_notice": false,
+                "commit_requested": false,
+                "card_seq": 1,
+                "turn_no": 1,
+                "validation": {
+                  "valid": true,
+                  "flags": {
+                    "t01.f1": {
+                      "citation_ok": true,
+                      "demeanor_based": false,
+                      "duplicate": false
+                    }
+                  },
+                  "demeanor_in_rationale": false
+                },
+                "latency_ms": 1840,
+                "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+                "transcript_version": 2,
+                "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "candidate_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+              }
+            }
+          },
+          {
+            "v": 1,
+            "seq": 4,
+            "scope": "trial",
+            "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+            "type": "trial.status",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "transcript_version": 12,
+            "data": {
+              "status": "source_unavailable",
+              "reason_code": "source_unavailable"
+            }
+          }
+        ],
+        "last": 4
+      }
     }
   ],
   "invalid": [
@@ -6104,6 +6204,314 @@
         }
       },
       "layer": "invariant"
+    },
+    {
+      "id": "neg-81",
+      "why": "source_unavailable on a training trial's stream (replay trials only, S5 6.2)",
+      "schema": "events",
+      "value": {
+        "v": 1,
+        "seq": 21,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.status",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "status": "source_unavailable",
+          "reason_code": "repair_failed"
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-82",
+      "why": "envelope version true instead of 1",
+      "schema": "events",
+      "value": {
+        "v": true,
+        "seq": null,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "notice",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 12,
+        "data": {
+          "kind": "paused",
+          "text": "The arena is paused by the operator."
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-83",
+      "why": "tournament envelope version true",
+      "schema": "tournament-poll",
+      "value": {
+        "visibility": "events",
+        "last": 41,
+        "frames": [
+          {
+            "v": true,
+            "seq": 40,
+            "scope": "tournament",
+            "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+            "type": "trial.started",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "data": {
+              "trial_ref": 3,
+              "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+              "pairing": "A2 x S1",
+              "track": "interactive",
+              "block": 1
+            }
+          },
+          {
+            "v": 1,
+            "seq": 41,
+            "scope": "tournament",
+            "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+            "type": "trial.execution",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "data": {
+              "trial_ref": 3,
+              "state": "budget_skipped"
+            }
+          }
+        ]
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-84",
+      "why": "scored debrief with scored: 1",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": 1,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        },
+        "rubric": {
+          "scorable": true,
+          "unscorable_reason": null,
+          "total": 70,
+          "dimensions": [
+            {
+              "dim_id": "D1",
+              "score": 3,
+              "checks": [
+                {
+                  "id": "1a",
+                  "result": "fail",
+                  "turns": [
+                    3
+                  ]
+                },
+                {
+                  "id": "1b",
+                  "result": "pass",
+                  "turns": []
+                }
+              ]
+            },
+            {
+              "dim_id": "D2",
+              "score": 4,
+              "checks": [
+                {
+                  "id": "2b",
+                  "result": "na",
+                  "turns": []
+                }
+              ]
+            }
+          ]
+        },
+        "scorecards": {
+          "learning": {
+            "evidence_coverage": {
+              "addressed": 3,
+              "key_facts": 5
+            },
+            "key_questions": [
+              {
+                "intent": "Why the subject entered Lab B",
+                "addressed_turns": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          },
+          "detection": {
+            "evasion_strict": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "evasion_broad": {
+              "tp": 1,
+              "flags": 3,
+              "events": 1
+            },
+            "unique_flags": 3,
+            "unsupported": {
+              "citation": 0,
+              "demeanor": 1,
+              "claim": 0
+            },
+            "coach_last_label": "truthful"
+          },
+          "subject_realism": {
+            "turns": 5,
+            "compliant": 5,
+            "failures": {
+              "F1": 0,
+              "F2_F4": 0,
+              "F3": 0,
+              "F5": 0,
+              "F6": 0
+            }
+          }
+        },
+        "provenance": {
+          "rubric_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "r3_prompt_sha256": [
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ],
+          "referee_model_ids": [
+            "gemini-3.1-flash-lite",
+            "gemini-3.5-flash-lite"
+          ],
+          "scorer_git_sha": "ffffffffffffffffffffffffffffffffffffffff"
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-85",
+      "why": "unscored debrief with scored: 0",
+      "schema": "debrief.v1",
+      "value": {
+        "schema_version": "debrief.v1",
+        "session_id": "c4d5e6f7-0a1b-4c2d-8e3f-9a0b1c2d3e4f",
+        "scored": 0,
+        "outcome": {
+          "role": "truthful",
+          "correct_finding": "truthful",
+          "committed_label": "insufficient_evidence",
+          "resolution": "The subject entered Lab B to reset a freezer alarm that sounded through the shared wall."
+        }
+      },
+      "layer": "schema"
+    },
+    {
+      "id": "neg-86",
+      "why": "replay status outside the replay states",
+      "schema": "replay-page",
+      "value": {
+        "frames": [
+          {
+            "v": 1,
+            "seq": 3,
+            "scope": "trial",
+            "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+            "type": "coach.card",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "transcript_version": 2,
+            "data": {
+              "turn_no": 1,
+              "card": {
+                "schema_version": "card.v1",
+                "turn_id": "t01",
+                "question": {
+                  "question_type": "open",
+                  "neutrality_issues": [],
+                  "assessment": "An open question about the reason for entry."
+                },
+                "answer_category": "non_responsive",
+                "flags": [
+                  {
+                    "kind": "non_responsive",
+                    "turn_id": "t01",
+                    "quote": "It was a busy shift.",
+                    "missing_fact": "purpose of entry",
+                    "conflict_turn_id": null,
+                    "conflict_quote": null,
+                    "conflict_record_id": null,
+                    "conflict_record_quote": null,
+                    "flag_ref": "t01.f1"
+                  }
+                ],
+                "follow_up": {
+                  "question": "What task required entry?",
+                  "tactic": "funnel_probe",
+                  "purpose": "Ask for the task the entry served.",
+                  "record_request": null
+                },
+                "finding": {
+                  "label": "insufficient_evidence",
+                  "likelihood": "roughly_even_chance",
+                  "confidence": "low",
+                  "basis_flag_refs": [],
+                  "cited_turns": [
+                    1
+                  ],
+                  "cited_records": [],
+                  "corroboration_needed": [
+                    "the work order",
+                    "the timeline"
+                  ],
+                  "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                  "alternative_explanations": null,
+                  "last_revised_turn": 1
+                },
+                "boundary_notice": false,
+                "commit_requested": false,
+                "card_seq": 1,
+                "turn_no": 1,
+                "validation": {
+                  "valid": true,
+                  "flags": {
+                    "t01.f1": {
+                      "citation_ok": true,
+                      "demeanor_based": false,
+                      "duplicate": false
+                    }
+                  },
+                  "demeanor_in_rationale": false
+                },
+                "latency_ms": 1840,
+                "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+                "transcript_version": 2,
+                "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "candidate_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+              }
+            }
+          },
+          {
+            "v": 1,
+            "seq": 4,
+            "scope": "trial",
+            "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+            "type": "trial.status",
+            "ts": "2026-10-20T15:04:05.123Z",
+            "transcript_version": 12,
+            "data": {
+              "status": "finalizing",
+              "reason_code": "source_unavailable"
+            }
+          }
+        ],
+        "last": 4
+      },
+      "layer": "schema"
     }
   ]
 }
