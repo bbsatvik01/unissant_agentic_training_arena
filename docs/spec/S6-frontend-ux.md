@@ -1,6 +1,6 @@
 # S6: Frontend and UX
 
-Part S6 of the build specification for the Investigative AI Training Arena. **Version 2.4, 2026-10-09: Codex round 2 fixes; D-016 simplifications.** Version 2.1 (same date) reconciled S1, resolved cross-check X-01..X-17 and applied D-013; version 1 was written against direction v10 (hosted, 20 cases).
+Part S6 of the build specification for the Investigative AI Training Arena. **Version 2.5, 2026-10-09: Codex round 3 fixes.** Version 2.1 (same date) reconciled S1, resolved cross-check X-01..X-17 and applied D-013; version 1 was written against direction v10 (hosted, 20 cases).
 
 Governing inputs: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (cited as "direction") with D-011 local-first, `docs/research/synthesis/03-ui-direction.md` v2.1 (cited as "UI direction"), `docs/challenge/REQUIREMENTS.md` (requirement IDs), `docs/handoff/DECISIONS.md` (D-001 to D-014; D-007 superseded by D-009; D-013 one global spend ceiling; D-014 case families authored offline), `docs/handoff/PATTERNS.md`, S8 section 2 (owner decisions OD-0 to OD-14) and section 9 (C-01 to C-48), research routes X5, I6, I7 and U1-U5. Lift sources were read directly on 2026-10-08 and are cited by path and line range. Dollar figures come from `docs/research/synthesis/cost_model.py` and statistical bounds from `docs/research/synthesis/stats_contracts.py`; each names the function that printed it.
 
@@ -163,13 +163,13 @@ Same as 3.1 except: no coach card, no coach activity, no running finding, and th
 KPI-1 study (SG4-10): the request never carries a phase. The server derives it from committed state (`training.start_session`, S4) and enforces the order: two pre-tests, three practice sessions (Practice mode, text, finalized; an assessment-mode or voice free session does not count, SG3-31), two post-tests; tests run in assessment mode, in text, once per test variant. The client reads the participant's status from `GET /api/me` (`study`: counterbalance, ended sessions per phase, the next allowed phase) and shows it as the step label ("Pre-test 1 of 2", "Practice 2 of 3", "Post-test 1 of 2"). While the next phase is `pre` or `post`, `GET /api/cases` lists only that set's variants, and the case brief offers Assessment in Text only; a refused start (422) shows the server's step message. After each session the client re-reads `/api/me`.
 
 ### 3.3 Practice, voice (D-006; development cases only, direction section 9; unscored, D7)
-Voice sessions are unscored development practice: their turns enter the transcript with channel `voice`, are coached like text turns, and never enter a score, a KPI or a leaderboard (S5 7). The room header and the debrief say "Voice practice: not scored".
+Voice sessions are unscored development practice and display only (D7, D-016): they create no turns and no coaching cards, their exchanges are stored for display (S5 7.7), and they never enter a score, a KPI or a leaderboard (S5 7). The room header and the debrief say "Voice practice: not scored"; the coach panel shows "Coaching is text only" and the companion sleeps.
 1. Channel Voice is offered only in Practice mode, on a case the library listed (development cases only), when `config.voice_available = true` and the user's voice quota is non-zero. Test sessions are text only.
 2. Disclosure and consent screen (gokbase pattern: disclosure plays before the mic opens, `audioController.ts` lines 22-24); then `POST /api/voice/tickets {trial_id}` and a same-origin WebSocket to `/api/voice/ws` with subprotocol `[ticket]` (S5 7.2; gokbase `useVoiceSession.ts` lines 10-11, 308-328).
-3. The investigator speaks; the subject answers in audio; live transcript fragments render as one caption line; each server-finalized turn (`turn_committed {turn_no, version}` on the socket) is followed by its text on the SSE stream, which enters the transcript as `T{n}` and triggers the same coach card as text (S5 7.3, C-29); a card on a voice turn is labeled provisional (S5 7.7).
-4. Records are requested through the same evidence board and route as in text (4.4); the server refreshes the subject's context after every release (S5 7.4). Nothing about evidence crosses the voice socket from the browser.
+3. The investigator speaks; the subject answers in audio; live captions render in arrival order, each role on its own caption line, never paired (SG3-40); each stored exchange arrives as an `exchange {exchange_no, question, answer, partial}` frame on the socket and replaces those captions with a transcript entry `V{n}` (question and answer, "not transcribed" for a null side). After a reload the room reads the stored exchanges from the snapshot (S5 7.7).
+4. Records are requested through the same evidence board and route as in text (4.4); the subject's context is refreshed at the next exchange boundary after every release (S5 7.4), so an answer already being spoken may not reflect a record released mid-answer. Nothing about evidence crosses the voice socket from the browser.
 5. Interrupted subject utterances are marked partial ("interrupted: may include words you did not hear") and are not citable (direction 9, F10).
-6. The session ends at 12 exchanges (close 4410), 480 s, idle (4408), cost shutoff (4413), kill switch (4423) or user stop; the investigator then commits a finding in text.
+6. The session ends at 12 exchanges (close 4410, after the last answer plays out), 480 s, idle (4408), cost shutoff (4413), kill switch (4423), user stop, or a dropped connection (with an offer to reconnect, which starts a new voice session on the same trial). The composer stays closed for questions (a voice session takes none in text); the investigator commits the finding in text, citing records (the voice exchanges are not turns and are not citable).
 
 **OWNER DECISION PENDING (OD-6, direction 3.2 decision points, Oct 15 and Oct 18):** voice may become Live on Vertex (default), push-to-talk STT-LLM-TTS (D-006 exception), Developer API Live (D-001 exception) or dropped. The voice machine (6.2) has a `mode: 'live' | 'push_to_talk'` input; push-to-talk replaces `listening` with `recording` held by an explicit control. If voice is dropped, `config.voice_available = false` hides the channel and nothing else changes.
 
@@ -213,7 +213,7 @@ Regions:
 | --- | --- | --- | --- |
 | Case header | Case ID, objective, exchanges used `n/12`, mode badge, channel | yes | yes |
 | Subject panel | Subject portrait (6.4), persona display name, status word ("Listening", "Answering", "Session ended") | yes | yes |
-| Transcript | Turns `T1..Tn` with speaker, text, release markers; partial voice turns marked "interrupted" | yes | yes |
+| Transcript | Turns `T1..Tn` with speaker, text, release markers; in a voice session, exchanges `V1..Vn` instead (display only, partial ones marked "interrupted") | yes | yes |
 | Composer | Editable question input (receives "Use this question" and "Present" insertions), Send | yes | yes |
 | Voice bar | Pill-shaped bar docked at the bottom (6.2), voice sessions only; transcript, evidence board and coach card stay visible | yes (unscored, D7) | no (voice is offered in practice only, 3.3) |
 | Evidence board | Section 4.4 | yes | yes |
@@ -224,7 +224,7 @@ Regions:
 
 Behavior:
 - One open turn at a time (S4 5.3, S5 5.1). Send is disabled from `question.accepted` until the turn closes: in practice, until `coach.card` or `coach.failed` for that turn; in assessment, the client cannot see coaching events, so Send re-enables on `subject.answer`, and a `409 turn_in_progress` keeps the draft and shows "One moment: the previous turn is still being saved." (section 16, item 1).
-- Question length limit from `GET /api/config` (`question_max_chars`, 600; D11), displayed as a counter. A `422 context_full` on a turn means the interview can take no more context (S5 5.2): the composer locks with "This interview has reached its length limit; commit your finding." and the finding commit becomes the primary action.
+- Question length limit from `GET /api/config` (`question_max_chars`, 600; D11), displayed as a counter. The composer locks after 12 exchanges with "This interview has reached its length limit; commit your finding." and the finding commit becomes the primary action (no context-size refusal exists, S5 5.2, SG2-35).
 - Subject and coach text are untrusted (SUB-7): rendered as plain text nodes, never `dangerouslySetInnerHTML`, never markdown. Quoted spans are highlighted by offset, not by HTML injection.
 - Transcript region is `role="log"` with `aria-live="polite"`, mounted from the start and never unmounted (gokbase `Transcript.tsx` lines 15-18, 472-473); voice captions batch announcements at clause boundaries or every 400 ms (same file, lines 310-325). Transcript text never types out character by character.
 - Mobile (< 768 px): regions become tabs (Transcript, Evidence, Coach); composer, voice bar and EX-4 footer stay pinned and do not obscure focused content (WCAG 2.4.11).
@@ -234,7 +234,7 @@ Acceptance:
 - FE-ROOM-1: a component test with a fixture event sequence renders turns in seq order regardless of arrival order and ignores duplicate seqs.
 - FE-ROOM-2: an XSS fixture (`<img src=x onerror=...>` and markdown links in subject text) renders as literal text; no new elements in the DOM.
 - FE-ROOM-3: in assessment mode the coach card region contains no coach text after a full fixture session (and the client logs a contract violation if any `coach.*` event arrives, section 5.4).
-- FE-ROOM-4: after 12 exchanges, or after a `422 context_full`, the composer is disabled and the finding commit is the only primary action.
+- FE-ROOM-4: after 12 exchanges the composer is disabled and the finding commit is the only primary action.
 - FE-ROOM-5: each terminal status renders its neutral message; the `subject_quarantined` message contains none of the words "attack", "injection", "deceptive", "lying".
 - FE-ROOM-6: practice fixture: Send stays disabled between `subject.answer` and `coach.card`; assessment fixture: a mocked `409 turn_in_progress` keeps the draft text unchanged and shows the fixed message.
 
@@ -274,7 +274,7 @@ Citation chip behavior (AST-7):
 - Label `T{n}` derived from S2's `tNN` (C-16), accessible name "Turn n: <first 60 characters of the quote>".
 - Activation scrolls the transcript to that turn, moves focus to it, and highlights the quoted span.
 - The client checks the quote with `quoteOk(quote, text)`, the TypeScript port of S2's one shared predicate `quote_ok` (S2 1 and 4.4.1; D6), tested against the same fixture file as the Python module. Normalization: Unicode NFKC; curly quotes and apostrophes to straight; every dash U+2010 to U+2015 and U+2212 to `-`; whitespace runs to one space; trimmed; case kept. A quote matches when its normalized form is a substring of the normalized text and has at least 3 words, or equals the whole normalized text when that text is shorter. The text is the cited turn's committed answer, or the cited record's `content_text()` (S1 6.1). On no match the chip renders a "quote not found in T{n}" state and is excluded from highlight. The UI never presents an unverifiable citation as verified (X5 section 1, Obra Dinn principle); scoring of unsupported flags remains server-side (EVL-5).
-- Partial (interrupted) voice turns are never valid citation targets; a chip pointing at one renders the "not citable: interrupted" state.
+- Voice exchanges are never citation targets (they are not turns, D-016); no voice card exists to cite them.
 
 Failure states: `coach.failed` shows "Coaching for this turn was not available" and counts as a KPI-4 miss server-side; the room continues.
 
@@ -323,14 +323,14 @@ Regions:
 5. Annotated transcript: per turn, question type, answer category, flags with chips (with the EX-4 evasion sentence beside them, section 8), the coach's suggested follow-up next to the question actually asked next, released-record markers with whole content (4.4), and demeanor-driven question callouts (PRB-4). In assessment mode this is where coaching first appears. Pins are page state and do not appear here (4.4).
 6. Export: JSON (the `debrief.v1` document plus `EX4_TEXT`) and print view; both carry EX-4.
 
-A voice session's document has `scored: false` (S5 5.4): the debrief shows the header, outcome and transcript with the "not scored" label, and no rubric cards or scorecards.
+A voice session's document is S3 5.7's unscored branch (`scored: false`; `rubric`, `scorecards` and `provenance` absent, SG4-31): the debrief shows the header, outcome and the stored voice exchanges (`training.v_my_voice_exchanges` through S5) with the "not scored" label, and no rubric cards or scorecards. The client validates both branches with the generated `debrief.v1` validator.
 
 - FE-DEB-1: until the document is published, rubric cards show "Scoring" and no number; reopening a debrief calls the idempotent `POST` again and shows the same stored document (equal `sha256`).
 - FE-DEB-2: the total displayed equals `rubric.total` (no client arithmetic; a fixture with an inconsistent total still shows the server value, the test asserts the client never sums, and the count-up ends on the server value).
 - FE-DEB-3: the detection scorecard renders every field of `scorecards.detection` from a fixture, including zero denominators as "undefined", and the coach's last label next to `outcome.correct_finding`.
 - FE-DEB-4: assessment-mode debrief shows the coach cards that were withheld during the session.
 - FE-DEB-5 (visibility): the outcome region renders only from `debrief.v1`; the snapshot and delta schemas of a running trial have no `role`, `correct_finding` or `resolution` key (contract test), and a fixture running session renders none of those words' values.
-- FE-DEB-6: a `scored: false` fixture renders the "not scored" label, the outcome and the transcript, and no rubric card or scorecard.
+- FE-DEB-6: S3's unscored fixture (no `rubric`, `scorecards` or `provenance`) passes the client validator and renders the "not scored" label, the outcome and the voice exchanges, and no rubric card or scorecard; the same fixture with a `rubric` added, and a scored fixture without `provenance`, fail validation and render the error state.
 
 ### 4.8 Progress (KPI-1)
 - Score series per session with dimension breakdown (`GET /api/progress`); study participants see pre, post, absolute change and relative change, or "relative change undefined (baseline 0)", once both post-tests are scored.
@@ -551,7 +551,7 @@ KPI-4 is measured on the server clock: start = `subject_commit_at` (`clock_times
 
 - On a `coach.card` frame (practice mode, the only population that receives live cards, S3 6.4), the client runs the acceptance check of 4.5 and immediately, before rendering, posts `{trial_id, turn_no, client_valid: true | false}` to `POST /api/telemetry/kpi4` (S5 8.7) with `keepalive: true`. One acknowledgement per turn; the server keeps the first and ignores later ones, so a retry is safe.
 - No client clock value, duration or round trip is sent. The v1 `GET /api/ping` RTT measurement and `card_minus_answer_ms` arithmetic are removed.
-- Only cards on text turns are acknowledged: a voice turn opens no KPI-4 sample (S5 7.4), so the client skips cards whose turn's `subject.answer` has channel `voice`.
+- Voice sessions produce no cards (S5 7.7), so every card the client receives is on a text turn and is acknowledged.
 - A card that fails acceptance is acknowledged `client_invalid` and counts as a miss. A sample still pending when the next question is recorded or the trial finalizes becomes `unmeasured_timeout` server-side (tab closed, acknowledgement lost) and counts as both a miss and unmeasured (D4, S3 6.4). `coach.failed` is a server-side miss with nothing to acknowledge.
 - FE-KPI4-1: unit test with a fake transport: a valid card posts exactly one acknowledgement with `client_valid: true` before the card's render effect runs; an invalid or stale card posts `client_valid: false` (stored as `client_invalid`) and renders nothing; a duplicate frame posts nothing new; a card on a voice turn posts nothing; the body is exactly `{trial_id, turn_no, client_valid}`.
 - FE-KPI4-2: render budget (outside the KPI-4 measure): the card renders within 100 ms of frame receipt at the 95th percentile in the Playwright fixture run (performance marks around the reducer dispatch and the card's commit effect).
@@ -581,7 +581,7 @@ In assessment mode the companion is `sleeping` for the whole session (6.3).
 
 ### 6.2 Voice machine and voice bar (lifted from gokbase `voiceMachine.ts`, lines 1-234; protocol per S5 7.3 and 7.5, C-29)
 
-Kept verbatim: the pure reducer shape, the terminal `ended` absorbing state (line 193), `frameToEvent` whitelist with unknown frames ignored (lines 125-163), the terminal-versus-transient close-code split (lines 73-110), transcript fragment merging by role (lines 165-182), and the no-cost-on-the-wire rule (lines 112-114: the frame union has no cost variant).
+Kept verbatim: the pure reducer shape, the terminal `ended` absorbing state (line 193), `frameToEvent` whitelist with unknown frames ignored (lines 125-163), transcript fragment merging by role (lines 165-182), and the no-cost-on-the-wire rule (lines 112-114: the frame union has no cost variant). Changed: the gokbase `ended` frame (lines 154-158) is not accepted; the WebSocket close code alone ends the session (SG4-32), and every close code is terminal (no transient resume branch, D-016).
 
 Arena changes:
 
@@ -589,10 +589,10 @@ Arena changes:
 | --- | --- |
 | States: `idle, consent, connecting, listening, thinking, speaking, draining, ended`; gokbase `tool-lookup` becomes `thinking` (the subject preparing an answer); `draining` follows a 4410 close and plays the already-received audio to its end, with capture stopped, before `ended` (SG4-28) | Arena vocabulary; consent gate before mic (gokbase disclosure-before-mic pattern); a normal final answer is heard whole |
 | `mode: 'live' \| 'push_to_talk'`; under push-to-talk `listening` becomes `recording` while the talk control is held | OD-6 voice branch (3.3) |
-| Frames accepted (S5 7.3): `utterance_start`, `utterance_end`, `transcription {role, text, partial, utterance}` (an investigator caption's `utterance` is the number of the subject utterance that answers it, so the room pairs question k with answer k), `interrupted {utterance}`, `turn_committed {turn_no, version}`, `exchange_count {used, cap}` (S5 adds it, C-29), `timer_tick`, `warning`, `ended`; turn text arrives on SSE, so the transcript shows committed turns plus at most one live caption line | Text is the scored artifact (SOL-1) and voice is unscored (D7); live fragments are captions only (I6 section 4: one answer arrives as many fragments) |
+| Frames accepted (S5 7.3): `utterance_start`, `utterance_end`, `transcription {role, text, partial}` (captions, unpaired), `interrupted {utterance}`, `exchange {exchange_no, question, answer, partial}` (the stored exchange, the only pairing of question and answer, SG3-40), `exchange_count {used, cap}` (S5 adds it, C-29), `timer_tick`, `warning`; no `ended` frame (SG4-32) | Text is the scored artifact (SOL-1) and voice is unscored (D7); live fragments are captions only (I6 section 4: one answer arrives as many fragments) |
 | Controls sent (S5 7.3): binary PCM16 audio (16 kHz mono, at most 3,200 bytes per frame, at most 15 per second), `stop`, `interrupt`. Nothing else: there is no playback control on the wire (D7, SG4-06; S5 closes 4400 on a `played` frame), and evidence requests go through the REST route (3.3) | Playback progress stays in the browser and drives only the UI: the arena playback worklet posts `{type:'drained'}` when its queue empties and `{type:'cleared', dropped}` on `clear` (the gokbase worklet, `public/worklets/playback-processor.js` lines 21-77, reports neither); the voice bar's "Subject is speaking" state and the barge-in flush read them |
-| Close codes (S5 7.5, canonical, plus 4410 from C-29): terminal `1000` normal, `4400` protocol violation, `4401` ticket or binding, `4403` origin, `4404` not found, `4408` idle, `4409` subject guard hit (the session is invalid; S2 9.4, X-15), `4410` exchange cap reached (enters `draining`, never flushes), `4413` cost shutoff or reservation refused (replaces v1's `4429`), `4423` kill switch. A transport drop (`1006`, `1011`) also ends that voice session; the bar offers "Reconnect", which mints a new ticket and opens a new voice session on the same trial (S5 7.2 step 4: no resume credential, D-016) | One protocol, owned by S5 |
-| Timer and `warning` kept (lines 214-224); the room shows "Voice ends in 60 s; you can continue in text" | WCAG 2.2.1 (time limit with warning and an untimed alternative) |
+| Close codes (S5 7.5, canonical, plus 4410 from C-29): terminal `1000` normal, `4400` protocol violation, `4401` ticket or binding, `4403` origin, `4404` not found, `4408` idle, `4409` subject guard hit (the rule is the session's close code; S2 9.4, X-15), `4410` exchange cap reached (enters `draining`, never flushes), `4413` cost shutoff or reservation refused (replaces v1's `4429`), `4423` kill switch. A transport drop (`1006`, `1011`) also ends that voice session; the bar offers "Reconnect", which mints a new ticket and opens a new voice session on the same trial (S5 7.2 step 4: no resume credential, D-016) | One protocol, owned by S5 |
+| Timer and `warning` kept (lines 214-224); the room shows "Voice ends in 60 s; you can then commit your finding in text" | WCAG 2.2.1 (time limit with warning and an untimed alternative) |
 
 **Voice bar state (UI direction 3).** A pill-shaped bar docked at the bottom of the room, never a full-screen takeover. Its state combines four inputs: connection (the machine and its close-code taxonomy), microphone capture (the capture tap's level against a silence floor), server activity (S5's `utterance_start`, `utterance_end`, `interrupted`, investigator `transcription`) and actual playback (queued audio can keep playing after `utterance_end`).
 
@@ -613,9 +613,9 @@ Audio layer lifted from gokbase `audioController.ts` (lines 1-338): two contexts
 Acceptance:
 - FE-VOICE-1: reducer table test covers every (state, event) pair; `ended` absorbs every later event.
 - FE-VOICE-2: close-code table: every terminal code in S5 7.5 plus `4410` maps to its ended copy key; `4429` and `4503` are not recognized; `1006` and `1011` end the session and show the reconnect offer, which opens a new voice session.
-- FE-VOICE-7 (SG4-28): a 4410 close while a nonempty final utterance is queued enters `draining`, plays the queue to `drained`, then `ended`; an `interrupted` frame or a 4409 or 4423 close flushes at once.
-- FE-VOICE-8: investigator captions carrying `utterance` k render beside answer k in a two-exchange fixture, including when the answer's first caption arrives before the question's last one.
-- FE-VOICE-3: fragments for one subject utterance merge into one caption line; only a committed turn arriving on SSE adds a transcript turn.
+- FE-VOICE-7 (SG4-28, SG4-32): the full server termination sequence `exchange`, `exchange_count {12, 12}`, `utterance_end`, close 4410, with a nonempty final utterance queued, enters `draining`, plays the queue to `drained`, then `ended`; an `interrupted` frame or a 4409 or 4423 close flushes at once; an `ended` text frame is ignored as unknown.
+- FE-VOICE-8 (SG3-40): captions render unpaired in arrival order, including an investigator caption arriving after the subject's; the `exchange` frame replaces them with one `V{n}` entry holding the stored question and answer.
+- FE-VOICE-3: fragments for one subject utterance merge into one caption line; only an `exchange` frame (or the snapshot's stored exchanges after a reload) adds a transcript entry; no turn, card or KPI-4 acknowledgement appears in a voice session.
 - FE-VOICE-4: worklet test (AudioWorklet processor run in Node with a stub `AudioWorkletProcessor`): a 1.1 s buffer (26,400 samples at 24 kHz) posts `drained` exactly once, after its last sample is output; `clear` posts `cleared` with the dropped count; the socket client's outbound frame union contains only audio, `stop` and `interrupt` (type test).
 - FE-VOICE-5: the voice channel control is absent when `split != 'dev'` or `voice_available = false`.
 - FE-VOICE-6: voice-bar table test over (connection, capture, server activity, playback); after `utterance_end` with audio still queued the bar stays "Subject is speaking" until the queue drains; after `interrupted` the shared amplitude reads 0 within one animation frame.
@@ -888,7 +888,7 @@ End-to-end acceptance list (all CI unless marked):
 - E2E-1 Practice text session, 3 exchanges, one request, one Present (excerpt inserted into the question), commit "insufficient evidence", debrief shows five cards (FE-ROOM, FE-EVD, FE-COACH, FE-FIND, FE-DEB).
 - E2E-2 Assessment session shows no coaching in the room and shows it in the debrief.
 - E2E-3 Stream drop mid-session (server closes the connection): the room reconnects with `after=` and no turn is duplicated or lost.
-- E2E-4 Voice session against the voice relay's fake Live backend: consent, connect, two committed turns, barge-in flush, `4410` at cap.
+- E2E-4 Voice session against the voice relay's fake Live backend: consent, connect, two stored exchanges (`V1`, `V2`), barge-in flush, `4410` at cap with the last answer drained, then the finding committed in text; a forced drop and a reconnect show the earlier exchanges.
 - E2E-5 Hidden pre-reveal arena: no transcript text in the DOM (FE-ARENA-1).
 - E2E-6 Leaderboard gate ordering and intervals (FE-LB-1..5).
 - E2E-7 Commitment verification in the trust center (FE-TRUST-1).
@@ -1059,5 +1059,5 @@ Also aligned with UI direction v2.1 (no C-ID): the 2a visibility rule (5.4, FE-S
 | SG4-17 (D6) | 4.5: `quoteOk` is the TypeScript port of S2's one predicate, with dash normalization (U+2010 to U+2015, U+2212) and the 3-word or whole-answer rule, tested on S2's shared fixture file; FE-COACH-3. |
 | SG4-18 | 4.4, 4.7: personal pins are page state only, never stored or sent; FE-EVD-5. |
 | SG4-19 | 11: one release rule shared with S8 OD-4 and R-10: if DESIGN.md has not arrived by 2026-10-20, the release ships the placeholder theme, which must pass the accessibility, token and anti-slop checks. |
-| D5, D11 | 4.3, 4.6: questions at most 600 characters (`question_max_chars`), `422 context_full` locks the composer; the finding carries `rationale` (1-600 characters). |
+| D5, D11 | 4.3, 4.6: questions at most 600 characters (`question_max_chars`), the composer locks at 12 exchanges (v2.5 removed `context_full`, SG2-35); the finding carries `rationale` (1-600 characters). |
 | D7 | 0, 3.3, 4.3, 4.7, 5.6: voice sessions are unscored practice, labeled so in the room and the debrief; voice turns open no KPI-4 sample; evidence in voice uses the same board and route. |

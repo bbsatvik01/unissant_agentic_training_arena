@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0005_training.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0005_training.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Investigator sessions (practice and assessment, development cases only), KPI-1 participants and
 -- matched case sets with the session phase derived from committed state, blinded rubric scores, the
 -- published debrief, single-use access tickets for SSE and voice, voice sessions (unscored practice,
@@ -112,8 +112,10 @@ create table training.access_tickets (
 );
 create index access_tickets_user_idx on training.access_tickets (user_id, kind, created_at);
 
--- One Live session (D-006). Voice sessions are unscored development practice (D7): their turns enter
--- arena.turns with channel 'voice' for display and coaching, never for scoring.
+-- One Live session (D-006). Voice sessions are unscored development practice (D7, D-016): a voice session
+-- writes no arena.turns rows and no per-question work items; arena-subject stores each completed exchange
+-- in training.voice_exchanges for display only, so closing or losing the connection never leaves an open
+-- turn. A session created with voice = true takes no typed questions; its finding is committed in text.
 create table training.voice_sessions (
   id             uuid primary key default gen_random_uuid(),
   session_id     uuid not null references training.sessions(id) on delete restrict,
@@ -127,20 +129,52 @@ create table training.voice_sessions (
 );
 create unique index voice_sessions_one_open on training.voice_sessions (session_id) where status = 'open';
 
+-- The spoken transcript of a voice session's trial, display only (D-016): one row per completed exchange,
+-- numbered across the trial's voice sessions, at most 12 (BKO-8). question is the Live input transcription
+-- and answer the output transcription; either is null when Live delivered none within the grace period
+-- (S5 7.4); partial marks an answer Live reported interrupted. Nothing scores these rows.
+create table training.voice_exchanges (
+  trial_id         uuid not null references arena.trials(id) on delete restrict,
+  exchange_no      smallint not null check (exchange_no between 1 and 12),
+  voice_session_id uuid not null references training.voice_sessions(id) on delete restrict,
+  question         text check (length(question) between 1 and 600),
+  answer           text check (length(answer) between 1 and 900),
+  partial          boolean not null default false,
+  created_at       timestamptz not null default now(),
+  primary key (trial_id, exchange_no)
+);
+create trigger voice_exchanges_append_only before update or delete on training.voice_exchanges
+  for each row execute function arena.tg_forbid_mutation();
+
 -- The published debrief (D8, SG3-14): one per session, written only by training.publish_debrief
 -- (arena_referee) after the session's trial ended, read by its owner through training.v_my_debrief.
--- payload (debrief.v1, validated in code by the referee): {schema, scored, outcome (the development
--- case's role and the session's own result, shown only after the session ends: the explicit exception
--- in S6's visibility matrix), resolution (the case resolution summary), rubric (the rubric cards),
--- scorecards (the three scorecards), provenance (rubric version, prompt and model hashes, scored_at)}.
--- A voice session (unscored, D7) has scored = false and null rubric and scorecards.
+-- payload is S3 5.7's debrief.v1 (S3 owns it; the referee validates the full schema in code). The one
+-- envelope check below is used by both the table and publish_debrief (SG3-34): top-level keys only from
+-- S3's set; schema_version, session_id, scored and outcome (with role, correct_finding, committed_label and
+-- a resolution string) always; scored = true carries rubric, scorecards and provenance; scored = false
+-- (a voice session, D7) carries none of the three.
+create or replace function training.debrief_envelope_ok(p jsonb)
+returns boolean
+language sql immutable set search_path = '' as $$
+  select jsonb_typeof(p) = 'object' and octet_length(p::text) <= 65536
+     and p ->> 'schema_version' = 'debrief.v1'
+     and p ?& array['schema_version', 'session_id', 'scored', 'outcome']
+     and not exists (select 1 from jsonb_object_keys(p) k
+                      where k not in ('schema_version', 'session_id', 'scored', 'outcome', 'rubric', 'scorecards',
+                                      'provenance'))
+     and jsonb_typeof(p -> 'scored') = 'boolean'
+     and jsonb_typeof(p -> 'outcome') = 'object'
+     and (p -> 'outcome') ?& array['role', 'correct_finding', 'committed_label', 'resolution']
+     and jsonb_typeof(p -> 'outcome' -> 'resolution') = 'string'
+     and case when (p ->> 'scored')::boolean
+              then p ?& array['rubric', 'scorecards', 'provenance']
+                   and jsonb_typeof(p -> 'rubric') = 'object' and jsonb_typeof(p -> 'scorecards') = 'object'
+                   and jsonb_typeof(p -> 'provenance') = 'object'
+              else not (p ?| array['rubric', 'scorecards', 'provenance']) end
+$$;
 create table training.debriefs (
   session_id   uuid primary key references training.sessions(id) on delete restrict,
-  payload      jsonb not null check (jsonb_typeof(payload) = 'object' and octet_length(payload::text) <= 65536
-                                     and payload ->> 'schema' = 'debrief.v1'
-                                     and payload ?& array['schema', 'scored', 'outcome', 'resolution', 'rubric',
-                                                          'scorecards', 'provenance']
-                                     and jsonb_typeof(payload -> 'scored') = 'boolean'),
+  payload      jsonb not null check (training.debrief_envelope_ok(payload)),
   sha256       text not null generated always as (ledger.hash_jsonb(payload)) stored,
   published_at timestamptz not null default now()
 );
@@ -343,42 +377,49 @@ begin
   return true;
 end $$;
 
--- record_voice_question (arena_subject): the investigator's spoken question exists only as a Live
--- input transcription inside arena-subject (S5 Q8). Records Q(t) on the voice session's own training
--- trial with channel 'voice' and opens the subject_answer work item for the same turn under the request
--- key sha256('voice:' || key); a repeated key returns the same turn and item (D3). Due scheduled releases
--- are applied at each voice turn boundary by arena-api (S5 7.4), not here.
-create or replace function training.record_voice_question(p_trial uuid, p_voice_session uuid, p_question text,
-                                                          p_idempotency_key text)
+-- record_voice_exchange (arena_subject; D-016): stores one completed exchange of an open voice session for
+-- display, numbered across the trial (the next number, at most 12), and in the same transaction applies
+-- the trial's due scheduled releases (arena._apply_releases counts stored voice exchanges), so the result
+-- tells arena-subject what to add to Live's context before it forwards more audio. Idempotent on
+-- (trial, exchange_no): the same content returns the stored result, other content is refused (AR003).
+create or replace function training.record_voice_exchange(p_voice_session uuid, p_exchange_no smallint,
+                                                          p_question text, p_answer text, p_partial boolean)
 returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v     arena.trials;
-  v_t   arena.turns;
-  v_res jsonb;
-  v_wi  arena.work_items;
-  v_key text := ledger.hash_text('voice:' || coalesce(p_idempotency_key, ''));
+  v_x   training.voice_exchanges;
+  v_rel jsonb;
 begin
   perform ledger.require_read_committed();
-  v := arena._lock_trial(p_trial);
-  if v.kind <> 'training' or not exists (
-       select 1 from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
-        where vs.id = p_voice_session and vs.status = 'open' and s.trial_id = p_trial) then
-    raise exception using errcode = 'AR040', message = 'voice question refused';
+  select t.* into v from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
+    join arena.trials t on t.id = s.trial_id where vs.id = p_voice_session;
+  if v.id is null then
+    raise exception using errcode = 'AR040', message = 'voice exchange refused';
   end if;
-  select * into v_t from arena.turns where trial_id = p_trial and idempotency_key = p_idempotency_key;
+  v := arena._lock_trial(v.id);
+  select * into v_x from training.voice_exchanges where trial_id = v.id and exchange_no = p_exchange_no;
   if found then
-    if v_t.question is distinct from p_question or v_t.channel <> 'voice' then
-      raise exception using errcode = 'AR003', message = 'idempotency key reused with a different question';
+    if (v_x.voice_session_id, v_x.question, v_x.answer, v_x.partial)
+       is distinct from (p_voice_session, p_question, p_answer, coalesce(p_partial, false)) then
+      raise exception using errcode = 'AR003', message = 'exchange number reused with different content';
     end if;
-    select * into v_wi from arena.work_items where trial_id = p_trial and idempotency_key = v_key;
-    return jsonb_build_object('turn_no', v_t.turn_no, 'transcript_version', v_t.question_version, 'work_item_id', v_wi.id);
+    return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'exists', 'released', '[]'::jsonb);
   end if;
-  v_res := arena._record_question(v, p_question, 'investigator', null, null, 'voice', p_idempotency_key);
-  insert into arena.work_items (trial_id, kind, transcript_version, turn_no, idempotency_key)
-    values (p_trial, 'subject_answer', (v_res ->> 'transcript_version')::integer, (v_res ->> 'turn_no')::smallint, v_key)
-    returning * into v_wi;
-  return v_res || jsonb_build_object('work_item_id', v_wi.id);
+  if v.status <> 'running' or not exists (select 1 from training.voice_sessions
+                                           where id = p_voice_session and status = 'open') then
+    raise exception using errcode = 'AR040', message = 'voice exchange refused';
+  end if;
+  if p_exchange_no is distinct from
+     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint then
+    raise exception using errcode = 'AR004', message = 'voice exchanges are stored in order, at most 12';
+  end if;
+  insert into training.voice_exchanges (trial_id, exchange_no, voice_session_id, question, answer, partial)
+    values (v.id, p_exchange_no, p_voice_session, p_question, p_answer, coalesce(p_partial, false));
+  v_rel := arena._apply_releases(v.id, '{}'::text[], null);
+  return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'recorded',
+    'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id', 'kind', e ->> 'kind')),
+                                 '[]'::jsonb) from jsonb_array_elements(v_rel) e));
 end $$;
 
 -- acknowledge (arena_public): records the actor's acknowledgement once and returns its time.
@@ -426,14 +467,11 @@ begin
   if v.status not in ('finalized', 'terminated') then
     raise exception using errcode = 'AR001', message = 'a debrief follows the end of the session';
   end if;
-  -- Envelope of S3 5.7 debrief.v1 (S3 owns the payload; the referee validates the full schema in code).
-  if jsonb_typeof(p_payload) is distinct from 'object' or p_payload ->> 'schema_version' is distinct from 'debrief.v1'
-     or not (p_payload ?& array['schema_version', 'session_id', 'scored', 'outcome', 'rubric', 'scorecards', 'provenance'])
-     or jsonb_typeof(p_payload -> 'scored') is distinct from 'boolean'
+  -- Envelope of S3 5.7 debrief.v1, the same check as the table's (SG3-34); a text session is scored and a
+  -- voice session is not (D7).
+  if not coalesce(training.debrief_envelope_ok(p_payload), false)
      or p_payload ->> 'session_id' is distinct from p_session::text
-     or jsonb_typeof(p_payload -> 'outcome') is distinct from 'object'
-     or not ((p_payload -> 'outcome') ?& array['role', 'correct_finding', 'committed_label', 'resolution'])
-     or octet_length(p_payload::text) > 65536 then
+     or (p_payload ->> 'scored')::boolean = v_s.voice then
     raise exception using errcode = 'AR007', message = 'debrief payload must match the debrief.v1 envelope (S3 5.7)';
   end if;
   select * into v_d from training.debriefs where session_id = p_session;
@@ -480,6 +518,12 @@ create view training.v_my_scores with (security_barrier = true) as
    where s.user_id = arena.actor_id() and t.status in ('finalized', 'terminated');
 
 -- The actor's published debriefs (D8). Publication happens only after the session ended.
+-- The actor's voice transcripts (D-016): display only, for the room after a reload and the debrief.
+create view training.v_my_voice_exchanges with (security_barrier = true) as
+  select x.trial_id, x.exchange_no, x.question, x.answer, x.partial, x.created_at
+    from training.voice_exchanges x join training.sessions s on s.trial_id = x.trial_id
+   where s.user_id = arena.actor_id();
+
 create view training.v_my_debrief with (security_barrier = true) as
   select d.session_id, d.payload, d.sha256, d.published_at
     from training.debriefs d join training.sessions s on s.id = d.session_id
@@ -514,6 +558,7 @@ alter table training.sessions enable row level security;
 alter table training.rubric_scores enable row level security;
 alter table training.access_tickets enable row level security;
 alter table training.voice_sessions enable row level security;
+alter table training.voice_exchanges enable row level security;
 alter table training.acknowledgements enable row level security;
 alter table training.debriefs enable row level security;
 
@@ -533,20 +578,19 @@ grant execute on function
   training.acknowledge(text)
   to arena_public;
 grant select on arena.v_dev_cases, training.v_my_sessions, training.v_my_scores, training.v_my_debrief,
-  training.v_my_study, training.v_my_acknowledgements to arena_public;
+  training.v_my_study, training.v_my_acknowledgements, training.v_my_voice_exchanges to arena_public;
 
 grant execute on function
   training.claim_voice_ticket(uuid, uuid, uuid, text),
-  training.record_voice_question(uuid, uuid, text, text)
+  training.record_voice_exchange(uuid, smallint, text, text, boolean)
   to arena_subject;
 
 -- arena_referee: reads training rows; writes participants, case sets and scores
 -- directly, and debriefs only through publish_debrief.
 grant select on training.participants, training.case_set_members, training.sessions, training.rubric_scores,
-  training.access_tickets, training.voice_sessions, training.acknowledgements, training.debriefs,
-  training.v_my_sessions, training.v_my_scores, training.v_my_debrief, training.v_my_study,
-  training.v_my_acknowledgements, arena.v_dev_cases
-  to arena_referee;
+  training.access_tickets, training.voice_sessions, training.voice_exchanges, training.acknowledgements, training.debriefs,
+  arena.v_dev_cases
+  to arena_referee;   -- not the actor-scoped v_my_* views (SG3-38): the referee reads the tables
 grant insert on training.participants, training.case_set_members, training.rubric_scores to arena_referee;
 grant execute on function training.publish_debrief(uuid, jsonb) to arena_referee;
 create policy participants_referee on training.participants for all to arena_referee using (true) with check (true);
@@ -555,5 +599,6 @@ create policy rubric_scores_referee on training.rubric_scores for all to arena_r
 create policy sessions_referee on training.sessions for select to arena_referee using (true);
 create policy access_tickets_referee on training.access_tickets for select to arena_referee using (true);
 create policy voice_sessions_referee on training.voice_sessions for select to arena_referee using (true);
+create policy voice_exchanges_referee on training.voice_exchanges for select to arena_referee using (true);
 create policy acknowledgements_referee on training.acknowledgements for select to arena_referee using (true);
 create policy debriefs_referee on training.debriefs for select to arena_referee using (true);

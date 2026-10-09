@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0003_tournament_ledger.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0003_tournament_ledger.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Hash-chained ledger, tournaments, frozen roster, trials, turns, released evidence, work
 -- items, coaching events, findings, execution records, adjudications, corpus seals, inclusion
 -- manifests, referee label tables, scores and leaderboards, tournament lifecycle functions.
@@ -234,7 +234,7 @@ create table arena.turns (
   trial_id         uuid not null references arena.trials(id) on delete restrict,
   turn_no          smallint not null check (turn_no between 1 and 12),
   question         text not null check (length(question) between 1 and 600),          -- D11: 600 characters
-  -- who asked (SG2-09; S3 1.3): the investigator (text or voice), or the harness with its fixed or scripted
+  -- who asked (SG2-09; S3 1.3): the investigator, or the harness with its fixed or scripted
   -- question, a fallback question, or an assistant proposal it relayed
   question_source  text not null check (question_source in ('investigator', 'harness_fixed', 'harness_fallback',
                                                              'assistant_relay')),
@@ -244,12 +244,14 @@ create table arena.turns (
   relay_outcome    text check (relay_outcome ~ '^(relayed|fallback_no_card|fallback_failed_test:(too_short|too_long|not_single_question|markup|identifier|not_addressed_to_subject|compound|leading_tag|repeat|non_neutral:(accusation|leading|demeanor|pressure)))$'),
   -- the coach_card event (same trial, previous turn) whose proposal was relayed or failed the relay test
   proposal_seq     integer,
-  channel          text not null default 'text' check (channel in ('text', 'voice')),
+  -- Every turn is a text turn (D-016, v2.5): a voice session writes its exchanges to training.voice_exchanges,
+  -- never here. channel and answer_partial keep the projection shape and are fixed.
+  channel          text not null default 'text' check (channel = 'text'),
   question_version integer not null,
   idempotency_key  text not null check (length(idempotency_key) between 8 and 200),
   asked_at         timestamptz not null default now(),
   answer           text check (length(answer) between 1 and 900),     -- S2 V1 and G7: 900 characters
-  answer_partial   boolean not null default false,   -- voice: Live reported the utterance interrupted
+  answer_partial   boolean not null default false check (not answer_partial),
   answered_at      timestamptz,
   primary key (trial_id, turn_no),
   unique (trial_id, idempotency_key),
@@ -259,8 +261,7 @@ create table arena.turns (
     when 'harness_fallback' then relay_outcome like 'fallback\_%'
                                  and (proposal_seq is not null) = (relay_outcome like 'fallback\_failed\_test:%')
     else relay_outcome is null and proposal_seq is null
-  end),
-  constraint turn_voice_shape check (channel = 'text' or question_source = 'investigator')
+  end)
 );
 
 -- Turns are append-only except that the answer (with its partial flag and time) is written once; every

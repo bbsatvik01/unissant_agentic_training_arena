@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0006_ops_budget_traces.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0006_ops_budget_traces.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Spend guard (D-009, D-013): one global ceiling (the root of a bucket tree that stays available for
 -- per-phase limits later), liability prices, per-call-type
 -- request limits, reservations held before any model call or voice session and settled from usage,
@@ -22,9 +22,10 @@
 -- through ops.set_bucket_ceiling. No ceiling is typed here; a test asserts the applied ceiling equals
 -- the --plan-json output. Every reservation names bucket 'global'. Per-phase buckets are deferred
 -- (D-013); the tree functions below stay so they can be added later without a schema change.
--- Other seeds come from docs/research/synthesis/cost_model.py (run 2026-10-08):
---   voice whole-session reservation VOICE_RESERVATION (1.635720 rounded up to 6 dp; the shutoff is
---   two thirds of the reservation, VOICE_SHUTOFF = 1.090480); probe PROBE_RESERVATION (0.132140);
+-- Other seeds come from docs/research/synthesis/cost_model.py (`python3 -I -B cost_model.py`, run
+-- 2026-10-09; SG3-35): voice whole-session reservation VOICE_RESERVATION = 3.39252 (seeded 3.392520; the
+-- shutoff is two thirds of the reservation, VOICE_SHUTOFF = 2.26168, computed as round(reserved * 2 / 3, 6));
+-- probe PROBE_RESERVATION = 0.42494 (seeded 0.424940);
 --   VOICE_SESSIONS 8, LIVE_PROBE[0] 30, LIMITS per runtime call type, ATTEMPTS 4, LIABILITY_PRICES (3.8 Flash
 --   undiscounted; Live = VOICE rates x 1.5). VOICE_RESERVATION still includes 12 card and one
 --   retranscription allowance; cards now reserve on their own against global and retranscription is gone
@@ -54,8 +55,9 @@ create table ops.config (
   voice_probes_total            smallint not null check (voice_probes_total >= 0),
   max_open_voice_sessions       smallint not null check (max_open_voice_sessions >= 1),
   -- OWNER DECISION PENDING (S4-D3; rate-limit class; global gate requires approval before use).
-  -- Initial values below, tuned in the dev pilot; null disables a check. With these values a second
-  -- voice session in one day is refused (2 x VOICE_RESERVATION = 3.27 > 3.00): the owner sets either.
+  -- Initial values below, tuned in the dev pilot; null disables a check. With these values every voice
+  -- session is refused per user (VOICE_RESERVATION = 3.39 > per_user_daily_usd 3.00): voice needs the owner
+  -- to set per_user_daily_usd to at least 3.40 (one session a day) or null before any voice session.
   per_user_daily_usd            ops.usd,
   text_sessions_per_user_day    smallint check (text_sessions_per_user_day >= 1),
   voice_sessions_per_user_day   smallint check (voice_sessions_per_user_day >= 1),
@@ -64,7 +66,7 @@ create table ops.config (
 insert into ops.config (attempts_per_call, voice_session_reservation_usd, voice_probe_reservation_usd,
                         voice_sessions_total, voice_probes_total, max_open_voice_sessions,
                         per_user_daily_usd, text_sessions_per_user_day, voice_sessions_per_user_day)
-  values (4, 1.635720, 0.132140, 8, 30, 2, 3.00, 5, 2);
+  values (4, 3.392520, 0.424940, 8, 30, 2, 3.00, 5, 2);
 
 create table ops.kill_switch_events (
   id         bigint generated always as identity primary key,
@@ -657,6 +659,28 @@ begin
    where id = p_voice_session and status = 'open';
 end $$;
 
+-- close_orphan_voice_sessions (arena_subject; D-016, SG3-36): the local stack runs one arena-subject, so at
+-- its start every voice session still open belongs to a process that died. Each is closed 'orphaned' and
+-- its reservation settled usage_unknown (the full hold stays as spend). Nothing else needs cleaning: a
+-- voice session writes no turns, so no open question survives it. Returns the number closed.
+create or replace function training.close_orphan_voice_sessions()
+returns integer
+language plpgsql security definer set search_path = '' as $$
+declare
+  r   ops.budget_reservations;
+  v_n integer := 0;
+begin
+  perform ledger.require_read_committed();
+  for r in select b.* from ops.budget_reservations b join training.voice_sessions vs on vs.reservation_id = b.id
+            where vs.status = 'open' order by b.id for update of b loop
+    update training.voice_sessions set status = 'closed', close_code = 'orphaned', closed_at = now()
+     where reservation_id = r.id and status = 'open';
+    perform ops._settle(r, 'usage_unknown');
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $$;
+
 -- settle_voice_reservation (arena_subject; D7, SG3-11): the subject's own voice reservation, after its
 -- voice session closed (a probe has no session). committed = the Live usage receipts.
 create or replace function ops.settle_voice_reservation(p_reservation uuid, p_outcome text)
@@ -676,11 +700,12 @@ begin
   return ops._settle(v, p_outcome);
 end $$;
 
--- voice_context (arena_subject; D7, SG3-05): the subject's view for an open voice session on a running
--- trial, with no work item: the same packets, transcript, released evidence and disclosure state as
--- subject.turn_context, plus the session's reservation, its recorded spend and its shutoff point. Read
--- when Live opens (the initial instruction renders LOCKED gates from the released records), after every
--- context_changed relay frame (S5 7.4), and before a resume reconnects (spend below shutoff).
+-- voice_context (arena_subject; D7, SG3-05, D-016): the subject's view for an open voice session on a running
+-- trial, with no work item: the packets and released evidence of subject.turn_context, the trial's stored
+-- voice exchanges (the spoken transcript so far, including earlier voice sessions of the trial), plus the
+-- session's reservation, its recorded spend and its shutoff point. Read when Live opens (the initial
+-- instruction renders LOCKED gates from the released records) and after every context_changed relay
+-- frame (S5 7.4).
 create or replace function subject.voice_context(p_voice_session uuid)
 returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
@@ -696,6 +721,10 @@ begin
     raise exception using errcode = 'AR003', message = 'voice context needs an open voice session on a running trial';
   end if;
   return subject._view(v) || jsonb_build_object(
+    'voice_exchanges', coalesce((select jsonb_agg(jsonb_build_object('exchange_no', x.exchange_no, 'question', x.question,
+                                                                     'answer', x.answer, 'partial', x.partial)
+                                                  order by x.exchange_no)
+                                   from training.voice_exchanges x where x.trial_id = v.id), '[]'::jsonb),
     'voice_session_id', vs.id, 'reservation_id', r.id, 'reserved_usd', r.reserved_usd,
     'spend_usd', ops.receipts_usd(r.id), 'shutoff_usd', round(r.reserved_usd * 2 / 3, 6),
     'kill_switch', (select kill_switch from ops.config where id));
@@ -1036,12 +1065,14 @@ create view ops.v_call_costs with (security_barrier = true) as
     from ops.budget_reservations r join ops.model_calls c on c.reservation_id = r.id
    where r.trial_id is null or arena.trial_visible(r.trial_id);
 
--- SG2-23, SG3-30: the reporting projection needs no later request. A row still pending after the coaching
+-- SG2-23, SG3-30: the reporting projection needs no later request. ops.v_latency_report holds it over every
+-- row (the referee's scorer reads it; arena_referee already reads ops.latency_samples, SG2-31, SG3-38);
+-- ops.v_latency is the same projection filtered to the actor's visible trials, for arena_public. A row still pending after the coaching
 -- deadline (120 s after the subject commit, the same deadline that ends the coaching hold, S5 5.1) reads as
 -- unmeasured_timeout, a miss, whether or not the session ever returns; a pending row inside the deadline
 -- reads as in_flight and stays out of the share until it resolves. report_outcome, miss and unmeasured
 -- are what S3 6.4 reads.
-create view ops.v_latency with (security_barrier = true) as
+create view ops.v_latency_report with (security_barrier = true) as
   select x.*,
          x.report_outcome in ('timeout', 'repair_failed', 'client_invalid', 'unmeasured_timeout') as miss,
          (x.report_outcome = 'unmeasured_timeout'
@@ -1051,7 +1082,9 @@ create view ops.v_latency with (security_barrier = true) as
                  case when l.card_outcome = 'pending' and l.subject_commit_at < now() - interval '120 seconds'
                       then 'unmeasured_timeout' else l.card_outcome end as report_outcome,
                  l.population, l.instance_cold, l.server_ms, l.kpi4_ms, l.created_at
-            from ops.latency_samples l where arena.trial_visible(l.trial_id)) x;
+            from ops.latency_samples l) x;
+create view ops.v_latency with (security_barrier = true) as
+  select r.* from ops.v_latency_report r where arena.trial_visible(r.trial_id);
 
 -- Public configuration for GET /api/config (SG3-13): the paused flag and the per-user quotas only.
 create view ops.v_public_config with (security_barrier = true) as
@@ -1076,7 +1109,7 @@ revoke all on all tables in schema ops from public, anon, authenticated, service
 revoke all on all sequences in schema ops from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 revoke all on all functions in schema ops from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 revoke all on function training.open_voice_session(uuid, uuid), training.close_voice_session(uuid, text),
-  subject.voice_context(uuid)
+  subject.voice_context(uuid), training.close_orphan_voice_sessions()
   from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 
 grant usage on schema ops to arena_public, arena_subject, arena_referee;
@@ -1101,11 +1134,13 @@ grant select on ops.v_exportable_spans, ops.v_budget_status, ops.v_call_costs, o
 
 grant execute on function ops.reserve_voice(text, text, text, text, uuid, uuid),
   ops.settle_voice_reservation(uuid, text), subject.voice_context(uuid),
-  training.open_voice_session(uuid, uuid), training.close_voice_session(uuid, text)
+  training.open_voice_session(uuid, uuid), training.close_voice_session(uuid, text),
+  training.close_orphan_voice_sessions()
   to arena_subject;
 
 grant execute on function ops.prune_trace_mirror(integer) to arena_referee;
 grant select on all tables in schema ops to arena_referee;
+revoke select on ops.v_call_costs, ops.v_latency from arena_referee;   -- actor-scoped (SG3-38); v_latency_report instead
 create policy config_referee on ops.config for select to arena_referee using (true);
 create policy kill_switch_events_referee on ops.kill_switch_events for select to arena_referee using (true);
 create policy budget_buckets_referee on ops.budget_buckets for select to arena_referee using (true);

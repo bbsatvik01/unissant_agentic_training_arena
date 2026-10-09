@@ -1,6 +1,6 @@
 # S2: Agents, prompts and output schemas
 
-Build specification, part S2. Version 2.4, 2026-10-09: Codex round 2 fixes; D-016 simplifications. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 4.5, 6, 7, 8.3, 9), `docs/research/synthesis/03-ui-direction.md` v2.1, `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Requirement IDs from `docs/challenge/REQUIREMENTS.md`. Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 budget ceilings generated and applied, never typed; D-013 one global spend ceiling, per-test cost lines deferred; D-014 case families authored offline, no runtime generator).
+Build specification, part S2. Version 2.5, 2026-10-09: Codex round 3 fixes. Governing sources: `docs/spec/README.md` (baseline facts; it wins over this part), `docs/research/synthesis/02-direction.md` v10.4 (sections 4.5, 6, 7, 8.3, 9), `docs/research/synthesis/03-ui-direction.md` v2.1, `docs/spec/S8-build-plan.md` section 9 (C-nn resolutions). Requirement IDs from `docs/challenge/REQUIREMENTS.md`. Locked decisions D-001 to D-014 apply (D-007 superseded by D-009; D-011 local-first; D-012 budget ceilings generated and applied, never typed; D-013 one global spend ceiling, per-test cost lines deferred; D-014 case families authored offline, no runtime generator).
 
 Naming note: "subject candidates S1, S2, S3" are the three simulated-subject candidates (direction 8.1). The scoring specification is called "spec S3" or by its file name, `docs/spec/S3-scoring-rubrics-metrics.md`.
 
@@ -762,7 +762,7 @@ One stateless structured call per turn returns the answer and a tag proposal. Th
 | `persona` | name, position, organization, one-line background | Fictional organizations only (direction 6.4) |
 | `matter` | string | The public objective text (same as the public packet) |
 | `facts[]` | `{id, class, text, gate_id}` | `class` in FREE, HOLD, CORE, PRIVATE. Text in second person ("You badged into Building C at 21:42."). `gate_id` set only for HOLD. Truthful packets: FREE and PRIVATE only. Deceptive packets: at least one CORE. |
-| `uncertainty[]` | `{id, fact_id, text, answer_form, range_text}` | `answer_form` in `dont_know`, `range`, `unsure`. `fact_id` names the fact the entry qualifies (S1 7.3); the entry takes that fact's class and gate (SG1-24). |
+| `uncertainty[]` | `{id, fact_id, text, answer_form, range_text}` | `answer_form` in `range`, `unsure` (no `dont_know`: unknown facts are absent from the ledger and the closed-world rule covers them, S1 7.3, SG1-31). `fact_id` names the fact the entry qualifies (S1 7.3); the entry takes that fact's class and gate (SG1-24). |
 | `gates[]` | `{id, condition, opens[], precondition_records[]}` | Deceptive only. `condition` describes what the investigator must present ("states that the badge log shows an entry to Building C at 21:42"). `opens` lists HOLD fact IDs. `precondition_records` (S1 6.4, 7.2) is read by code only, to derive LOCKED (6.7); it is never rendered to the subject model. |
 | `permitted_behaviors` | subset of `omission`, `deflection`, `minimization` | Empty for truthful. |
 | `style` | `{verbosity, fluency, affect, register, language}` | Assigned by the factorial design, independent of role (SCN-3, SCN-11). |
@@ -927,11 +927,11 @@ Gate status and "what you have said" come from code-held trial state: the union 
     "tag": {
       "type": "object",
       "properties": {
-        "disclosed": {"type": "array", "maxItems": 8, "items": {"type": "string"}},
-        "withheld": {"type": "array", "maxItems": 8, "items": {"type": "string"}},
-        "uncertainty_used": {"type": "array", "maxItems": 4, "items": {"type": "string"}},
+        "disclosed": {"type": "array", "maxItems": 30, "uniqueItems": true, "items": {"type": "string"}},
+        "withheld": {"type": "array", "maxItems": 30, "uniqueItems": true, "items": {"type": "string"}},
+        "uncertainty_used": {"type": "array", "maxItems": 4, "uniqueItems": true, "items": {"type": "string"}},
         "behavior": {"type": "string", "enum": ["responsive", "omission", "deflection", "minimization", "explicit_uncertainty", "legitimate_non_disclosure"]},
-        "gates_opened": {"type": "array", "maxItems": 4, "items": {"type": "string"}}
+        "gates_opened": {"type": "array", "maxItems": 6, "uniqueItems": true, "items": {"type": "string"}}
       },
       "required": ["disclosed", "withheld", "uncertainty_used", "behavior", "gates_opened"]
     }
@@ -946,7 +946,7 @@ Schema-level validators (failure triggers the one repair, 10):
 | --- | --- |
 | V1 | `utterance` is 1 to 900 characters, at most 1,800 UTF-8 bytes and at most 120 words |
 | V2 | Every ID in `disclosed` and `withheld` is a fact ID in this packet; every ID in `uncertainty_used` an uncertainty ID; every ID in `gates_opened` a gate ID that is currently CLOSED (a LOCKED or OPEN gate is rejected, C-20) |
-| V3 | `disclosed` and `withheld` are disjoint |
+| V3 | `disclosed` and `withheld` are disjoint. The array caps equal their source populations (ledger facts at most 30, uncertainty entries at most 4, gates at most 6; private-packet schema), so no truthful tag is ever cut (SG2-33): AT-SUBJ fixtures include a nine-fact answer and a question that opens five gates |
 | V4 | `behavior` is in the role's allowed set (role block T or D, after `permitted_behaviors` filtering) |
 
 Validators never check whether the answer is faithful; that is J2's job. They only keep the tag well-formed so the state it drives stays sane.
@@ -1148,7 +1148,7 @@ Derived values (code, consumed by spec S3 through this mapping, C-11):
 | `record_conflict_ids` | Same name |
 | Stored rationale (`sealed.independent_labels.rationale`, at least one character) | `evidence_quote` when non-empty; otherwise the fixed text `no quote: quote did not match` for a `quote_invalid` turn and `no quote given` for any other empty quote (spec S3 1.3.2); never an empty string |
 
-- `compliant(turn)` = F1 to F6 all pass (spec S3 3.8). `style_followed` is reported separately and is not part of compliance.
+- `compliant(turn)` = F1 to F6 all pass **and** the turn is not in `trajectory.inconsistent_turn_ids` (the one rule; spec S3 3.8 and every consumer, M12 fidelity, M14 and the debrief's `subject_realism.compliant`, read this stored value and never recompute it, SG2-32). `style_followed` is reported separately and is not part of compliance.
 - Subject fidelity numerator and denominator per direction 7.2 (all evaluated subject turns, including offending turns from invalid sessions). A quarantined turn (stored in the sealed schema) is evaluated and counts as non-compliant.
 - Evasion events (EVL-8): turns labeled `evasion`. A `poorly_framed_question` turn is never an evasion event (spec S3 3.7).
 - Trigger entries for R2 (C-12): code builds them from this report and the release events, per spec S3's applicability rules: 2a from `evasion` turns, 2b from `genuine_uncertainty` turns, 3c from releases, 3e from contradiction triggers (turn pairs and turn-record pairs), 4b from `innocent_explanation_offered` turns.
@@ -1307,7 +1307,7 @@ R3 is not a new judge. It is the two referee calls run on a training session, wi
 
 The coach's flags enter only as data for J3. The investigator's questions are still judged on their own: J4's checks name investigator question turns, and spec S3 never credits or penalizes the investigator for the coach's flags. The referee then publishes the debrief with `training.publish_debrief(session, payload)` (S4, D8), payload `debrief.v1` (spec S3 5.7).
 
-When: at the end of every scored training session, practice or assessment, on development cases only (the KPI-1 sessions and the 40 demo text sessions), and on the 20 calibration transcripts. Text sessions only: voice sessions are unscored practice and never reach R3 (9.1, D7). Cost per session, at liability rates: `cost_model.r3(False)` $0.0082 expected, `cost_model.r3(True)` $0.0112 high; the worst-case reservation is the sum of `cost_model.liab_reservation(c)` over `REFEREE_D009`, which the v2.3 input limits change (section 2, O-9). Budget: every R3 call reserves its worst case against the one `global` ceiling (D-013); `cost_model.training_bucket()` (KPI-1: 10 volunteers x 7 sessions; 20 calibration transcripts) and `session_text()` (demo text sessions) remain the cost model's estimates, and per-activity limits are deferred. The ceiling is applied by the operator from `budget_plan()`, never typed (D-012).
+When: at the end of every scored training session, practice or assessment, on development cases only (the KPI-1 sessions and the 40 demo text sessions), and on the 20 calibration transcripts. Text sessions only: voice sessions are unscored practice and never reach R3; their debrief is S3 5.7's unscored branch (`scored: false`, outcome and resolution only, no rubric, scorecards or provenance; 9.1, D7, SG2-30). Cost per session, at liability rates: `cost_model.r3(False)` $0.0082 expected, `cost_model.r3(True)` $0.0112 high; the worst-case reservation is the sum of `cost_model.liab_reservation(c)` over `REFEREE_D009`, which the v2.3 input limits change (section 2, O-9). Budget: every R3 call reserves its worst case against the one `global` ceiling (D-013); `cost_model.training_bucket()` (KPI-1: 10 volunteers x 7 sessions; 20 calibration transcripts) and `session_text()` (demo text sessions) remain the cost model's estimates, and per-activity limits are deferred. The ceiling is applied by the operator from `budget_plan()`, never typed (D-012).
 
 ### 7.6 Acceptance (AT-REF; calibration on dev data)
 
@@ -1465,7 +1465,7 @@ Evidence slot rule (covers every release, scheduled or requested): if a record w
 
 - Vertex Live takes a text-only `system_instruction` in the setup message (it can be replaced mid-session, which 9.2 uses for gate updates) and does not support `response_schema` or `response_mime_type` (`BidiGenerateContentSetup`, docs.cloud.google.com/gemini-enterprise-agent-platform/reference/models/multimodal-live, fetched 2026-10-08 via Google Developer Knowledge MCP). So a voice subject cannot return a tag proposal, and the ledger cannot be re-injected per turn as structured input; the full ledger goes into the system instruction, the model tracks which gates it has opened, and the server keeps the LOCKED rule (C-20) by updating the instruction after every release (9.2).
 - Audio reaches the investigator before any text guard can act, which is why voice is limited to development cases and a leaked session is invalidated (direction 9).
-- Voice sessions are unscored development practice (D-006, D7). They never enter the bake-off, never reach R3, and produce no rubric score, no KPI sample and no debrief scorecard; their transcript is displayed, labeled unscored. Playback acknowledgements drive only the UI. There is no playback-grounded scoring pipeline.
+- Voice sessions are unscored development practice (D-006, D7, D-016). They never enter the bake-off, never reach R3, and produce no rubric score, no KPI sample, no coaching card and no debrief scorecard; they create no turns and no work items, and their transcript is the display-only `training.voice_exchanges` (S4, S5 7.4), labeled unscored. Playback acknowledgements drive only the UI. There is no playback-grounded scoring pipeline.
 
 ### 9.2 Session configuration (held server-side in `arena-subject`; probe-verified on day 1)
 
@@ -1479,8 +1479,9 @@ Evidence slot rule (covers every release, scheduled or requested): if a record w
 | Affective dialog | off | The subject's affect comes from its assigned style, not from the investigator's tone, so style stays independent of role and of the investigator (PRB-4) |
 | Voice | The public packet's `presentation.voice_id` (S1 schema v1.1, C-21), shared by both variants of a family, so independent of role | SCN-3 |
 | Session limits | 12 exchanges, 480 s audio, cost meter per direction 8.3 | Direction 9 |
-| Session context | `arena-subject` reads the private and public context of its claimed voice session through the subject-only voice-session context function (S4, D7); no open work item is needed | D7 |
-| Gate updates | After every `release_evidence` call in the session (scheduled, or requested through the evidence board), `arena-subject` re-renders `live.v1.txt` with the gate statuses that follow from the releases and sends it as a mid-session system-instruction update (Vertex Live: client content with role `system` and `turn_complete` false, in effect for the rest of the session; "Update system instructions during a session", docs.cloud.google.com/gemini-enterprise-agent-platform/models/live-api/start-manage-session, fetched 2026-10-08 via Google Developer Knowledge MCP), before it forwards further investigator audio. The day-1 probe confirms it on the chosen Live model; if the update is not accepted, the same text goes as user-role client content with `turn_complete` false, headed "CASE LEDGER UPDATE" | D7, C-20 |
+| Session context | `arena-subject` reads the private and public context of its claimed voice session, with the trial's stored exchanges, through the subject-only voice-session context function (S4, D7); no open work item is needed | D7, D-016 |
+| Session resumption | off; a dropped connection ends the voice session and a reconnect is a new one built from stored exchanges (S5 7.2) | D-016 |
+| Gate updates | After every `release_evidence` call in the session (scheduled, or requested through the evidence board), `arena-subject` re-renders `live.v1.txt` with the gate statuses that follow from the releases and sends it as a mid-session system-instruction update (Vertex Live: client content with role `system` and `turn_complete` false, in effect for the rest of the session; "Update system instructions during a session", docs.cloud.google.com/gemini-enterprise-agent-platform/models/live-api/start-manage-session, fetched 2026-10-08 via Google Developer Knowledge MCP), at the next exchange boundary and before it forwards further investigator audio (S5 7.4). The day-1 probe confirms it on the chosen Live model; if the update is not accepted, the same text goes as user-role client content with `turn_complete` false, headed "CASE LEDGER UPDATE" | D7, C-20 |
 
 ### 9.3 Live system instruction (`prompts/subject/live.v1.txt`)
 
@@ -1519,8 +1520,8 @@ The instruction is rendered at session start and again after every release (9.2)
 
 ### 9.4 Voice guard
 
-- During the session, the safety loop (gokbase `backend/app/rag/live/session.py`, 2-second loop, I6) reconstructs the current output turn from transcription fragments (gokbase `audit.py:22-32` turn reconstruction) and runs guard rules G3, G4 and G5 (6.9) on it. A hit ends the session with close code 4409 (`subject_guard`, S5 7.5), records the matched rule, and marks the session invalid. G1 and G2 do not apply to speech.
-- At session end, G6 runs on each reconstructed turn; a hit marks the session invalid.
+- During the session, the safety loop (gokbase `backend/app/rag/live/session.py`, 2-second loop, I6) accumulates the open exchange's output transcription (S5 7.4) and runs guard rules G3, G4 and G5 (6.9) on it. A hit ends the session with close code 4409 (`subject_guard`, S5 7.5) and records the matched rule as the voice session's close code (`guard:G3`, `guard:G4` or `guard:G5`); that close code is what "invalid" means for an unscored voice session. G1 and G2 do not apply to speech.
+- G6 runs on each exchange's answer before it is stored; a hit closes the same way (`guard:G6`).
 - An invalid session is never used as a demo transcript. No voice session is scored (9.1).
 
 ### 9.5 Owner exceptions
@@ -1535,10 +1536,10 @@ The instruction is rendered at session start and again after every release (9.2)
 | --- | --- | --- |
 | AT-VOICE-1 | Render `live.v1.txt` for one truthful and one deceptive dev packet | Snapshot match; role, policy and style blocks byte-identical to the text subject's; no role word |
 | AT-VOICE-2 | Type test: the Live instruction builder accepts `SubjectPacket` only and is callable only for a development-split case | CI passes; a hidden-split case raises |
-| AT-VOICE-3 | Feed recorded output-transcription fragments containing "f:04" and, separately, "as an AI" into the safety loop | Session closed with code 4409 (`subject_guard`, S5 7.5); session marked invalid |
+| AT-VOICE-3 | Feed recorded output-transcription fragments containing "f:04" and, separately, "as an AI" into the safety loop | Session closed with code 4409 (`subject_guard`, S5 7.5); the voice session's close code names the rule |
 | AT-VOICE-4 | Setup message built for a session | No tools, proactivity off, both transcriptions on, system instruction contains no evaluator field |
 | AT-VOICE-5 | LOCKED rule in voice (SG1-03, D7), fake Live client: a deceptive dev packet whose gate precondition is a requestable record; the record is then released through the evidence board; separately, a scheduled release | The setup instruction shows the gate LOCKED; after each release the fake client receives the update with the gate CLOSED before any further investigator audio is forwarded; with no release, no update is sent |
-| AT-VOICE-6 | Unscored (D7): a completed voice session | No R3 call, no rubric score, no KPI-4 sample, no debrief scorecard; the transcript view is labeled unscored |
+| AT-VOICE-6 | Unscored (D7, D-016): a completed voice session | No R3 call, no rubric score, no KPI-4 sample, no coaching card, no turn row; the debrief is S3's unscored branch; the transcript view is labeled unscored |
 
 ## 10. Repair and failure policy
 

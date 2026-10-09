@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0002_cases.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0002_cases.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Case families and variants (public tier, no role), packets in three tiers, evidence
 -- artifacts with release predicates, the hidden-split seal, the candidate registry.
 -- Requirements: SCN-1, SCN-4, SCN-7, SCN-8, SCN-9, SCN-10, SCN-11, SCN-12, AST-5, BKO-5.
@@ -357,15 +357,19 @@ begin
          v_att #>> '{codex,cx3}') is distinct from ('pass', 'pass', 'pass', 'pass') then
     raise exception using errcode = 'AR007', message = 'the archive must be the attested, passed family file (SG1-19)';
   end if;
+  -- SG1-19, SG1-28: every operational field of a bundle variant comes from the file: case id, role, the three
+  -- packets, and the family's style and difficulty level (S1 4.4 loader table).
   if (select coalesce(jsonb_agg(jsonb_build_object('code', x ->> 'variant_code', 'role', x ->> 'role',
                                                    'public', x -> 'public_packet', 'private', x -> 'private_packet',
-                                                   'evaluator', x -> 'evaluator_packet')
+                                                   'evaluator', x -> 'evaluator_packet', 'style', x -> 'style',
+                                                   'difficulty', x -> 'difficulty')
                                 order by x ->> 'variant_code' collate "C"), '[]'::jsonb)
         from jsonb_array_elements(p_bundle -> 'variants') x)
      is distinct from
      (select coalesce(jsonb_agg(jsonb_build_object('code', e.value ->> 'case_id', 'role', e.key,
                                                    'public', e.value -> 'public_packet', 'private', e.value -> 'private_packet',
-                                                   'evaluator', e.value -> 'evaluator_packet')
+                                                   'evaluator', e.value -> 'evaluator_packet', 'style', v_src -> 'style',
+                                                   'difficulty', v_src #> '{difficulty,level}')
                                 order by e.value ->> 'case_id' collate "C"), '[]'::jsonb)
         from jsonb_each(case when jsonb_typeof(v_src -> 'variants') = 'object' then v_src -> 'variants' else '{}'::jsonb end) e) then
     raise exception using errcode = 'AR007', message = 'bundle variants must be the family file''s variants (SG1-19)';
@@ -450,6 +454,33 @@ begin
   return v_family;
 end $$;
 
+-- sampler_matches (internal; SG1-29): the sampler record names exactly the sealed hidden families, once
+-- each, and every assignment entry {family_id, violation_type, misleading_types, level, style} equals what
+-- that family's archived file says (taxonomy, difficulty.level, style). n is the family count.
+create or replace function sealed.sampler_matches(p jsonb)
+returns boolean
+language sql stable security definer set search_path = '' as $$
+  with fam as (
+    select i.source::jsonb as f from sealed.family_ingests i join arena.case_families c on c.id = i.family_id
+     where c.split = 'hidden'),
+  a as (select x from jsonb_array_elements(case when jsonb_typeof(p -> 'assignment') = 'array'
+                                                then p -> 'assignment' else '[]'::jsonb end) x)
+  select jsonb_typeof(p) = 'object' and p ?& array['seed', 'n', 'assignment', 'max_phi']
+     and jsonb_typeof(p -> 'assignment') = 'array' and jsonb_typeof(p -> 'n') = 'number'
+     and (p ->> 'n')::numeric = (select count(*) from fam)
+     and (select count(*) from a) = (select count(*) from fam)
+     and (select count(distinct x ->> 'family_id') from a) = (select count(*) from a)
+     and not exists (
+       select 1 from a
+        where not exists (
+          select 1 from fam
+           where fam.f ->> 'family_id' = a.x ->> 'family_id'
+             and a.x -> 'violation_type' = fam.f #> '{taxonomy,violation_type}'
+             and a.x -> 'misleading_types' = fam.f #> '{taxonomy,misleading_types}'
+             and a.x -> 'level' = fam.f #> '{difficulty,level}'
+             and a.x -> 'style' = fam.f -> 'style'))
+$$;
+
 -- seal_hidden_split (arena_referee): once, over every hidden variant, with the split's sampler record
 -- (S1 10.5: seed, n, assignment, max_phi; n must equal the sealed family count). Appends a ledger event
 -- carrying the seal hash and the sampler record's hash (SG1-19).
@@ -470,13 +501,8 @@ begin
   if v.n_variants is null or v.n_variants = 0 then
     raise exception using errcode = 'AR001', message = 'no hidden variants to seal';
   end if;
-  if jsonb_typeof(p_sampler_record) is distinct from 'object'
-     or not (p_sampler_record ?& array['seed', 'n', 'assignment', 'max_phi'])
-     or jsonb_typeof(p_sampler_record -> 'assignment') is distinct from 'array'
-     or jsonb_typeof(p_sampler_record -> 'n') is distinct from 'number'
-     or (p_sampler_record ->> 'n')::numeric <> v.n_families
-     or jsonb_array_length(p_sampler_record -> 'assignment') <> v.n_families then
-    raise exception using errcode = 'AR007', message = 'the sampler record must cover exactly the sealed families';
+  if not coalesce(sealed.sampler_matches(p_sampler_record), false) then
+    raise exception using errcode = 'AR007', message = 'the sampler record must match exactly the sealed families (SG1-29)';
   end if;
   insert into sealed.hidden_split_seals (seal_sha256, n_families, n_variants, sampler_record)
     values (v.seal_sha256, v.n_families, v.n_variants, p_sampler_record) returning id, sampler_sha256 into v_id, v_sampler_sha;
@@ -487,13 +513,23 @@ begin
   return v.seal_sha256;
 end $$;
 
+-- verify_hidden_seal (SG3-39): the recomputed digest equals the stored seal, the stored sampler record still
+-- matches the archive, and both the seal hash and the sampler hash recomputed from stored values equal the
+-- public ledger commitment of that seal (its hidden_split_sealed event; the chain is verified separately), so
+-- an owner edit with triggers disabled to the seal row or the sampler record is detected.
 create or replace function sealed.verify_hidden_seal()
 returns boolean
-language sql stable security definer set search_path = '' as $$
-  select coalesce((select s.seal_sha256 = d.seal_sha256 and s.n_variants = d.n_variants
-                          and s.sampler_sha256 = ledger.hash_jsonb(s.sampler_record)
-                     from sealed.hidden_split_seals s, sealed.hidden_split_digest() d), false)
-$$;
+language plpgsql stable security definer set search_path = '' as $$   -- plpgsql: ledger.events is created in 0003
+begin
+  return coalesce((select s.seal_sha256 = d.seal_sha256 and s.n_variants = d.n_variants
+                          and sealed.sampler_matches(s.sampler_record)
+                          and exists (select 1 from ledger.events e
+                                       where e.event_type = 'hidden_split_sealed'
+                                         and e.payload ->> 'seal_id' = s.id::text
+                                         and e.payload ->> 'seal_sha256' = d.seal_sha256
+                                         and e.payload ->> 'sampler_sha256' = ledger.hash_jsonb(s.sampler_record))
+                     from sealed.hidden_split_seals s, sealed.hidden_split_digest() d), false);
+end $$;
 
 -- register_candidate (arena_referee). Idempotent for an identical manifest. Checks the S2 3.1
 -- manifest.v1 shape (C-47) and refuses a malformed manifest with AR007 before the table constraint.
@@ -551,7 +587,8 @@ alter table arena.family_retirements enable row level security;
 revoke all on all tables in schema arena, subject, sealed from public, anon, authenticated, service_role,
   arena_public, arena_subject, arena_referee;
 revoke all on function arena.tg_packet_split(), sealed.hidden_split_digest(), sealed.ingest_case_family(jsonb),
-  sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(), arena.register_candidate(text, text, text, jsonb)
+  sealed.seal_hidden_split(jsonb), sealed.verify_hidden_seal(), sealed.sampler_matches(jsonb),
+  arena.register_candidate(text, text, text, jsonb)
   from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 
 -- arena_referee reads every tier (labeling, judging, scoring) and writes cases only through functions.

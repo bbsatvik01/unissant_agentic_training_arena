@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0001_foundation.sql  (DRAFT v2.4, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
+-- 0001_foundation.sql  (DRAFT v2.5, spec S4; applied only to throwaway local PostgreSQL 17.11 containers)
 -- Schemas, runtime roles, revoke-all, shared helpers, append-only trigger.
 -- Requirements: SCN-5, SCN-9, SCN-12, BKO-9, EVL-10, KPI-5 (isolation by construction).
 --

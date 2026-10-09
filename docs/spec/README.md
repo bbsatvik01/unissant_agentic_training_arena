@@ -1,6 +1,6 @@
 # Spec package
 
-Build specification for the arena, in eight parts. **Version 2.4, 2026-10-09: Codex round 2 fixes; D-016 simplifications.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
+Build specification for the arena, in eight parts. **Version 2.5, 2026-10-09: Codex round 3 fixes.** Each part cites requirement IDs from `docs/challenge/REQUIREMENTS.md` and the direction sections it implements.
 
 | Part | Scope |
 | --- | --- |
@@ -15,7 +15,7 @@ Build specification for the arena, in eight parts. **Version 2.4, 2026-10-09: Co
 
 ## Status
 
-Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction v10; S8 section 9 lists 48 cross-part conflicts (C-01 to C-48). v2 (c293bec) reconciled S2-S8; its cross-check was RED (`review-v2-crosscheck.md`). v2.1 fixed S1 and the interface findings and applied D-013. Codex spec round 1 returned RED, RED, RED, YELLOW (`review-codex-r1.md`); v2.3 fixes every part against one set of shared decisions (D1-D11 below) and goes to Codex until GREEN. Codex round 2 returned 4 blockers and 35 majors (`review-codex-r2.md`); v2.4 resolves them under D-016, removing or narrowing mechanisms a local team-run demo does not need where that settles a finding (dispositions in `review-codex-r2.md`). The build runs in parallel (D-013); S8's interface gate holds back only work packages whose interfaces carry an open finding.
+Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction v10; S8 section 9 lists 48 cross-part conflicts (C-01 to C-48). v2 (c293bec) reconciled S2-S8; its cross-check was RED (`review-v2-crosscheck.md`). v2.1 fixed S1 and the interface findings and applied D-013. Codex spec round 1 returned RED, RED, RED, YELLOW (`review-codex-r1.md`); v2.3 fixes every part against one set of shared decisions (D1-D11 below) and goes to Codex until GREEN. Codex round 2 returned 4 blockers and 35 majors (`review-codex-r2.md`); v2.4 resolves them under D-016, removing or narrowing mechanisms a local team-run demo does not need where that settles a finding (dispositions in `review-codex-r2.md`). Codex round 3 returned 2 blockers (one bug) and 18 majors; v2.5 resolves them (`review-codex-r3.md`), chiefly by making voice display-only and giving the debrief an explicit unscored branch. The build runs in parallel (D-013); S8's interface gate holds back only work packages whose interfaces carry an open finding.
 
 ## Governing sources (the spec follows these; where they disagree, these win)
 
@@ -31,7 +31,7 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 - **Spend guard (D-012, D-013):** one global ceiling. The migrations seed only the `global` bucket at $0 (fail-closed); the operator applies `budget_plan()` (`python3 cost_model.py --plan-json` prints `{"global": 74.00}` locally; $60.00 hosted) and a test asserts equality. Every model call reserves its worst case and every voice session its whole-session worst case against that ceiling before running, so spend cannot pass the $75 cap. Per-phase buckets and per-test cost tuning are deferred until the pipeline runs end to end (D-013).
 - **Demo allocation:** 40 text sessions, 8 voice sessions (whole-session reservation each), at most 62 character images (a count cap in code); all reserve against the one `global` ceiling.
 - **UI:** one server-authorized event projection feeds every animation, caption, connector, pipeline detail and replay; coaching cards appear only when complete, validated and transcript-current; voice state combines connection, capture, server activity and playback; presentational work starts after the 2026-10-18 slice gate.
-- **Voice (D7, D-016):** voice sessions are unscored development practice; they never enter a score, a KPI or a leaderboard (eligibility is the session's, so a text continuation stays unscored), and no playback acknowledgement or retranscription exists. A dropped connection ends the voice session and a reconnect is a new voice session built from the database; there is no resume credential or Live handle. Gates in voice follow the same LOCKED rule as text, and evidence is requested through the same board.
+- **Voice (D7, D-016):** voice sessions are unscored, display-only development practice: they create no turns, work items or coaching cards; each completed exchange is stored for display in `training.voice_exchanges`; they never enter a score, a KPI or a leaderboard, and their debrief is S3's unscored branch (outcome and resolution only). A session started in voice takes no typed questions and commits its finding in text. A dropped connection ends the voice session and a reconnect is a new voice session built from the stored exchanges; there is no resume credential or Live handle, and the close code is the only terminal signal. Gates in voice follow the same LOCKED rule as text, evidence is requested through the same board, and Live receives each release at the next exchange boundary. The scored demo is text only.
 - **Local HTTP boundary (D10):** `arena-api` and the referee console check Host, reject a foreign Origin on every state-changing browser request and require a CSRF header tied to a `SameSite=Strict` cookie on every browser POST. Service routes under `/internal/` take the internal policy instead: a caller token for that route, and no browser credentials accepted (S5 10.3).
 - **KPI-1:** reported only from participants who completed the counterbalanced protocol; otherwise "KPI-1 not measured". No other data stands in for it.
 
@@ -66,3 +66,9 @@ Version 1 (2026-10-08, workflow `wf_7986355a-2f8`) was written against direction
 | --- | --- |
 | Codex round 2 | 4 blockers fixed by the orchestrator; 35 majors and 3 minors dispositioned in `review-codex-r2.md` (real, false positive or removed by simplification, with the change). |
 | D-016 | Voice resume credentials and Live handles removed (reconnect is a new voice session); the voice turn boundary release commits with the answer inside `record_subject_turn`; referee calls use judgment stage keys, not work items; one executor per trial in the local stack. |
+
+## Changes in v2.5
+
+| ID | What changed |
+| --- | --- |
+| Codex round 3 | Debrief table check and `publish_debrief` share one envelope that matches S3's scored and unscored branches; voice writes no turns (display-only `training.voice_exchanges`); referee reads `ops.v_latency_report` and holds no grant on actor-scoped views; voice seeds equal `cost_model.py`; sampler record bound to the archive and the ledger; dispositions in `review-codex-r3.md`. |

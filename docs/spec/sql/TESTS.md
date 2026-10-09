@@ -29,6 +29,8 @@ Version 2.3 was applied to a fresh PostgreSQL 17.11 container (`postgres:17`, po
 
 Version 2.4 (Codex round 2, D-016) was applied in order to a fresh throwaway PostgreSQL 16.13 cluster (`initdb -U postgres -A trust`, port 55481, unix socket in a `mktemp -d /tmp/pg.XXXX` directory, `listen_addresses = ''`, the Supabase shim and `dblink`), every migration under `ON_ERROR_STOP`, then four new smoke scripts: archive, revision and seal (CS-07, CS-23, CS-24, CS-27: 26 assertions including a tampered archive row failing `verify_hidden_seal`); turn flow (SG2-21 relay vocabulary accepted and refused, WI-09, CC-11b, VB-16: 13 assertions); study protocol (TT-15: 4 assertions); corpus seal (EF-11, EF-13 to EF-15: 8 assertions). All pass. Two were proved to catch their defect by mutation: restoring the old practice predicate (`status in (finalized, terminated)`) makes TT-15's first post-test admission succeed, and the CX-2 comparison with "any account fact" passes the SG1-21 counterexample. Live privilege counts after the change: `arena_public` 30 functions, `arena_subject` 16, `arena_referee` 35, 55 tables, all readable by `arena_referee`; the section 10 fixture rows were updated to match.
 
+Version 2.5 (Codex round 3) was applied in order to a fresh throwaway PostgreSQL 16.13 cluster (port 55481, unix socket in a `mktemp -d /tmp/pg.XXXX` directory, `listen_addresses = ''`, the Supabase shim and `dblink`, every migration under `ON_ERROR_STOP`), then five smoke scripts with 87 assertions, all passing: archive, revision, sampler and seal (33, including SG1-28 style and difficulty mismatches, SG1-29 empty, wrong-family and wrong-level sampler entries, and an SG3-39 sampler-only edit); turn flow with D-016 voice, the referee's KPI-4 read and both debrief branches (DB-03, DB-04 with S3-valid scored and unscored payloads, validated first against S3 5.7's schema); study protocol; corpus seal; voice finalization, the table-level debrief check and BU-02. Every granted view was selected as its grantee (none fails). Mutation: the v2.4 sampler checks accept the empty-assignment counterexample and miss the sampler-only edit, so the new fixtures catch both. The section 10 CSV expands to 204 rows equal to the live set in both directions (PostgreSQL 16 has no MAINTAIN; no role holds it).
+
 ## 1. `001_capability_matrix.sql` (SCN-5, SCN-9, EVL-10, KPI-5)
 
 | ID | Assertion | Expected |
@@ -98,7 +100,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | RR-26 | `arena_public` | `arena.v_dev_cases` contains no hidden variant | 0 hidden rows |
 | RR-27 | `arena_public` | `arena.trial_context` on a running hidden trial with an open coaching item returns the hidden public packet and no key of the private or evaluator packet (`role`, `facts`, `concealed`) | Holds |
 | RR-28 | `arena_public` | `arena.trial_context` on the same trial after finalization | `AR003` |
-| RR-29 | `arena_referee` | `training.voice_sessions` UPDATE (voice sessions change only through `arena_subject` functions) | `42501` |
+| RR-29 | `arena_referee` | `training.voice_sessions` or `training.voice_exchanges` UPDATE; SELECT on any of the 15 actor-scoped views (deny rows of S4 10) | `42501` |
 | RR-30 | `arena_public` | `arena.v_dev_cases` has no `style` column (C-22, C-26) | 0 columns |
 | RR-31 | `arena_public` | `subject.voice_context(...)`, `ops.settle_voice_reservation(...)`, `training.publish_debrief(...)`, `training.participants`, `ops.config` | `42501` each |
 
@@ -167,7 +169,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | ST-13 | Persistent-injection fixture: attack text at turn 2 that passed the guard (simulated miss) appears in later `trial_context` only inside `transcript` (data); no function interprets transcript text | Holds |
 | ST-14 | `p_partial = true` stores `answer_partial` and the commitment's transcript hash covers it | Holds |
 | ST-15 | SG1-02: `subject.turn_context` returns `disclosure_state`: empty at turn 1; at turn 2 the facts disclosed and gates opened in turn 1's stored tag with their turn; a quarantined attempt's tag never appears | Holds |
-| ST-16 | D7: a voice turn (channel `voice`) sets no `coaching_pending` and opens no KPI-4 sample; the next voice question needs no card first | Holds |
+| ST-16 | D-016: `record_subject_turn` takes no `partial` argument; every turn's channel is `text` (`turns.channel` and `answer_partial` checks) | Holds |
 
 ## 7. `007_coaching_events_caller.sql` (AST-1..8, SOL-6, KPI-4, F07; S5 section 6)
 
@@ -184,7 +186,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | CC-09 | `arena.v_trial_events` hides debrief rows while the trial runs | Holds |
 | CC-10 | `events_after` page size is capped at 200 | Holds |
 | CC-11 | KPI-4 sample (C-28, D4): the text subject commit writes `ops.latency_samples` `pending` with `subject_commit_at` = the `subject_turn` event's `created_at` and `population` derived from the trial; `coach_card` completes it with `card_validated_server_at` = its event's `created_at`, `card_outcome = delivered`, `instance_cold` from `arena.instance_cold` (unset = false); `coach_unavailable` completes it `repair_failed` when its payload says so, else `timeout`, `miss = true`; a delivered practice card without an acknowledgement is `unmeasured` and not a miss | Holds |
-| CC-11b | SG3-32, SG2-23, SG3-30: a text turn of a session created with `voice = true` opens no sample; `ops.v_latency` on a pending row inside 120 s (`in_flight`, not a miss) and after 120 s with no further request (`report_outcome = unmeasured_timeout`, `miss`, `unmeasured`) | Holds each |
+| CC-11b | SG2-23, SG3-30, SG2-31, SG3-38: (a voice session has no turns, so it opens no sample); `ops.v_latency` on a pending row inside 120 s (`in_flight`, not a miss) and after 120 s with no further request (`report_outcome = unmeasured_timeout`, `miss`, `unmeasured`) ; `ops.v_latency_report` read by `arena_referee` with no actor over two owners' samples, an abandoned overdue row included; `ops.v_latency` by the referee; `ops.v_latency_report` by `arena_public`; `ops.v_latency` by `arena_public` | Holds each; every owner's rows, overdue as `unmeasured_timeout`; `42501`; `42501`; the actor's rows only |
 | CC-12 | `ops.ack_card(trial, turn, true)` on a practice turn stamps `client_ack_at` once (returns true, then false); `kpi4_ms = client_ack_at - subject_commit_at` in ms and is at least `server_ms`; `ack_card(..., false)` records `client_invalid`, `miss = true`, `kpi4_ms` null | Holds |
 | CC-13 | `trial_context` with a closed item, wrong trial, or `failure` kind | `AR003` |
 | CC-14 | Caller separation: actor set on a tournament trial | `AR040` |
@@ -217,7 +219,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | FC-14 | A replay trial that copied its whole source: its commitment hashes its own copied rows | `transcript_sha256` and `evidence_sha256` equal the corpus trial's |
 | FC-15 | Training finalization emits `finding_committed` (live); tournament finalization does not | Holds |
 | FC-16 | A valid Finding (`doc-01` and released `rec-NN` citations, optional `alternative_explanations`) stores `classification` = `label`, `likelihood`, `confidence` and the whole object; `arena.v_findings` shows `likelihood` | Holds |
-| FC-17 | SG3-17 and D5: a cited turn 1.5; a cited `doc-04` absent from the packet's `initial_documents`; a cited partial voice turn; a rationale of 601 characters; no rationale | `AR007` each |
+| FC-17 | SG3-17 and D5: a cited turn 1.5; a cited `doc-04` absent from the packet's `initial_documents`; a cited turn on a voice session's trial (it has none); a rationale of 601 characters; no rationale | `AR007` each |
 | FC-18 | SG3-08: tamper fixtures with the trigger disabled: a released record's content (its generated hash follows), its title; a turn's `question_source` | `verify_commitment` false each |
 
 ## 9. `009_execution_failures.sql` (F15, BKO-9, EVL-5)
@@ -318,7 +320,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | ID | Assertion | Expected |
 | --- | --- | --- |
 | BU-01 | Seeds: the bucket table has exactly the names and parents of the `--plan-json` output (the one `global` bucket, D-013) and its ceiling is 0 (D-012); voice amounts equal `VOICE_RESERVATION` rounded up to 6 dp and `PROBE_RESERVATION`; `attempts_per_call` = `ATTEMPTS`; the five runtime call kinds of `cost_model.LIMITS` (`subject`, `card`, `deep`, `final`, `referee`) equal it, its `generate` and `validate` rows, `retranscribe` (D7) and `gemini-3.1-pro-preview` are absent (D-014), and `portrait` (2000, 2000) carries S5 3.3's initial values (S5 parity script checks the same from Python) | Holds |
-| BU-02 | Worst case `card` on `gemini-3.5-flash-lite` at `input_bytes` = the input limit: 4 x (6000 x 0.30 + 1600 x 2.50) / 1e6 (`liab_reservation`) | 0.023200 |
+| BU-02 | Worst case `card` on `gemini-3.5-flash-lite` at `input_bytes` = the input limit: 4 x (128000 x 0.30 + 1600 x 2.50) / 1e6 (`liab_reservation`) | 0.169600 |
 | BU-03 | Worst case `referee` (purpose `referee_assistant`) on `gemini-3.5-flash-lite` at 12,000 bytes: 4 x (12000 x 0.30 + 4000 x 2.50) / 1e6 (`liab_reservation`); a `generate`, `validate` or `retranscribe` call kind, or model `gemini-3.1-pro-preview` | 0.054400; `AR007` each |
 | BU-04 | After the plan (BU-28), the owner lowers `global` to its liability + 0.12; fill it with the BU-03 `referee` reservations until refused; restore the plan value | Refused at reservation floor(0.12 / 0.0544) + 1 = 3 with reason `cap` at `global`; liability <= ceiling |
 | BU-05 | Invariant after every step of this file: for every bucket, subtree liability <= ceiling | Holds |
@@ -359,8 +361,8 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 
 | ID | Assertion | Expected |
 | --- | --- | --- |
-| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (1.635720) and returns shutoff = round(reservation x 2 / 3, 6), equal to `cost_model.VOICE_SHUTOFF` (1.090480; X-17) | Holds |
-| VB-02 | `voice_probe` reserves the seeded `PROBE_RESERVATION` (0.132140) | Holds |
+| VB-01 | `reserve_voice('voice_session')` reserves the seeded `VOICE_RESERVATION` (3.392520) and returns shutoff = round(reservation x 2 / 3, 6), equal to `cost_model.VOICE_SHUTOFF` (2.261680; X-17, SG3-35); with the seeded `per_user_daily_usd` 3.00 an actor's voice reservation is refused `per_user_cap` (S4-D3) | Holds; Holds |
+| VB-02 | `voice_probe` reserves the seeded `PROBE_RESERVATION` (0.424940) | Holds |
 | VB-03 | Third open voice reservation with `max_open_voice_sessions` 2 | `voice_concurrency` |
 | VB-04 | Ninth voice session (`voice_sessions_total` 8); 31st probe | `voice_total_cap` each |
 | VB-05 | `spend_usd` returned by `record_usage` and by `subject.voice_context` equals the sum of the voice reservation's own receipts (no child term, D7) | Holds |
@@ -371,11 +373,12 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | VB-10 | `arena_public` calls `reserve_voice` or `settle_voice_reservation` | `42501` |
 | VB-11 | `open_voice_session` with an unclaimed ticket, a probe reservation, another trial's reservation, or a reservation another role made | `AR040` |
 | VB-12 | Second open voice session on one training session | `23505` |
-| VB-13 | `record_voice_question` on a closed session or another trial | `AR040`; on success returns turn, version and a `subject_answer` item; the same key returns the same turn and item; the turn's channel is `voice` |
-| VB-14 | SG3-05: `subject.voice_context(voice_session)` on an open session returns the private and public packets, transcript, released evidence, disclosure state, `reservation_id`, `spend_usd` and `shutoff_usd`; on a closed session | Holds; `AR003` |
-| VB-15 | D-016: no resume objects exist: `training.voice_resumes`, `issue_voice_resume`, `redeem_voice_resume`, `take_voice_handle` are absent; a second voice session on the same trial after the first closed (a reconnect) gets its own ticket, reservation and receipts | Holds |
-| VB-16 | SG3-27: a voice turn whose answer makes a scheduled record due: `record_subject_turn` returns the record in `released` and the post-release version; the next `record_voice_question` item is bound to that version; `release_evidence` while a voice question is open | Holds; Holds; `AR004` |
-| VB-18 | SG3-07: in a voice session, `arena_public` releases a requested record between turns with no coaching hold; `subject.voice_context` then lists it | Holds |
+| VB-13 | `record_voice_exchange` on a closed voice session, on another trial's session, out of order (number not the next), or numbered 13 | `AR040`; `AR040`; `AR004`; `AR004` (or the 1..12 check) |
+| VB-14 | SG3-05: `subject.voice_context(voice_session)` on an open session returns the packets, released evidence, the trial's stored `voice_exchanges` (an empty `transcript`: no turns), `reservation_id`, `spend_usd` and `shutoff_usd`; on a closed session | Holds; `AR003` |
+| VB-15 | D-016: no resume objects exist; a second voice session on the same trial after the first closed (a reconnect) gets its own ticket, reservation and receipts and its context carries the first session's exchanges; `training.v_my_voice_exchanges` returns the owner's exchanges and none to another actor | Holds |
+| VB-16 | D-016, SG3-27: a voice session writes no `arena.turns` row and no work item; `submit_question` on its trial; `record_voice_exchange` returns a scheduled record due after that exchange in `released` (released in the same transaction, `released_after_exchanges` counts voice exchanges); the same exchange again; other content under the same number; an exchange with a null answer; `finalize_trial` with no exchange, then with one exchange and a finding citing records only | Holds; `AR007`; Holds; `exists`; `AR003`; stored; `AR001`; finalized |
+| VB-17 | SG3-36: with a voice session left open by a dead process, `training.close_orphan_voice_sessions()` | Returns 1; the session is `closed`/`orphaned`; its reservation is `usage_unknown` with the full hold |
+| VB-18 | SG3-07, SG3-37: in a voice session, `arena_public` releases a requested record through `release_evidence` at any time (no turn exists to block it); `subject.voice_context` then lists it | Holds |
 | VB-19 | D7 reaping: a voice reservation open for 61 minutes (owner backdates `created_at`), then any `reserve_voice` | The old reservation is `usage_unknown` with its full hold, its session closed `expired`, and the new reservation is admitted |
 
 ## 16. `016_training_tickets.sql` (SOL-6, KPI-1, EVL-7, SCN-12, direction 4.3)
@@ -394,7 +397,7 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | TT-10 | `rubric_scores.total` = 5 x sum; a dimension of 5 | Holds; `23514` |
 | TT-11 | `v_my_scores` hides scores until the session's trial ends | Holds |
 | TT-12 | `v_my_sessions`, `v_my_debrief`, `v_my_study` return only the actor's rows; no actor returns none | Holds |
-| TT-13 | D7 transcript display: a voice session's turns appear in `arena.v_transcripts` with channel `voice` for their owner, and in no other actor's view | Holds |
+| TT-13 | D7, D-016 transcript display: a voice session's exchanges appear in `training.v_my_voice_exchanges` for their owner and in no other actor's view; `arena.v_transcripts` has no row for a voice session's trial | Holds |
 | TT-14 | EX-4 acknowledgement (X-15): `training.acknowledge('ex4')` with no actor; with kind `terms`; twice by one actor; `training.v_my_acknowledgements` for that actor and another | `AR040`; `AR007`; one row, the first time kept; one row and none |
 | TT-15 | SG4-10, SG3-31 protocol for an AB participant: practice before the pre-tests; a post-test before the pre-tests; a second session on the same pre-test variant; both pre-tests (then ended); three free sessions in Assessment mode, one terminated Practice session and one voice Practice session (all ended), then a post-test; three finalized text Practice sessions, then the post-tests | `AR007`; `AR007`; `AR007`; `pre` each; `AR007` and `v_my_study.practice_ended` 0; `post` each, `practice_ended` 3 |
 | TT-16 | SG3-13: `training.v_my_study` for the participant (pre and post variant ids, tested variant ids, ended counts per phase) and for a non-participant | One row with the sets and counts; none |
@@ -462,8 +465,8 @@ Each row runs `select 1 from <object> limit 1` (or calls the function) as the ro
 | WI-09 | SG3-26 interleaving: card committed at version v, the next question committed (v+1), then `open_work_item(trial, 'coaching', deep key, v)`; and the same with no question in between | `AR002` and no item row; the item is created at v |
 | DB-01 | `training.publish_debrief` by `arena_public` | `42501` |
 | DB-02 | On a running training session; on an unknown session | `AR001` each |
-| DB-03 | A payload missing a debrief.v1 key or with `schema` not `debrief.v1` | `AR007` |
-| DB-04 | A valid payload after the session ended | `published`; one `training.debriefs` row; a live `debrief_ready` event in the same transaction, returned by `events_after` |
+| DB-03 | SG3-34: a payload outside S3's envelope: the old `schema` key, a top-level `resolution`, a scored payload missing `provenance`, an unscored payload carrying `rubric`, `scored` not matching the session (a voice session scored, a text session unscored), a `session_id` of another session | `AR007` each; the table's check (`training.debrief_envelope_ok`) refuses the same payloads on a direct owner insert |
+| DB-04 | The S3-valid scored payload (validated against S3 5.7's schema) after a text session ended, and the S3-valid unscored payload after a voice session ended | `published` each; one `training.debriefs` row each; a live `debrief_ready` event in the same transaction, returned by `events_after`; the owner reads each through `v_my_debrief` |
 | DB-05 | The same payload again; a different payload | `exists` with the same event seq; `AR003` |
 | DB-06 | `training.v_my_debrief` for the owner (the development case's role and resolution included) and for another actor | One row; none |
 
