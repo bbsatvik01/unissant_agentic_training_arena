@@ -1,0 +1,3610 @@
+{
+  "schema_version": "1.2.0",
+  "family_id": "F09",
+  "revision": 1,
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Supplier review visit and the north staff door",
+  "taxonomy": {
+    "violation_type": "tailgating_assist",
+    "misleading_types": [
+      "records_data_error",
+      "camera_outage"
+    ]
+  },
+  "difficulty": {
+    "level": 2,
+    "knobs": {
+      "key_record_after_exchanges": 3,
+      "evidence_directness": 2,
+      "misleading_count": 3,
+      "uncertainty_count": 2,
+      "gate_level": 3
+    }
+  },
+  "style": {
+    "verbosity": "expansive",
+    "fluency": "fluent",
+    "affect": "anxious",
+    "register": "formal",
+    "language": "native"
+  },
+  "provenance": {
+    "method": "generator",
+    "created": "2026-10-09",
+    "generator_model": "claude-opus-5-5",
+    "prompt_sha256": "113d45ffdb440a0e997595d90cc66d408cabe49974758e2e1c663b12ec52a1bc",
+    "seed_spec_sha256": "ed4839b509e3d0f72a4bdf9b4e4141521555f0585302eb0a973c2ebe4c3ad4be",
+    "few_shot_family_ids": [
+      "F01",
+      "F02",
+      "F03"
+    ],
+    "notes": "Development family authored offline by a Claude agent from seed F09 in cases/dev/seed-plan.json (D-014), KPI-1 case set B. A procurement assistant asked to look after a supplier at a 09:00 contract review is linked to him by the host, while the visitor reconciliation finds no register entry under his surname and the north staff door camera she used was down. Corroboration path: the visitor register (exchange 2), then the lift lobby camera review and the desk telephone log (exchange 3). prompt_sha256 covers the content rules, kit sources src_f01.py to src_f03.py and the canonical seed."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "On 14 April Ashby asked Dunmore to meet the Penwick Document Services visitor and set up Room 2-07 for the 09:00 contract review on 15 April.",
+        "kind": "context",
+        "time": "2026-04-14T15:20",
+        "actors": [
+          "Gwendolyn Ashby",
+          "Elise Dunmore"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "From 08:31 to 08:44 on 15 April the lobby security desk signed in a group of 14 course attendees.",
+        "kind": "context",
+        "time": "2026-04-15T08:31",
+        "actors": [
+          "Rhoda Haskett"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "Dunmore's badge opens the north staff door.",
+        "kind": "state",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "At 08:41 Dunmore's badge opened the north staff door from the car park side.",
+        "kind": "action",
+        "time": "2026-04-15T08:41:12",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "After Dunmore's 08:41 entry the north staff door was open for 11 seconds, inside the 30-second limit.",
+        "kind": "record",
+        "time": "2026-04-15T08:41:23",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "No other badge opened the north staff door between 08:13 and 08:56 on 15 April.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "The 11:30 visitor reconciliation found no visitor register entry under the surname Keable for 15 April.",
+        "kind": "record",
+        "time": "2026-04-15T11:30",
+        "actors": [
+          "Nadia Fairlie"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "The north staff door camera recorded nothing from 07:31 to 11:02 on 15 April.",
+        "kind": "record",
+        "time": "2026-04-15T07:31",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "The north staff door camera was off from 07:31 to 11:02 because its power supply unit failed.",
+        "kind": "record",
+        "time": "2026-04-15T07:31",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "Ashby was in a meeting in Room 3-02 until about 08:50.",
+        "kind": "context",
+        "time": "2026-04-15T08:50",
+        "actors": [
+          "Gwendolyn Ashby"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "When Ashby reached Room 2-07 at about 08:55, Keable was already there with Dunmore.",
+        "kind": "action",
+        "time": "2026-04-15T08:55",
+        "actors": [
+          "Gwendolyn Ashby",
+          "Martin Keable",
+          "Elise Dunmore"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "At 11:40 Ashby told Security Operations that Dunmore was with Keable in Room 2-07 when Ashby arrived.",
+        "kind": "record",
+        "time": "2026-04-15T11:40",
+        "actors": [
+          "Gwendolyn Ashby"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:13",
+        "statement": "At about 10:10 Dunmore walked Keable out of Room 2-07.",
+        "kind": "action",
+        "time": "2026-04-15T10:10",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:14",
+        "statement": "Dunmore's only badge entry to the building on 15 April was at the north staff door at 08:41.",
+        "kind": "state",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:16",
+        "statement": "Dunmore did not know on 15 April that the north staff door camera was not recording.",
+        "kind": "knowledge",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:17",
+        "statement": "Keable had attended the two previous quarterly reviews of the Penwick print and copier contract at the Annex.",
+        "kind": "context",
+        "actors": [
+          "Martin Keable"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "The lobby desk officer entered Keable in the visitor register as 'M. Keeble' when he signed in.",
+        "kind": "record",
+        "time": "2026-04-15T08:45",
+        "actors": [
+          "Rhoda Haskett"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "At 08:45 Keable signed in at the lobby security desk and was issued visitor badge V-22.",
+        "kind": "action",
+        "time": "2026-04-15T08:45",
+        "actors": [
+          "Martin Keable",
+          "Rhoda Haskett"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "At 08:46 Dunmore answered a call from the lobby desk on the Procurement main line announcing Keable's arrival.",
+        "kind": "action",
+        "time": "2026-04-15T08:46:50",
+        "actors": [
+          "Elise Dunmore",
+          "Rhoda Haskett"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "Dunmore first met Keable that day in the main lobby at about 08:50, after he had signed in.",
+        "kind": "action",
+        "time": "2026-04-15T08:50",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "Nobody came in through the north staff door with Dunmore at 08:41.",
+        "kind": "state",
+        "time": "2026-04-15T08:41:12",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "Keable signed out at the lobby desk at 10:12 and returned visitor badge V-22.",
+        "kind": "record",
+        "time": "2026-04-15T10:12",
+        "actors": [
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "At 08:41 Dunmore let Keable follow her in through the north staff door on her badge swipe.",
+        "kind": "action",
+        "time": "2026-04-15T08:41:12",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Dunmore did not want the 09:00 review postponed because Keable could not sign in without photo identification.",
+        "kind": "state",
+        "actors": [
+          "Elise Dunmore"
+        ],
+        "material": false,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "Keable was waiting outside the north staff door when Dunmore arrived there at 08:41.",
+        "kind": "action",
+        "time": "2026-04-15T08:41",
+        "actors": [
+          "Martin Keable",
+          "Elise Dunmore"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Keable did not sign in at the lobby security desk on 15 April.",
+        "kind": "state",
+        "actors": [
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "The lobby desk telephone log for 08:00 to 10:30 on 15 April shows one call, to Facilities at 09:38, so the desk rang no one in Procurement and Contracts, Dunmore included.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "At 08:37 Keable phoned Dunmore's work mobile, said he had left his photo identification at home and could not sign in at the lobby desk without it, and asked her to let him in through the north staff door.",
+        "kind": "action",
+        "time": "2026-04-15T08:37",
+        "actors": [
+          "Martin Keable",
+          "Elise Dunmore"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "From the north corridor Dunmore took Keable straight up to Room 2-07; neither of them went to the main lobby before the review.",
+        "kind": "action",
+        "time": "2026-04-15T08:42",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:49",
+        "statement": "At about 08:41 Dunmore and Keable were together in the ground-floor north corridor and took the lift together.",
+        "kind": "action",
+        "time": "2026-04-15T08:41:49",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:48",
+        "statement": "At about 10:11 Dunmore let Keable out of the building through the north staff door.",
+        "kind": "action",
+        "time": "2026-04-15T10:11",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": false,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:50",
+        "statement": "At 08:41:49 lift lobby camera C-12 recorded Dunmore and Keable walking together from the north corridor to the lift, with no visitor badge visible on Keable.",
+        "kind": "record",
+        "time": "2026-04-15T08:41:49",
+        "actors": [
+          "Elise Dunmore",
+          "Martin Keable"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:01",
+        "to": "f:04",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:02",
+        "to": "f:04",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:04",
+        "to": "f:05",
+        "relation": "causes"
+      },
+      {
+        "from": "f:09",
+        "to": "f:08",
+        "relation": "explains"
+      },
+      {
+        "from": "f:08",
+        "to": "f:04",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:10",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:13",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:12",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:04",
+        "to": "f:14",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:20",
+        "to": "f:07",
+        "relation": "explains"
+      },
+      {
+        "from": "f:23",
+        "to": "f:11",
+        "relation": "explains"
+      },
+      {
+        "from": "f:04",
+        "to": "f:24",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:24",
+        "to": "f:21",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:22",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:20",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:25",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:43",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:43",
+        "to": "f:40",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:40",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:06",
+        "to": "f:40",
+        "relation": "enables"
+      },
+      {
+        "from": "f:03",
+        "to": "f:40",
+        "relation": "enables"
+      },
+      {
+        "from": "f:40",
+        "to": "f:49",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:49",
+        "to": "f:50",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:49",
+        "to": "f:47",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:47",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:44",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:13",
+        "to": "f:48",
+        "relation": "precedes"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-4RW8KT2N",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-4RW8KT2N",
+        "domain": "facility_access",
+        "title": "Supplier review visit and the north staff door",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish how Martin Keable of Penwick Document Services entered the Halvern Street Annex on the morning of 15 April 2026 for the 09:00 contract review in Room 2-07, and whether anyone came in through the north staff door when Elise Dunmore's badge opened it at 08:41.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-04-20",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Elise Dunmore",
+            "position": "Procurement Assistant",
+            "unit": "Procurement and Contracts",
+            "tenure_years": 3
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the visitor reconciliation exception recorded for the 15 April 2026 contract review with Penwick Document Services. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-09",
+          "display_name": "Elise Dunmore",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Could you describe, in your own words, your morning at the Halvern Street Annex on 15 April 2026, from your arrival to the start of the 09:00 review?",
+        "replay_topics": [
+          "your entry through the north staff door at 08:41",
+          "the arrival of the Penwick Document Services visitor that morning",
+          "the set-up of Room 2-07 before the 09:00 review"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-04-14T15:20",
+            "event": "Gwendolyn Ashby invited Elise Dunmore and Martin Keable to the 15 April contract review in Room 2-07 and asked Elise Dunmore to meet the visitor.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-15T07:31",
+            "event": "North staff door camera stopped recording.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:12:40",
+            "event": "L. Ormsby's badge opened the north staff door.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:41:12",
+            "event": "Elise Dunmore's badge opened the north staff door from the car park side.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:57:05",
+            "event": "P. Dacre's badge opened the north staff door.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T09:00",
+            "event": "Contract review scheduled to start in Room 2-07.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-15T11:02",
+            "event": "North staff door camera recording resumed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T11:30",
+            "event": "Visitor reconciliation found no visitor register entry under the surname Keable.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T11:40",
+            "event": "The host told Security Operations that Elise Dunmore was with the visitor in Room 2-07 when the host arrived.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Visitor reconciliation exception, Halvern Street Annex, 15 April 2026",
+            "content": {
+              "body": "Generated 15 April 2026 at 11:30 by the daily visitor reconciliation (N. Fairlie, Security Operations), which matches the external attendees on room bookings against the lobby visitor register by surname. Exception: Room 2-07 booking, 09:00-10:00, host G. Ashby, external attendee M. Keable (Penwick Document Services): no register entry under the surname Keable on 15 April. Note added at 11:45: at 11:40 the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived. Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door. The table below lists the north staff door events from 08:00 to 09:00 only. North staff door camera: no recording from 07:31 to 11:02. The north staff door is opened from the car park side by badge and from inside by an exit button; the open-door limit is 30 seconds.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "08:12:40",
+                    "North staff door (car park side)",
+                    "Badge 70288 (L. Ormsby)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:12:47",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ],
+                  [
+                    "08:41:12",
+                    "North staff door (car park side)",
+                    "Badge 70315 (E. Dunmore)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:41:23",
+                    "North staff door",
+                    "-",
+                    "Door closed (open 11 s)"
+                  ],
+                  [
+                    "08:57:05",
+                    "North staff door (car park side)",
+                    "Badge 70402 (P. Dacre)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:57:13",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Visitors and badge doors (Facility Security Standard 3.1)",
+            "content": {
+              "body": "(a) Visitors, including suppliers and contractors, enter the Annex only through the main lobby on Halvern Street, sign in at the security desk on showing photo identification and wear the visitor badge issued to them. (b) When a visitor signs in, the desk phones the host; if the host does not answer, the desk phones the host's unit line. (c) The host, or a member of staff the host names, meets the visitor in the lobby, escorts the visitor while in the building and brings the visitor back to the lobby to sign out. (d) Staff must not let any person pass through a badge door on their swipe."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "email",
+            "title": "Meeting invitation for the Penwick contract review, sent 14 April 2026",
+            "content": {
+              "body": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20. Subject: Quarterly review, print and copier contract. Room 2-07, Halvern Street Annex, 15 April, 09:00-10:00. Martin, please sign in at the main lobby desk on Halvern Street when you arrive, and bring photo identification. Elise, I am in a meeting in Room 3-02 until about 08:50; please meet Martin and have Room 2-07 and the projector ready for nine."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Visitor register of the main lobby security desk, 15 April 2026",
+            "description": "Every visitor signed in at the main lobby security desk on 15 April 2026, with sign-in time, name and company as typed by the desk officer, visitor badge, host and sign-out time.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05",
+            "description": "Review of the recording from camera C-12, which covers the ground-floor lift lobby where the north corridor and the main lobby meet: who passed, from which direction, and when.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Fault ticket for the north staff door camera, 15 April 2026",
+            "description": "The fault ticket for the camera covering the north staff door: when the fault was detected, its cause, who was notified, and when recording resumed.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "dispatch_log",
+            "title": "Outgoing call log of the main lobby security desk telephone, 15 April 2026",
+            "description": "Calls placed from the main lobby security desk telephone between 08:00 and 10:30 on 15 April 2026: time, number called, and where and how long the call was answered.",
+            "requestable_after_exchanges": 3
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-4RW8KT2N",
+        "role": "truthful",
+        "persona": {
+          "name": "Elise Dunmore",
+          "position": "Procurement Assistant",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Procurement and Contracts",
+          "tenure_years": 3,
+          "background": "Supports the contracts officers at the Halvern Street Annex: schedules supplier meetings, books rooms, prepares review packs and takes the notes. Drives to work and comes in from the staff car park through the north staff door."
+        },
+        "matter": "Establish how Martin Keable of Penwick Document Services entered the Halvern Street Annex on the morning of 15 April 2026 for the 09:00 contract review in Room 2-07, and whether anyone came in through the north staff door when Elise Dunmore's badge opened it at 08:41.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "On 14 April Ms Ashby asked you to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:17",
+            "class": "FREE",
+            "text": "Mr Keable came to the last two quarterly reviews of the print and copier contract, so you know him by sight.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "Ms Ashby had another meeting before the review.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your badge opens the north staff door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "Your badge opened the north staff door when you came in from the car park that morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "Nobody came in with you through the north staff door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "That was the only time you badged into the building that day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:16",
+            "class": "FREE",
+            "text": "You did not know the north staff door camera wasn't recording that morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:22",
+            "class": "FREE",
+            "text": "The lobby desk rang the Procurement main line to say Mr Keable had arrived, and you took the call at your desk.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:21",
+            "class": "FREE",
+            "text": "Mr Keable had signed in at the desk and was wearing a visitor badge when you met him.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "You went down and met Mr Keable in the main lobby after he had signed in.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and you were already there.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "You walked Mr Keable out of the room at about ten past ten.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:25",
+            "class": "FREE",
+            "text": "You took Mr Keable down to the main lobby, where he signed out at the desk and handed back his visitor badge.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:04",
+          "f:22",
+          "f:23",
+          "f:11",
+          "f:13",
+          "f:25"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:02",
+            "subject_view": "You do not know who was signing in at the lobby desk before you went down."
+          },
+          {
+            "fact_id": "f:05",
+            "subject_view": "You did not time how long the north staff door stayed open."
+          },
+          {
+            "fact_id": "f:06",
+            "subject_view": "You do not know who else used the north staff door that morning."
+          },
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know how the visitor check works or what it found."
+          },
+          {
+            "fact_id": "f:08",
+            "subject_view": "You do not know when the north staff door camera was or wasn't recording."
+          },
+          {
+            "fact_id": "f:09",
+            "subject_view": "You do not know anything about a fault with the camera."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know what Ms Ashby told Security Operations."
+          },
+          {
+            "fact_id": "f:20",
+            "subject_view": "You do not know how the desk officer wrote his name in the register."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:11",
+            "text": "Ms Ashby came into Room 2-07 at about five to nine; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about five to nine."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:13",
+            "text": "You walked Mr Keable out of the room at about ten past ten; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about ten past ten."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "Mr Keable came in with me through the north staff door.",
+            "contradicts": "f:24"
+          },
+          {
+            "id": "x:02",
+            "text": "I met Mr Keable at the north staff door.",
+            "contradicts": "f:23"
+          },
+          {
+            "id": "x:03",
+            "text": "I knew the north staff door camera was not working that morning.",
+            "contradicts": "f:16"
+          },
+          {
+            "id": "x:04",
+            "text": "Mr Keable never signed in at the lobby desk.",
+            "contradicts": "f:21"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-ad847e661a6487af"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-4RW8KT2N",
+        "family_id": "F09",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "Ashby asked Dunmore on 14 April to meet the Penwick visitor and set up Room 2-07 for the 09:00 review. Dunmore came in alone through the north staff door at 08:41 and went to her desk. Keable signed in at the lobby desk at 08:45, where the desk officer typed his name as 'M. Keeble'; the desk phoned Ashby (no answer) and then the Procurement main line, which Dunmore answered at 08:46. She met him in the main lobby at about 08:50 and took him up to Room 2-07, where Ashby found them at about 08:55. After the review she walked him down to the lobby and he signed out at 10:12. Misleading circumstances: the reconciliation found no register entry under 'Keable' because of the misspelling; the north staff door camera was off for a failed power supply she did not know about; and the host found the visitor already with her, while her only entry that morning was through the north staff door.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "On 14 April Ashby asked Dunmore to meet the Penwick Document Services visitor and set up Room 2-07 for the 09:00 contract review on 15 April.",
+            "kind": "context",
+            "time": "2026-04-14T15:20",
+            "actors": [
+              "Gwendolyn Ashby",
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "From 08:31 to 08:44 on 15 April the lobby security desk signed in a group of 14 course attendees.",
+            "kind": "context",
+            "time": "2026-04-15T08:31",
+            "actors": [
+              "Rhoda Haskett"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "Dunmore's badge opens the north staff door.",
+            "kind": "state",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "At 08:41 Dunmore's badge opened the north staff door from the car park side.",
+            "kind": "action",
+            "time": "2026-04-15T08:41:12",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "After Dunmore's 08:41 entry the north staff door was open for 11 seconds, inside the 30-second limit.",
+            "kind": "record",
+            "time": "2026-04-15T08:41:23",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "No other badge opened the north staff door between 08:13 and 08:56 on 15 April.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "The 11:30 visitor reconciliation found no visitor register entry under the surname Keable for 15 April.",
+            "kind": "record",
+            "time": "2026-04-15T11:30",
+            "actors": [
+              "Nadia Fairlie"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "The north staff door camera recorded nothing from 07:31 to 11:02 on 15 April.",
+            "kind": "record",
+            "time": "2026-04-15T07:31",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "The north staff door camera was off from 07:31 to 11:02 because its power supply unit failed.",
+            "kind": "record",
+            "time": "2026-04-15T07:31",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "Ashby was in a meeting in Room 3-02 until about 08:50.",
+            "kind": "context",
+            "time": "2026-04-15T08:50",
+            "actors": [
+              "Gwendolyn Ashby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "When Ashby reached Room 2-07 at about 08:55, Keable was already there with Dunmore.",
+            "kind": "action",
+            "time": "2026-04-15T08:55",
+            "actors": [
+              "Gwendolyn Ashby",
+              "Martin Keable",
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:12",
+            "statement": "At 11:40 Ashby told Security Operations that Dunmore was with Keable in Room 2-07 when Ashby arrived.",
+            "kind": "record",
+            "time": "2026-04-15T11:40",
+            "actors": [
+              "Gwendolyn Ashby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "At about 10:10 Dunmore walked Keable out of Room 2-07.",
+            "kind": "action",
+            "time": "2026-04-15T10:10",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "Dunmore's only badge entry to the building on 15 April was at the north staff door at 08:41.",
+            "kind": "state",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "Dunmore did not know on 15 April that the north staff door camera was not recording.",
+            "kind": "knowledge",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "Keable had attended the two previous quarterly reviews of the Penwick print and copier contract at the Annex.",
+            "kind": "context",
+            "actors": [
+              "Martin Keable"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "The lobby desk officer entered Keable in the visitor register as 'M. Keeble' when he signed in.",
+            "kind": "record",
+            "time": "2026-04-15T08:45",
+            "actors": [
+              "Rhoda Haskett"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:21",
+            "statement": "At 08:45 Keable signed in at the lobby security desk and was issued visitor badge V-22.",
+            "kind": "action",
+            "time": "2026-04-15T08:45",
+            "actors": [
+              "Martin Keable",
+              "Rhoda Haskett"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:22",
+            "statement": "At 08:46 Dunmore answered a call from the lobby desk on the Procurement main line announcing Keable's arrival.",
+            "kind": "action",
+            "time": "2026-04-15T08:46:50",
+            "actors": [
+              "Elise Dunmore",
+              "Rhoda Haskett"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:23",
+            "statement": "Dunmore first met Keable that day in the main lobby at about 08:50, after he had signed in.",
+            "kind": "action",
+            "time": "2026-04-15T08:50",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:24",
+            "statement": "Nobody came in through the north staff door with Dunmore at 08:41.",
+            "kind": "state",
+            "time": "2026-04-15T08:41:12",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:25",
+            "statement": "Keable signed out at the lobby desk at 10:12 and returned visitor badge V-22.",
+            "kind": "record",
+            "time": "2026-04-15T10:12",
+            "actors": [
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:04",
+            "to": "f:05",
+            "relation": "causes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:08",
+            "relation": "explains"
+          },
+          {
+            "from": "f:08",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:12",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:04",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:20",
+            "to": "f:07",
+            "relation": "explains"
+          },
+          {
+            "from": "f:23",
+            "to": "f:11",
+            "relation": "explains"
+          },
+          {
+            "from": "f:04",
+            "to": "f:24",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:24",
+            "to": "f:21",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:22",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:23",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:20",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:25",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Visitor reconciliation exception, Halvern Street Annex, 15 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 15 April 2026 at 11:30 by the daily visitor reconciliation (N. Fairlie, Security Operations), which matches the external attendees on room bookings against the lobby visitor register by surname. Exception: Room 2-07 booking, 09:00-10:00, host G. Ashby, external attendee M. Keable (Penwick Document Services): no register entry under the surname Keable on 15 April. Note added at 11:45: at 11:40 the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived. Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door. The table below lists the north staff door events from 08:00 to 09:00 only. North staff door camera: no recording from 07:31 to 11:02. The north staff door is opened from the car park side by badge and from inside by an exit button; the open-door limit is 30 seconds.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "08:12:40",
+                    "North staff door (car park side)",
+                    "Badge 70288 (L. Ormsby)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:12:47",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ],
+                  [
+                    "08:41:12",
+                    "North staff door (car park side)",
+                    "Badge 70315 (E. Dunmore)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:41:23",
+                    "North staff door",
+                    "-",
+                    "Door closed (open 11 s)"
+                  ],
+                  [
+                    "08:57:05",
+                    "North staff door (car park side)",
+                    "Badge 70402 (P. Dacre)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:57:13",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Visitors and badge doors (Facility Security Standard 3.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Visitors, including suppliers and contractors, enter the Annex only through the main lobby on Halvern Street, sign in at the security desk on showing photo identification and wear the visitor badge issued to them. (b) When a visitor signs in, the desk phones the host; if the host does not answer, the desk phones the host's unit line. (c) The host, or a member of staff the host names, meets the visitor in the lobby, escorts the visitor while in the building and brings the visitor back to the lobby to sign out. (d) Staff must not let any person pass through a badge door on their swipe."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "email",
+            "title": "Meeting invitation for the Penwick contract review, sent 14 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20. Subject: Quarterly review, print and copier contract. Room 2-07, Halvern Street Annex, 15 April, 09:00-10:00. Martin, please sign in at the main lobby desk on Halvern Street when you arrive, and bring photo identification. Elise, I am in a meeting in Room 3-02 until about 08:50; please meet Martin and have Room 2-07 and the projector ready for nine."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Gwendolyn Ashby, Contracts Officer (16 April 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "My meeting in Room 3-02 ran until about ten to nine. On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine, because I knew I would be tied up. When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there and the projector was on. He had a lanyard round his neck; I did not look at the badge on it. He has come to the last two quarterly reviews, so Elise knows him. The review finished just after ten, and at about ten past ten Elise walked him out of the room. I did not see which way they went. I told Security Operations this when they called me at 11:40."
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Visitor register of the main lobby security desk, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Desk officer on duty from 07:30: R. Haskett. Times are from the desk computer. Names and companies are typed by the desk officer as the visitor gives them. 3 entries.",
+              "table": {
+                "columns": [
+                  "In",
+                  "Name",
+                  "Company",
+                  "Badge",
+                  "Host",
+                  "Out"
+                ],
+                "rows": [
+                  [
+                    "08:31-08:44",
+                    "Contract Management induction course (14 attendees, names on the course list)",
+                    "Brannock Administrative Services Agency, other sites",
+                    "T-01 to T-14",
+                    "J. Morrow, Training",
+                    "16:30"
+                  ],
+                  [
+                    "08:45",
+                    "M. Keeble",
+                    "Penwick Document Services",
+                    "V-22",
+                    "G. Ashby",
+                    "10:12"
+                  ],
+                  [
+                    "09:40",
+                    "S. Ferrand",
+                    "Larkspur Water Coolers",
+                    "V-23",
+                    "Facilities",
+                    "10:05"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:25",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Every visitor signed in at the main lobby security desk on 15 April 2026, with sign-in time, name and company as typed by the desk officer, visitor badge, host and sign-out time."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Reviewed 16 April by N. Fairlie, Security Operations. Recorder clock checked against the access control system. People were identified by G. Ashby from the recording. Camera C-12 recorded normally throughout.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Came from",
+                  "Seen",
+                  "Went to"
+                ],
+                "rows": [
+                  [
+                    "08:31-08:45",
+                    "Main lobby",
+                    "Course attendees with T badges, in small groups",
+                    "Lifts"
+                  ],
+                  [
+                    "08:41:49",
+                    "North corridor",
+                    "E. Dunmore, alone",
+                    "Lift"
+                  ],
+                  [
+                    "08:49:30",
+                    "Lift",
+                    "E. Dunmore, alone",
+                    "Main lobby"
+                  ],
+                  [
+                    "08:51:05",
+                    "Main lobby",
+                    "E. Dunmore with M. Keable; visitor badge visible on his lanyard",
+                    "Lift"
+                  ],
+                  [
+                    "08:57:20",
+                    "North corridor",
+                    "P. Dacre, alone",
+                    "Lift"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:24",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Review of the recording from camera C-12, which covers the ground-floor lift lobby where the north corridor and the main lobby meet: who passed, from which direction, and when."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Fault ticket for the north staff door camera, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Ticket FT-0415-03, opened automatically at 07:31 on 15 April when the north staff door camera stopped sending video. Security Operations notified Ostrander Camera Services at 08:05. Cause found on site: the camera's power supply unit had failed. The technician replaced the power supply unit, and recording resumed at 11:02. No other camera was affected. No notice about the fault was sent to staff."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "The fault ticket for the camera covering the north staff door: when the fault was detected, its cause, who was notified, and when recording resumed."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "dispatch_log",
+            "title": "Outgoing call log of the main lobby security desk telephone, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Exported from the telephone system. Extension 2210 is the Procurement and Contracts main line, which rings on every desk in the unit.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Called",
+                  "Answered at",
+                  "Duration"
+                ],
+                "rows": [
+                  [
+                    "08:46:10",
+                    "Ext 2231 (G. Ashby)",
+                    "No answer",
+                    "-"
+                  ],
+                  [
+                    "08:46:50",
+                    "Ext 2210 (Procurement main line)",
+                    "Ext 2214 (E. Dunmore)",
+                    "0:38"
+                  ],
+                  [
+                    "09:38:15",
+                    "Ext 2140 (Facilities)",
+                    "Ext 2140",
+                    "1:10"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Calls placed from the main lobby security desk telephone between 08:00 and 10:30 on 15 April 2026: time, number called, and where and how long the call was answered."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "The visitor reconciliation found no register entry under the surname Keable, although Keable attended the 09:00 review.",
+            "fact_ids": [
+              "f:07"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "Keable signed in at 08:45; the desk officer typed his name as 'M. Keeble', so the surname match failed.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:21"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The camera on the north staff door recorded nothing during Dunmore's 08:41 entry.",
+            "fact_ids": [
+              "f:08"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "The camera was off from 07:31 to 11:02 because its power supply unit failed; Dunmore did not know.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:09",
+                "f:16"
+              ],
+              "artifact_ids": [
+                "rec-03"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "The host found Keable already with Dunmore in Room 2-07 at about 08:55, and Dunmore's only entry to the building was through the north staff door at 08:41.",
+            "fact_ids": [
+              "f:11",
+              "f:14"
+            ],
+            "artifact_ids": [
+              "rec-05",
+              "doc-01"
+            ],
+            "resolution": "The lobby desk phoned the Procurement line at 08:46, Dunmore answered, and she met Keable in the main lobby at about 08:50; camera C-12 shows her alone from the north corridor at 08:41 and with him from the main lobby at 08:51.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:22",
+                "f:23",
+                "f:24"
+              ],
+              "artifact_ids": [
+                "rec-04",
+                "rec-02"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The register shows the Penwick visitor signed in at 08:45 as 'M. Keeble' with badge V-22, and camera C-12 shows Dunmore alone from the north corridor at 08:41 and with Keable, wearing a visitor badge, from the main lobby at 08:51, matching her account.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:20",
+                "f:21",
+                "f:23",
+                "f:24"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The register shows the Penwick visitor signed in at 08:45, and the desk telephone log shows the desk's 08:46 call to the Procurement line answered at Dunmore's extension, matching her account of being called down to meet him.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-04"
+              ],
+              "fact_ids": [
+                "f:21",
+                "f:22",
+                "f:23"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "No register match under the surname Keable on its own",
+            "The north staff door camera not recording",
+            "The visitor being with her when the host arrived",
+            "Long or worried answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish whom she saw or spoke to between the car park and Room 2-07, including the visitor (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:24",
+                "f:22",
+                "f:23"
+              ],
+              "neutral_example": "Who did you see or speak to between arriving in the car park and reaching Room 2-07 that morning?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish how the visitor entered the building.",
+              "target_fact_ids": [
+                "f:21",
+                "f:22"
+              ],
+              "neutral_example": "How did Mr Keable get into the building that morning?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where she first met the visitor.",
+              "target_fact_ids": [
+                "f:23"
+              ],
+              "neutral_example": "Where did you first meet Mr Keable on 15 April?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish what she did between her entry and the start of the review.",
+              "target_fact_ids": [
+                "f:22",
+                "f:11"
+              ],
+              "neutral_example": "What did you do between coming in at 08:41 and the start of the review?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish how the visitor left.",
+              "target_fact_ids": [
+                "f:13",
+                "f:25"
+              ],
+              "neutral_example": "How did Mr Keable leave the building after the review?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what she knew about the north staff door camera.",
+              "target_fact_ids": [
+                "f:16"
+              ],
+              "neutral_example": "What did you know about the north staff door camera that morning?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The visitor signed in at the lobby and she met him there.",
+              "test": "Request the visitor register and the desk telephone log; look for any entry for Penwick Document Services, not only the surname Keable, and for a desk call to the host or the Procurement line."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The visitor came in through the north staff door behind her.",
+              "test": "Request the lift lobby camera review; compare who came from the north corridor at 08:41 with who came from the main lobby, and whether a visitor badge was visible."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The north staff door camera was off because someone arranged it.",
+              "test": "Request the camera fault ticket; check the cause, the time and whether any notice was issued."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about how the visitor entered and where she met him. 'Why did you bring him in through the back?' presumes a fact not established; a question that bundles the door, the camera and the register invites a partial answer.",
+            "response_relevance": "A long answer about the course group, the host's other meeting and her worry about the review that never says where she met Mr Keable leaves the question unanswered; credit recognizing that and asking again (EX-2). Formal, expansive, worried answers are style, not evasion.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-03 as soon as they open (exchange 2) and rec-02 and rec-04 at exchange 3, and putting the register entries, the C-12 sightings and the desk calls to the subject.",
+            "testing_alternatives": "Credit testing the lobby account (a:01) against the camera review (a:02) before closing, and checking the register for the company as well as the surname. The camera fault (a:03) is never a ground on its own.",
+            "supported_closure": "Truthful closure cites rec-01 with rec-02, or rec-01 with rec-04, together with her account of being called down to the lobby. Before exchange 3, 'insufficient evidence' naming rec-01, rec-02 and rec-04 is expected (EX-3)."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'Who did you see or speak to between arriving in the car park and reaching Room 2-07?' with a long account of the busy morning and her worry about the review, then says she came in alone, took the lobby desk's call about Mr Keable and met him in the main lobby.",
+            "label": "responsive",
+            "rationale": "Expansive, anxious style puts context first; who she saw and spoke to is given in the same answer. An assistant should not flag the context as evasion."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers 'Where did you first meet Mr Keable?' only with how busy the morning was and that Ms Ashby had asked her to look after him, and stops without saying where she met him.",
+            "label": "evasion",
+            "rationale": "J1 labels by content: she knows where she met him (f:23) and leaves it out, so the label is evasion (omission) in either variant. Credit an investigator who asks the question again (EX-2)."
+          },
+          {
+            "id": "l:03",
+            "situation": "Says Ms Ashby arrived at about five to nine and that she walked Mr Keable out at about ten past ten, without exact times.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          },
+          {
+            "id": "l:04",
+            "situation": "Says she does not know how the desk officer wrote Mr Keable's name or why the visitor check found nothing.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown facts f:20 and f:07."
+          },
+          {
+            "id": "l:05",
+            "situation": "Gives a partial answer to a question that bundles the north door, the camera and the register.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; the partial answer reflects the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-aa4850795d7ef29b"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-9HM3XQ6V",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-9HM3XQ6V",
+        "domain": "facility_access",
+        "title": "Supplier review visit and the north staff door",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish how Martin Keable of Penwick Document Services entered the Halvern Street Annex on the morning of 15 April 2026 for the 09:00 contract review in Room 2-07, and whether anyone came in through the north staff door when Elise Dunmore's badge opened it at 08:41.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-04-20",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Elise Dunmore",
+            "position": "Procurement Assistant",
+            "unit": "Procurement and Contracts",
+            "tenure_years": 3
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the visitor reconciliation exception recorded for the 15 April 2026 contract review with Penwick Document Services. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-09",
+          "display_name": "Elise Dunmore",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Could you describe, in your own words, your morning at the Halvern Street Annex on 15 April 2026, from your arrival to the start of the 09:00 review?",
+        "replay_topics": [
+          "your entry through the north staff door at 08:41",
+          "the arrival of the Penwick Document Services visitor that morning",
+          "the set-up of Room 2-07 before the 09:00 review"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-04-14T15:20",
+            "event": "Gwendolyn Ashby invited Elise Dunmore and Martin Keable to the 15 April contract review in Room 2-07 and asked Elise Dunmore to meet the visitor.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-15T07:31",
+            "event": "North staff door camera stopped recording.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:12:40",
+            "event": "L. Ormsby's badge opened the north staff door.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:41:12",
+            "event": "Elise Dunmore's badge opened the north staff door from the car park side.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T08:57:05",
+            "event": "P. Dacre's badge opened the north staff door.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T09:00",
+            "event": "Contract review scheduled to start in Room 2-07.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-04-15T11:02",
+            "event": "North staff door camera recording resumed.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T11:30",
+            "event": "Visitor reconciliation found no visitor register entry under the surname Keable.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-04-15T11:40",
+            "event": "The host told Security Operations that Elise Dunmore was with the visitor in Room 2-07 when the host arrived.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Visitor reconciliation exception, Halvern Street Annex, 15 April 2026",
+            "content": {
+              "body": "Generated 15 April 2026 at 11:30 by the daily visitor reconciliation (N. Fairlie, Security Operations), which matches the external attendees on room bookings against the lobby visitor register by surname. Exception: Room 2-07 booking, 09:00-10:00, host G. Ashby, external attendee M. Keable (Penwick Document Services): no register entry under the surname Keable on 15 April. Note added at 11:45: at 11:40 the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived. Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door. The table below lists the north staff door events from 08:00 to 09:00 only. North staff door camera: no recording from 07:31 to 11:02. The north staff door is opened from the car park side by badge and from inside by an exit button; the open-door limit is 30 seconds.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "08:12:40",
+                    "North staff door (car park side)",
+                    "Badge 70288 (L. Ormsby)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:12:47",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ],
+                  [
+                    "08:41:12",
+                    "North staff door (car park side)",
+                    "Badge 70315 (E. Dunmore)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:41:23",
+                    "North staff door",
+                    "-",
+                    "Door closed (open 11 s)"
+                  ],
+                  [
+                    "08:57:05",
+                    "North staff door (car park side)",
+                    "Badge 70402 (P. Dacre)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:57:13",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Visitors and badge doors (Facility Security Standard 3.1)",
+            "content": {
+              "body": "(a) Visitors, including suppliers and contractors, enter the Annex only through the main lobby on Halvern Street, sign in at the security desk on showing photo identification and wear the visitor badge issued to them. (b) When a visitor signs in, the desk phones the host; if the host does not answer, the desk phones the host's unit line. (c) The host, or a member of staff the host names, meets the visitor in the lobby, escorts the visitor while in the building and brings the visitor back to the lobby to sign out. (d) Staff must not let any person pass through a badge door on their swipe."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "email",
+            "title": "Meeting invitation for the Penwick contract review, sent 14 April 2026",
+            "content": {
+              "body": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20. Subject: Quarterly review, print and copier contract. Room 2-07, Halvern Street Annex, 15 April, 09:00-10:00. Martin, please sign in at the main lobby desk on Halvern Street when you arrive, and bring photo identification. Elise, I am in a meeting in Room 3-02 until about 08:50; please meet Martin and have Room 2-07 and the projector ready for nine."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Visitor register of the main lobby security desk, 15 April 2026",
+            "description": "Every visitor signed in at the main lobby security desk on 15 April 2026, with sign-in time, name and company as typed by the desk officer, visitor badge, host and sign-out time.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05",
+            "description": "Review of the recording from camera C-12, which covers the ground-floor lift lobby where the north corridor and the main lobby meet: who passed, from which direction, and when.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Fault ticket for the north staff door camera, 15 April 2026",
+            "description": "The fault ticket for the camera covering the north staff door: when the fault was detected, its cause, who was notified, and when recording resumed.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "dispatch_log",
+            "title": "Outgoing call log of the main lobby security desk telephone, 15 April 2026",
+            "description": "Calls placed from the main lobby security desk telephone between 08:00 and 10:30 on 15 April 2026: time, number called, and where and how long the call was answered.",
+            "requestable_after_exchanges": 3
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-9HM3XQ6V",
+        "role": "deceptive",
+        "persona": {
+          "name": "Elise Dunmore",
+          "position": "Procurement Assistant",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Procurement and Contracts",
+          "tenure_years": 3,
+          "background": "Supports the contracts officers at the Halvern Street Annex: schedules supplier meetings, books rooms, prepares review packs and takes the notes. Drives to work and comes in from the staff car park through the north staff door."
+        },
+        "matter": "Establish how Martin Keable of Penwick Document Services entered the Halvern Street Annex on the morning of 15 April 2026 for the 09:00 contract review in Room 2-07, and whether anyone came in through the north staff door when Elise Dunmore's badge opened it at 08:41.",
+        "objective": "Keep this from being established: that at 08:41 you let Martin Keable follow you in through the north staff door on your badge swipe, so that he never signed in at the lobby desk. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "On 14 April Ms Ashby asked you to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:17",
+            "class": "FREE",
+            "text": "Mr Keable came to the last two quarterly reviews of the print and copier contract, so you know him by sight.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "Ms Ashby had another meeting before the review.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your badge opens the north staff door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "Your badge opened the north staff door when you came in from the car park that morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "That was the only time you badged into the building that day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:16",
+            "class": "FREE",
+            "text": "You did not know the north staff door camera wasn't recording that morning.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and you were already there.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "You walked Mr Keable out of the room at about ten past ten.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:40",
+            "class": "CORE",
+            "text": "You let Mr Keable follow you in through the north staff door on your badge swipe.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:41",
+            "class": "CORE",
+            "text": "You did not want the review postponed because Mr Keable couldn't sign in without his photo identification.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "CORE",
+            "text": "Mr Keable was waiting outside the north staff door when you got there.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:44",
+            "class": "HOLD",
+            "text": "Mr Keable did not sign in at the lobby desk that day.",
+            "certainty": "certain",
+            "gate_id": "g:03"
+          },
+          {
+            "id": "f:46",
+            "class": "CORE",
+            "text": "Mr Keable rang your work mobile a few minutes before you reached the north staff door, said he had left his photo identification at home and couldn't sign in at the lobby desk without it, and asked you to let him in through the north staff door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:49",
+            "class": "HOLD",
+            "text": "You were with Mr Keable in the ground-floor north corridor at about 08:41 and took the lift up with him.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:47",
+            "class": "HOLD",
+            "text": "You took Mr Keable straight up to Room 2-07 from the north corridor and did not go down to the main lobby before the review.",
+            "certainty": "certain",
+            "gate_id": "g:02"
+          },
+          {
+            "id": "f:48",
+            "class": "CORE",
+            "text": "After the review you let Mr Keable out of the building through the north staff door.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:04",
+          "f:40",
+          "f:47",
+          "f:13",
+          "f:48"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:02",
+            "subject_view": "You do not know who was signing in at the lobby desk that morning."
+          },
+          {
+            "fact_id": "f:05",
+            "subject_view": "You did not time how long the north staff door stayed open."
+          },
+          {
+            "fact_id": "f:06",
+            "subject_view": "You do not know who else used the north staff door that morning."
+          },
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know how the visitor check works or what it found."
+          },
+          {
+            "fact_id": "f:08",
+            "subject_view": "You do not know when the north staff door camera was or wasn't recording."
+          },
+          {
+            "fact_id": "f:09",
+            "subject_view": "You do not know anything about a fault with the camera."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know what Ms Ashby told Security Operations."
+          },
+          {
+            "fact_id": "f:45",
+            "subject_view": "You do not know what calls the lobby desk made to other extensions that morning."
+          },
+          {
+            "fact_id": "f:50",
+            "subject_view": "You do not know what the lift lobby camera recorded."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:11",
+            "text": "Ms Ashby came into Room 2-07 at about five to nine; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about five to nine."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:13",
+            "text": "You walked Mr Keable out of the room at about ten past ten; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "At about ten past ten."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents the lift lobby camera review showing Dunmore and Keable walking together from the north corridor to the lift at 08:41, with no visitor badge visible on Keable.",
+            "opens": [
+              "f:49"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the lift lobby camera review showing Dunmore and Keable going up together from the north corridor at 08:41, with no later sighting of Dunmore going to the main lobby.",
+            "opens": [
+              "f:47"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:03",
+            "condition": "The investigator presents the lobby visitor register for 15 April showing no entry for Keable or for anyone from Penwick Document Services.",
+            "opens": [
+              "f:44"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-01"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "I came in through the north staff door on my own.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:02",
+            "text": "I met Mr Keable in the main lobby.",
+            "contradicts": "f:47"
+          },
+          {
+            "id": "x:03",
+            "text": "Mr Keable signed in at the lobby desk.",
+            "contradicts": "f:44"
+          },
+          {
+            "id": "x:04",
+            "text": "The lobby desk rang me to say Mr Keable had arrived.",
+            "contradicts": "f:45"
+          },
+          {
+            "id": "x:05",
+            "text": "I didn't know Mr Keable was going to be at the north staff door.",
+            "contradicts": "f:46"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-f32a47fc1bcca15c"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-9HM3XQ6V",
+        "family_id": "F09",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "Ashby asked Dunmore on 14 April to meet the Penwick visitor and set up Room 2-07 for the 09:00 review. At 08:37 Keable phoned Dunmore's work mobile: he had left his photo identification at home, could not sign in at the lobby desk without it, and asked her to let him in through the north staff door. Not wanting the review postponed, she let him follow her in on her 08:41 swipe; camera C-12 recorded them together, his lanyard showing no visitor badge, and they went straight up to Room 2-07, where Ashby found them at about 08:55. He never signed in, the desk made no call about him, and after the review she let him out through the north staff door. Distractors shared with the other variant: the north staff door camera was down for a failed power supply she did not know about, and the reconciliation's surname match.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "On 14 April Ashby asked Dunmore to meet the Penwick Document Services visitor and set up Room 2-07 for the 09:00 contract review on 15 April.",
+            "kind": "context",
+            "time": "2026-04-14T15:20",
+            "actors": [
+              "Gwendolyn Ashby",
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "From 08:31 to 08:44 on 15 April the lobby security desk signed in a group of 14 course attendees.",
+            "kind": "context",
+            "time": "2026-04-15T08:31",
+            "actors": [
+              "Rhoda Haskett"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "Dunmore's badge opens the north staff door.",
+            "kind": "state",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:04",
+            "statement": "At 08:41 Dunmore's badge opened the north staff door from the car park side.",
+            "kind": "action",
+            "time": "2026-04-15T08:41:12",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:05",
+            "statement": "After Dunmore's 08:41 entry the north staff door was open for 11 seconds, inside the 30-second limit.",
+            "kind": "record",
+            "time": "2026-04-15T08:41:23",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "No other badge opened the north staff door between 08:13 and 08:56 on 15 April.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "The 11:30 visitor reconciliation found no visitor register entry under the surname Keable for 15 April.",
+            "kind": "record",
+            "time": "2026-04-15T11:30",
+            "actors": [
+              "Nadia Fairlie"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "The north staff door camera recorded nothing from 07:31 to 11:02 on 15 April.",
+            "kind": "record",
+            "time": "2026-04-15T07:31",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "The north staff door camera was off from 07:31 to 11:02 because its power supply unit failed.",
+            "kind": "record",
+            "time": "2026-04-15T07:31",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "Ashby was in a meeting in Room 3-02 until about 08:50.",
+            "kind": "context",
+            "time": "2026-04-15T08:50",
+            "actors": [
+              "Gwendolyn Ashby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "When Ashby reached Room 2-07 at about 08:55, Keable was already there with Dunmore.",
+            "kind": "action",
+            "time": "2026-04-15T08:55",
+            "actors": [
+              "Gwendolyn Ashby",
+              "Martin Keable",
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:12",
+            "statement": "At 11:40 Ashby told Security Operations that Dunmore was with Keable in Room 2-07 when Ashby arrived.",
+            "kind": "record",
+            "time": "2026-04-15T11:40",
+            "actors": [
+              "Gwendolyn Ashby"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:13",
+            "statement": "At about 10:10 Dunmore walked Keable out of Room 2-07.",
+            "kind": "action",
+            "time": "2026-04-15T10:10",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:14",
+            "statement": "Dunmore's only badge entry to the building on 15 April was at the north staff door at 08:41.",
+            "kind": "state",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:16",
+            "statement": "Dunmore did not know on 15 April that the north staff door camera was not recording.",
+            "kind": "knowledge",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:17",
+            "statement": "Keable had attended the two previous quarterly reviews of the Penwick print and copier contract at the Annex.",
+            "kind": "context",
+            "actors": [
+              "Martin Keable"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "At 08:41 Dunmore let Keable follow her in through the north staff door on her badge swipe.",
+            "kind": "action",
+            "time": "2026-04-15T08:41:12",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:41",
+            "statement": "Dunmore did not want the 09:00 review postponed because Keable could not sign in without photo identification.",
+            "kind": "state",
+            "actors": [
+              "Elise Dunmore"
+            ],
+            "material": false,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "Keable was waiting outside the north staff door when Dunmore arrived there at 08:41.",
+            "kind": "action",
+            "time": "2026-04-15T08:41",
+            "actors": [
+              "Martin Keable",
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:44",
+            "statement": "Keable did not sign in at the lobby security desk on 15 April.",
+            "kind": "state",
+            "actors": [
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:45",
+            "statement": "The lobby desk telephone log for 08:00 to 10:30 on 15 April shows one call, to Facilities at 09:38, so the desk rang no one in Procurement and Contracts, Dunmore included.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:46",
+            "statement": "At 08:37 Keable phoned Dunmore's work mobile, said he had left his photo identification at home and could not sign in at the lobby desk without it, and asked her to let him in through the north staff door.",
+            "kind": "action",
+            "time": "2026-04-15T08:37",
+            "actors": [
+              "Martin Keable",
+              "Elise Dunmore"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "From the north corridor Dunmore took Keable straight up to Room 2-07; neither of them went to the main lobby before the review.",
+            "kind": "action",
+            "time": "2026-04-15T08:42",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:49",
+            "statement": "At about 08:41 Dunmore and Keable were together in the ground-floor north corridor and took the lift together.",
+            "kind": "action",
+            "time": "2026-04-15T08:41:49",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:48",
+            "statement": "At about 10:11 Dunmore let Keable out of the building through the north staff door.",
+            "kind": "action",
+            "time": "2026-04-15T10:11",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": false,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:50",
+            "statement": "At 08:41:49 lift lobby camera C-12 recorded Dunmore and Keable walking together from the north corridor to the lift, with no visitor badge visible on Keable.",
+            "kind": "record",
+            "time": "2026-04-15T08:41:49",
+            "actors": [
+              "Elise Dunmore",
+              "Martin Keable"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:04",
+            "to": "f:05",
+            "relation": "causes"
+          },
+          {
+            "from": "f:09",
+            "to": "f:08",
+            "relation": "explains"
+          },
+          {
+            "from": "f:08",
+            "to": "f:04",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:13",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:12",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:04",
+            "to": "f:14",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:43",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:43",
+            "to": "f:40",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:40",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:06",
+            "to": "f:40",
+            "relation": "enables"
+          },
+          {
+            "from": "f:03",
+            "to": "f:40",
+            "relation": "enables"
+          },
+          {
+            "from": "f:40",
+            "to": "f:49",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:49",
+            "to": "f:50",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:49",
+            "to": "f:47",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:47",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:44",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:13",
+            "to": "f:48",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Visitor reconciliation exception, Halvern Street Annex, 15 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 15 April 2026 at 11:30 by the daily visitor reconciliation (N. Fairlie, Security Operations), which matches the external attendees on room bookings against the lobby visitor register by surname. Exception: Room 2-07 booking, 09:00-10:00, host G. Ashby, external attendee M. Keable (Penwick Document Services): no register entry under the surname Keable on 15 April. Note added at 11:45: at 11:40 the host told Security Operations that E. Dunmore was with the visitor in Room 2-07 when the host arrived. Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door. The table below lists the north staff door events from 08:00 to 09:00 only. North staff door camera: no recording from 07:31 to 11:02. The north staff door is opened from the car park side by badge and from inside by an exit button; the open-door limit is 30 seconds.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "08:12:40",
+                    "North staff door (car park side)",
+                    "Badge 70288 (L. Ormsby)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:12:47",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ],
+                  [
+                    "08:41:12",
+                    "North staff door (car park side)",
+                    "Badge 70315 (E. Dunmore)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:41:23",
+                    "North staff door",
+                    "-",
+                    "Door closed (open 11 s)"
+                  ],
+                  [
+                    "08:57:05",
+                    "North staff door (car park side)",
+                    "Badge 70402 (P. Dacre)",
+                    "Access granted"
+                  ],
+                  [
+                    "08:57:13",
+                    "North staff door",
+                    "-",
+                    "Door closed"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:14",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Visitors and badge doors (Facility Security Standard 3.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "(a) Visitors, including suppliers and contractors, enter the Annex only through the main lobby on Halvern Street, sign in at the security desk on showing photo identification and wear the visitor badge issued to them. (b) When a visitor signs in, the desk phones the host; if the host does not answer, the desk phones the host's unit line. (c) The host, or a member of staff the host names, meets the visitor in the lobby, escorts the visitor while in the building and brings the visitor back to the lobby to sign out. (d) Staff must not let any person pass through a badge door on their swipe."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "email",
+            "title": "Meeting invitation for the Penwick contract review, sent 14 April 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "From: G. Ashby, Contracts Officer, Procurement and Contracts. To: E. Dunmore; M. Keable (Penwick Document Services). Sent: 14 April 2026, 15:20. Subject: Quarterly review, print and copier contract. Room 2-07, Halvern Street Annex, 15 April, 09:00-10:00. Martin, please sign in at the main lobby desk on Halvern Street when you arrive, and bring photo identification. Elise, I am in a meeting in Room 3-02 until about 08:50; please meet Martin and have Room 2-07 and the projector ready for nine."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Gwendolyn Ashby, Contracts Officer (16 April 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "My meeting in Room 3-02 ran until about ten to nine. On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine, because I knew I would be tied up. When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there and the projector was on. He had a lanyard round his neck; I did not look at the badge on it. He has come to the last two quarterly reviews, so Elise knows him. The review finished just after ten, and at about ten past ten Elise walked him out of the room. I did not see which way they went. I told Security Operations this when they called me at 11:40."
+            },
+            "supports": [
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:13",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:17",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Visitor register of the main lobby security desk, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Desk officer on duty from 07:30: R. Haskett. Times are from the desk computer. Names and companies are typed by the desk officer as the visitor gives them. 2 entries.",
+              "table": {
+                "columns": [
+                  "In",
+                  "Name",
+                  "Company",
+                  "Badge",
+                  "Host",
+                  "Out"
+                ],
+                "rows": [
+                  [
+                    "08:31-08:44",
+                    "Contract Management induction course (14 attendees, names on the course list)",
+                    "Brannock Administrative Services Agency, other sites",
+                    "T-01 to T-14",
+                    "J. Morrow, Training",
+                    "16:30"
+                  ],
+                  [
+                    "09:40",
+                    "S. Ferrand",
+                    "Larkspur Water Coolers",
+                    "V-23",
+                    "Facilities",
+                    "10:05"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Every visitor signed in at the main lobby security desk on 15 April 2026, with sign-in time, name and company as typed by the desk officer, visitor badge, host and sign-out time."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Reviewed 16 April by N. Fairlie, Security Operations. Recorder clock checked against the access control system. People were identified by G. Ashby from the recording. Camera C-12 recorded normally throughout.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Came from",
+                  "Seen",
+                  "Went to"
+                ],
+                "rows": [
+                  [
+                    "08:31-08:45",
+                    "Main lobby",
+                    "Course attendees with T badges, in small groups",
+                    "Lifts"
+                  ],
+                  [
+                    "08:41:49",
+                    "North corridor",
+                    "E. Dunmore with M. Keable; no visitor badge visible on his lanyard",
+                    "Lift"
+                  ],
+                  [
+                    "08:57:20",
+                    "North corridor",
+                    "P. Dacre, alone",
+                    "Lift"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:50",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:49",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:47",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Review of the recording from camera C-12, which covers the ground-floor lift lobby where the north corridor and the main lobby meet: who passed, from which direction, and when."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Fault ticket for the north staff door camera, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Ticket FT-0415-03, opened automatically at 07:31 on 15 April when the north staff door camera stopped sending video. Security Operations notified Ostrander Camera Services at 08:05. Cause found on site: the camera's power supply unit had failed. The technician replaced the power supply unit, and recording resumed at 11:02. No other camera was affected. No notice about the fault was sent to staff."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "The fault ticket for the camera covering the north staff door: when the fault was detected, its cause, who was notified, and when recording resumed."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "dispatch_log",
+            "title": "Outgoing call log of the main lobby security desk telephone, 15 April 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Exported from the telephone system. Extension 2210 is the Procurement and Contracts main line, which rings on every desk in the unit.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Called",
+                  "Answered at",
+                  "Duration"
+                ],
+                "rows": [
+                  [
+                    "09:38:15",
+                    "Ext 2140 (Facilities)",
+                    "Ext 2140",
+                    "1:10"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Calls placed from the main lobby security desk telephone between 08:00 and 10:30 on 15 April 2026: time, number called, and where and how long the call was answered."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "Camera C-12 shows Keable walking in from the north corridor with Dunmore at 08:41:49, 37 seconds after her badge opened the north staff door, with no visitor badge, and the register holds no entry for him or his company.",
+            "fact_ids": [
+              "f:50",
+              "f:44",
+              "f:04"
+            ],
+            "artifact_ids": [
+              "rec-02",
+              "rec-01",
+              "doc-01"
+            ],
+            "resolution": "Keable came in behind Dunmore on her 08:41 swipe and never signed in.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:40",
+                "f:43",
+                "f:49"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Dunmore says she met Keable in the main lobby, that he signed in or that the desk rang her, the account conflicts with the register, the desk telephone log and camera C-12 (forbidden assertions x:02, x:03, x:04).",
+            "fact_ids": [
+              "f:44",
+              "f:45",
+              "f:47"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-04",
+              "rec-02"
+            ],
+            "forbidden_assertion_ids": [
+              "x:02",
+              "x:03",
+              "x:04"
+            ],
+            "resolution": "There was no sign-in, no desk call and no trip to the lobby.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:44",
+                "f:45"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-04"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The register has no entry for Keable or Penwick Document Services, and camera C-12 shows him walking in from the north corridor with Dunmore at 08:41:49, just after her badge opened the north staff door, with no visitor badge; Dunmore gives no account of how he entered when asked.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:44",
+                "f:50",
+                "f:49"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "No register match under the surname Keable on its own",
+            "The north staff door camera not recording",
+            "The visitor being with her when the host arrived, on its own",
+            "Long or worried answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish whom she saw or spoke to between the car park and Room 2-07, including the visitor (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:46",
+                "f:43",
+                "f:49"
+              ],
+              "neutral_example": "Who did you see or speak to between arriving in the car park and reaching Room 2-07 that morning?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish how the visitor entered the building.",
+              "target_fact_ids": [
+                "f:44",
+                "f:46"
+              ],
+              "neutral_example": "How did Mr Keable get into the building that morning?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where she first met the visitor.",
+              "target_fact_ids": [
+                "f:43",
+                "f:49"
+              ],
+              "neutral_example": "Where did you first meet Mr Keable on 15 April?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish what she did between her entry and the start of the review.",
+              "target_fact_ids": [
+                "f:47",
+                "f:11"
+              ],
+              "neutral_example": "What did you do between coming in at 08:41 and the start of the review?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish how the visitor left.",
+              "target_fact_ids": [
+                "f:13",
+                "f:48"
+              ],
+              "neutral_example": "How did Mr Keable leave the building after the review?"
+            },
+            {
+              "id": "q:06",
+              "intent": "Establish what she knew about the north staff door camera.",
+              "target_fact_ids": [
+                "f:16"
+              ],
+              "neutral_example": "What did you know about the north staff door camera that morning?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The visitor signed in at the lobby and she met him there.",
+              "test": "Request the visitor register and the desk telephone log; look for any entry for Penwick Document Services, not only the surname Keable, and for a desk call to the host or the Procurement line."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The visitor came in through the north staff door behind her.",
+              "test": "Request the lift lobby camera review; compare who came from the north corridor at 08:41 with who came from the main lobby, and whether a visitor badge was visible."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "The north staff door camera was off because someone arranged it.",
+              "test": "Request the camera fault ticket; check the cause, the time and whether any notice was issued."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about how the visitor entered and where she met him. 'Why did you bring him in through the back?' presumes a fact not established; a question that bundles the door, the camera and the register invites a partial answer.",
+            "response_relevance": "A long answer about the course group, the host's other meeting and her worry about the review that never says where she met Mr Keable leaves the question unanswered; credit recognizing that and asking again (EX-2). Formal, expansive, worried answers are style, not evasion.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-03 as soon as they open (exchange 2) and rec-02 and rec-04 at exchange 3, and putting the register entries, the C-12 sightings and the desk calls to the subject.",
+            "testing_alternatives": "Credit testing the lobby account (a:01) against the camera review (a:02) before closing, and checking the register for the company as well as the surname. The camera fault (a:03) is never a ground on its own.",
+            "supported_closure": "Deceptive closure cites rec-01 with rec-02 (no sign-in for the company at all, and C-12 showing him with her from the north corridor at 08:41 without a visitor badge) with her non-answers on how he entered. The camera outage, the surname mismatch alone and her manner are never grounds."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'Who did you see or speak to between arriving in the car park and reaching Room 2-07?' with a long account of the busy morning and her worry about the review, then says she came in and set up Room 2-07, never mentioning Mr Keable or his call.",
+            "label": "evasion",
+            "rationale": "Omission: she knows he phoned her and was waiting at the north staff door (f:46, f:43) and was with her in the north corridor (HOLD f:49). The question asks whom she saw, so leaving him out leaves it unanswered; credit asking again (EX-2)."
+          },
+          {
+            "id": "l:02",
+            "situation": "Answers 'Where did you first meet Mr Keable?' only with how busy the morning was and that Ms Ashby had asked her to look after him, and stops without saying where she met him.",
+            "label": "evasion",
+            "rationale": "She knows where she met him (f:43) and leaves it out: omission, labeled the same as in the other variant."
+          },
+          {
+            "id": "l:03",
+            "situation": "Says Ms Ashby arrived at about five to nine and that she walked Mr Keable out at about ten past ten, without exact times.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          },
+          {
+            "id": "l:04",
+            "situation": "Answers 'How did Mr Keable get into the building?' by describing the meeting invitation and Ms Ashby's request that she meet him, before the register is presented.",
+            "label": "evasion",
+            "rationale": "Deflection on HOLD fact f:44 and CORE fact f:46."
+          },
+          {
+            "id": "l:05",
+            "situation": "Gives a partial answer to a question that bundles the north door, the camera and the register.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; label the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-e18072c28defa60a"
+      }
+    }
+  }
+}

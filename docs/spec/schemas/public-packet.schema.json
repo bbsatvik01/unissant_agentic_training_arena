@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://unissant-arena.invalid/schemas/public-packet.schema.json",
   "title": "Public case packet",
-  "description": "SCN-7, schema v1.1. Everything an investigator, the interviewer harness and an assistant candidate may see before any record is released. Identical across the truthful and deceptive variants of a family except for case_id (S1 section 4.1, rule L1), so the presentation, the opening question and the replay topics are shared by both variants. Contains no role, no fact IDs, no release schedule, no scheduled-record contents and no style or demeanor attribute (PRB-4, C-22).",
+  "description": "SCN-7, schema v1.2 (v1.1 plus the table-cell rule and the content byte budget; S1 v2.3). Everything an investigator, the interviewer harness and an assistant candidate may see before any record is released. Identical across the truthful and deceptive variants of a family except for case_id (S1 section 4.1, rule L1), so the presentation, the opening question and the replay topics are shared by both variants. Contains no role, no fact IDs, no release schedule, no scheduled-record contents and no style or demeanor attribute (PRB-4, C-22).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,7 +25,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "packet": {
       "const": "public"
@@ -81,7 +81,7 @@
       }
     },
     "opening_question": {
-      "description": "BKO-7 common initial question, asked first in every trial of this case (S2 8.1). Written by the generator from public material only; passes S2 relay_test.v1 at generation (validator V1c).",
+      "description": "BKO-7 common initial question, asked first in every trial of this case (S2 8.1). Written by the authoring agent from public material only (S1 8.3); passes S2 relay_test.v1 at authoring (validator V1c).",
       "type": "string",
       "minLength": 10,
       "maxLength": 300
@@ -216,6 +216,7 @@
       ]
     },
     "table": {
+      "description": "Every row has exactly one cell per column (validator V2). No column name or cell contains a vertical bar or a line break, so S1 content_text() renders every cell and puts each row on its own line.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -230,7 +231,8 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 40
+            "maxLength": 40,
+            "pattern": "^[^|\\r\\n]+$"
           }
         },
         "rows": {
@@ -243,14 +245,15 @@
             "maxItems": 8,
             "items": {
               "type": "string",
-              "maxLength": 200
+              "maxLength": 200,
+              "pattern": "^[^|\\r\\n]*$"
             }
           }
         }
       }
     },
     "content": {
-      "description": "Document body as plain text, plus an optional table. Synthetic and fictional only.",
+      "description": "Document body as plain text, plus an optional table. Synthetic and fictional only. Consumers carry the whole object (body and table) or its one text rendering, S1 content_text(); none reads body alone (S1 6.1). Size: at most 4,096 bytes as canonical JSON in UTF-8 (validator V1d, S1 9.1).",
       "type": "object",
       "additionalProperties": false,
       "required": [

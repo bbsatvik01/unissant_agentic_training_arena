@@ -34,3 +34,15 @@
 - D-014 (owner): case families authored by Claude agents + Codex; Gemini 3.1 Pro dropped. Supabase MCP added at project scope (.mcp.json, project fzjgcwkvveetegpngujr).
 - Direction v10.4: D-013 + D-014 applied; offline authoring removes generation spend; baseline back to 30 hidden cases (~$44/$66, complete), 34 pilot-gated. Owner completed Supabase MCP login.
 - Session break stopped wf_cedd150a-eec mid-run (S1 done); resumed as wco6osdfj with D-014 added. Supabase MCP verified working (empty database).
+- 8d96b25 schema v1.1 + seeds committed (validated, mutation 29/29). Dispatched dev case authoring (wf_0246738e-32c) and web foundation (wf_20ff7f42-fb5) in worktrees; PATTERNS gains the adapted dispatch protocol (branch + self Codex + cold Codex + local merge).
+- 1ad3222 spec v2.1/v2.2 committed; 7e484f4 WP-01 scaffold moved to branch feat/wp01-scaffold (pre-gate); 64dd893 stats_contracts.planned_denominators. Dispatched Codex spec round 1 (4 sessions) and build wave 2 (wf_9aced0c9-52d).
+- Codex spec round 1: RED x3, YELLOW x1 (4 blockers, ~60 majors). Fix workflow wf_09e6717a-210 dispatched with shared decisions D1-D11.
+- 22:45 HOLD: owner directive, no new dispatch for 2 h, nothing stopped; checkpoint recorded.
+- 01:15 resumed all four workflows after the usage limit; a3ca7e9 spec v2.3 (S1-S5, schemas, seeds, SQL).
+- D-015 GCP project cna-guardian (owner). Directive: no new workflows until tomorrow's refresh; running ones continue.
+- de3524d spec v2.3 S6-S8 + byte LIMITS; Codex spec round 2 started (b9mnxieqt).
+- Codex spec round 2: 4 blockers, 35 majors (round 1 ~60); recorded; fixes after 07:00.
+- Round-2 blockers fixed by orchestrator (limits, debrief envelope); 35 majors queued.
+- 9fd1dd2 (branch data/dev-cases) F04-F09 committed; F01-F03 seed fixes pending.
+- feat/web-foundation 49fe031 (Codex CORRECT); verifier found 1 major (SSE retry budget on normal stream end); fix after 07:00.
+- 1392310 spec v2.4; 8c03747 merge dev cases F01-F09; Codex spec round 3 started.

@@ -1,9 +1,10 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "family_id": "F03",
+  "revision": 1,
   "split": "dev",
   "domain": "facility_access",
-  "title": "Network room entry on another person's card",
+  "title": "Network room entry on card A-2291",
   "taxonomy": {
     "violation_type": "badge_sharing",
     "misleading_types": [
@@ -141,7 +142,7 @@
       },
       {
         "id": "f:08",
-        "statement": "Lindqvist was the only Infrastructure Support staff member in the building before 07:30.",
+        "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
         "kind": "state",
         "actors": [
           "Avery Lindqvist"
@@ -342,7 +343,7 @@
       },
       {
         "id": "f:44",
-        "statement": "Card A-2291 is active and assigned to Haddad; approved leave does not deactivate cards.",
+        "statement": "Card A-2291 is Haddad's own personal badge, never deactivated or moved to the spare pool; approved leave does not deactivate cards.",
         "kind": "record",
         "actors": [],
         "material": true,
@@ -478,11 +479,11 @@
     "truthful": {
       "case_id": "C-R6DJ3NWC",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-R6DJ3NWC",
         "domain": "facility_access",
-        "title": "Network room entry on another person's card",
+        "title": "Network room entry on card A-2291",
         "difficulty_level": 3,
         "investigation_objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
         "interview_context": {
@@ -711,7 +712,7 @@
           {
             "id": "f:08",
             "class": "FREE",
-            "text": "Nobody else from Infrastructure Support was in yet.",
+            "text": "You were alone in N-3, and nobody else from Infrastructure Support was in yet.",
             "certainty": "certain"
           },
           {
@@ -918,7 +919,7 @@
           },
           {
             "id": "f:08",
-            "statement": "Lindqvist was the only Infrastructure Support staff member in the building before 07:30.",
+            "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
             "kind": "state",
             "actors": [
               "Avery Lindqvist"
@@ -1598,11 +1599,11 @@
     "deceptive": {
       "case_id": "C-PA8E5TKY",
       "public_packet": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "packet": "public",
         "case_id": "C-PA8E5TKY",
         "domain": "facility_access",
-        "title": "Network room entry on another person's card",
+        "title": "Network room entry on card A-2291",
         "difficulty_level": 3,
         "investigation_objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
         "interview_context": {
@@ -1837,7 +1838,7 @@
           {
             "id": "f:08",
             "class": "FREE",
-            "text": "Nobody else from Infrastructure Support was in yet.",
+            "text": "You were alone in N-3, and nobody else from Infrastructure Support was in yet.",
             "certainty": "certain"
           },
           {
@@ -1887,7 +1888,7 @@
           {
             "id": "f:44",
             "class": "HOLD",
-            "text": "Rafael's card still works.",
+            "text": "A-2291 is Rafael's own badge; it was never a spare card.",
             "certainty": "certain",
             "gate_id": "g:02"
           },
@@ -1941,7 +1942,7 @@
           },
           {
             "id": "g:02",
-            "condition": "The investigator presents the badge office record showing that card A-2291 is active and assigned to Haddad.",
+            "condition": "The investigator presents the badge office record showing that card A-2291 is Haddad's own personal badge and was never in the spare pool.",
             "opens": [
               "f:44"
             ],
@@ -2096,7 +2097,7 @@
           },
           {
             "id": "f:08",
-            "statement": "Lindqvist was the only Infrastructure Support staff member in the building before 07:30.",
+            "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
             "kind": "state",
             "actors": [
               "Avery Lindqvist"
@@ -2187,7 +2188,7 @@
           },
           {
             "id": "f:44",
-            "statement": "Card A-2291 is active and assigned to Haddad; approved leave does not deactivate cards.",
+            "statement": "Card A-2291 is Haddad's own personal badge, never deactivated or moved to the spare pool; approved leave does not deactivate cards.",
             "kind": "record",
             "actors": [],
             "material": true,
@@ -2493,7 +2494,7 @@
               "after_exchanges": 5
             },
             "content": {
-              "body": "Issued 2 May 2023 to R. Haddad. Status: active. Not reported lost or stolen. Approved leave does not deactivate cards."
+              "body": "Issued 2 May 2023 to R. Haddad. Status: active, personal badge. Never deactivated or reassigned to the IT lockbox spare pool. Not reported lost or stolen. Approved leave does not deactivate cards."
             },
             "supports": [
               {

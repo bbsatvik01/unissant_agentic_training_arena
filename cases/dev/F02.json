@@ -1,0 +1,2745 @@
+{
+  "schema_version": "1.2.0",
+  "family_id": "F02",
+  "revision": 1,
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "After-hours entry with a double count",
+  "taxonomy": {
+    "violation_type": "unregistered_visitor_escort",
+    "misleading_types": [
+      "sensor_false_positive",
+      "camera_outage",
+      "privacy_reason"
+    ]
+  },
+  "difficulty": {
+    "level": 1,
+    "knobs": {
+      "key_record_after_exchanges": 2,
+      "evidence_directness": 1,
+      "misleading_count": 2,
+      "uncertainty_count": 1,
+      "gate_level": 2
+    }
+  },
+  "style": {
+    "verbosity": "expansive",
+    "fluency": "disfluent",
+    "affect": "calm",
+    "register": "formal",
+    "language": "native"
+  },
+  "provenance": {
+    "method": "hand",
+    "created": "2026-10-08",
+    "notes": "Development seed family. Truthful variant combines a known sensor fault, a coincidental camera outage and a legitimate privacy boundary (EVL-8 legitimate non-disclosure). Fictional agency, facility and people."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "It rained heavily around the Annex on the evening of 10 March 2026.",
+        "kind": "context",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "Mara Quell left her prescription medication in her desk drawer on the records floor when she left work at 17:05.",
+        "kind": "state",
+        "time": "2026-03-10T17:05",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "At 19:42 Quell's badge opened the east staff door with a single swipe.",
+        "kind": "action",
+        "time": "2026-03-10T19:42",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "The east-door tailgate sensor counted two people on that swipe and raised a tailgate alert.",
+        "kind": "record",
+        "time": "2026-03-10T19:42",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "Quell returned to the Annex after hours to collect her medication.",
+        "kind": "action",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "Quell takes the medication for a chronic health condition she has not disclosed at work.",
+        "kind": "state",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [
+          "privacy"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "No visitors were registered with the security desk for the evening of 10 March.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "At 19:44 Quell's badge opened the records-floor door on floor 3.",
+        "kind": "action",
+        "time": "2026-03-10T19:44",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "Quell's partner, Evan Roff, drove her to the Annex that evening.",
+        "kind": "state",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "The east-door camera was offline from 18:00 to 22:00 on 10 March.",
+        "kind": "context",
+        "time": "2026-03-10T18:00",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "Facilities had isolated power to the east-door camera on 10 March while working on ticket FM-2207.",
+        "kind": "context",
+        "actors": [],
+        "material": false,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:13",
+        "statement": "Quell's badge allows after-hours entry to the east door and the records floor.",
+        "kind": "state",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:14",
+        "statement": "Night custodian Bram Hollis was cleaning the floor-1 elevator lobby from 19:30 to 19:50.",
+        "kind": "context",
+        "time": "2026-03-10T19:30",
+        "actors": [
+          "Bram Hollis"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "Quell entered the Annex alone; Roff waited in the car in the east lot.",
+        "kind": "action",
+        "time": "2026-03-10T19:42",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "Quell's open, wet umbrella passed the sensor beside her and produced the second count.",
+        "kind": "context",
+        "time": "2026-03-10T19:42",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "Elevator car 2 carried one person from floor 1 to floor 3 at 19:43 and one person from floor 3 to floor 1 at 19:58.",
+        "kind": "record",
+        "time": "2026-03-10T19:43",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "Quell left the records floor at 19:57 and the Annex at 20:00.",
+        "kind": "action",
+        "time": "2026-03-10T19:57",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "Custodian Hollis saw Quell come in alone with a wet umbrella and heard her say she had forgotten something upstairs.",
+        "kind": "record",
+        "actors": [
+          "Bram Hollis",
+          "Mara Quell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe.",
+        "kind": "action",
+        "time": "2026-03-10T19:42",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Quell took Roff up to floor 3 and through the records-floor door with her, although he was not registered as a visitor.",
+        "kind": "action",
+        "time": "2026-03-10T19:44",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "Quell brought Roff in because it was raining hard and he wanted to see where she works.",
+        "kind": "state",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": true,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "Quell knew the east-door camera was off that evening from a notice taped to the door.",
+        "kind": "knowledge",
+        "actors": [
+          "Mara Quell"
+        ],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Elevator car 2 carried two people from floor 1 to floor 3 at 19:43 and two people from floor 3 to floor 1 at 20:06.",
+        "kind": "record",
+        "time": "2026-03-10T19:43",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "The records-floor door stayed open for 11 seconds at 19:44.",
+        "kind": "record",
+        "time": "2026-03-10T19:44",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "Quell and Roff left the Annex together at 20:08.",
+        "kind": "action",
+        "time": "2026-03-10T20:08",
+        "actors": [
+          "Mara Quell",
+          "Evan Roff"
+        ],
+        "material": false,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "Custodian Hollis saw Quell with a man he did not recognize near the floor-1 elevators at about 19:43.",
+        "kind": "record",
+        "actors": [
+          "Bram Hollis",
+          "Mara Quell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:02",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:02",
+        "to": "f:06",
+        "relation": "causes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:09",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:14",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:12",
+        "to": "f:11",
+        "relation": "explains"
+      },
+      {
+        "from": "f:20",
+        "to": "f:04",
+        "relation": "explains"
+      },
+      {
+        "from": "f:21",
+        "to": "f:04",
+        "relation": "causes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:22",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:04",
+        "relation": "causes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:44",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:44",
+        "to": "f:41",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:45",
+        "relation": "causes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:46",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:42",
+        "to": "f:41",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:43",
+        "to": "f:41",
+        "relation": "enables"
+      },
+      {
+        "from": "f:13",
+        "to": "f:41",
+        "relation": "enables"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-K9TB2ZQF",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-K9TB2ZQF",
+        "domain": "facility_access",
+        "title": "After-hours entry with a double count",
+        "difficulty_level": 1,
+        "investigation_objective": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-17",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Mara Quell",
+            "position": "Records Clerk",
+            "unit": "Records Management Unit",
+            "tenure_years": 7
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about a tailgate alert at the east staff door on the evening of 10 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-02",
+          "display_name": "Mara Quell",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+        "replay_topics": [
+          "your entry through the east staff door at 19:42",
+          "the tailgate sensor counting two people at the east staff door",
+          "where you went inside the building that evening"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-10T18:00",
+            "event": "East staff door camera taken offline for facilities work.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-10T19:42",
+            "event": "Mara Quell's badge opened the east staff door; the tailgate sensor counted two people.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-10T22:00",
+            "event": "East staff door camera back online.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-11T08:15",
+            "event": "Security Operations reviewed the tailgate alert and referred it for interview.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "sensor_metadata",
+            "title": "Tailgate alert, east staff door, 10 March 2026",
+            "content": {
+              "body": "Alert reviewed by Security Operations on 11 March at 08:15 and referred for interview.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:42:31",
+                    "East staff door reader",
+                    "Badge 22107 (M. Quell), access granted"
+                  ],
+                  [
+                    "19:42:33",
+                    "East-door tailgate sensor",
+                    "Count 2 on one swipe, tailgate alert raised"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "After-hours access rules (Facility Security Standard 3.1)",
+            "content": {
+              "body": "Staff may enter after hours with their own badge, including to collect personal items. Visitors must be registered with the security desk at least 24 hours in advance and must be escorted at all times. Staff must not admit any other person on their own badge swipe."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "camera_status",
+            "title": "Building camera status, 10 March 2026",
+            "content": {
+              "body": "East staff door camera offline 18:00-22:00 (power isolated by Facilities for ticket FM-2207). Lobby camera: live view only, no recording kept. Elevator cameras store trip metadata with a person count; no images are kept."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Security desk visitor register, 10 March 2026",
+            "description": "Visitors registered with the security desk for 10 March 2026, day and after hours.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+            "description": "Trip records from elevator car 2: time, floors and the in-car camera's person count. No images are retained.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "door_log",
+            "title": "Records floor (floor 3) door log, 10 March 2026",
+            "description": "Badge and exit-button events at the floor-3 records door, with how long the door stayed open.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "witness_statement",
+            "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+            "description": "Written statement from the night custodian on duty in the floor-1 lobby on 10 March.",
+            "requestable_after_exchanges": 4
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-K9TB2ZQF",
+        "role": "truthful",
+        "persona": {
+          "name": "Mara Quell",
+          "position": "Records Clerk",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Records Management Unit",
+          "tenure_years": 7,
+          "background": "Works on the restricted third-floor records area of the Halvern Street Annex, handling intake and retrieval of case files."
+        },
+        "matter": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "It was pouring that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "You had left your medication in your desk drawer when you went home at five.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You badged in at the east staff door a little before quarter to eight.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "You came back only to collect your medication.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "PRIVATE",
+            "text": "The medication is for a health condition you have not told anyone at work about.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "You badged into the records floor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "Evan, your partner, drove you.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "Your badge works after hours for the east door and the records floor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "Bram, the custodian, was cleaning near the elevators when you came in.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:20",
+            "class": "FREE",
+            "text": "You went in by yourself; Evan stayed in the car.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "You were only inside for a few minutes, perhaps fifteen.",
+            "certainty": "approximate"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:06",
+          "f:20",
+          "f:09",
+          "f:23"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:04",
+            "subject_view": "You did not know the sensor counted two people until you were told."
+          },
+          {
+            "fact_id": "f:05",
+            "subject_view": "You do not know about any sensor maintenance ticket."
+          },
+          {
+            "fact_id": "f:08",
+            "subject_view": "You do not know what the security desk had registered."
+          },
+          {
+            "fact_id": "f:11",
+            "subject_view": "You did not know the camera was off."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know why the camera was off."
+          },
+          {
+            "fact_id": "f:21",
+            "subject_view": "You do not know why the sensor counted two."
+          },
+          {
+            "fact_id": "f:22",
+            "subject_view": "You have not seen the elevator records."
+          },
+          {
+            "fact_id": "f:24",
+            "subject_view": "You do not know what Bram has said."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:23",
+            "text": "You were inside for about fifteen minutes; you are not sure whether you left just before or just after eight.",
+            "answer_form": "range",
+            "range_text": "Around eight, maybe just before or just after."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "Someone came into the building with me.",
+            "contradicts": "f:20"
+          },
+          {
+            "id": "x:02",
+            "text": "I came back for a reason other than my medication.",
+            "contradicts": "f:06"
+          },
+          {
+            "id": "x:03",
+            "text": "I registered a visitor for that evening.",
+            "contradicts": "f:08"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "disfluent",
+          "affect": "calm",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-a963b1883bb3a10f"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-K9TB2ZQF",
+        "family_id": "F02",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "Quell came back after hours in heavy rain to collect medication she had left in her desk. She entered alone; her partner waited in the car. Her wet umbrella produced a second count on the tailgate sensor, a known wet-weather fault (FM-2207), and the east-door camera was off for the same maintenance. She may decline to say what the medication is for: a legitimate privacy boundary, not evasion.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "It rained heavily around the Annex on the evening of 10 March 2026.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Mara Quell left her prescription medication in her desk drawer on the records floor when she left work at 17:05.",
+            "kind": "state",
+            "time": "2026-03-10T17:05",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 19:42 Quell's badge opened the east staff door with a single swipe.",
+            "kind": "action",
+            "time": "2026-03-10T19:42",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "The east-door tailgate sensor counted two people on that swipe and raised a tailgate alert.",
+            "kind": "record",
+            "time": "2026-03-10T19:42",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "Quell returned to the Annex after hours to collect her medication.",
+            "kind": "action",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:07",
+            "statement": "Quell takes the medication for a chronic health condition she has not disclosed at work.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "No visitors were registered with the security desk for the evening of 10 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "At 19:44 Quell's badge opened the records-floor door on floor 3.",
+            "kind": "action",
+            "time": "2026-03-10T19:44",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Quell's partner, Evan Roff, drove her to the Annex that evening.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "The east-door camera was offline from 18:00 to 22:00 on 10 March.",
+            "kind": "context",
+            "time": "2026-03-10T18:00",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:12",
+            "statement": "Facilities had isolated power to the east-door camera on 10 March while working on ticket FM-2207.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:13",
+            "statement": "Quell's badge allows after-hours entry to the east door and the records floor.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:14",
+            "statement": "Night custodian Bram Hollis was cleaning the floor-1 elevator lobby from 19:30 to 19:50.",
+            "kind": "context",
+            "time": "2026-03-10T19:30",
+            "actors": [
+              "Bram Hollis"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "Quell entered the Annex alone; Roff waited in the car in the east lot.",
+            "kind": "action",
+            "time": "2026-03-10T19:42",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:21",
+            "statement": "Quell's open, wet umbrella passed the sensor beside her and produced the second count.",
+            "kind": "context",
+            "time": "2026-03-10T19:42",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:22",
+            "statement": "Elevator car 2 carried one person from floor 1 to floor 3 at 19:43 and one person from floor 3 to floor 1 at 19:58.",
+            "kind": "record",
+            "time": "2026-03-10T19:43",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:23",
+            "statement": "Quell left the records floor at 19:57 and the Annex at 20:00.",
+            "kind": "action",
+            "time": "2026-03-10T19:57",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "Custodian Hollis saw Quell come in alone with a wet umbrella and heard her say she had forgotten something upstairs.",
+            "kind": "record",
+            "actors": [
+              "Bram Hollis",
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:06",
+            "relation": "causes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:12",
+            "to": "f:11",
+            "relation": "explains"
+          },
+          {
+            "from": "f:20",
+            "to": "f:04",
+            "relation": "explains"
+          },
+          {
+            "from": "f:21",
+            "to": "f:04",
+            "relation": "causes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:22",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:23",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "sensor_metadata",
+            "title": "Tailgate alert, east staff door, 10 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Alert reviewed by Security Operations on 11 March at 08:15 and referred for interview.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:42:31",
+                    "East staff door reader",
+                    "Badge 22107 (M. Quell), access granted"
+                  ],
+                  [
+                    "19:42:33",
+                    "East-door tailgate sensor",
+                    "Count 2 on one swipe, tailgate alert raised"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "After-hours access rules (Facility Security Standard 3.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Staff may enter after hours with their own badge, including to collect personal items. Visitors must be registered with the security desk at least 24 hours in advance and must be escorted at all times. Staff must not admit any other person on their own badge swipe."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "camera_status",
+            "title": "Building camera status, 10 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "East staff door camera offline 18:00-22:00 (power isolated by Facilities for ticket FM-2207). Lobby camera: live view only, no recording kept. Elevator cameras store trip metadata with a person count; no images are kept."
+            },
+            "supports": [
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "context_change",
+            "title": "Facilities notice FM-2207 (open since 2 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "East staff door tailgate sensor: false double counts reported in wet weather; umbrellas and bags can register as a second person. Replacement sensor on order."
+            },
+            "supports": [
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Security desk visitor register, 10 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "After-hours visitors registered: none. Day visitors: 6, all signed out by 17:30."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Visitors registered with the security desk for 10 March 2026, day and after hours."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Person count from the in-car camera; images are not retained.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From floor",
+                  "To floor",
+                  "Persons"
+                ],
+                "rows": [
+                  [
+                    "19:43:05",
+                    "1",
+                    "3",
+                    "1"
+                  ],
+                  [
+                    "19:58:40",
+                    "3",
+                    "1",
+                    "1"
+                  ],
+                  [
+                    "20:31:12",
+                    "1",
+                    "2",
+                    "1"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Trip records from elevator car 2: time, floors and the in-car camera's person count. No images are retained."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "door_log",
+            "title": "Records floor (floor 3) door log, 10 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "No other floor-3 records-door events between 18:00 and 22:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Event",
+                  "Credential",
+                  "Open (s)"
+                ],
+                "rows": [
+                  [
+                    "19:44:02",
+                    "Badge, access granted",
+                    "Badge 22107 (M. Quell)",
+                    "4"
+                  ],
+                  [
+                    "19:57:30",
+                    "Exit button",
+                    "-",
+                    "3"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Badge and exit-button events at the floor-3 records door, with how long the door stayed open."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "witness_statement",
+            "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Around quarter to eight Mara came in from the east door on her own. She had a wet umbrella and said she'd forgotten something upstairs. I didn't see her leave; I was in the mail room by then."
+            },
+            "supports": [
+              {
+                "fact_id": "f:24",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:20",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ],
+            "description": "Written statement from the night custodian on duty in the floor-1 lobby on 10 March."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "The tailgate sensor counted two people on Quell's single swipe.",
+            "fact_ids": [
+              "f:04",
+              "f:03"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "The sensor double-counts in wet weather; the elevator record and the custodian show one person.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:05"
+              ],
+              "artifact_ids": [
+                "rec-05",
+                "rec-02",
+                "rec-04"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The east-door camera was offline exactly when Quell entered.",
+            "fact_ids": [
+              "f:11"
+            ],
+            "artifact_ids": [
+              "doc-03"
+            ],
+            "resolution": "Facilities isolated the camera for ticket FM-2207 from 18:00; Quell did not arrange or know it.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:12"
+              ],
+              "artifact_ids": [
+                "doc-03"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "Quell will not say what her medication is for, which can look like withholding.",
+            "fact_ids": [
+              "f:07"
+            ],
+            "artifact_ids": [],
+            "resolution": "A legitimate privacy boundary that does not bear on who entered the building.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:06"
+              ],
+              "artifact_ids": []
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "Elevator car 2 carried one person up at 19:43 and one down at 19:58, matching Quell's account of coming in alone.",
+              "artifact_ids": [
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:22",
+                "f:20"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The custodian saw her come in alone with a wet umbrella and the facilities notice records false double counts in rain, matching her account of coming in alone.",
+              "artifact_ids": [
+                "rec-04",
+                "rec-05"
+              ],
+              "fact_ids": [
+                "f:24",
+                "f:05",
+                "f:20"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "The tailgate alert on its own (a known wet-weather fault)",
+            "Declining to say what the medication is for",
+            "The camera being offline",
+            "Long, formal or hesitant answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish why she returned after hours.",
+              "target_fact_ids": [
+                "f:06"
+              ],
+              "neutral_example": "What brought you back to the Annex that evening?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish who was with her at the door.",
+              "target_fact_ids": [
+                "f:20"
+              ],
+              "neutral_example": "Tell me about arriving at the east door, from the moment you got out of the car."
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where she went inside and with whom.",
+              "target_fact_ids": [
+                "f:09",
+                "f:22"
+              ],
+              "neutral_example": "Walk me through where you went once you were inside."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish where the person who drove her was.",
+              "target_fact_ids": [
+                "f:10",
+                "f:20"
+              ],
+              "neutral_example": "Where was the person who drove you while you were inside?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish when and how she left.",
+              "target_fact_ids": [
+                "f:23"
+              ],
+              "neutral_example": "How did you leave the building?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The second count was a sensor fault in the rain.",
+              "test": "Request the elevator trip record and the custodian statement; compare the person counts with her account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "Someone entered with her on her swipe.",
+              "test": "Ask who she saw at the door and in the elevator; request the visitor register and the elevator record."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open questions about the arrival. 'Who did you let in?' presumes a second person.",
+            "response_relevance": "Declining to name a medical condition is a legitimate boundary; credit moving on to the entry facts rather than pressing for the medical detail.",
+            "evidence_based_followup": "Credit requesting rec-02 and rec-04 after the account and asking about the arrival and the umbrella against them.",
+            "testing_alternatives": "Credit testing the sensor-fault explanation (rec-05) against the elevator person count.",
+            "supported_closure": "Truthful closure cites rec-02, or rec-04 with rec-05, together with her account. 'Insufficient evidence' before rec-02 is reasonable if it names rec-02, rec-03 or rec-04."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Declines to say what her medication is for.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:07; permitted by the profile and unrelated to the entry."
+          },
+          {
+            "id": "l:02",
+            "situation": "Says she is not sure whether she left before or after eight.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:03",
+            "situation": "Gives a long, hesitant answer that covers her arrival and her partner waiting in the car.",
+            "label": "responsive",
+            "rationale": "Expansive, disfluent style; the content is complete."
+          }
+        ],
+        "canary": "CANARY-3f122bb1e67d20ab"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-4XVM7HPA",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-4XVM7HPA",
+        "domain": "facility_access",
+        "title": "After-hours entry with a double count",
+        "difficulty_level": 1,
+        "investigation_objective": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-17",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Mara Quell",
+            "position": "Records Clerk",
+            "unit": "Records Management Unit",
+            "tenure_years": 7
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about a tailgate alert at the east staff door on the evening of 10 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-02",
+          "display_name": "Mara Quell",
+          "voice_id": "Kore"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+        "replay_topics": [
+          "your entry through the east staff door at 19:42",
+          "the tailgate sensor counting two people at the east staff door",
+          "where you went inside the building that evening"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-10T18:00",
+            "event": "East staff door camera taken offline for facilities work.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-10T19:42",
+            "event": "Mara Quell's badge opened the east staff door; the tailgate sensor counted two people.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-10T22:00",
+            "event": "East staff door camera back online.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-11T08:15",
+            "event": "Security Operations reviewed the tailgate alert and referred it for interview.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "sensor_metadata",
+            "title": "Tailgate alert, east staff door, 10 March 2026",
+            "content": {
+              "body": "Alert reviewed by Security Operations on 11 March at 08:15 and referred for interview.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:42:31",
+                    "East staff door reader",
+                    "Badge 22107 (M. Quell), access granted"
+                  ],
+                  [
+                    "19:42:33",
+                    "East-door tailgate sensor",
+                    "Count 2 on one swipe, tailgate alert raised"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "After-hours access rules (Facility Security Standard 3.1)",
+            "content": {
+              "body": "Staff may enter after hours with their own badge, including to collect personal items. Visitors must be registered with the security desk at least 24 hours in advance and must be escorted at all times. Staff must not admit any other person on their own badge swipe."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "camera_status",
+            "title": "Building camera status, 10 March 2026",
+            "content": {
+              "body": "East staff door camera offline 18:00-22:00 (power isolated by Facilities for ticket FM-2207). Lobby camera: live view only, no recording kept. Elevator cameras store trip metadata with a person count; no images are kept."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Security desk visitor register, 10 March 2026",
+            "description": "Visitors registered with the security desk for 10 March 2026, day and after hours.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+            "description": "Trip records from elevator car 2: time, floors and the in-car camera's person count. No images are retained.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "door_log",
+            "title": "Records floor (floor 3) door log, 10 March 2026",
+            "description": "Badge and exit-button events at the floor-3 records door, with how long the door stayed open.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "witness_statement",
+            "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+            "description": "Written statement from the night custodian on duty in the floor-1 lobby on 10 March.",
+            "requestable_after_exchanges": 4
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-4XVM7HPA",
+        "role": "deceptive",
+        "persona": {
+          "name": "Mara Quell",
+          "position": "Records Clerk",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Records Management Unit",
+          "tenure_years": 7,
+          "background": "Works on the restricted third-floor records area of the Halvern Street Annex, handling intake and retrieval of case files."
+        },
+        "matter": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+        "objective": "Keep this from being established: that your partner, Evan Roff, came in on your swipe and went up to the restricted records floor with you without being registered. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "It was pouring that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "You had left your medication in your desk drawer when you went home at five.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "You badged in at the east staff door a little before quarter to eight.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "You came back to collect your medication.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "PRIVATE",
+            "text": "The medication is for a health condition you have not told anyone at work about.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "You did not register any visitor for that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "You badged into the records floor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "Evan, your partner, drove you.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "The east-door camera was off that evening.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:13",
+            "class": "FREE",
+            "text": "Your badge works after hours for the east door and the records floor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:14",
+            "class": "FREE",
+            "text": "Bram, the custodian, was cleaning near the elevators when you came in.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:40",
+            "class": "HOLD",
+            "text": "Evan came in with you on your swipe.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:41",
+            "class": "CORE",
+            "text": "You took Evan up to the records floor with you, and he was not registered.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:42",
+            "class": "CORE",
+            "text": "It was pouring and he wanted to see where you work, so you brought him in instead of leaving him in the car.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "CORE",
+            "text": "You knew the east-door camera was off; there was a notice taped to the door.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:46",
+            "class": "HOLD",
+            "text": "You left with Evan a little after eight.",
+            "certainty": "approximate",
+            "gate_id": "g:02"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:06",
+          "f:40",
+          "f:41",
+          "f:46"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:04",
+            "subject_view": "You did not know the sensor counted two people until you were told."
+          },
+          {
+            "fact_id": "f:05",
+            "subject_view": "You do not know about any sensor maintenance ticket."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know why the camera was off."
+          },
+          {
+            "fact_id": "f:44",
+            "subject_view": "You have not seen the elevator records."
+          },
+          {
+            "fact_id": "f:45",
+            "subject_view": "You do not know how long the door stayed open."
+          },
+          {
+            "fact_id": "f:47",
+            "subject_view": "You do not know what Bram has said."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:46",
+            "text": "You and Evan left a little after eight; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "A little after eight."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents a record or statement indicating that a second person came in with her, such as the elevator person count or the custodian's sighting of a man with her.",
+            "opens": [
+              "f:40"
+            ],
+            "min_evidence_level": 2,
+            "precondition_records": [
+              "rec-02",
+              "rec-04"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the elevator record showing two people riding down from floor 3 at 20:06.",
+            "opens": [
+              "f:46"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-02"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "I came in alone.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:02",
+            "text": "The second count was my umbrella.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:03",
+            "text": "Evan stayed in the car the whole time.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:04",
+            "text": "The person with me was a contractor or from Facilities.",
+            "contradicts": "f:41"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "disfluent",
+          "affect": "calm",
+          "register": "formal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-9eed8e629ab3d02e"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-4XVM7HPA",
+        "family_id": "F02",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "Quell came back after hours in heavy rain to collect her medication. Her partner, Evan Roff, who had driven her, came in on her single swipe and went up with her to the restricted records floor, unregistered, because it was raining and he wanted to see where she works. She knew the east-door camera was off. Distractors shared with the truthful variant: the known wet-weather sensor fault, the camera outage and her privacy about the medication.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "It rained heavily around the Annex on the evening of 10 March 2026.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "Mara Quell left her prescription medication in her desk drawer on the records floor when she left work at 17:05.",
+            "kind": "state",
+            "time": "2026-03-10T17:05",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 19:42 Quell's badge opened the east staff door with a single swipe.",
+            "kind": "action",
+            "time": "2026-03-10T19:42",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "The east-door tailgate sensor counted two people on that swipe and raised a tailgate alert.",
+            "kind": "record",
+            "time": "2026-03-10T19:42",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "The east-door tailgate sensor has had an open maintenance ticket, FM-2207, since 2 March for false double counts in wet weather.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "Quell returned to the Annex after hours to collect her medication.",
+            "kind": "action",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:07",
+            "statement": "Quell takes the medication for a chronic health condition she has not disclosed at work.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "No visitors were registered with the security desk for the evening of 10 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:09",
+            "statement": "At 19:44 Quell's badge opened the records-floor door on floor 3.",
+            "kind": "action",
+            "time": "2026-03-10T19:44",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Quell's partner, Evan Roff, drove her to the Annex that evening.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "The east-door camera was offline from 18:00 to 22:00 on 10 March.",
+            "kind": "context",
+            "time": "2026-03-10T18:00",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:12",
+            "statement": "Facilities had isolated power to the east-door camera on 10 March while working on ticket FM-2207.",
+            "kind": "context",
+            "actors": [],
+            "material": false,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:13",
+            "statement": "Quell's badge allows after-hours entry to the east door and the records floor.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:14",
+            "statement": "Night custodian Bram Hollis was cleaning the floor-1 elevator lobby from 19:30 to 19:50.",
+            "kind": "context",
+            "time": "2026-03-10T19:30",
+            "actors": [
+              "Bram Hollis"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "Roff came into the Annex with Quell through the east staff door on her single swipe.",
+            "kind": "action",
+            "time": "2026-03-10T19:42",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:41",
+            "statement": "Quell took Roff up to floor 3 and through the records-floor door with her, although he was not registered as a visitor.",
+            "kind": "action",
+            "time": "2026-03-10T19:44",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:42",
+            "statement": "Quell brought Roff in because it was raining hard and he wanted to see where she works.",
+            "kind": "state",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": true,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "Quell knew the east-door camera was off that evening from a notice taped to the door.",
+            "kind": "knowledge",
+            "actors": [
+              "Mara Quell"
+            ],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:44",
+            "statement": "Elevator car 2 carried two people from floor 1 to floor 3 at 19:43 and two people from floor 3 to floor 1 at 20:06.",
+            "kind": "record",
+            "time": "2026-03-10T19:43",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:45",
+            "statement": "The records-floor door stayed open for 11 seconds at 19:44.",
+            "kind": "record",
+            "time": "2026-03-10T19:44",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:46",
+            "statement": "Quell and Roff left the Annex together at 20:08.",
+            "kind": "action",
+            "time": "2026-03-10T20:08",
+            "actors": [
+              "Mara Quell",
+              "Evan Roff"
+            ],
+            "material": false,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "Custodian Hollis saw Quell with a man he did not recognize near the floor-1 elevators at about 19:43.",
+            "kind": "record",
+            "actors": [
+              "Bram Hollis",
+              "Mara Quell"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:06",
+            "relation": "causes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:09",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:14",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:12",
+            "to": "f:11",
+            "relation": "explains"
+          },
+          {
+            "from": "f:40",
+            "to": "f:04",
+            "relation": "causes"
+          },
+          {
+            "from": "f:40",
+            "to": "f:44",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:44",
+            "to": "f:41",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:45",
+            "relation": "causes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:46",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:42",
+            "to": "f:41",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:43",
+            "to": "f:41",
+            "relation": "enables"
+          },
+          {
+            "from": "f:13",
+            "to": "f:41",
+            "relation": "enables"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "sensor_metadata",
+            "title": "Tailgate alert, east staff door, 10 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Alert reviewed by Security Operations on 11 March at 08:15 and referred for interview.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "19:42:31",
+                    "East staff door reader",
+                    "Badge 22107 (M. Quell), access granted"
+                  ],
+                  [
+                    "19:42:33",
+                    "East-door tailgate sensor",
+                    "Count 2 on one swipe, tailgate alert raised"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "After-hours access rules (Facility Security Standard 3.1)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Staff may enter after hours with their own badge, including to collect personal items. Visitors must be registered with the security desk at least 24 hours in advance and must be escorted at all times. Staff must not admit any other person on their own badge swipe."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "camera_status",
+            "title": "Building camera status, 10 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "East staff door camera offline 18:00-22:00 (power isolated by Facilities for ticket FM-2207). Lobby camera: live view only, no recording kept. Elevator cameras store trip metadata with a person count; no images are kept."
+            },
+            "supports": [
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "context_change",
+            "title": "Facilities notice FM-2207 (open since 2 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "East staff door tailgate sensor: false double counts reported in wet weather; umbrellas and bags can register as a second person. Replacement sensor on order."
+            },
+            "supports": [
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "visitor_register",
+            "title": "Security desk visitor register, 10 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "After-hours visitors registered: none. Day visitors: 6, all signed out by 17:30."
+            },
+            "supports": [
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Visitors registered with the security desk for 10 March 2026, day and after hours."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "camera_metadata",
+            "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "Person count from the in-car camera; images are not retained.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From floor",
+                  "To floor",
+                  "Persons"
+                ],
+                "rows": [
+                  [
+                    "19:43:10",
+                    "1",
+                    "3",
+                    "2"
+                  ],
+                  [
+                    "20:06:20",
+                    "3",
+                    "1",
+                    "2"
+                  ],
+                  [
+                    "20:31:12",
+                    "1",
+                    "2",
+                    "1"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:46",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Trip records from elevator car 2: time, floors and the in-car camera's person count. No images are retained."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "door_log",
+            "title": "Records floor (floor 3) door log, 10 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "No other floor-3 records-door events between 18:00 and 22:00.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Event",
+                  "Credential",
+                  "Open (s)"
+                ],
+                "rows": [
+                  [
+                    "19:44:10",
+                    "Badge, access granted",
+                    "Badge 22107 (M. Quell)",
+                    "11"
+                  ],
+                  [
+                    "20:05:02",
+                    "Exit button",
+                    "-",
+                    "9"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ],
+            "description": "Badge and exit-button events at the floor-3 records door, with how long the door stayed open."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "witness_statement",
+            "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "Around quarter to eight I saw Mara by the floor-1 elevators with a man I didn't recognize. He was carrying a wet umbrella. I assumed he was with Facilities. I didn't see them leave; I was in the mail room by then."
+            },
+            "supports": [
+              {
+                "fact_id": "f:47",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:40",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ],
+            "description": "Written statement from the night custodian on duty in the floor-1 lobby on 10 March."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "The facilities notice says the sensor double-counts in rain, but elevator car 2 carried two people to floor 3 and back.",
+            "fact_ids": [
+              "f:04",
+              "f:05",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-05",
+              "rec-02"
+            ],
+            "resolution": "The second count was a real person.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:40"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Quell implies she came in alone or blames the umbrella, the account conflicts with the elevator record and the custodian (forbidden assertions x:01, x:02).",
+            "fact_ids": [
+              "f:40",
+              "f:44",
+              "f:47"
+            ],
+            "artifact_ids": [
+              "rec-02",
+              "rec-04"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01",
+              "x:02"
+            ],
+            "resolution": "Two people entered.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:40"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-04"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "No visitor was registered, yet a second person rode to the records floor and the floor-3 door stayed open 11 seconds.",
+            "fact_ids": [
+              "f:08",
+              "f:44",
+              "f:45"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-02",
+              "rec-03"
+            ],
+            "resolution": "An unregistered person entered the records floor.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:41"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02",
+                "rec-03"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "Elevator car 2 carried two people up to floor 3 at 19:43 and two down at 20:06, and Quell does not account for the second person when asked.",
+              "artifact_ids": [
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:44",
+                "f:40",
+                "f:41"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The custodian saw her with an unrecognized man at the elevators, and the visitor register shows no registered visitor.",
+              "artifact_ids": [
+                "rec-04",
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:47",
+                "f:08"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "The tailgate alert on its own",
+            "Declining to say what the medication is for",
+            "The camera being offline",
+            "Long, formal or hesitant answers"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish why she returned after hours.",
+              "target_fact_ids": [
+                "f:06"
+              ],
+              "neutral_example": "What brought you back to the Annex that evening?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish who was with her at the door.",
+              "target_fact_ids": [
+                "f:40"
+              ],
+              "neutral_example": "Tell me about arriving at the east door, from the moment you got out of the car."
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish where she went inside and with whom.",
+              "target_fact_ids": [
+                "f:41",
+                "f:44"
+              ],
+              "neutral_example": "Walk me through where you went once you were inside."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish where the person who drove her was.",
+              "target_fact_ids": [
+                "f:10",
+                "f:40"
+              ],
+              "neutral_example": "Where was the person who drove you while you were inside?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish when and how she left.",
+              "target_fact_ids": [
+                "f:46"
+              ],
+              "neutral_example": "How did you leave the building?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "The second count was a sensor fault in the rain.",
+              "test": "Request the elevator trip record and the custodian statement; compare the person counts with her account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "Someone entered with her on her swipe.",
+              "test": "Ask who she saw at the door and in the elevator; request the visitor register and the elevator record."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open questions about the arrival. 'Who did you let in?' presumes a second person.",
+            "response_relevance": "Declining to name a medical condition is a legitimate boundary; credit moving on to the entry facts rather than pressing for the medical detail.",
+            "evidence_based_followup": "Credit requesting rec-02 and rec-04 after the account and asking about the arrival and the umbrella against them.",
+            "testing_alternatives": "Credit testing the sensor-fault explanation (rec-05) against the elevator person count.",
+            "supported_closure": "Deceptive closure cites rec-02 (two people both ways) with the empty register and her non-answers about who was with her. The privacy refusal is never a ground."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Declines to say what her medication is for.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:07; permitted by the profile."
+          },
+          {
+            "id": "l:02",
+            "situation": "Talks about the rain, the medication or the umbrella when asked who was with her.",
+            "label": "evasion",
+            "rationale": "Deflection on HOLD fact f:40 before its gate opens."
+          },
+          {
+            "id": "l:03",
+            "situation": "Says she is not sure exactly when she left.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:04",
+            "situation": "Answers 'Did anyone go up with you?' by describing the elevator ride without mentioning Roff.",
+            "label": "evasion",
+            "rationale": "Omission on the CORE fact f:41 (the violation)."
+          }
+        ],
+        "canary": "CANARY-b3eefb37a5ee0641"
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "family": "F04",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "3a103082bebe1ca2f04ef8e1f37d0dbb62fb3485fd002ef6ba8dfe3bb097ba11",
+  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "basis": "The witness corroborates Dana moving bins alone, consistent with the permitted goods-movement exception. Visitor, service, and supervisor records establish the technician’s later lobby entry and escort. The meter’s 25-minute clock error explains the apparent early login. Dana’s account matches these records, which close the main gaps concerning entry and the door alarm.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+      ],
+      "cited_answers": [
+        "A2",
+        "A4"
+      ],
+      "basis": "The witness saw Arno enter behind Dana’s second bin during her badge-door opening. The verified meter clock confirms work before his later lobby sign-in. Dana acknowledges him waiting outside but avoids explaining his entry despite the evidence presented. The records establish involvement in prohibited shared badge-door access that her answers omit.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-02"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4"
+      ],
+      "basis": "The log establishes Dana's swipe and the prolonged opening, but not whether anyone accompanied her or whether she remained at the door moving goods. The technician's login uses a separate, unverified clock. Her answers leave these gaps unresolved, and no examined record establishes the involvement those answers might conceal.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

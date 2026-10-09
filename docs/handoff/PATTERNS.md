@@ -38,8 +38,14 @@ The global hard gates in `~/.claude/CLAUDE.md` apply in full (handoff discipline
 - Push to main, secret writes, destructive DB ops, API key issuance, infra config (workers, rate limits, health checks, min-instances).
 - GCP project: the workstation's default gcloud project is `kbg-production` (gokbase production). Never run arena commands against it. Every gcloud or Vertex call passes the arena project explicitly once the owner provides it.
 
+## Code dispatch protocol (subagent-dispatch-protocol, adapted while there is no remote)
+- Every code or data agent works in its own git worktree on its own branch off local `main` (`/private/tmp/wt-<name>`), applies red-to-root-cause and TDD, runs the full local gate green, runs Codex on its own diff to `VERDICT: CORRECT` with `GATE-SOFTENING: no`, and commits on its branch. It never pushes and never opens a PR.
+- The orchestrator then runs an independent cold Codex gate on the branch diff (plus re-running the gates). Only on CORRECT does the branch merge into local `main`. Once a remote exists (OD-3), the merge becomes a PR with CI.
+- Agents run Codex and test suites in the foreground as one blocking call; never background and end the turn.
+- At most ~8 agents in flight across all workflows (16 GB machine; LESSONS 2026-09-25).
+
 ## Design system
-- Pending the owner's DESIGN.md. Until it lands, no UI implementation.
+- Pending the owner's DESIGN.md. Until it lands, no styling or visual design; pure modules, contracts and the unstyled slice UI are allowed (S6 header; slice gate 2026-10-18).
 
 ## Handoff discipline
 - Update STATE.md after every dispatch, completion, decision, verdict and milestone. Commit `docs(handoff): ...` the same turn.

@@ -1,0 +1,69 @@
+{
+  "family": "F08",
+  "pass": true,
+  "cx1": true,
+  "cx2_truthful": true,
+  "cx2_deceptive": true,
+  "cx3": true,
+  "cx4": true,
+  "findings": [],
+  "family_sha256": "b67e7aa14496bcede3990985f0a2f38865380b81a91a01628f394aab77b11346",
+  "rules_sha256": "43ff3d19ba3cf116f591f824760f0df28adbee66de23ad512c30293d0691bffc",
+  "solves": {
+    "cx2_truthful": {
+      "finding": "truthful",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "basis": "SR-3051 authorized Varga’s work on MS-6A inside R-6. Ticket and parts records support the walk tests, failed detector diagnosis, and subsequent work at WB-2. Alarms before entry and after departure support detector malfunction as the explanation for later motion events. AP-6C recorded no opening. The records close the main gaps without establishing concealed involvement.",
+      "expected": "truthful",
+      "pass": true
+    },
+    "cx2_deceptive": {
+      "finding": "deceptive",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-03"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2",
+        "A3",
+        "A5"
+      ],
+      "basis": "SR-3051 covered an outside door contact and was closed before entry; it did not authorize R-6 entry or panel work. Badge and tamper records corroborate Varga’s admitted panel opening. Despite acknowledging the ticket’s scope and panel activity, Varga omits the entry’s purpose and a full walkthrough, avoiding an explanation of the established activity outside the assigned task.",
+      "expected": "deceptive",
+      "pass": true
+    },
+    "cx3": {
+      "finding": "insufficient_evidence",
+      "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-05"
+      ],
+      "cited_answers": [
+        "A1",
+        "A2"
+      ],
+      "basis": "The assigned ticket’s named device is unknown, leaving authorization for R-6 entry unresolved. A1–A2 describe detector testing, a failing head, and departure around 21:25. Later motion does not establish Varga’s continued presence, and its cause remains unresolved. The available records neither establish involvement concealed by the answers nor close the main gaps.",
+      "expected": "deceptive or insufficient_evidence",
+      "pass": true
+    }
+  }
+}

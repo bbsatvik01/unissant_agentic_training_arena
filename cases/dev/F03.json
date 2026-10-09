@@ -1,0 +1,2795 @@
+{
+  "schema_version": "1.2.0",
+  "family_id": "F03",
+  "revision": 1,
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Network room entry on card A-2291",
+  "taxonomy": {
+    "violation_type": "badge_sharing",
+    "misleading_types": [
+      "records_data_error",
+      "access_lapse_admin",
+      "privacy_reason"
+    ]
+  },
+  "difficulty": {
+    "level": 3,
+    "knobs": {
+      "key_record_after_exchanges": 5,
+      "evidence_directness": 2,
+      "misleading_count": 2,
+      "uncertainty_count": 2,
+      "gate_level": 4
+    }
+  },
+  "style": {
+    "verbosity": "expansive",
+    "fluency": "fluent",
+    "affect": "anxious",
+    "register": "formal",
+    "language": "second_language"
+  },
+  "provenance": {
+    "method": "hand",
+    "created": "2026-10-08",
+    "notes": "Development seed family at the hard level: the corroborating records open at exchange 5 and need combining. Uses the optional second-language style factor (owner decision pending). Fictional agency, facility and people."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "At 06:55 on 13 March 2026 the network monitor reported switch SW-2B on floor 2 unreachable.",
+        "kind": "record",
+        "time": "2026-03-13T06:55",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "At 07:04 Avery Lindqvist badged through lobby turnstile 1 with her own card.",
+        "kind": "action",
+        "time": "2026-03-13T07:04",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "At 07:12 card A-2291 opened Network Room N-3.",
+        "kind": "action",
+        "time": "2026-03-13T07:12",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "The badge database lists card A-2291 as assigned to Rafael Haddad.",
+        "kind": "record",
+        "actors": [
+          "Rafael Haddad"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "Haddad was on approved leave from 9 to 20 March 2026.",
+        "kind": "state",
+        "actors": [
+          "Rafael Haddad"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "Lindqvist's own N-3 access was removed at 17:00 on 12 March because her annual access recertification training was overdue.",
+        "kind": "state",
+        "time": "2026-03-12T17:00",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "Lindqvist power-cycled SW-2B in N-3, and it was reachable again at 07:26.",
+        "kind": "action",
+        "time": "2026-03-13T07:26",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
+        "kind": "state",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "Lindqvist has been on a performance improvement plan since February 2026.",
+        "kind": "state",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [
+          "privacy"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "Lindqvist was the on-call IT technician on 13 March.",
+        "kind": "state",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "Lindqvist opened incident ticket INC-0313-004 at 07:30.",
+        "kind": "action",
+        "time": "2026-03-13T07:30",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "Card A-2291 was deactivated for Haddad on 28 February when his photo card was replaced, and moved to the IT lockbox spare pool on 1 March.",
+        "kind": "record",
+        "actors": [
+          "Rafael Haddad"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "When A-2291 moved to the spare pool, the holder name in the badge database was not updated (backlog ticket BA-118).",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "At 07:09 Lindqvist signed spare card A-2291 out of the IT lockbox under outage procedure OP-7.",
+        "kind": "action",
+        "time": "2026-03-13T07:09",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "Lindqvist returned spare card A-2291 to the lockbox at 07:41.",
+        "kind": "action",
+        "time": "2026-03-13T07:41",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "INC-0313-004 records that SW-2B was power-cycled in N-3 using lockbox spare card A-2291 under OP-7.",
+        "kind": "record",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "Lindqvist does not know that card A-2291 was once Haddad's card.",
+        "kind": "knowledge",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "Haddad left his personal badge, card A-2291, with Lindqvist on 6 March so she could collect a parcel from his desk while he was on leave.",
+        "kind": "state",
+        "actors": [
+          "Rafael Haddad",
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Lindqvist used Haddad's personal badge, card A-2291, to open N-3 at 07:12.",
+        "kind": "action",
+        "time": "2026-03-13T07:12",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "Lindqvist wanted SW-2B back online before her manager arrived at 08:00 because she is on a performance improvement plan.",
+        "kind": "state",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "The IT lockbox sign-out sheet has no entry for 13 March.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Card A-2291 is Haddad's own personal badge, never deactivated or moved to the spare pool; approved leave does not deactivate cards.",
+        "kind": "record",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "INC-0313-004 records that SW-2B was power-cycled in N-3 but does not say how Lindqvist entered N-3.",
+        "kind": "record",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "After the reboot Lindqvist put Haddad's badge back in her desk drawer.",
+        "kind": "action",
+        "time": "2026-03-13T07:35",
+        "actors": [
+          "Avery Lindqvist"
+        ],
+        "material": false,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:01",
+        "to": "f:02",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:02",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:06",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:20",
+        "to": "f:21",
+        "relation": "causes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:04",
+        "relation": "explains"
+      },
+      {
+        "from": "f:22",
+        "to": "f:06",
+        "relation": "explains"
+      },
+      {
+        "from": "f:22",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:24",
+        "relation": "causes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:41",
+        "relation": "enables"
+      },
+      {
+        "from": "f:08",
+        "to": "f:41",
+        "relation": "enables"
+      },
+      {
+        "from": "f:42",
+        "to": "f:41",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:02",
+        "to": "f:41",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:46",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:11",
+        "to": "f:45",
+        "relation": "causes"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-R6DJ3NWC",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-R6DJ3NWC",
+        "domain": "facility_access",
+        "title": "Network room entry on card A-2291",
+        "difficulty_level": 3,
+        "investigation_objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-18",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Avery Lindqvist",
+            "position": "IT Support Specialist",
+            "unit": "Infrastructure Support",
+            "tenure_years": 2
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the use of card A-2291 at Network Room N-3 on the morning of 13 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-03",
+          "display_name": "Avery Lindqvist",
+          "voice_id": "Aoede"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+        "replay_topics": [
+          "the entry to Network Room N-3 at 07:12",
+          "the switch SW-2B outage that morning",
+          "the badge record for card A-2291"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-12T17:00",
+            "event": "Avery Lindqvist's own N-3 access was removed pending recertification training.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-13T06:55",
+            "event": "Network monitor reported switch SW-2B unreachable and paged the on-call technician.",
+            "source": "doc-02"
+          },
+          {
+            "time": "2026-03-13T07:04",
+            "event": "Lindqvist badged through lobby turnstile 1.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-13T07:12",
+            "event": "Card A-2291, listed in the badge database to R. Haddad (on approved leave), opened Network Room N-3.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-13T07:26",
+            "event": "SW-2B reachable again.",
+            "source": "doc-02"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "badge_log",
+            "title": "Badge events, lobby and Network Room N-3, 13 March 2026, 06:30-08:00",
+            "content": {
+              "body": "Holder names are taken from the badge database. Exception raised 13 March at 09:00 by Security Operations: card A-2291 is listed to R. Haddad, who is on approved leave from 9 to 20 March.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Reader",
+                  "Card",
+                  "Holder in database",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "07:04:18",
+                    "Lobby turnstile 1",
+                    "41877",
+                    "A. Lindqvist",
+                    "Granted"
+                  ],
+                  [
+                    "07:12:40",
+                    "N-3 door",
+                    "A-2291",
+                    "R. Haddad",
+                    "Granted"
+                  ],
+                  [
+                    "07:52:11",
+                    "Lobby turnstile 2",
+                    "39020",
+                    "M. Tran",
+                    "Granted"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "monitor_alert",
+            "title": "Network monitor alerts, switch SW-2B, 13 March 2026",
+            "content": {
+              "body": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "06:55:02",
+                    "SW-2B (floor 2)",
+                    "Unreachable"
+                  ],
+                  [
+                    "07:26:40",
+                    "SW-2B (floor 2)",
+                    "Reachable"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "access_change_notice",
+            "title": "Access change notice, A. Lindqvist, 12 March 2026",
+            "content": {
+              "body": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed pending completion of annual access recertification training (overdue since 28 February). Access is restored when the training is completed."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "lockbox_log",
+            "title": "IT lockbox spare-card sign-out sheet, March 2026",
+            "description": "Sign-out sheet for the spare access cards kept in the IT lockbox: date, name, card, reason, time out and time in.",
+            "requestable_after_exchanges": 5
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "credential_record",
+            "title": "Badge administration record, card A-2291",
+            "description": "Issue and status history for card A-2291 from the badge office.",
+            "requestable_after_exchanges": 5
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Incident ticket INC-0313-004",
+            "description": "The IT incident ticket for the SW-2B outage, with its notes.",
+            "requestable_after_exchanges": 3,
+            "date": "2026-03-13"
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "email",
+            "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+            "description": "Reply from the card holder listed in the badge database to the review office's question about card A-2291.",
+            "requestable_after_exchanges": 7
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-R6DJ3NWC",
+        "role": "truthful",
+        "persona": {
+          "name": "Avery Lindqvist",
+          "position": "IT Support Specialist",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Infrastructure Support",
+          "tenure_years": 2,
+          "background": "Supports the network and desktop equipment at the Halvern Street Annex and takes the on-call rotation one week in four."
+        },
+        "matter": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "The monitor paged you at five to seven: SW-2B was down.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "You came in through the lobby just after seven.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "The spare card, A-2291, opened N-3.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "Rafael is on leave this month.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Your N-3 access was taken off the evening before because your recertification training is overdue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "You power-cycled SW-2B and it came back.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "You were alone in N-3, and nobody else from Infrastructure Support was in yet.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "PRIVATE",
+            "text": "You are on a performance improvement plan.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You were on call that day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You opened the incident ticket at about half past seven.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:22",
+            "class": "FREE",
+            "text": "You signed out spare card A-2291 from the lockbox under OP-7, just after seven.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "You put the card back in the lockbox before eight.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "In the ticket you wrote that you used lockbox spare card A-2291 under OP-7.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:25",
+            "class": "FREE",
+            "text": "You did not know A-2291 had ever been anyone's personal card.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:22",
+          "f:07",
+          "f:11",
+          "f:23"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:04",
+            "subject_view": "You do not know whose name the badge database shows for A-2291."
+          },
+          {
+            "fact_id": "f:20",
+            "subject_view": "You do not know the history of card A-2291."
+          },
+          {
+            "fact_id": "f:21",
+            "subject_view": "You do not know how the badge office keeps its records."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:22",
+            "text": "You signed the card out just after seven, but you are not sure whether you filled in the time column before or after you went up to N-3.",
+            "answer_form": "unsure"
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:23",
+            "text": "You returned the card to the lockbox before eight; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "Before eight."
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "I knew A-2291 used to be Rafael's card.",
+            "contradicts": "f:25"
+          },
+          {
+            "id": "x:02",
+            "text": "I still had my own N-3 access that morning.",
+            "contradicts": "f:06"
+          },
+          {
+            "id": "x:03",
+            "text": "Someone else was with me in N-3.",
+            "contradicts": "f:08"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "second_language"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-2758918f05a0ce2a"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-R6DJ3NWC",
+        "family_id": "F03",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "SW-2B went down at 06:55. Lindqvist, on call and with her own N-3 access suspended pending overdue training, signed out lockbox spare card A-2291 under OP-7 at 07:09, entered N-3 at 07:12, power-cycled the switch and recorded the spare card in her ticket. A-2291 had been Haddad's old card, moved to the spare pool on 1 March, but the badge database still shows his name. Misleading circumstances: the card listed to an employee on leave, her suspended access, and her privacy about her performance plan. The corroborating records open only from exchange 5.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "At 06:55 on 13 March 2026 the network monitor reported switch SW-2B on floor 2 unreachable.",
+            "kind": "record",
+            "time": "2026-03-13T06:55",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 07:04 Avery Lindqvist badged through lobby turnstile 1 with her own card.",
+            "kind": "action",
+            "time": "2026-03-13T07:04",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 07:12 card A-2291 opened Network Room N-3.",
+            "kind": "action",
+            "time": "2026-03-13T07:12",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "The badge database lists card A-2291 as assigned to Rafael Haddad.",
+            "kind": "record",
+            "actors": [
+              "Rafael Haddad"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Haddad was on approved leave from 9 to 20 March 2026.",
+            "kind": "state",
+            "actors": [
+              "Rafael Haddad"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "Lindqvist's own N-3 access was removed at 17:00 on 12 March because her annual access recertification training was overdue.",
+            "kind": "state",
+            "time": "2026-03-12T17:00",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Lindqvist power-cycled SW-2B in N-3, and it was reachable again at 07:26.",
+            "kind": "action",
+            "time": "2026-03-13T07:26",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "Lindqvist has been on a performance improvement plan since February 2026.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "Lindqvist was the on-call IT technician on 13 March.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Lindqvist opened incident ticket INC-0313-004 at 07:30.",
+            "kind": "action",
+            "time": "2026-03-13T07:30",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "Card A-2291 was deactivated for Haddad on 28 February when his photo card was replaced, and moved to the IT lockbox spare pool on 1 March.",
+            "kind": "record",
+            "actors": [
+              "Rafael Haddad"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:21",
+            "statement": "When A-2291 moved to the spare pool, the holder name in the badge database was not updated (backlog ticket BA-118).",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:22",
+            "statement": "At 07:09 Lindqvist signed spare card A-2291 out of the IT lockbox under outage procedure OP-7.",
+            "kind": "action",
+            "time": "2026-03-13T07:09",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:23",
+            "statement": "Lindqvist returned spare card A-2291 to the lockbox at 07:41.",
+            "kind": "action",
+            "time": "2026-03-13T07:41",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "INC-0313-004 records that SW-2B was power-cycled in N-3 using lockbox spare card A-2291 under OP-7.",
+            "kind": "record",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:25",
+            "statement": "Lindqvist does not know that card A-2291 was once Haddad's card.",
+            "kind": "knowledge",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:20",
+            "to": "f:21",
+            "relation": "causes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:04",
+            "relation": "explains"
+          },
+          {
+            "from": "f:22",
+            "to": "f:06",
+            "relation": "explains"
+          },
+          {
+            "from": "f:22",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:23",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:24",
+            "relation": "causes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "badge_log",
+            "title": "Badge events, lobby and Network Room N-3, 13 March 2026, 06:30-08:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Holder names are taken from the badge database. Exception raised 13 March at 09:00 by Security Operations: card A-2291 is listed to R. Haddad, who is on approved leave from 9 to 20 March.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Reader",
+                  "Card",
+                  "Holder in database",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "07:04:18",
+                    "Lobby turnstile 1",
+                    "41877",
+                    "A. Lindqvist",
+                    "Granted"
+                  ],
+                  [
+                    "07:12:40",
+                    "N-3 door",
+                    "A-2291",
+                    "R. Haddad",
+                    "Granted"
+                  ],
+                  [
+                    "07:52:11",
+                    "Lobby turnstile 2",
+                    "39020",
+                    "M. Tran",
+                    "Granted"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "monitor_alert",
+            "title": "Network monitor alerts, switch SW-2B, 13 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "06:55:02",
+                    "SW-2B (floor 2)",
+                    "Unreachable"
+                  ],
+                  [
+                    "07:26:40",
+                    "SW-2B (floor 2)",
+                    "Reachable"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "access_change_notice",
+            "title": "Access change notice, A. Lindqvist, 12 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed pending completion of annual access recertification training (overdue since 28 February). Access is restored when the training is completed."
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "clarification",
+            "title": "Outage procedure OP-7 (Infrastructure Support)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "When an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox, must record the time and reason on the sign-out sheet, and must note the card number in the incident ticket. Personal badges must never be lent or borrowed."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "lockbox_log",
+            "title": "IT lockbox spare-card sign-out sheet, March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Spare cards in the pool on 13 March: A-3310, A-2291.",
+              "table": {
+                "columns": [
+                  "Date",
+                  "Name",
+                  "Card",
+                  "Reason",
+                  "Out",
+                  "In"
+                ],
+                "rows": [
+                  [
+                    "03 Mar",
+                    "M. Tran",
+                    "A-3310",
+                    "Printer room repair",
+                    "10:02",
+                    "10:40"
+                  ],
+                  [
+                    "13 Mar",
+                    "A. Lindqvist",
+                    "A-2291",
+                    "SW-2B outage, N-3",
+                    "07:09",
+                    "07:41"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:23",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Sign-out sheet for the spare access cards kept in the IT lockbox: date, name, card, reason, time out and time in."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "credential_record",
+            "title": "Badge administration record, card A-2291",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Issued 2 May 2023 to R. Haddad. Deactivated for R. Haddad on 28 February 2026 (photo replacement; new card A-4120 issued). Reassigned on 1 March 2026 to the IT lockbox spare pool. Holder name in the badge database pending update (backlog ticket BA-118)."
+            },
+            "supports": [
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Issue and status history for card A-2291 from the badge office."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Incident ticket INC-0313-004",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Opened 07:30 by A. Lindqvist. SW-2B unreachable since 06:55. Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification). Power-cycled SW-2B; reachable at 07:26. Closed 07:35."
+            },
+            "supports": [
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:24",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:22",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "The IT incident ticket for the SW-2B outage, with its notes."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "email",
+            "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 7
+            },
+            "content": {
+              "body": "My old card was replaced on 28 February when my photo was redone; I have the new one with me. I have not been in the building since 6 March and I do not know where the old card went."
+            },
+            "supports": [
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Reply from the card holder listed in the badge database to the review office's question about card A-2291."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "Card A-2291 is listed to Haddad, who was on leave, yet it opened N-3.",
+            "fact_ids": [
+              "f:03",
+              "f:04",
+              "f:05"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "A-2291 had been moved to the IT spare pool on 1 March; the holder name was never updated.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:21"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "Lindqvist's own N-3 access had been removed the evening before, yet she was in N-3.",
+            "fact_ids": [
+              "f:06"
+            ],
+            "artifact_ids": [
+              "doc-03"
+            ],
+            "resolution": "OP-7 lets the on-call technician use a signed-out spare card when her own access is unavailable.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:22",
+                "f:10"
+              ],
+              "artifact_ids": [
+                "rec-05",
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "Lindqvist cannot explain why the card is listed under Haddad's name.",
+            "fact_ids": [
+              "f:25",
+              "f:04"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "She never knew the card's history; the badge office record explains it.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:21"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The lockbox sheet shows Lindqvist signed out spare card A-2291 at 07:09, and the badge office record shows A-2291 had moved to the spare pool on 1 March, matching her account.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:22",
+                "f:20",
+                "f:21"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The incident ticket, written at 07:30, records entry with lockbox spare card A-2291 under OP-7, and the lockbox sheet records the sign-out.",
+              "artifact_ids": [
+                "rec-03",
+                "rec-01"
+              ],
+              "fact_ids": [
+                "f:24",
+                "f:22"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The badge database listing A-2291 under Haddad's name",
+            "Her own N-3 access having been removed the day before",
+            "Declining to discuss her performance plan",
+            "Anxious or second-language phrasing"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish how she entered N-3: the card used and where it came from.",
+              "target_fact_ids": [
+                "f:22"
+              ],
+              "neutral_example": "How did you get into N-3 that morning?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish the state of her own access.",
+              "target_fact_ids": [
+                "f:06"
+              ],
+              "neutral_example": "What was the status of your own N-3 access on 13 March?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish which outage-procedure steps she followed and where they are recorded.",
+              "target_fact_ids": [
+                "f:22",
+                "f:24"
+              ],
+              "neutral_example": "Which steps of the outage procedure did you follow, and where are they recorded?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish where card A-2291 is now.",
+              "target_fact_ids": [
+                "f:23"
+              ],
+              "neutral_example": "Where is card A-2291 now?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish who else was present.",
+              "target_fact_ids": [
+                "f:08"
+              ],
+              "neutral_example": "Who else was on the floor or in N-3 with you?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "She used a signed-out lockbox spare card under OP-7.",
+              "test": "Request the lockbox sheet and the badge office record for A-2291; check the sign-out time and the card's status."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "She used a badge lent by its holder.",
+              "test": "Request the badge office record and the card holder's account; ask where the card is now."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open questions about access. 'Why did you use Rafael's badge?' presumes the card is his personal badge.",
+            "response_relevance": "Declining to discuss her performance plan is a legitimate boundary, and second-language phrasing is not evasion; credit pressing only on how she entered.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they are available (exchange 5) and asking about the sign-out against them.",
+            "testing_alternatives": "Credit testing the spare-card explanation against rec-01 and rec-02, and the lent-badge explanation against rec-02 and rec-04, before closing.",
+            "supported_closure": "Truthful closure cites rec-01 with rec-02 or rec-03, together with her account. Before exchange 5 'insufficient evidence' is expected and should name rec-01 and rec-02 (EX-3)."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Declines to discuss her performance improvement plan.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:09; permitted by the profile."
+          },
+          {
+            "id": "l:02",
+            "situation": "Says she is not sure whether she wrote the sign-out time before or after going up.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:03",
+            "situation": "Cannot say why A-2291 is listed under Haddad's name.",
+            "label": "genuine_uncertainty",
+            "rationale": "Unknown facts f:20 and f:21; she never knew the card's history."
+          },
+          {
+            "id": "l:04",
+            "situation": "Answers in formal English with an occasional dropped article.",
+            "label": "responsive",
+            "rationale": "Second-language style; the content is complete."
+          }
+        ],
+        "canary": "CANARY-3dd95bdd93ddd847"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-PA8E5TKY",
+      "public_packet": {
+        "schema_version": "1.2.0",
+        "packet": "public",
+        "case_id": "C-PA8E5TKY",
+        "domain": "facility_access",
+        "title": "Network room entry on card A-2291",
+        "difficulty_level": 3,
+        "investigation_objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-18",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Avery Lindqvist",
+            "position": "IT Support Specialist",
+            "unit": "Infrastructure Support",
+            "tenure_years": 2
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the use of card A-2291 at Network Room N-3 on the morning of 13 March 2026. No conclusion has been reached."
+        },
+        "presentation": {
+          "persona_id": "persona-03",
+          "display_name": "Avery Lindqvist",
+          "voice_id": "Aoede"
+        },
+        "opening_question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+        "replay_topics": [
+          "the entry to Network Room N-3 at 07:12",
+          "the switch SW-2B outage that morning",
+          "the badge record for card A-2291"
+        ],
+        "known_timeline": [
+          {
+            "time": "2026-03-12T17:00",
+            "event": "Avery Lindqvist's own N-3 access was removed pending recertification training.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-13T06:55",
+            "event": "Network monitor reported switch SW-2B unreachable and paged the on-call technician.",
+            "source": "doc-02"
+          },
+          {
+            "time": "2026-03-13T07:04",
+            "event": "Lindqvist badged through lobby turnstile 1.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-13T07:12",
+            "event": "Card A-2291, listed in the badge database to R. Haddad (on approved leave), opened Network Room N-3.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-13T07:26",
+            "event": "SW-2B reachable again.",
+            "source": "doc-02"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "badge_log",
+            "title": "Badge events, lobby and Network Room N-3, 13 March 2026, 06:30-08:00",
+            "content": {
+              "body": "Holder names are taken from the badge database. Exception raised 13 March at 09:00 by Security Operations: card A-2291 is listed to R. Haddad, who is on approved leave from 9 to 20 March.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Reader",
+                  "Card",
+                  "Holder in database",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "07:04:18",
+                    "Lobby turnstile 1",
+                    "41877",
+                    "A. Lindqvist",
+                    "Granted"
+                  ],
+                  [
+                    "07:12:40",
+                    "N-3 door",
+                    "A-2291",
+                    "R. Haddad",
+                    "Granted"
+                  ],
+                  [
+                    "07:52:11",
+                    "Lobby turnstile 2",
+                    "39020",
+                    "M. Tran",
+                    "Granted"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "monitor_alert",
+            "title": "Network monitor alerts, switch SW-2B, 13 March 2026",
+            "content": {
+              "body": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "06:55:02",
+                    "SW-2B (floor 2)",
+                    "Unreachable"
+                  ],
+                  [
+                    "07:26:40",
+                    "SW-2B (floor 2)",
+                    "Reachable"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "access_change_notice",
+            "title": "Access change notice, A. Lindqvist, 12 March 2026",
+            "content": {
+              "body": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed pending completion of annual access recertification training (overdue since 28 February). Access is restored when the training is completed."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "lockbox_log",
+            "title": "IT lockbox spare-card sign-out sheet, March 2026",
+            "description": "Sign-out sheet for the spare access cards kept in the IT lockbox: date, name, card, reason, time out and time in.",
+            "requestable_after_exchanges": 5
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "credential_record",
+            "title": "Badge administration record, card A-2291",
+            "description": "Issue and status history for card A-2291 from the badge office.",
+            "requestable_after_exchanges": 5
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Incident ticket INC-0313-004",
+            "description": "The IT incident ticket for the SW-2B outage, with its notes.",
+            "requestable_after_exchanges": 3,
+            "date": "2026-03-13"
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "email",
+            "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+            "description": "Reply from the card holder listed in the badge database to the review office's question about card A-2291.",
+            "requestable_after_exchanges": 7
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-PA8E5TKY",
+        "role": "deceptive",
+        "persona": {
+          "name": "Avery Lindqvist",
+          "position": "IT Support Specialist",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Infrastructure Support",
+          "tenure_years": 2,
+          "background": "Supports the network and desktop equipment at the Halvern Street Annex and takes the on-call rotation one week in four."
+        },
+        "matter": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+        "objective": "Keep this from being established: that you opened Network Room N-3 with Rafael Haddad's personal badge, which he had left with you. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "The monitor paged you at five to seven: SW-2B was down.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "You came in through the lobby just after seven.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Card A-2291 opened N-3.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "Card A-2291 is in Rafael's name.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "Rafael is on leave this month.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "Your N-3 access was taken off the evening before because your recertification training is overdue.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:07",
+            "class": "FREE",
+            "text": "You power-cycled SW-2B and it came back around twenty-five past seven.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:08",
+            "class": "FREE",
+            "text": "You were alone in N-3, and nobody else from Infrastructure Support was in yet.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "PRIVATE",
+            "text": "You are on a performance improvement plan.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You were on call that day.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:11",
+            "class": "FREE",
+            "text": "You opened the incident ticket at about half past seven.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:40",
+            "class": "HOLD",
+            "text": "Rafael left his badge with you on 6 March so you could collect a parcel from his desk while he is away.",
+            "certainty": "certain",
+            "gate_id": "g:03"
+          },
+          {
+            "id": "f:41",
+            "class": "CORE",
+            "text": "You used Rafael's badge to open N-3.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:42",
+            "class": "CORE",
+            "text": "You wanted the switch fixed before your manager came in at eight, because of your performance plan.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:43",
+            "class": "HOLD",
+            "text": "You did not sign anything out of the lockbox.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:44",
+            "class": "HOLD",
+            "text": "A-2291 is Rafael's own badge; it was never a spare card.",
+            "certainty": "certain",
+            "gate_id": "g:02"
+          },
+          {
+            "id": "f:45",
+            "class": "FREE",
+            "text": "In the ticket you wrote that you power-cycled the switch; you did not write how you got in.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:46",
+            "class": "CORE",
+            "text": "You put Rafael's badge back in your desk drawer after you closed the ticket.",
+            "certainty": "approximate"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:41",
+          "f:07",
+          "f:11",
+          "f:46"
+        ],
+        "unknown_facts": [],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:07",
+            "text": "The switch came back around twenty-five past seven; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Around twenty-five past seven."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:46",
+            "text": "You put the badge back in your drawer after you closed the ticket; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "After I closed the ticket."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents the IT lockbox sign-out sheet showing no entry for 13 March.",
+            "opens": [
+              "f:43"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-01"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the badge office record showing that card A-2291 is Haddad's own personal badge and was never in the spare pool.",
+            "opens": [
+              "f:44"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-02"
+            ]
+          },
+          {
+            "id": "g:03",
+            "condition": "The investigator presents Haddad's statement that he left his badge with her on 6 March.",
+            "opens": [
+              "f:40"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-04"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "I used a lockbox spare card.",
+            "contradicts": "f:43"
+          },
+          {
+            "id": "x:02",
+            "text": "Someone let me into N-3, or the door was open.",
+            "contradicts": "f:41"
+          },
+          {
+            "id": "x:03",
+            "text": "I have never had Rafael's badge.",
+            "contradicts": "f:40"
+          },
+          {
+            "id": "x:04",
+            "text": "My own N-3 access was working that morning.",
+            "contradicts": "f:06"
+          }
+        ],
+        "style": {
+          "verbosity": "expansive",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "formal",
+          "language": "second_language"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-7e364a229bf8ceec"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-PA8E5TKY",
+        "family_id": "F03",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "SW-2B went down at 06:55. Lindqvist, on call, with her own N-3 access suspended pending overdue training and on a performance improvement plan, used Rafael Haddad's personal badge, which he had left with her on 6 March, to open N-3 at 07:12 and fix the switch before her manager arrived. She did not sign out a lockbox spare card, and her ticket does not say how she entered. Distractors shared with the truthful variant: suspended access, the card listed to an employee on leave, privacy about her plan.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "At 06:55 on 13 March 2026 the network monitor reported switch SW-2B on floor 2 unreachable.",
+            "kind": "record",
+            "time": "2026-03-13T06:55",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 07:04 Avery Lindqvist badged through lobby turnstile 1 with her own card.",
+            "kind": "action",
+            "time": "2026-03-13T07:04",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 07:12 card A-2291 opened Network Room N-3.",
+            "kind": "action",
+            "time": "2026-03-13T07:12",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "The badge database lists card A-2291 as assigned to Rafael Haddad.",
+            "kind": "record",
+            "actors": [
+              "Rafael Haddad"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Haddad was on approved leave from 9 to 20 March 2026.",
+            "kind": "state",
+            "actors": [
+              "Rafael Haddad"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:06",
+            "statement": "Lindqvist's own N-3 access was removed at 17:00 on 12 March because her annual access recertification training was overdue.",
+            "kind": "state",
+            "time": "2026-03-12T17:00",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Lindqvist power-cycled SW-2B in N-3, and it was reachable again at 07:26.",
+            "kind": "action",
+            "time": "2026-03-13T07:26",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:08",
+            "statement": "Lindqvist was alone in Network Room N-3 that morning, and she was the only Infrastructure Support staff member in the building before 07:30.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "Lindqvist has been on a performance improvement plan since February 2026.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": [
+              "privacy"
+            ]
+          },
+          {
+            "id": "f:10",
+            "statement": "Lindqvist was the on-call IT technician on 13 March.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "Lindqvist opened incident ticket INC-0313-004 at 07:30.",
+            "kind": "action",
+            "time": "2026-03-13T07:30",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "Haddad left his personal badge, card A-2291, with Lindqvist on 6 March so she could collect a parcel from his desk while he was on leave.",
+            "kind": "state",
+            "actors": [
+              "Rafael Haddad",
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:41",
+            "statement": "Lindqvist used Haddad's personal badge, card A-2291, to open N-3 at 07:12.",
+            "kind": "action",
+            "time": "2026-03-13T07:12",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:42",
+            "statement": "Lindqvist wanted SW-2B back online before her manager arrived at 08:00 because she is on a performance improvement plan.",
+            "kind": "state",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "The IT lockbox sign-out sheet has no entry for 13 March.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:44",
+            "statement": "Card A-2291 is Haddad's own personal badge, never deactivated or moved to the spare pool; approved leave does not deactivate cards.",
+            "kind": "record",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:45",
+            "statement": "INC-0313-004 records that SW-2B was power-cycled in N-3 but does not say how Lindqvist entered N-3.",
+            "kind": "record",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:46",
+            "statement": "After the reboot Lindqvist put Haddad's badge back in her desk drawer.",
+            "kind": "action",
+            "time": "2026-03-13T07:35",
+            "actors": [
+              "Avery Lindqvist"
+            ],
+            "material": false,
+            "tags": [
+              "concealment"
+            ]
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:06",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:40",
+            "to": "f:41",
+            "relation": "enables"
+          },
+          {
+            "from": "f:08",
+            "to": "f:41",
+            "relation": "enables"
+          },
+          {
+            "from": "f:42",
+            "to": "f:41",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:02",
+            "to": "f:41",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:46",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:11",
+            "to": "f:45",
+            "relation": "causes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "badge_log",
+            "title": "Badge events, lobby and Network Room N-3, 13 March 2026, 06:30-08:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Holder names are taken from the badge database. Exception raised 13 March at 09:00 by Security Operations: card A-2291 is listed to R. Haddad, who is on approved leave from 9 to 20 March.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Reader",
+                  "Card",
+                  "Holder in database",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "07:04:18",
+                    "Lobby turnstile 1",
+                    "41877",
+                    "A. Lindqvist",
+                    "Granted"
+                  ],
+                  [
+                    "07:12:40",
+                    "N-3 door",
+                    "A-2291",
+                    "R. Haddad",
+                    "Granted"
+                  ],
+                  [
+                    "07:52:11",
+                    "Lobby turnstile 2",
+                    "39020",
+                    "M. Tran",
+                    "Granted"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:04",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "monitor_alert",
+            "title": "Network monitor alerts, switch SW-2B, 13 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Device",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "06:55:02",
+                    "SW-2B (floor 2)",
+                    "Unreachable"
+                  ],
+                  [
+                    "07:26:40",
+                    "SW-2B (floor 2)",
+                    "Reachable"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:10",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "access_change_notice",
+            "title": "Access change notice, A. Lindqvist, 12 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed pending completion of annual access recertification training (overdue since 28 February). Access is restored when the training is completed."
+            },
+            "supports": [
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "clarification",
+            "title": "Outage procedure OP-7 (Infrastructure Support)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 4
+            },
+            "content": {
+              "body": "When an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox, must record the time and reason on the sign-out sheet, and must note the card number in the incident ticket. Personal badges must never be lent or borrowed."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "lockbox_log",
+            "title": "IT lockbox spare-card sign-out sheet, March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Spare cards in the pool on 13 March: A-3310, A-3312. No entries after 3 March.",
+              "table": {
+                "columns": [
+                  "Date",
+                  "Name",
+                  "Card",
+                  "Reason",
+                  "Out",
+                  "In"
+                ],
+                "rows": [
+                  [
+                    "03 Mar",
+                    "M. Tran",
+                    "A-3310",
+                    "Printer room repair",
+                    "10:02",
+                    "10:40"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Sign-out sheet for the spare access cards kept in the IT lockbox: date, name, card, reason, time out and time in."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "credential_record",
+            "title": "Badge administration record, card A-2291",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "Issued 2 May 2023 to R. Haddad. Status: active, personal badge. Never deactivated or reassigned to the IT lockbox spare pool. Not reported lost or stolen. Approved leave does not deactivate cards."
+            },
+            "supports": [
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Issue and status history for card A-2291 from the badge office."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "incident_ticket",
+            "title": "Incident ticket INC-0313-004",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Opened 07:30 by A. Lindqvist. SW-2B unreachable since 06:55. Power-cycled SW-2B in N-3; reachable at 07:26. Closed 07:35."
+            },
+            "supports": [
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "The IT incident ticket for the SW-2B outage, with its notes."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "email",
+            "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 7
+            },
+            "content": {
+              "body": "I left my badge with Avery on 6 March so she could collect a parcel from my desk while I was away. I have not been in the building since 6 March."
+            },
+            "supports": [
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Reply from the card holder listed in the badge database to the review office's question about card A-2291."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "OP-7 requires a lockbox sign-out, but the sheet has no 13 March entry, and A-2291 is not a spare card but Haddad's active personal badge.",
+            "fact_ids": [
+              "f:43",
+              "f:44",
+              "f:03"
+            ],
+            "artifact_ids": [
+              "rec-05",
+              "rec-01",
+              "rec-02"
+            ],
+            "resolution": "The entry was made on a borrowed personal badge.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:41",
+                "f:40"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02",
+                "rec-04"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Lindqvist suggests she used a lockbox spare card, the account conflicts with the sign-out sheet (forbidden assertion x:01).",
+            "fact_ids": [
+              "f:41",
+              "f:43"
+            ],
+            "artifact_ids": [
+              "rec-01"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01"
+            ],
+            "resolution": "No spare card was signed out.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:43"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "Her incident ticket omits how she entered N-3, although OP-7 requires the card number in the ticket.",
+            "fact_ids": [
+              "f:45"
+            ],
+            "artifact_ids": [
+              "rec-03",
+              "rec-05"
+            ],
+            "resolution": "The omission is consistent with entry on a borrowed badge.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:41"
+              ],
+              "artifact_ids": [
+                "rec-04"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The lockbox sheet has no 13 March entry and the badge office shows A-2291 is Haddad's active personal card, and Lindqvist does not explain how she entered N-3 when asked.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:43",
+                "f:44",
+                "f:41"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "Haddad states he left his badge with Lindqvist on 6 March, and the badge log shows she was the only Infrastructure Support staff member in the building at 07:12.",
+              "artifact_ids": [
+                "rec-04",
+                "doc-01"
+              ],
+              "fact_ids": [
+                "f:40",
+                "f:08"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "Her own N-3 access having been removed the day before, on its own",
+            "Declining to discuss her performance plan",
+            "Anxious or second-language phrasing"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish how she entered N-3: the card used and where it came from.",
+              "target_fact_ids": [
+                "f:41",
+                "f:40"
+              ],
+              "neutral_example": "How did you get into N-3 that morning?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish the state of her own access.",
+              "target_fact_ids": [
+                "f:06"
+              ],
+              "neutral_example": "What was the status of your own N-3 access on 13 March?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish which outage-procedure steps she followed and where they are recorded.",
+              "target_fact_ids": [
+                "f:43",
+                "f:45"
+              ],
+              "neutral_example": "Which steps of the outage procedure did you follow, and where are they recorded?"
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish where card A-2291 is now.",
+              "target_fact_ids": [
+                "f:46"
+              ],
+              "neutral_example": "Where is card A-2291 now?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish who else was present.",
+              "target_fact_ids": [
+                "f:08"
+              ],
+              "neutral_example": "Who else was on the floor or in N-3 with you?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "She used a signed-out lockbox spare card under OP-7.",
+              "test": "Request the lockbox sheet and the badge office record for A-2291; check the sign-out time and the card's status."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "She used a badge lent by its holder.",
+              "test": "Request the badge office record and the card holder's account; ask where the card is now."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open questions about access. 'Why did you use Rafael's badge?' presumes the card is his personal badge.",
+            "response_relevance": "Declining to discuss her performance plan is a legitimate boundary, and second-language phrasing is not evasion; credit pressing only on how she entered.",
+            "evidence_based_followup": "Credit requesting rec-01 and rec-02 as soon as they are available (exchange 5) and asking about the sign-out against them.",
+            "testing_alternatives": "Credit testing the spare-card explanation against rec-01 and rec-02, and the lent-badge explanation against rec-02 and rec-04, before closing.",
+            "supported_closure": "Deceptive closure cites rec-01 and rec-02 (no sign-out, active personal card) with her non-answers on how she entered, or rec-04. Anxiety and phrasing are never grounds."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Declines to discuss her performance improvement plan.",
+            "label": "legitimate_non_disclosure",
+            "rationale": "Privacy-guarded fact f:09; permitted by the profile."
+          },
+          {
+            "id": "l:02",
+            "situation": "Describes rebooting the switch when asked how she got into N-3.",
+            "label": "evasion",
+            "rationale": "Deflection on the CORE fact f:41 (the violation)."
+          },
+          {
+            "id": "l:03",
+            "situation": "Says she is not sure of the exact minute the switch came back.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:04",
+            "situation": "Talks about the outage procedure in general without saying whether she signed out a card.",
+            "label": "evasion",
+            "rationale": "Omission on HOLD fact f:43 before its gate opens and on CORE fact f:41, without a forbidden assertion."
+          }
+        ],
+        "canary": "CANARY-bdd92003dc25b935"
+      }
+    }
+  }
+}
