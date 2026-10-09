@@ -64,7 +64,8 @@ def _prerequisites(text: str, target: str) -> list[str]:
 
 def test_check_runs_every_gate_group_after_syncing_dependencies() -> None:
     text = MAKEFILE.read_text()
-    assert _prerequisites(text, "check") == ["deps-sync", "py-check", "sec-check"]
+    # The pinned binaries are synced before py-check: its gate proofs run CodeQL and gitleaks themselves.
+    assert _prerequisites(text, "check") == ["deps-sync", "tools-sync", "py-check", "sec-check"]
     required = {
         "py-check": [
             "lint",

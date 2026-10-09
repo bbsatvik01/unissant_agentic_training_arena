@@ -55,7 +55,9 @@ bootstrap:
 hooks:
 	tools/githooks/install.sh
 
-check: deps-sync py-check sec-check
+# tools-sync runs before py-check: the CodeQL, gitleaks and Makefile gate proofs in the test suite run the pinned
+# binaries themselves.
+check: deps-sync tools-sync py-check sec-check
 	@echo "make check: ALL GATES GREEN"
 
 # Installed environments must match the lockfiles exactly before any gate reads them.
@@ -63,7 +65,8 @@ deps-sync:
 	uv sync --locked
 	uv sync --locked --project tools/envs/semgrep
 
-# The pinned, sha256-verified security binaries (gitleaks, trufflehog, osv-scanner, CodeQL) in .tools/bin.
+# The pinned, sha256-verified security binaries (gitleaks, trufflehog, osv-scanner, CodeQL) in .tools/bin; needed
+# by sec-check and by the gate proofs in py-check's test suite. Idempotent: a cached version is only re-linked.
 tools-sync:
 	tools/ensure_tools.sh
 

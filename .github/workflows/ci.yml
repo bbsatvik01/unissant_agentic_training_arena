@@ -1,8 +1,8 @@
 name: CI
 
 # S5 11.2/11.3: CI calls the same make targets `make check` runs locally; there is no separately softened CI
-# path. This workflow runs the Python half of the gate (`make deps-sync py-check`); security.yml and
-# codeql.yml run the security half. db-test (a Postgres service with pgTAP, S5 11.2) arrives with the
+# path. This workflow runs the Python half of the gate (`make deps-sync tools-sync py-check`: the test suite's
+# gate proofs run the pinned CodeQL and gitleaks binaries); security.yml and codeql.yml run the security half. db-test (a Postgres service with pgTAP, S5 11.2) arrives with the
 # migrations in WP-03/WP-04 and web-check with web/ in WP-18.
 # Actions are pinned to full commit SHAs; each comment names the release tag the SHA resolves to.
 on:
@@ -45,8 +45,8 @@ jobs:
           version: "0.11.2"
 
       # Every PR and push here targets main (the trigger filters above), so main is always the base.
-      - name: make deps-sync py-check
-        run: make deps-sync py-check BASE_REF=origin/main
+      - name: make deps-sync tools-sync py-check
+        run: make deps-sync tools-sync py-check BASE_REF=origin/main
 
       - name: Upload coverage report
         if: always()
