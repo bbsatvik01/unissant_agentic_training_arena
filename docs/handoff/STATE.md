@@ -14,6 +14,10 @@
 - Build the pipeline end to end first; cost tuning later; one global $74 ceiling keeps the $75 cap; keep it simple; get Codex to GREEN on the spec.
 - Owner decisions still open: 24 vs 30 cases (OD-8), volunteers (OD-7), GCP project (never `kbg-production`; the workstation gcloud default IS kbg-production, so never call gcloud without an explicit project), Supabase project, DESIGN.md, repo destination, voice exception rule, A2A track, team roster, plugin installs, pet name.
 
+## Owner directives (2026-10-08 ~22:10)
+- D-014: case families authored once by Claude agents + Codex review; Gemini 3.1 Pro dropped; other models kept.
+- Supabase project `fzjgcwkvveetegpngujr` (owner-provided). Supabase MCP added at **project scope only** (`.mcp.json`, server name `supabase`); user-scope MCP config untouched so the owner's other project keeps its own Supabase. Needs the owner to approve and log in once via `/mcp` in an interactive session here. Destructive database operations through it need explicit owner approval.
+
 ## Active subagents / workflows
 | agent_id | description | model | dispatched_at | expected_completion | output_path |
 | --- | --- | --- | --- | --- | --- |
@@ -22,7 +26,8 @@
 ## Next dispatch queue
 1. When the workflow lands: verify `make check` myself, commit scaffold and spec v2.1 separately (explicit paths, secret scan first).
 2. Codex review of spec v2.1 (buildability and consistency; cost accounting deferred by D-013) until GREEN; Codex review of the scaffold.
-3. WP-02 contracts package, then WP-03 migrations + WP-05 agent port and global guard, WP-08 scenario engine, WP-18 web foundation, toward the Oct 18 slice.
+3. Apply D-014 to S1/S8/cost_model after the running workflow lands; then a case-authoring workflow (dev families first, hidden families isolated and sealed).
+4. WP-02 contracts package, then WP-03 migrations + WP-05 agent port and global guard, WP-08 scenario engine, WP-18 web foundation, toward the Oct 18 slice.
 
 ## Standing facts
 - Voice: gokbase/cloudforce use `gemini-3.1-flash-live-preview` on AI Studio (not on Vertex; shuts down 2026-11-17). Vertex GA Live models `gemini-3.8-live`, `gemini-live-2.5-flash-native-audio` may be allowlist-gated; day-1 probe needed.

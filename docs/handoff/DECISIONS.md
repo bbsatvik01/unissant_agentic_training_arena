@@ -91,3 +91,12 @@
 - **Alternatives:** keep the per-phase tree (rejected: complexity before anything runs); drop the guard (rejected: D-009).
 - **Files affected:** `cost_model.py` (`budget_plan()`), S4 seed and tests, S5 section 4, S8 WP-05.
 - **Reversibility:** cheap; the tree functions remain in SQL if per-phase limits are wanted later.
+
+## 2026-10-08 · D-014 Case families are authored once, offline, by Claude agents with Codex review; Gemini 3.1 Pro dropped
+- **Decision:** owner directive ("why dont we make the case files using claude agent and codex and get those ready? they are only made once"; "3.1 pro is useless for us, rest are fine"). Case families (development and hidden) are written by Claude agents against S1 schema v1.1, checked by S1's deterministic validators in code, and cross-reviewed by Codex for ground-truth consistency, solvability and role leakage, looping until both pass. No runtime generator and no `gemini-3.1-pro-preview` anywhere. Runtime models stay Gemini on Vertex (3.5 Flash-Lite, 3.1 Flash-Lite, Live, image models).
+- **Hidden split:** authored by isolated agents into a git-ignored directory; the team and the orchestrator do not read them; validators and Codex report codes and counts only; families are loaded into the sealed schema and digested before candidates freeze. Disclosed on the methodology page.
+- **Reasoning:** cases are made once, so a one-time authoring pipeline is simpler than a generator service, removes the most expensive model ($6.82 expected / $9.92 conservative of generation), and adds a cross-model check. PRB-2 ("generated case families") is still met: the families are AI-generated, offline.
+- **Alternatives:** Gemini Pro generator at runtime (rejected by owner); hand-writing every family (rejected: slow).
+- **Exception to D-001:** Claude and Codex are used only as build-time authoring tools, like writing code; no non-Gemini model runs in the product.
+- **Files affected:** S1 (generation section becomes the authoring pipeline), S8 WP-09, `cost_model.py` (generation calls removed), direction model table.
+- **Reversibility:** cheap.
