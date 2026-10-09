@@ -297,9 +297,6 @@ class LedgerView:
 
     status: Mapping[str, tuple[GateStatus, int | None]] | None
     openable_after: bool = False
-    # Live (S2 9.3) and the referee (7.2) never show a gate OPEN (the Live model tracks openings itself; the referee
-    # decides them), so a HOLD fact's range must be stated with its condition rather than withheld for good.
-    tracks_openings: bool = False
 
 
 def _fact_line(fact: LedgerFact) -> str:
@@ -318,11 +315,13 @@ def _uncertainty_line(entry: UncertaintyEntry, packet: SubjectPacket, view: Ledg
             f" it never lets you confirm {fact.id}."
         )
     elif fact.fact_class == "HOLD":
-        open_now = view.status is not None and view.status.get(fact.gate_id or "", ("LOCKED", None))[0] == "OPEN"
+        status = view.status.get(fact.gate_id or "", ("LOCKED", None))[0] if view.status is not None else None
         gate = f" Applies only after {fact.gate_id} opens; until then it does not let you speak about {fact.id}."
-        if open_now:
+        if status == "OPEN":
             suffix = say
-        elif view.tracks_openings and say:
+        elif say and status in ("CLOSED", None):
+            # A CLOSED gate can open on this very question (Live tracks openings itself; the referee sees no
+            # status), so the range is stated with its condition; a LOCKED gate cannot open yet.
             suffix = f'{gate} Once {fact.gate_id} is open, if asked, say: "{clean(entry.range_text or "")}"'
         else:
             suffix = gate
@@ -449,7 +448,7 @@ def build_live_instruction(packet: SubjectPacket, released: frozenset[str], prom
         {
             **_persona(packet),
             "behavior_blocks": behavior_blocks(packet, prompts),
-            "ledger": ledger(packet, LedgerView(status, tracks_openings=True)),
+            "ledger": ledger(packet, LedgerView(status)),
         },
     )
 

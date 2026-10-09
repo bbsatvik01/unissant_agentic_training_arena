@@ -17,9 +17,10 @@ document; its window opens after the later of the two.
 
 "Questions" are the scored sequence's own (S3 2.2): an investigator's questions, or an assistant's proposals.
 `questions` maps each question's turn label (the ID the referee report keys it by: the question's turn for an
-investigator, the proposing card's turn for an assistant) to the exchange it is (or would be) asked at, so a
-question follows a trigger when it is asked after it. A trigger with no question after it is not applicable (S3 2.2)
-and gets no entry.
+investigator, the proposing card's turn for an assistant) to what it was written knowing: the answers and the
+releases it saw. A card sees its own turn's answer but not a release made after that exchange (S2 4.4.1), so an
+answer-driven window can start at the same card while a record-driven one starts at the next. A trigger with no
+question after it is not applicable (S3 2.2) and gets no entry.
 """
 
 from __future__ import annotations
@@ -35,34 +36,43 @@ NEXT_TWO = 2
 NEXT_THREE = 3
 
 
-def assistant_questions(card_turns: Iterable[int]) -> dict[int, int]:
-    """An assistant's proposal on the card of turn n is asked (or would be) at exchange n + 1."""
-    return {n: n + 1 for n in card_turns}
+# What a question was written knowing: (answers seen, releases seen), in exchanges.
+Timing = tuple[int, int]
 
 
-def investigator_questions(turns: Iterable[int]) -> dict[int, int]:
-    """An investigator's question of turn n is asked at exchange n."""
-    return {n: n for n in turns}
+def assistant_questions(card_turns: Iterable[int]) -> dict[int, Timing]:
+    """The proposal on the card of turn n saw answers 1..n and the records released before question n
+    (`released_after <= n - 1`, S2 4.4.1); it is asked (or would be) at exchange n + 1."""
+    return {n: (n, n - 1) for n in card_turns}
 
 
-def _window(questions: Mapping[int, int], after: int, limit: int | None) -> list[int]:
-    later = sorted((asked, label) for label, asked in questions.items() if asked > after)
-    return [label for _, label in later[:limit]]
+def investigator_questions(turns: Iterable[int]) -> dict[int, Timing]:
+    """The investigator's question of turn n is written after n - 1 exchanges and their releases."""
+    return {n: (n - 1, n - 1) for n in turns}
+
+
+def _window(questions: Mapping[int, Timing], answers: int, releases: int, limit: int | None) -> list[int]:
+    """The first `limit` questions, in order, written after seeing answer `answers` and release `releases`."""
+    seen = [label for label in sorted(questions) if questions[label][0] >= answers and questions[label][1] >= releases]
+    return seen[:limit]
 
 
 def derive_triggers(
     report: RefereeSubjectReport,
     available_after: Mapping[str, int],
-    questions: Mapping[int, int],
+    questions: Mapping[int, Timing],
 ) -> list[TriggerEntry]:
     """Every trigger S3's applicability rules produce for one trial, in sub-check order.
 
     `available_after`: each visible document's availability, 0 for an initial document and the release exchange for
-    a released record (the same population the citation check uses, D5)."""
+    a released record (the same population the citation check uses, D5). A question answers an answer-driven
+    trigger once it was written after that answer, and a record-driven one once it was written after the release."""
     entries: list[TriggerEntry] = []
 
-    def add(subcheck: str, turns: list[int], record: str | None, after: int, limit: int | None) -> None:
-        window = _window(questions, after, limit)
+    def add(subcheck: str, turns: list[int], record: str | None, limit: int | None) -> None:
+        answers = max(turns, default=0)
+        releases = available_after[record] if record is not None else 0
+        window = _window(questions, answers, releases, limit)
         if window:
             entries.append(
                 TriggerEntry(subcheck_id=subcheck, trigger_turns=turns, trigger_record=record, question_turns=window)
@@ -70,16 +80,16 @@ def derive_triggers(
 
     for t in report.turns:
         if t.label == "evasion":
-            add("2a", [turn_no(t.turn_id)], None, turn_no(t.turn_id), NEXT_TWO)
+            add("2a", [turn_no(t.turn_id)], None, NEXT_TWO)
     for t in report.turns:
         if t.label == "genuine_uncertainty":
-            add("2b", [turn_no(t.turn_id)], None, turn_no(t.turn_id), None)
-    for record, after in sorted(available_after.items(), key=lambda x: (x[1], x[0])):
+            add("2b", [turn_no(t.turn_id)], None, None)
+    for record, _after in sorted(available_after.items(), key=lambda x: (x[1], x[0])):
         if record.startswith("rec-"):
-            add("3c", [], record, after, NEXT_THREE)
+            add("3c", [], record, NEXT_THREE)
     for c in contradiction_triggers(report, available_after):
-        add("3e", list(c.turns), c.record_id, c.window_after, None)
+        add("3e", list(c.turns), c.record_id, None)
     for t in report.turns:
         if t.innocent_explanation_offered:
-            add("4b", [turn_no(t.turn_id)], None, turn_no(t.turn_id), NEXT_THREE)
+            add("4b", [turn_no(t.turn_id)], None, NEXT_THREE)
     return entries

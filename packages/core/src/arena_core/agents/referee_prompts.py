@@ -220,7 +220,7 @@ def build_referee_subject_prompt(inp: RefereeSubjectInput, prompts: PromptSet, s
         prompts.user_template("subject.user.v1.txt"),
         {
             "canonical_facts": "\n".join(f"{f.id} | {clean(f.statement)}" for f in inp.canonical_facts),
-            "ledger": ledger(packet, LedgerView(status=None, openable_after=True, tracks_openings=True)),
+            "ledger": ledger(packet, LedgerView(status=None, openable_after=True)),
             "permitted_behaviors": ", ".join(packet.permitted_behaviors) or NONE,
             "style": ", ".join(f"{axis} {packet.style.level(axis)}" for axis in STYLE_AXES),
             "salt": salt,

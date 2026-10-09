@@ -74,11 +74,16 @@ def test_investigator_windows() -> None:
 
 def test_assistant_proposals_are_indexed_by_their_card() -> None:
     got = _lines(derive_triggers(report(), AVAILABLE, assistant_questions(range(1, TURNS + 1))))
-    # The proposal on card n is asked at exchange n + 1, so the question after answer 2 is card t02's proposal,
-    # and t08's evasion is followed by card t08's proposal.
+    # Card n saw answer n, so the proposal answering answer 2 is card t02's and t08's evasion is answered by card
+    # t08's proposal; card n did not see a release made after exchange n (S2 4.4.1), so a record released after
+    # exchange 2 is first answered by card t03.
     assert got[0] == ("2a", [2], None, [2, 3])
     assert ("2a", [8], None, [8]) in got
-    assert ("3c", [], "rec-01", [2, 3, 4]) in got
+    assert ("3c", [], "rec-01", [3, 4, 5]) in got
+    assert ("3c", [], "rec-02", [6, 7, 8]) in got
+    assert ("3e", [2, 5], None, [5, 6, 7, 8]) in got
+    assert ("3e", [4], "doc-01", [4, 5, 6, 7, 8]) in got
+    assert ("3e", [4], "rec-02", [6, 7, 8]) in got
     assert ("4b", [4], None, [4, 5, 6]) in got
 
 

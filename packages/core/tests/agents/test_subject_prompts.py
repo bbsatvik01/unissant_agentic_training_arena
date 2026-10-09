@@ -289,18 +289,24 @@ def test_uncertainty_on_a_hold_fact_follows_its_gate() -> None:
         "range_text": "Some time that morning.",
     }
     packet = SubjectPacket.from_private_packet({**raw, "uncertainty": [*raw["uncertainty"], entry]}, split="dev")
+    gate_suffix = "Applies only after g:01 opens; until then it does not let you speak about f:44."
+    once = ' Once g:01 is open, if asked, say: "Some time that morning."'
+    locked = build_subject_prompt(packet, fx.subject_state(2, {"rec-01": 2}), fx.prompts("S1"), salt=fx.SALT)
     closed = build_subject_prompt(packet, fx.subject_state(4, {"rec-01": 2}), fx.prompts("S1"), salt=fx.SALT)
     opened = build_subject_prompt(
         packet, fx.subject_state(6, {"rec-01": 2}, {"g:01": 4}), fx.prompts("S1"), salt=fx.SALT
     )
-    gate_suffix = "Applies only after g:01 opens; until then it does not let you speak about f:44."
-    assert _uncertainty_line(closed.user_message, "u:03").endswith(gate_suffix)
-    assert _uncertainty_line(opened.user_message, "u:03").endswith('If asked, say: "Some time that morning."')
-    # Live never shows a gate OPEN (the model tracks openings, S2 9.3), so its line keeps the gate condition and
-    # states the range for after the opening; the text subject sees the range only once the ledger shows it OPEN.
+    # LOCKED: the gate cannot open on this question, so no range yet.
+    assert _uncertainty_line(locked.user_message, "u:03").endswith(gate_suffix)
+    # CLOSED: the latest question may open the gate and ask for the fact at once, so the range comes with its
+    # condition; OPEN: the plain S2 6.7 suffix.
+    assert _uncertainty_line(closed.user_message, "u:03").endswith(gate_suffix + once)
+    assert _uncertainty_line(opened.user_message, "u:03").endswith(' If asked, say: "Some time that morning."')
+    # Live renders the same line for the same gate status (S2 9.3).
     live = build_live_instruction(packet, frozenset({"rec-01"}), fx.prompts("S1"))
-    once = ' Once g:01 is open, if asked, say: "Some time that morning."'
-    assert _uncertainty_line(live, "u:03") == _uncertainty_line(closed.user_message, "u:03") + once
+    assert _uncertainty_line(live, "u:03") == _uncertainty_line(closed.user_message, "u:03")
+    live_locked = build_live_instruction(packet, frozenset(), fx.prompts("S1"))
+    assert _uncertainty_line(live_locked, "u:03") == _uncertainty_line(locked.user_message, "u:03")
 
 
 # ---------------------------------------------------------------- AT-VOICE (S2 9.6)
