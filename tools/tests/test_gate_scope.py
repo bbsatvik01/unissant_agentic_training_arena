@@ -43,7 +43,7 @@ PINNED_TABLES: dict[str, object] = {
         "warn_unused_ignores": True,
         "warn_unreachable": True,
         "enable_error_code": ["ignore-without-code", "redundant-expr", "truthy-bool"],
-        "files": ["packages", "services", "tools"],
+        "files": ["packages", "services", "tools", "conftest.py"],
         "explicit_package_bases": True,
         "mypy_path": ["packages/core/src", *SERVICE_SRC],
     },

@@ -44,6 +44,24 @@ def test_mypy_strict_rejects_an_untyped_function(tmp_path: Path) -> None:
     assert "Function is missing a type annotation" in result.stdout
 
 
+def test_mypy_typechecks_the_root_conftest(tmp_path: Path) -> None:
+    """The configured file list is what `make typecheck` runs; a type error in conftest.py must fail it."""
+    config_text = (REPO_ROOT / "pyproject.toml").read_text()
+    configured = tomllib.loads(config_text)["tool"]["mypy"]["files"]
+    assert "conftest.py" in configured
+    (tmp_path / "pyproject.toml").write_text(config_text)
+    for entry in configured:
+        if entry.endswith(".py"):
+            (tmp_path / entry).write_text('pytest_plugins: list[str] = "not a list"\n')
+        else:
+            (tmp_path / entry).mkdir()
+            (tmp_path / entry / "ok.py").write_text("VALUE: int = 1\n")
+    result = proc.run("mypy", ["--config-file", "pyproject.toml"], cwd=tmp_path)
+    assert result.returncode == 1, result.stdout
+    assert "conftest.py" in result.stdout
+    assert "Incompatible types in assignment" in result.stdout
+
+
 def test_gitleaks_rejects_a_key_shaped_string_in_history_and_staged(tmp_path: Path) -> None:
     git_init(tmp_path)
     (tmp_path / "config.py").write_text(f'GITHUB_TOKEN = "{fake_github_token()}"\n')

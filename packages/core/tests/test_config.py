@@ -8,7 +8,7 @@ from arena_core import config
 
 GOOD_ENV: dict[str, str] = {
     "ARENA_ROLE": "api",
-    "ARENA_GCP_PROJECT": "arena-dev-000000",
+    "ARENA_GCP_PROJECT": "cna-guardian",
     "ARENA_PUBLIC_DSN": "postgresql://api:not-a-real-password@127.0.0.1/arena",
     "ARENA_ENV": "local",
 }
@@ -29,7 +29,7 @@ def test_a_clean_local_api_environment_boots() -> None:
     settings = config.load_settings(env())
     assert settings.role is config.ArenaRole.API
     assert settings.dsn == GOOD_ENV["ARENA_PUBLIC_DSN"]
-    assert settings.gcp_project == "arena-dev-000000"
+    assert settings.gcp_project == "cna-guardian"
     assert settings.is_local is True
     assert settings.bind_host == "127.0.0.1"
 
@@ -39,7 +39,7 @@ def test_every_role_boots_with_its_own_dsn_only(role: config.ArenaRole) -> None:
     own_var = config.ROLE_DSN_VAR[role]
     e = {
         "ARENA_ROLE": role.value,
-        "ARENA_GCP_PROJECT": "arena-dev-000000",
+        "ARENA_GCP_PROJECT": "cna-guardian",
         "ARENA_ENV": "local",
         own_var: "postgresql://x/db",
     }
@@ -79,10 +79,30 @@ def test_missing_or_blank_gcp_project_is_refused(value: str | None) -> None:
 
 
 @pytest.mark.gateproof
-@pytest.mark.parametrize("value", ["kbg-production", " kbg-production ", "KBG-Production"])
-def test_kbg_production_is_refused_in_any_spelling(value: str) -> None:
-    with pytest.raises(config.BootCheckError, match="kbg-production"):
+@pytest.mark.parametrize(
+    "value",
+    [
+        "kbg-production",
+        " kbg-production ",
+        "KBG-Production",
+        "gen-lang-client-0635695834",
+        "arena-dev-000000",
+        "cna-guardian-2",
+        "CNA-Guardian",
+        " cna-guardian ",
+        "cna-guardian\n",
+        "\tcna-guardian",
+        "cna_guardian",
+    ],
+)
+def test_any_project_but_cna_guardian_is_refused(value: str) -> None:
+    """D-015: the allowlist is exactly one project; every other spelling or project is refused."""
+    with pytest.raises(config.BootCheckError, match="D-015"):
         config.load_settings(env(ARENA_GCP_PROJECT=value))
+
+
+def test_cna_guardian_is_accepted_exactly() -> None:
+    assert config.load_settings(env(ARENA_GCP_PROJECT="cna-guardian")).gcp_project == "cna-guardian"
 
 
 # ---------------------------------------------------------------- S5 1.4 bullet: credential isolation
@@ -167,12 +187,12 @@ def test_boot_exits_1_with_reason_on_stderr(capsys: pytest.CaptureFixture[str]) 
     with pytest.raises(SystemExit) as exc_info:
         config.boot(config.ArenaRole.API, bad)
     assert exc_info.value.code == 1
-    assert "kbg-production" in capsys.readouterr().err
+    assert "D-015" in capsys.readouterr().err
 
 
 def test_boot_propagates_when_exit_on_failure_is_false() -> None:
     bad = env(ARENA_GCP_PROJECT="kbg-production")
-    with pytest.raises(config.BootCheckError, match="kbg-production"):
+    with pytest.raises(config.BootCheckError, match="D-015"):
         config.boot(config.ArenaRole.API, bad, exit_on_failure=False)
 
 

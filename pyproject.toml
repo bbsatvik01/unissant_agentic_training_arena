@@ -91,7 +91,7 @@ strict = true
 warn_unused_ignores = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = ["packages", "services", "tools"]
+files = ["packages", "services", "tools", "conftest.py"]
 explicit_package_bases = true
 mypy_path = [
   "packages/core/src",

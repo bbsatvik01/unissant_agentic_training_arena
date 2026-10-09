@@ -49,7 +49,8 @@ def run_bytes(
 ) -> subprocess.CompletedProcess[bytes]:
     """Run an allowed tool with an argument list and capture raw output (the only subprocess call)."""
     argv = [resolve(tool), *args]
-    # S603 flags every non-literal argv; argv[0] is a resolved allowlisted tool and there is no shell.
+    # S603 false positive: argv[0] is a resolved allowlisted tool, args are a list of strings from the gate
+    # tools' own code (no shell, no user input); reason recorded in tools/gates/suppressions-allowlist.toml.
     return subprocess.run(argv, cwd=cwd, input=stdin, capture_output=True, check=check)  # noqa: S603
 
 

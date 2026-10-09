@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ROLE_DSN_VARS = ("ARENA_PUBLIC_DSN", "ARENA_SUBJECT_DSN", "ARENA_REFEREE_DSN")
 # The child gets exactly this environment plus the case's overrides: no ambient variable (a DSN or an
 # API key exported in the developer's shell) can leak in and change the outcome.
-BASE_ENV = {"PATH": "/usr/bin:/bin", "ARENA_GCP_PROJECT": "arena-dev-000000", "ARENA_ENV": "local"}
+BASE_ENV = {"PATH": "/usr/bin:/bin", "ARENA_GCP_PROJECT": "cna-guardian", "ARENA_ENV": "local"}
 
 
 def good_env(role: str, own_dsn_var: str) -> dict[str, str]:
@@ -33,7 +33,10 @@ def refusal_cases(role: str, own_dsn_var: str) -> list[tuple[str, dict[str, str 
         ("own-dsn-missing", {own_dsn_var: None}, f"{own_dsn_var} is not set"),
         ("gemini-api-key", {"GEMINI_API_KEY": "fake-value"}, "D-001"),
         ("google-api-key", {"GOOGLE_API_KEY": "fake-value"}, "D-001"),
-        ("kbg-production", {"ARENA_GCP_PROJECT": "kbg-production"}, "kbg-production"),
+        ("kbg-production", {"ARENA_GCP_PROJECT": "kbg-production"}, "D-015"),
+        ("ai-studio-project", {"ARENA_GCP_PROJECT": "gen-lang-client-0635695834"}, "D-015"),
+        ("padded-project", {"ARENA_GCP_PROJECT": " cna-guardian\n"}, "D-015"),
+        ("arbitrary-project", {"ARENA_GCP_PROJECT": "arena-dev-000000"}, "D-015"),
         ("project-missing", {"ARENA_GCP_PROJECT": None}, "ARENA_GCP_PROJECT is not set"),
         ("non-loopback-bind", {"ARENA_BIND_HOST": "10.1.2.3"}, "loopback bind address"),
         ("all-interfaces-bind", {"ARENA_BIND_HOST": "::"}, "loopback bind address"),
@@ -62,6 +65,8 @@ def run_role_module(module: str, env: dict[str, str]) -> subprocess.CompletedPro
     credential leaks in) -- this is the one reviewed subprocess call site for these tests
     (tools/proc.py has no env parameter by design: the gate tools always inherit the gate's environment).
     """
+    # S603 false positive: argv is [sys.executable, "-m", <module constant from the role test>], no shell, no
+    # untrusted input; the allowlist entry in tools/gates/suppressions-allowlist.toml carries the reason.
     return subprocess.run(  # noqa: S603
         [sys.executable, "-m", module], cwd=REPO_ROOT, env=env, capture_output=True, text=True, check=False
     )

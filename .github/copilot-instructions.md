@@ -16,7 +16,7 @@ make check       # the full gate; CI runs the same make targets (plus SHA-pinned
 ## Hard rules
 - Never weaken a gate: no `noqa`, `type: ignore`, `nosec`, `nosemgrep`, `gitleaks:allow`, `pragma: no cover`, skip/xfail, `continue-on-error`, lowered thresholds, narrowed scopes. Fix the code.
 - Role boundaries are enforced by `tools/check_roles.py`; boot checks by `arena_core.config`.
-- Never run arena commands against the `kbg-production` GCP project.
+- Arena commands run against the `cna-guardian` GCP project only (D-015); the boot checks refuse any other, `kbg-production` included.
 - Never commit `.env.local*` files or anything under `cases/hidden/`.
 - Serverless scales to zero: never min-instances >= 1 or CPU always-allocated.
 - Changing server, worker, rate-limit, timeout or health-check config needs owner approval first.

@@ -3,7 +3,7 @@
 Adapted from TechnoMile `bh_core/providers/policy.py` (`refuse_gemini_api_keys`; ATTRIBUTIONS.md): the
 API-key refusal is kept, the OpenRouter/Jev rules are dropped (D-001: Vertex only, so there is no other
 gateway to police here). Everything else in this module is new: the role/DSN isolation check, the
-`ARENA_GCP_PROJECT` guard (including the `kbg-production` refusal, PATTERNS.md permission wall), and
+`ARENA_GCP_PROJECT` allowlist (exactly `cna-guardian`, D-015; PATTERNS.md permission wall), and
 the local-vs-hosted shape check are specific to this repo's four-role, credential-per-process layout.
 
 Each check raises `BootCheckError` with the exact reason; `boot()` is what a role's `__main__` calls,
@@ -16,7 +16,7 @@ instrumented before WP-07, so there is nothing for that check to observe yet.
 
 Settings the boot checks read (all from the process environment):
   ARENA_ROLE          api | subject | referee | tournament
-  ARENA_GCP_PROJECT   the arena project, named explicitly; never `kbg-production`
+  ARENA_GCP_PROJECT   must be exactly `cna-guardian` (D-015); anything else is refused
   ARENA_ENV           local (default when unset or blank) | hosted
   ARENA_BIND_HOST     the address the role's server binds (default 127.0.0.1); local runs: 127.0.0.1 only
   ARENA_PUBLIC_DSN | ARENA_SUBJECT_DSN | ARENA_REFEREE_DSN   exactly the one DSN the role holds
@@ -32,9 +32,10 @@ from enum import StrEnum
 
 # D-001: Vertex only. An API key would route around ADC / service-account impersonation.
 FORBIDDEN_MODEL_KEYS: tuple[str, ...] = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
-# gokbase production (PATTERNS.md permission wall): the workstation's default gcloud project. No arena
-# command may ever run against it, by accident or otherwise.
-REFUSED_GCP_PROJECT = "kbg-production"
+# D-015: the one project arena Vertex calls may use. An allowlist, not a denylist: the workstation's gcloud
+# default (gokbase production, PATTERNS.md permission wall), the AI Studio project and every other id are
+# refused alike.
+ALLOWED_GCP_PROJECT = "cna-guardian"
 OWNER_DSN_VAR = "ARENA_OWNER_DSN"
 BIND_HOST_VAR = "ARENA_BIND_HOST"
 # S5 1.3: "with ARENA_ENV=local the server binds 127.0.0.1 only". Exactly this address: "localhost" goes
@@ -78,13 +79,13 @@ def refuse_gemini_api_keys(env: Mapping[str, str]) -> None:
 
 
 def require_gcp_project(env: Mapping[str, str]) -> str:
-    """`ARENA_GCP_PROJECT` must be set explicitly, and must never be the gokbase production project."""
-    project = env.get("ARENA_GCP_PROJECT", "").strip()
-    if not project:
+    """`ARENA_GCP_PROJECT` must be set explicitly and be exactly `cna-guardian` (D-015); all else is refused."""
+    project = env.get("ARENA_GCP_PROJECT", "")
+    if not project.strip():
         msg = "ARENA_GCP_PROJECT is not set; every arena command must name the arena project explicitly"
         raise BootCheckError(msg)
-    if project.lower() == REFUSED_GCP_PROJECT:
-        msg = f"ARENA_GCP_PROJECT={REFUSED_GCP_PROJECT!r} refused (gokbase production; PATTERNS.md permission wall)"
+    if project != ALLOWED_GCP_PROJECT:
+        msg = f"ARENA_GCP_PROJECT={project!r} refused: D-015 allows only {ALLOWED_GCP_PROJECT!r}"
         raise BootCheckError(msg)
     return project
 
