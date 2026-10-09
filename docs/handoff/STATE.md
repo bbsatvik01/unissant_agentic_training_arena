@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Merges and ports (2026-10-09)
+- WP-01 scaffold merged into main (0237c86): self Codex CORRECT, cold Codex CORRECT after 3 rounds (D-015 allowlist cna-guardian only; conftest under mypy and bandit; two S603 suppressions accepted as verified false positives).
+- Web branch 7e1bd0a: voice machine on v2.7 exchange lines[]; confirmation cold gate running.
+- Port agents (normal, addressable): WP-08 scenario engine to v2.7 + verifier fixes (id ae0097c07b1dec950, wt-wp08); WP-03 migrations to v2.7 + harness fixes (id a73ac65007530d4a6, wt-wp03). Other agent ids: web aadec2824ba80c8be, scaffold a7856425e128d71bd, seeds a735e3ef1d8570e23, spec ae6c4a65789796395.
+
 ## SPEC GREEN (2026-10-09)
 - Codex spec round 6: GREEN in every session (spec v2.7, 7911a78 + b66e881). Dev cases F01-F09 merged (b3e4fc5), green under v2.5 CX rules.
 - Next: port WP-08 and WP-03 to v2.7 (new normal agents; workflow agents are not addressable), WP-01 scaffold fix in progress, web voice rebuild in progress; then WP-02 contracts and the build waves.

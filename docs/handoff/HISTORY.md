@@ -48,3 +48,4 @@
 - 1392310 spec v2.4; 8c03747 merge dev cases F01-F09; Codex spec round 3 started.
 - 5e54a22 spec v2.5; Codex round 4 started; voice-machine and F02 fixes sent to the same agents.
 - Codex spec round 6 GREEN (all sessions). b3e4fc5 dev cases merged.
+- 0237c86 WP-01 scaffold merged; WP-08 and WP-03 port agents dispatched.
