@@ -1,4 +1,4 @@
--- 016_finding.sql (S2 4.8, S5 5.4; WP-02). Rows for migration 0900 (proposed for the spec): the stored finding the
+-- 016_finding.sql (S2 4.8, S5 5.4; WP-02). Rows for migration 1000 (proposed for the spec): the stored finding the
 -- shared contract produces (arena_core.contracts.findings.InvestigatorFinding.stored(), its canonical JSON below,
 -- checked against the contract by packages/core/tests/contracts/test_finding_sql.py) commits through
 -- arena.finalize_trial. FN-01 an alternative_explanations that is neither an array nor null is still AR007;

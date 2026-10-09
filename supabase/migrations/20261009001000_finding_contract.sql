@@ -1,4 +1,4 @@
--- 0900 finding contract (S2 4.8, S5 5.4; WP-02). Not a draft port: one defect the WP-02 Codex gate found where the
+-- 1000 finding contract (S2 4.8, S5 5.4; WP-02). Not a draft port: one defect the WP-02 Codex gate found where the
 -- v2.7 draft (docs/spec/sql/0004_privileged_functions.sql, arena.finalize_trial) disagrees with S2 4.8, proposed for
 -- the spec's next revision. The function is the draft's body with the marked change; `create or replace` keeps its
 -- grants (capability fixture unchanged).
