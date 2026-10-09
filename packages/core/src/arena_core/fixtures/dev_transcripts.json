@@ -2110,801 +2110,6 @@
       ]
     },
     {
-      "id": "TX-F06-C",
-      "family_id": "F06",
-      "variant": "truthful",
-      "exchanges": [
-        {
-          "turn": 1,
-          "question": "Can you describe, in your own words, what you did at the Corliss Records Center on the evening of 25 February 2026?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03"
-          ],
-          "answer": "The service request Gail Fenwick sent me at 18:44 was to check and isolate a ceiling drip on the fourth-floor east corridor. The request gave the location as the corridor between Rooms 417 and 419; it did not say which room. I phoned Marcus Ebdon, the duty manager, and he approved K-14 before I took it. I took K-14 from key cabinet KC-2 at 18:52.",
-          "protected": [
-            "he approved K-14 before I took it"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:02"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor"
-                },
-                {
-                  "record_id": "doc-03",
-                  "quote": "Please check and isolate."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:05"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "M. Ebdon, duty manager | K-14 approved by phone for P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:10"
-              ],
-              "records": []
-            }
-          ]
-        },
-        {
-          "turn": 2,
-          "question": "What happened next?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03"
-          ],
-          "answer": "I went to riser closet 419 first, at about 18:58. I closed the drain-line isolation valve in 419 a few minutes after I arrived, which slowed the leak. Then I opened the 417 door at 19:12 to deal with the water coming through its ceiling onto the shelves.",
-          "protected": [
-            "I went to riser closet 419 first"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:17"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:24"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Valve closed in riser closet 419."
-                },
-                {
-                  "record_id": "rec-02",
-                  "quote": "isolation valve in 419 already closed"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06",
-                "f:22"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "19:12 | Room 417 door contact | Door opened"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 3,
-          "question": "We have Key cabinet KC-2 history for key K-14, 1 to 25 February 2026. Can you tell me about it?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-04"
-          ],
-          "answer": "On 23 February I replaced a light fitting in 417 under a work order. On 25 February I took K-14 from key cabinet KC-2 at 18:52. I returned K-14 to the cabinet at 20:06.",
-          "protected": [
-            "replaced a light fitting in 417"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:19"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-04",
-                  "quote": "23 February | 15:05 | 15:50 | P. Halloran | WO-6087, light fitting, Room 417"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:10"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:11"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:06 | Key cabinet KC-2 | K-14 returned, PIN P. Halloran"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 4,
-          "question": "We have Operations desk log, 25 February 2026, 18:30-20:30. Can you tell me about it?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-04"
-          ],
-          "answer": "The Operations desk told me the night custodian had called in water on the fourth-floor east corridor. Gail Fenwick sent me service request SR-4471 at 18:44. Marcus Ebdon, the duty manager, approved K-14 before I took it. Later I phoned the Operations desk and reported the leak over 417, the closed valve and the six boxes. I do not know the exact minute, only that it was about a quarter to eight.",
-          "protected": [
-            "reported the leak over 417"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:01"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:02"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "18:44 | G. Fenwick | SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor, between 417 and 419."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "M. Ebdon, duty manager | K-14 approved by phone for P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:25"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf"
-                }
-              ]
-            },
-            {
-              "kind": "perception",
-              "ledger": [
-                "u:01"
-              ],
-              "records": []
-            }
-          ]
-        },
-        {
-          "turn": 5,
-          "question": "We have Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026. Can you tell me about it?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-04"
-          ],
-          "answer": "A cracked drain line above the 417 ceiling was leaking; water was coming through the ceiling onto shelving bay 3 and into the corridor. I closed the drain-line isolation valve in 419 a few minutes after I arrived. In 417 I took down two soaked ceiling tiles and lifted six file boxes off the wet shelf onto the table. I have not seen the repair work order.",
-          "protected": [
-            "the drain-line isolation valve in 419"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:20"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "Found: cracked condensate drain line above the 417 ceiling"
-                },
-                {
-                  "record_id": "rec-02",
-                  "quote": "Location: Room 417 ceiling above shelving bay 3"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:24"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "isolation valve in 419 already closed"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:23"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "two ceiling tiles in 417 taken down on 25 February by P. Halloran"
-                },
-                {
-                  "record_id": "rec-02",
-                  "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "perception",
-              "ledger": [
-                "f:26"
-              ],
-              "records": []
-            }
-          ]
-        },
-        {
-          "turn": 6,
-          "question": "We have Written statement, Marcus Ebdon, Duty Manager (27 February 2026). Can you tell me about it?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "I phoned Marcus Ebdon, the duty manager, about the water on the fourth-floor east corridor. Marcus Ebdon approved K-14 before I took it. K-14 opens Rooms 417, 419 and 421. I do not know when Marcus Ebdon signed the authorization form.",
-          "protected": [
-            "approved K-14 before I took it"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08",
-                "f:01"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-05",
-                  "quote": "Priya Halloran phoned me at about ten to seven about water on floor 4 east"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "M. Ebdon, duty manager | K-14 approved by phone for P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:04"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421"
-                }
-              ]
-            },
-            {
-              "kind": "perception",
-              "ledger": [
-                "f:07"
-              ],
-              "records": []
-            }
-          ]
-        },
-        {
-          "turn": 7,
-          "question": "We have Copier MF-417 job log, Room 417, 25 February 2026. Can you tell me about it?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "I have not seen the copier job log. In 417 I did not open any file box or touch the papers on the desks. I opened the 417 door at 19:12 to deal with the water coming through its ceiling onto the shelves. The door stayed open until I left at 19:38.",
-          "protected": [
-            "did not open any file box"
-          ],
-          "support": [
-            {
-              "kind": "perception",
-              "ledger": [],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:27"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06",
-                "f:22"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "19:12 | Room 417 door contact | Door opened"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "Door opened 19:38 | Room 417 door contact | Door closed"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 8,
-          "question": "Can you go through that period again, starting from the end and working backwards?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "At the end I returned K-14 to the cabinet at 20:06. Before that I mopped the corridor. Before that I phoned the Operations desk and reported the leak over 417, the closed valve and the six boxes. Before that the door of 417 stayed open until I left at 19:38. I had opened the 417 door at 19:12. Before that I closed the drain-line isolation valve in 419. First I took K-14 from key cabinet KC-2 at 18:52.",
-          "protected": [
-            "At the end I returned K-14"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:11"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:06 | Key cabinet KC-2 | K-14 returned, PIN P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:18"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Mopping the corridor next."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:25"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "Door opened 19:38 | Room 417 door contact | Door closed"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "19:12 | Room 417 door contact | Door opened"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:24"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Valve closed in riser closet 419."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:10"
-              ],
-              "records": []
-            }
-          ]
-        },
-        {
-          "turn": 9,
-          "question": "Can you tell me about your entry to Room 417 at 19:12?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "I opened Room 417 at 19:12 to deal with the water coming through its ceiling onto the shelves. I lifted six file boxes off the wet shelf onto the table, took down two soaked ceiling tiles and set out buckets. I did not open any file box or touch the papers on the desks in 417. The door stayed open until I left at 19:38.",
-          "protected": [
-            "took down two soaked ceiling tiles"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06",
-                "f:22"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "19:12 | Room 417 door contact | Door opened"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:23"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:27"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:06"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "Door opened 19:38 | Room 417 door contact | Door closed"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 10,
-          "question": "What was the purpose of your entry to Room 417 at 19:12?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "I went into Room 417 to deal with the water coming through its ceiling onto the shelves. A cracked drain line above the 417 ceiling was leaking onto shelving bay 3. My service request was to check and isolate a ceiling drip on the fourth-floor east corridor.",
-          "protected": [
-            "to deal with the water"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:22"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:20"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-02",
-                  "quote": "Found: cracked condensate drain line above the 417 ceiling"
-                },
-                {
-                  "record_id": "rec-02",
-                  "quote": "Location: Room 417 ceiling above shelving bay 3"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:02"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Request: 'Ceiling drip reported by the night custodian. Please check and isolate.'"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 11,
-          "question": "Who else was present, or could confirm what you have described?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "Gail Fenwick sent me the service request at 18:44. Marcus Ebdon, the duty manager, approved K-14 when I phoned him. The night custodian had called in the water. I also phoned the Operations desk and reported the leak over 417, the closed valve and the six boxes.",
-          "protected": [
-            "Marcus Ebdon, the duty manager, approved K-14"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:02"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Raised 18:44 by G. Fenwick, Operations desk. Assigned to P. Halloran, Building Engineering, evening shift. Location: floor 4 east corridor, between Rooms 417 and 419. Request:"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "M. Ebdon, duty manager | K-14 approved by phone for P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:01"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "18:41 | T. Wren, night custodian | Water coming out under the door of 417, the file room."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:25"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419. Six file boxes in 417 lifted off the wet shelf"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "turn": 12,
-          "question": "Can you tell me about the withdrawal of restricted key K-14 at 18:52?",
-          "released_before": [
-            "doc-01",
-            "doc-02",
-            "doc-03",
-            "rec-01",
-            "rec-02",
-            "rec-03",
-            "rec-04",
-            "rec-05"
-          ],
-          "answer": "I took K-14 from key cabinet KC-2 at 18:52. Before that I phoned Marcus Ebdon, the duty manager, and he approved it. K-14 opens Rooms 417, 419 and 421. I took it for service request SR-4471, to check and isolate a ceiling drip. I returned it to the cabinet at 20:06.",
-          "protected": [
-            "Before that I phoned Marcus Ebdon"
-          ],
-          "support": [
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:10"
-              ],
-              "records": []
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:08"
-              ],
-              "records": [
-                {
-                  "record_id": "rec-01",
-                  "quote": "M. Ebdon, duty manager | K-14 approved by phone for P. Halloran"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:04"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421"
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:02",
-                "f:10"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-03",
-                  "quote": "Please check and isolate."
-                },
-                {
-                  "record_id": "rec-01",
-                  "quote": "18:44 | G. Fenwick | SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor, between 417 and 419."
-                }
-              ]
-            },
-            {
-              "kind": "fact",
-              "ledger": [
-                "f:11"
-              ],
-              "records": [
-                {
-                  "record_id": "doc-01",
-                  "quote": "20:06 | Key cabinet KC-2 | K-14 returned, PIN P. Halloran"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "TX-F07-C",
       "family_id": "F07",
       "variant": "truthful",
@@ -4342,6 +3547,615 @@
                 {
                   "record_id": "rec-01",
                   "quote": "Detector left in service under Standard 5.3(c)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-C",
+      "family_id": "F09",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Could you describe, in your own words, your morning at the Halvern Street Annex on 15 April 2026, from your arrival to the start of the 09:00 review?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "My badge opened the north staff door when I came in from the car park that morning. Nobody came in with me through the north staff door. The lobby desk rang the Procurement main line to say Mr Keable had arrived, and I took the call at my desk. I went down and met Mr Keable in the main lobby after he had signed in. Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and I were already there.",
+          "protected": [
+            "Nobody came in with me"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:04"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:24"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "After the review, I walked Mr Keable out of the room at about ten past ten. I took Mr Keable down to the main lobby, where he signed out at the desk and handed back his visitor badge.",
+          "protected": [
+            "he signed out at the desk"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:13"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:25"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Visitor register of the main lobby security desk, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "Mr Keable, the visitor from Penwick Document Services, had signed in at the desk and was wearing a visitor badge when I met him. I do not know how the desk officer wrote his name in the register.",
+          "protected": [
+            "had signed in at the desk"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:21",
+                "f:01"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-01",
+                  "quote": "08:45 | M. Keeble | Penwick Document Services | V-22 | G. Ashby | 10:12"
+                }
+              ]
+            },
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:20"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Fault ticket for the north staff door camera, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I do not know anything about a fault with the camera. I did not know the north staff door camera wasn't recording that morning.",
+          "protected": [
+            "anything about a fault"
+          ],
+          "support": [
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:09"
+              ],
+              "records": []
+            },
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:16"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Written statement, Gwendolyn Ashby, Contracts Officer (16 April 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review. Ms Ashby had another meeting before the nine o'clock review. She came into Room 2-07 at about five to nine, when Mr Keable and I were already there. Mr Keable came to the last two quarterly reviews of the print and copier contract, so I know him by sight. I do not know what Ms Ashby told Security Operations.",
+          "protected": [
+            "Mr Keable and I were already there"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:01"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:10",
+                "f:01"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "My meeting in Room 3-02 ran until about ten to nine."
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:17"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "He has come to the last two quarterly reviews, so Elise knows him."
+                }
+              ]
+            },
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:12"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The lift lobby camera review is from the time I went down and met Mr Keable in the main lobby after he had signed in. He was wearing a visitor badge when I met him.",
+          "protected": [
+            "met Mr Keable in the main lobby"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:21"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Outgoing call log of the main lobby security desk telephone, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The lobby desk rang the Procurement main line to say Mr Keable had arrived, and I took the call at my desk. After the call, I went down and met him in the main lobby.",
+          "protected": [
+            "I took the call at my desk"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-04",
+                  "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23",
+                "f:22"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Working backwards, I took Mr Keable down to the main lobby, where he signed out. Before that, I walked him out of the room at about ten past ten. Before that, Ms Ashby came into Room 2-07 at about five to nine. Before that, I met Mr Keable in the main lobby. Before that, the lobby desk rang the Procurement main line, and I took the call. First, my badge opened the north staff door when I came in from the car park.",
+          "protected": [
+            "where he signed out"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:25"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:13"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "at about ten past ten Elise walked him out of the room."
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-04",
+                  "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:04"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry through the north staff door at 08:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "My badge opened the north staff door at 08:41 when I came in from the car park that morning. Nobody came in with me through the north staff door. That was the only time I badged into the building that day, at the north staff door.",
+          "protected": [
+            "the only time I badged into the building"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:04"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:24"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:14",
+                "f:04"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "Badge entries to the building by E. Dunmore on 15 April: one, at the north staff door."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry through the north staff door at 08:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The purpose of my entry through the north staff door at 08:41 was that I came in from the car park that morning. On 14 April Ms Ashby asked me to meet the visitor from Penwick Document Services and to set up Room 2-07 for the nine o'clock review.",
+          "protected": [
+            "I came in from the car park"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:04"
+              ],
+              "records": [
+                {
+                  "record_id": "doc-01",
+                  "quote": "08:41:12 | North staff door (car park side) | Badge 70315 (E. Dunmore) | Access granted"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:01"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "On 14 April I had asked Elise to meet Mr Keable and have Room 2-07 ready for nine"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Ms Ashby came into Room 2-07 at about five to nine, when Mr Keable and I were already there. Nobody came in with me through the north staff door. I do not know who else used the north staff door that morning.",
+          "protected": [
+            "Ms Ashby came into Room 2-07"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:11"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-05",
+                  "quote": "When I reached Room 2-07 at about five to nine, Elise and Mr Keable were already there"
+                }
+              ]
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:24"
+              ],
+              "records": []
+            },
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:06"
+              ],
+              "records": []
+            }
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the arrival of the Penwick Document Services visitor that morning?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The lobby desk rang the Procurement main line to say Mr Keable had arrived, and I took the call at my desk. I do not know who was signing in at the lobby desk before I went down. I met Mr Keable in the main lobby after he had signed in, and he was wearing a visitor badge.",
+          "protected": [
+            "to say Mr Keable had arrived"
+          ],
+          "support": [
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:22"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-04",
+                  "quote": "08:46:50 | Ext 2210 (Procurement main line) | Ext 2214 (E. Dunmore) | 0:38"
+                }
+              ]
+            },
+            {
+              "kind": "perception",
+              "ledger": [
+                "f:02"
+              ],
+              "records": []
+            },
+            {
+              "kind": "fact",
+              "ledger": [
+                "f:23",
+                "f:21"
+              ],
+              "records": [
+                {
+                  "record_id": "rec-02",
+                  "quote": "08:51:05 | Main lobby | E. Dunmore with M. Keable; visitor badge visible on his lanyard | Lift"
                 }
               ]
             }

@@ -914,97 +914,6 @@
       ]
     },
     {
-      "id": "TX-F06-C",
-      "reviewed_text_sha256": "f863be362542bcc15c59cae86cec69ee47f12a99b2f029e307ca292baa18adf8",
-      "case_sha256": "af244d249fbc05f5932739801a4d5b660ecbde55966facb2649badcf9fb1aaae",
-      "exchanges": [
-        {
-          "turn": 1,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "The dispatch, location, phone approval and withdrawal time match FREE ledger facts."
-        },
-        {
-          "turn": 2,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Continues from the withdrawal with supported events and preserves the valve-time uncertainty."
-        },
-        {
-          "turn": 3,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Addresses the key history using ledger-supported work and withdrawal details that agree with rec-04."
-        },
-        {
-          "turn": 4,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Addresses the Operations calls accurately while preserving the approximate reporting time in u:01."
-        },
-        {
-          "turn": 5,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Describes ledger-supported damage and actions consistent with rec-02 and correctly states the work order is unseen."
-        },
-        {
-          "turn": 6,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Addresses Ebdon's approval consistently with rec-05 without claiming knowledge of the signing time."
-        },
-        {
-          "turn": 7,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Directly states the copier log is unseen and adds supported actions without claiming its contents."
-        },
-        {
-          "turn": 8,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Recounts supported events in reverse chronological order without adding unavailable times."
-        },
-        {
-          "turn": 9,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Directly explains the entry and work using FREE facts that agree with the records."
-        },
-        {
-          "turn": 10,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Directly states the ledger-supported purpose of entry and the source of the water."
-        },
-        {
-          "turn": 11,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Identifies potential corroborators through their ledger-supported involvement without inventing eyewitnesses."
-        },
-        {
-          "turn": 12,
-          "consistent": true,
-          "responsive": true,
-          "visible": true,
-          "note": "Explains the withdrawal, prior authorization, assigned task and return consistently with the ledger and records."
-        }
-      ]
-    },
-    {
       "id": "TX-F07-C",
       "reviewed_text_sha256": "2d8f23fe7a477e4fe0a743413ffc930e8d614b277e94c9e22aac1c39debb1ef1",
       "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
@@ -1183,6 +1092,97 @@
           "responsive": true,
           "visible": true,
           "note": "Addresses the later motion with supported uncertainty, approximate departure time and the known detector fault."
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-C",
+      "reviewed_text_sha256": "7a883a6f3a720f940e17d05448a5308ff1b6da954c0a047d7ead0af4b74ba300",
+      "case_sha256": "7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The morning sequence matches FREE ledger facts and preserves the approximate arrival time."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues the account with the supported departure and lobby sign-out."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses registration using f:21 and the explicit uncertainty about the recorded name."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Both statements match her recorded lack of knowledge about the camera fault."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses Ashby's involvement through known events and correctly disclaims knowledge of her statement."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Relates the question's stated recording window to her known lobby visit without claiming unseen recording contents."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The call and subsequent lobby visit match f:22 and f:23 without adding log-only details."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts supported events in reverse order while retaining approximate times."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 08:41, and the entry details match f:04, f:24 and f:14."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Explains her arrival in the context of her routine car-park route and assigned review duties."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies Ashby and Keable as present and accurately states her limits concerning other door users."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes the arrival call and lobby meeting while preserving her explicit uncertainty about earlier desk activity."
         }
       ]
     }

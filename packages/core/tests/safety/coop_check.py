@@ -127,10 +127,6 @@ PERCEPTION = re.compile(
     r"\s+(?:\w+\s+)?(?:see|saw|seen|know|knew|remember|recall|notice|noticed|hear|heard|look|looked)\b",
     re.IGNORECASE,
 )
-# A plain statement that the subject does not know or has not seen something (no other content).
-IGNORANCE = re.compile(
-    r"I (?:(?:do not|don't) know (?:anything )?about|have not seen) (?:that|the|this) (?P<thing>[\w\s-]+)\."
-)
 TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
 SPAN = re.compile(r"\bfrom (\d{2}:\d{2})\b.{0,40}?\b(?:until|to|till)\b.{0,20}?(\d{2}:\d{2})\b")
@@ -155,6 +151,16 @@ def numbers(text: str) -> list[str]:
     return [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
 
 
+def number_in(token: str, text: str) -> bool:
+    """A number, time or code matches a whole token of `text`, never part of one ("41" is not in "417"); a time
+    given to the minute matches the same time given to the second ("19:12" matches "19:12:40")."""
+    token = token.lower()
+    for other in (w.lower() for w in numbers(text)):
+        if other == token or (TIME.fullmatch(token) and TIME.fullmatch(other) and other.startswith(f"{token}:")):
+            return True
+    return False
+
+
 def sentences(answer: str) -> list[str]:
     return [s for s in SENTENCE_END.split(answer) if s]
 
@@ -163,10 +169,9 @@ def knowledge_problems(sentence: str, known: Iterable[str]) -> list[str]:
     """The subject can say this: every number and every content word (simple inflections allowed) is in `known` (the
     cited ledger entries and the questions so far), and its polarity is the ledger's."""
     known_text = " ".join(known)
-    lowered = known_text.lower()
     words = {w.lower() for w in WORD.findall(known_text)}
     stems = {stem(w) for w in words}
-    problems = [f"{n} is not known to the subject" for n in numbers(sentence) if n.lower() not in lowered]
+    problems = [f"{n} is not known to the subject" for n in numbers(sentence) if not number_in(n, known_text)]
     problems += [
         f"{w} is not known to the subject"
         for w in WORD.findall(sentence)
@@ -198,17 +203,53 @@ def rows_of(texts: Iterable[str]) -> list[tuple[str, set[str]]]:
     return [(row, {stem(w) for w in WORD.findall(row)}) for row in rows]
 
 
-def _time_problems(sentence: str, rows: list[tuple[str, set[str]]]) -> list[str]:
-    """A time sits with what it describes: a word of the clause holding a time may not come only from a row that
-    holds another time of the same sentence (so swapping two times fails), and a "from ... until" span runs forward."""
+NEAR = 3  # content words on each side of a time that say what happened at it
+# Calendar words date an event; they never say what happened, so they are not compared with table rows.
+CALENDAR = frozenset(
+    [
+        "january",
+        "february",
+        "march",
+        "april",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+)
+
+
+def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> list[str]:
+    """A time sits with what it describes. For each time, the content words nearest it in its clause (up to three on
+    each side) may not come only from rows of the same record that hold other times and never from a row that holds
+    this one: "the door opened at 19:38", when the record says opened at 19:12 and closed at 19:38, fails, and so does
+    swapping two times. A "from ... until" span runs forward. A time no row holds is not judged here."""
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
     for clause in clauses(sentence):
-        words = {stem(w) for w in WORD.findall(clause) if content(w)}
-        for time in TIME.findall(clause):
-            own = set().union(*(s for row, s in rows if time in row))
-            others = [t for t in TIME.findall(sentence) if t != time]
-            other = set().union(*(s for row, s in rows if time not in row and any(t in row for t in others)))
-            out.extend(f"{w} goes with another time than {time}" for w in sorted(words & other - own))
+        tokens = WORD.findall(clause)
+        for i, time in enumerate(tokens):
+            if not TIME.fullmatch(time):
+                continue
+            before = [w for w in tokens[:i] if content(w)][-NEAR:]
+            after = [w for w in tokens[i + 1 :] if content(w)][:NEAR]
+            near = {stem(w) for w in before + after if w.lower() not in CALENDAR}
+            for rows in tables:
+                holding = [s for row, s in rows if number_in(time, row)]
+                if not holding:
+                    continue
+                own = set().union(*holding)
+                other = set().union(*(s for row, s in rows if TIME.search(row) and not number_in(time, row)))
+                out.extend(f"{w} goes with another time than {time}" for w in sorted(near & other - own))
     return out
 
 
@@ -225,19 +266,19 @@ def agreement_problems(sentence: str, quotes: list[str], column_lines: set[str])
             problems.append(f"the quote is not about the sentence: {quote[:60]!r}")
         if quote in column_lines:
             problems.append("the quote is only a column line")
-    problems += [f"{n} disagrees with the quote" for n in numbers(sentence) if n.lower() not in joined.lower()]
-    if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(joined)):
-        problems.append("polarity differs from the quote")
+    problems += [f"{n} disagrees with the quote" for n in numbers(sentence) if not number_in(n, joined)]
+    negated = bool(NEGATORS.search(sentence))
+    problems += [f"polarity differs from the quote: {q[:60]!r}" for q in quotes if bool(NEGATORS.search(q)) != negated]
     if OBLIGATION.search(joined) and not REPORTED_OBLIGATION.search(sentence):
         problems.append("a duty in the quote is stated as an event")
-    problems += _time_problems(sentence, rows_of(quotes))
+    problems += _time_problems(sentence, [rows_of(quotes)])
     return problems
 
 
 def contradiction_problems(sentence: str, all_records: Iterable[str]) -> list[str]:
     """Against every record of the variant, released or not: the times the sentence states sit with what the records
     say happened at them."""
-    return [f"contradicts a record: {p}" for p in _time_problems(sentence, rows_of(all_records))]
+    return [f"contradicts a record: {p}" for p in _time_problems(sentence, [rows_of([r]) for r in all_records])]
 
 
 def perception_problems(sentence: str, kind: str, records: list[Any]) -> list[str]:
@@ -264,15 +305,7 @@ def coop_problems(t: dict[str, Any], ledger: dict[str, str], record_texts: dict[
         for sentence, support in zip(parts, e["support"], strict=True):
             records = support["records"]
             found: list[str] = []
-            ignorance = (
-                IGNORANCE.fullmatch(sentence) if support["kind"] == "perception" and not support["ledger"] else None
-            )
-            if ignorance:
-                # S2 6.3: "If something is not in the ledger, you do not know it: say you do not know." Saying so about
-                # a thing the questions name is backed by the ledger's silence; the thing's words must come from the
-                # questions (the frame "I have not seen" carries no fact, so it has no polarity to compare).
-                found += [p for p in knowledge_problems(ignorance["thing"], asked) if "polarity" not in p]
-            elif not support["ledger"] or not set(support["ledger"]) <= set(ledger):
+            if not support["ledger"] or not set(support["ledger"]) <= set(ledger):
                 found.append("cites no ledger entry of the subject, or an unknown one")
             else:
                 found += knowledge_problems(sentence, [ledger[i] for i in support["ledger"]] + asked)
