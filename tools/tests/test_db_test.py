@@ -22,11 +22,12 @@ from tools.tests.conftest import REPO_ROOT
 HARNESS = REPO_ROOT / "supabase" / "tests" / "harness"
 SUPABASE_IMAGE = re.search(r'^SUPABASE_IMAGE="([^"]+)"$', (HARNESS / "db_test.sh").read_text(), re.MULTILINE)
 
-STEPS = 4  # plain path, Supabase path, cost parity, capability fixture
+STEPS = 5  # plain path, Supabase path, cost parity, capability fixture, spend-guard integration suite
 SERVERS = 2  # the plain and the Supabase container
-STEPS_ON_SUPABASE = 3  # the Supabase path and the two steps that read its database
+STEPS_ON_SUPABASE = 4  # the Supabase path and the three steps that read its database
 
-# FAKE_FAIL entries: daemon, build, run-plain, run-supabase, pgtap-plain, pgtap-supabase, uv, fixture.
+# FAKE_FAIL entries: daemon, build, run-plain, run-supabase, pgtap-plain, pgtap-supabase, uv (the cost-parity run),
+# it (the integration suite's pytest run), fixture.
 STUB = """
 import os, pathlib, sys
 tool = sys.argv[1]
@@ -54,7 +55,8 @@ if tool == "docker":
         print("127.0.0.1:" + os.environ.get("FAKE_PORT", "55001"))
     sys.exit(0)
 if tool == "uv":
-    sys.exit(1 if "uv" in fail else 0)
+    parity = "tools.check_cost_parity" in args
+    sys.exit(1 if ("uv" in fail and parity) or ("it" in fail and "pytest" in args) else 0)
 # psql
 db = args[args.index("-d") + 1] if "-d" in args else ""
 if "-f" in args:
@@ -149,6 +151,12 @@ def test_all_steps_pass(repo: Path) -> None:
         re.fullmatch(r"uv run --locked python -m tools.check_cost_parity --dsn postgresql://\S+/postgres", line)
         for line in log
     )
+    # the integration suite runs on that same database, after the steps that read its seeds as migrated
+    suite = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_spend_guard.py")]
+    parity = [i for i, line in enumerate(log) if "tools.check_cost_parity" in line]
+    assert len(suite) == 1, log
+    assert parity[0] < suite[0]
+    assert "-W error" in log[suite[0]]
 
 
 def test_every_server_binds_loopback_and_a_docker_picked_port_and_is_removed(repo: Path) -> None:
@@ -180,6 +188,7 @@ def test_an_existing_plain_image_is_reused(repo: Path, monkeypatch: pytest.Monke
         ("pgtap-supabase", "Supabase path"),
         ("uv", "cost parity"),
         ("fixture", "capability fixture"),
+        ("it", "spend-guard integration suite"),
     ],
 )
 def test_a_failing_step_fails_db_test_and_the_other_steps_still_run(
@@ -236,6 +245,7 @@ MUTANTS = [
         '  "$HERE/run_pgtap.sh" --in-place "$ADMIN/postgres" || true\n',
     ),
     ('  supabase_up || return 1\n  (cd "$ROOT"', '  (cd "$ROOT"'),
+    ("  supabase_up || return 1\n  local dsn", "  local dsn"),
 ]
 
 

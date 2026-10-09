@@ -1,4 +1,79 @@
-"""Per-call-type reservation limits, parity-tested against cost_model.py (S5 3.3, 4.9).
+"""Per-call-type limits, allowlists and the attempt rule (S5 3.3, 3.4; S2 2), parity-tested against cost_model.py.
 
-Empty, importable stub (WP-01 layout only, S5 1); the implementation lands in WP-05.
+The byte and token limits equal `docs/research/synthesis/cost_model.py` `LIMITS` for the five runtime call types and
+S4's `ops.call_limits` seeds; `portrait` (absent from `LIMITS`) holds S5 3.3's initial values. `ATTEMPTS` equals
+`cost_model.ATTEMPTS`. A parity test compares them with the script's own output (S5 4.9). The database stays the
+authority for every amount: the port sends sizes, never dollars.
 """
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+# cost_model.py line 34: first try + one schema repair + two transient retries. The port never sends a fifth request.
+ATTEMPTS = 4
+# S2 2: the most a repair re-prompt may grow the serialized request; a reservation prices B + REPAIR_BYTES.
+REPAIR_BYTES = 5_200
+# S2 10 (TechnoMile a2a.py REPAIRS = 1).
+MAX_REPAIRS = 1
+# S2 10: a repair lists at most 10 `field.path: message` items of at most 100 bytes each.
+REPAIR_ERROR_ITEMS = 10
+REPAIR_ERROR_ITEM_BYTES = 100
+
+
+class CallType(StrEnum):
+    SUBJECT = "subject"
+    CARD = "card"
+    DEEP = "deep"
+    FINAL = "final"
+    REFEREE = "referee"
+    PORTRAIT = "portrait"
+
+
+class VertexModel(StrEnum):
+    """Every model id the port knows (S5 3.3, 4.2); `gemini-3.8-flash` is priced for reference and in no allowlist."""
+
+    FLASH_LITE_31 = "gemini-3.1-flash-lite"
+    FLASH_LITE_35 = "gemini-3.5-flash-lite"
+    FLASH_38 = "gemini-3.8-flash"
+
+
+class ThinkingLevel(StrEnum):
+    MINIMAL = "minimal"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+@dataclass(frozen=True)
+class CallLimits:
+    input_bytes: int  # UTF-8 bytes of the largest request, the repair allowance included (D11)
+    output_tokens: int  # max_output_tokens, thinking included
+    timeout_ceiling_s: float  # per-attempt timeout ceiling; a requested timeout above it is refused (C-31)
+    models: frozenset[VertexModel]  # allowlist
+
+
+_LITES = frozenset({VertexModel.FLASH_LITE_31, VertexModel.FLASH_LITE_35})
+
+LIMITS: dict[CallType, CallLimits] = {
+    CallType.SUBJECT: CallLimits(80_000, 1_600, 15.0, _LITES),
+    CallType.CARD: CallLimits(128_000, 1_600, 6.0, _LITES),
+    CallType.DEEP: CallLimits(128_000, 3_000, 15.0, frozenset({VertexModel.FLASH_LITE_35})),
+    CallType.FINAL: CallLimits(128_000, 3_000, 20.0, _LITES),
+    CallType.REFEREE: CallLimits(160_000, 4_000, 60.0, _LITES),
+    # Initial values, tuned in the dev pilot (S5 3.3). The image model is named by the day-1 lookup (UI direction
+    # 1.2); until it joins VertexModel, this allowlist and ops.model_prices, no portrait call passes policy.
+    CallType.PORTRAIT: CallLimits(2_000, 2_000, 60.0, frozenset()),
+}
+
+# S5 3.3 / S2 2: the fixed purpose labels per call type. S4 accepts exactly the four referee labels on `referee`.
+REFEREE_PURPOSES: frozenset[str] = frozenset({"referee_subject", "referee_assistant", "r3_subject", "r3_investigator"})
+PURPOSES: dict[CallType, frozenset[str]] = {
+    CallType.SUBJECT: frozenset({"subject.answer", "experiment.fidelity"}),
+    CallType.CARD: frozenset({"coach.card", "experiment.latency"}),
+    CallType.DEEP: frozenset({"coach.deep", "experiment.latency"}),
+    CallType.FINAL: frozenset({"coach.final", "experiment.latency"}),
+    CallType.REFEREE: REFEREE_PURPOSES,
+    CallType.PORTRAIT: frozenset({"portrait.image"}),
+}

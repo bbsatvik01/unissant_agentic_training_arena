@@ -198,7 +198,7 @@ def test_each_python_gate_names_its_configuration(target: str, tool: str, flag: 
 def test_the_real_typecheck_recipe_ignores_a_competing_mypy_ini(tmp_path: Path) -> None:
     """A mypy.ini that narrows checking to one clean file must not change what the recipe checks."""
     shutil.copy(REPO_ROOT / "pyproject.toml", tmp_path / "pyproject.toml")
-    for directory in ("packages", "services", "tools"):
+    for directory in ("packages", "services", "tools", "scripts"):
         (tmp_path / directory).mkdir()
         (tmp_path / directory / f"{directory}_ok.py").write_text("X = 1\n")
     (tmp_path / "tools" / "ok.py").write_text("X = 1\n")
