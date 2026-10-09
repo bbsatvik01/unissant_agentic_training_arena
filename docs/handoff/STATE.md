@@ -5,6 +5,7 @@
 - **Phase:** 0, discovery and research (research-harness). Deadline 2026-11-02 (D-005).
 
 ## Last completed milestone
+- `cost_model.budget_plan()` (3e3f264) now generates the spend-guard bucket tree (local: global $74.00, demo $10.03, art $6.20, build $57.77 split into experiments/generation/dev_blocks/replay/interactive); hosted-from-day-1 does not fit 30 cases. `docs/spec/README.md` drafted as the spec baseline (governing sources + facts all parts must agree on); uncommitted until S8 lands.
 - **UI direction GREEN** (Codex UI round 2: 0 majors, 3 minors applied in v2.1, 00b8184; orchestrator green). Awaits owner review and DESIGN.md.
 - Spec drift found: `docs/spec/**` was written against direction v10 (hosted, 20 cases, demo bucket $12.43, $60 global) before D-011 and UI v2. Draft SQL applies cleanly on fresh Postgres 16 and the S4 smoke scenarios reproduce. Reconciliation pass queued after S8: SQL seeds no budget numbers (global opens at $0 until the plan from `cost_model.py` is applied), S5-S7 local-first with hosting optional, S6 to UI v2.1, art sub-budget as a guard leaf.
 - Codex UI round 1 YELLOW (3 majors, 8 minors, all real); UI direction v2 applies them (ecd95e3): one server-authorized event projection for all motion, complete-card reveal only, ranged UI matrices with GSAP and avatar choices provisional, frame-interval measurement, playback-driven voice state, 62-image art cap in the D-009 simulation (30 cases ~$46 / ~$70, complete). Codex UI round 2 running. Spec workflow: S1-S7 written, S8 build plan in progress.
