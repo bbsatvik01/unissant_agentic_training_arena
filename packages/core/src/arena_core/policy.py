@@ -71,7 +71,7 @@ def _text_only(call: AgentCall[Any]) -> bool:
     """S5 3.5: text only. Annotations are not enforced at runtime, so the boundary is checked before any
     reservation: anything but a Message with a known role and string text, or a non-string system, is refused."""
     system: object = call.system
-    if not isinstance(system, str):
+    if not isinstance(system, str) or not _utf8(system):
         return False
     parts: tuple[object, ...] = call.messages
     for part in parts:
@@ -79,6 +79,12 @@ def _text_only(call: AgentCall[Any]) -> bool:
             return False
         role: object = part.role
         text: object = part.text
-        if role not in MESSAGE_ROLES or not isinstance(text, str):
+        if role not in MESSAGE_ROLES or not isinstance(text, str) or not _utf8(text):
             return False
     return True
+
+
+def _utf8(text: str) -> bool:
+    """Whether the text can be sent at all: an unpaired surrogate cannot be encoded as UTF-8, so it does not survive
+    a round trip that replaces what UTF-8 cannot carry."""
+    return text.encode("utf-8", errors="surrogatepass").decode("utf-8", errors="replace") == text

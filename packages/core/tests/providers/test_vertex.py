@@ -385,3 +385,31 @@ def test_an_undecodable_compressed_body_is_a_typed_transient_failure_that_may_ha
         run(adapter_over(b"definitely not gzip", encoding="gzip").generate(request(), timeout_s=TIMEOUT_S))
     assert (failed.value.kind, failed.value.maybe_billed) == (ErrorKind.TRANSIENT, True)
     assert "DecodingError" in failed.value.message
+
+
+def test_through_the_sdk_a_reply_with_an_unpaired_surrogate_is_repaired() -> None:
+    replies = [
+        b'{"candidates": [{"content": {"role": "model", "parts": [{"text": "{\\"a\\": \\"\\\\ud800"}]},'
+        b' "finishReason": "STOP"}], "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1}}',
+        b'{"candidates": [{"content": {"role": "model", "parts": [{"text": "{\\"a\\": \\"ok\\"}"}]},'
+        b' "finishReason": "STOP"}], "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1}}',
+    ]
+
+    def handler(_sent: SentRequest) -> object:
+        return httpx.Response(200, content=replies.pop(0), headers={"content-type": "application/json"})
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    adapter = vertex.VertexAdapter(
+        vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    )
+    budget = RunBudget(Decimal(1))
+    call = AgentCall(
+        model=VertexModel.FLASH_LITE_35,
+        thinking=ThinkingLevel.MINIMAL,
+        system="s",
+        messages=(Message("user", "q"),),
+        schema=Small,
+        context=CallContext(call_type=CallType.CARD, purpose="coach.card", step_key="surrogate-step"),
+    )
+    result = run(AgentPort(adapter, budget, PortOptions(sleep=_no_sleep)).run(call))
+    assert (result.value, result.attempts, len(budget.rows)) == (Small(a="ok"), 2, 2)

@@ -21,6 +21,7 @@ Adapted from TechnoMile `bh_core/providers/port.py` (`_structured` repair loop l
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import hashlib
 import random
 import time
@@ -412,10 +413,17 @@ def _timed_out(timeout_s: float, cause: TimeoutError) -> ProviderCallError:
     return error
 
 
+def _encodable(text: str) -> str:
+    """The text with anything UTF-8 cannot carry (an unpaired surrogate in a model reply) replaced by U+FFFD, so the
+    echo can be measured and sent."""
+    return text.encode("utf-8", errors="surrogatepass").decode("utf-8", errors="replace")
+
+
 def _repair(plan: _Plan[Any], failure: _Failure, *, attempt: int) -> ModelRequest:
     """The repaired request: the original messages, the longest prefix of the previous reply that keeps the
     serialized request within the reserved bytes (character boundary), then the error turn (S2 10, SG2-25)."""
     original = plan.call.messages
+    failure = dataclasses.replace(failure, reply=_encodable(failure.reply))
 
     def conversation(prefix_chars: int) -> ModelRequest:
         echo = (Message("model", failure.reply[:prefix_chars]),) if prefix_chars else ()

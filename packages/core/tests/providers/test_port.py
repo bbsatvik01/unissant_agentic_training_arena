@@ -966,3 +966,29 @@ def test_a_dispatch_that_never_committed_releases_the_hold_and_keeps_its_error()
         run(AgentPort(adapter, budget, PortOptions(sleep=no_sleep)).run(card()))
     [held] = budget.reservations.values()
     assert (held.state, held.settled_usd) == ("released", Decimal(0))
+
+
+def test_a_reply_with_an_unpaired_surrogate_is_repaired_with_an_encodable_echo() -> None:
+    adapter = FakeAdapter(script=['{"verdict": "\ud800 broken', VALID])
+    agent, budget = port(adapter)
+    result = run(agent.run(card()))
+    assert result.attempts == TWO
+    echo = adapter.requests[1].messages[1].text
+    assert echo.startswith('{"verdict": "\ufffd')
+    assert echo.endswith(" broken")
+    assert "\ud800" not in echo
+    assert request_bytes(adapter.requests[1]) <= budget.reservations[result.reservation_id].input_bytes
+
+
+def test_a_message_that_cannot_be_encoded_is_refused_before_any_reservation() -> None:
+    agent, budget = port(FakeAdapter(script=[VALID]))
+    with pytest.raises(PolicyRefusedError, match="text"):
+        run(agent.run(card("lone \udc00 surrogate")))
+    assert budget.ops == []
+
+
+def test_a_system_instruction_that_cannot_be_encoded_is_refused() -> None:
+    agent, budget = port(FakeAdapter(script=[VALID]))
+    with pytest.raises(PolicyRefusedError, match="text"):
+        run(agent.run(dataclasses.replace(card(), system="rules \udfff")))
+    assert budget.ops == []
