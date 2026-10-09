@@ -56,9 +56,10 @@ create table ops.config (
   max_open_voice_sessions       smallint not null check (max_open_voice_sessions >= 1),
   -- S4-D3 (rate-limit class; global gate requires owner approval). per_user_daily_usd is the owner's $5.00
   -- (D-017): one voice session's hold (VOICE_RESERVATION = 3.39) fits per user per day with room for text; a
-  -- second voice session is refused per_user_cap while the first hold is still reserved or usage_unknown
-  -- (5.00 - 3.39 < 3.39), and fits once the first settles at its actual spend. The quotas are initial values,
-  -- tuned in the dev pilot; null disables a check.
+  -- further voice hold is admitted only while the actor's daily liability (open and usage_unknown holds at
+  -- their amount, settled ones at their receipts) plus 3.39 stays within 5.00, so a second is refused
+  -- per_user_cap while the first hold is open (5.00 - 3.39 < 3.39). The quotas are initial values, tuned in
+  -- the dev pilot; null disables a check.
   per_user_daily_usd            ops.usd,
   text_sessions_per_user_day    smallint check (text_sessions_per_user_day >= 1),
   voice_sessions_per_user_day   smallint check (voice_sessions_per_user_day >= 1),
