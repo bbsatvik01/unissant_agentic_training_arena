@@ -1,4 +1,7 @@
-"""Apply and check the budget plan (S5 4.4; D-012, D-013): the logic behind `scripts/budget_plan.py`.
+"""Apply and check the budget plan (S5 4.4; D-012, D-013): the logic behind `scripts/budget_plan.py`, which the
+operator runs as a module from the repository root (`uv run --locked python -m scripts.budget_plan ...`): it reads the
+plan through the cost-parity gate's own reader in `tools/`, which a direct `python scripts/budget_plan.py` cannot
+import.
 
 The plan is whatever `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` prints (`{"global": {"parent":
 null, "ceiling_usd": ...}}`). This module imports nothing from the cost model and computes no figure: the loader it is
@@ -68,7 +71,9 @@ async def _run(mode: str, dsn: str, plan: Plan) -> list[str]:
 
 
 def main(load_plan: PlanLoader, argv: list[str] | None = None, env: Mapping[str, str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="budget_plan.py", description="apply or check the cost model's budget plan")
+    parser = argparse.ArgumentParser(
+        prog="python -m scripts.budget_plan", description="apply or check the cost model's budget plan"
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--apply", action="store_true", help="apply the plan (owner credential)")
     mode.add_argument("--check", action="store_true", help="exit 0 only if the applied buckets equal the plan")

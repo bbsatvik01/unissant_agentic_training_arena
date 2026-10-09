@@ -28,6 +28,7 @@ from arena_core.providers.errors import (
     ErrorKind,
     InputTooLargeError,
     KillSwitchOnError,
+    LedgerStalledError,
     PolicyRefusedError,
     ProviderBlockedError,
     ProviderCallError,
@@ -992,3 +993,60 @@ def test_a_system_instruction_that_cannot_be_encoded_is_refused() -> None:
     with pytest.raises(PolicyRefusedError, match="text"):
         run(agent.run(dataclasses.replace(card(), system="rules \udfff")))
     assert budget.ops == []
+
+
+# ---------------------------------------------------------------- cold gate: bounded ledger writes, late replies
+
+
+class Stalling(RunBudget):
+    """A guard whose named operation hangs (a stalled database)."""
+
+    stall: str = ""
+
+    async def _maybe_stall(self, op: str) -> None:
+        if op == self.stall:
+            await asyncio.Event().wait()
+
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        await self._maybe_stall("reserve")
+        return await super().reserve(req)
+
+    async def record(self, report: UsageReport) -> UsageResult:
+        await self._maybe_stall("record")
+        return await super().record(report)
+
+    async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
+        await self._maybe_stall("settle")
+        return await super().settle(reservation_id, outcome)
+
+
+@pytest.mark.parametrize("stall", ["reserve", "record", "settle"])
+def test_a_stalled_ledger_write_fails_the_call_within_the_ledger_timeout_and_keeps_the_hold(stall: str) -> None:
+    budget = Stalling(CEILING)
+    budget.stall = stall
+    adapter = FakeAdapter(script=[VALID], usage=USAGE)
+    agent = AgentPort(adapter, budget, PortOptions(sleep=no_sleep, ledger_timeout_s=0.05))
+    started = time.monotonic()
+    with pytest.raises(LedgerStalledError):
+        run(agent.run(card()))
+    assert time.monotonic() - started < 1.0  # never hangs
+    for held in budget.reservations.values():
+        # unsettled, or settled usage_unknown when only the receipt stalled: the full hold stays charged either way
+        assert held.state in {"reserved", "usage_unknown"}
+        assert budget.liability() >= held.reserved_usd
+
+
+class SlowReceipt(RunBudget):
+    async def record(self, report: UsageReport) -> UsageResult:
+        await asyncio.sleep(0.2)
+        return await super().record(report)
+
+
+def test_a_reply_recorded_after_the_deadline_is_a_failed_call_settled_at_its_receipt() -> None:
+    budget = SlowReceipt(CEILING)
+    adapter = FakeAdapter(script=[VALID], usage=USAGE)
+    agent = AgentPort(adapter, budget, PortOptions(sleep=no_sleep))
+    with pytest.raises(ProviderFailedError, match="deadline passed"):
+        run(agent.run(dataclasses.replace(card(), deadline_s=0.05)))
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("committed", budget.rows[0].cost_usd)

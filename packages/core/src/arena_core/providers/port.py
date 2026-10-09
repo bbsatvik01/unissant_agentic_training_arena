@@ -38,6 +38,7 @@ from arena_core.providers.errors import (
     ErrorKind,
     InputTooLargeError,
     KillSwitchOnError,
+    LedgerStalledError,
     PolicyRefusedError,
     ProviderBlockedError,
     ProviderCallError,
@@ -71,6 +72,8 @@ REPAIR_SUFFIX = "Reply again with only the corrected JSON object."
 TRUNCATED_NOTE = "Your reply was cut off at the output limit. Reply again with only the corrected JSON object, shorter."
 BLOCKED_NOTE = "Reply again with only the JSON object."
 EMPTY_NOTE = f"<root>: the reply was empty. {REPAIR_SUFFIX}"
+# A settlement that cannot be written (a database error, a stalled write) leaves the hold charged in full.
+LEDGER_FAILURES: tuple[type[Exception], ...] = (*GUARD_ERRORS, LedgerStalledError)
 OVERRUN_MESSAGE = "usage overran the reservation; the kill switch is on"
 
 
@@ -88,6 +91,7 @@ class PortOptions:
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep
     clock: Callable[[], float] = time.monotonic
     roster_manifest_shas: frozenset[str] | None = None  # the frozen roster (AST-5); None outside a tournament
+    ledger_timeout_s: float = 5.0  # the most one spend-guard write may take before the call fails (LedgerStalledError)
 
 
 @dataclass
@@ -182,7 +186,7 @@ class AgentPort:
                 await self._settle_failed(guard, reservation, run, exc)
                 raise
             outcome: SettleOutcome = "usage_unknown" if run.unknown else "committed"
-            cost = await _to_completion(guard.settle(reservation.id, outcome))
+            cost = await self._ledger(guard.settle(reservation.id, outcome))
         return AgentResult(
             value=value,
             attempts=run.sends,
@@ -206,16 +210,18 @@ class AgentPort:
         (S5 4.10 recovery, S2 AT-PORT-6)."""
         ctx = call.context
         for n in range(1, MAX_KEY_ROUNDS + 1):
-            found = await guard.reserve(
-                ModelCallRequest(
-                    key=f"{ctx.step_key}:{n}",
-                    bucket=ctx.bucket,
-                    model=call.model.value,
-                    call_kind=ctx.call_type.value,
-                    purpose=ctx.purpose,
-                    trial_id=ctx.trial_id,
-                    actor_user_id=ctx.actor_user_id,
-                    input_bytes=input_bytes,
+            found = await self._ledger(
+                guard.reserve(
+                    ModelCallRequest(
+                        key=f"{ctx.step_key}:{n}",
+                        bucket=ctx.bucket,
+                        model=call.model.value,
+                        call_kind=ctx.call_type.value,
+                        purpose=ctx.purpose,
+                        trial_id=ctx.trial_id,
+                        actor_user_id=ctx.actor_user_id,
+                        input_bytes=input_bytes,
+                    )
                 )
             )
             if not found.existed:
@@ -227,7 +233,7 @@ class AgentPort:
                 raise StepInProgressError(msg)
             if not found.dispatched:
                 return found
-            await _to_completion(guard.settle(found.id, "usage_unknown"))
+            await self._ledger(guard.settle(found.id, "usage_unknown"))
         msg = f"step {ctx.step_key!r} used all {MAX_KEY_ROUNDS} reservation keys"
         raise ProviderFailedError(msg)
 
@@ -236,7 +242,12 @@ class AgentPort:
         if self._opts.clock() >= deadline:
             msg = "call deadline reached before dispatch; nothing sent"
             raise ProviderFailedError(msg)
-        await guard.dispatch(reservation.id)
+        await self._ledger(guard.dispatch(reservation.id))
+
+    async def _ledger[R](self, write: Coroutine[Any, Any, R]) -> R:
+        """Every spend-guard write: runs to completion through a cancellation, but never longer than the ledger
+        timeout (a stalled database raises LedgerStalledError, and what it left stays charged in full)."""
+        return await _bounded_write(write, self._opts.ledger_timeout_s)
 
     async def _unwind_dispatch(self, guard: GuardSession, reservation: Reservation, exc: BaseException) -> None:
         """Nothing was sent. A refused dispatch (the deadline, the kill switch) left the hold undispatched: release it.
@@ -244,12 +255,12 @@ class AgentPort:
         and S4 refuses to release a dispatched hold: then it settles usage_unknown, keeping the full hold. The
         original exception is what propagates; a failed settlement rides along as a note."""
         try:
-            await _to_completion(guard.settle(reservation.id, "released"))
-        except GUARD_ERRORS as not_releasable:
+            await self._ledger(guard.settle(reservation.id, "released"))
+        except LEDGER_FAILURES as not_releasable:
             exc.add_note(f"reservation {reservation.id} not releasable ({type(not_releasable).__name__})")
             try:
-                await _to_completion(guard.settle(reservation.id, "usage_unknown"))
-            except GUARD_ERRORS as settle_exc:
+                await self._ledger(guard.settle(reservation.id, "usage_unknown"))
+            except LEDGER_FAILURES as settle_exc:
                 exc.add_note(f"settlement of reservation {reservation.id} failed: {type(settle_exc).__name__}")
 
     async def _settle_failed(
@@ -260,8 +271,8 @@ class AgentPort:
         complete = run.sends > 0 and run.recorded == run.sends and not run.unknown
         outcome: SettleOutcome = "committed" if complete else "usage_unknown"
         try:
-            await _to_completion(guard.settle(reservation.id, outcome))
-        except GUARD_ERRORS as settle_exc:
+            await self._ledger(guard.settle(reservation.id, outcome))
+        except LEDGER_FAILURES as settle_exc:
             # The hold stays `reserved` and counts at its full amount against the ceiling: still fail-safe. The
             # call's own failure is what the caller acts on; the settlement failure rides along as a note.
             exc.add_note(f"settlement of reservation {reservation.id} failed: {type(settle_exc).__name__}")
@@ -286,9 +297,15 @@ class AgentPort:
             current: _Failure
             if isinstance(result, RawCompletion):
                 try:
-                    return parse_output(result.text, call.schema, call.validation_context)
+                    value = parse_output(result.text, call.schema, call.validation_context)
                 except OutputInvalidError as exc:
                     current = _Failure("schema", f"{exc}. {REPAIR_SUFFIX}", result.text, "schema validation failed")
+                else:
+                    if opts.clock() > deadline:
+                        # S2 2: the deadline bounds the call, its receipt included; a late value is a failed call.
+                        msg = f"call deadline passed before the reply was recorded ({run.sends} attempt(s))"
+                        raise ProviderFailedError(msg)
+                    return value
             else:
                 current = _failure_of(result)
                 if current.kind == ErrorKind.BAD_REQUEST:
@@ -374,14 +391,14 @@ class AgentPort:
                 # propagates, so every send leaves its row and the call settles usage_unknown (S5 3.2, 3.6).
                 run.unknown = True
                 row: _Row = ("error", int((clock() - began) * 1000), trace_id, span_id)
-                await _to_completion(self._record(live, request, None, row))
+                await self._ledger(self._record(live, request, None, row))
                 raise
             usage = result.usage
             if usage is None and (isinstance(result, RawCompletion) or result.maybe_billed):
                 run.unknown = True
             # The receipt and its tally complete even if the call is cancelled meanwhile (the row is the spend record).
             row = (status, int((clock() - began) * 1000), trace_id, span_id)
-            receipt = await _to_completion(self._record(live, request, usage, row))
+            receipt = await self._ledger(self._record(live, request, usage, row))
             if receipt.outcome == "overrun":
                 # Receipts above the hold: the database turned the kill switch on (S4 8.3). Stop at once.
                 raise KillSwitchOnError(OVERRUN_MESSAGE)
@@ -390,14 +407,26 @@ class AgentPort:
         return result
 
 
-async def _to_completion[R](write: Coroutine[Any, Any, R]) -> R:
-    """Run one ledger write (a receipt, a settlement) to completion even when the call is cancelled meanwhile, then
-    re-raise the cancellation: a billed attempt always leaves its row, and a settled call its settlement (S5 3.2)."""
+async def _bounded_write[R](write: Coroutine[Any, Any, R], timeout_s: float) -> R:
+    """Run one ledger write (a reservation, a dispatch, a receipt, a settlement) to completion even when the call is
+    cancelled meanwhile, then re-raise the cancellation: a billed attempt always leaves its row, and a settled call
+    its settlement (S5 3.2). Bounded: a write still running after ``timeout_s`` is abandoned with
+    LedgerStalledError, so a stalled database cannot hang a request."""
     task = asyncio.ensure_future(write)
+    loop = asyncio.get_running_loop()
+    end = loop.time() + timeout_s
     deferred: list[asyncio.CancelledError] = []
     while not task.done():
+        remaining = end - loop.time()
+        if remaining <= 0:
+            task.cancel()
+            stalled = LedgerStalledError(f"a spend-guard write did not finish within {timeout_s}s")
+            if deferred:
+                deferred[0].add_note(str(stalled))
+                raise deferred[0]
+            raise stalled
         try:
-            await asyncio.shield(task)
+            await asyncio.wait({task}, timeout=remaining)
         except asyncio.CancelledError as cancelled:
             deferred.append(cancelled)  # keep waiting for the write; the cancellation is delivered once it is done
     result = task.result()

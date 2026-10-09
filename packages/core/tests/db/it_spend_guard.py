@@ -616,7 +616,7 @@ lu, plan, think = m["LINEUPS"]["d009"], m["PLAN"], m["THINK"]
 rf = m["RETRY_FACTOR"]
 def call(c):
     return ["gemini-" + c.model, c.kind, math.ceil(c.tokens_in * 1.25 * rf),
-            math.ceil((c.tokens_out * 1.25 + think[c.think][1]) * rf)]
+            math.ceil((c.tokens_out * 1.25 + think[c.think][1]) * rf), c.tokens_in, c.tokens_out, c.think]
 def unit(name, calls):
     high = sum(m["liab_cost"](c, True) for c in calls) * rf
     return {"name": name, "high_cost": repr(high), "calls": [call(c) for c in calls]}
@@ -655,10 +655,14 @@ class Replay:
         self.checks += 1
 
     async def unit(self, conn: calls.Conn, watch: calls.Conn, unit: dict[str, Any]) -> str:
-        admitted = await calls.admit_unit(conn, "global", Decimal(unit["high_cost"]))
+        # The runtime estimator (S5 4.5), not the research script, sizes the admission; it must agree with it.
+        estimate = rates.unit_high_cost([rates.ModeledCall(VertexModel(c[0]), c[4], c[5], c[6]) for c in unit["calls"]])
+        modeled = Decimal(unit["high_cost"])
+        assert modeled <= estimate <= modeled + Decimal("0.000001"), (unit["name"], estimate, modeled)
+        admitted = await calls.admit_unit(conn, "global", estimate)
         if admitted.decision == "skip":
             return "budget_skipped"
-        for model, kind, tokens_in, tokens_out in unit["calls"]:
+        for model, kind, tokens_in, tokens_out, *_modeled in unit["calls"]:
             req = ModelCallRequest(
                 key=f"it-cap:{uuid4()}",
                 bucket="global",
@@ -790,10 +794,16 @@ def test_the_cap_test_replays_simulate_d009_through_the_guard_and_never_passes_t
 def test_a_unit_admitted_on_its_high_cost_but_short_of_a_call_s_worst_case_is_budget_truncated(admin_dsn: str) -> None:
     """Admission holds nothing (1.5 x the unit's high cost); each call still reserves its full worst case, so a unit
     can be admitted and then stopped mid-way: budget_truncated, with liability still under the ceiling."""
-    unit = {"name": "one referee call", "high_cost": "0.02", "calls": [["gemini-3.5-flash-lite", "referee", 900, 300]]}
+    referee = rates.ModeledCall(VertexModel.FLASH_LITE_35, 900, 300, "MINIMAL")
+    high = rates.unit_high_cost([referee])
+    unit = {
+        "name": "one referee call",
+        "high_cost": str(high),
+        "calls": [["gemini-3.5-flash-lite", "referee", 900, 300, 900, 300, "MINIMAL"]],
+    }
     worst = rates.model_call_reservation(VertexModel.FLASH_LITE_35, CallType.REFEREE, LIMITS_BYTES["referee"])
-    headroom = Decimal("0.05")  # admits (>= 1.5 x 0.02) but is below the call's worst case
-    assert Decimal("0.03") <= headroom < worst
+    headroom = rates.ADMIT_FACTOR * high + Decimal("0.001")  # admits (>= 1.5 x high) but is below the worst case
+    assert headroom < worst
     run(open_ceiling(admin_dsn, headroom))
     replay = Replay(admin_dsn)
 
@@ -805,7 +815,7 @@ def test_a_unit_admitted_on_its_high_cost_but_short_of_a_call_s_worst_case_is_bu
             return await replay.unit(conn, watch, unit)
 
     assert run(drive()) == "budget_truncated"
-    run(open_ceiling(admin_dsn, Decimal("0.01")))
+    run(open_ceiling(admin_dsn, rates.ADMIT_FACTOR * high - Decimal("0.000001")))
     assert run(drive()) == "budget_skipped"  # under 1.5 x the high cost free: never started
 
 

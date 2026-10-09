@@ -51,3 +51,38 @@ def receipt_usd(model: VertexModel, input_tokens: int, output_tokens: int) -> De
     """What `ops.record_usage` charges for one text attempt (output tokens include thinking)."""
     rate = LIABILITY_RATES[model]
     return _ceil_micro_usd(input_tokens * rate.text_in + output_tokens * rate.text_out)
+
+
+# ---------------------------------------------------------------- unit admission estimate (S5 4.5)
+
+# cost_model.py: liab_cost(c, high=True) scales modeled tokens by 1.25 and adds the thinking level's high allowance;
+# a unit's high cost is the sum over its calls x RETRY_FACTOR; admission needs ADMIT_FACTOR x that free. The tournament
+# job computes it with this code, which tools/check_cost_parity.py compares with the cost model's own units.
+HIGH_SCALE = Decimal("1.25")
+RETRY_FACTOR = Decimal("1.15")
+ADMIT_FACTOR = Decimal("1.5")
+THINK_HIGH_TOKENS: dict[str, int] = {"MINIMAL": 200, "LOW": 1_000, "HIGH": 12_000}
+
+
+@dataclass(frozen=True)
+class ModeledCall:
+    """One planned call as the cost model describes it: modeled tokens and a thinking level."""
+
+    model: VertexModel
+    tokens_in: int
+    tokens_out: int
+    think: str
+
+
+def call_high_cost(call: ModeledCall) -> Decimal:
+    """`cost_model.liab_cost(c, high=True)` in exact decimal arithmetic."""
+    rate = LIABILITY_RATES[call.model]
+    tokens_out = call.tokens_out * HIGH_SCALE + THINK_HIGH_TOKENS[call.think]
+    return (call.tokens_in * HIGH_SCALE * rate.text_in + tokens_out * rate.text_out) / PER_MILLION
+
+
+def unit_high_cost(calls: list[ModeledCall]) -> Decimal:
+    """A unit's high cost for `ops.admit_unit` (S5 4.5): sum of the calls' high costs x RETRY_FACTOR, rounded UP to
+    the micro-dollar (`ops.usd`), so the admission estimate is never below the cost model's."""
+    total = sum((call_high_cost(c) for c in calls), Decimal(0)) * RETRY_FACTOR
+    return total.quantize(MICRO, rounding=ROUND_CEILING)

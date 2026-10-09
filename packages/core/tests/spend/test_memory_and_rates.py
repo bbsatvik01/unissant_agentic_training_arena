@@ -143,3 +143,14 @@ def test_the_kill_switch_refuses_dispatch() -> None:
     with pytest.raises(KillSwitchOnError):
         run(budget.dispatch(held.id))
     assert run(budget.settle(held.id, "released")) == Decimal(0)
+
+
+def test_a_unit_s_high_cost_matches_s5_4_5_and_rounds_up() -> None:
+    # S5 4.5: one interactive block is $1.61 high; a unit of one card call is its liab_cost(high) x 1.15, rounded up.
+    card = rates.ModeledCall(VertexModel.FLASH_LITE_35, 3000, 260, "MINIMAL")
+    exact = Decimal(3000) * Decimal("1.25") * Decimal("0.30") + (Decimal(260) * Decimal("1.25") + 200) * Decimal("2.50")
+    exact = exact / Decimal(1_000_000) * Decimal("1.15")
+    got = rates.unit_high_cost([card])
+    assert exact <= got < exact + Decimal("0.000001")
+    assert rates.unit_high_cost([]) == Decimal(0)
+    assert rates.call_high_cost(rates.ModeledCall(VertexModel.FLASH_LITE_31, 0, 0, "LOW")) == Decimal("0.0015")

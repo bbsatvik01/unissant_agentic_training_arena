@@ -632,3 +632,32 @@ def test_main_without_a_dsn_fails_on_a_port_drift(
     monkeypatch.setattr(cp, "ATTEMPTS", ATTEMPTS + 1)
     assert cp.main(["--root", str(REPO_ROOT)]) == 1
     assert "limits.ATTEMPTS" in capsys.readouterr().err
+
+
+@pytest.mark.gateproof
+def test_a_retry_factor_drift_fails_the_unit_estimate(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, retry_factor=model.retry_factor + Decimal("0.01")))
+    assert any("RETRY_FACTOR" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_unit_whose_modeled_cost_drifts_from_the_port_estimate_fails(model: cp.CostModel) -> None:
+    calls, high = model.units["interactive_block"]
+    units = {**model.units, "interactive_block": (calls, high + Decimal("0.01"))}
+    errors = cp.compare_port_module(dataclasses.replace(model, units=units))
+    assert any("unit 'interactive_block'" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_thinking_allowance_drift_or_an_unpriced_unit_fails(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, think_high={**model.think_high, "LOW": 999}))
+    assert any("THINK_HIGH_TOKENS" in e for e in errors)
+    calls, high = model.units["corpus_case"]
+    unpriced = {"corpus_case": ([("3.1-pro-preview", 1, 1, "HIGH"), *calls], high)}
+    errors = cp.compare_port_module(dataclasses.replace(model, units=unpriced))
+    assert any("does not price" in e for e in errors)
+
+
+def test_the_cost_model_exports_every_admitted_unit_kind(model: cp.CostModel) -> None:
+    assert set(model.units) == {"interactive_block", "replay_transcript", "corpus_case", "experiments"}
+    assert model.admit_factor == Decimal("1.5")

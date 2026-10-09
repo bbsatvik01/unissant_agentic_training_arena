@@ -85,6 +85,11 @@ class ProviderFailedError(ProviderError):
     """Any other terminal failure: transient errors past the attempt cap, a bad request, the deadline."""
 
 
+class LedgerStalledError(ProviderFailedError):
+    """A spend-guard write did not finish within the ledger timeout. Whatever it left stays charged: an unsettled
+    hold counts at its full amount against the ceiling, so a stalled ledger can only over-count, never overspend."""
+
+
 class StepInProgressError(ProviderFailedError):
     """The step key has an open reservation and the caller did not ask to recover it (S5 5.1): nothing was reserved,
     settled or sent, so a live call's hold is never settled from under it."""

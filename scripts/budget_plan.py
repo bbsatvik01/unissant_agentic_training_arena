@@ -1,6 +1,7 @@
 """Apply or check the budget plan from cost_model.py --plan-json (S5 4.4; D-012). See arena_core.spend.plan.
 
-Run from the repository root:
+Run it as a module from the repository root (the only supported form: the plan is read through tools/, which a direct
+`python scripts/budget_plan.py` cannot import):
 
     ARENA_OWNER_DSN=... uv run --locked python -m scripts.budget_plan --apply --dsn-env ARENA_OWNER_DSN
     uv run --locked python -m scripts.budget_plan --check --dsn-env ARENA_PUBLIC_DSN

@@ -69,8 +69,15 @@ _EXPORT = """
 import json, runpy, sys
 m = runpy.run_path(sys.argv[1], run_name="cost_model_parity")
 names = ("LIMITS", "LIABILITY_PRICES", "VOICE", "VOICE_RESERVATION", "PROBE_RESERVATION",
-         "VOICE_SHUTOFF", "ATTEMPTS", "VOICE_SESSIONS", "LIVE_PROBE")
-print(json.dumps({name: m[name] for name in names}))
+         "VOICE_SHUTOFF", "ATTEMPTS", "VOICE_SESSIONS", "LIVE_PROBE", "RETRY_FACTOR", "ADMIT_FACTOR", "THINK")
+out = {name: m[name] for name in names}
+lu = m["LINEUPS"]["d009"]
+units = {"interactive_block": m["block_calls"](lu, True), "replay_transcript": m["replay_scoring_calls"](lu, True),
+         "corpus_case": m["corpus_calls"](lu, 0), "experiments": m["experiment_calls"](True)}
+out["UNITS"] = {name: {"calls": [[c.model, c.tokens_in, c.tokens_out, c.think] for c in calls],
+                       "high": sum(m["liab_cost"](c, True) for c in calls) * m["RETRY_FACTOR"]}
+                for name, calls in units.items()}
+print(json.dumps(out))
 """
 
 # Each price row carries the database's own verdict on it: `in_force` (what ops.price_row returns today, the row
@@ -108,6 +115,10 @@ class CostModel:
     voice_sessions: int
     live_probes: int
     plan: dict[str, tuple[str | None, Decimal]]
+    retry_factor: Decimal
+    admit_factor: Decimal
+    think_high: dict[str, int]
+    units: dict[str, tuple[list[tuple[str, int, int, str]], Decimal]]  # name -> (calls, liab high cost x RETRY_FACTOR)
 
 
 PRICE_STATUSES: tuple[str, ...] = ("in_force", "future", "superseded")
@@ -293,6 +304,22 @@ def parse_cost_model(export_stdout: str, plan_stdout: str) -> CostModel:
         voice_sessions=_int(doc.get("VOICE_SESSIONS"), "VOICE_SESSIONS"),
         live_probes=_int(live_probe[0], "LIVE_PROBE[0]"),
         plan=parse_plan_json(plan_stdout),
+        retry_factor=_dec(doc.get("RETRY_FACTOR"), "RETRY_FACTOR"),
+        admit_factor=_dec(doc.get("ADMIT_FACTOR"), "ADMIT_FACTOR"),
+        think_high={
+            level: _int(_pair(value, f"THINK[{level!r}]")[1], f"THINK[{level!r}]")
+            for level, value in _obj(doc.get("THINK"), "THINK").items()
+        },
+        units={
+            name: (
+                [
+                    (_str(c[0], name), _int(c[1], name), _int(c[2], name), _str(c[3], name))
+                    for c in (_list(call, name) for call in _list(_obj(unit, name).get("calls"), name))
+                ],
+                _dec(_obj(unit, name).get("high"), f"UNITS[{name!r}].high"),
+            )
+            for name, unit in _obj(doc.get("UNITS"), "UNITS").items()
+        },
     )
 
 
@@ -317,6 +344,33 @@ def initial_value_limits(cm: CostModel) -> dict[str, tuple[int, int]]:
     return {kind: limits for kind, limits in initial.items() if kind not in cm.limits}
 
 
+UNIT_COST_TOLERANCE = Decimal("0.000001")  # the port rounds up to the micro-dollar; the model is an unrounded float
+
+
+def _compare_unit_costs(cm: CostModel) -> list[str]:
+    """S5 4.5: the runtime unit high-cost estimate equals the cost model's for every modeled unit kind."""
+    errors: list[str] = []
+    for name, value, want in (
+        ("RETRY_FACTOR", rates.RETRY_FACTOR, cm.retry_factor),
+        ("ADMIT_FACTOR", rates.ADMIT_FACTOR, cm.admit_factor),
+    ):
+        if value != want:
+            errors.append(f"rates.{name} = {value} but cost_model.{name} = {want}")
+    if cm.think_high != rates.THINK_HIGH_TOKENS:
+        errors.append(
+            f"rates.THINK_HIGH_TOKENS = {rates.THINK_HIGH_TOKENS} but cost_model.THINK highs = {cm.think_high}"
+        )
+    models = {m.value.removeprefix(MODEL_ID_PREFIX): m for m in rates.LIABILITY_RATES}
+    for unit, (modeled, want) in cm.units.items():
+        if any(c[0] not in models or c[3] not in rates.THINK_HIGH_TOKENS for c in modeled):
+            errors.append(f"unit {unit!r} uses a model or thinking level the port does not price")
+            continue
+        got = rates.unit_high_cost([rates.ModeledCall(models[c[0]], c[1], c[2], c[3]) for c in modeled])
+        if not want <= got <= want + UNIT_COST_TOLERANCE:
+            errors.append(f"unit {unit!r}: port high cost {got}, cost_model {want}")
+    return errors
+
+
 def compare_port_module(cm: CostModel) -> list[str]:
     """S5 4.9: the agent port's own tables (arena_core.spend.limits, rates) equal cost_model.py, and the port's
     mirror of the database's reservation formula equals `liab_reservation` at every call type's limit."""
@@ -330,6 +384,7 @@ def compare_port_module(cm: CostModel) -> list[str]:
         got = None if port is None else (port.input_bytes, port.output_tokens)
         if got != want:
             errors.append(f"limits.LIMITS[{kind!r}] = {got} but cost_model.LIMITS[{kind!r}] = {want}")
+    errors += _compare_unit_costs(cm)
     for model, rate in rates.LIABILITY_RATES.items():
         key = model.value.removeprefix(MODEL_ID_PREFIX)
         want_rate = cm.liability_prices.get(key)
