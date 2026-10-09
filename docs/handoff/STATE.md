@@ -9,6 +9,11 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## Spec v2.5 (2026-10-09)
+- 5e54a22: Codex round 3 fixed (24/25); voice is display-only (exchanges stored by arena-subject, no turns or work items); debrief envelope one function; 87 SQL smoke assertions green. Codex spec round 4 running (scratchpad codex/spec4).
+- Sent back: web agent rebuilds the voice machine to v2.5; seed agent fixes F02 r:02 (SG1-30) and re-checks all nine families under v2.5 rules.
+- OWNER DECISION PENDING (rate-limit setting, needs approval): per-user daily spend cap $3.00 is below the voice whole-session hold $3.39 (cost_model VOICE_RESERVATION at byte limits), so every voice session is refused. Options: raise the cap to >= $3.40, or remove the per-user cap (one team operator, D-016).
+
 ## Web cold gate round 2 (2026-10-09)
 - feat/web-foundation at 5f998d9: lint restrictions added (72 fixtures), semver exclusion removed, source-map-js age exclusion kept as a verified expiring exception (security patch, expires 2026-10-15). Cold Codex round 2: ISSUES-FOUND, softening no: voice machine follows the superseded voice protocol (exchange frame, draining on 4410, no resume after D-016). SSE/companion/lint pass. Hold the voice fix until spec v2.5 (voice simplification in progress with the spec agent), then send it to the web agent (aadec2824ba80c8be), cold-gate again, merge.
 
