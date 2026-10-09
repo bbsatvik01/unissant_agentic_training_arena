@@ -144,8 +144,8 @@ create table ops.call_limits (
 create trigger call_limits_immutable before update or delete on ops.call_limits
   for each row execute function arena.tg_forbid_mutation();
 insert into ops.call_limits (call_kind, input_limit, output_limit) values
-  ('subject', 6000, 1600), ('card', 6000, 1600), ('deep', 7000, 3000), ('final', 7000, 3000),
-  ('referee', 12000, 4000), ('portrait', 2000, 2000);
+  ('subject', 80000, 1600), ('card', 128000, 1600), ('deep', 128000, 3000), ('final', 128000, 3000),
+  ('referee', 160000, 4000), ('portrait', 2000, 2000);
 
 -- -----------------------------------------------------------------------------
 -- Reservations

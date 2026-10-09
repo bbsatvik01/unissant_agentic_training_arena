@@ -459,10 +459,15 @@ begin
   if v.status not in ('finalized', 'terminated') then
     raise exception using errcode = 'AR001', message = 'a debrief follows the end of the session';
   end if;
-  if jsonb_typeof(p_payload) is distinct from 'object' or p_payload ->> 'schema' is distinct from 'debrief.v1'
-     or not (p_payload ?& array['schema', 'scored', 'outcome', 'resolution', 'rubric', 'scorecards', 'provenance'])
-     or jsonb_typeof(p_payload -> 'scored') is distinct from 'boolean' or octet_length(p_payload::text) > 65536 then
-    raise exception using errcode = 'AR007', message = 'debrief payload must be debrief.v1 with every key';
+  -- Envelope of S3 5.7 debrief.v1 (S3 owns the payload; the referee validates the full schema in code).
+  if jsonb_typeof(p_payload) is distinct from 'object' or p_payload ->> 'schema_version' is distinct from 'debrief.v1'
+     or not (p_payload ?& array['schema_version', 'session_id', 'scored', 'outcome', 'rubric', 'scorecards', 'provenance'])
+     or jsonb_typeof(p_payload -> 'scored') is distinct from 'boolean'
+     or p_payload ->> 'session_id' is distinct from p_session::text
+     or jsonb_typeof(p_payload -> 'outcome') is distinct from 'object'
+     or not ((p_payload -> 'outcome') ?& array['role', 'correct_finding', 'committed_label', 'resolution'])
+     or octet_length(p_payload::text) > 65536 then
+    raise exception using errcode = 'AR007', message = 'debrief payload must match the debrief.v1 envelope (S3 5.7)';
   end if;
   select * into v_d from training.debriefs where session_id = p_session;
   if found then

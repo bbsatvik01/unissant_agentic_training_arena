@@ -53,3 +53,8 @@
 | SG4-28 | major | The server closes immediately after committing the twelfth exchange, without knowing whether buffered audio has played. The frontend’s terminal state requires playback to stop. A normal final answer can therefore lose its queued tail even though there was no interruption. Removing scoring and playba |
 
 Status: fixes queued for after the 07:00 usage refresh (owner hold: no new agents). Raw findings: scratchpad `codex/spec2/g1..g4.json` and durable copy in `~/arena-checkpoint/`.
+
+## Blocker fixes applied by the orchestrator (2026-10-09 ~02:45, no agents during the hold)
+- SG2-19, SG3-22 (input limits disagree): SQL `ops.call_limits` seed and S5 3.3 now carry the byte limits of `cost_model.LIMITS` (subject 80,000; card, deep, final 128,000; referee 160,000), matching S2 section 2. Migrations re-applied on a fresh PostgreSQL 16 cluster: all six apply.
+- SG2-20, SG4-20 (debrief envelope): S3 5.7 `debrief.v1` gains a required `scored` boolean (voice sessions publish `scored: false`, as S5, S6, S7 and S8 already say); the SQL envelope in `training.publish_debrief` now checks S3's keys (`schema_version`, `session_id` matching the session, `scored`, `outcome` with role, correct_finding, committed_label, resolution, `rubric`, `scorecards`, `provenance`).
+- The 35 majors remain for the post-07:00 fix round.

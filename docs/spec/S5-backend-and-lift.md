@@ -294,16 +294,16 @@ Every failure ends in a typed error: `BudgetRefused`, `KillSwitchOn`, `PolicyRef
 
 | Call type | Input limit (UTF-8 bytes, D11) | Output limit incl. thinking (tokens) | Allowed models | Thinking | Per-attempt timeout ceiling | Used by |
 | --- | --- | --- | --- | --- | --- | --- |
-| `subject` | 6,000 | 1,600 | `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` | minimal | 15 s | `arena-subject` |
-| `card` | 6,000 | 1,600 | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` | minimal | 6 s | `arena-api`, tournament |
-| `deep` | 7,000 | 3,000 | `gemini-3.5-flash-lite` | minimal | 15 s | A1 only |
-| `final` | 7,000 | 3,000 | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` | minimal | 20 s | coaches |
-| `referee` | 12,000 | 4,000 | `gemini-3.1-flash-lite` (low), `gemini-3.5-flash-lite` (minimal) | per row | 60 s | `arena-referee` |
+| `subject` | 80,000 | 1,600 | `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` | minimal | 15 s | `arena-subject` |
+| `card` | 128,000 | 1,600 | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` | minimal | 6 s | `arena-api`, tournament |
+| `deep` | 128,000 | 3,000 | `gemini-3.5-flash-lite` | minimal | 15 s | A1 only |
+| `final` | 128,000 | 3,000 | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` | minimal | 20 s | coaches |
+| `referee` | 160,000 | 4,000 | `gemini-3.1-flash-lite` (low), `gemini-3.5-flash-lite` (minimal) | per row | 60 s | `arena-referee` |
 | `portrait` | 2,000 (prompt; initial value, tuned in the dev pilot) | 2,000 (one image's output tokens; initial value, tuned in the dev pilot) | Gemini image model on Vertex (UI direction 1.2 names it) | n/a | 60 s | `arena-api`; count-capped at 62 images (`PORTRAITS[0]`) |
 
 The timeout column holds call-kind ceilings. S2 manifest values must be at or below them (S2 2 sets subject 8 s, card 6 s, deep 10 s, final 15 s, referee 30 s); a manifest value above its ceiling, or a limit above its call-type limit, is rejected when the roster freezes (C-31). The same limits apply to every candidate of a call type, which is the "equal budgets" reading in REQUIREMENTS section 12 item 3.
 
-**Byte limits (D11, SG2-15).** The input column is `cost_model.LIMITS`, which the database seeds and the parity check compares (4.9). Under D11 these values bound the UTF-8 bytes of the largest request, and at today's values no card fits: S2's coach system prompt alone is about 8 KB, and a 12-turn session with 600-character questions and 900-character answers renders a card request of about 47 KB, a subject request of about 36 KB and a referee request of about 67 KB, repair allowance included (measured on S2's templates and F01-F03). The research owner raises `LIMITS` to byte-sized values from S2's rendered-context bound before the slice (proposed: subject and card 48,000, deep and final 56,000, referee 96,000) and the migration seeds follow by the same parity rule; until then every call over the seeded bytes is refused before reservation, which fails closed.
+**Byte limits (D11, SG2-15, SG2-19, SG3-22).** The input column is `cost_model.LIMITS` in UTF-8 bytes (subject 80,000; card, deep and final 128,000; referee 160,000), taken from S2 section 2's rendered-context budget at the input caps with the repair allowance included; the migration seeds the same values and the parity check (4.9) compares them. A request over its limit raises `InputTooLarge` before any reservation.
 
 `purpose` labels (S4 8.3: a fixed list, never a case or family code). S2 section 2 owns the model-facing ones: `subject.answer`, `coach.card`, `coach.deep`, `coach.final`, and on call kind `referee` `referee_subject` (R1: J1, J2), `referee_assistant` (R2: J3, J4), `r3_subject` and `r3_investigator` (R3, the same two calls on a training session, S2 7.5; C-15, X-02). This part adds `portrait.image`, `experiment.latency`, `experiment.fidelity`, and `voice.session`, `voice.probe` for `ops.reserve_voice`. With one bucket (D-013), purpose and `trial_id` are how spend is grouped by activity.
 

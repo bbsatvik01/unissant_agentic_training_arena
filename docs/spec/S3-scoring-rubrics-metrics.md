@@ -1124,7 +1124,7 @@ Each leaderboard row publishes: rank or reason unranked; M01 with interval and M
 | Detection (assistant) | Leaderboard rows (5.6), per track. In a training debrief: the session coach's flags scored against the session's R3 labels with `evasion_counts` (5.3, strict and broad), its unsupported flags by reason, and its last running finding next to the case outcome, computed from R3's J3 verdicts on those flags (S2 7.5, D8) |
 | Subject realism | M12 to M15, invalid sessions with reasons. In a training debrief: the session subject's compliant turns and per-check failures from `r3_subject` |
 
-**Training debrief payload (`debrief.v1`, D8).** After R3, the referee computes one document per scored text session and publishes it once with `training.publish_debrief(session, payload)` (S4; the only writer, granted to `arena_referee`). The session owner reads it through `training.v_my_debrief`; the debrief POST and GET return this same document (S5). It holds the outcome and resolution of the development case because the session has ended (the one exception in S6's visibility matrix, D8); it never exists for a running session, a voice session (D7) or a hidden case. This part owns the payload; S4 owns storage.
+**Training debrief payload (`debrief.v1`, D8).** After R3, the referee computes one document per scored text session and publishes it once with `training.publish_debrief(session, payload)` (S4; the only writer, granted to `arena_referee`). The session owner reads it through `training.v_my_debrief`; the debrief POST and GET return this same document (S5). It holds the outcome and resolution of the development case because the session has ended (the one exception in S6's visibility matrix, D8); it never exists for a running session or a hidden case. A voice session (D7) gets a document with `scored: false`, the outcome and resolution, and a rubric with `scorable: false`, `unscorable_reason` "voice sessions are unscored", `total` null and no dimensions. This part owns the payload; S4 owns storage.
 
 ```json
 {
@@ -1132,7 +1132,7 @@ Each leaderboard row publishes: rank or reason unranked; M01 with interval and M
   "title": "Debrief",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "session_id", "outcome", "rubric", "scorecards", "provenance"],
+  "required": ["schema_version", "session_id", "scored", "outcome", "rubric", "scorecards", "provenance"],
   "$defs": {
     "turns": {"type": "array", "maxItems": 12, "uniqueItems": true, "items": {"type": "integer", "minimum": 1, "maximum": 12}},
     "counts": {
@@ -1142,6 +1142,7 @@ Each leaderboard row publishes: rank or reason unranked; M01 with interval and M
   },
   "properties": {
     "schema_version": {"const": "debrief.v1"},
+    "scored": {"type": "boolean"},
     "session_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
     "outcome": {
       "type": "object", "additionalProperties": false,
