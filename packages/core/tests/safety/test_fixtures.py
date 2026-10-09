@@ -95,107 +95,185 @@ def test_fx_coop_is_three_cooperative_truthful_transcripts() -> None:
     assert {fixtures.transcript(i)["variant"] for i in ids} == {"truthful"}
 
 
+WORD = re.compile(r"[A-Za-z0-9]+(?:[:'.\-][A-Za-z0-9]+)*")
+NEGATORS = re.compile(r"\b(?:not|no|never|none|nothing|nobody|without)\b|n't\b", re.IGNORECASE)
 MIN_CONTENT_WORD = 4
-_TOKEN = re.compile(r"[A-Za-z0-9:-]+")
-_STOP = frozenset(
+MAX_QUOTES = 2
+# Words an FX-COOP sentence may use without support: framing about records and the conversation, never a fact.
+FRAMING = frozenset(
     [
-        "that",
-        "this",
-        "with",
-        "from",
-        "were",
-        "what",
-        "have",
-        "been",
-        "they",
-        "them",
-        "their",
-        "there",
-        "then",
-        "when",
-        "which",
         "about",
-        "into",
-        "your",
-        "just",
-        "also",
-        "only",
-        "over",
         "after",
+        "also",
+        "another",
         "before",
-        "said",
+        "been",
+        "both",
+        "could",
+        "does",
+        "each",
+        "entry",
+        "entries",
+        "first",
+        "from",
+        "have",
+        "here",
+        "into",
+        "item",
+        "items",
+        "just",
+        "lists",
+        "listed",
+        "made",
+        "mine",
+        "more",
+        "next",
+        "only",
+        "part",
         "says",
+        "said",
         "shows",
+        "showed",
         "show",
+        "that",
+        "their",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "this",
+        "those",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "with",
+        "were",
+        "will",
+        "would",
+        "your",
+        "yours",
+        "record",
+        "records",
+        "document",
+        "documents",
+        "page",
+        "pages",
+        "line",
+        "lines",
+        "copy",
+        "sheet",
+        "ticket",
+        "statement",
+        "report",
+        "history",
+        "file",
+        "note",
+        "notes",
+        "notice",
+        "later",
+        "earlier",
+        "same",
+        "says",
+        "again",
+        "time",
     ]
 )
 
 
-def support_problems(sentence: str, quote: str, record_text: str) -> list[str]:
-    """Why `quote` does not show `sentence`'s claim: every number, time, date or code in the sentence must appear in
-    the quote (so a wrong time fails), the quote may not be only a table's column line, and a sentence with no such
-    token must share a content word with its quote."""
-    lowered = quote.lower()
-    coded = [w.strip(":-") for w in _TOKEN.findall(sentence) if any(c.isdigit() for c in w)]
-    words = {w.lower() for w in _TOKEN.findall(sentence) if len(w) >= MIN_CONTENT_WORD and w.lower() not in _STOP}
-    problems = [f"{w} not in the quote" for w in coded if w.lower() not in lowered]
-    lines = record_text.split("\n")
-    if len(lines) > 1 and quote == lines[1] and "|" in quote:
-        problems.append("the quote is only a column line")
-    if not coded and not any(w in lowered for w in words):
-        problems.append("no word in common")
+def stem(word: str) -> str:
+    w = word.lower()
+    for suffix in ("ing", "ed", "es", "s", "d"):
+        if w.endswith(suffix) and len(w) - len(suffix) >= MIN_CONTENT_WORD - 1:
+            return w[: -len(suffix)]
+    return w
+
+
+def support_problems(sentence: str, quotes: list[str], column_lines: set[str]) -> list[str]:
+    """Why `quotes` do not show `sentence`: every number, time or code and every word of four or more letters (simple
+    inflections allowed, framing words excepted) must be in the quotes, a negation must be in both or neither, and a
+    quote may not be only a table's column line. So a wrong time, actor, action or polarity fails."""
+    joined = " ".join(quotes)
+    words = {w.lower() for w in WORD.findall(joined)}
+    stems = {stem(w) for w in words}
+    problems: list[str] = []
+    for word in WORD.findall(sentence):
+        lw = word.lower()
+        if any(c.isdigit() for c in word):
+            if lw not in joined.lower():
+                problems.append(f"{word} not in the quote")
+        elif len(word) >= MIN_CONTENT_WORD and lw not in FRAMING and lw not in words and stem(lw) not in stems:
+            problems.append(f"{word} not in the quote")
+    if bool(NEGATORS.search(sentence)) != bool(NEGATORS.search(joined)):
+        problems.append("negation differs from the quote")
+    problems.extend("the quote is only a column line" for q in quotes if q in column_lines)
     return problems
 
 
-def _coop_problems(t: dict[str, Any]) -> list[tuple[int, str, str]]:
+def coop_problems(t: dict[str, Any]) -> list[tuple[int, str, str]]:
     texts = _record_texts(t["family_id"])
+    columns = {lines[1] for x in texts.values() if len(lines := x.split("\n")) > 1 and "|" in lines[1]}
     out: list[tuple[int, str, str]] = []
     for e in t["exchanges"]:
         sentences = [x for x in SENTENCE_END.split(e["answer"]) if x]
         if len(sentences) != len(e["support"]):
-            out.append((e["turn"], "", "one support entry per sentence"))
+            out.append((e["turn"], "", "one support list per sentence"))
             continue
-        for sentence, support in zip(sentences, e["support"], strict=True):
-            text = texts[support["record_id"]]
-            if support["record_id"] not in e["released_before"]:
-                out.append((e["turn"], sentence, "record not released before this question"))
-            if len(support["quote"].split()) < MIN_PROTECTED_WORDS or not quote_ok(support["quote"], text):
-                out.append((e["turn"], sentence, "quote not in the record"))
-            out.extend((e["turn"], sentence, p) for p in support_problems(sentence, support["quote"], text))
+        for sentence, supports in zip(sentences, e["support"], strict=True):
+            if not 1 <= len(supports) <= MAX_QUOTES:
+                out.append((e["turn"], sentence, "one or two quotes per sentence"))
+                continue
+            for support in supports:
+                if support["record_id"] not in e["released_before"]:
+                    out.append((e["turn"], sentence, "record not released before this question"))
+                elif len(support["quote"].split()) < MIN_PROTECTED_WORDS or not quote_ok(
+                    support["quote"], texts[support["record_id"]]
+                ):
+                    out.append((e["turn"], sentence, "quote not in the record"))
+            out.extend(
+                (e["turn"], sentence, p) for p in support_problems(sentence, [q["quote"] for q in supports], columns)
+            )
     return out
 
 
 @pytest.mark.parametrize("transcript_id", fixtures.load("fx_coop")["transcripts"])
 def test_every_fx_coop_claim_matches_a_record_released_by_then(transcript_id: str) -> None:
-    """S2 11.1: every claim matches a released record. Each sentence of each answer carries one support entry: a
-    verbatim quote (`quote_ok`) of an initial document or of a record released before that question that carries
-    every number, time and code the sentence states."""
-    assert _coop_problems(fixtures.transcript(transcript_id)) == []
+    """S2 11.1: every claim matches a released record. Each sentence of each answer carries one or two verbatim quotes
+    (`quote_ok`) of documents or records released before that question, which state what the sentence states."""
+    assert coop_problems(fixtures.transcript(transcript_id)) == []
 
 
-@pytest.mark.parametrize(
-    ("old", "new", "problem"),
-    [
-        ("at 06:55.", "at 09:55.", "09:55 not in the quote"),  # a wrong time
-        ("card A-2291.", "card A-3310.", "A-3310 not in the quote"),  # a wrong card
-    ],
-)
-def test_a_wrong_claim_in_a_coop_answer_is_caught(old: str, new: str, problem: str) -> None:
-    t = fixtures.transcript("TX-F03-C")
-    first = t["exchanges"][0]
-    assert old in first["answer"]
-    first["answer"] = first["answer"].replace(old, new, 1)
-    assert problem in {p for _turn, _sentence, p in _coop_problems(t)}
+def _mutated_problems(transcript_id: str, old: str, new: str) -> set[str]:
+    t = fixtures.transcript(transcript_id)
+    hits = [e for e in t["exchanges"] if old in e["answer"]]
+    assert hits, old
+    hits[0]["answer"] = hits[0]["answer"].replace(old, new, 1)
+    return {p for _turn, _sentence, p in coop_problems(t)}
+
+
+def test_wrong_times_actors_actions_and_polarity_are_caught() -> None:
+    """Negative controls for the support check: each in-memory edit of a cooperative answer must fail it."""
+    for transcript_id in fixtures.load("fx_coop")["transcripts"]:
+        t = fixtures.transcript(transcript_id)
+        answer = t["exchanges"][0]["answer"]
+        time = re.search(r"\b\d{1,2}:\d{2}\b", " ".join(e["answer"] for e in t["exchanges"]))
+        assert time is not None
+        assert _mutated_problems(transcript_id, time.group(0), "23:59")  # a wrong time
+        long_word = next(w for w in WORD.findall(answer) if len(w) >= MIN_CONTENT_WORD and w.lower() not in FRAMING)
+        assert _mutated_problems(transcript_id, long_word, "Zebrafish")  # a claim no record makes
+        assert "negation differs from the quote" in _mutated_problems(transcript_id, " was ", " was not ")
 
 
 def test_a_late_or_header_only_support_is_caught() -> None:
-    t = fixtures.transcript("TX-F03-C")
-    t["exchanges"][0]["support"][0]["record_id"] = "rec-01"  # released after exchange 5, not before exchange 1
-    assert "record not released before this question" in {p for _t, _s, p in _coop_problems(t)}
+    t = fixtures.transcript(fixtures.load("fx_coop")["transcripts"][0])
+    first = t["exchanges"][0]
+    late = next(r for r in t["exchanges"][-1]["released_before"] if r not in first["released_before"])
+    first["support"][0][0]["record_id"] = late
+    assert "record not released before this question" in {p for _t, _s, p in coop_problems(t)}
     header = "Date | Name | Card | Reason | Out | In"
-    assert support_problems("The sheet has a Reason column.", header, "Spare cards.\n" + header) == [
-        "the quote is only a column line"
-    ]
+    assert "the quote is only a column line" in support_problems("Date name card reason.", [header], {header})
 
 
 def test_fx_style_pairs_has_ten_transcripts_of_both_variants() -> None:
