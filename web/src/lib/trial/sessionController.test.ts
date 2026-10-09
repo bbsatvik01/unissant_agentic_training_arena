@@ -2043,3 +2043,27 @@ describe("session controller: dispose during terminal recovery", () => {
     expect(h.log.filter((l) => l.startsWith("read debrief"))).toEqual([]);
   });
 });
+
+describe("session controller: a publication supersedes an older debrief read", () => {
+  it.each([
+    ["fails for good", "reject"],
+    ["never settles", "hang"],
+  ] as const)("an ended visit whose GET %s still finishes once the debrief POST returns the document", async (_why, mode) => {
+    const debrief = fixture("debrief:scored");
+    const h = harness({ snapshots: [snapshot({ status: "completed", commitment_hash: COMMITMENT_HASH })] });
+    const c = h.make({
+      api: {
+        ...h.api,
+        readDebrief: () => (mode === "reject" ? Promise.reject(new TypeError("down")) : new Promise<DebriefRead>(() => undefined)),
+        requestDebrief: () => Promise.resolve(debrief as never),
+      },
+    });
+    await begin(c);
+    await c.requestDebrief();
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(debrief);
+    await h.clock.advance(60_000);
+    expect(c.getState().connection).toBe("finished");
+    expect(c.getState().debrief).toEqual(debrief);
+  });
+});

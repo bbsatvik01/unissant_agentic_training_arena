@@ -312,16 +312,23 @@ export function createSessionController(options: SessionControllerOptions): Sess
       waits.add(done);
     });
 
-  /** A REST read retried RESYNC_RETRIES times (1, 2, 4 s); each failure is kept as the error. */
-  const readWithRetries = async <T,>(read: () => Promise<T>): Promise<T> => {
+  /** The published debrief.v1 is in (a `scoring` answer is not). */
+  const published = (): boolean => state.debrief !== null && "schema_version" in state.debrief;
+
+  /**
+   * A REST read retried RESYNC_RETRIES times (1, 2, 4 s); each failure is kept as the error. `superseded` stops the
+   * retries early (with the last failure) when what the read was for has arrived another way.
+   */
+  const readWithRetries = async <T,>(read: () => Promise<T>, superseded: () => boolean = () => false): Promise<T> => {
     for (let attempt = 0; ; attempt += 1) {
       try {
         return await read();
       } catch (error) {
+        if (superseded()) throw error;
         set({ error });
         if (attempt >= RESYNC_RETRIES || isDisposed()) throw error;
         await delay(CATCH_UP_MS * 2 ** attempt);
-        if (isDisposed()) throw error;
+        if (isDisposed() || superseded()) throw error;
       }
     }
   };
@@ -374,9 +381,15 @@ export function createSessionController(options: SessionControllerOptions): Sess
           if (isDisposed()) return;
           dispatch({ type: "snapshot", snapshot });
         }
-        if (state.debrief === null || !("schema_version" in state.debrief)) {
-          setDebrief(await readWithRetries(() => api.readDebrief(sessionId)));
+        if (!published()) {
+          try {
+            setDebrief(await readWithRetries(() => api.readDebrief(sessionId), published));
+          } catch (error) {
+            // A publication that arrived meanwhile (the debrief POST) supersedes this read and its failure.
+            if (!published()) throw error;
+          }
         }
+        if (isDisposed()) return;
         set({ connection: "finished", error: null });
       } catch {
         // Kept as `error`; `reconnect()` reads again. The stream stays closed for good.
@@ -733,6 +746,14 @@ export function createSessionController(options: SessionControllerOptions): Sess
     async requestDebrief() {
       const debrief = await api.requestDebrief(sessionId);
       setDebrief(debrief);
+      const snap = state.trial.snapshot;
+      if (snap !== null && snap.status !== "running" && !isDisposed()) {
+        // The terminal snapshot is in and the published debrief just arrived: the end state is loaded, whatever an
+        // older debrief read still in flight does (it cannot replace the document or undo this).
+        stopForGood();
+        set({ connection: "finished", error: null });
+        return;
+      }
       await complete();
     },
     reconnect() {
