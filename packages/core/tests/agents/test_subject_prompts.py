@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
+from arena_core.agents.manifests import ManifestMismatchError, load_prompts, with_hash
 from arena_core.agents.subject_prompts import (
     LiveNotAllowedError,
     SubjectPacket,
@@ -352,3 +353,19 @@ def test_at_voice_4_setup_message() -> None:
     assert v["private_packet"]["objective"] not in instruction
     with pytest.raises(ValueError, match="no subject limits"):
         live_setup(fx.packet("F01", "deceptive"), frozenset(), fx.prompts("A1"), "Aoede")
+
+
+@pytest.mark.parametrize("key", ["subject", "live"])
+def test_a_subject_assembly_the_builder_does_not_render_is_refused(key: str) -> None:
+    raw = fx.prompts("S3").manifest.model_dump(mode="json")
+    raw["prompt"]["assembly"][key] = list(reversed(raw["prompt"]["assembly"][key]))
+    prompts = load_prompts(with_hash(raw))
+    packet = fx.packet("F01", "deceptive")
+
+    def build() -> object:
+        if key == "subject":
+            return build_subject_prompt(packet, fx.subject_state(1), prompts)
+        return build_live_instruction(packet, frozenset(), prompts)
+
+    with pytest.raises(ManifestMismatchError, match=f"{key} assembly is not"):
+        build()

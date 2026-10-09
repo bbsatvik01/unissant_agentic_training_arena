@@ -23,7 +23,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, StringConstraints, model_validator
 
 from arena_core.agents.coach_prompts import Prompt
-from arena_core.agents.manifests import REFEREE_ASSISTANT_USER, REFEREE_SUBJECT_USER, PromptSet
+from arena_core.agents.manifests import REFEREE_ASSISTANT_USER, REFEREE_SUBJECT_USER, ManifestMismatchError, PromptSet
 from arena_core.agents.render import (
     NONE,
     case_values,
@@ -33,6 +33,7 @@ from arena_core.agents.render import (
     released_records,
     transcript,
 )
+from arena_core.agents.rubric import Rubric, manifest_rubric
 from arena_core.agents.subject_prompts import STYLE_AXES, LedgerView, SubjectPacket, ledger
 from arena_core.agents.templates import TemplateError, join_blocks, render, require
 from arena_core.agents.untrusted import check_salt, clean, new_salt, wrap
@@ -55,6 +56,7 @@ from arena_core.contracts.common import (
 )
 from arena_core.contracts.findings import Finding, StoredFinding
 from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS
+from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
 
 # ICD 203 terms and ranges (S2 4.2), rendered for the finding projection; the model never types numbers.
 LIKELIHOOD_TERMS: dict[str, tuple[str, str]] = {
@@ -122,19 +124,6 @@ class FindingCitations(Contract):
     cited_records: Annotated[list[CitableRecordId], Field(max_length=10)]
 
 
-SubcheckId = Literal["2a", "2b", "3c", "3e", "4b"]
-TriggerTarget = Annotated[str, StringConstraints(pattern=r"^(t(0[1-9]|1[0-2])|doc-0[1-4]|rec-0[1-6])$")]
-
-
-class TriggerEntry(Contract):
-    """One applicability trigger (C-12): a sub-check ID, its trigger turn, turn pair, record or turn-record pair,
-    and the question turns to judge. IDs only."""
-
-    subcheck_id: SubcheckId
-    target: Annotated[list[TriggerTarget], Field(min_length=1, max_length=2)]
-    window: Annotated[list[TurnId], Field(max_length=MAX_TURNS)]
-
-
 class FollowUpLine(Contract):
     """A proposed follow-up (tactic set) or, in investigator mode, an investigator question (tactic null)."""
 
@@ -154,43 +143,12 @@ class RefereeAssistantInput(Contract):
     followups: Annotated[list[FollowUpLine], Field(max_length=MAX_TURNS)]
     finding: FindingProjection
     citations: FindingCitations
-    triggers: Annotated[list[TriggerEntry], Field(max_length=40)]
+    triggers: Annotated[list[TriggerEntry], Field(max_length=MAX_TRIGGERS)]
 
     @model_validator(mode="after")
     def _mode(self) -> Self:
         if any((f.tactic is None) != (self.mode == "investigator") for f in self.followups):
             msg = "followups: a tactic on every assistant follow-up and on no investigator question"
-            raise ValueError(msg)
-        return self
-
-
-MAX_SUBCHECKS = 30  # S2 7.4: at most 30 sub-checks in total
-
-
-class RubricSubcheck(Contract):
-    id: Annotated[str, StringConstraints(pattern=r"^[1-5][a-e]$")]
-    text: Annotated[str, StringConstraints(min_length=1, max_length=400)]
-    na_when: Annotated[str, StringConstraints(min_length=1, max_length=400)] | None
-
-
-class RubricDimension(Contract):
-    dim_id: Literal["D1", "D2", "D3", "D4", "D5"]
-    name: Annotated[str, StringConstraints(min_length=1, max_length=80)]
-    anchors_0_to_4: Annotated[list[str], Field(min_length=5, max_length=5)]
-    subchecks: Annotated[list[RubricSubcheck], Field(min_length=2, max_length=8)]
-
-
-class Rubric(Contract):
-    """Spec S3's `rubric.v1` as S2 7.4 fixes its form."""
-
-    rubric_version: Literal["rubric.v1"]
-    dimensions: Annotated[list[RubricDimension], Field(min_length=5, max_length=5)]
-
-    @model_validator(mode="after")
-    def _ids(self) -> Self:
-        ids = [s.id for d in self.dimensions for s in d.subchecks]
-        if len(ids) > MAX_SUBCHECKS or len(set(ids)) != len(ids):
-            msg = f"dimensions: at most {MAX_SUBCHECKS} distinct sub-check IDs"
             raise ValueError(msg)
         return self
 
@@ -225,7 +183,13 @@ def _citation_lines(citations: FindingCitations) -> str:
 
 
 def _trigger_lines(triggers: list[TriggerEntry]) -> str:
-    return lines_or_none(f"{t.subcheck_id} | {', '.join(t.target)} | {', '.join(t.window) or NONE}" for t in triggers)
+    """`sub-check ID | trigger turn, turn pair or record | question turns to judge` (S2 7.3), IDs only."""
+    lines = []
+    for t in triggers:
+        target = [turn_id(n) for n in t.trigger_turns] + ([t.trigger_record] if t.trigger_record else [])
+        window = ", ".join(turn_id(n) for n in t.question_turns) or NONE
+        lines.append(f"{t.subcheck_id} | {', '.join(target) or NONE} | {window}")
+    return lines_or_none(lines)
 
 
 def _followup_line(f: FollowUpLine) -> str:
@@ -264,12 +228,22 @@ def build_referee_subject_prompt(inp: RefereeSubjectInput, prompts: PromptSet, s
 
 
 def build_referee_assistant_prompt(
-    inp: RefereeAssistantInput, rubric: Rubric, prompts: PromptSet, salt: str | None = None
+    inp: RefereeAssistantInput, prompts: PromptSet, salt: str | None = None, dev_rubric: Rubric | None = None
 ) -> Prompt:
-    """R2 or `r3_investigator` (S2 7.3, 7.5)."""
+    """R2 or `r3_investigator` (S2 7.3, 7.5). The rubric is the `rubric.v1` file the manifest hashes, parsed from
+    its verified bytes; a manifest without one (before spec S3 publishes it) renders the development placeholder
+    passed as `dev_rubric`, and such a manifest cannot freeze (S2 7.4)."""
     inp = require(inp, RefereeAssistantInput, "referee prompt builder")
     _check(prompts)
     salt = check_salt(salt or new_salt())
+    rubric = manifest_rubric(prompts)
+    if rubric is not None and dev_rubric is not None:
+        msg = "the referee manifest hashes rubric.v1; a development placeholder cannot replace it"
+        raise ManifestMismatchError(msg)
+    rubric = rubric or dev_rubric
+    if rubric is None:
+        msg = "no rubric: the referee manifest has no rubric.v1 and no development placeholder was given"
+        raise ManifestMismatchError(msg)
     system = render(join_blocks(prompts.assembly("referee_assistant")), {"rubric_subchecks": rubric_subchecks(rubric)})
     user = render(
         prompts.text(REFEREE_ASSISTANT_USER),

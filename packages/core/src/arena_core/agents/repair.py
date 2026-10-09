@@ -13,10 +13,14 @@ reservation, the echo of the previous reply cut to the byte budget, transient re
 
 from __future__ import annotations
 
+import typing
+from functools import cache
+
 from pydantic import BaseModel, ValidationError
 
 MAX_ERRORS = 10
 MAX_ERROR_BYTES = 100
+UNKNOWN_KEY = "(unexpected key)"
 REPAIR_SUFFIX = "Reply again with only the corrected JSON object."
 MAX_TOKENS_REPAIR = (
     "Your reply was cut off at the output limit. Reply again with only the corrected JSON object, shorter."
@@ -30,11 +34,50 @@ def _cut(text: str, limit: int = MAX_ERROR_BYTES) -> str:
     return data[:limit].decode("utf-8", errors="ignore")
 
 
-def error_items(exc: ValidationError) -> list[str]:
+def _models_in(annotation: object) -> list[type[BaseModel]]:
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return [annotation]
+    return [m for arg in typing.get_args(annotation) for m in _models_in(arg)]
+
+
+@cache
+def field_names(model: type[BaseModel]) -> frozenset[str]:
+    """Every field name and alias reachable from an output model: the only words a repair path may contain."""
+    names: set[str] = set()
+    todo, seen = [model], set()
+    while todo:
+        current = todo.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        for name, info in current.model_fields.items():
+            names.add(name)
+            if info.alias:
+                names.add(info.alias)
+            todo += _models_in(info.annotation)
+    return frozenset(names)
+
+
+def _path(loc: tuple[int | str, ...], known: frozenset[str]) -> str:
+    """A field path from schema names and list indices only. A key the reply invented (an extra key, which a model
+    controls) is never echoed: it becomes a fixed marker (S2 1, 10: no reply text in a trusted turn)."""
+    parts = []
+    for part in loc:
+        if isinstance(part, int):
+            parts.append(str(part))
+        elif part in known:
+            parts.append(part)
+        else:
+            parts.append(UNKNOWN_KEY)
+            break
+    return ".".join(parts)
+
+
+def error_items(exc: ValidationError, known: frozenset[str]) -> list[str]:
     """Field-path messages, one per problem, bounded in count and size."""
     items: list[str] = []
     for err in exc.errors(include_input=False, include_url=False, include_context=False):
-        path = ".".join(str(p) for p in err["loc"])
+        path = _path(err["loc"], known)
         msg = str(err["msg"]).removeprefix("Value error, ")
         if err["type"] == "json_invalid":
             items.append("reply: not valid JSON")
@@ -53,7 +96,7 @@ def output_errors[T: BaseModel](
     try:
         return model.model_validate_json(reply, context=context), []
     except ValidationError as exc:
-        return None, error_items(exc)
+        return None, error_items(exc, field_names(model))
 
 
 def repair_message(errors: list[str]) -> str:

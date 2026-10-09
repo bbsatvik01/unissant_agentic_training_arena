@@ -29,12 +29,13 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
+from arena_core.agents.rubric import RUBRIC_FILE, parse_rubric, rubric_path
 from arena_core.agents.templates import REPO_ROOT, TemplateError, check_rel_path, file_sha256, read_text
 from arena_core.contracts.coaching import CoachingCard, DeepUpdate, FinalFinding
 from arena_core.contracts.common import Contract, Sha256
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.contracts.subject import SubjectTurn
-from arena_core.ids import canonical_sha256
+from arena_core.ids import canonical_sha256, sha256_hex
 from arena_core.providers.structured import lint_schema
 
 MANIFEST_DIR = "prompts/manifests"
@@ -292,12 +293,14 @@ def load_prompts(manifest: CandidateManifest, root: Path = REPO_ROOT) -> PromptS
     texts: dict[str, str] = {}
     for ref in [*manifest.prompt.files, *manifest.prompt.user_templates]:
         try:
-            texts[ref.path] = read_text(ref.path, root)
+            text = read_text(ref.path, root)
         except (OSError, TemplateError) as exc:
             problems.append(f"{ref.path} unreadable ({type(exc).__name__})")
             continue
-        if file_sha256(ref.path, root) != ref.sha256:
+        # One read: the hash is of the very text returned (UTF-8 round-trips exactly), never of a second read.
+        if sha256_hex(text.encode("utf-8")) != ref.sha256:
             problems.append(f"{ref.path} sha256")
+        texts[ref.path] = text
     for schema in manifest.prompt.output_schemas:
         model = OUTPUT_MODELS.get((schema.name, schema.version))
         if model is None or output_schema_sha256(model) != schema.sha256:
@@ -354,8 +357,9 @@ def limit_errors(manifest: CandidateManifest) -> list[str]:
 def _unequal(
     manifests: Iterable[CandidateManifest], what: str, value: Callable[[CandidateManifest], object]
 ) -> list[str]:
-    seen = {m.candidate_id: value(m) for m in manifests}
-    if len({json.dumps(v, sort_keys=True) for v in seen.values()}) > 1:
+    """Every entry compared (a list, never a dict keyed by candidate, so no version hides another)."""
+    seen = [(f"{m.candidate_id}@{m.version}", value(m)) for m in manifests]
+    if len({json.dumps(v, sort_keys=True) for _, v in seen}) > 1:
         return [f"unequal {what}: {seen}"]
     return []
 
@@ -376,6 +380,8 @@ def check_roster(manifests: Sequence[CandidateManifest]) -> None:
     """S2 3.3 and S5 3.3: refuse to freeze unless the roster is official in-process assistants and subjects with
     equal budgets, limits within the ceilings and allowlisted models."""
     errors: list[str] = []
+    ids = [m.candidate_id for m in manifests]
+    errors += [f"{c}: on the roster more than once" for c in sorted({c for c in ids if ids.count(c) > 1})]
     for m in manifests:
         if m.kind not in ("assistant", "subject"):
             errors.append(f"{m.candidate_id}: a {m.kind} cannot be on a tournament roster")
@@ -393,17 +399,21 @@ def check_roster(manifests: Sequence[CandidateManifest]) -> None:
         raise RosterRefusedError(errors)
 
 
-RUBRIC_FILE = "rubric.v1.json"
-
-
-def check_referee_freeze(manifest: CandidateManifest) -> None:
-    """S2 7.4: the referee manifest cannot freeze without the real `rubric.v1` among its hashed files."""
+def check_referee_freeze(manifest: CandidateManifest, root: Path = REPO_ROOT) -> None:
+    """S2 7.4: the referee manifest cannot freeze without the real `rubric.v1` among its hashed files, read from
+    the verified bytes and valid as `rubric.v1`."""
     errors = limit_errors(manifest)
     if manifest.kind != "referee":
         errors.append(f"{manifest.candidate_id}: not a referee manifest")
-    files = manifest.prompt.files if manifest.prompt else []
-    if not any(f.path.rsplit("/", 1)[-1] == RUBRIC_FILE for f in files):
+    files = [f.path for f in manifest.prompt.files] if manifest.prompt else []
+    path = rubric_path(files)
+    if path is None:
         errors.append(f"{manifest.candidate_id}: no {RUBRIC_FILE} hash; the referee cannot freeze on a placeholder")
+    else:
+        try:
+            parse_rubric(load_prompts(manifest, root).text(path))
+        except (ValueError, ManifestMismatchError) as exc:
+            errors.append(f"{manifest.candidate_id}: {RUBRIC_FILE} is not a valid rubric.v1 ({type(exc).__name__})")
     if errors:
         raise RosterRefusedError(errors)
 

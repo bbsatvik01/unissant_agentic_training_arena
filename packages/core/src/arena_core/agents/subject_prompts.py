@@ -35,6 +35,7 @@ from arena_core.agents.manifests import (
     SUBJECT_LIVE,
     SUBJECT_SYSTEM,
     SUBJECT_USER,
+    ManifestMismatchError,
     PromptSet,
 )
 from arena_core.agents.render import transcript
@@ -365,18 +366,27 @@ def turn_status(packet: SubjectPacket, state: SubjectTurnState) -> dict[str, tup
     return out
 
 
-def _check(packet: SubjectPacket, prompts: PromptSet) -> None:
-    packet = require(packet, SubjectPacket, "subject prompt builder (S2 6.2)")
-    if prompts.manifest.kind != "subject":
-        msg = f"manifest {prompts.manifest.candidate_id} is not a subject"
+def _check(packet: SubjectPacket, prompts: PromptSet, key: Literal["subject", "live"]) -> None:
+    """The input is a `SubjectPacket`, and the manifest's assembly for `key` is exactly the composition this
+    builder renders (S2 3.1: the hashed assembly describes the instruction; any other assembly is refused rather
+    than silently rendered the standard way)."""
+    require(packet, SubjectPacket, "subject prompt builder (S2 6.2)")
+    manifest = prompts.manifest
+    if manifest.kind != "subject" or manifest.subject_policy is None or manifest.prompt is None:
+        msg = f"manifest {manifest.candidate_id} is not a subject"
         raise TemplateError(msg)
+    base = SUBJECT_SYSTEM if key == "subject" else SUBJECT_LIVE
+    expected = [base, ROLE_T, ROLE_D, POLICY[manifest.subject_policy.policy], STYLE]
+    if manifest.prompt.assembly.get(key) != expected:
+        msg = f"manifest {manifest.candidate_id}: {key} assembly is not {expected}"
+        raise ManifestMismatchError(msg)
 
 
 def build_subject_prompt(
     packet: SubjectPacket, state: SubjectTurnState, prompts: PromptSet, salt: str | None = None
 ) -> Prompt:
     """The subject's request for turn `state.n` (S2 6.3-6.7)."""
-    _check(packet, prompts)
+    _check(packet, prompts, "subject")
     salt = check_salt(salt or new_salt())
     system = render(
         prompts.text(SUBJECT_SYSTEM), {**_persona(packet), "behavior_blocks": behavior_blocks(packet, prompts)}
@@ -424,7 +434,7 @@ class LiveNotAllowedError(Exception):
 def build_live_instruction(packet: SubjectPacket, released: frozenset[str], prompts: PromptSet) -> str:
     """`live.v1.txt` for a development case, with gate status from the session's releases at render time:
     LOCKED or CLOSED, never OPEN (the model tracks openings itself, S2 9.3)."""
-    _check(packet, prompts)
+    _check(packet, prompts, "live")
     if packet.split != "dev":
         msg = f"case {packet.case_id} is not a development case; Live voice serves development cases only"
         raise LiveNotAllowedError(msg)
