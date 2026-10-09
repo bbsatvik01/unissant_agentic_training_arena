@@ -116,3 +116,9 @@
 - **Reason:** at $3.00 every voice session was refused (hold above cap).
 - **Files:** a new migration setting the seed, the spec SQL draft 0006 and S4 (config table), TESTS.md.
 - **Reversibility:** cheap (owner config).
+
+## 2026-10-09 · D-018 DESIGN.md: the Vercel-inspired design language from awesome-design-md
+- **Decision:** owner directive. The UI follows `docs/design/DESIGN.md`, copied from VoltAgent/awesome-design-md `design-md/vercel/DESIGN.md` (fetched 2026-10-09): ink-on-near-white surfaces, hairline borders, a geometric sans for headings with a monospaced face for labels, the multi-color mesh gradient as the only decoration, and its token set (colors, type scale, spacing, radii, components).
+- **Boundaries:** it is a design language only. No Vercel name, logo, wordmark or marketing copy appears in the product. Fonts are open-licensed substitutes the file names. The motion, character and pet rules of `03-ui-direction.md` v2.1 and S6 still apply; DESIGN.md supplies the tokens they bind to.
+- **Timing:** presentational work starts after the 2026-10-18 slice gate (S6), now unblocked by this file.
+- **Reversibility:** cheap (tokens).
