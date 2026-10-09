@@ -1,16 +1,57 @@
 -- 014_budget.sql (S4 section 8; sql/TESTS.md section 14; D-009, D-012, D-013, D-014; WI-S4-08)
 -- WP-03 rows: the $0 seed of the one global bucket and its fail-closed behavior (BU-01, BU-27), the operator's
 -- plan application and its gate-proof (BU-28, BU-29), the tree rules kept for a later per-phase split (BU-21,
--- BU-22, BU-24), and the D-014 and D7 refusals with the referee worst case (BU-03). WP-04b adds the remaining rows of
+-- BU-22, BU-24), and the D-014 and D7 refusals with the referee worst case (BU-03). BU-38..BU-40 are WP-03 additions
+-- for the reservation fixes in migration 0800 (proposed for the spec): receipts never overrun a reservation through
+-- rounding, the purpose is part of a reservation's identity, and same-key calls are serialized. WP-04b adds the remaining rows of
 -- TESTS.md section 14 to this file. No ceiling is typed here: every expected ceiling comes from the psql
 -- variable plan, the stdout of `python3 -I -B docs/research/synthesis/cost_model.py --plan-json` (run_pgtap.sh).
 -- Numeric parity of the seeds with cost_model.py (prices, limits, voice amounts) is tools/check_cost_parity.py.
 begin;
 \ir harness/fixtures.psql
-select plan(8);
+select plan(11);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
+
+-- ------------------------------------------------------------------ BU-40: a same-key race (dblink, committed)
+-- Runs first: this transaction must hold no lock on the bucket or reservation rows yet. Session A raises the
+-- committed ceiling, reserves key K and stays open; session B asks for K meanwhile and must wait on the key, then
+-- see A's reservation (`exists`, same id) rather than miss it and fail on the unique key (23505). A then removes
+-- what it committed (the reservation row, with its settle-once trigger off for that one statement, and the ceiling).
+create temp table bu40 (step integer, val text) on commit drop;
+select dblink_connect('bu40a', current_setting('arena_test.dblink_dsn'));
+select dblink_connect('bu40b', current_setting('arena_test.dblink_dsn'));
+select dblink_exec('bu40a', 'begin');
+select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = 1 where name = 'global'$q$);
+insert into bu40 select 1, r from dblink('bu40a',
+  $q$select ops.reserve_model_call('bu40-race-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000)::text$q$) as t(r text);
+select dblink_send_query('bu40b',
+  $q$select ops.reserve_model_call('bu40-race-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000)::text$q$);
+select pg_sleep(0.5);
+insert into bu40 values (2, dblink_is_busy('bu40b')::text);
+select dblink_exec('bu40a', 'commit');
+insert into bu40 select 3, coalesce((select r from dblink_get_result('bu40b', false) as t(r text)),
+                                    'error: ' || dblink_error_message('bu40b'));
+select count(*) from dblink_get_result('bu40b', false) as t(r text);
+select dblink_exec('bu40a', 'alter table ops.budget_reservations disable trigger budget_reservations_settle_once');
+select dblink_exec('bu40a', $q$delete from ops.budget_reservations where idempotency_key = 'bu40-race-key-0001'$q$);
+select dblink_exec('bu40a', 'alter table ops.budget_reservations enable trigger budget_reservations_settle_once');
+select dblink_exec('bu40a', $q$update ops.budget_buckets set ceiling_usd = 0 where name = 'global'$q$);
+select dblink_disconnect('bu40a');
+select dblink_disconnect('bu40b');
+select is(array[(select val::jsonb ->> 'outcome' from bu40 where step = 1),
+                (select val from bu40 where step = 2),
+                (select case when val like 'error: %' then val else val::jsonb ->> 'outcome' end from bu40 where step = 3),
+                ((select val::jsonb ->> 'id' from bu40 where step = 1)
+                   = (select case when val not like 'error: %' then val::jsonb ->> 'id' end from bu40 where step = 3))::text,
+                (select count(*) from ops.budget_reservations)::text,
+                (select ceiling_usd from ops.budget_buckets where name = 'global')::text],
+          array['reserved', '1', 'exists', 'true', '0', '0.000000'],
+  'BU-40 a same-key reservation made while the first is uncommitted waits on the key and returns the first '
+  || 'reservation (exists, same id); the committed rows are removed again');
 
 -- ------------------------------------------------------------------ before the plan: the $0 seed
 select is(
@@ -133,6 +174,41 @@ select is(array[tests.error(format('select ops.set_bucket_ceiling(%L, null, %s, 
                 'AR007: a bucket holding reservations cannot become a parent'],
   'BU-24 set_bucket_ceiling refuses a ceiling below liability, a parent for global, and a child under global once '
   || 'it holds reservations');
+
+-- BU-38: four receipts at the reservation's maximum (6,001 input tokens, 1,600 output on a 6,001-byte card) are
+-- within the reservation: no overrun, kill switch off. The draft's single rounding reserved $0.023202 for $0.023204.
+create temp table bu38 (step integer, val text) on commit drop;
+insert into bu38 select 1, tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu38-card-6001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 6001) $$)::text;
+select tests.as_role('arena_public', format('select to_jsonb(ops.mark_dispatched(%L))',
+                                              (select val::jsonb ->> 'id' from bu38 where step = 1)));
+insert into bu38 select 1 + s, tests.as_role('arena_public', format(
+  'select ops.record_usage(%L, %s, %L, 6001, 1600, 0, 0, 0, %L, 100, null, null)',
+  (select val::jsonb ->> 'id' from bu38 where step = 1), s, 'gemini-3.5-flash-lite', 'ok')) ->> 'outcome'
+  from generate_series(1, 4) s;
+select is(array[(select val::jsonb ->> 'reserved_usd' from bu38 where step = 1),
+                (select string_agg(val, ',' order by step) from bu38 where step > 1),
+                (select kill_switch from ops.config)::text],
+          array['0.023204', 'recorded,recorded,recorded,recorded', 'false'],
+  'BU-38 a 6,001-byte card reserves 4 x ceil(per attempt) = 0.023204, and four receipts at its maximum record '
+  || 'no overrun (kill switch stays off)');
+
+create temp table bu39 (step integer, val text) on commit drop;
+insert into bu39 select 1, tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu39-card-key-1', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) ->> 'outcome';
+insert into bu39 select 2, tests.error($$ select tests.as_role('arena_public',
+  'select ops.reserve_model_call(''bu39-card-key-1'', ''global'', ''gemini-3.5-flash-lite'', ''card'', ''coach.deep'',
+                                 null, null, 1000)') $$);
+insert into bu39 select 3, tests.as_role('arena_subject',
+  $$ select ops.reserve_voice('bu39-voice-key-1', 'global', 'voice_probe', 'voice.probe', null, null) $$) ->> 'outcome';
+insert into bu39 select 4, tests.error($$ select tests.as_role('arena_subject',
+  'select ops.reserve_voice(''bu39-voice-key-1'', ''global'', ''voice_probe'', ''voice.other'', null, null)') $$);
+select is((select array_agg(val order by step) from bu39),
+          array['reserved', 'AR003: reservation key reused with different inputs',
+                'reserved', 'AR003: reservation key reused with different inputs'],
+  'BU-39 a reservation key reused with another purpose is refused (model call and voice), not returned as exists');
 
 select is_empty($$ select * from tests.plan_mismatches((select plan from t_plan), false) $$,
   'BU-29 at the end of the file the bucket table still equals --plan-json (the gate-proof change was restored)');

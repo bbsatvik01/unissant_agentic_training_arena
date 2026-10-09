@@ -3,7 +3,7 @@
 -- switching, real second sessions through dblink, and the shared fixtures in harness/fixtures.psql.
 begin;
 \ir harness/fixtures.psql
-select plan(11);
+select plan(12);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -79,6 +79,23 @@ select is(
         'question_recorded,subject_turn,coach_card,question_recorded,evidence_released,subject_turn,coach_card'],
   'H-10 tests.exchange runs question, release, subject answer and coach card (version +1 +0 +1 +0, then +1 +1 +1 +0)');
 
+-- The seed families F01-F03 ingest through S1 4.4's loader rule (TESTS.md section 0): two variants each, five rec-NN
+-- artifact rows per variant (the three initial documents stay in the public packet), the archived file text
+-- hashing to its attestation.
+create temp table t_seeds on commit drop as
+  select code, tests.seed_family(code) as id from (values ('F01'), ('F02'), ('F03')) c(code);
+select is(
+  (select array_agg(format('%s:%s:%s:%s:%s', f.family_code, f.split,
+                           (select count(*) from arena.case_variants v where v.family_id = f.id),
+                           (select string_agg(n::text, ',') from (
+                              select count(*) as n from arena.case_variants v
+                                join sealed.evidence_artifacts a on a.variant_id = v.id
+                               where v.family_id = f.id group by v.id order by v.id) x),
+                           (i.source_sha256 = i.attestation ->> 'family_sha256')::text)
+                    order by f.family_code)
+     from t_seeds s join arena.case_families f on f.id = s.id join sealed.family_ingests i on i.family_id = f.id),
+  array['F01:dev:2:5,5:true', 'F02:dev:2:5,5:true', 'F03:dev:2:5,5:true'],
+  'H-12 the seed families F01-F03 ingest through the loader rule (two variants, five rec-NN rows each, attested)');
 
 -- The TESTS.md section 0 pattern: an assertion evaluated while switched to a runtime role.
 set local role arena_public;

@@ -221,15 +221,16 @@ language sql immutable as $$
 $$;
 
 -- The ingest bundle S1 4.4's loader builds from a family file: the archived text and its attestation, and per
--- variant the file's case id, role, packets, style and difficulty level, with one artifact row per releasable
--- evaluator record (kind follows doc_kind; on_request rows are requestable).
+-- variant the file's case id, the evaluator packet's role, the packets, style and difficulty level, with one
+-- artifact row per rec-NN record (scheduled or on_request; initial documents stay in the public packet; kind
+-- follows doc_kind; on_request rows are requestable).
 create or replace function tests.bundle_of(p_file jsonb) returns jsonb
 language sql immutable as $$
   select jsonb_build_object(
     'family_code', p_file ->> 'family_id', 'domain', p_file ->> 'domain', 'split', p_file ->> 'split',
     'source', p_file::text, 'attestation', tests.attestation(p_file::text),
     'variants', (select jsonb_agg(jsonb_build_object(
-        'variant_code', v.value ->> 'case_id', 'role', v.key, 'style', p_file -> 'style',
+        'variant_code', v.value ->> 'case_id', 'role', v.value #>> '{evaluator_packet,role}', 'style', p_file -> 'style',
         'difficulty', p_file #> '{difficulty,level}', 'public_packet', v.value -> 'public_packet',
         'private_packet', v.value -> 'private_packet', 'evaluator_packet', v.value -> 'evaluator_packet',
         'artifacts', (select coalesce(jsonb_agg(jsonb_build_object(
@@ -241,9 +242,24 @@ language sql immutable as $$
             'scheduled_turn', case when e #>> '{release,type}' = 'scheduled' then e #> '{release,after_exchanges}' end,
             'request_after_turn', case when e #>> '{release,type}' = 'on_request' then e #> '{release,after_exchanges}' end)
             order by e ->> 'artifact_id'), '[]'::jsonb)
-          from jsonb_array_elements(v.value #> '{evaluator_packet,evidence_artifacts}') e))
+          from jsonb_array_elements(v.value #> '{evaluator_packet,evidence_artifacts}') e
+         where e #>> '{release,type}' in ('scheduled', 'on_request')))
         order by v.key)
       from jsonb_each(p_file -> 'variants') v))
+$$;
+
+-- The seed families F01-F03 (docs/spec/seed-families), read by psql on the client from the runner's working
+-- directory (supabase/tests), ingested through the same loader rule.
+\set seed_f01 `cat ../../docs/spec/seed-families/F01.json`
+\set seed_f02 `cat ../../docs/spec/seed-families/F02.json`
+\set seed_f03 `cat ../../docs/spec/seed-families/F03.json`
+create table if not exists tests.seed_files (code text primary key, file jsonb not null);
+insert into tests.seed_files values ('F01', :'seed_f01'), ('F02', :'seed_f02'), ('F03', :'seed_f03')
+  on conflict (code) do nothing;
+
+create or replace function tests.seed_family(p_code text) returns uuid
+language sql as $$
+  select sealed.ingest_case_family(tests.bundle_of((select file from tests.seed_files where code = p_code)))
 $$;
 
 create or replace function tests.bundle(p_code text, p_split text) returns jsonb
