@@ -38,3 +38,4 @@
 - 1ad3222 spec v2.1/v2.2 committed; 7e484f4 WP-01 scaffold moved to branch feat/wp01-scaffold (pre-gate); 64dd893 stats_contracts.planned_denominators. Dispatched Codex spec round 1 (4 sessions) and build wave 2 (wf_9aced0c9-52d).
 - Codex spec round 1: RED x3, YELLOW x1 (4 blockers, ~60 majors). Fix workflow wf_09e6717a-210 dispatched with shared decisions D1-D11.
 - 22:45 HOLD: owner directive, no new dispatch for 2 h, nothing stopped; checkpoint recorded.
+- 01:15 resumed all four workflows after the usage limit; a3ca7e9 spec v2.3 (S1-S5, schemas, seeds, SQL).

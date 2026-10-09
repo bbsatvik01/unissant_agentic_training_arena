@@ -4,12 +4,11 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
-## HOLD (owner directive, 2026-10-08 ~22:45 EDT)
-- Usage limit may hit. Do NOT stop anything running. Do NOT dispatch anything new until ~00:45 EDT (2 hours); after that, full force.
-- Running at hold time (all keep running): spec fix r1 (`wf_09e6717a-210`), build wave 2 (`wf_9aced0c9-52d`), dev case authoring (`wf_0246738e-32c`), web foundation (`wf_20ff7f42-fb5`).
-- If a session ends mid-run: relaunch each with `Workflow({scriptPath, resumeFromRunId})` (paths in SUBAGENTS.md); completed agents replay from cache. Agent edits live in: main tree `docs/spec/**` (spec fixers, uncommitted), worktrees `/private/tmp/wt-wp01`, `wt-wp08`, `wt-wp03`, `wt-cases`, `wt-web` (branches). Never delete a worktree or reset a branch before its work is committed and gated.
-- Durable copy (outside /tmp, survives reboot): `~/arena-checkpoint/2026-10-08-2335/` holds wt-cases, wt-web, wt-wp01/03/08 working files (no node_modules/.venv) with their branch commit lists, and the scratchpad (minus venv). At checkpoint: wt-wp01 e54329a (gate fixes committed), wt-wp03 b869245, wt-wp08 1d6dc06 (both committed, still iterating), wt-cases and wt-web uncommitted in progress.
-- Scratch state worth keeping: scratchpad `codex/spec1/` (round-1 findings), `authoring/` (case kit), `backup-wp01/` (scaffold copy), `s1v21`/`s4v21` reference kits, `v21_result.json`, `reconcile_result.json`.
+## Resumed 2026-10-09 01:15 EDT (usage limit reset 01:10)
+- The limit stopped: fix:S6-S8, web build, authors F06-F09 + final, and all three wave-2 agents. All four workflows relaunched with resumeFromRunId (completed agents cached): spec fix `widpqyalk`, cases `waitahbsj`, wave 2 `w8o2onnit`, web `wyuftupho`. Web and wave-2 prompts carry a resume note.
+- Spec v2.3 for S1-S5, schemas, seeds, SQL committed (a3ca7e9) before resuming.
+- Follow-up: the case kit's calibration found CX-1 seed defects (F01 doc-02 door policy vs f:24; F02 f:14 vs rec-04; F03 x:03 not established false). Check which the S1 fixer closed; fix the rest and re-sync F01-F03 into cases/dev.
+- Durable backup of pre-limit state: `~/arena-checkpoint/2026-10-08-2335/`.
 
 ## Where things stand
 - **Direction** v10.4 (D-013, D-014): 30 hidden cases baseline (~$44 / ~$66, complete), 34 pilot-gated; one global spend ceiling $74; case families authored offline by Claude agents + Codex.
