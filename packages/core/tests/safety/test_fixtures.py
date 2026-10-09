@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 import pytest
@@ -13,12 +14,14 @@ from arena_core.fixtures import injection, style
 from arena_core.safety import guard
 from arena_core.safety.demeanor import demeanor_terms
 from arena_core.scenario import relay
+from arena_core.scenario.content import content_text
 from arena_core.scenario.load import read_family_file
 from arena_core.scenario.relay import ReleasedRecord
 
 from .conftest import SPEC_S2, reference_instruction, spec_section
 
 TRANSCRIPT_IDS = fixtures.load("fx_style_pairs")["transcripts"]
+ALL_TRANSCRIPT_IDS = [t["id"] for t in fixtures.load("dev_transcripts")["transcripts"]]
 IJ_IDS = [f"IJ-{i}" for i in range(1, 8)]
 EXCHANGES = 12
 MIN_PROTECTED_WORDS = 3
@@ -44,7 +47,7 @@ def test_fixture_names_cannot_carry_a_path() -> None:
         fixtures.transcript("TX-F99-T")
 
 
-@pytest.mark.parametrize("transcript_id", TRANSCRIPT_IDS)
+@pytest.mark.parametrize("transcript_id", ALL_TRANSCRIPT_IDS)
 def test_each_transcript_is_its_case_replay_script_with_the_releases_it_had(transcript_id: str) -> None:
     """Questions are `plan_replay` for the case (so every one passes relay_test.v1), releases are the
     predicate schedule, answers pass the guard and are within the subject limits, protected spans are quotable."""
@@ -76,11 +79,35 @@ def test_each_transcript_is_its_case_replay_script_with_the_releases_it_had(tran
             assert quote_ok(quote, e["answer"])
 
 
+SENTENCE_END = re.compile(r"(?<=[.?!])(?: |$)")
+
+
+def _record_texts(family_id: str) -> dict[str, str]:
+    truthful = read_family(family_id)["variants"]["truthful"]
+    docs = {d["doc_id"]: content_text(d["content"]) for d in truthful["public_packet"]["initial_documents"]}
+    recs = {a["artifact_id"]: content_text(a["content"]) for a in truthful["evaluator_packet"]["evidence_artifacts"]}
+    return docs | recs
+
+
 def test_fx_coop_is_three_cooperative_truthful_transcripts() -> None:
     ids = fixtures.load("fx_coop")["transcripts"]
-    assert len(ids) == COOP_SIZE
+    assert len(ids) == len(set(ids)) == COOP_SIZE
     assert {fixtures.transcript(i)["variant"] for i in ids} == {"truthful"}
-    assert set(ids) <= set(TRANSCRIPT_IDS)
+
+
+@pytest.mark.parametrize("transcript_id", fixtures.load("fx_coop")["transcripts"])
+def test_every_fx_coop_claim_matches_a_record_released_by_then(transcript_id: str) -> None:
+    """S2 11.1: every claim matches a released record. Each sentence of each answer carries one support entry: a
+    verbatim quote (`quote_ok`) of an initial document or of a record released before that question."""
+    t = fixtures.transcript(transcript_id)
+    texts = _record_texts(t["family_id"])
+    for e in t["exchanges"]:
+        sentences = [x for x in SENTENCE_END.split(e["answer"]) if x]
+        assert len(sentences) == len(e["support"]), (transcript_id, e["turn"])
+        for support in e["support"]:
+            assert support["record_id"] in e["released_before"], (transcript_id, e["turn"], support)
+            assert len(support["quote"].split()) >= MIN_PROTECTED_WORDS
+            assert quote_ok(support["quote"], texts[support["record_id"]]), (transcript_id, e["turn"], support)
 
 
 def test_fx_style_pairs_has_ten_transcripts_of_both_variants() -> None:

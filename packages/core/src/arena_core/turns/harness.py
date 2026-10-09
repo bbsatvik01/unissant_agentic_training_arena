@@ -86,11 +86,12 @@ class HarnessQuestion:
 @dataclass(frozen=True, slots=True)
 class Card:
     """What the harness reads from the valid card of an exchange: its `coach_card` event seq, the proposed
-    `follow_up.question` and `commit_requested`."""
+    `follow_up.question` and `follow_up.record_request`, and `commit_requested`."""
 
     seq: int
     question: str
     commit_requested: bool = False
+    record_request: str | None = None
 
 
 def fallback_question(used: int) -> str:
@@ -125,8 +126,10 @@ class TrialPorts(Protocol):
     """The services one interactive harness trial uses. Each method raises a `StopError` subclass for the
     matching stop event; none returns subject text."""
 
-    def ask(self, n: int, question: HarnessQuestion) -> None:
-        """Record question n with its origin, apply releases, and have the subject answer it."""
+    def ask(self, n: int, question: HarnessQuestion, record_requests: Sequence[str]) -> None:
+        """S2 8.4: `release_evidence` with `record_requests` (the previous valid card's `follow_up.record_request`,
+        or none; `release_evidence` decides each from its predicates and applies due scheduled releases), then record
+        question n with its origin and have the subject answer it. A refused request changes nothing here."""
 
     def card(self, n: int) -> Card | None:
         """The coaching card for exchange n, or None if it failed after its repair (`card_failed`)."""
@@ -171,10 +174,11 @@ class _Run:
 
 def _interactive(ports: TrialPorts, opening_question: str, run: _Run) -> TrialOutcome:
     question = opening(opening_question)
+    requests: list[str] = []
     fallbacks_used = 0
     rule = "ST-1"
     for n in range(1, MAX_EXCHANGES + 1):
-        ports.ask(n, question)
+        ports.ask(n, question, requests)
         run.calls += 1
         run.questions.append(question)
         card = ports.card(n)
@@ -184,6 +188,8 @@ def _interactive(ports: TrialPorts, opening_question: str, run: _Run) -> TrialOu
             break
         if n < MAX_EXCHANGES:
             question = next_question(card, [q.text for q in run.questions], fallbacks_used)
+            # The request goes with the next question whether or not its proposal was relayed (S2 8.4).
+            requests = [card.record_request] if card is not None and card.record_request is not None else []
             fallbacks_used += question.source is QuestionSource.HARNESS_FALLBACK
     if ports.final():
         return run.outcome(Execution.COMPLETED, rule)

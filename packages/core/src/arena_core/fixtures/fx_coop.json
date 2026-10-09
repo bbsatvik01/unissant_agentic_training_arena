@@ -1,6 +1,10 @@
 {
   "fixture": "FX-COOP",
   "spec": "S2 11.1, 11.2 EV-COACH-2",
-  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches the packet or a released record. The transcripts are in dev_transcripts.json.",
-  "transcripts": ["TX-F01-T", "TX-F02-T", "TX-F03-T"]
+  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches a released record: each sentence of each answer carries a support entry, a verbatim quote of an initial document or of a record released before that question. The transcripts are in dev_transcripts.json.",
+  "transcripts": [
+    "TX-F01-C",
+    "TX-F03-C",
+    "TX-F06-C"
+  ]
 }

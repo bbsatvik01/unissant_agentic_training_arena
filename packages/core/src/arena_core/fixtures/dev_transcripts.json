@@ -1,7 +1,7 @@
 {
   "fixture": "dev transcripts",
   "spec": "S2 11.1",
-  "note": "Scripted development transcripts: replay_script.v1 questions for the case (arena_core.scenario.relay.plan_replay), answers authored from the variant packet, plain rendering (fluent, calm, native, moderate). protected: the verbatim spans a flag would quote; the FX-STYLE-PAIRS transform never edits inside them.",
+  "note": "Scripted development transcripts: replay_script.v1 questions for the case (arena_core.scenario.relay.plan_replay), answers authored from the variant packet, plain rendering (fluent, calm, native, moderate). protected: the verbatim spans a flag would quote; the FX-STYLE-PAIRS transform never edits inside them. The -C transcripts are the FX-COOP controls: every sentence carries a support entry quoting a record released by then.",
   "transcripts": [
     {
       "id": "TX-F01-T",
@@ -2091,6 +2091,1258 @@
           "answer": "He was with me in the north corridor around 08:41, and we went up together to Room 2-07. The register shows he did not sign in at the lobby. Beyond what the register and the camera show, I have nothing to add.",
           "protected": [
             "The register shows he did not sign in at the lobby"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F01-C",
+      "family_id": "F01",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "We were two technicians down that shift, with only Okafor-Lyle and me on. My badge opened the B-12 main door at 14:07. The door closed again at 14:12.",
+          "protected": [
+            "My badge opened the B-12 main door at 14:07"
+          ],
+          "support": [
+            {
+              "record_id": "doc-03",
+              "quote": "Technicians on shift: J. Pell, K. Okafor-Lyle"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "14:07:12 | B-12 main door | Badge 30418 (J. Pell)"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "Door closed, alarm cleared"
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "The door closed at 14:12, and I left the vault after that. The exit does not need a badge, so no exit time is logged and I cannot give the exact minute. No other badge entries to B-12 show for that day.",
+          "protected": [
+            "no exit time is logged and I cannot give the exact minute"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "Door closed, alarm cleared"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "The B-12 exit does not require a badge, so no exit time is recorded"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "No other B-12 badge entries on 12 March"
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Facilities work orders assigned to J. Pell, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01"
+          ],
+          "answer": "The first is an entrance mat job in the A-wing lobby, closed at 13:52. The second is a B-12 job for a humidity alarm, with the dehumidifier reset and condensate tank emptied. It was created at 14:31 by Ines Marrow.",
+          "protected": [
+            "The second is a B-12 job for a humidity alarm"
+          ],
+          "support": [
+            {
+              "record_id": "rec-01",
+              "quote": "A-wing lobby | Replace entrance mat | Closed 13:52"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Humidity alarm; dehumidifier reset; condensate tank emptied"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "WO-4478 | 14:31 | I. Marrow"
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Facilities radio log, channel 2, 12 March 2026, 13:45-14:45. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "Ines called me at 14:01 about a humidity alarm in the B wing, B-12. I answered that I was on my way. At 14:25 I reported on the radio that the B-12 dehumidifier was reset and the tank emptied.",
+          "protected": [
+            "Ines called me at 14:01 about a humidity alarm in the B wing, B-12"
+          ],
+          "support": [
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell | Humidity alarm in the B wing, B-12."
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "J. Pell | I. Marrow | On my way."
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "14:25 | J. Pell | I. Marrow | B-12 dehumidifier reset, tank emptied."
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Building environmental alarm history, B wing, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "The B-12 humidity alarm was raised at 13:58 and cleared at 14:16. That was before Ines called me at 14:01. The only other B-wing alarm that day was in the mail room, at 11:20.",
+          "protected": [
+            "raised at 13:58 and cleared at 14:16"
+          ],
+          "support": [
+            {
+              "record_id": "rec-03",
+              "quote": "Humidity high (72% RH, limit 55%) | 13:58 | 14:16"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "B-03 Mail room | Temperature high | 11:20"
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "She says we were two technicians down and that she radioed me around two about a humidity alarm in the B wing. She does not remember which room she said. The radio log shows she said B-12. She logged the work order later from the alarm panel history.",
+          "protected": [
+            "The radio log shows she said B-12"
+          ],
+          "support": [
+            {
+              "record_id": "rec-05",
+              "quote": "we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "I honestly don't remember which room I said"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Humidity alarm in the B wing, B-12."
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "I logged the work order later from the alarm panel history"
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Records Vault B-12 seal audit, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The audit checked 214 sealed boxes and found every seal matching the register. It also shows no seals issued from the supply drawer on 12 March. So it shows no sign of any sealed box being opened.",
+          "protected": [
+            "found every seal matching the register"
+          ],
+          "support": [
+            {
+              "record_id": "rec-04",
+              "quote": "214 sealed boxes checked; all seals match the register"
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "no seals issued on 12 March"
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "all seals match the register"
+            }
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Working backwards, Ines created the work order at 14:31. Before that, at 14:25, I reported on the radio that the dehumidifier was reset and the tank emptied. The door closed at 14:12. It had been held open since 14:09. My badge opened it at 14:07. That came after Ines called me at 14:01.",
+          "protected": [
+            "My badge opened it at 14:07",
+            "I reported on the radio that the dehumidifier was reset"
+          ],
+          "support": [
+            {
+              "record_id": "rec-01",
+              "quote": "WO-4478 | 14:31 | I. Marrow"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "14:25 | J. Pell | I. Marrow | B-12 dehumidifier reset, tank emptied."
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "Door closed, alarm cleared"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "Door held open, alarm raised"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "14:07:12 | B-12 main door | Badge 30418 (J. Pell)"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell | Humidity alarm in the B wing, B-12."
+            }
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "My badge opened the B-12 main door at 14:07. The vault is not on my daily task roster. My badge had last opened it on 19 November 2025. Ines's 14:01 radio call asked me to take a humidity alarm in B-12.",
+          "protected": [
+            "Ines's 14:01 radio call asked me to take a humidity alarm in B-12"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "14:07:12 | B-12 main door | Badge 30418 (J. Pell)"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "B-12 is not on J. Pell's daily task roster"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "Badge 30418 last opened B-12 on 19 November 2025"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell | Humidity alarm in the B wing, B-12. Can you take it?"
+            }
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The radio log shows Ines asked me at 14:01 to take the B-12 humidity alarm. The alarm history has that alarm raised at 13:58. The work order lists a dehumidifier reset and an emptied condensate tank. The access rules allow entry on a supervisor dispatch logged on the radio.",
+          "protected": [
+            "Ines asked me at 14:01 to take the B-12 humidity alarm"
+          ],
+          "support": [
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell | Humidity alarm in the B wing, B-12. Can you take it?"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Humidity high (72% RH, limit 55%) | 13:58"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Humidity alarm; dehumidifier reset; condensate tank emptied"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "a supervisor dispatch recorded on the radio log"
+            }
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Ines Marrow dispatched me by radio at 14:01, and the radio log shows it. Her written statement says she radioed me around two about a humidity alarm in the B wing. The alarm history shows the B-12 alarm raised at 13:58. The only other technician on shift was Okafor-Lyle.",
+          "protected": [
+            "Ines Marrow dispatched me by radio at 14:01"
+          ],
+          "support": [
+            {
+              "record_id": "rec-02",
+              "quote": "14:01 | I. Marrow | J. Pell | Humidity alarm in the B wing, B-12. Can you take it?"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "Around two I radioed Jordan about a humidity alarm in the B wing"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Humidity high (72% RH, limit 55%) | 13:58"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Technicians on shift: J. Pell, K. Okafor-Lyle"
+            }
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the vault door being held open from 14:09 to 14:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The access log shows the door held open from 14:09 with the alarm raised. It shows the door closed at 14:12. The rules set a 60 second limit unless equipment is being moved, and say to stay at the open door. The work order for the visit lists the condensate tank being emptied.",
+          "protected": [
+            "The access log shows the door held open from 14:09"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "Door held open, alarm raised"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "Door closed, alarm cleared"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "longer than 60 seconds except while moving equipment, and must stay at the open door"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "condensate tank emptied"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F03-C",
+      "family_id": "F03",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "The monitor paged me at 06:55 about switch SW-2B, and I was the on-call technician. I came through lobby turnstile 1 at 07:04. My N-3 access had been removed the evening before, pending recertification training. I entered N-3 at 07:12 with card A-2291.",
+          "protected": [
+            "I entered N-3 at 07:12 with card A-2291"
+          ],
+          "support": [
+            {
+              "record_id": "doc-02",
+              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "07:04:18 | Lobby turnstile 1 | 41877 | A. Lindqvist | Granted"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Network Room N-3 access removed pending completion of annual access recertification training"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "07:12:40 | N-3 door | A-2291 | R. Haddad | Granted"
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "The monitor first showed SW-2B unreachable at 06:55. It shows the switch reachable again at 07:26. I was the on-call technician it paged, so the outage was mine to handle.",
+          "protected": [
+            "reachable again at 07:26"
+          ],
+          "support": [
+            {
+              "record_id": "doc-02",
+              "quote": "06:55:02 | SW-2B (floor 2) | Unreachable"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "07:26:40 | SW-2B (floor 2) | Reachable"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55"
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "At the end, the monitor shows SW-2B reachable at 07:26. Before that, I entered N-3 with card A-2291 at 07:12. Before that, I came through the lobby turnstile at 07:04. Before that, my N-3 access had been removed the evening before. It all began with the page at 06:55.",
+          "protected": [
+            "I entered N-3 with card A-2291 at 07:12"
+          ],
+          "support": [
+            {
+              "record_id": "doc-02",
+              "quote": "07:26:40 | SW-2B (floor 2) | Reachable"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "07:12:40 | N-3 door | A-2291 | R. Haddad | Granted"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "07:04:18 | Lobby turnstile 1 | 41877 | A. Lindqvist | Granted"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55"
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Incident ticket INC-0313-004, dated 2026-03-13. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-03"
+          ],
+          "answer": "I opened that ticket at 07:30. It says SW-2B was unreachable since 06:55. It says I entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7, because my own access was pending recertification. It also says I power-cycled the switch and it was reachable at 07:26. I closed the ticket at 07:35.",
+          "protected": [
+            "I entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7"
+          ],
+          "support": [
+            {
+              "record_id": "rec-03",
+              "quote": "Opened 07:30 by A. Lindqvist"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "SW-2B unreachable since 06:55"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification)"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Power-cycled SW-2B; reachable at 07:26"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "reachable at 07:26. Closed 07:35"
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Outage procedure OP-7 (Infrastructure Support). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "OP-7 says that when an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox. The technician must record the time and reason on the sign-out sheet and note the card number in the incident ticket. My ticket does note card A-2291.",
+          "protected": [
+            "My ticket does note card A-2291"
+          ],
+          "support": [
+            {
+              "record_id": "rec-05",
+              "quote": "may sign out a spare access card from the IT lockbox"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "must record the time and reason on the sign-out sheet, and must note the card number in the incident ticket"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "lockbox spare card A-2291 under OP-7"
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have IT lockbox spare-card sign-out sheet, March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "That sheet has my entry for card A-2291 with the reason SW-2B outage, N-3. It shows the card out at 07:09 and back in at 07:41. That fits the ticket, which says I entered N-3 at 07:12. I am not sure whether I filled in the time column before or after going up to N-3.",
+          "protected": [
+            "I am not sure whether I filled in the time column before or after going up to N-3"
+          ],
+          "support": [
+            {
+              "record_id": "rec-01",
+              "quote": "13 Mar | A. Lindqvist | A-2291 | SW-2B outage, N-3"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "SW-2B outage, N-3 | 07:09 | 07:41"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Entered N-3 at 07:12 with lockbox spare card"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Date | Name | Card | Reason | Out | In"
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Badge administration record, card A-2291. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "It shows the card was issued to Haddad on 2 May 2023. It was deactivated for him on 28 February when his photo was replaced and a new card was issued. It was reassigned on 1 March 2026 to the IT lockbox spare pool. The holder name in the badge database was still pending update.",
+          "protected": [
+            "reassigned on 1 March 2026 to the IT lockbox spare pool"
+          ],
+          "support": [
+            {
+              "record_id": "rec-02",
+              "quote": "Issued 2 May 2023 to R. Haddad"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Deactivated for R. Haddad on 28 February 2026 (photo replacement; new card A-4120 issued)"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Reassigned on 1 March 2026 to the IT lockbox spare pool"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Holder name in the badge database pending update"
+            }
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "We have Email from Rafael Haddad to the review office, 14 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The email says his old card was replaced on 28 February when his photo was redone. That matches the badge administration record, which shows a new card issued for him. He also says he has not been in the building since 6 March. The badge log notes he is on approved leave from 9 to 20 March.",
+          "protected": [
+            "he has not been in the building since 6 March"
+          ],
+          "support": [
+            {
+              "record_id": "rec-04",
+              "quote": "My old card was replaced on 28 February when my photo was redone"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Deactivated for R. Haddad on 28 February 2026 (photo replacement; new card A-4120 issued)"
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "I have not been in the building since 6 March"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "who is on approved leave from 9 to 20 March"
+            }
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about the entry to Network Room N-3 at 07:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "At 07:12 I opened the N-3 door with card A-2291, which I had signed out from the IT lockbox. My own access had been removed the evening before. I did that under OP-7, as the ticket notes. The badge log lists the card under Haddad because the holder name in the database was still pending update.",
+          "protected": [
+            "I opened the N-3 door with card A-2291"
+          ],
+          "support": [
+            {
+              "record_id": "rec-03",
+              "quote": "Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification)"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Network Room N-3 access removed pending completion of annual access recertification training"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "under OP-7 (own N-3 access pending recertification)"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Holder name in the badge database pending update"
+            }
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of the entry to Network Room N-3 at 07:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The purpose was to restore SW-2B, which the monitor showed unreachable from 06:55. I was the on-call technician, and the ticket says I power-cycled it, after which it was reachable at 07:26. My own N-3 access was pending recertification, so under OP-7 I used a lockbox spare card.",
+          "protected": [
+            "under OP-7 I used a lockbox spare card"
+          ],
+          "support": [
+            {
+              "record_id": "rec-03",
+              "quote": "SW-2B unreachable since 06:55"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Power-cycled SW-2B; reachable at 07:26"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification)"
+            }
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The badge log shows only one entry at the N-3 door, at 07:12. The same log shows me at the lobby turnstile at 07:04. The lockbox sheet shows my sign-out at 07:09 and my return at 07:41. The monitor alerts show the outage starting at 06:55.",
+          "protected": [
+            "only one entry at the N-3 door"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "07:12:40 | N-3 door | A-2291 | R. Haddad | Granted"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "07:04:18 | Lobby turnstile 1 | 41877 | A. Lindqvist | Granted"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "SW-2B outage, N-3 | 07:09 | 07:41"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "06:55:02 | SW-2B (floor 2) | Unreachable"
+            }
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the switch SW-2B outage that morning?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The monitor first showed SW-2B on floor 2 unreachable at 06:55. It paged me as the on-call technician at the same time. I power-cycled it, as the ticket says. The alerts show it reachable again at 07:26. I closed the ticket at 07:35.",
+          "protected": [
+            "I power-cycled it, as the ticket says"
+          ],
+          "support": [
+            {
+              "record_id": "doc-02",
+              "quote": "06:55:02 | SW-2B (floor 2) | Unreachable"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "Power-cycled SW-2B; reachable at 07:26"
+            },
+            {
+              "record_id": "doc-02",
+              "quote": "07:26:40 | SW-2B (floor 2) | Reachable"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "reachable at 07:26. Closed 07:35"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F06-C",
+      "family_id": "F06",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Corliss Records Center on the evening of 25 February 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "On the evening of 25 February I was on the evening shift in Building Engineering. The Operations desk sent me a service request at 18:44 about a ceiling drip in the floor 4 east corridor. I withdrew key K-14 from the key cabinet at 18:52.",
+          "protected": [
+            "I withdrew key K-14 from the key cabinet at 18:52"
+          ],
+          "support": [
+            {
+              "record_id": "doc-03",
+              "quote": "Building Engineering, evening shift"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Raised 18:44 by G. Fenwick, Operations desk"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "K-14 withdrawn, PIN P. Halloran"
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I went to isolate the drip, as the service request asked. I closed the request at 20:10 and reported the drip as isolated. The door of Room 417 was opened at 19:12. It closed again at 19:38.",
+          "protected": [
+            "The door of Room 417 was opened at 19:12"
+          ],
+          "support": [
+            {
+              "record_id": "doc-03",
+              "quote": "Please check and isolate."
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Closed 20:10 by P. Halloran"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "19:12 | Room 417 door contact | Door opened"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "19:38 | Room 417 door contact | Door closed"
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Key cabinet KC-2 history for key K-14, 1 to 25 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-04"
+          ],
+          "answer": "The history shows three withdrawals of K-14 in February. The one on 23 February was under my PIN for a light fitting in Room 417. The one on 25 February was mine too, out at 18:52 and back at 20:06 for the service request. The 5 February withdrawal was under another PIN holder, so I can only say what the history shows.",
+          "protected": [
+            "The one on 23 February was under my PIN for a light fitting in Room 417"
+          ],
+          "support": [
+            {
+              "record_id": "rec-04",
+              "quote": "Three withdrawals in the period."
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "15:50 | P. Halloran | WO-6087, light fitting, Room 417"
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "25 February | 18:52 | 20:06 | P. Halloran | SR-4471"
+            },
+            {
+              "record_id": "rec-04",
+              "quote": "5 February | 09:12 | 09:40 | R. Ostby"
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Operations desk log, 25 February 2026, 18:30-20:30. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "answer": "The night custodian reported water under the door of 417 at 18:41. Gail Fenwick sent me the request at 18:44. The duty manager's approval of K-14 by phone is logged at 18:49. My entry at 19:46 reports a cracked drain line above the 417 ceiling and the valve closed in 419. It also reports six file boxes lifted off the wet shelf and two ceiling tiles down.",
+          "protected": [
+            "The duty manager's approval of K-14 by phone is logged at 18:49"
+          ],
+          "support": [
+            {
+              "record_id": "rec-01",
+              "quote": "Water coming out under the door of 417, the file room."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "SR-4471 sent to P. Halloran: ceiling drip, floor 4 east corridor"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "K-14 approved by phone for P. Halloran"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Leak is a cracked drain line above the 417 ceiling. Valve closed in riser closet 419."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down"
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "answer": "The plumber found a cracked condensate drain line above the 417 ceiling. He found the isolation valve in 419 already closed. He notes that I took down two ceiling tiles in 417 on 25 February. He also notes the six file boxes from bay 3 that I lifted onto the table.",
+          "protected": [
+            "He found the isolation valve in 419 already closed"
+          ],
+          "support": [
+            {
+              "record_id": "rec-02",
+              "quote": "cracked condensate drain line above the 417 ceiling"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "isolation valve in 419 already closed"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "two ceiling tiles in 417 taken down on 25 February by P. Halloran"
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Written statement, Marcus Ebdon, Duty Manager (27 February 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The duty manager's statement says I phoned him at about ten to seven about water on floor 4 east and asked for K-14. He says he approved it on the phone and told me to go ahead. He also says he signed the authorization form at 08:20 on the next morning, which matches the exception report.",
+          "protected": [
+            "He says he approved it on the phone and told me to go ahead"
+          ],
+          "support": [
+            {
+              "record_id": "rec-05",
+              "quote": "Priya Halloran phoned me at about ten to seven about water on floor 4 east and asked for K-14"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "I approved it on the phone and told her to go ahead"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "so I signed this one at 08:20 on the 26th"
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Copier MF-417 job log, Room 417, 25 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The copier log shows a single three-page copy job at 16:52 under the account of Specht. The service request was not raised until 18:44, nearly two hours after that job. I made no copies in Room 417, and the log shows only that one job in the period.",
+          "protected": [
+            "I made no copies in Room 417"
+          ],
+          "support": [
+            {
+              "record_id": "rec-03",
+              "quote": "16:52 | Copy | 3 | L. Specht"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Raised 18:44 by G. Fenwick, Operations desk"
+            },
+            {
+              "record_id": "rec-03",
+              "quote": "One job in the period."
+            }
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Last, I returned K-14 to the key cabinet at 20:06. Before that I mopped the corridor. The Room 417 door closed at 19:38 as I left. Inside I lifted six file boxes off the wet shelf, took down two tiles and put out buckets. I opened that door at 19:12. Before that I closed the valve in riser closet 419. I had taken the key at 18:52.",
+          "protected": [
+            "Last, I returned K-14 to the key cabinet at 20:06"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "20:06 | Key cabinet KC-2 | K-14 returned, PIN P. Halloran"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Mopping the corridor next."
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "19:38 | Room 417 door contact | Door closed"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out."
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "19:12 | Room 417 door contact | Door opened"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Valve closed in riser closet 419."
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "K-14 withdrawn, PIN P. Halloran"
+            }
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Room 417 at 19:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I opened Room 417 at 19:12. Water was coming out under its door, and the ceiling tile outside was dripping too. Inside, the leak was a cracked drain line above the 417 ceiling. I lifted six file boxes off the wet shelf, took down two ceiling tiles and put out buckets. I left and the door closed at 19:38.",
+          "protected": [
+            "I lifted six file boxes off the wet shelf"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "19:12 | Room 417 door contact | Door opened"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Water coming out under the door of 417, the file room. The ceiling tile outside is dripping too."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Leak is a cracked drain line above the 417 ceiling."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Six file boxes in 417 lifted off the wet shelf, two ceiling tiles down, buckets out."
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "19:38 | Room 417 door contact | Door closed"
+            }
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Room 417 at 19:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The service request did not name a room, only the floor 4 east corridor between Rooms 417 and 419. The night custodian had reported water coming out under the door of 417. I found the leak was a cracked drain line above the 417 ceiling. So I lifted the six file boxes off the wet shelf to keep them out of the water.",
+          "protected": [
+            "I lifted the six file boxes off the wet shelf to keep them out of the water"
+          ],
+          "support": [
+            {
+              "record_id": "doc-03",
+              "quote": "Location: floor 4 east corridor, between Rooms 417 and 419."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Water coming out under the door of 417, the file room."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Leak is a cracked drain line above the 417 ceiling."
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "Six file boxes in 417 lifted off the wet shelf"
+            }
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The night custodian reported the water first, at 18:41. Gail Fenwick at the Operations desk sent me the service request. The duty manager, Marcus Ebdon, approved K-14 by phone, and his written statement says so. The Operations desk log has my call about the leak at 19:46. The plumber's work order shows the tiles and boxes I moved.",
+          "protected": [
+            "The night custodian reported the water first, at 18:41"
+          ],
+          "support": [
+            {
+              "record_id": "rec-01",
+              "quote": "T. Wren, night custodian | Water coming out under the door of 417"
+            },
+            {
+              "record_id": "doc-03",
+              "quote": "Raised 18:44 by G. Fenwick, Operations desk"
+            },
+            {
+              "record_id": "rec-05",
+              "quote": "I approved it on the phone and told her to go ahead"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "19:46 | P. Halloran | Leak is a cracked drain line above the 417 ceiling."
+            },
+            {
+              "record_id": "rec-02",
+              "quote": "Six file boxes from bay 3, lifted onto the table on 25 February by P. Halloran"
+            }
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the withdrawal of restricted key K-14 at 18:52?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I withdrew K-14 from key cabinet KC-2 at 18:52 under my own PIN. The duty manager approved it by phone, logged at 18:49. The key opens Rooms 417, 419 and 421. He signed the authorization form at 08:20 on 26 February, after the key was returned.",
+          "protected": [
+            "The duty manager approved it by phone, logged at 18:49"
+          ],
+          "support": [
+            {
+              "record_id": "doc-01",
+              "quote": "18:52 | Key cabinet KC-2 | K-14 withdrawn, PIN P. Halloran"
+            },
+            {
+              "record_id": "rec-01",
+              "quote": "K-14 approved by phone for P. Halloran"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "K-14 opens Rooms 417 (Personnel File Room), 419 (east plumbing riser closet) and 421 (Records Manager's office)"
+            },
+            {
+              "record_id": "doc-01",
+              "quote": "was signed by duty manager M. Ebdon at 08:20 on 26 February, after the key was withdrawn and returned"
+            }
           ]
         }
       ]

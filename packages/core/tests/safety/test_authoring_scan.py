@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 
 from arena_core.safety import guard
+from arena_core.scenario.guardscan import guard_hits
 from arena_core.scenario.load import read_family_file
 from arena_core.scenario.validators.v4 import subject_renderable_text
 
@@ -20,8 +21,17 @@ LEXICAL = {"G3", "G4", "G5"}
 
 
 def _lexical_hit(text: str) -> str | None:
-    result = guard.check_utterance(text, guard.RecitalIndex.empty())
-    return result.rule if result.rule in LEXICAL else None
+    """Every G3-G5 pattern is scanned, so an earlier G1 or G2 hit in the same text cannot hide one."""
+    hits = [h.rule for h in guard_hits(text)]
+    return hits[0] if hits else None
+
+
+def test_the_scan_is_not_hidden_by_an_earlier_guard_rule() -> None:
+    zero_width = chr(0x200B)
+    for text in ("The ledger contains f:01. [note]", f"The ledger contains f:01.{zero_width}"):
+        assert guard.check_utterance(text, guard.RecitalIndex.empty()).rule in {"G1", "G2"}
+        assert {h.rule for h in guard_hits(text)} == {"G3", "G4"}
+        assert _lexical_hit(text) in LEXICAL
 
 
 @pytest.mark.parametrize("family_id", DEV_IDS)

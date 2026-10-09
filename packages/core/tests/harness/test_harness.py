@@ -146,15 +146,17 @@ class FakeTrial:
     answers: dict[int, str] = field(default_factory=dict)
     calls: list[tuple[str, int]] = field(default_factory=list)
     asked: list[HarnessQuestion] = field(default_factory=list)
+    requests: dict[int, list[str]] = field(default_factory=dict)
 
     def _maybe_stop(self, kind: str, n: int) -> None:
         self.calls.append((kind, n))
         if self.raise_at == (kind, n) and self.error is not None:
             raise self.error
 
-    def ask(self, n: int, question: HarnessQuestion) -> None:
+    def ask(self, n: int, question: HarnessQuestion, record_requests: Sequence[str]) -> None:
         self._maybe_stop("ask", n)
         self.asked.append(question)
+        self.requests[n] = list(record_requests)
         self.answers[n] = self.answers.get(n, "I went to the vault.")  # the subject answers; nothing returns
 
     def card(self, n: int) -> Card | None:
@@ -347,3 +349,24 @@ def test_consecutive_failed_cards_advance_through_the_fallbacks() -> None:
         "fallback_no_card",
         "fallback_failed_test:too_short",
     ]
+
+
+def test_record_requests_go_with_the_next_question_whatever_happens_to_the_proposal() -> None:
+    """S2 8.4: the previous valid card's `record_request` is passed to `release_evidence` before question n+1,
+    whether the proposal is relayed (t02), rejected by the relay test (t04) or there is no card (t05)."""
+    cards = {
+        1: Card(101, "What did the panel show?", record_request="rec-01"),
+        3: Card(103, "Why do you seem so nervous?", record_request="rec-02"),
+        4: None,
+        6: Card(106, "What happened after that?", record_request="rec-02"),
+    }
+    fake = FakeTrial(cards=cards)
+    out = harness.run_interactive(fake, OPENING)
+    assert fake.requests[1] == []
+    assert fake.requests[2] == ["rec-01"]
+    assert out.questions[1].source is QuestionSource.ASSISTANT_RELAY
+    assert fake.requests[4] == ["rec-02"]
+    assert out.questions[3].relay_outcome == "fallback_failed_test:non_neutral:demeanor"
+    assert fake.requests[5] == []
+    assert fake.requests[7] == ["rec-02"]  # a repeated request is passed on; release_evidence answers already_released
+    assert all(fake.requests[n] == [] for n in (3, 6, 8, 9, 10, 11, 12))
