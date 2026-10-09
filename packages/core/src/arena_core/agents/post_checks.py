@@ -19,6 +19,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from arena_core.contracts.citations import Record, Turn, cites_of, flag_citations_ok, normalize
 from arena_core.contracts.coaching import CardValidation, CoachingCard, FlagCheck, StoredCard, StoredFlag
 from arena_core.contracts.common import turn_no
+from arena_core.contracts.rendered import clean
 
 
 def lexicon_pattern(terms: Iterable[str]) -> re.Pattern[str]:
@@ -29,6 +30,12 @@ def lexicon_pattern(terms: Iterable[str]) -> re.Pattern[str]:
         raise ValueError(msg)
     alternatives = "|".join(r"\s+".join(re.escape(w) for w in term.split()) for term in words)
     return re.compile(rf"(?<!\w)(?:{alternatives})(?!\w)", re.IGNORECASE)
+
+
+def _hits(lexicon: re.Pattern[str], text: str) -> bool:
+    """The lexicon on the text as written and as every prompt renders it (`clean`: NFKC, invisible characters
+    removed), so `ner\u200bvous` or a fullwidth `nervous` is the word a reader sees."""
+    return lexicon.search(text) is not None or lexicon.search(clean(text)) is not None
 
 
 def _key(kind: str, turn: str, quote: str) -> tuple[str, str, str]:
@@ -49,12 +56,10 @@ def card_validation(
     for i, flag in enumerate(card.flags, start=1):
         checks[f"{card.turn_id}.f{i}"] = FlagCheck(
             citation_ok=flag_citations_ok(flag.kind, cites_of(flag.model_dump()), turns, records, current),
-            demeanor_based=flag.missing_fact is not None and lexicon.search(flag.missing_fact) is not None,
+            demeanor_based=flag.missing_fact is not None and _hits(lexicon, flag.missing_fact),
             duplicate=_key(flag.kind, flag.turn_id, flag.quote) in seen,
         )
-    return CardValidation(
-        valid=True, flags=checks, demeanor_in_rationale=lexicon.search(card.finding.rationale) is not None
-    )
+    return CardValidation(valid=True, flags=checks, demeanor_in_rationale=_hits(lexicon, card.finding.rationale))
 
 
 def j3_flags(cards: Iterable[StoredCard]) -> list[StoredFlag]:

@@ -18,7 +18,7 @@ from functools import cache
 
 from pydantic import BaseModel, ValidationError
 
-from arena_core.contracts.rendered import rendered_overruns
+from arena_core.contracts.rendered import clean, rendered_overruns
 
 MAX_ERRORS = 10
 MAX_ERROR_BYTES = 100
@@ -101,13 +101,23 @@ def output_errors[T: BaseModel](
         value = model.model_validate_json(reply, context=context)
     except ValidationError as exc:
         return None, error_items(exc, field_names(model))
-    # Checked on the decoded values too: JSON escapes (`\\u0039f3a...`) hide the salt from the raw text.
-    if salt is not None and (salt in reply or salt in value.model_dump_json()):
+    # Checked on the decoded values as rendered too: JSON escapes, invisible characters and NFKC variants hide it.
+    if salt is not None and (salt in reply or any(salt in clean(s) for s in _strings(value.model_dump()))):
         return None, [SALT_LEAK]
     rendered = rendered_overruns(value)
     if rendered:
         return None, [_cut(i) for i in rendered[:MAX_ERRORS]]
     return value, []
+
+
+def _strings(node: object) -> list[str]:
+    if isinstance(node, str):
+        return [node]
+    if isinstance(node, dict):
+        return [s for v in node.values() for s in _strings(v)]
+    if isinstance(node, list):
+        return [s for v in node for s in _strings(v)]
+    return []
 
 
 def repair_message(errors: list[str]) -> str:

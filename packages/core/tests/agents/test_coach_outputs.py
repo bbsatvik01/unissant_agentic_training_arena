@@ -411,3 +411,31 @@ def test_an_escaped_salt_is_caught_after_decoding() -> None:
     assert prompt.salt not in reply
     _, errors = output_errors(CoachingCard, reply, CTX7, prompt.salt)
     assert errors == [SALT_LEAK]
+
+
+FULLWIDTH_NERVOUS = "".join(chr(ord(c) + 0xFEE0) for c in "nervous")
+
+
+@pytest.mark.parametrize("word", ["ner\u200bvous", FULLWIDTH_NERVOUS])
+def test_demeanor_is_found_in_the_text_as_rendered(word: str) -> None:
+    flag = {**_gap("I was in the B wing the whole time"), "missing_fact": f"subject seemed {word} about it"}
+    card = {**good_card("t03"), "flags": [flag]}
+    card["finding"] = {**card["finding"], "rationale": f"The subject was {word}."}
+    validation = card_validation(CoachingCard.model_validate(card), TURNS, RECORDS, [], LEXICON)
+    assert validation.flags["t03.f1"].demeanor_based is True
+    assert validation.demeanor_in_rationale is True
+
+
+@pytest.mark.parametrize("hide", ["\u200b", "fullwidth"])
+def test_a_salt_hidden_by_normalization_is_caught(hide: str) -> None:
+    prompt = build_coach_prompt(fx.coach_view(3), fx.prompts("A2"), "card")
+    salt = prompt.salt
+    hidden = (
+        f"{salt[:4]}\u200b{salt[4:]}"
+        if hide == "\u200b"
+        else "".join(chr(ord(c) + 0xFEE0) for c in salt)  # fullwidth forms NFKC-fold to ASCII
+    )
+    assert salt not in hidden
+    card = _set(good_card(), "finding.rationale", f"Reference {hidden}.")
+    _, errors = output_errors(CoachingCard, json.dumps(card), CTX7, salt)
+    assert errors == [SALT_LEAK]
