@@ -1,4 +1,5 @@
-"""Deterministic subject-output guard; S2/S3 own the rules this module runs.
+"""Deterministic subject-output guard (`guard.py`, S2 6.9) and the coach demeanor lexicon (`demeanor.py`, S2 4.4).
 
-Empty, importable stub (WP-01 layout only, S5 1); the implementation lands in WP-11.
+S2 owns the rules; these modules run them. The G3-G5 vocabulary lives in `arena_core.scenario.guardscan`,
+shared with the scenario engine's V4c authoring scan.
 """

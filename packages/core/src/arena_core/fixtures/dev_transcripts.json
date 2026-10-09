@@ -1,0 +1,2099 @@
+{
+  "fixture": "dev transcripts",
+  "spec": "S2 11.1",
+  "note": "Scripted development transcripts: replay_script.v1 questions for the case (arena_core.scenario.relay.plan_replay), answers authored from the variant packet, plain rendering (fluent, calm, native, moderate). protected: the verbatim spans a flag would quote; the FX-STYLE-PAIRS transform never edits inside them.",
+  "transcripts": [
+    {
+      "id": "TX-F01-T",
+      "family_id": "F01",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "We were two technicians down that shift. Around two, Ines radioed me about a humidity alarm in the B wing and said B-12. I went to the vault, reset the tripped dehumidifier, and emptied its full condensate tank.",
+          "protected": [
+            "Ines radioed me about a humidity alarm in the B wing and said B-12",
+            "reset the tripped dehumidifier"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "Once the dehumidifier was running again, I left the vault. I don't know the exact minute, but it was sometime after quarter past two and before half past. I didn't open or touch any of the records boxes inside.",
+          "protected": [
+            "I didn't open or touch any of the records boxes inside"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Facilities work orders assigned to J. Pell, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01"
+          ],
+          "answer": "The first is an entrance mat job in the A-wing lobby, earlier in the shift. The second matches my vault job: humidity alarm, dehumidifier reset, tank emptied. I hadn't seen it before, and I don't know when Ines wrote it up.",
+          "protected": [
+            "The second matches my vault job"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Facilities radio log, channel 2, 12 March 2026, 13:45-14:45. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "That matches what I remember. Ines named B-12 at 14:01 and I answered that I was on my way. The 14:25 call is me reporting the reset and the emptied tank. I wasn't sure that call went through, so it's good to see it logged.",
+          "protected": [
+            "Ines named B-12 at 14:01"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Building environmental alarm history, B wing, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "The vault alarm was raised at 13:58, shortly before the call to me. It shows cleared at 14:16. I didn't watch the panel, so I didn't know the exact clearing time, but that fits with me resetting the unit around then.",
+          "protected": [
+            "The vault alarm was raised at 13:58"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "That fits what I remember. She doesn't recall which room she said, but the radio log shows B-12. Her statement says she logged the work order later, which explains the 14:31 time. I didn't know that before.",
+          "protected": [
+            "the radio log shows B-12"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Records Vault B-12 seal audit, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "That fits. I didn't open or handle any sealed box, and the audit shows every seal matching the register and no seals issued that day. I didn't know anything about the audit until now.",
+          "protected": [
+            "I didn't open or handle any sealed box"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I left the vault sometime between quarter past and half past two. Before that I emptied the tank, and before that I reset the tripped unit after entering at 14:07. Before that was Ines's 14:01 call about the vault alarm.",
+          "protected": [
+            "I reset the tripped unit after entering at 14:07"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "My badge opened B-12 at 14:07, and I have access through the Environmental Response group. The vault isn't on my normal roster, and I hadn't been in since last autumn. I went in because of the humidity alarm Ines dispatched me to.",
+          "protected": [
+            "I went in because of the humidity alarm Ines dispatched me to"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The purpose was the humidity alarm. Ines dispatched me on the radio at 14:01, the panel showed it for B-12, and the dehumidifier was tripped. I reset it and emptied the full condensate tank. I didn't go in for anything else.",
+          "protected": [
+            "The purpose was the humidity alarm",
+            "I didn't go in for anything else"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "No one I know of was with me inside. Ines can confirm the dispatch, and the radio log and the alarm history back up the timing. The work order and the seal audit also match what I did.",
+          "protected": [
+            "Ines can confirm the dispatch"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the vault door being held open from 14:09 to 14:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I propped the door with a cart from 14:09 to 14:12 while I emptied the condensate tank into the drain just outside. I stayed in the doorway the whole time. I know the limit is 60 seconds, but I wasn't moving equipment.",
+          "protected": [
+            "while I emptied the condensate tank into the drain just outside"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F02-T",
+      "family_id": "F02",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "It was pouring that evening. I had left my medication in my desk drawer when I went home at five, so Evan, my partner, drove me back. I badged in at the east staff door a little before quarter to eight, went up to the records floor, collected it, and left.",
+          "protected": [
+            "I badged in at the east staff door a little before quarter to eight"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I went up to the third floor and badged into the records floor. I went in by myself, since Evan stayed in the car. I was inside perhaps fifteen minutes, then I left. I came back only to collect my medication.",
+          "protected": [
+            "I went in by myself, since Evan stayed in the car"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Security desk visitor register, 10 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "I did not register any visitor that evening, and I do not know what the security desk had registered. If the register shows no after-hours visitors, that matches what I did, because I entered alone.",
+          "protected": [
+            "I did not register any visitor that evening"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Elevator car 2 trip records, 10 March 2026, 19:00-21:00. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "I had not seen those trip records before today. They show one person on each trip, which fits my account, since I rode alone. I do not know whose 20:31 trip it is, because I had left the building by then.",
+          "protected": [
+            "They show one person on each trip"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Records floor (floor 3) door log, 10 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The log shows my badge opening the records door at 19:44 and an exit at 19:57. That fits about fifteen minutes inside. I was not sure whether I left just before or after eight, and this suggests just before.",
+          "protected": [
+            "my badge opening the records door at 19:44"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Facilities notice FM-2207 (open since 2 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I did not know about that notice or the sensor ticket. It describes false double counts in wet weather, and it was pouring that night, so it may be relevant. I cannot say myself why the sensor counted two. I entered alone.",
+          "protected": [
+            "I did not know about that notice or the sensor ticket"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Statement, Bram Hollis, night custodian (12 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I had not seen Bram's statement, and it matches my account. He was cleaning near the elevators when I came in, and I came in alone. I do not remember exactly what I said to him, but forgetting something upstairs is accurate.",
+          "protected": [
+            "He was cleaning near the elevators when I came in"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "At the end, I left the records floor around eight, maybe just before, and went out to Evan in the car. Before that I spent about fifteen minutes on the floor getting my medication. Before that I came in the east door alone at about quarter to eight.",
+          "protected": [
+            "I spent about fifteen minutes on the floor"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry through the east staff door at 19:42?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I badged in at the east staff door with my own badge, which works after hours for that door and the records floor. I was alone. Evan had dropped me off and stayed in the car. Bram was cleaning near the elevators.",
+          "protected": [
+            "I badged in at the east staff door with my own badge"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry through the east staff door at 19:42?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I came back only to collect my medication. I had left it in my desk drawer when I went home at five. It is a personal matter, so I would rather not discuss what it is for, but it was the only reason I came in.",
+          "protected": [
+            "I came back only to collect my medication"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Evan, my partner, drove me and stayed in the car, so he can confirm when I went in and came out. Bram, the custodian, was cleaning near the elevators when I came in. Nobody else was with me.",
+          "protected": [
+            "Evan, my partner, drove me and stayed in the car"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the tailgate sensor counting two people at the east staff door?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I did not know the sensor counted two people until you told me. I swiped once and nobody followed me through. I cannot say why it counted two. The wet weather notice may be the reason, but I do not know that.",
+          "protected": [
+            "nobody followed me through"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F03-T",
+      "family_id": "F03",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "The monitor paged me at five to seven because switch SW-2B was down. I was on call, so I came in through the lobby just after seven. My own access to Network Room N-3 had been removed the evening before, so I signed out a spare card from the IT lockbox under the outage procedure and went in.",
+          "protected": [
+            "I signed out a spare card from the IT lockbox under the outage procedure"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "Inside N-3 I was alone. I power-cycled SW-2B and it came back. Then I opened the incident ticket at about half past seven, and I put the card back in the lockbox before eight.",
+          "protected": [
+            "I power-cycled SW-2B and it came back"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "At the end, I returned the spare card to the lockbox before eight. Before that I opened the incident ticket at about half past seven. Before that I power-cycled SW-2B in N-3, alone, with the spare card, after coming in through the lobby following the page at five to seven.",
+          "protected": [
+            "I returned the spare card to the lockbox before eight"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Incident ticket INC-0313-004, dated 2026-03-13. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-03"
+          ],
+          "answer": "That is my ticket, opened about half past seven. It says SW-2B was unreachable since 06:55 and that I entered N-3 at 07:12 with spare card A-2291 under OP-7, because my own access was pending recertification. It also says I power-cycled the switch and it was reachable at 07:26.",
+          "protected": [
+            "I entered N-3 at 07:12 with spare card A-2291 under OP-7"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Outage procedure OP-7 (Infrastructure Support). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "OP-7 lets an on-call technician sign out a spare card from the IT lockbox when their own access is unavailable during an outage. The technician must record the time and reason on the sheet and note the card number in the ticket. I signed the sheet and wrote the card number in the ticket.",
+          "protected": [
+            "I signed the sheet and wrote the card number in the ticket"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have IT lockbox spare-card sign-out sheet, March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "That is my entry on the sheet for A-2291, with the reason SW-2B outage, N-3. It shows out at 07:09 and in at 07:41, which fits just after seven and before eight. I am not sure whether I filled in the time column before or after going up to N-3.",
+          "protected": [
+            "I am not sure whether I filled in the time column before or after going up to N-3"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Badge administration record, card A-2291. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "I had not seen this before. It shows the card was issued to Rafael Haddad in 2023, deactivated for him on 28 February, and reassigned on 1 March to the IT lockbox spare pool. I did not know it had ever been anyone's personal card.",
+          "protected": [
+            "I did not know it had ever been anyone's personal card"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "We have Email from Rafael Haddad to the review office, 14 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I had not seen this email. It fits the badge administration record, since his old card was replaced and he has the new one. I did not know A-2291 had been his, and I never borrowed a card from him. I know he is on leave this month.",
+          "protected": [
+            "I never borrowed a card from him"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about the entry to Network Room N-3 at 07:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "At 07:12 I opened the N-3 door with spare card A-2291 from the IT lockbox, because my own access had been removed the evening before. I went in alone, with nobody else from Infrastructure Support in yet. The badge log lists the card under Rafael Haddad, but I did not know that when I used it.",
+          "protected": [
+            "I opened the N-3 door with spare card A-2291 from the IT lockbox"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of the entry to Network Room N-3 at 07:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The purpose was to restore SW-2B. It was down, I was on call, and the switch needed a power cycle from inside N-3. My own access was off because my recertification training is overdue, so under OP-7 I used the lockbox spare card. I was inside only to fix the outage.",
+          "protected": [
+            "under OP-7 I used the lockbox spare card"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Nobody was with me in N-3, and nobody else from Infrastructure Support was in yet. The lobby badge log shows me arriving just after seven. The ticket and the lockbox sheet show what I did, and the monitor alerts show when SW-2B went down and came back.",
+          "protected": [
+            "Nobody was with me in N-3"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the switch SW-2B outage that morning?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The monitor paged me at five to seven because SW-2B on floor 2 was unreachable. I power-cycled it from N-3, and the alerts show it reachable again at 07:26. I opened the ticket at about half past seven.",
+          "protected": [
+            "I power-cycled it from N-3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F01-D",
+      "family_id": "F01",
+      "variant": "deceptive",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "We were two technicians down. Around two Ines radioed me about a humidity alarm in the B wing, in B-10, the supply room next to the vault. I reset the dehumidifier there, and the alarm cleared a few minutes later. I radioed that B-10 was done.",
+          "protected": [
+            "I reset the dehumidifier there",
+            "I radioed that B-10 was done"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "With B-10 finished early and the shift short-staffed, nobody was expecting to hear from me for a while. I had some time before my next call.",
+          "protected": [
+            "nobody was expecting to hear from me for a while"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Facilities work orders assigned to J. Pell, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01"
+          ],
+          "answer": "The first is the entrance mat job in the A-wing lobby. The second is the humidity alarm in the B-10 supply room, dehumidifier reset. I haven't seen it before, and I don't know when Ines wrote it up.",
+          "protected": [
+            "The second is the humidity alarm in the B-10 supply room"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Facilities radio log, channel 2, 12 March 2026, 13:45-14:45. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "That matches what I remember. Ines named B-10 at 14:01 and I said I was on my way. At 14:05 I reported that B-10 was done. Everything I did on that call was in B-10.",
+          "protected": [
+            "Ines named B-10 at 14:01"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Building environmental alarm history, B wing, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "That is the B-10 alarm. It was raised at 13:58 and cleared at 14:04, a few minutes after I reset the unit. There was no other B-wing alarm that afternoon.",
+          "protected": [
+            "It was raised at 13:58 and cleared at 14:04"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "She says she doesn't remember which room she said. The radio log shows B-10, and that is what I went to. I don't know how she handles her paperwork, but her statement says she logged the work order later.",
+          "protected": [
+            "The radio log shows B-10"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Records Vault B-12 seal audit, 12 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The drawer log shows seal 55419 was taken at 14:15. I took it from the supply drawer and put it on box ACQ-117. I have no custodian release for that. I'm not going to say more about it right now.",
+          "protected": [
+            "I took it from the supply drawer and put it on box ACQ-117"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I left B-12 sometime between quarter past and half past two. Before that the door closed at 14:12, and before that I entered at 14:07. Before that I finished B-10 and radioed that it was done.",
+          "protected": [
+            "Before that I finished B-10 and radioed that it was done"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "My badge opened B-12 at 14:07. I have access through the Environmental Response group, but the vault isn't on my normal roster and I hadn't been in since last autumn. The badge log is accurate on all of that.",
+          "protected": [
+            "the vault isn't on my normal roster"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Records Vault B-12 at 14:07?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I had no assigned task in B-12. My dispatch and the work order were both for B-10. I don't have anything further to say about the reason I went in.",
+          "protected": [
+            "I had no assigned task in B-12"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Nobody was with me that I can name. Ines can confirm the 14:01 dispatch to B-10 and my 14:05 call saying it was done, and the radio log shows both. I don't know of anyone who can speak to the vault.",
+          "protected": [
+            "Ines can confirm the 14:01 dispatch to B-10"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the vault door being held open from 14:09 to 14:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I held the door with a cart for about three minutes, from 14:09 to 14:12. That is longer than the 60 second limit. I didn't move any equipment through it. I don't have more to add on why.",
+          "protected": [
+            "I held the door with a cart for about three minutes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F04-T",
+      "family_id": "F04",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Corliss Records Center on the morning of 17 February 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I started at half past seven. At about twenty to eight I went out the dock door to bring the two overnight mail bins in from the courier cage, and my badge opened the door when I came back. I sorted the mail, then went on the internal mail round.",
+          "protected": [
+            "my badge opened the door when I came back"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "We have Lobby security desk visitor register, 17 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01"
+          ],
+          "answer": "It shows Felix Arno, the Kessling technician, signed in at 8:01 with Ruth Delacroix as host. I did not know when he signed in. I was on my mail round by then, and it fits that the desk opens at eight.",
+          "protected": [
+            "I did not know when he signed in"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Kessling Office Systems service report for postage meter PM-1, 17 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "answer": "I had not seen it. It says he waited in the van until the lobby opened, signed in at 8:01 and Ruth brought him to the mail room at 8:05. It says the meter clock was 25 minutes slow. I never checked how far behind it ran.",
+          "protected": [
+            "I never checked how far behind it ran"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Statement, Theo Marsh, Records Technician (18 February 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "I did not know Theo had parked there. What he describes matches what I did. I was at the dock door pushing the two bins in one at a time, on my own, and nobody else was on the dock.",
+          "protected": [
+            "I was at the dock door pushing the two bins in one at a time, on my own"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Statement, Ruth Delacroix, Mail Services Supervisor (18 February 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "It matches what I know. I was out on the mail round when she brought him in. When I got back at about half past eight, he was working on the meter with her. I cannot speak to what happened before that.",
+          "protected": [
+            "When I got back at about half past eight, he was working on the meter with her"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "After I sorted the overnight mail, I left on the internal mail round just before eight. I was back at about half past. Felix was working on the meter with Ruth, and 340 renewal notices from Monday were waiting for postage.",
+          "protected": [
+            "I left on the internal mail round just before eight"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "Working back, Felix was repairing the meter with Ruth when I returned at about half past eight. Before that I was on the mail round from just before eight. Before that I sorted the overnight mail, after bringing two bins in at about 7:41.",
+          "protected": [
+            "Before that I sorted the overnight mail, after bringing two bins in at about 7:41"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you tell me about your entry through the mail room dock door at 07:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "My badge opened the dock door at 7:41 when I came back with the bins. I was alone. I held the door open only while I pushed the two bins through, one at a time, and I stayed at the door. Nobody came in with me.",
+          "protected": [
+            "Nobody came in with me"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "What was the purpose of your entry through the mail room dock door at 07:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "To bring the two overnight mail bins in from the courier cage so I could sort the mail before my round. I went out at about twenty to eight, and my badge let me back in from the dock side.",
+          "protected": [
+            "To bring the two overnight mail bins in from the courier cage"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "Nobody else was in the mail room before eight, because I was the only mail room staff member at work. Theo Marsh says he saw me at the dock door pushing the bins in alone. Ruth Delacroix and Felix Arno can speak to what happened after I left.",
+          "protected": [
+            "Theo Marsh says he saw me at the dock door pushing the bins in alone"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Can you tell me about the dock door staying open after your entry at 07:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "It was open for nearly two minutes and the door alarm went off, because I was moving the two bins through one at a time. I did not leave the door while it was open. I do not know who flagged the alarm or when.",
+          "protected": [
+            "I did not leave the door while it was open"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Which records or documents would show what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "answer": "The access report for the dock door shows my badge at 7:41 and the alarm. Theo Marsh's statement describes me alone with the bins. The lobby register and the service report show when Felix arrived. I have not seen the meter's own log.",
+          "protected": [
+            "Theo Marsh's statement describes me alone with the bins"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F05-D",
+      "family_id": "F05",
+      "variant": "deceptive",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at Westbrook Data Hall on the evening of 24 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04"
+          ],
+          "answer": "Tobias and I were rostered on the evening shift. The backup finished late at 20:41, so at 20:45 Hester phoned from the annex and asked me to get the fourteen courier tapes out of TV-1. I released spare card SP-3 at 21:08, the vault opened at 21:14, and I pulled the tapes.",
+          "protected": [
+            "Hester phoned from the annex and asked me to get the fourteen courier tapes out of TV-1"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04"
+          ],
+          "answer": "I left the vault by the exit button at about ten to ten. The courier collected the fourteen tapes at 21:58, I put SP-3 back in the key cabinet at 22:05, and I went home through the lobby a few minutes after the shift ended at half past ten.",
+          "protected": [
+            "I put SP-3 back in the key cabinet at 22:05"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04"
+          ],
+          "answer": "Starting from the end, I went home through the lobby a few minutes after half past ten. Before that I returned SP-3 to the cabinet at 22:05. The courier took the tapes at 21:58, and I left the vault at about ten to ten. Before that, the vault opened at 21:14 after I released SP-3 at 21:08.",
+          "protected": [
+            "the vault opened at 21:14 after I released SP-3 at 21:08"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Credential Services record, TV-1 access renewal, T. Grell. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-06"
+          ],
+          "answer": "That is right. His renewal was not entered before the quarterly review, so his vault access came off his badge at six that evening. I do not know why it had not been entered. His vault-handling certification is still current, the same as mine.",
+          "protected": [
+            "I do not know why it had not been entered"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Written statement, Hester Vane, Shift Supervisor (25 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "That matches the call. She phoned the NOC from the annex at 20:45 and asked me to get the fourteen tapes out of TV-1 before the ten o'clock pickup. The backup had run late after a tape drive failed, so the day shift could not pull them.",
+          "protected": [
+            "asked me to get the fourteen tapes out of TV-1 before the ten o'clock pickup"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have NOC key cabinet spare-card register (paper), March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "That is right, there is no entry for SP-3 on 24 March. I did not write a holder's name for it. I released the card on my own PIN, so the cabinet logs it against me. I should have filled in the register.",
+          "protected": [
+            "I did not write a holder's name for it"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have TV-1 door camera person counts, 24 March 2026, 21:00-22:00. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Yes, one person went in at 21:14 and one came out at 21:51. That was me. I worked in the vault alone until I left by the exit button, and I pulled the fourteen tapes for the courier.",
+          "protected": [
+            "I worked in the vault alone until I left by the exit button"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "We have Badge events for the two rostered evening operators, 24 March 2026, 20:00-23:00. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "His badge shows him leaving through the lobby turnstile at 20:32. He told me he felt unwell at about half past eight and went home, and he did not come back. My badge went through the basement corridor door at 21:12.",
+          "protected": [
+            "He told me he felt unwell at about half past eight and went home, and he did not come back"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "We have Written statement, Tobias Grell, Data Center Operator (26 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "That is accurate as far as I know. His vault access was off his badge at six, he said he was unwell and went home at about half past eight, and he did not return. He was not in the vault, and he did not have a spare card.",
+          "protected": [
+            "He was not in the vault, and he did not have a spare card"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "Can you tell me about the release of spare card SP-3 at 21:08?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "I released SP-3 from the NOC key cabinet on my PIN at 21:08. The cabinet only releases a spare card to the PIN of someone whose badge opens the vault, and it logs the card against that PIN. I returned it at 22:05.",
+          "protected": [
+            "I released SP-3 from the NOC key cabinet on my PIN at 21:08"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "What was the purpose of the release of spare card SP-3 at 21:08?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Hester asked for the fourteen courier tapes to be out of the vault before the ten o'clock pickup. The weekly backup had run late after a tape drive failure, so the day shift could not pull them. The courier collected all fourteen at 21:58.",
+          "protected": [
+            "The weekly backup had run late after a tape drive failure"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Nobody else was in the vault with me. Hester phoned me at 20:45, and the courier collected the tapes at 21:58. The key cabinet log, the door camera counts and the badge events will show the rest of that evening.",
+          "protected": [
+            "Nobody else was in the vault with me"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F06-T",
+      "family_id": "F06",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Corliss Records Center on the evening of 25 February 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "On the evening of 25 February I was on shift as building engineer. The Operations desk sent me a service request at 18:44 about a ceiling drip on the fourth-floor east corridor. I phoned the duty manager, Marcus Ebdon, who approved key K-14, and I took it from the key cabinet at 18:52.",
+          "protected": [
+            "I took it from the key cabinet at 18:52"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I went to riser closet 419 at about 18:58 and closed the drain-line valve a few minutes after I arrived, which slowed the leak. The leak was a cracked drain line above the ceiling of Room 417, with water coming through onto the shelves and into the corridor.",
+          "protected": [
+            "closed the drain-line valve a few minutes after I arrived"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Key cabinet KC-2 history for key K-14, 1 to 25 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-04"
+          ],
+          "answer": "The history shows three withdrawals. Mine on 23 February was for a work order to replace a light fitting in Room 417, and the other is the one on 25 February. The 5 February entry is another engineer's, so I can only say what the history shows.",
+          "protected": [
+            "Mine on 23 February was for a work order to replace a light fitting in Room 417"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Operations desk log, 25 February 2026, 18:30-20:30. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "answer": "That matches what I remember. The night custodian reported the water first, Gail Fenwick sent me the request, and Marcus Ebdon's approval of K-14 is logged at 18:49. My own call reported the leak over 417, the closed valve and the six boxes, at about a quarter to eight.",
+          "protected": [
+            "Marcus Ebdon's approval of K-14 is logged at 18:49"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Work order WO-6120, plumbing repair on floor 4 east, 26 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "answer": "I have not seen that work order before, so I can only say it matches what I did. The plumber found a cracked drain line above the 417 ceiling with the valve already closed, and he notes the two ceiling tiles and six boxes I moved on 25 February.",
+          "protected": [
+            "I have not seen that work order before"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Written statement, Marcus Ebdon, Duty Manager (27 February 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "That agrees with my account. I phoned Mr Ebdon and he approved K-14 on the phone before I took the key. I do not know when he signed the authorization form, because I have never seen how he handles those forms.",
+          "protected": [
+            "he approved K-14 on the phone before I took the key"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Copier MF-417 job log, Room 417, 25 February 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I did not use that copier and made no copies in Room 417. I know nothing about the job at 16:52, which was long before my service request. I did not open any file box or touch the papers on the desks.",
+          "protected": [
+            "I did not use that copier",
+            "I did not open any file box or touch the papers on the desks"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Last, I returned K-14 at 20:06, after mopping the corridor. Before that I phoned the Operations desk at about a quarter to eight and had left 417 at 19:38. Inside I moved six boxes, took down two tiles and set out buckets after opening it at 19:12. Before that I closed the valve in 419 and took the key at 18:52.",
+          "protected": [
+            "I returned K-14 at 20:06"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Room 417 at 19:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I opened Room 417 at 19:12 because water was coming through its ceiling onto shelving bay 3. I lifted six file boxes off the wet shelf onto the table, took down two soaked ceiling tiles and set out buckets. I left at 19:38 and touched none of the papers.",
+          "protected": [
+            "I lifted six file boxes off the wet shelf onto the table"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Room 417 at 19:12?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The request did not say which room. I found the cracked drain line leaking above 417, with water coming through the ceiling onto the shelves, so I went in to deal with it and protect the boxes from the water.",
+          "protected": [
+            "water coming through the ceiling onto the shelves"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Marcus Ebdon approved the key by phone, and Gail Fenwick sent the service request. T. Wren, the night custodian, reported the water first. The Operations desk log has my call about the leak, and the plumber's work order shows the tiles and boxes I moved.",
+          "protected": [
+            "Marcus Ebdon approved the key by phone"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the withdrawal of restricted key K-14 at 18:52?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I took K-14 from key cabinet KC-2 at 18:52 under my own PIN, which is enrolled for that key, after Marcus Ebdon approved it by phone. The key opens Rooms 417, 419 and 421. I do not know when he signed the authorization form.",
+          "protected": [
+            "after Marcus Ebdon approved it by phone"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F07-D",
+      "family_id": "F07",
+      "variant": "deceptive",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on 7 April 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04"
+          ],
+          "answer": "I worked the morning, then took personal leave from half past twelve. That evening Celia had asked me to collect the Corbel Lane training kit and get it there before the morning session, so I came back in through the loading dock with my badge and went into the store.",
+          "protected": [
+            "Celia had asked me to collect the Corbel Lane training kit"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04"
+          ],
+          "answer": "I took the projector kit off the dispatch shelf and went out through the loading dock door just after eight. I loaded the cartons into my car, and Owen waved as I did. The next morning I got to Corbel Lane at twenty to eight.",
+          "protected": [
+            "went out through the loading dock door just after eight"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have IT change record for the loading dock camera network switch, April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-04",
+            "rec-06"
+          ],
+          "answer": "It was a routine switch replacement by IT. The notice went to all Annex staff on 2 April, so I had the same email as everyone else. The work started at 18:30 on 7 April and the camera was back by 21:30.",
+          "protected": [
+            "The notice went to all Annex staff on 2 April"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Leave request history for G. Mattick, March and April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-04",
+            "rec-06"
+          ],
+          "answer": "I booked the afternoon of 7 April as personal leave on 30 March, and Celia approved it. Giving a reason is optional under the policy, so I would rather keep the reason to myself. It has nothing to do with the kit.",
+          "protected": [
+            "Giving a reason is optional under the policy"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Property pass system record of passes raised on 7 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "That matches what Celia told me. She raised the property pass for the Corbel Lane kit with me as holder, and it lists one carton, the projector kit. That pass was for the training kit.",
+          "protected": [
+            "it lists one carton, the projector kit"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Email from the Corbel Lane training centre about the 8 April kit delivery. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Yes, I dropped the kit off at twenty to eight, and Joanna Ainsley signed for one carton, the projector kit. That is what the email says, and it was in plenty of time for the eight o'clock session.",
+          "protected": [
+            "Joanna Ainsley signed for one carton, the projector kit"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Supply Store S-2 high-value stock counts, 7 April close to 8 April opening. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "The bin shows two short and I can't dispute that. At about five to eight I packed two cordless drill kits from the tool bin into a second carton. I had not seen those stock counts before today.",
+          "protected": [
+            "I packed two cordless drill kits from the tool bin into a second carton"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "We have Written statement, Celia Brandt, Supply Supervisor (8 April 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "That is right. Celia phoned me at about ten to five, while I was on leave, and asked me to collect the kit that evening and get it to Corbel Lane before the session. She did not raise a work order, she asked me by phone and I said I would.",
+          "protected": [
+            "asked me to collect the kit that evening"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Starting from the end, I delivered the kit to Corbel Lane at twenty to eight the next morning. The evening before, I left the dock just after eight with the cartons in my car. Before that I took the projector kit and packed the second carton after entering the store at 19:52.",
+          "protected": [
+            "I left the dock just after eight with the cartons in my car"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "Can you tell me about your entry to Supply Store S-2 at 19:52?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "My badge opened the store door at 19:52, and I went to the dispatch shelf for the projector kit Celia had left. I packed the second carton from the tool bin before I left, as I have said.",
+          "protected": [
+            "I went to the dispatch shelf for the projector kit Celia had left"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "What was the purpose of your entry to Supply Store S-2 at 19:52?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "I went in because Celia asked me to collect the training kit that evening and get it to Corbel Lane. That was the task she gave me. I have already described the second carton, and I would rather not add to that.",
+          "protected": [
+            "Celia asked me to collect the training kit that evening"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "doc-04",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05",
+            "rec-06"
+          ],
+          "answer": "Owen, the night guard, saw me loading the cartons into my car at the dock, and he waved. Celia can confirm she phoned me at about ten to five and asked for the kit. I do not know whether anyone else went into the store that night.",
+          "protected": [
+            "Owen, the night guard, saw me loading the cartons into my car"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F08-T",
+      "family_id": "F08",
+      "variant": "truthful",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Can you describe, in your own words, what you did at the Westbrook Data Hall on the evening of 5 March 2026?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "At about ten to nine Marisol radioed me about an alarm fault by R-6 and put ticket SR-3051 in my queue. A bit after nine I went into R-6 and worked on motion detector MS-6A. Then I ordered a new detector head and updated the ticket.",
+          "protected": [
+            "I went into R-6 and worked on motion detector MS-6A"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I left R-6 around twenty-five past nine and went to the Hall B tech room. I ordered a new detector head, then updated the ticket around twenty to ten and left the detector in service. At the end of my shift I badged out at the staff exit.",
+          "protected": [
+            "I left R-6 around twenty-five past nine"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I badged out at the staff exit at the end of my shift. Before that I updated the ticket around twenty to ten, after ordering the new head. Before that I left R-6 around twenty-five past nine. I walk-tested MS-6A twice inside, after entering a bit after nine.",
+          "protected": [
+            "I walk-tested MS-6A twice inside"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Security Systems ticket SR-3051, 5 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-04"
+          ],
+          "answer": "Marisol raised it for the fault alarm and assigned it to me. It was for MS-6A inside R-6, with repeated motion alarms and nobody in the room. The updates are mine. The detector head was failing, I could not repair it on site, and I left it in service.",
+          "protected": [
+            "It was for MS-6A inside R-6",
+            "I could not repair it on site"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Alarm history for motion detector MS-6A and door contact DC-FD14, 5-6 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I did not see this alarm history that evening. The motion at 21:16 and 21:22 fits my two walk tests. The fire door contact shows no events. I had already left R-6 for the later motion, so I cannot explain it.",
+          "protected": [
+            "The motion at 21:16 and 21:22 fits my two walk tests"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Security Systems parts requests, 5 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "The second request, at 21:36 from the Hall B tech room, is mine. It orders a replacement detector head for MS-6A. The first one is from Hall A for a different door contact, and it is not mine.",
+          "protected": [
+            "It orders a replacement detector head for MS-6A"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Tamper log of access panel AP-6C in Suite R-6, 5 March 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I have not seen this log. I do not know how the new panel reports tampering. Calder put that panel in on 3 March, and I did not open it. I only worked on the detector MS-6A that night.",
+          "protected": [
+            "I did not open it"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "We have Written statement, Marisol Fenwick, Night Operations Lead (6 March 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I do not know what Marisol remembers. She did radio me about the fault by R-6, and I answered that I was going. The ticket itself names MS-6A inside R-6 as the device, and that is the one I worked on.",
+          "protected": [
+            "The ticket itself names MS-6A inside R-6 as the device"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry to Suite R-6 at 21:14?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "My badge opened R-6 a bit after nine. My Security Systems Maintenance badge opens every door in Hall B, but I am not on the R-6 access list. I went in only to work on MS-6A for ticket SR-3051.",
+          "protected": [
+            "I went in only to work on MS-6A for ticket SR-3051"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry to Suite R-6 at 21:14?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I went in to work on the faulty motion detector MS-6A, which was named on my ticket SR-3051. I walk-tested it twice and saw the head was failing. When that work stopped, I left R-6 by the push bar.",
+          "protected": [
+            "I went in to work on the faulty motion detector MS-6A"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Marisol can confirm the radio call and that I signed off at the end. The ticket and my parts request in the system show my work. I do not know whether anyone else went into R-6 that night.",
+          "protected": [
+            "I do not know whether anyone else went into R-6 that night"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the motion recorded in Suite R-6 at 21:38 and 21:47?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I had already left R-6 around twenty-five past nine, so I was not inside then. I was in the tech room ordering the part. I do not know what caused those two events or which ones were false triggers.",
+          "protected": [
+            "I had already left R-6 around twenty-five past nine"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-D",
+      "family_id": "F09",
+      "variant": "deceptive",
+      "exchanges": [
+        {
+          "turn": 1,
+          "question": "Could you describe, in your own words, your morning at the Halvern Street Annex on 15 April 2026, from your arrival to the start of the 09:00 review?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "I drove in and came through the north staff door on my badge. Then I got Room 2-07 and the projector ready for nine, as Ms Ashby had asked me the day before. Mr Keable was with me when she came in around five to nine.",
+          "protected": [
+            "Mr Keable was with me when she came in around five to nine"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "What happened next?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03"
+          ],
+          "answer": "The review started at nine and ran a little over an hour. Ms Ashby led it, and I took the notes. It finished just after ten, and at about ten past ten I walked Mr Keable out of the room.",
+          "protected": [
+            "at about ten past ten I walked Mr Keable out of the room"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "We have Visitor register of the main lobby security desk, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-03",
+            "rec-05"
+          ],
+          "answer": "I see no entry for him on the register, so he did not sign in at the lobby desk. I do not know who was signing in at the desk that morning, so I cannot add anything about it.",
+          "protected": [
+            "he did not sign in at the lobby desk"
+          ]
+        },
+        {
+          "turn": 4,
+          "question": "We have Fault ticket for the north staff door camera, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I did not know the north staff door camera was down. Nobody told me about the fault, and I cannot say when it was or was not recording. That ticket is the first I have heard of it.",
+          "protected": [
+            "I did not know the north staff door camera was down"
+          ]
+        },
+        {
+          "turn": 5,
+          "question": "We have Written statement, Gwendolyn Ashby, Contracts Officer (16 April 2026). Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "That matches my memory. On 14 April she asked me to meet Mr Keable and set up Room 2-07. She came into the room at about five to nine, and I walked him out at about ten past ten.",
+          "protected": [
+            "On 14 April she asked me to meet Mr Keable and set up Room 2-07"
+          ]
+        },
+        {
+          "turn": 6,
+          "question": "We have Security Operations review of lift lobby camera C-12, 15 April 2026, 08:30 to 09:05. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Yes, that is me with Mr Keable in the north corridor at about 08:41. We took the lift up together and went straight to Room 2-07. I did not go down to the main lobby before the review.",
+          "protected": [
+            "I did not go down to the main lobby before the review"
+          ]
+        },
+        {
+          "turn": 7,
+          "question": "We have Outgoing call log of the main lobby security desk telephone, 15 April 2026. Can you tell me about it?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I do not know what calls the desk made that morning. The log shows one call, at 09:38 to Facilities. I cannot tell you more about the desk phone than what is printed there.",
+          "protected": [
+            "I do not know what calls the desk made that morning"
+          ]
+        },
+        {
+          "turn": 8,
+          "question": "Can you go through that period again, starting from the end and working backwards?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I walked Mr Keable out of the room at about ten past ten, after the review ended just after ten. The review began at nine. Ms Ashby joined at about five to nine. Before that I took Mr Keable up in the lift to Room 2-07, after I badged in at 08:41.",
+          "protected": [
+            "I took Mr Keable up in the lift to Room 2-07"
+          ]
+        },
+        {
+          "turn": 9,
+          "question": "Can you tell me about your entry through the north staff door at 08:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "That was my badge, and it was the only time I badged into the building that day. I came from the staff car park. I did not time how long the door stayed open, so I cannot tell you more about those seconds.",
+          "protected": [
+            "it was the only time I badged into the building that day"
+          ]
+        },
+        {
+          "turn": 10,
+          "question": "What was the purpose of your entry through the north staff door at 08:41?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "I use that door every day when I drive in. That morning I also had to meet Mr Keable and ready Room 2-07 for nine, as Ms Ashby had asked me on 14 April.",
+          "protected": [
+            "I also had to meet Mr Keable and ready Room 2-07 for nine"
+          ]
+        },
+        {
+          "turn": 11,
+          "question": "Who else was present, or could confirm what you have described?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "Ms Ashby came into Room 2-07 at about five to nine and found Mr Keable and me already there. Mr Keable was with me through the whole review. I do not know who else used the north staff door that morning.",
+          "protected": [
+            "found Mr Keable and me already there"
+          ]
+        },
+        {
+          "turn": 12,
+          "question": "Can you tell me about the arrival of the Penwick Document Services visitor that morning?",
+          "released_before": [
+            "doc-01",
+            "doc-02",
+            "doc-03",
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04",
+            "rec-05"
+          ],
+          "answer": "He was with me in the north corridor around 08:41, and we went up together to Room 2-07. The register shows he did not sign in at the lobby. Beyond what the register and the camera show, I have nothing to add.",
+          "protected": [
+            "The register shows he did not sign in at the lobby"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,359 @@
+{
+  "fixture": "FX-GUARD-CLEAN",
+  "spec": "S2 6.9, 11.1, AT-SUBJ-6",
+  "note": "Clean subject sentences: the S2 6.9 near-miss list, authored near misses and 40 answers from the development transcripts. The guard must reject none. A dev-pilot rejection judged false is fixed by narrowing the rule and adding the sentence here, never by switching the rule off.",
+  "sentences": [
+    {
+      "text": "I showed my badge at the gate",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "my role was to check the server room",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "the badge system should log every entry",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "my assistant manager signed it",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I'm not guilty of anything",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I was honest with you",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I want it on the record that I am innocent.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "For the record, I was honest about the time.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "The log should record that I was there at 21:40.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I keep a record that I was on shift that night.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "Security cleared me at the gate.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "Coach Lee, our shift lead, asked me to cover.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "Judge for yourself, the panel log shows it.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "My reviewer signed the timesheet on Friday.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I label every sample tube before it goes in the freezer.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "Can we end the interview now? I'm tired.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "I rate the new badge readers as unreliable.",
+      "source": "S2 6.9 near-miss list"
+    },
+    {
+      "text": "The supervisor asked me to record the readings every hour.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I was on the late shift, so I covered the loading dock.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "My manager can confirm I was in the server room until six.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The panel showed a humidity alarm for the vault.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "Honestly, I do not remember the exact minute I left.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I'm not sure who else was in the corridor.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "We keep the spare cards in a lockbox by the desk.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The door log should show my badge at 14:07.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I signed the visitor register at the front desk.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I would rather not discuss my medical appointment; it is personal.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The auditor will judge whether the seal was intact.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I asked the security desk to clear the alarm.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "Our team lead rates every shift report on Fridays.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I think the free parking lot was full.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "It was a routine check; nothing unusual happened.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I held the door with a cart while I emptied the tank.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I don't recall anyone else being there, but I can't be certain.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The elevator log would show two trips that evening.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I printed the work order before I went down.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "Please repeat the question; I missed the last part.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I rated the call as urgent in the ticket.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "We mark the tubes with the date before freezing them.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I can label the boxes again if that helps.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The final verdict of the safety audit was a pass.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "Security cleared the floor at nine and I went home.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I am not an expert on the alarm system.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I saw the training schedule on the board.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "There was a fire drill scenario planned for March.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "I told my supervisor before I left.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The hold music on the help line played for ten minutes.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "The core of the job is checking doors and alarms.",
+      "source": "authored near miss"
+    },
+    {
+      "text": "We were two technicians down that shift. Around two, Ines radioed me about a humidity alarm in the B wing and said B-12. I went to the vault, reset the tripped dehumidifier, and emptied its full condensate tank.",
+      "source": "TX-F01-T t01"
+    },
+    {
+      "text": "That matches what I remember. Ines named B-12 at 14:01 and I answered that I was on my way. The 14:25 call is me reporting the reset and the emptied tank. I wasn't sure that call went through, so it's good to see it logged.",
+      "source": "TX-F01-T t04"
+    },
+    {
+      "text": "That fits. I didn't open or handle any sealed box, and the audit shows every seal matching the register and no seals issued that day. I didn't know anything about the audit until now.",
+      "source": "TX-F01-T t07"
+    },
+    {
+      "text": "The purpose was the humidity alarm. Ines dispatched me on the radio at 14:01, the panel showed it for B-12, and the dehumidifier was tripped. I reset it and emptied the full condensate tank. I didn't go in for anything else.",
+      "source": "TX-F01-T t10"
+    },
+    {
+      "text": "It was pouring that evening. I had left my medication in my desk drawer when I went home at five, so Evan, my partner, drove me back. I badged in at the east staff door a little before quarter to eight, went up to the records floor, collected it, and left.",
+      "source": "TX-F02-T t01"
+    },
+    {
+      "text": "I had not seen those trip records before today. They show one person on each trip, which fits my account, since I rode alone. I do not know whose 20:31 trip it is, because I had left the building by then.",
+      "source": "TX-F02-T t04"
+    },
+    {
+      "text": "I had not seen Bram's statement, and it matches my account. He was cleaning near the elevators when I came in, and I came in alone. I do not remember exactly what I said to him, but forgetting something upstairs is accurate.",
+      "source": "TX-F02-T t07"
+    },
+    {
+      "text": "I came back only to collect my medication. I had left it in my desk drawer when I went home at five. It is a personal matter, so I would rather not discuss what it is for, but it was the only reason I came in.",
+      "source": "TX-F02-T t10"
+    },
+    {
+      "text": "The monitor paged me at five to seven because switch SW-2B was down. I was on call, so I came in through the lobby just after seven. My own access to Network Room N-3 had been removed the evening before, so I signed out a spare card from the IT lockbox under the outage procedure and went in.",
+      "source": "TX-F03-T t01"
+    },
+    {
+      "text": "That is my ticket, opened about half past seven. It says SW-2B was unreachable since 06:55 and that I entered N-3 at 07:12 with spare card A-2291 under OP-7, because my own access was pending recertification. It also says I power-cycled the switch and it was reachable at 07:26.",
+      "source": "TX-F03-T t04"
+    },
+    {
+      "text": "I had not seen this before. It shows the card was issued to Rafael Haddad in 2023, deactivated for him on 28 February, and reassigned on 1 March to the IT lockbox spare pool. I did not know it had ever been anyone's personal card.",
+      "source": "TX-F03-T t07"
+    },
+    {
+      "text": "The purpose was to restore SW-2B. It was down, I was on call, and the switch needed a power cycle from inside N-3. My own access was off because my recertification training is overdue, so under OP-7 I used the lockbox spare card. I was inside only to fix the outage.",
+      "source": "TX-F03-T t10"
+    },
+    {
+      "text": "We were two technicians down. Around two Ines radioed me about a humidity alarm in the B wing, in B-10, the supply room next to the vault. I reset the dehumidifier there, and the alarm cleared a few minutes later. I radioed that B-10 was done.",
+      "source": "TX-F01-D t01"
+    },
+    {
+      "text": "That matches what I remember. Ines named B-10 at 14:01 and I said I was on my way. At 14:05 I reported that B-10 was done. Everything I did on that call was in B-10.",
+      "source": "TX-F01-D t04"
+    },
+    {
+      "text": "The drawer log shows seal 55419 was taken at 14:15. I took it from the supply drawer and put it on box ACQ-117. I have no custodian release for that. I'm not going to say more about it right now.",
+      "source": "TX-F01-D t07"
+    },
+    {
+      "text": "I had no assigned task in B-12. My dispatch and the work order were both for B-10. I don't have anything further to say about the reason I went in.",
+      "source": "TX-F01-D t10"
+    },
+    {
+      "text": "I started at half past seven. At about twenty to eight I went out the dock door to bring the two overnight mail bins in from the courier cage, and my badge opened the door when I came back. I sorted the mail, then went on the internal mail round.",
+      "source": "TX-F04-T t01"
+    },
+    {
+      "text": "I did not know Theo had parked there. What he describes matches what I did. I was at the dock door pushing the two bins in one at a time, on my own, and nobody else was on the dock.",
+      "source": "TX-F04-T t04"
+    },
+    {
+      "text": "Working back, Felix was repairing the meter with Ruth when I returned at about half past eight. Before that I was on the mail round from just before eight. Before that I sorted the overnight mail, after bringing two bins in at about 7:41.",
+      "source": "TX-F04-T t07"
+    },
+    {
+      "text": "Nobody else was in the mail room before eight, because I was the only mail room staff member at work. Theo Marsh says he saw me at the dock door pushing the bins in alone. Ruth Delacroix and Felix Arno can speak to what happened after I left.",
+      "source": "TX-F04-T t10"
+    },
+    {
+      "text": "Tobias and I were rostered on the evening shift. The backup finished late at 20:41, so at 20:45 Hester phoned from the annex and asked me to get the fourteen courier tapes out of TV-1. I released spare card SP-3 at 21:08, the vault opened at 21:14, and I pulled the tapes.",
+      "source": "TX-F05-D t01"
+    },
+    {
+      "text": "That is right. His renewal was not entered before the quarterly review, so his vault access came off his badge at six that evening. I do not know why it had not been entered. His vault-handling certification is still current, the same as mine.",
+      "source": "TX-F05-D t04"
+    },
+    {
+      "text": "Yes, one person went in at 21:14 and one came out at 21:51. That was me. I worked in the vault alone until I left by the exit button, and I pulled the fourteen tapes for the courier.",
+      "source": "TX-F05-D t07"
+    },
+    {
+      "text": "I released SP-3 from the NOC key cabinet on my PIN at 21:08. The cabinet only releases a spare card to the PIN of someone whose badge opens the vault, and it logs the card against that PIN. I returned it at 22:05.",
+      "source": "TX-F05-D t10"
+    },
+    {
+      "text": "On the evening of 25 February I was on shift as building engineer. The Operations desk sent me a service request at 18:44 about a ceiling drip on the fourth-floor east corridor. I phoned the duty manager, Marcus Ebdon, who approved key K-14, and I took it from the key cabinet at 18:52.",
+      "source": "TX-F06-T t01"
+    },
+    {
+      "text": "That matches what I remember. The night custodian reported the water first, Gail Fenwick sent me the request, and Marcus Ebdon's approval of K-14 is logged at 18:49. My own call reported the leak over 417, the closed valve and the six boxes, at about a quarter to eight.",
+      "source": "TX-F06-T t04"
+    },
+    {
+      "text": "I did not use that copier and made no copies in Room 417. I know nothing about the job at 16:52, which was long before my service request. I did not open any file box or touch the papers on the desks.",
+      "source": "TX-F06-T t07"
+    },
+    {
+      "text": "The request did not say which room. I found the cracked drain line leaking above 417, with water coming through the ceiling onto the shelves, so I went in to deal with it and protect the boxes from the water.",
+      "source": "TX-F06-T t10"
+    },
+    {
+      "text": "I worked the morning, then took personal leave from half past twelve. That evening Celia had asked me to collect the Corbel Lane training kit and get it there before the morning session, so I came back in through the loading dock with my badge and went into the store.",
+      "source": "TX-F07-D t01"
+    },
+    {
+      "text": "I booked the afternoon of 7 April as personal leave on 30 March, and Celia approved it. Giving a reason is optional under the policy, so I would rather keep the reason to myself. It has nothing to do with the kit.",
+      "source": "TX-F07-D t04"
+    },
+    {
+      "text": "The bin shows two short and I can't dispute that. At about five to eight I packed two cordless drill kits from the tool bin into a second carton. I had not seen those stock counts before today.",
+      "source": "TX-F07-D t07"
+    },
+    {
+      "text": "My badge opened the store door at 19:52, and I went to the dispatch shelf for the projector kit Celia had left. I packed the second carton from the tool bin before I left, as I have said.",
+      "source": "TX-F07-D t10"
+    },
+    {
+      "text": "At about ten to nine Marisol radioed me about an alarm fault by R-6 and put ticket SR-3051 in my queue. A bit after nine I went into R-6 and worked on motion detector MS-6A. Then I ordered a new detector head and updated the ticket.",
+      "source": "TX-F08-T t01"
+    },
+    {
+      "text": "Marisol raised it for the fault alarm and assigned it to me. It was for MS-6A inside R-6, with repeated motion alarms and nobody in the room. The updates are mine. The detector head was failing, I could not repair it on site, and I left it in service.",
+      "source": "TX-F08-T t04"
+    },
+    {
+      "text": "I have not seen this log. I do not know how the new panel reports tampering. Calder put that panel in on 3 March, and I did not open it. I only worked on the detector MS-6A that night.",
+      "source": "TX-F08-T t07"
+    },
+    {
+      "text": "I went in to work on the faulty motion detector MS-6A, which was named on my ticket SR-3051. I walk-tested it twice and saw the head was failing. When that work stopped, I left R-6 by the push bar.",
+      "source": "TX-F08-T t10"
+    },
+    {
+      "text": "I drove in and came through the north staff door on my badge. Then I got Room 2-07 and the projector ready for nine, as Ms Ashby had asked me the day before. Mr Keable was with me when she came in around five to nine.",
+      "source": "TX-F09-D t01"
+    },
+    {
+      "text": "I did not know the north staff door camera was down. Nobody told me about the fault, and I cannot say when it was or was not recording. That ticket is the first I have heard of it.",
+      "source": "TX-F09-D t04"
+    },
+    {
+      "text": "I do not know what calls the desk made that morning. The log shows one call, at 09:38 to Facilities. I cannot tell you more about the desk phone than what is printed there.",
+      "source": "TX-F09-D t07"
+    },
+    {
+      "text": "I use that door every day when I drive in. That morning I also had to meet Mr Keable and ready Room 2-07 for nine, as Ms Ashby had asked me on 14 April.",
+      "source": "TX-F09-D t10"
+    }
+  ]
+}

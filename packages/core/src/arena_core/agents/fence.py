@@ -22,8 +22,9 @@ _TAG_LO, _TAG_HI = 0xE0000, 0xE007F
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 
 # Chat-role and instruction-template delimiters an attacker might embed to impersonate the system or
-# break framing. Only these are stripped (not every `<...>`), so `a < b` style text survives.
-_INJECTION_MARKERS = re.compile(
+# break framing. Only these are stripped (not every `<...>`), so `a < b` style text survives. Public because S2
+# 6.9 G2 rejects the same markers (`arena_core.safety.guard`): one marker set for the fence and the guard.
+INJECTION_MARKERS = re.compile(
     r"</?\s*(?:system|user|assistant|human|ai|tool|function|developer|sys)\s*>"
     r"|<\|[^>]{0,40}\|>"
     r"|\[/?\s*INST\s*\]|<</?\s*SYS\s*>>"
@@ -54,4 +55,4 @@ def sanitize_untrusted_text(text: str) -> str:
         out.append(ch)
     cleaned = unicodedata.normalize("NFKC", "".join(out))
     cleaned = _HTML_COMMENT.sub("", cleaned)
-    return _INJECTION_MARKERS.sub("", cleaned)
+    return INJECTION_MARKERS.sub("", cleaned)

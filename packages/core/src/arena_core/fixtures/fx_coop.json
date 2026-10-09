@@ -1,0 +1,6 @@
+{
+  "fixture": "FX-COOP",
+  "spec": "S2 11.1, 11.2 EV-COACH-2",
+  "note": "Three development transcripts in which a truthful subject answers every question responsively and every claim matches the packet or a released record. The transcripts are in dev_transcripts.json.",
+  "transcripts": ["TX-F01-T", "TX-F02-T", "TX-F03-T"]
+}

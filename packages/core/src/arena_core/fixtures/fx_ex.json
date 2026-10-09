@@ -1,0 +1,18 @@
+{
+  "fixture": "FX-EX",
+  "spec": "S2 11.1, 11.2 EV-COACH-1",
+  "note": "The slide 8 exchange inside the facility-access development case F01 at t01.",
+  "family_id": "F01",
+  "variant": "truthful",
+  "exchanges": [
+    {"turn": 1, "question": "Why did you enter?", "released_before": ["doc-01", "doc-02", "doc-03"], "answer": "It was a busy shift.", "protected": ["It was a busy shift."]}
+  ],
+  "expected": {
+    "flag_kinds": ["gap", "non_responsive"],
+    "flag_turn": "t01",
+    "flag_quote": "It was a busy shift.",
+    "missing_fact_topic": "the purpose of entry",
+    "finding_label": "insufficient_evidence",
+    "finding_label_never": "deceptive"
+  }
+}

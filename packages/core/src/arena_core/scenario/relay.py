@@ -31,8 +31,9 @@ R9 also collapses whitespace after removing punctuation, so "B - 12" and "B 12" 
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from typing import Any
 
 from arena_core.agents.fence import sanitize_untrusted_text
 
@@ -195,6 +196,7 @@ REPLAY_SCRIPT: tuple[str, ...] = (
     "Is there anything else you think we should know?",
 )
 REPLAY_TOPIC_COUNT = 3
+REPLAY_EXCHANGES = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -306,3 +308,106 @@ def evidence_slot_question(title: str, date: str | None = None) -> str:
     if date:
         return f"We have {title}, dated {date}. Can you tell me about it?"
     return f"We have {title}. Can you tell me about it?"
+
+
+@dataclass(frozen=True, slots=True)
+class ReleasedRecord:
+    """A record released in a replay-corpus trial: `released_after` is S4's `released_after_exchanges` (the
+    number of completed exchanges when it was released), `date` the public packet's optional record date."""
+
+    record_id: str
+    released_after: int
+    title: str
+    date: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayExchange:
+    """One replay-script question: a script row (1-based `script_row`) or an evidence slot (`record_id`)."""
+
+    exchange: int
+    question: str
+    script_row: int | None = None
+    record_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayPlan:
+    """The predicted corpus interview of one case: the records requested before each exchange (`requests[n]`,
+    n = 1..12) and the 12 questions."""
+
+    requests: dict[int, list[str]] = field(default_factory=dict)
+    exchanges: tuple[ReplayExchange, ...] = ()
+
+
+def replay_requests(
+    requestable: Iterable[Mapping[str, Any]], completed: int, already_requested: Iterable[str]
+) -> list[str]:
+    """C-23 (S2 8.6): before exchange `completed + 1`, every requestable record whose
+    `requestable_after_exchanges` is at most `completed` and that has not been requested yet, in record-ID
+    order. It reads no assistant input and no subject text."""
+    done = set(already_requested)
+    return sorted(
+        str(r["record_id"])
+        for r in requestable
+        if int(r["requestable_after_exchanges"]) <= completed and r["record_id"] not in done
+    )
+
+
+def replay_questions(
+    opening_question: str,
+    replay_topics: Sequence[str],
+    releases: Iterable[ReleasedRecord],
+    exchanges: int = REPLAY_EXCHANGES,
+) -> list[ReplayExchange]:
+    """S2 8.6 with the evidence-slot rule: exchange n asks about the earliest-released record released before
+    it (`released_after <= n - 1`) that has not been asked about yet, ties in record-ID order, instead of the
+    next script row; the script resumes at the row it displaced. Records left over when the exchanges run out
+    are not asked. Exchange 1 is always the opening question (S2 8.1), so a record released before exchange
+    1 is asked at exchange 2 at the earliest."""
+    rows = render_replay_script(opening_question, replay_topics)
+    pending = sorted(releases, key=lambda r: (r.released_after, r.record_id))
+    out: list[ReplayExchange] = []
+    row = 0
+    for n in range(1, exchanges + 1):
+        due = next((r for r in pending if r.released_after <= n - 1), None) if n > 1 else None
+        if due is not None:
+            pending.remove(due)
+            out.append(ReplayExchange(n, evidence_slot_question(due.title, due.date), record_id=due.record_id))
+        else:
+            out.append(ReplayExchange(n, rows[row], script_row=row + 1))
+            row += 1
+    return out
+
+
+def replay_question(
+    n: int, opening_question: str, replay_topics: Sequence[str], releases: Iterable[ReleasedRecord]
+) -> ReplayExchange:
+    """The question for exchange n given the releases recorded so far. Only releases made before exchange n
+    count, so the answer never changes when a later release is recorded (the live harness asks one at a time)."""
+    if not 1 <= n <= REPLAY_EXCHANGES:
+        msg = f"replay_script.v1 has exchanges 1 to {REPLAY_EXCHANGES}, not exchange {n}"
+        raise ValueError(msg)
+    known = [r for r in releases if r.released_after <= n - 1]
+    return replay_questions(opening_question, replay_topics, known, exchanges=n)[-1]
+
+
+def plan_replay(public_packet: Mapping[str, Any], scheduled: Iterable[ReleasedRecord]) -> ReplayPlan:
+    """The whole corpus interview predicted from the packets: each requestable record requested (and so
+    released) at its first eligible exchange, each scheduled record released at its `after_exchanges`. Used to
+    check a case before it runs (AT-HAR-5); the live harness uses `replay_requests` and `replay_question` on the
+    releases `release_evidence` actually returns."""
+    requestable = list(public_packet["requestable_records"])
+    requested: list[str] = []
+    requests: dict[int, list[str]] = {}
+    for n in range(1, REPLAY_EXCHANGES + 1):
+        requests[n] = replay_requests(requestable, n - 1, requested)
+        requested.extend(requests[n])
+    released = [
+        ReleasedRecord(str(r["record_id"]), int(r["requestable_after_exchanges"]), str(r["title"]), r.get("date"))
+        for r in requestable
+        if r["record_id"] in requested
+    ]
+    released.extend(r for r in scheduled if r.released_after <= REPLAY_EXCHANGES - 1)
+    questions = replay_questions(public_packet["opening_question"], public_packet["replay_topics"], released)
+    return ReplayPlan(requests, tuple(questions))
