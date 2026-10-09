@@ -131,12 +131,19 @@ export interface OneShotTracker {
   readonly active: { readonly kind: OneShot; readonly startedAt: number } | null;
 }
 
-/** A tracker for one session, seeded from the current signals so that history never animates. */
-export function startOneShots(signals: CompanionSignals): OneShotTracker {
+/**
+ * A tracker for one session. The card counters are seeded from the current signals so that card
+ * history never animates; `celebrated` starts false because `sessionReady` is a level, not a
+ * counter: a tracker mounted after the first snapshot already set it still owes the one
+ * celebration (S6 6.3). The session owns "already celebrated": a caller that recreates the tracker
+ * within the same session passes `celebrated` (the previous tracker's flag) so it never repeats.
+ * The producer sets `sessionReady` only for a new running session.
+ */
+export function startOneShots(signals: CompanionSignals, celebrated = false): OneShotTracker {
   return {
     flagSeen: signals.flagSignal,
     encourageSeen: signals.encourageSignal,
-    celebrated: signals.sessionReady,
+    celebrated,
     active: null,
   };
 }

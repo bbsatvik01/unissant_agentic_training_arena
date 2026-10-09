@@ -19,6 +19,12 @@
  * progress refills the budget. A bare open, a heartbeat or a malformed frame never does, so a
  * stream that opens and idles, or emits junk, still reaches give-up.
  *
+ * Healthy-end invariant (arena fix): a clean server-initiated stream end is not a failure. The
+ * server ends every healthy response at `stream_max_s` (S5 6.4) and `EventSource` reports that end
+ * as an error, so a connection that stayed open for `healthyAfterMs` (90% of that limit) or longer refills the budget
+ * and restarts the backoff when it ends. A connection that dies before the server's limit (a drop,
+ * a proxy cut, a flapping stream) still counts as a failure and still reaches give-up.
+ *
  * Attempt invariant (arena fix): only the newest connection attempt may take effect. Every attempt
  * starts a new generation; an attempt whose ticket mint settles after a newer attempt started, or
  * after `close()` or `finish()`, opens nothing and schedules nothing, so a `reconnect()` while a
@@ -56,6 +62,10 @@ export interface TicketedStreamOptions {
   onRetry?: (info: { attempt: number; delayMs: number }) => void;
   onGiveUp?: (info: { attempt: number; error: unknown }) => void;
   maxRetries?: number;
+  /** A connection open at least this long (ms) is healthy; its end is not a failure. Default 540 s (90% of stream_max_s). */
+  healthyAfterMs?: number;
+  /** Clock in ms, a test seam. Defaults to `Date.now`. */
+  now?: () => number;
   /**
    * Resume point carried over from an earlier handle (the view already holds events up to it).
    * Without it a new handle would replay from the start while the view ignores the duplicates.
@@ -83,6 +93,9 @@ export interface TicketedStreamHandle {
 
 export const DEFAULT_MAX_RETRIES = 5;
 
+/** 90% of `stream_max_s` (600 s, S5 6.4): only a connection that ran to the server's limit is a clean end. */
+export const DEFAULT_HEALTHY_AFTER_MS = 540_000;
+
 export const defaultBackoff = (attempt: number) => Math.min(2_000 * attempt, 15_000);
 
 function defaultFactory(url: string): EventSourceLike {
@@ -98,6 +111,8 @@ export function openTicketedStream(options: TicketedStreamOptions): TicketedStre
     onRetry,
     onGiveUp,
     maxRetries = DEFAULT_MAX_RETRIES,
+    healthyAfterMs = DEFAULT_HEALTHY_AFTER_MS,
+    now = Date.now,
     backoffMs = defaultBackoff,
     eventSourceFactory = defaultFactory,
     scheduler,
@@ -119,6 +134,7 @@ export function openTicketedStream(options: TicketedStreamOptions): TicketedStre
   let retryHandle: number | null = null;
   let lastEventId: string | null = initialLastEventId;
   let generation = 0;
+  let openedAt: number | null = null;
 
   const halted = (): boolean => stopped || finished;
 
@@ -191,10 +207,14 @@ export function openTicketedStream(options: TicketedStreamOptions): TicketedStre
       return;
     }
     source = es;
-    es.onopen = () => onOpen?.();
+    openedAt = null;
+    es.onopen = () => {
+      openedAt = now();
+      onOpen?.();
+    };
     es.onmessage = (event: MessageEvent) => {
-      // The resume cursor advances only past frames the caller accepted: a rejected frame is
-      // re-requested on the next connection instead of being skipped for good.
+      // A rejected frame never moves the resume cursor itself. A later accepted frame does move
+      // it past the rejected one, so the rejected frame is not re-requested after that (S6 FE-SSE-1).
       const verdict = onMessage(event);
       if (verdict === false) return;
       attempt = 0;
@@ -211,6 +231,8 @@ export function openTicketedStream(options: TicketedStreamOptions): TicketedStre
         return;
       }
       closeSource();
+      // A long-lived connection ending is the server's stream_max_s, not a fault: fresh budget.
+      if (openedAt !== null && now() - openedAt >= healthyAfterMs) attempt = 0;
       scheduleRetry(event);
     };
   };

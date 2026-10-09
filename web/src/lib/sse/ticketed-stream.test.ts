@@ -31,7 +31,8 @@ class FakeES implements EventSourceLike {
   }
 }
 
-function harness(opts: { maxRetries?: number; resolveFails?: number; factoryThrows?: boolean; accept?: (d: string) => boolean; initial?: string } = {}) {
+function harness(opts: { maxRetries?: number; resolveFails?: number; factoryThrows?: boolean; accept?: (d: string) => boolean; initial?: string; healthyAfterMs?: number } = {}) {
+  const clock = { t: 0 };
   const sources: FakeES[] = [];
   const contexts: ResolveContext[] = [];
   const timers: { fn: () => void; ms: number }[] = [];
@@ -54,6 +55,8 @@ function harness(opts: { maxRetries?: number; resolveFails?: number; factoryThro
     onGiveUp: (g) => giveUps.push(g.attempt),
     ...(opts.maxRetries !== undefined ? { maxRetries: opts.maxRetries } : {}),
     ...(opts.initial !== undefined ? { initialLastEventId: opts.initial } : {}),
+    ...(opts.healthyAfterMs !== undefined ? { healthyAfterMs: opts.healthyAfterMs } : {}),
+    now: () => clock.t,
     eventSourceFactory: (url) => {
       if (opts.factoryThrows) throw new Error("no EventSource");
       const es = new FakeES(url);
@@ -74,7 +77,7 @@ function harness(opts: { maxRetries?: number; resolveFails?: number; factoryThro
     for (const t of due) t.fn();
     await flush();
   };
-  return { handle, sources, contexts, timers, retries, giveUps, opened, flush, runTimers };
+  return { handle, sources, contexts, timers, retries, giveUps, opened, flush, runTimers, clock };
 }
 
 describe("openTicketedStream", () => {
@@ -130,6 +133,34 @@ describe("openTicketedStream", () => {
     h.sources[0]?.fail();
     await h.runTimers();
     expect(h.sources[1]?.url).toBe("/stream?ticket=t2&after=1");
+  });
+
+  it("a clean server-initiated end of a long-lived connection is not a failure: it never exhausts the budget", async () => {
+    const h = harness({ maxRetries: 2, healthyAfterMs: 540_000 });
+    await h.flush();
+    for (let i = 0; i < 6; i += 1) {
+      h.sources[i]?.open();
+      h.clock.t += 600_000; // stream_max_s, only heartbeats in between
+      h.sources[i]?.fail();
+      await h.runTimers();
+    }
+    expect(h.giveUps).toEqual([]);
+    expect(h.retries.every((r) => r.attempt === 1)).toBe(true);
+    expect(h.sources).toHaveLength(7);
+  });
+
+  it("a connection that ends before the server's limit still counts as a failure", async () => {
+    const h = harness({ maxRetries: 2, healthyAfterMs: 540_000 });
+    await h.flush();
+    for (let i = 0; i < 2; i += 1) {
+      h.sources[i]?.open();
+      h.clock.t += 539_999; // a premature end, even after minutes
+      h.sources[i]?.fail();
+      await h.runTimers();
+    }
+    h.sources[2]?.open();
+    h.sources[2]?.fail();
+    expect(h.giveUps).toEqual([3]);
   });
 
   it("resets the attempt counter after a real event", async () => {

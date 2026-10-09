@@ -241,8 +241,29 @@ describe("one-shot windows: newest wins, noticing over encouraging over celebrat
     ...over,
   });
 
-  it("does not replay history: a tracker started mid-session holds no one-shot", () => {
-    const tracker = startOneShots(signals({ flagSignal: 4, encourageSignal: 2, sessionReady: true }));
+  it("does not replay card history: a tracker started mid-session holds no card one-shot", () => {
+    const tracker = startOneShots(signals({ flagSignal: 4, encourageSignal: 2 }));
+    expect(activeOneShot(tracker, 0)).toBeNull();
+    expect(activeOneShot(trackOneShots(tracker, signals({ flagSignal: 4, encourageSignal: 2 }), 10), 10)).toBeNull();
+  });
+
+  it("celebrates once when the tracker mounts after the first snapshot already set sessionReady (S6 6.3)", () => {
+    const ready = signals({ sessionReady: true });
+    const tracker = startOneShots(ready);
+    const t = trackOneShots(tracker, ready, 5);
+    expect(activeOneShot(t, 5)).toBe("celebrating");
+    expect(activeOneShot(trackOneShots(t, ready, 5000), 5000)).toBeNull();
+  });
+
+  it("never celebrates twice in one session: a tracker recreated after the celebration is seeded as celebrated", () => {
+    const ready = signals({ sessionReady: true });
+    const first = trackOneShots(startOneShots(ready), ready, 0);
+    const remounted = startOneShots(ready, first.celebrated);
+    expect(activeOneShot(trackOneShots(remounted, ready, 10), 10)).toBeNull();
+  });
+
+  it("does not replay history: a tracker started mid-session with celebration consumed holds no one-shot", () => {
+    const tracker = startOneShots(signals({ flagSignal: 4, encourageSignal: 2, sessionReady: true }), true);
     expect(activeOneShot(tracker, 0)).toBeNull();
     expect(activeOneShot(trackOneShots(tracker, signals({ flagSignal: 4, encourageSignal: 2, sessionReady: true }), 10), 10)).toBeNull();
   });
