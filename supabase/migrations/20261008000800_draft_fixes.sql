@@ -1,7 +1,7 @@
--- 0008 reservation fixes (S4 section 8.3, 8.4; WP-03). Not a draft port: three defects the WP-03 Codex gate found in
--- the v2.7 drafts of ops.reserve_model_call and ops.reserve_voice (docs/spec/sql/0006_ops_budget_traces.sql), fixed
--- here so 0001-0006 stay the drafts unchanged in substance; proposed for the spec's next revision. Each function is
--- the draft's body with the marked changes; `create or replace` keeps its grants (capability fixture unchanged).
+-- 0008 draft fixes (S4 sections 8.3, 8.4 and the voice path of 6.3; WP-03). Not a draft port: six defects the WP-03
+-- Codex gates found in the v2.7 drafts (docs/spec/sql/0005_training.sql, 0006_ops_budget_traces.sql), fixed here so
+-- 0001-0006 stay the drafts unchanged in substance; proposed for the spec's next revision. Each function is the
+-- draft's body with the marked changes; `create or replace` keeps its grants (capability fixture unchanged).
 --   Fix 1: the model-call worst case is attempts x ceil(per-attempt worst case) micro-dollars. The draft rounded
 --          once after multiplying, while ops.record_usage rounds each receipt up, so four permitted receipts of a
 --          6,001-byte card on gemini-3.5-flash-lite ($0.005801 each, $0.023204) exceeded the $0.023202 reservation
@@ -12,7 +12,11 @@
 --   Fix 4: ops.record_usage: a repeated report number with different usage is AR003 (the draft returned `exists`
 --          and dropped the conflicting usage), and a repeat returns spend, reservation and shutoff as they stand,
 --          so a voice caller whose first response was lost still learns to stop (S4 8.4, 8.6).
--- Gates: supabase/tests/014_budget.sql BU-38, BU-39, BU-40, BU-41.
+--   Fix 5: training.record_voice_exchange: a repeated exchange answered `released: []` even when its original
+--          commit released scheduled evidence; it now answers that release (from the release rows and their event).
+--   Fix 6: training.open_voice_session rechecks the per-user daily voice quota under a per-actor lock; the draft
+--          checked it only at ticket issue, so pre-issued tickets could exceed it. Quota values are unchanged.
+-- Gates: supabase/tests/014_budget.sql BU-38..BU-41; supabase/tests/015_voice.sql VB-21..VB-23.
 
 create or replace function ops.reserve_model_call(p_idempotency_key text, p_bucket text, p_model text, p_call_kind text,
                                                   p_purpose text, p_trial uuid, p_actor uuid, p_input_bytes integer)
@@ -197,4 +201,89 @@ begin
   return jsonb_build_object('outcome', 'recorded', 'cost_usd', v_cost, 'spend_usd', v_spend, 'reserved_usd', v.reserved_usd,
                             'shutoff', v.kind <> 'model_call'
                                        and (v_spend >= v.reserved_usd * 2 / 3 or v_cfg.kill_switch));
+end $$;
+
+create or replace function training.record_voice_exchange(p_voice_session uuid, p_exchange_no smallint,
+                                                          p_lines jsonb)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v     arena.trials;
+  v_x   training.voice_exchanges;
+  v_rel jsonb;
+begin
+  perform ledger.require_read_committed();
+  select t.* into v from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
+    join arena.trials t on t.id = s.trial_id where vs.id = p_voice_session;
+  if v.id is null then
+    raise exception using errcode = 'AR040', message = 'voice exchange refused';
+  end if;
+  v := arena._lock_trial(v.id);
+  select * into v_x from training.voice_exchanges where trial_id = v.id and exchange_no = p_exchange_no;
+  if found then
+    if (v_x.voice_session_id, v_x.lines) is distinct from (p_voice_session, p_lines) then
+      raise exception using errcode = 'AR003', message = 'exchange number reused with different content';
+    end if;
+    -- Fix 5: a repeat answers what the original call released (the scheduled releases its commit applied: no work
+    -- item, after this exchange), so a caller whose first response was lost still updates Live's context.
+    return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'exists',
+      'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', r.record_id, 'kind', r.kind)
+                                             order by r.record_id collate "C"), '[]'::jsonb)
+                     from arena.released_evidence r join ledger.events e on e.seq = r.event_seq
+                    where r.trial_id = v.id and e.payload ->> 'work_item_id' is null
+                      and (e.payload ->> 'after_exchanges')::integer = v.exchanges + p_exchange_no));
+  end if;
+  if v.status <> 'running' or not exists (select 1 from training.voice_sessions
+                                           where id = p_voice_session and status = 'open') then
+    raise exception using errcode = 'AR040', message = 'voice exchange refused';
+  end if;
+  if p_exchange_no is distinct from
+     ((select count(*) from training.voice_exchanges where trial_id = v.id) + 1)::smallint then
+    raise exception using errcode = 'AR004', message = 'voice exchanges are stored in order, at most 12';
+  end if;
+  if jsonb_typeof(p_lines) is distinct from 'array'
+     or exists (select 1 from jsonb_array_elements(p_lines) l
+                 where jsonb_typeof(l) <> 'object' or coalesce(l ->> 'role', '') not in ('investigator', 'subject')
+                    or jsonb_typeof(l -> 'text') is distinct from 'string' or length(l ->> 'text') not between 1 and 900
+                    or jsonb_typeof(l -> 'partial') is distinct from 'boolean'
+                    or exists (select 1 from jsonb_object_keys(l) k where k not in ('role', 'text', 'partial'))) then
+    raise exception using errcode = 'AR007', message = 'lines are [{role, text, partial}]';
+  end if;
+  insert into training.voice_exchanges (trial_id, exchange_no, voice_session_id, lines)
+    values (v.id, p_exchange_no, p_voice_session, p_lines);
+  v_rel := arena._apply_releases(v.id, '{}'::text[], null);
+  return jsonb_build_object('exchange_no', p_exchange_no, 'outcome', 'recorded',
+    'released', (select coalesce(jsonb_agg(jsonb_build_object('record_id', e ->> 'record_id', 'kind', e ->> 'kind')),
+                                 '[]'::jsonb) from jsonb_array_elements(v_rel) e));
+end $$;
+
+create or replace function training.open_voice_session(p_ticket_id uuid, p_reservation uuid)
+returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_t   training.access_tickets;
+  v_s   uuid;
+  v_r   ops.budget_reservations;
+  v_id  uuid;
+begin
+  select * into v_t from training.access_tickets where id = p_ticket_id;
+  select * into v_r from ops.budget_reservations where id = p_reservation;
+  select id into v_s from training.sessions where trial_id = v_t.trial_id and voice;
+  if v_t.subject_checked_at is null or v_s is null or v_r.kind is distinct from 'voice_session'
+     or v_r.state <> 'reserved' or v_r.trial_id is distinct from v_t.trial_id
+     or v_r.caller_role is distinct from ops.invoker_role() then
+    raise exception using errcode = 'AR040', message = 'voice session refused';
+  end if;
+  -- Fix 6: the daily voice quota counts opened sessions, but issue_access_ticket checked it only when a ticket was
+  -- issued, so tickets issued before the quota was reached could open sessions beyond it. One actor's openings
+  -- serialize here and the quota is checked again, against every session already opened today.
+  perform pg_advisory_xact_lock(hashtextextended('training.voice_quota:' || v_t.user_id::text, 0));
+  if (select voice_sessions_per_user_day from ops.config where id) <=
+     (select count(*) from training.voice_sessions vs join training.sessions s on s.id = vs.session_id
+       where s.user_id = v_t.user_id and vs.opened_at >= date_trunc('day', now())) then
+    raise exception using errcode = 'AR040', message = 'daily voice session quota reached';
+  end if;
+  insert into training.voice_sessions (session_id, ticket_id, reservation_id) values (v_s, p_ticket_id, p_reservation)
+    returning id into v_id;
+  return v_id;
 end $$;
