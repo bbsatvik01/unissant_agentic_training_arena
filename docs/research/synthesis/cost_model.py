@@ -441,7 +441,10 @@ LIVE_PROBE = (30, 0.05)                                            # day-1 probe
 PROBE_RESERVATION = voice_session_reservation(exchanges=2, audio_seconds=60)
 VOICE_SESSIONS = 8                                                 # 4 for development testing, 4 for judges and the demo
 TEXT_SESSIONS = 40
-PORTRAITS = (30, 0.04, 0.08)   # count, expected $/image, high $/image (image pricing unverified; count-capped)
+# Character art (UI direction 03, UI-06): capped at 62 images = 12 characters x (1 sheet + 3 variants) + 30%
+# retries; drafts on Nano Banana 2.1 ($0.0336 per 1K image), finals on Gemini 3 Pro Image ($0.134 per 1K-2K
+# image, C2PA supported). Expected average ~$0.07; high assumes finals and retries at the Pro price, $0.10.
+PORTRAITS = (62, 0.07, 0.10)   # count, expected $/image, high $/image; every generation passes the guard
 
 # Non-model GCP costs from the first probe (2026-10-09) to teardown (2026-11-09), at gross rates.
 # Critique rounds 5-8 showed these cannot be hard-capped: GCP has no project-wide cap, usage metrics lag, and

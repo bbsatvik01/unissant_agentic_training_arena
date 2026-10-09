@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unissant-arena.invalid/schemas/case-family.schema.json",
+  "title": "Case family",
+  "description": "SCN-11. The storage and sealing unit: one canonical event graph, one matched truthful and one deceptive variant, each with its three packets (SCN-7, SCN-8, SCN-9). The whole file is evaluator-tier. The loader splits it into arena.public_packets, subject.private_packets and sealed.evaluator_packets; nothing reads the file itself at runtime. Hidden-split files never enter the repository (SCN-12).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "family_id",
+    "split",
+    "domain",
+    "title",
+    "taxonomy",
+    "difficulty",
+    "style",
+    "provenance",
+    "event_graph",
+    "variants"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "family_id": {
+      "$ref": "evaluator-packet.schema.json#/$defs/familyId"
+    },
+    "split": {
+      "enum": [
+        "dev",
+        "hidden"
+      ]
+    },
+    "domain": {
+      "$ref": "public-packet.schema.json#/$defs/domain"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 120
+    },
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "violation_type",
+        "misleading_types"
+      ],
+      "properties": {
+        "violation_type": {
+          "$ref": "#/$defs/violationType"
+        },
+        "misleading_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/misleadingType"
+          }
+        }
+      }
+    },
+    "difficulty": {
+      "description": "SCN-2. Shared by both variants (matched). Knob values are computed by the validator from the packets and must equal what is stored here.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "knobs"
+      ],
+      "properties": {
+        "level": {
+          "$ref": "public-packet.schema.json#/$defs/difficultyLevel"
+        },
+        "knobs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key_record_after_exchanges",
+            "evidence_directness",
+            "misleading_count",
+            "uncertainty_count",
+            "gate_level"
+          ],
+          "properties": {
+            "key_record_after_exchanges": {
+              "description": "Fewest completed exchanges after which every record of some decisive_support item can be released (0 if all are initial). Equal in both variants.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "evidence_directness": {
+              "description": "Fewest records in any decisive_support item. Equal in both variants.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "misleading_count": {
+              "description": "Facts tagged misleading present in the truthful variant.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "uncertainty_count": {
+              "description": "Uncertainty entries per variant (equal in both).",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            },
+            "gate_level": {
+              "description": "Deceptive variant: the lowest min_evidence_level among its gates (how strong the evidence must be before anything protected can open).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        }
+      }
+    },
+    "style": {
+      "description": "SCN-3 style axes for this family. Both variants use the same assignment, so style is independent of role by construction.",
+      "$ref": "private-packet.schema.json#/$defs/style"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "created",
+        "notes"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "hand",
+            "generator"
+          ]
+        },
+        "created": {
+          "$ref": "public-packet.schema.json#/$defs/date"
+        },
+        "generator_model": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "prompt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "seed_spec_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "few_shot_family_ids": {
+          "description": "Development families used as few-shot examples. Must all be split dev.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^F[0-9]{2,3}$"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 600
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "generator"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "generator_model",
+              "prompt_sha256",
+              "seed_spec_sha256",
+              "few_shot_family_ids"
+            ]
+          }
+        }
+      ]
+    },
+    "event_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facts",
+        "edges"
+      ],
+      "properties": {
+        "facts": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/familyFact"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 80,
+          "items": {
+            "$ref": "evaluator-packet.schema.json#/$defs/edge"
+          }
+        }
+      }
+    },
+    "variants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "truthful",
+        "deceptive"
+      ],
+      "properties": {
+        "truthful": {
+          "$ref": "#/$defs/variant"
+        },
+        "deceptive": {
+          "$ref": "#/$defs/variant"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "split": {
+            "const": "dev"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "family_id": {
+            "pattern": "^F[0-9]{2,3}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "split": {
+            "const": "hidden"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "family_id": {
+            "pattern": "^H[0-9a-f]{10}$"
+          },
+          "provenance": {
+            "properties": {
+              "method": {
+                "const": "generator"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "violationType": {
+      "enum": [
+        "unauthorized_area_entry",
+        "sealed_material_access",
+        "unregistered_visitor_escort",
+        "tailgating_assist",
+        "badge_sharing",
+        "spare_credential_misuse",
+        "key_misuse",
+        "after_hours_property_removal"
+      ]
+    },
+    "misleadingType": {
+      "enum": [
+        "late_paperwork",
+        "door_held_alarm",
+        "ambiguous_dispatch",
+        "sensor_false_positive",
+        "camera_outage",
+        "records_data_error",
+        "access_lapse_admin",
+        "privacy_reason",
+        "clock_skew",
+        "unusual_access_pattern"
+      ]
+    },
+    "familyFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "kind",
+        "actors",
+        "material",
+        "tags",
+        "variants"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "private-packet.schema.json#/$defs/factId"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "kind": {
+          "enum": [
+            "action",
+            "state",
+            "record",
+            "context",
+            "knowledge"
+          ]
+        },
+        "time": {
+          "$ref": "public-packet.schema.json#/$defs/localDateTime"
+        },
+        "actors": {
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "material": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "evaluator-packet.schema.json#/$defs/factTag"
+          }
+        },
+        "variants": {
+          "description": "Variants in which the fact holds. Shared facts list both.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "private-packet.schema.json#/$defs/role"
+          }
+        }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "public_packet",
+        "private_packet",
+        "evaluator_packet"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "public-packet.schema.json#/$defs/caseId"
+        },
+        "public_packet": {
+          "$ref": "public-packet.schema.json"
+        },
+        "private_packet": {
+          "$ref": "private-packet.schema.json"
+        },
+        "evaluator_packet": {
+          "$ref": "evaluator-packet.schema.json"
+        }
+      }
+    }
+  }
+}

@@ -22,3 +22,4 @@
 - D-011 local-first recorded; direction v10.2; plan 30 cases (~$43/$66).
 - UI/UX research-harness dispatched (run wf_7304b52c-bcb, U1-U5).
 - UI research complete; UI direction v1 committed (c3ef79b); Codex UI critique round 1 started.
+- Character-art budget capped at 62 images (UI-06); local plan re-simulated: 30 cases ~$46/$70 complete; 34 pilot-gated. Supersedes the ~$43/$66 figures in D-011.

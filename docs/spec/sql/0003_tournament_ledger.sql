@@ -182,6 +182,9 @@ create table arena.trials (
                            check (status in ('planned', 'running', 'finalized', 'terminated')),
   transcript_version     integer not null default 0 check (transcript_version >= 0),
   exchanges              smallint not null default 0 check (exchanges >= 0),
+  -- one open turn per trial: set when a subject turn commits on a trial with an assistant, cleared by
+  -- the turn's coach_card or coach_unavailable event; expires 120 s after the answer (S5 5.1)
+  coaching_pending       boolean not null default false,
   max_exchanges          smallint not null default 12 check (max_exchanges between 1 and 12),
   created_at             timestamptz not null default now(),
   started_at             timestamptz,
@@ -230,10 +233,13 @@ create table arena.turns (
   question         text not null check (length(question) between 1 and 2000),
   question_source  text not null check (question_source in ('investigator', 'harness')),
   question_version integer not null,
+  idempotency_key  text not null check (length(idempotency_key) between 8 and 200),
   asked_at         timestamptz not null default now(),
   answer           text check (length(answer) between 1 and 8000),
+  answer_partial   boolean not null default false,   -- voice: interrupted before fully played (F10)
   answered_at      timestamptz,
   primary key (trial_id, turn_no),
+  unique (trial_id, idempotency_key),
   constraint turn_answer_shape check ((answer is null) = (answered_at is null))
 );
 
@@ -245,8 +251,9 @@ begin
     raise exception using errcode = 'AR010', message = 'arena.turns is append-only (DELETE refused)';
   end if;
   if old.answer is not null
-     or (new.trial_id, new.turn_no, new.question, new.question_source, new.question_version, new.asked_at)
-        is distinct from (old.trial_id, old.turn_no, old.question, old.question_source, old.question_version, old.asked_at) then
+     or (new.trial_id, new.turn_no, new.question, new.question_source, new.question_version, new.idempotency_key, new.asked_at)
+        is distinct from (old.trial_id, old.turn_no, old.question, old.question_source, old.question_version, old.idempotency_key,
+                          old.asked_at) then
     raise exception using errcode = 'AR010', message = 'a turn''s question is immutable and its answer is written once';
   end if;
   return new;
@@ -303,20 +310,27 @@ end $$;
 create trigger work_items_once before update or delete on arena.work_items
   for each row execute function arena.tg_work_item_once();
 
-create table arena.coaching_events (
+-- Per-trial event store (S5 section 6): one gap-free sequence per trial, assigned under the trial
+-- row lock by the function that commits the change. SSE reads it through arena.events_after.
+-- visibility: live (stream now), debrief (stream after the trial ends: assessment coaching),
+-- internal (tournament trials: never streamed; readable in projections after reveal or on dev).
+create table arena.trial_events (
   trial_id           uuid not null references arena.trials(id) on delete restrict,
   seq                integer not null check (seq >= 1),
-  work_item_id       uuid not null unique references arena.work_items(id) on delete restrict,
-  candidate_id       uuid not null references arena.candidates(id) on delete restrict,
+  kind               text not null check (kind in ('question_recorded', 'subject_turn', 'evidence_released', 'clarification',
+                                                   'coach_card', 'coach_deep', 'coach_unavailable', 'finding_committed',
+                                                   'trial_ended')),
+  visibility         text not null check (visibility in ('live', 'debrief', 'internal')),
   transcript_version integer not null,
   turn_no            smallint not null,
-  -- the complete card (direction 6.1; AST-1..8): question type, answer category, flags with
-  -- turn id + quoted span + missing fact, one neutral follow-up, running finding + confidence
-  card               jsonb not null check (jsonb_typeof(card) = 'object' and pg_column_size(card) <= 16384),
-  created_at         timestamptz not null default now(),
+  work_item_id       uuid unique references arena.work_items(id) on delete restrict,   -- coach events only
+  candidate_id       uuid references arena.candidates(id) on delete restrict,
+  -- coach events: the complete card (direction 6.1; AST-1..8). Other kinds: ids, text and states only.
+  payload            jsonb not null check (jsonb_typeof(payload) = 'object' and pg_column_size(payload) <= 16384),
+  created_at         timestamptz not null default clock_timestamp(),
   primary key (trial_id, seq)
 );
-create trigger coaching_events_append_only before update or delete on arena.coaching_events
+create trigger trial_events_append_only before update or delete on arena.trial_events
   for each row execute function arena.tg_forbid_mutation();
 
 create table arena.final_findings (
@@ -341,8 +355,6 @@ end $$;
 create trigger turns_running before insert or update on arena.turns
   for each row execute function arena.tg_trial_running();
 create trigger released_evidence_running before insert on arena.released_evidence
-  for each row execute function arena.tg_trial_running();
-create trigger coaching_events_running before insert on arena.coaching_events
   for each row execute function arena.tg_trial_running();
 
 -- -----------------------------------------------------------------------------
@@ -849,7 +861,7 @@ alter table arena.trials enable row level security;
 alter table arena.turns enable row level security;
 alter table arena.released_evidence enable row level security;
 alter table arena.work_items enable row level security;
-alter table arena.coaching_events enable row level security;
+alter table arena.trial_events enable row level security;
 alter table arena.final_findings enable row level security;
 alter table sealed.subject_tag_proposals enable row level security;
 alter table sealed.quarantined_artifacts enable row level security;

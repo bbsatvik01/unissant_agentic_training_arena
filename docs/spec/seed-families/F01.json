@@ -1,0 +1,3316 @@
+{
+  "schema_version": "1.0.0",
+  "family_id": "F01",
+  "split": "dev",
+  "domain": "facility_access",
+  "title": "Records vault entry during a busy shift",
+  "taxonomy": {
+    "violation_type": "sealed_material_access",
+    "misleading_types": [
+      "late_paperwork",
+      "door_held_alarm",
+      "ambiguous_dispatch",
+      "unusual_access_pattern"
+    ]
+  },
+  "difficulty": {
+    "level": 2,
+    "knobs": {
+      "key_record_after_exchanges": 3,
+      "evidence_directness": 1,
+      "misleading_count": 3,
+      "uncertainty_count": 2,
+      "gate_level": 3
+    }
+  },
+  "style": {
+    "verbosity": "terse",
+    "fluency": "fluent",
+    "affect": "anxious",
+    "register": "informal",
+    "language": "native"
+  },
+  "provenance": {
+    "method": "hand",
+    "created": "2026-10-08",
+    "notes": "Development seed family. Contains the sponsor's slide-8 exchange (EX-1 to EX-3): 'Why did you enter?' / 'It was a busy shift'; the corroboration path is the work order and the timeline (radio log, alarm history). Fictional agency, facility and people."
+  },
+  "event_graph": {
+    "facts": [
+      {
+        "id": "f:01",
+        "statement": "Two of the four Facilities technicians scheduled for the 13:30-22:00 shift on 12 March 2026 were absent, leaving the shift short-staffed.",
+        "kind": "context",
+        "time": "2026-03-12T13:30",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:02",
+        "statement": "At 14:01 Ines Marrow radioed Jordan Pell and asked him to check a humidity alarm in the B wing.",
+        "kind": "action",
+        "time": "2026-03-12T14:01",
+        "actors": [
+          "Ines Marrow",
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:03",
+        "statement": "At 14:07 Jordan Pell's badge opened the door of Records Vault B-12.",
+        "kind": "action",
+        "time": "2026-03-12T14:07",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:04",
+        "statement": "Pell's badge has Records Vault B-12 access through the Environmental Response access group.",
+        "kind": "state",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": false,
+        "tags": [
+          "means"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:05",
+        "statement": "Records Vault B-12 is not on Pell's daily task roster, and his badge had last opened B-12 on 19 November 2025.",
+        "kind": "state",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:06",
+        "statement": "The B-12 door was held open from 14:09 to 14:12, raising a door-held alarm; the policy limit is 60 seconds.",
+        "kind": "action",
+        "time": "2026-03-12T14:09",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:07",
+        "statement": "Ines Marrow created work order WO-4478, assigned to Pell, at 14:31.",
+        "kind": "record",
+        "time": "2026-03-12T14:31",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": true,
+        "tags": [
+          "misleading"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:08",
+        "statement": "On short-staffed shifts Marrow logs work orders after the work is done, from the alarm panel history.",
+        "kind": "context",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": false,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:09",
+        "statement": "The B-12 exit does not require a badge, so no exit time was recorded.",
+        "kind": "state",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:10",
+        "statement": "Pell left B-12 at 14:24.",
+        "kind": "action",
+        "time": "2026-03-12T14:24",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:11",
+        "statement": "At 16:00 the vault custodian's end-of-day roster check flagged Pell's 14:07 entry as an access exception.",
+        "kind": "record",
+        "time": "2026-03-12T16:00",
+        "actors": [
+          "Odette Varga"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:12",
+        "statement": "Marrow does not remember which room she named on the 14:01 radio call.",
+        "kind": "knowledge",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful",
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:20",
+        "statement": "At 13:58 the building panel raised a high-humidity alarm for Records Vault B-12.",
+        "kind": "record",
+        "time": "2026-03-12T13:58",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:21",
+        "statement": "Marrow's 14:01 radio call named Room B-12.",
+        "kind": "action",
+        "time": "2026-03-12T14:01",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:22",
+        "statement": "Pell entered B-12 to respond to the humidity alarm Marrow had dispatched him to.",
+        "kind": "action",
+        "time": "2026-03-12T14:07",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:23",
+        "statement": "Inside B-12, Pell found the dehumidifier tripped, reset it and emptied its full condensate tank.",
+        "kind": "action",
+        "time": "2026-03-12T14:08",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:24",
+        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he wheeled the condensate tank to the corridor drain.",
+        "kind": "action",
+        "time": "2026-03-12T14:09",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "innocent_explanation"
+        ],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:25",
+        "statement": "The B-12 humidity alarm cleared at 14:16.",
+        "kind": "record",
+        "time": "2026-03-12T14:16",
+        "actors": [],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:26",
+        "statement": "At 14:25 Pell radioed Marrow that the B-12 dehumidifier was reset and the tank emptied.",
+        "kind": "action",
+        "time": "2026-03-12T14:25",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:27",
+        "statement": "WO-4478 lists Room B-12 and the task 'humidity alarm; dehumidifier reset; condensate tank emptied'.",
+        "kind": "record",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:28",
+        "statement": "Pell did not open or handle any sealed records box in B-12.",
+        "kind": "action",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:29",
+        "statement": "At the 16:10 seal audit all 214 sealed boxes in B-12 matched the seal register.",
+        "kind": "record",
+        "time": "2026-03-12T16:10",
+        "actors": [
+          "Odette Varga"
+        ],
+        "material": false,
+        "tags": [],
+        "variants": [
+          "truthful"
+        ]
+      },
+      {
+        "id": "f:40",
+        "statement": "At 13:58 the building panel raised a high-humidity alarm for Room B-10, the supply room next to the vault.",
+        "kind": "record",
+        "time": "2026-03-12T13:58",
+        "actors": [],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:41",
+        "statement": "Marrow's 14:01 radio call named Room B-10.",
+        "kind": "action",
+        "time": "2026-03-12T14:01",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:42",
+        "statement": "Pell reset the B-10 dehumidifier, and the B-10 alarm cleared at 14:04.",
+        "kind": "action",
+        "time": "2026-03-12T14:02",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:43",
+        "statement": "At 14:05 Pell radioed Marrow 'B-10 done'.",
+        "kind": "action",
+        "time": "2026-03-12T14:05",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "cover"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:44",
+        "statement": "Pell had no assigned task in Records Vault B-12 on 12 March.",
+        "kind": "state",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:45",
+        "statement": "Inside B-12, Pell broke the seal on box ACQ-117 and read the bid evaluation sheets for the Annex parking-lot resurfacing contract.",
+        "kind": "action",
+        "time": "2026-03-12T14:08",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "violation"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:46",
+        "statement": "Pell's cousin co-owns Ostrander Paving, one of the bidders for the Annex parking-lot resurfacing contract.",
+        "kind": "state",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "motive"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:47",
+        "statement": "With the B-10 job finished early and the shift short-staffed, no one expected to hear from Pell until his next call.",
+        "kind": "state",
+        "time": "2026-03-12T14:05",
+        "actors": [
+          "Jordan Pell",
+          "Ines Marrow"
+        ],
+        "material": false,
+        "tags": [
+          "opportunity"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:48",
+        "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor.",
+        "kind": "action",
+        "time": "2026-03-12T14:09",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:49",
+        "statement": "At 14:15 Pell took seal #55419 from the vault supply drawer and resealed box ACQ-117 with it.",
+        "kind": "action",
+        "time": "2026-03-12T14:15",
+        "actors": [
+          "Jordan Pell"
+        ],
+        "material": true,
+        "tags": [
+          "concealment"
+        ],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:50",
+        "statement": "WO-4478 lists Room B-10 and the task 'humidity alarm; dehumidifier reset'.",
+        "kind": "record",
+        "actors": [
+          "Ines Marrow"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      },
+      {
+        "id": "f:51",
+        "statement": "At the 16:10 seal audit box ACQ-117 carried seal #55419 instead of registered seal #55102, and the supply drawer log showed #55419 removed at 14:15 with no custodian release.",
+        "kind": "record",
+        "time": "2026-03-12T16:10",
+        "actors": [
+          "Odette Varga"
+        ],
+        "material": true,
+        "tags": [],
+        "variants": [
+          "deceptive"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "f:01",
+        "to": "f:02",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:02",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:06",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:10",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:10",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:07",
+        "to": "f:11",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:08",
+        "to": "f:07",
+        "relation": "explains"
+      },
+      {
+        "from": "f:20",
+        "to": "f:21",
+        "relation": "causes"
+      },
+      {
+        "from": "f:21",
+        "to": "f:22",
+        "relation": "causes"
+      },
+      {
+        "from": "f:22",
+        "to": "f:05",
+        "relation": "explains"
+      },
+      {
+        "from": "f:22",
+        "to": "f:23",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:23",
+        "to": "f:24",
+        "relation": "causes"
+      },
+      {
+        "from": "f:24",
+        "to": "f:06",
+        "relation": "explains"
+      },
+      {
+        "from": "f:23",
+        "to": "f:25",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:25",
+        "to": "f:26",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:26",
+        "to": "f:07",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:10",
+        "to": "f:29",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:40",
+        "to": "f:41",
+        "relation": "causes"
+      },
+      {
+        "from": "f:41",
+        "to": "f:42",
+        "relation": "causes"
+      },
+      {
+        "from": "f:42",
+        "to": "f:43",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:43",
+        "to": "f:03",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:03",
+        "to": "f:45",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:45",
+        "to": "f:49",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:49",
+        "to": "f:51",
+        "relation": "precedes"
+      },
+      {
+        "from": "f:46",
+        "to": "f:45",
+        "relation": "motivates"
+      },
+      {
+        "from": "f:47",
+        "to": "f:45",
+        "relation": "enables"
+      },
+      {
+        "from": "f:04",
+        "to": "f:45",
+        "relation": "enables"
+      }
+    ]
+  },
+  "variants": {
+    "truthful": {
+      "case_id": "C-7Q2MXK4D",
+      "public_packet": {
+        "schema_version": "1.0.0",
+        "packet": "public",
+        "case_id": "C-7Q2MXK4D",
+        "domain": "facility_access",
+        "title": "Records vault entry during a busy shift",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-16",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Jordan Pell",
+            "position": "Facilities Technician II",
+            "unit": "Facilities Operations",
+            "tenure_years": 4
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Records Vault B-12 on 12 March 2026. No conclusion has been reached."
+        },
+        "known_timeline": [
+          {
+            "time": "2026-03-12T13:30",
+            "event": "Facilities shift began with two of four technicians absent.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-12T14:07",
+            "event": "Jordan Pell's badge opened Records Vault B-12.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T14:09",
+            "event": "B-12 door-held alarm raised.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T14:12",
+            "event": "B-12 door closed and the alarm cleared.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T16:00",
+            "event": "End-of-day roster check flagged the B-12 entry as an access exception.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Records Vault B-12, 12 March 2026",
+            "content": {
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "14:07:12",
+                    "B-12 main door",
+                    "Badge 30418 (J. Pell)",
+                    "Access granted"
+                  ],
+                  [
+                    "14:09:40",
+                    "B-12 main door",
+                    "-",
+                    "Door held open, alarm raised"
+                  ],
+                  [
+                    "14:12:05",
+                    "B-12 main door",
+                    "-",
+                    "Door closed, alarm cleared"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+            "content": {
+              "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "staffing_note",
+            "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+            "content": {
+              "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "work_order",
+            "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+            "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "dispatch_log",
+            "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+            "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Building environmental alarm history, B wing, 12 March 2026",
+            "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "seal_audit",
+            "title": "Records Vault B-12 seal audit, 12 March 2026",
+            "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+            "requestable_after_exchanges": 6
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-7Q2MXK4D",
+        "role": "truthful",
+        "persona": {
+          "name": "Jordan Pell",
+          "position": "Facilities Technician II",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Facilities Operations",
+          "tenure_years": 4,
+          "background": "Handles HVAC, doors and environmental alarms across the Halvern Street Annex. Rarely works inside the records vault."
+        },
+        "matter": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+        "objective": "Take part accurately and consistently. Answer from what you know, say plainly when you do not know or are unsure, and stay within your uncertainty limits. You may decline to discuss a listed personal matter, giving the reason, but not facts about the event.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "We were two technicians down that shift.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Ines radioed you about a humidity alarm in the B wing.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:21",
+            "class": "FREE",
+            "text": "She said B-12.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:20",
+            "class": "FREE",
+            "text": "The alarm was for B-12; the panel by the vault door showed it.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your badge opened B-12 a little after two.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "You have vault access through the Environmental Response group.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "The vault isn't on your normal roster, and you hadn't been in since last autumn.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "The door was held open for a few minutes and the alarm went off.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "You don't badge out of the vault.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You left once the dehumidifier was running again.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:22",
+            "class": "FREE",
+            "text": "You went in to deal with the humidity alarm Ines sent you to.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:23",
+            "class": "FREE",
+            "text": "You reset the tripped dehumidifier and emptied the full condensate tank.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:24",
+            "class": "FREE",
+            "text": "You propped the door with a cart while you wheeled the tank to the corridor drain.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:26",
+            "class": "FREE",
+            "text": "You think you radioed Ines when you were done.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:28",
+            "class": "FREE",
+            "text": "You did not touch any of the records boxes.",
+            "certainty": "certain"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:22",
+          "f:23",
+          "f:24",
+          "f:26",
+          "f:10"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know when Ines wrote up the work order."
+          },
+          {
+            "fact_id": "f:08",
+            "subject_view": "You do not know how Ines handles her paperwork."
+          },
+          {
+            "fact_id": "f:11",
+            "subject_view": "You do not know who flagged the entry or when."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know what Ines remembers about the call."
+          },
+          {
+            "fact_id": "f:25",
+            "subject_view": "You did not watch the panel, so you do not know exactly when the alarm cleared."
+          },
+          {
+            "fact_id": "f:27",
+            "subject_view": "You have not seen the work order."
+          },
+          {
+            "fact_id": "f:29",
+            "subject_view": "You do not know anything about a seal audit."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:10",
+            "text": "You left B-12 sometime between quarter past two and half past two; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Sometime after quarter past two, before half past."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:26",
+            "text": "You think you radioed Ines when you finished, but you are not sure the call went through or what time it was.",
+            "answer_form": "unsure"
+          }
+        ],
+        "gates": [],
+        "permitted_behaviors": [],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "Ines named a room other than B-12 on the radio.",
+            "contradicts": "f:21"
+          },
+          {
+            "id": "x:02",
+            "text": "The vault door was open for less than a minute.",
+            "contradicts": "f:06"
+          },
+          {
+            "id": "x:03",
+            "text": "There was already a work order when I went in.",
+            "contradicts": "f:07"
+          },
+          {
+            "id": "x:04",
+            "text": "I opened or moved a records box.",
+            "contradicts": "f:28"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "informal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-69953abf10335789"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-7Q2MXK4D",
+        "family_id": "F01",
+        "variant": "truthful",
+        "role": "truthful",
+        "synopsis": "Marrow radioed Pell to a humidity alarm in Records Vault B-12 during a short-staffed shift. Pell reset the tripped dehumidifier and emptied its condensate tank, propping the door with a cart while he moved the tank, which the policy allows while moving equipment. Marrow logged the work order afterwards, as she does on short days. The entry had an assigned task. Misleading circumstances: the late work order, the door-held alarm, the vault being off his roster, and the supervisor not remembering the room.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Two of the four Facilities technicians scheduled for the 13:30-22:00 shift on 12 March 2026 were absent, leaving the shift short-staffed.",
+            "kind": "context",
+            "time": "2026-03-12T13:30",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 14:01 Ines Marrow radioed Jordan Pell and asked him to check a humidity alarm in the B wing.",
+            "kind": "action",
+            "time": "2026-03-12T14:01",
+            "actors": [
+              "Ines Marrow",
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 14:07 Jordan Pell's badge opened the door of Records Vault B-12.",
+            "kind": "action",
+            "time": "2026-03-12T14:07",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "Pell's badge has Records Vault B-12 access through the Environmental Response access group.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Records Vault B-12 is not on Pell's daily task roster, and his badge had last opened B-12 on 19 November 2025.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "The B-12 door was held open from 14:09 to 14:12, raising a door-held alarm; the policy limit is 60 seconds.",
+            "kind": "action",
+            "time": "2026-03-12T14:09",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Ines Marrow created work order WO-4478, assigned to Pell, at 14:31.",
+            "kind": "record",
+            "time": "2026-03-12T14:31",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "On short-staffed shifts Marrow logs work orders after the work is done, from the alarm panel history.",
+            "kind": "context",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "The B-12 exit does not require a badge, so no exit time was recorded.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Pell left B-12 at 14:24.",
+            "kind": "action",
+            "time": "2026-03-12T14:24",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "At 16:00 the vault custodian's end-of-day roster check flagged Pell's 14:07 entry as an access exception.",
+            "kind": "record",
+            "time": "2026-03-12T16:00",
+            "actors": [
+              "Odette Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Marrow does not remember which room she named on the 14:01 radio call.",
+            "kind": "knowledge",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:20",
+            "statement": "At 13:58 the building panel raised a high-humidity alarm for Records Vault B-12.",
+            "kind": "record",
+            "time": "2026-03-12T13:58",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:21",
+            "statement": "Marrow's 14:01 radio call named Room B-12.",
+            "kind": "action",
+            "time": "2026-03-12T14:01",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:22",
+            "statement": "Pell entered B-12 to respond to the humidity alarm Marrow had dispatched him to.",
+            "kind": "action",
+            "time": "2026-03-12T14:07",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:23",
+            "statement": "Inside B-12, Pell found the dehumidifier tripped, reset it and emptied its full condensate tank.",
+            "kind": "action",
+            "time": "2026-03-12T14:08",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:24",
+            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 while he wheeled the condensate tank to the corridor drain.",
+            "kind": "action",
+            "time": "2026-03-12T14:09",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:25",
+            "statement": "The B-12 humidity alarm cleared at 14:16.",
+            "kind": "record",
+            "time": "2026-03-12T14:16",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:26",
+            "statement": "At 14:25 Pell radioed Marrow that the B-12 dehumidifier was reset and the tank emptied.",
+            "kind": "action",
+            "time": "2026-03-12T14:25",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:27",
+            "statement": "WO-4478 lists Room B-12 and the task 'humidity alarm; dehumidifier reset; condensate tank emptied'.",
+            "kind": "record",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:28",
+            "statement": "Pell did not open or handle any sealed records box in B-12.",
+            "kind": "action",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:29",
+            "statement": "At the 16:10 seal audit all 214 sealed boxes in B-12 matched the seal register.",
+            "kind": "record",
+            "time": "2026-03-12T16:10",
+            "actors": [
+              "Odette Varga"
+            ],
+            "material": false,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:07",
+            "relation": "explains"
+          },
+          {
+            "from": "f:20",
+            "to": "f:21",
+            "relation": "causes"
+          },
+          {
+            "from": "f:21",
+            "to": "f:22",
+            "relation": "causes"
+          },
+          {
+            "from": "f:22",
+            "to": "f:05",
+            "relation": "explains"
+          },
+          {
+            "from": "f:22",
+            "to": "f:23",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:23",
+            "to": "f:24",
+            "relation": "causes"
+          },
+          {
+            "from": "f:24",
+            "to": "f:06",
+            "relation": "explains"
+          },
+          {
+            "from": "f:23",
+            "to": "f:25",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:25",
+            "to": "f:26",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:26",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:29",
+            "relation": "precedes"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Records Vault B-12, 12 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "14:07:12",
+                    "B-12 main door",
+                    "Badge 30418 (J. Pell)",
+                    "Access granted"
+                  ],
+                  [
+                    "14:09:40",
+                    "B-12 main door",
+                    "-",
+                    "Door held open, alarm raised"
+                  ],
+                  [
+                    "14:12:05",
+                    "B-12 main door",
+                    "-",
+                    "Door closed, alarm cleared"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "staffing_note",
+            "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:02",
+                "source_strength": "weak",
+                "precision": "low",
+                "level": 1
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "work_order",
+            "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "2 work orders.",
+              "table": {
+                "columns": [
+                  "Work order",
+                  "Created",
+                  "Created by",
+                  "Location",
+                  "Task",
+                  "Status"
+                ],
+                "rows": [
+                  [
+                    "WO-4469",
+                    "13:35",
+                    "I. Marrow",
+                    "A-wing lobby",
+                    "Replace entrance mat",
+                    "Closed 13:52"
+                  ],
+                  [
+                    "WO-4478",
+                    "14:31",
+                    "I. Marrow",
+                    "B-12 Records Vault",
+                    "Humidity alarm; dehumidifier reset; condensate tank emptied",
+                    "Closed 14:31"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:27",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "dispatch_log",
+            "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Channel 2 is recorded and transcribed automatically.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Message"
+                ],
+                "rows": [
+                  [
+                    "14:01",
+                    "I. Marrow",
+                    "J. Pell",
+                    "Humidity alarm in the B wing, B-12. Can you take it?"
+                  ],
+                  [
+                    "14:01",
+                    "J. Pell",
+                    "I. Marrow",
+                    "On my way."
+                  ],
+                  [
+                    "14:25",
+                    "J. Pell",
+                    "I. Marrow",
+                    "B-12 dehumidifier reset, tank emptied."
+                  ],
+                  [
+                    "14:40",
+                    "I. Marrow",
+                    "K. Okafor-Lyle",
+                    "Loading dock door is sticking again."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:21",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:26",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Building environmental alarm history, B wing, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "No other B-wing alarms on 12 March.",
+              "table": {
+                "columns": [
+                  "Room",
+                  "Alarm",
+                  "Raised",
+                  "Cleared"
+                ],
+                "rows": [
+                  [
+                    "B-03 Mail room",
+                    "Temperature high",
+                    "11:20",
+                    "11:41"
+                  ],
+                  [
+                    "B-12 Records Vault",
+                    "Humidity high (72% RH, limit 55%)",
+                    "13:58",
+                    "14:16"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:20",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:25",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "seal_audit",
+            "title": "Records Vault B-12 seal audit, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 6
+            },
+            "content": {
+              "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; all seals match the register. Seal supply drawer: no seals issued on 12 March."
+            },
+            "supports": [
+              {
+                "fact_id": "f:29",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:28",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "apparent",
+            "description": "Work order WO-4478 was created at 14:31, 24 minutes after the 14:07 entry, so the entry looks unassigned.",
+            "fact_ids": [
+              "f:07",
+              "f:03"
+            ],
+            "artifact_ids": [
+              "doc-01",
+              "rec-01"
+            ],
+            "resolution": "Marrow dispatched Pell by radio at 14:01 naming B-12, and on short shifts she logs work orders after the work.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:21",
+                "f:08"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-05"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "apparent",
+            "description": "The vault door was held open for about three minutes against a 60-second limit.",
+            "fact_ids": [
+              "f:06"
+            ],
+            "artifact_ids": [
+              "doc-01",
+              "doc-02"
+            ],
+            "resolution": "Pell was moving the condensate tank, which the policy allows while moving equipment.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:24",
+                "f:23"
+              ],
+              "artifact_ids": [
+                "rec-01"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "apparent",
+            "description": "B-12 is off Pell's roster and his badge had not opened it since November 2025.",
+            "fact_ids": [
+              "f:05"
+            ],
+            "artifact_ids": [
+              "doc-01"
+            ],
+            "resolution": "He was dispatched to a B-12 alarm.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:20",
+                "f:22"
+              ],
+              "artifact_ids": [
+                "rec-02",
+                "rec-03"
+              ]
+            }
+          },
+          {
+            "id": "c:04",
+            "type": "apparent",
+            "description": "Marrow's written statement does not name the room she sent Pell to.",
+            "fact_ids": [
+              "f:12",
+              "f:02"
+            ],
+            "artifact_ids": [
+              "rec-05"
+            ],
+            "resolution": "The radio log records the room as B-12.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:21"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "truthful",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The radio log records the 14:01 dispatch to B-12, matching Pell's account of being sent to the B-12 humidity alarm.",
+              "artifact_ids": [
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:21",
+                "f:22"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The alarm history shows the B-12 humidity alarm from 13:58 to 14:16 and the work order lists the B-12 dehumidifier task, matching Pell's account.",
+              "artifact_ids": [
+                "rec-01",
+                "rec-03"
+              ],
+              "fact_ids": [
+                "f:20",
+                "f:27",
+                "f:23"
+              ],
+              "requires_subject_account": true
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03"
+          ],
+          "unsupported_grounds": [
+            "The work order being created after the entry",
+            "The door-held alarm on its own",
+            "Short or worried answers",
+            "B-12 not being on Pell's usual roster",
+            "The supervisor not remembering the room"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the B-12 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:22"
+              ],
+              "neutral_example": "What task required entry to B-12?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish how the task was assigned and which room was named.",
+              "target_fact_ids": [
+                "f:02",
+                "f:21"
+              ],
+              "neutral_example": "How did you receive that task, and which room were you given?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what he did inside the vault, in order.",
+              "target_fact_ids": [
+                "f:23",
+                "f:28"
+              ],
+              "neutral_example": "Walk me through what you did inside B-12, step by step."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish why the door was held open.",
+              "target_fact_ids": [
+                "f:24"
+              ],
+              "neutral_example": "What was happening at the door between 14:09 and 14:12?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish when he left and what came next.",
+              "target_fact_ids": [
+                "f:10",
+                "f:26"
+              ],
+              "neutral_example": "When did you leave B-12, and what did you do next?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "He was dispatched to the vault for a facilities task.",
+              "test": "Request the radio log and the work order; compare the room and time with his account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The door was held open to move equipment.",
+              "test": "Ask what he moved and check it against the work-order task."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "He entered B-12 for something other than his task.",
+              "test": "Request the alarm history and the seal audit; compare the alarm room and clear time with the 14:07 entry."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the task and the door. 'Why did you go in without a work order?' presumes a fact not yet established.",
+            "response_relevance": "'It was a busy shift' leaves the purpose of entry unanswered; credit recognizing that and asking for the task (EX-2).",
+            "evidence_based_followup": "Credit requesting rec-01-rec-03 and asking about room names and times against them; credit rec-04 once available.",
+            "testing_alternatives": "Credit testing the dispatch explanation against the radio log and alarm history before closing.",
+            "supported_closure": "Truthful closure cites rec-02, or rec-01 with rec-03, together with Pell's account. 'Insufficient evidence' before rec-02 or rec-03 is reasonable if it names them (EX-3)."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'Why did you enter?' with 'It was a busy shift' or similar brief context.",
+            "label": "responsive",
+            "rationale": "The purpose is free to disclose and he gives it when asked specifically; this is terse style, not withholding. An assistant should flag it as non-responsive, not as possible evasion."
+          },
+          {
+            "id": "l:02",
+            "situation": "Says he is not sure exactly when he left B-12 or whether his radio call went through.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limits u:01 and u:02."
+          },
+          {
+            "id": "l:03",
+            "situation": "Gives a partial answer to a question that bundles the task, the door and the timing.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; the partial answer reflects the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-bb57c5decc04ccc8"
+      }
+    },
+    "deceptive": {
+      "case_id": "C-H3N8RW5B",
+      "public_packet": {
+        "schema_version": "1.0.0",
+        "packet": "public",
+        "case_id": "C-H3N8RW5B",
+        "domain": "facility_access",
+        "title": "Records vault entry during a busy shift",
+        "difficulty_level": 2,
+        "investigation_objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+        "interview_context": {
+          "agency": "Brannock Administrative Services Agency",
+          "facility": "Halvern Street Annex",
+          "timezone": "America/New_York",
+          "interview_date": "2026-03-16",
+          "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+          "investigator_role": "Internal review officer, Office of Facility Security",
+          "subject": {
+            "name": "Jordan Pell",
+            "position": "Facilities Technician II",
+            "unit": "Facilities Operations",
+            "tenure_years": 4
+          },
+          "purpose_statement": "This is an administrative fact-finding interview about the access exception recorded for Records Vault B-12 on 12 March 2026. No conclusion has been reached."
+        },
+        "known_timeline": [
+          {
+            "time": "2026-03-12T13:30",
+            "event": "Facilities shift began with two of four technicians absent.",
+            "source": "doc-03"
+          },
+          {
+            "time": "2026-03-12T14:07",
+            "event": "Jordan Pell's badge opened Records Vault B-12.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T14:09",
+            "event": "B-12 door-held alarm raised.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T14:12",
+            "event": "B-12 door closed and the alarm cleared.",
+            "source": "doc-01"
+          },
+          {
+            "time": "2026-03-12T16:00",
+            "event": "End-of-day roster check flagged the B-12 entry as an access exception.",
+            "source": "doc-01"
+          }
+        ],
+        "initial_documents": [
+          {
+            "doc_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Records Vault B-12, 12 March 2026",
+            "content": {
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "14:07:12",
+                    "B-12 main door",
+                    "Badge 30418 (J. Pell)",
+                    "Access granted"
+                  ],
+                  [
+                    "14:09:40",
+                    "B-12 main door",
+                    "-",
+                    "Door held open, alarm raised"
+                  ],
+                  [
+                    "14:12:05",
+                    "B-12 main door",
+                    "-",
+                    "Door closed, alarm cleared"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "doc_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+            "content": {
+              "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+            }
+          },
+          {
+            "doc_id": "doc-03",
+            "kind": "staffing_note",
+            "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+            "content": {
+              "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+            }
+          }
+        ],
+        "requestable_records": [
+          {
+            "record_id": "rec-01",
+            "kind": "work_order",
+            "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+            "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+            "requestable_after_exchanges": 2
+          },
+          {
+            "record_id": "rec-02",
+            "kind": "dispatch_log",
+            "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+            "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Building environmental alarm history, B wing, 12 March 2026",
+            "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+            "requestable_after_exchanges": 3
+          },
+          {
+            "record_id": "rec-04",
+            "kind": "seal_audit",
+            "title": "Records Vault B-12 seal audit, 12 March 2026",
+            "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+            "requestable_after_exchanges": 6
+          }
+        ],
+        "limits": {
+          "max_exchanges": 12,
+          "max_releases": 6
+        },
+        "ground_rules": [
+          "All cases are synthetic.",
+          "Evasive wording alone does not prove a violation.",
+          "A simulated score is not a finding about a real person."
+        ]
+      },
+      "private_packet": {
+        "schema_version": "1.0.0",
+        "packet": "private",
+        "case_id": "C-H3N8RW5B",
+        "role": "deceptive",
+        "persona": {
+          "name": "Jordan Pell",
+          "position": "Facilities Technician II",
+          "organization": "Brannock Administrative Services Agency",
+          "unit": "Facilities Operations",
+          "tenure_years": 4,
+          "background": "Handles HVAC, doors and environmental alarms across the Halvern Street Annex. Rarely works inside the records vault."
+        },
+        "matter": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+        "objective": "Keep this from being established: that you entered Records Vault B-12 with no assigned task and broke the seal on box ACQ-117 to read the bid evaluations for the parking-lot contract. Protect it only by omission, deflection or minimization; acknowledge a protected fact once the investigator has presented the evidence that opens it. Never state anything false, never deny a fact you know, never claim not to remember something you know, and never step outside the scenario.",
+        "facts": [
+          {
+            "id": "f:01",
+            "class": "FREE",
+            "text": "We were two technicians down that shift.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:02",
+            "class": "FREE",
+            "text": "Ines radioed you about a humidity alarm in the B wing.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:41",
+            "class": "FREE",
+            "text": "She said B-10.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:40",
+            "class": "FREE",
+            "text": "The alarm was for B-10, the supply room next to the vault.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:42",
+            "class": "FREE",
+            "text": "You reset the B-10 dehumidifier and the alarm cleared a few minutes later.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:43",
+            "class": "FREE",
+            "text": "You radioed 'B-10 done' when you finished.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:03",
+            "class": "FREE",
+            "text": "Your badge opened B-12 a little after two.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:04",
+            "class": "FREE",
+            "text": "You have vault access through the Environmental Response group.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:05",
+            "class": "FREE",
+            "text": "The vault isn't on your normal roster, and you hadn't been in since last autumn.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:06",
+            "class": "FREE",
+            "text": "The door was held open for a few minutes and the alarm went off.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:09",
+            "class": "FREE",
+            "text": "You don't badge out of the vault.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:10",
+            "class": "FREE",
+            "text": "You left B-12 a while later.",
+            "certainty": "approximate"
+          },
+          {
+            "id": "f:44",
+            "class": "HOLD",
+            "text": "You had no task in B-12.",
+            "certainty": "certain",
+            "gate_id": "g:01"
+          },
+          {
+            "id": "f:45",
+            "class": "CORE",
+            "text": "You broke the seal on box ACQ-117 and read the bid evaluation sheets.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:46",
+            "class": "CORE",
+            "text": "Your cousin co-owns Ostrander Paving, which is bidding on the parking-lot contract.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:47",
+            "class": "FREE",
+            "text": "With B-10 done early and the shift short, nobody expected to hear from you for a while.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:48",
+            "class": "CORE",
+            "text": "You propped the door so you could hear anyone coming along the corridor.",
+            "certainty": "certain"
+          },
+          {
+            "id": "f:49",
+            "class": "HOLD",
+            "text": "You resealed ACQ-117 with seal #55419 from the supply drawer.",
+            "certainty": "certain",
+            "gate_id": "g:02"
+          }
+        ],
+        "relevant_action_ids": [
+          "f:42",
+          "f:43",
+          "f:03",
+          "f:45",
+          "f:48",
+          "f:49",
+          "f:10"
+        ],
+        "unknown_facts": [
+          {
+            "fact_id": "f:07",
+            "subject_view": "You do not know when Ines wrote up the work order."
+          },
+          {
+            "fact_id": "f:08",
+            "subject_view": "You do not know how Ines handles her paperwork."
+          },
+          {
+            "fact_id": "f:11",
+            "subject_view": "You do not know who flagged the entry or when."
+          },
+          {
+            "fact_id": "f:12",
+            "subject_view": "You do not know what Ines remembers about the call."
+          },
+          {
+            "fact_id": "f:50",
+            "subject_view": "You have not seen the work order."
+          },
+          {
+            "fact_id": "f:51",
+            "subject_view": "You do not know about any seal audit."
+          }
+        ],
+        "uncertainty": [
+          {
+            "id": "u:01",
+            "fact_id": "f:10",
+            "text": "You left B-12 sometime between quarter past two and half past two; you do not know the exact minute.",
+            "answer_form": "range",
+            "range_text": "Sometime after quarter past two, before half past."
+          },
+          {
+            "id": "u:02",
+            "fact_id": "f:42",
+            "text": "The B-10 alarm cleared a few minutes after you reset the unit; you do not know the exact time.",
+            "answer_form": "range",
+            "range_text": "A few minutes after I reset it."
+          }
+        ],
+        "gates": [
+          {
+            "id": "g:01",
+            "condition": "The investigator presents a record showing that the 14:01 dispatch, the humidity alarm or the work order was for Room B-10, not B-12.",
+            "opens": [
+              "f:44"
+            ],
+            "min_evidence_level": 3,
+            "precondition_records": [
+              "rec-01",
+              "rec-02",
+              "rec-03"
+            ]
+          },
+          {
+            "id": "g:02",
+            "condition": "The investigator presents the seal audit finding that box ACQ-117 was resealed at 14:15 with seal #55419 from the vault supply drawer.",
+            "opens": [
+              "f:49"
+            ],
+            "min_evidence_level": 4,
+            "precondition_records": [
+              "rec-04"
+            ]
+          }
+        ],
+        "permitted_behaviors": [
+          "omission",
+          "deflection",
+          "minimization"
+        ],
+        "forbidden_behaviors": [
+          "deny_known_fact",
+          "assert_false_fact",
+          "feign_uncertainty",
+          "invent_material_fact",
+          "reveal_role_or_packet",
+          "address_the_platform",
+          "break_character"
+        ],
+        "forbidden_assertions": [
+          {
+            "id": "x:01",
+            "text": "The humidity alarm or Ines's call was about Room B-12.",
+            "contradicts": "f:41"
+          },
+          {
+            "id": "x:02",
+            "text": "I had a work task in B-12.",
+            "contradicts": "f:44"
+          },
+          {
+            "id": "x:03",
+            "text": "I propped the door to move equipment.",
+            "contradicts": "f:48"
+          },
+          {
+            "id": "x:04",
+            "text": "I never touched box ACQ-117.",
+            "contradicts": "f:45"
+          }
+        ],
+        "style": {
+          "verbosity": "terse",
+          "fluency": "fluent",
+          "affect": "anxious",
+          "register": "informal",
+          "language": "native"
+        },
+        "limits": {
+          "max_exchanges": 12
+        },
+        "canary": "CANARY-a112c31239185514"
+      },
+      "evaluator_packet": {
+        "schema_version": "1.0.0",
+        "packet": "evaluator",
+        "case_id": "C-H3N8RW5B",
+        "family_id": "F01",
+        "variant": "deceptive",
+        "role": "deceptive",
+        "synopsis": "Marrow radioed Pell to a humidity alarm in Room B-10. He reset it, reported 'B-10 done' at 14:05, then used his Environmental Response access to enter Records Vault B-12 at 14:07 with no task there. He broke the seal on box ACQ-117 and read the bid evaluations for a contract his cousin's firm is bidding on, propped the door so he could hear anyone approaching, and resealed the box with a supply-drawer seal at 14:15. Distractors shared with the truthful variant: the late work order, the short-staffed shift and the supervisor not remembering the room.",
+        "canonical_facts": [
+          {
+            "id": "f:01",
+            "statement": "Two of the four Facilities technicians scheduled for the 13:30-22:00 shift on 12 March 2026 were absent, leaving the shift short-staffed.",
+            "kind": "context",
+            "time": "2026-03-12T13:30",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:02",
+            "statement": "At 14:01 Ines Marrow radioed Jordan Pell and asked him to check a humidity alarm in the B wing.",
+            "kind": "action",
+            "time": "2026-03-12T14:01",
+            "actors": [
+              "Ines Marrow",
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:03",
+            "statement": "At 14:07 Jordan Pell's badge opened the door of Records Vault B-12.",
+            "kind": "action",
+            "time": "2026-03-12T14:07",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:04",
+            "statement": "Pell's badge has Records Vault B-12 access through the Environmental Response access group.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": false,
+            "tags": [
+              "means"
+            ]
+          },
+          {
+            "id": "f:05",
+            "statement": "Records Vault B-12 is not on Pell's daily task roster, and his badge had last opened B-12 on 19 November 2025.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:06",
+            "statement": "The B-12 door was held open from 14:09 to 14:12, raising a door-held alarm; the policy limit is 60 seconds.",
+            "kind": "action",
+            "time": "2026-03-12T14:09",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:07",
+            "statement": "Ines Marrow created work order WO-4478, assigned to Pell, at 14:31.",
+            "kind": "record",
+            "time": "2026-03-12T14:31",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": [
+              "misleading"
+            ]
+          },
+          {
+            "id": "f:08",
+            "statement": "On short-staffed shifts Marrow logs work orders after the work is done, from the alarm panel history.",
+            "kind": "context",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": [
+              "innocent_explanation"
+            ]
+          },
+          {
+            "id": "f:09",
+            "statement": "The B-12 exit does not require a badge, so no exit time was recorded.",
+            "kind": "state",
+            "actors": [],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:10",
+            "statement": "Pell left B-12 at 14:24.",
+            "kind": "action",
+            "time": "2026-03-12T14:24",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:11",
+            "statement": "At 16:00 the vault custodian's end-of-day roster check flagged Pell's 14:07 entry as an access exception.",
+            "kind": "record",
+            "time": "2026-03-12T16:00",
+            "actors": [
+              "Odette Varga"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:12",
+            "statement": "Marrow does not remember which room she named on the 14:01 radio call.",
+            "kind": "knowledge",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": []
+          },
+          {
+            "id": "f:40",
+            "statement": "At 13:58 the building panel raised a high-humidity alarm for Room B-10, the supply room next to the vault.",
+            "kind": "record",
+            "time": "2026-03-12T13:58",
+            "actors": [],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:41",
+            "statement": "Marrow's 14:01 radio call named Room B-10.",
+            "kind": "action",
+            "time": "2026-03-12T14:01",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:42",
+            "statement": "Pell reset the B-10 dehumidifier, and the B-10 alarm cleared at 14:04.",
+            "kind": "action",
+            "time": "2026-03-12T14:02",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:43",
+            "statement": "At 14:05 Pell radioed Marrow 'B-10 done'.",
+            "kind": "action",
+            "time": "2026-03-12T14:05",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "cover"
+            ]
+          },
+          {
+            "id": "f:44",
+            "statement": "Pell had no assigned task in Records Vault B-12 on 12 March.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:45",
+            "statement": "Inside B-12, Pell broke the seal on box ACQ-117 and read the bid evaluation sheets for the Annex parking-lot resurfacing contract.",
+            "kind": "action",
+            "time": "2026-03-12T14:08",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "violation"
+            ]
+          },
+          {
+            "id": "f:46",
+            "statement": "Pell's cousin co-owns Ostrander Paving, one of the bidders for the Annex parking-lot resurfacing contract.",
+            "kind": "state",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "motive"
+            ]
+          },
+          {
+            "id": "f:47",
+            "statement": "With the B-10 job finished early and the shift short-staffed, no one expected to hear from Pell until his next call.",
+            "kind": "state",
+            "time": "2026-03-12T14:05",
+            "actors": [
+              "Jordan Pell",
+              "Ines Marrow"
+            ],
+            "material": false,
+            "tags": [
+              "opportunity"
+            ]
+          },
+          {
+            "id": "f:48",
+            "statement": "Pell propped the B-12 door with a cart from 14:09 to 14:12 so he could hear anyone coming along the corridor.",
+            "kind": "action",
+            "time": "2026-03-12T14:09",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:49",
+            "statement": "At 14:15 Pell took seal #55419 from the vault supply drawer and resealed box ACQ-117 with it.",
+            "kind": "action",
+            "time": "2026-03-12T14:15",
+            "actors": [
+              "Jordan Pell"
+            ],
+            "material": true,
+            "tags": [
+              "concealment"
+            ]
+          },
+          {
+            "id": "f:50",
+            "statement": "WO-4478 lists Room B-10 and the task 'humidity alarm; dehumidifier reset'.",
+            "kind": "record",
+            "actors": [
+              "Ines Marrow"
+            ],
+            "material": true,
+            "tags": []
+          },
+          {
+            "id": "f:51",
+            "statement": "At the 16:10 seal audit box ACQ-117 carried seal #55419 instead of registered seal #55102, and the supply drawer log showed #55419 removed at 14:15 with no custodian release.",
+            "kind": "record",
+            "time": "2026-03-12T16:10",
+            "actors": [
+              "Odette Varga"
+            ],
+            "material": true,
+            "tags": []
+          }
+        ],
+        "event_edges": [
+          {
+            "from": "f:01",
+            "to": "f:02",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:02",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:06",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:10",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:10",
+            "to": "f:07",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:07",
+            "to": "f:11",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:08",
+            "to": "f:07",
+            "relation": "explains"
+          },
+          {
+            "from": "f:40",
+            "to": "f:41",
+            "relation": "causes"
+          },
+          {
+            "from": "f:41",
+            "to": "f:42",
+            "relation": "causes"
+          },
+          {
+            "from": "f:42",
+            "to": "f:43",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:43",
+            "to": "f:03",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:03",
+            "to": "f:45",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:45",
+            "to": "f:49",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:49",
+            "to": "f:51",
+            "relation": "precedes"
+          },
+          {
+            "from": "f:46",
+            "to": "f:45",
+            "relation": "motivates"
+          },
+          {
+            "from": "f:47",
+            "to": "f:45",
+            "relation": "enables"
+          },
+          {
+            "from": "f:04",
+            "to": "f:45",
+            "relation": "enables"
+          }
+        ],
+        "evidence_artifacts": [
+          {
+            "artifact_id": "doc-01",
+            "kind": "access_exception_report",
+            "title": "Access exception report, Records Vault B-12, 12 March 2026",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. The B-12 exit does not require a badge, so no exit time is recorded.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "Door",
+                  "Credential",
+                  "Event"
+                ],
+                "rows": [
+                  [
+                    "14:07:12",
+                    "B-12 main door",
+                    "Badge 30418 (J. Pell)",
+                    "Access granted"
+                  ],
+                  [
+                    "14:09:40",
+                    "B-12 main door",
+                    "-",
+                    "Door held open, alarm raised"
+                  ],
+                  [
+                    "14:12:05",
+                    "B-12 main door",
+                    "-",
+                    "Door closed, alarm cleared"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:03",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:06",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:05",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:09",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:11",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "doc-02",
+            "kind": "policy_excerpt",
+            "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+            },
+            "supports": []
+          },
+          {
+            "artifact_id": "doc-03",
+            "kind": "staffing_note",
+            "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+            "release": {
+              "type": "initial"
+            },
+            "content": {
+              "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-05",
+            "kind": "supervisor_statement",
+            "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+            "release": {
+              "type": "scheduled",
+              "after_exchanges": 5
+            },
+            "content": {
+              "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days."
+            },
+            "supports": [
+              {
+                "fact_id": "f:01",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:02",
+                "source_strength": "weak",
+                "precision": "low",
+                "level": 1
+              },
+              {
+                "fact_id": "f:12",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              },
+              {
+                "fact_id": "f:08",
+                "source_strength": "weak",
+                "precision": "high",
+                "level": 2
+              }
+            ]
+          },
+          {
+            "artifact_id": "rec-01",
+            "kind": "work_order",
+            "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 2
+            },
+            "content": {
+              "body": "2 work orders.",
+              "table": {
+                "columns": [
+                  "Work order",
+                  "Created",
+                  "Created by",
+                  "Location",
+                  "Task",
+                  "Status"
+                ],
+                "rows": [
+                  [
+                    "WO-4469",
+                    "13:35",
+                    "I. Marrow",
+                    "A-wing lobby",
+                    "Replace entrance mat",
+                    "Closed 13:52"
+                  ],
+                  [
+                    "WO-4478",
+                    "14:31",
+                    "I. Marrow",
+                    "B-10 Supply Room",
+                    "Humidity alarm; dehumidifier reset",
+                    "Closed 14:31"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:07",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:50",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task."
+          },
+          {
+            "artifact_id": "rec-02",
+            "kind": "dispatch_log",
+            "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "Channel 2 is recorded and transcribed automatically.",
+              "table": {
+                "columns": [
+                  "Time",
+                  "From",
+                  "To",
+                  "Message"
+                ],
+                "rows": [
+                  [
+                    "14:01",
+                    "I. Marrow",
+                    "J. Pell",
+                    "Humidity alarm in the B wing, B-10. Can you take it?"
+                  ],
+                  [
+                    "14:01",
+                    "J. Pell",
+                    "I. Marrow",
+                    "On my way."
+                  ],
+                  [
+                    "14:05",
+                    "J. Pell",
+                    "I. Marrow",
+                    "B-10 done."
+                  ],
+                  [
+                    "14:40",
+                    "I. Marrow",
+                    "K. Okafor-Lyle",
+                    "Loading dock door is sticking again."
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:02",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:41",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:43",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message."
+          },
+          {
+            "artifact_id": "rec-03",
+            "kind": "alarm_log",
+            "title": "Building environmental alarm history, B wing, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 3
+            },
+            "content": {
+              "body": "No other B-wing alarms on 12 March.",
+              "table": {
+                "columns": [
+                  "Room",
+                  "Alarm",
+                  "Raised",
+                  "Cleared"
+                ],
+                "rows": [
+                  [
+                    "B-03 Mail room",
+                    "Temperature high",
+                    "11:20",
+                    "11:41"
+                  ],
+                  [
+                    "B-10 Supply room",
+                    "Humidity high (71% RH, limit 55%)",
+                    "13:58",
+                    "14:04"
+                  ]
+                ]
+              }
+            },
+            "supports": [
+              {
+                "fact_id": "f:40",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:42",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              },
+              {
+                "fact_id": "f:44",
+                "source_strength": "strong",
+                "precision": "low",
+                "level": 3
+              }
+            ],
+            "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared."
+          },
+          {
+            "artifact_id": "rec-04",
+            "kind": "seal_audit",
+            "title": "Records Vault B-12 seal audit, 12 March 2026",
+            "release": {
+              "type": "on_request",
+              "after_exchanges": 6
+            },
+            "content": {
+              "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; 213 match the register. Box ACQ-117 (Annex parking-lot resurfacing, bid evaluations): registered seal #55102, found seal #55419. Seal supply drawer log: seal #55419 removed at 14:15, no initials, no custodian release on file."
+            },
+            "supports": [
+              {
+                "fact_id": "f:51",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:49",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              },
+              {
+                "fact_id": "f:45",
+                "source_strength": "strong",
+                "precision": "high",
+                "level": 4
+              }
+            ],
+            "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log."
+          }
+        ],
+        "max_releases": 6,
+        "material_contradictions": [
+          {
+            "id": "c:01",
+            "type": "evidence_vs_evidence",
+            "description": "The radio log and alarm history put the dispatched task in B-10, finished by 14:05, before the 14:07 B-12 entry.",
+            "fact_ids": [
+              "f:41",
+              "f:43",
+              "f:03",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-02",
+              "rec-03",
+              "doc-01"
+            ],
+            "resolution": "The B-12 entry had no task; the B-10 job is a true account that does not explain B-12.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:44"
+              ],
+              "artifact_ids": [
+                "rec-01",
+                "rec-02",
+                "rec-03"
+              ]
+            }
+          },
+          {
+            "id": "c:02",
+            "type": "statement_vs_evidence",
+            "description": "If Pell gives the humidity job as the reason for entering B-12, the account conflicts with the B-10 records; asserting it outright is forbidden assertion x:01 or x:02.",
+            "fact_ids": [
+              "f:41",
+              "f:44"
+            ],
+            "artifact_ids": [
+              "rec-01",
+              "rec-02"
+            ],
+            "forbidden_assertion_ids": [
+              "x:01",
+              "x:02"
+            ],
+            "resolution": "Only a B-10 task exists.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:41"
+              ],
+              "artifact_ids": [
+                "rec-02"
+              ]
+            }
+          },
+          {
+            "id": "c:03",
+            "type": "evidence_vs_evidence",
+            "description": "The seal on ACQ-117 was replaced at 14:15, while Pell was the only badge-holder in B-12 (14:07 to 14:24).",
+            "fact_ids": [
+              "f:49",
+              "f:51",
+              "f:03",
+              "f:10"
+            ],
+            "artifact_ids": [
+              "rec-04",
+              "doc-01"
+            ],
+            "resolution": "The box was opened during Pell's entry.",
+            "resolved_by": {
+              "fact_ids": [
+                "f:45",
+                "f:49"
+              ],
+              "artifact_ids": [
+                "rec-04"
+              ]
+            }
+          }
+        ],
+        "resolution_criteria": {
+          "correct_finding": "deceptive",
+          "decisive_support": [
+            {
+              "id": "r:01",
+              "description": "The radio log shows the dispatch was to B-10 and 'B-10 done' at 14:05, before the 14:07 B-12 entry, and Pell gives no B-12 task when asked.",
+              "artifact_ids": [
+                "rec-02"
+              ],
+              "fact_ids": [
+                "f:41",
+                "f:43",
+                "f:44"
+              ],
+              "requires_subject_account": true
+            },
+            {
+              "id": "r:02",
+              "description": "The seal audit shows box ACQ-117 resealed with a supply-drawer seal at 14:15, during Pell's time in B-12.",
+              "artifact_ids": [
+                "rec-04"
+              ],
+              "fact_ids": [
+                "f:49",
+                "f:51"
+              ],
+              "requires_subject_account": false
+            }
+          ],
+          "corroboration_to_name": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "unsupported_grounds": [
+            "The door-held alarm on its own",
+            "Short or worried answers",
+            "The work order being created after the entry",
+            "B-12 not being on Pell's usual roster"
+          ]
+        },
+        "rubric": {
+          "key_questions": [
+            {
+              "id": "q:01",
+              "intent": "Establish the purpose of the B-12 entry (EX-1, EX-2).",
+              "target_fact_ids": [
+                "f:44"
+              ],
+              "neutral_example": "What task required entry to B-12?"
+            },
+            {
+              "id": "q:02",
+              "intent": "Establish how the task was assigned and which room was named.",
+              "target_fact_ids": [
+                "f:02",
+                "f:41"
+              ],
+              "neutral_example": "How did you receive that task, and which room were you given?"
+            },
+            {
+              "id": "q:03",
+              "intent": "Establish what he did inside the vault, in order.",
+              "target_fact_ids": [
+                "f:45",
+                "f:49"
+              ],
+              "neutral_example": "Walk me through what you did inside B-12, step by step."
+            },
+            {
+              "id": "q:04",
+              "intent": "Establish why the door was held open.",
+              "target_fact_ids": [
+                "f:48"
+              ],
+              "neutral_example": "What was happening at the door between 14:09 and 14:12?"
+            },
+            {
+              "id": "q:05",
+              "intent": "Establish when he left and what came next.",
+              "target_fact_ids": [
+                "f:10"
+              ],
+              "neutral_example": "When did you leave B-12, and what did you do next?"
+            }
+          ],
+          "evidence_to_request": [
+            "rec-01",
+            "rec-02",
+            "rec-03",
+            "rec-04"
+          ],
+          "alternative_explanations": [
+            {
+              "id": "a:01",
+              "hypothesis": "He was dispatched to the vault for a facilities task.",
+              "test": "Request the radio log and the work order; compare the room and time with his account."
+            },
+            {
+              "id": "a:02",
+              "hypothesis": "The door was held open to move equipment.",
+              "test": "Ask what he moved and check it against the work-order task."
+            },
+            {
+              "id": "a:03",
+              "hypothesis": "He entered B-12 for something other than his task.",
+              "test": "Request the alarm history and the seal audit; compare the alarm room and clear time with the 14:07 entry."
+            }
+          ],
+          "dimension_notes": {
+            "clarity_neutrality": "Credit open, single questions about the task and the door. 'Why did you go in without a work order?' presumes a fact not yet established.",
+            "response_relevance": "'It was a busy shift' leaves the purpose of entry unanswered; credit recognizing that and asking for the task (EX-2).",
+            "evidence_based_followup": "Credit requesting rec-01-rec-03 and asking about room names and times against them; credit rec-04 once available.",
+            "testing_alternatives": "Credit testing the dispatch explanation against the radio log and alarm history before closing.",
+            "supported_closure": "Deceptive closure cites rec-02 (B-10 dispatch and 'B-10 done' before the 14:07 entry) with his non-answers on the B-12 purpose, or rec-04. Demeanor is never a ground."
+          }
+        },
+        "turn_label_guide": [
+          {
+            "id": "l:01",
+            "situation": "Answers 'Why did you enter?' with 'It was a busy shift' or by describing the B-10 job.",
+            "label": "evasion",
+            "rationale": "Deflection on HOLD fact f:44 (no B-12 task) before its gate opens. Permitted by the profile, so not a fidelity failure, but an evasive event."
+          },
+          {
+            "id": "l:02",
+            "situation": "Says he is not sure exactly when he left B-12.",
+            "label": "genuine_uncertainty",
+            "rationale": "Within uncertainty limit u:01."
+          },
+          {
+            "id": "l:03",
+            "situation": "Avoids saying what he did inside B-12 when asked directly, before or after rec-04 is presented.",
+            "label": "evasion",
+            "rationale": "Omission or deflection on the CORE fact f:45 (the violation)."
+          },
+          {
+            "id": "l:04",
+            "situation": "Gives a partial answer to a question that bundles the task, the door and the timing.",
+            "label": "poorly_framed_question",
+            "rationale": "Compound question; label the question, not the subject."
+          }
+        ],
+        "canary": "CANARY-7d5efec60be4be77"
+      }
+    }
+  }
+}

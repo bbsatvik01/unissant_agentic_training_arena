@@ -99,21 +99,24 @@ if __name__ == "__main__":
 # ("stunning, smooth, clean, pets") weighs visual impact, against delivery risk inside a 25-day build.
 WEIGHTS_UI = {"impact": 0.30, "delivery": 0.30, "fit": 0.20, "performance": 0.10, "cost": 0.10}
 # fit = PRB-4 and accessibility fit (demeanor independent of role, reduced motion, WCAG 2.2 AA)
+# Scores carry ranges where the input is unmeasured (UI round 1, UI-03): measured reuse (gokbase kin,
+# TechnoMile pipeline) gets point scores; new asset work and unproven stacks get ranges. PRB-4 and
+# accessibility are gates in the document; "fit" here only ranks options that already pass them.
 UI_MATRICES: dict[str, dict[str, list]] = {
     "UI-1 Coach companion pet": {
-        "A port gokbase kin FSM, new SVG art, CSS-variable rig": [4, 5, 5, 5, 5],
-        "B Rive data-bound state machine": [5, 3, 4, 4, 3],
-        "C dotLottie state machine": [4, 3, 4, 4, 4],
+        "A port gokbase kin FSM, new SVG art, CSS-variable rig": [(3, 5), 5, 5, 5, 5],
+        "B Rive data-bound state machine": [(4, 5), (2, 3), 4, 4, 3],
+        "C dotLottie state machine": [(3, 4), (2, 3), 4, 4, 4],
     },
     "UI-2 Subject avatar": {
-        "A Gemini-generated portrait set, vectorized, amplitude-driven mouth": [4, 4, 5, 5, 5],
-        "B Rive-rigged 2D": [5, 2, 4, 4, 3],
-        "C three-vrm 3D + TalkingHead lip sync": [5, 2, 3, 2, 4],
+        "A Gemini-generated portrait set, vectorized, amplitude-driven mouth": [(3, 5), (3, 4), 5, (4, 5), 5],
+        "B Rive-rigged 2D": [(4, 5), (1, 2), 4, 4, 3],
+        "C three-vrm 3D + TalkingHead lip sync": [(4, 5), (1, 2), 3, (2, 3), 4],
     },
     "UI-3 Motion stack": {
-        "A Motion for state-driven UI + GSAP for signature sequences + CSS for per-frame rigs": [5, 4, 5, 4, 5],
+        "A Motion + CSS, add GSAP only for sequences a spike shows it does better": [(4, 5), 4, 5, (4, 5), 5],
         "B CSS-only (TechnoMile discipline)": [3, 5, 5, 5, 5],
-        "C Motion only": [4, 4, 5, 4, 5],
+        "C Motion + GSAP + CSS from the start": [(4, 5), (3, 4), 5, (3, 4), 5],
     },
     "UI-4 Agents-at-work view": {
         "A pipeline rail + canvas, with an office 'theater' toggle for the demo": [5, 4, 4, 4, 5],
@@ -123,24 +126,38 @@ UI_MATRICES: dict[str, dict[str, list]] = {
 }
 
 
+def ui_bounds(scores: list, w: dict[str, float]) -> tuple[float, float]:
+    lo = hi = 0.0
+    for k, v in zip(list(WEIGHTS_UI), scores):
+        a, b = (v if isinstance(v, tuple) else (v, v))
+        lo += w[k] * a
+        hi += w[k] * b
+    return round(lo, 2), round(hi, 2)
+
+
 def ui_report() -> None:
     order = list(WEIGHTS_UI)
     for title, options in UI_MATRICES.items():
         print(f"\n{title}")
-        totals = {name: round(sum(WEIGHTS_UI[k] * v for k, v in zip(order, scores)), 2) for name, scores in options.items()}
-        for name, t in totals.items():
-            print(f"  {name:<86} {t:.2f}")
-        best = max(totals, key=totals.get)
+        for name, scores in options.items():
+            lo, hi = ui_bounds(scores, WEIGHTS_UI)
+            print(f"  {name:<86} {lo:.2f}" + ("" if lo == hi else f"-{hi:.2f}"))
+        mid = lambda n, w=WEIGHTS_UI: sum(ui_bounds(options[n], w)) / 2
+        best = max(options, key=mid)
         flips = set()
         for a in order:
             for b in order:
                 if a == b or WEIGHTS_UI[a] < 0.10:
                     continue
                 w = dict(WEIGHTS_UI); w[a] = round(w[a] - 0.10, 2); w[b] = round(w[b] + 0.10, 2)
-                alt = max(options, key=lambda n: sum(w[k] * v for k, v in zip(order, options[n])))
+                alt = max(options, key=lambda n: mid(n, w))
                 if alt != best:
                     flips.add(f"{a}->{b}: {alt.split(' ')[0]}")
-        print(f"  winner: {best.split(' ')[0]}; flips under a 10-point shift: {'none' if not flips else '; '.join(sorted(flips))}")
+        lead_lo = ui_bounds(options[best], WEIGHTS_UI)[0]
+        overlap = [k.split(' ')[0] for k in options if k != best and ui_bounds(options[k], WEIGHTS_UI)[1] > lead_lo]
+        print(f"  midpoint winner: {best.split(' ')[0]}; flips under a 10-point shift: "
+              f"{'none' if not flips else '; '.join(sorted(flips))}; score-range check: "
+              f"{'robust' if not overlap else 'depends on unmeasured scores vs ' + ', '.join(overlap)}")
 
 
 if __name__ == "__main__":
