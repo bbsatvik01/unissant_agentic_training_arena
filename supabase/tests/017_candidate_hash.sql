@@ -6,7 +6,8 @@
 -- hashing; CH-03 registering the official A1 manifest stores and logs its S2 3.2 hash, and registering it again
 -- returns the same row; CH-04 a manifest whose embedded sha256 is not its own hash is refused with AR007; CH-05 a
 -- manifest holding a fractional number is refused with AR007; CH-06 the migration guard passes while no tournament
--- has frozen; CH-07 it refuses once one has (the rewrite would break that roster's commitment).
+-- has frozen; CH-07 it refuses once one has (the rewrite would break that roster's commitment). CH-08 (two
+-- sessions) is 018_candidate_hash_lock.sql, CH-09 is in 016_finding.sql.
 begin;
 \ir harness/fixtures.psql
 select plan(8);
@@ -43,7 +44,7 @@ select is(tests.error('select arena.candidate_hash_migration_guard()'), '00000',
   'CH-06 the migration guard passes while every tournament is a draft');
 select tests.tournament('dev', array['interactive']);
 select is(tests.error('select arena.candidate_hash_migration_guard()'),
-          'AR007: migration 1100 would rewrite candidate hashes a frozen tournament roster commits to',
+          'AR007: migration 1100 would rewrite candidate hashes a frozen roster or a finding commitment commits to',
   'CH-07 the migration guard refuses once a tournament roster is frozen');
 
 select * from finish();

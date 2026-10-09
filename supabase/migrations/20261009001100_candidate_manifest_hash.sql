@@ -11,18 +11,28 @@
 --          SET EXPRESSION), and register_candidate compares and logs that hash. A manifest that carries a `sha256`
 --          different from its own S2 3.2 hash is refused (AR007).
 --   Guard: re-expressing the column rewrites every stored candidate hash, and a frozen tournament's committed
---          roster_sha256 folds those hashes in (arena.roster_digest), so reveal would refuse it (AR021). The
---          migration therefore refuses to run once any tournament has left draft; it applies to a registry whose
---          rosters are not yet committed (every database today: no tournament has frozen).
--- Gates: supabase/tests/017_candidate_hash.sql CH-01..CH-07; packages/core/tests/agents/test_manifest_sql.py.
+--          roster_sha256 folds those hashes in (arena.roster_digest), so reveal would refuse it (AR021), and a
+--          finalized trial's finding commitment folds them in too (ledger.verify_commitment). The migration runs
+--          on a fresh or near-empty database (D-016); it first takes ACCESS EXCLUSIVE locks, in a fixed order, on
+--          the tables freezing and finalization write (candidates, tournaments, trials, finding commitments,
+--          ledger events), so no freeze or finalization can commit between the check and the rewrite, and holds
+--          them to the end of this migration's one transaction. It then refuses if any tournament has left draft,
+--          any trial is finalized or any finding commitment exists.
+-- Gates: supabase/tests/017_candidate_hash.sql CH-01..CH-08, 016_finding.sql CH-09;
+--        packages/core/tests/agents/test_manifest_sql.py.
 
--- The guard is a function so its rule is tested (CH-06, CH-07) as well as run once here.
+-- The guard is a function so its rule is tested (CH-06 to CH-09) as well as run once here; the locks it takes
+-- last until the calling transaction ends.
 create or replace function arena.candidate_hash_migration_guard() returns void
 language plpgsql set search_path = '' as $$
 begin
-  if exists (select 1 from arena.tournaments where status <> 'draft') then
+  lock table arena.candidates, arena.tournaments, arena.trials, ledger.finding_commitments, ledger.events
+    in access exclusive mode;
+  if exists (select 1 from arena.tournaments where status <> 'draft')
+     or exists (select 1 from arena.trials where status = 'finalized')
+     or exists (select 1 from ledger.finding_commitments) then
     raise exception using errcode = 'AR007',
-      message = 'migration 1100 would rewrite candidate hashes a frozen tournament roster commits to';
+      message = 'migration 1100 would rewrite candidate hashes a frozen roster or a finding commitment commits to';
   end if;
 end $$;
 
