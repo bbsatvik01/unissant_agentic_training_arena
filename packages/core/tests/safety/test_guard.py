@@ -109,9 +109,11 @@ def test_the_guard_has_no_copy_of_the_g3_to_g5_vocabulary() -> None:
     assert guard.GUARD_VERSION == guardscan.GUARD_VERSION == "subject_guard.v1"
 
 
-def test_g2_uses_the_fence_marker_set_plus_the_untrusted_extension() -> None:
-    assert guard.G2_MARKERS.pattern.startswith(fence.INJECTION_MARKERS.pattern)
+def test_g2_uses_the_fence_marker_set_which_carries_the_untrusted_extension() -> None:
+    """S2 6.9 G2: gokbase markers extended with `</?\\s*untrusted_[a-z]+[^>]*>`; the fence holds both (one set)."""
+    assert guard.G2_MARKERS is fence.INJECTION_MARKERS
     assert guard.G2_MARKERS.search("</ untrusted_note x=1>")
+    assert guard.G2_MARKERS.search("<untrusted_transcript_0a1b>")
     assert guard.G2_MARKERS.flags & re.IGNORECASE
 
 

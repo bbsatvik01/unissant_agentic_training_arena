@@ -38,7 +38,9 @@ _ALLOWED_CONTROLS = frozenset({"\n", "\t"})
 _TAG_LO, _TAG_HI = 0xE0000, 0xE007F
 _HIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Co"})
 
-G2_MARKERS = re.compile(INJECTION_MARKERS.pattern + r"|</?\s*untrusted_[a-z]+[^>]*>", re.IGNORECASE)
+# The fence's marker set already carries the arena extension `</?\s*untrusted_[a-z]+[^>]*>` (WP-10), so G2 uses it
+# as is: one marker set for the fence and the guard.
+G2_MARKERS = INJECTION_MARKERS
 _G2_CHARACTERS = re.compile(r"[<>{}\[\]`|]")
 _G2_LINKS = re.compile(r"https?://|www\.", re.IGNORECASE)
 _TOKEN = re.compile(r"[a-z0-9]+")
