@@ -346,6 +346,34 @@ def test_an_unsupported_atom_does_not_swallow_a_number_across_a_clause_end() -> 
     assert cc.number_problems("30 binders remained.", ["The ratio was 0.5. 30 binders remained."], []) == []
 
 
+def test_a_code_matches_only_whole() -> None:
+    """MS-6A is not supported by MS-6A--B, and MS-6A--B is not a code at all."""
+    assert cc.unsupported_numbers("I used MS-6A--B.") == ["MS-6A--B."]
+    assert "MS-6A is not in the cited ledger or the questions" in cc.number_problems(
+        "I used MS-6A.", ["I used MS-6A--B."], []
+    )
+    assert cc.number_problems("I used MS-6A.", ["You used MS-6A."], ["Device: MS-6A, inside R-6."]) == []
+
+
+@pytest.mark.parametrize(
+    ("phrase", "value"),
+    [("two thousand million", "2000000000"), ("one million two thousand", "1002000"), ("a hundred thousand", "100000")],
+)
+def test_scales_multiply_what_precedes_them(phrase: str, value: str) -> None:
+    assert cc.numbers(f"I counted {phrase} items.") == [value]
+    assert cc.number_problems("I counted 1002000 items.", [f"I counted {phrase} items."], [f"{phrase}"]) == (
+        []
+        if value == "1002000"
+        else ["1002000 is not in the cited ledger or the questions", "1002000 disagrees with the quote"]
+    )
+
+
+@pytest.mark.parametrize("phrase", ["twenty thirty", "two three", "nineteen twelve"])
+def test_a_word_sequence_that_is_no_cardinal_is_rejected(phrase: str) -> None:
+    assert cc.unsupported_numbers(f"It was {phrase}.") == [phrase]
+    assert cc.numbers(f"It was {phrase}.") == []
+
+
 def test_no_time_on_the_wrong_row_against_a_real_record() -> None:
     """The controls state no record-only clock times (their ledgers hold none), so the time-row check is proven on a
     real development record instead: F06 doc-01 has the 417 door opening at 19:12 and closing at 19:38."""

@@ -101,23 +101,34 @@ def fold(text: str) -> str:
     return re.sub(r"\s+", " ", text.translate(APOSTROPHES))
 
 
-def cardinal_value(phrase: str) -> int:
-    total, current = 0, 0
-    for word in re.split(r"[ -]+", phrase.lower().removeprefix("a ")):
+def cardinal_value(phrase: str) -> int | None:
+    """The value of a spelled-out cardinal, or None when its words do not form one (fail closed: "twenty thirty",
+    "two three"). Scales multiply what precedes them ("two thousand million" is 2,000,000,000)."""
+    total, current, last = 0, 0, ""
+    for word in re.split(r"[ -]+", phrase.lower().removeprefix("a ").removeprefix("an ")):
         if word == "and":
+            if last not in _SCALES:
+                return None
             continue
-        if word in _ONCE:
-            current += _ONCE[word]
-        elif word in _UNIT:
-            current += _UNIT[word]
+        if word in _ONCE or word in _UNIT:
+            if last in _UNIT or last in _ONCE or (last in _TENS and word in _UNIT and _UNIT[word] >= len(_UNITS) // 2):
+                return None  # two units in a row, or tens followed by a teen
+            current += _ONCE.get(word, _UNIT.get(word, 0))
         elif word in _TENS:
+            if last in _TENS or last in _UNIT:
+                return None
             current += _TENS[word]
         elif word in _DOZEN:
             current = max(current, 1) * _DOZEN[word]
+        elif word == "hundred":
+            current = max(current, 1) * 100
         elif word in _SCALES:
-            current = max(current, 1) * _SCALES[word]
-            if _SCALES[word] >= THOUSAND:
-                total, current = total + current, 0
+            if current == 0:
+                total = max(total, 1) * _SCALES[word]
+            else:
+                total += current * _SCALES[word]
+            current = 0
+        last = word
     return total + current
 
 
@@ -239,7 +250,7 @@ UNSUPPORTED_NUMBER = re.compile(
 
 
 _TRAILING = ".,;:!?\"')("
-_CODE_CHARS = re.compile(r"[A-Za-z0-9:\-']+")
+_CODE_CHARS = re.compile(r"[A-Za-z0-9]+(?:[:'-][A-Za-z0-9]+)*")  # single separators only: MS-6A, 07:12:40, 2-07
 
 
 def _odd_numeric_chunk(chunk: str) -> bool:
@@ -252,6 +263,7 @@ def unsupported_numbers(text: str) -> list[str]:
     folded = fold(text)
     found = [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(folded)]
     found += [c for c in folded.split(" ") if _odd_numeric_chunk(c) and not UNSUPPORTED_NUMBER.search(c)]
+    found += [m.group(0) for m in CARDINAL.finditer(folded) if cardinal_value(m.group(0)) is None]
     # Any numeric character that is not an ASCII digit (vulgar fractions, superscripts, other scripts' digits).
     return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
 
@@ -275,6 +287,7 @@ def _without_unsupported(text: str) -> str:
     a clause or sentence end (a comma, semicolon, colon or full stop)."""
     chunks = [(m.start(), m.end(), m.group(0)) for m in re.finditer(r"\S+", text)]
     spans = [(m.start(), m.end()) for m in UNSUPPORTED_NUMBER.finditer(text)]
+    spans += [(m.start(), m.end()) for m in CARDINAL.finditer(text) if cardinal_value(m.group(0)) is None]
     marked = [
         any(a < e and s < b for s, e in spans) or _numeral_chunk(chunk) or _odd_numeric_chunk(chunk)
         for a, b, chunk in chunks
@@ -298,8 +311,10 @@ def numbers(text: str) -> list[str]:
     every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
     gives a time in words cites no quote that gives it in digits (the review judges that agreement)."""
     text = _without_unsupported(fold(text))
-    out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
-    return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
+    # A number, time or code is a whole chunk (trailing punctuation aside), never a fragment of one.
+    out = [c.strip(_TRAILING) for c in text.split(" ") if any(ch.isdigit() for ch in c)]
+    values = [cardinal_value(m.group(0)) for m in CARDINAL.finditer(text)]
+    return out + [str(v) for v in values if v is not None]
 
 
 def number_in(token: str, text: str) -> bool:
