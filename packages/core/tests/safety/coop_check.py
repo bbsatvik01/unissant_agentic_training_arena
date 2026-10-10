@@ -224,7 +224,8 @@ _ORDINAL = r"(?:" + "|".join(_ORDINAL_ROOTS) + r"|\d+(?:st|nd|rd|th))s?"
 _FRACTION = r"(?:half|halves|quarters?|percent|per cent|percentage)"
 # Only plain whole numbers are normalised. Every other numeric construction is rejected outright, so none can pass as
 # the whole number beside it (fail closed): fractions and proportions ("half the thirty", "two thirds", "a twelfth",
-# "thirty and a thousandth", "10 percent", 1.5, Unicode fractions such as 30\u00bd), signed quantities ("-30",
+# "thirty and a thousandth", "10 percent", decimals 1.5, .30, 30,5 and "thirty point five", Unicode fractions such
+# as 30\u00bd), signed quantities ("-30",
 # "- 30", "negative thirty", "minus 3"), and arithmetic or ranges between numbers ("30 / 2", "30 x 30", "30+30",
 # "thirty times thirty", "9 - 10", "ten-twenty"; a hyphen joins only tens and units, "twenty-one"). A token with an
 # inner hyphen such as "2-07" or "9-10" is a code and is compared whole. Ordinals are rejected only as denominators
@@ -240,7 +241,8 @@ UNSUPPORTED_NUMBER = re.compile(
     rf"|\b(?:an?|{_NUMBER_WORD}|\d+) {_ORDINAL}\b|\band an? {_ORDINAL}\b"
     rf"|%|{_OPERAND}\s*{_OPERATOR}\s*{_OPERAND}"
     rf"|\b(?!{_TENS_WORD}-(?:one|two|three|four|five|six|seven|eight|nine)\b){_NUMBER_WORD}-{_NUMBER_WORD}\b"
-    rf"|\b\d+\.\d+\b|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
+    rf"|\b\d+[.,]\d+\b|(?<![\w.])\.\d|{_OPERAND} (?:point|dot) {_OPERAND}"
+    rf"|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
     re.IGNORECASE,
 )
 

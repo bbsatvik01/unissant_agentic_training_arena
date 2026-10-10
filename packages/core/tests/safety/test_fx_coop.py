@@ -184,6 +184,9 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "30+30 training binders",
         "thirty times thirty training binders",
         "ten-twenty training binders",
+        ".30 training binders",
+        "thirty point thirty training binders",
+        "30,5 training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
