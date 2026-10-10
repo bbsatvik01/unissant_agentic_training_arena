@@ -57,3 +57,4 @@
 - WP-15 scorer merged.
 - 8b3b0df WP-10 merged.
 - HOLD 3: paused for some days; three agents still running; checkpoint saved.
+- 07c756b FX-COOP checker scope cut (over-engineering stopped at round 26).
