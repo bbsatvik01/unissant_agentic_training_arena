@@ -233,6 +233,7 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "ten-twenty training binders",
         ".30 training binders",
         "thirty point thirty training binders",
+        "30\u2030 of the training binders",
         "30,5 training binders",
     ],
 )
@@ -324,6 +325,25 @@ def test_a_table_whose_rows_start_with_a_date_keeps_its_rows() -> None:
     assert cc.time_row_problems("WO-6087 was the task at 09:12.", [], [record]) == [
         "wo-6087 goes with another time than 09:12"
     ]
+
+
+def test_two_times_in_one_segment_are_rejected_not_guessed() -> None:
+    records = list(record_texts("F09").values())
+    found = cc.time_row_problems("At 08:12 access was granted to badge 70315 before the 08:41 meeting.", [], records)
+    assert "two times in one segment: 08:12 08:41" in found
+    assert cc.time_row_problems("I was there from 08:12 until 08:41.", [], []) == []
+
+
+@pytest.mark.parametrize(("number", "source"), [("1", "1_000"), ("30", "30\u2030")])
+def test_odd_characters_beside_a_digit_make_an_unsupported_atom(number: str, source: str) -> None:
+    assert cc.unsupported_numbers(f"I counted {source} binders.") == [source]
+    found = cc.number_problems(f"I counted {number} binders.", [f"You counted {source} binders."], [])
+    assert f"{number} is not in the cited ledger or the questions" in found
+
+
+def test_an_unsupported_atom_does_not_swallow_a_number_across_a_clause_end() -> None:
+    assert cc.number_problems("30 binders remained.", ["The ratio was 0.5; 30 binders remained."], []) == []
+    assert cc.number_problems("30 binders remained.", ["The ratio was 0.5. 30 binders remained."], []) == []
 
 
 def test_no_time_on_the_wrong_row_against_a_real_record() -> None:

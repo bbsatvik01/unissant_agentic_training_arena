@@ -238,9 +238,20 @@ UNSUPPORTED_NUMBER = re.compile(
 )
 
 
+_TRAILING = ".,;:!?\"')("
+_CODE_CHARS = re.compile(r"[A-Za-z0-9:\-']+")
+
+
+def _odd_numeric_chunk(chunk: str) -> bool:
+    """A chunk with a digit and any character a plain number, time or code never holds (1_000, 30\u2030, 3#4)."""
+    core = chunk.strip(_TRAILING)
+    return any(c.isdigit() for c in core) and not _CODE_CHARS.fullmatch(core)
+
+
 def unsupported_numbers(text: str) -> list[str]:
     folded = fold(text)
     found = [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(folded)]
+    found += [c for c in folded.split(" ") if _odd_numeric_chunk(c) and not UNSUPPORTED_NUMBER.search(c)]
     # Any numeric character that is not an ASCII digit (vulgar fractions, superscripts, other scripts' digits).
     return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
 
@@ -259,18 +270,25 @@ def _numeral_chunk(chunk: str) -> bool:
 def _without_unsupported(text: str) -> str:
     """Drop every unsupported construction whole, on either side of a comparison, so none of its parts can stand for a
     whole number ("2" is not in ".12", "30" is not in "30%" or "thirty point five", "12" is not in "half a dozen"):
-    each whitespace chunk that overlaps an unsupported match, or holds a non-ASCII numeral, is removed together with
-    the neighbouring chunks that are numbers, number words or connectors."""
+    each whitespace chunk that overlaps an unsupported match, holds a non-ASCII numeral or an odd character beside a
+    digit, is removed together with the neighbouring chunks that are numbers, number words or connectors, never across
+    a clause or sentence end (a comma, semicolon, colon or full stop)."""
     chunks = [(m.start(), m.end(), m.group(0)) for m in re.finditer(r"\S+", text)]
     spans = [(m.start(), m.end()) for m in UNSUPPORTED_NUMBER.finditer(text)]
-    marked = [any(a < e and s < b for s, e in spans) or _numeral_chunk(chunk) for a, b, chunk in chunks]
+    marked = [
+        any(a < e and s < b for s, e in spans) or _numeral_chunk(chunk) or _odd_numeric_chunk(chunk)
+        for a, b, chunk in chunks
+    ]
+    ends = [chunk[-1] in ".,;:!?" for _a, _b, chunk in chunks]  # a clause or sentence ends after this chunk
     changed = True
     while changed:
         changed = False
         for n, (_a, _b, chunk) in enumerate(chunks):
             if marked[n] or not _NUMERIC_TOKEN.match(chunk):
                 continue
-            if (n > 0 and marked[n - 1]) or (n + 1 < len(chunks) and marked[n + 1]):
+            from_left = n > 0 and marked[n - 1] and not ends[n - 1]
+            from_right = n + 1 < len(chunks) and marked[n + 1] and not ends[n]
+            if from_left or from_right:
                 marked[n] = changed = True
     return " ".join("\u2063" if marked[n] else chunk for n, (_a, _b, chunk) in enumerate(chunks))
 
@@ -436,9 +454,16 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
 
 
 def time_row_problems(sentence: str, quotes: list[str], all_records: Iterable[str]) -> list[str]:
-    """Times against the cited quotes and against every record of the variant, released or not."""
+    """Times against the cited quotes and against every record of the variant, released or not. A segment that holds
+    two times ("granted to badge 70315 at 08:12 before the 08:41 meeting") cannot be bound reliably, so it is
+    rejected rather than guessed (fail closed): split the sentence."""
+    ambiguous = [
+        f"two times in one segment: {' '.join(TIME.findall(piece))}"
+        for piece in SEGMENT.split(fold(sentence))
+        if len(TIME.findall(SPAN.sub(" ", piece))) + len(SPAN.findall(piece)) > 1  # a span counts as one time
+    ]
     tables = [rows_of(quotes)] + [rows_of([r]) for r in all_records]
-    return list(dict.fromkeys(_time_problems(sentence, tables)))
+    return list(dict.fromkeys(ambiguous + _time_problems(sentence, tables)))
 
 
 def perception_problems(sentence: str, kind: str, records: list[Any]) -> list[str]:
