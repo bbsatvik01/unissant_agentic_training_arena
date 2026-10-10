@@ -101,35 +101,69 @@ def fold(text: str) -> str:
     return re.sub(r"\s+", " ", text.translate(APOSTROPHES))
 
 
-def cardinal_value(phrase: str) -> int | None:
-    """The value of a spelled-out cardinal, or None when its words do not form one (fail closed: "twenty thirty",
-    "two three"). Scales multiply what precedes them ("two thousand million" is 2,000,000,000)."""
-    total, current, last = 0, 0, ""
-    for word in re.split(r"[ -]+", phrase.lower().removeprefix("a ").removeprefix("an ")):
-        if word == "and":
-            if last not in _SCALES:
+def _digit_word(word: str) -> bool:
+    """One of the words one to nine."""
+    return word in _UNIT and 0 < _UNIT[word] < len(["zero", *"123456789"])
+
+
+def _multiplier(word: str) -> int:
+    """The count before "hundred" or "dozen": "a"/"an" is one, "one" to "nine" their value, anything else 0."""
+    if word in ("a", "an"):
+        return 1
+    return _UNIT[word] if _digit_word(word) else 0
+
+
+def _below_thousand(words: list[str]) -> int | None:
+    """A group under 1,000: [unit "hundred" ["and"]] [tens [unit] | unit-or-teen]; "a hundred" counts as one hundred."""
+    value, rest = 0, words
+    if len(rest) > 1 and rest[1] == "hundred" and _multiplier(rest[0]):
+        value, rest = 100 * _multiplier(rest[0]), rest[2:]
+        if rest[:1] == ["and"]:
+            rest = rest[1:]
+            if not rest:
                 return None
+    if not rest:
+        return value if value else None
+    if rest[0] in _TENS:
+        tens, rest = _TENS[rest[0]], rest[1:]
+        if rest and _digit_word(rest[0]):
+            tens, rest = tens + _UNIT[rest[0]], rest[1:]
+        return value + tens if not rest else None
+    if len(rest) == 1 and rest[0] in _UNIT and _UNIT[rest[0]] > 0:
+        return value + _UNIT[rest[0]]
+    return None
+
+
+def _scaled(words: list[str]) -> int | None:
+    """Groups under 1,000 joined by scales in strictly falling order; "and" may open only the last group."""
+    total, last_scale, group = 0, None, []
+    for word in [*words, "<end>"]:
+        if word != "<end>" and (word not in _SCALES or word == "hundred"):
+            group.append(word)
             continue
-        if word in _ONCE or word in _UNIT:
-            if last in _UNIT or last in _ONCE or (last in _TENS and word in _UNIT and _UNIT[word] >= len(_UNITS) // 2):
-                return None  # two units in a row, or tens followed by a teen
-            current += _ONCE.get(word, _UNIT.get(word, 0))
-        elif word in _TENS:
-            if last in _TENS or last in _UNIT:
-                return None
-            current += _TENS[word]
-        elif word in _DOZEN:
-            current = max(current, 1) * _DOZEN[word]
-        elif word == "hundred":
-            current = max(current, 1) * 100
-        elif word in _SCALES:
-            if current == 0:
-                total = max(total, 1) * _SCALES[word]
-            else:
-                total += current * _SCALES[word]
-            current = 0
-        last = word
-    return total + current
+        scale = _SCALES.get(word, 1)
+        if group[:1] == ["and"] and word == "<end>" and len(group) > 1:
+            group = group[1:]
+        bad_order = last_scale is not None and scale >= last_scale
+        value = _below_thousand(group) if group and not bad_order else None
+        if value is None:
+            return total if word == "<end>" and not group and total else None
+        total, last_scale, group = total + value * scale, scale, []
+    return total
+
+
+def cardinal_value(phrase: str) -> int | None:
+    """The value of a spelled-out cardinal under a strict grammar, or None (fail closed). Accepted: "zero", "once",
+    "twice", "a dozen" or "<unit> dozen", and groups under 1,000 joined by scales in strictly falling order ("one
+    million two thousand and five"). Rejected: "twenty thirty", "thirty zero", "zero hundred", and rising or repeated
+    scales such as "two thousand million" or "one thousand two hundred million"."""
+    words = [w for w in re.split(r"[ -]+", phrase.lower()) if w]
+    fixed = {"zero": 0, "once": 1, "twice": 2}
+    if len(words) == 1 and words[0] in fixed:
+        return fixed[words[0]]
+    if len(words) == len(["n", "dozen"]) and words[1] == "dozen" and _multiplier(words[0]):
+        return 12 * _multiplier(words[0])
+    return _scaled(words)
 
 
 Problem = tuple[int, str, str]
@@ -263,7 +297,7 @@ def unsupported_numbers(text: str) -> list[str]:
     folded = fold(text)
     found = [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(folded)]
     found += [c for c in folded.split(" ") if _odd_numeric_chunk(c) and not UNSUPPORTED_NUMBER.search(c)]
-    found += [m.group(0) for m in CARDINAL.finditer(folded) if cardinal_value(m.group(0)) is None]
+    found += [m.group(0) for m in CARDINAL.finditer(_codes_blanked(folded)) if cardinal_value(m.group(0)) is None]
     # Any numeric character that is not an ASCII digit (vulgar fractions, superscripts, other scripts' digits).
     return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
 
@@ -287,7 +321,8 @@ def _without_unsupported(text: str) -> str:
     a clause or sentence end (a comma, semicolon, colon or full stop)."""
     chunks = [(m.start(), m.end(), m.group(0)) for m in re.finditer(r"\S+", text)]
     spans = [(m.start(), m.end()) for m in UNSUPPORTED_NUMBER.finditer(text)]
-    spans += [(m.start(), m.end()) for m in CARDINAL.finditer(text) if cardinal_value(m.group(0)) is None]
+    blanked = " ".join("\u2063" * len(c) if any(ch.isdigit() for ch in c) else c for c in text.split(" "))
+    spans += [(m.start(), m.end()) for m in CARDINAL.finditer(blanked) if cardinal_value(m.group(0)) is None]
     marked = [
         any(a < e and s < b for s, e in spans) or _numeral_chunk(chunk) or _odd_numeric_chunk(chunk)
         for a, b, chunk in chunks
@@ -306,6 +341,10 @@ def _without_unsupported(text: str) -> str:
     return " ".join("\u2063" if marked[n] else chunk for n, (_a, _b, chunk) in enumerate(chunks))
 
 
+def _codes_blanked(text: str) -> str:
+    return " ".join("\u2063" if any(ch.isdigit() for ch in c) else c for c in text.split(" "))
+
+
 def numbers(text: str) -> list[str]:
     """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21). Fail closed:
     every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
@@ -313,7 +352,8 @@ def numbers(text: str) -> list[str]:
     text = _without_unsupported(fold(text))
     # A number, time or code is a whole chunk (trailing punctuation aside), never a fragment of one.
     out = [c.strip(_TRAILING) for c in text.split(" ") if any(ch.isdigit() for ch in c)]
-    values = [cardinal_value(m.group(0)) for m in CARDINAL.finditer(text)]
+    words_only = _codes_blanked(text)  # a code such as ONE-17 is one token; its letters are never a number word
+    values = [cardinal_value(m.group(0)) for m in CARDINAL.finditer(words_only)]
     return out + [str(v) for v in values if v is not None]
 
 

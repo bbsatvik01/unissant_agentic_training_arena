@@ -232,6 +232,7 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "thirty times thirty training binders",
         "ten-twenty training binders",
         ".30 training binders",
+        "thirty zero training binders",
         "thirty point thirty training binders",
         "30\u2030 of the training binders",
         "30,5 training binders",
@@ -357,14 +358,30 @@ def test_a_code_matches_only_whole() -> None:
 
 @pytest.mark.parametrize(
     ("phrase", "value"),
-    [("two thousand million", "2000000000"), ("one million two thousand", "1002000"), ("a hundred thousand", "100000")],
+    [
+        ("one million two thousand", "1002000"),
+        ("a hundred thousand", "100000"),
+        ("one million two thousand and five", "1002005"),
+        ("nine hundred ninety-nine", "999"),
+        ("three dozen", "36"),
+    ],
 )
-def test_scales_multiply_what_precedes_them(phrase: str, value: str) -> None:
+def test_cardinals_follow_a_strict_grammar(phrase: str, value: str) -> None:
     assert cc.numbers(f"I counted {phrase} items.") == [value]
-    assert cc.number_problems("I counted 1002000 items.", [f"I counted {phrase} items."], [f"{phrase}"]) == (
-        []
-        if value == "1002000"
-        else ["1002000 is not in the cited ledger or the questions", "1002000 disagrees with the quote"]
+
+
+@pytest.mark.parametrize(
+    "phrase", ["two thousand million", "one thousand two hundred million", "zero hundred", "thirty zero"]
+)
+def test_rising_scales_and_misplaced_zero_are_rejected(phrase: str) -> None:
+    assert cc.unsupported_numbers(f"I counted {phrase} items.") == [phrase]
+    assert cc.numbers(f"I counted {phrase} items.") == []
+
+
+def test_number_words_inside_a_code_are_not_numbers() -> None:
+    assert cc.numbers("Ticket ONE-17 was open.") == ["ONE-17"]
+    assert "1 is not in the cited ledger or the questions" in cc.number_problems(
+        "I counted one binder.", ["Ticket ONE-17 was open."], []
     )
 
 
