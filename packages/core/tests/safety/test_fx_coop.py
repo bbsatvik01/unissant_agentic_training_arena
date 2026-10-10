@@ -104,14 +104,51 @@ def polarity(sentence: str, quotes: list[str]) -> bool:
     return bool(cc.polarity_problems(sentence, quotes))
 
 
-@pytest.mark.parametrize("source", ["1,000", "1.5", ".1", "1 / 2", "-1", "a 1/2", "1\u00bd", "one point five"])
-def test_an_unsupported_expression_in_the_source_is_not_support_for_its_parts(source: str) -> None:
-    """Numeric expressions are atoms on both sides: "1" is not supported by a ledger or quote that says 1,000."""
+@pytest.mark.parametrize(
+    ("number", "source"),
+    [
+        ("1", "1,000"),
+        ("1", "1.5"),
+        ("1", ".1"),
+        ("1", "1 / 2"),
+        ("1", "-1"),
+        ("1", "a 1/2"),
+        ("1", "1\u00bd"),
+        ("1", "one point five"),
+        ("2", ".12"),
+        ("2", "-12"),
+        ("30", "30%"),
+        ("12", "half a dozen"),
+        ("30", "thirty and a half"),
+        ("2", "1 / 2 / 3"),
+    ],
+)
+def test_an_unsupported_expression_in_the_source_is_not_support_for_its_parts(number: str, source: str) -> None:
+    """Numeric expressions are atoms on both sides: no part of an unsupported expression supports a whole number."""
     found = cc.number_problems(
-        "I counted 1 binder.", [f"You counted {source} binders."], [f"I counted {source} binders."]
+        f"I counted {number} binders.", [f"You counted {source} binders."], [f"I counted {source} binders."]
     )
-    assert "1 is not in the cited ledger or the questions" in found
-    assert "1 disagrees with the quote" in found
+    assert f"{number} is not in the cited ledger or the questions" in found
+    assert f"{number} disagrees with the quote" in found
+
+
+def test_a_source_side_unsupported_expression_fails_a_whole_transcript() -> None:
+    t = {
+        "family_id": "F06",
+        "variant": "truthful",
+        "exchanges": [
+            {
+                "turn": 1,
+                "question": "How many binders did you count?",
+                "released_before": ["doc-01"],
+                "answer": "I counted 2 binders.",
+                "protected": [],
+                "support": [{"kind": "fact", "ledger": ["f:01"], "records": []}],
+            }
+        ],
+    }
+    found = {p for _t, _s, p in cc.coop_problems(t, {"f:01": "You counted .12 binders."}, record_texts("F06"))}
+    assert "2 is not in the cited ledger or the questions" in found
 
 
 def test_numbers_match_whole_tokens_and_spelled_out_numbers_count() -> None:

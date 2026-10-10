@@ -245,18 +245,41 @@ def unsupported_numbers(text: str) -> list[str]:
     return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
 
 
+_NUMERIC_TOKEN = re.compile(
+    rf"^\W*(?:\d[\d.,:/%+-]*|[.,:/%+*x^-]+|{_NUMBER_WORD}|{_FRACTION}|{_ORDINAL}|and|a|an|of|point|dot|over|by"
+    rf"|times|plus|minus|negative|percent|dozen|divided|multiplied)\W*$",
+    re.IGNORECASE,
+)
+
+
+def _numeral_chunk(chunk: str) -> bool:
+    return any(not c.isascii() and unicodedata.numeric(c, None) is not None for c in chunk)
+
+
+def _without_unsupported(text: str) -> str:
+    """Drop every unsupported construction whole, on either side of a comparison, so none of its parts can stand for a
+    whole number ("2" is not in ".12", "30" is not in "30%" or "thirty point five", "12" is not in "half a dozen"):
+    each whitespace chunk that overlaps an unsupported match, or holds a non-ASCII numeral, is removed together with
+    the neighbouring chunks that are numbers, number words or connectors."""
+    chunks = [(m.start(), m.end(), m.group(0)) for m in re.finditer(r"\S+", text)]
+    spans = [(m.start(), m.end()) for m in UNSUPPORTED_NUMBER.finditer(text)]
+    marked = [any(a < e and s < b for s, e in spans) or _numeral_chunk(chunk) for a, b, chunk in chunks]
+    changed = True
+    while changed:
+        changed = False
+        for n, (_a, _b, chunk) in enumerate(chunks):
+            if marked[n] or not _NUMERIC_TOKEN.match(chunk):
+                continue
+            if (n > 0 and marked[n - 1]) or (n + 1 < len(chunks) and marked[n + 1]):
+                marked[n] = changed = True
+    return " ".join("\u2063" if marked[n] else chunk for n, (_a, _b, chunk) in enumerate(chunks))
+
+
 def numbers(text: str) -> list[str]:
     """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21). Fail closed:
     every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
     gives a time in words cites no quote that gives it in digits (the review judges that agreement)."""
-    # An unsupported construction is one atom on either side: none of its parts can stand for a whole number ("1" is
-    # not in "1,000", "30" is not in ".30" or "thirty point five").
-    text = UNSUPPORTED_NUMBER.sub(" \u2063 ", fold(text))
-    text = " ".join(  # a chunk holding a non-ASCII numeral (30\u00bd, \u00b2) is dropped whole
-        chunk
-        for chunk in text.split(" ")
-        if not any(not c.isascii() and unicodedata.numeric(c, None) is not None for c in chunk)
-    )
+    text = _without_unsupported(fold(text))
     out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
     return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
