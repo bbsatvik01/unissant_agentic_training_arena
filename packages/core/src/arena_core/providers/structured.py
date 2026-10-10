@@ -3,7 +3,10 @@
 `lint_schema` (TechnoMile lines 47-80, lifted unchanged; ATTRIBUTIONS.md) refuses an output schema the Gemini
 decoder handles badly: an unbounded list, a free-form object, or a field with a default (every output field must
 be required; an optional value is nullable, never defaulted, S2 1). Every model-facing contract passes it (WP-02).
-`vertex_schema` and `parse_output` land with the agent port in WP-05.
+`vertex_schema` (TechnoMile lines 17-41 and 84-100, lifted unchanged; ATTRIBUTIONS.md) keeps only the keywords
+Vertex documents for `response_json_schema`; `sent_schema` is the one schema a request carries and a manifest
+hashes (S2 3.1: "the canonical JSON Schema actually sent to Vertex, after `vertex_schema`"). `parse_output` lands
+with the agent port in WP-05, which sends `sent_schema(model)`.
 """
 
 from typing import Any
@@ -12,6 +15,32 @@ from pydantic import BaseModel
 
 from arena_core.providers.errors import ConfigError
 
+# Keywords Vertex accepts in response_json_schema (google-genai 2.24.0 GenerationConfig docs).
+_VERTEX_SCHEMA_KEYS = frozenset(
+    {
+        "$id",
+        "$defs",
+        "$ref",
+        "$anchor",
+        "type",
+        "format",
+        "title",
+        "description",
+        "enum",
+        "items",
+        "prefixItems",
+        "minItems",
+        "maxItems",
+        "minimum",
+        "maximum",
+        "anyOf",
+        "oneOf",
+        "properties",
+        "additionalProperties",
+        "required",
+        "propertyOrdering",
+    }
+)
 _NAMED_SUBSCHEMAS = frozenset({"properties", "$defs"})
 
 
@@ -50,3 +79,31 @@ def lint_schema(schema: type[BaseModel]) -> dict[str, Any]:
         msg = f"schema {schema.__name__} is not a flat, bounded output schema: {'; '.join(problems)}"
         raise ConfigError(msg)
     return json_schema
+
+
+def vertex_schema(node: object) -> object:
+    """Drop JSON Schema keywords Vertex does not document (e.g. maxLength, default, const)."""
+    if isinstance(node, list):
+        return [vertex_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out: dict[str, Any] = {}
+    for key, value in node.items():
+        if key not in _VERTEX_SCHEMA_KEYS:
+            continue
+        if key in _NAMED_SUBSCHEMAS and isinstance(value, dict):
+            out[key] = {name: vertex_schema(sub) for name, sub in value.items()}
+        elif key == "enum":
+            out[key] = value
+        else:
+            out[key] = vertex_schema(value)
+    return out
+
+
+def sent_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """The `response_json_schema` of a request for `model`: linted, then filtered by `vertex_schema`."""
+    out = vertex_schema(lint_schema(model))
+    if not isinstance(out, dict):
+        msg = f"schema {model.__name__} is not an object schema"
+        raise ConfigError(msg)
+    return out

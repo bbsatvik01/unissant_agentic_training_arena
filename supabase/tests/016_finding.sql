@@ -7,7 +7,7 @@
 -- scheduled rec-02 the finding cites.
 begin;
 \ir harness/fixtures.psql
-select plan(2);
+select plan(4);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -72,6 +72,13 @@ select pg_temp.finalize('fn-finalize-contract', (select finding from contract_fi
 select is((select finding from arena.final_findings where trial_id = (select trial from ft)),
           (select finding from contract_finding),
   'FN-02 the shared contract''s stored finding, alternative_explanations null, commits and is stored as sent');
+
+-- CH-09 (migration 1100): a finalized training session, with no tournament at all, commits candidate hashes;
+-- the migration guard refuses to rewrite them.
+select is(tests.error('select arena.candidate_hash_migration_guard()'),
+          'AR007: migration 1100 would rewrite candidate hashes a frozen roster or a finding commitment commits to',
+  'CH-09 the candidate-hash migration guard refuses once a training session is finalized');
+select is((select count(*) from arena.tournaments), 0::bigint, 'CH-09 no tournament exists in this test');
 
 select * from finish();
 rollback;

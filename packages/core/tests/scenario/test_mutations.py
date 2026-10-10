@@ -357,6 +357,26 @@ def duplicate_fact_id(f: Family) -> None:
     f["event_graph"]["facts"].append(copy.deepcopy(f["event_graph"]["facts"][0]))
 
 
+def opening_question_expands_past_its_cap(f: Family) -> None:
+    for v in ("truthful", "deceptive"):
+        f["variants"][v]["public_packet"]["opening_question"] = "Can you describe " + "\u2167" * 200 + "?"
+
+
+def records_too_large_to_render(f: Family) -> None:
+    for v in ("truthful", "deceptive"):
+        for art in f["variants"][v]["evaluator_packet"]["evidence_artifacts"]:
+            if art["artifact_id"].startswith("rec-"):
+                art["content"]["body"] += "\ufdfa" * 600
+
+
+def record_text_the_renderer_changes(f: Family) -> None:
+    for v in ("truthful", "deceptive"):
+        packets = f["variants"][v]
+        for doc in [*packets["public_packet"]["initial_documents"], *packets["evaluator_packet"]["evidence_artifacts"]]:
+            if doc.get("doc_id", doc.get("artifact_id")) == "doc-01":
+                doc["content"]["body"] = doc["content"]["body"].replace("Generated", "Gener\u00adated")
+
+
 def untimed_cycle(f: Family) -> None:
     for edge in (
         {"from": "f:04", "to": "f:08", "relation": "precedes"},
@@ -739,6 +759,9 @@ def dev_family_with_hidden_id(f: Family) -> None:
 
 
 EXTRA_MUTANTS: tuple[Mutant, ...] = (
+    Mutant("opening question expands past its cap", opening_question_expands_past_its_cap, "V1c.question", "row 1"),
+    Mutant("records too large to render", records_too_large_to_render, "V1d.context", "card"),
+    Mutant("record text the renderer changes", record_text_the_renderer_changes, "V1d.canonical", "doc-01"),
     Mutant("duplicate fact id", duplicate_fact_id, "V2.fact_ids_unique", "f:01"),
     Mutant("untimed cycle", untimed_cycle, "V2.cycle"),
     Mutant("public header differs from family", public_header_differs_from_family, "V2.packet_header"),
@@ -987,7 +1010,8 @@ def emitted_rules() -> set[str]:
     V5 works across families; test_v5.py holds its seeded defects and the same completeness check.
     """
     package = Path(validators.__file__).parent
-    sources = [package / name for name in ("v1.py", "v2.py", "v3.py", "v4.py")] + [Path(content.__file__)]
+    names = ("__init__.py", "v1.py", "v2.py", "v3.py", "v4.py")
+    sources = [package / name for name in names] + [Path(content.__file__)]
     literals = {
         rule
         for path in sources
@@ -1011,6 +1035,9 @@ def test_every_validator_rule_has_a_mutant() -> None:
         "V1d.releasable",
         "V1d.packet",
         "V1d.family_file",
+        "V1c.question",
+        "V1d.context",
+        "V1d.canonical",
         "V2.fact_ids_unique",
         "V2.edge_endpoint",
         "V2.edge_variants",

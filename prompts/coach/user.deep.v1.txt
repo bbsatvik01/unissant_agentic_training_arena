@@ -1,0 +1,32 @@
+Exchange {{n}} of 12.
+
+Case file:
+<untrusted_case_{{salt}}>
+Case ID: {{case_id}}
+Objective: {{objective}}
+Known timeline:
+{{timeline}}
+Initial documents:
+{{initial_documents}}
+Interview context: {{interview_context}}
+Records you may request (title only, earliest turn): {{requestable}}
+</untrusted_case_{{salt}}>
+
+Released records:
+<untrusted_records_{{salt}}>
+{{released_records}}
+</untrusted_records_{{salt}}>
+
+Transcript:
+<untrusted_transcript_{{salt}}>
+{{transcript}}
+</untrusted_transcript_{{salt}}>
+
+Your earlier output:
+<untrusted_flags_{{salt}}>
+{{running_finding}}
+{{flags}}
+{{deep_update}}
+</untrusted_flags_{{salt}}>
+
+Write the deep update as of turn {{turn}}.

@@ -1,10 +1,11 @@
 """Untrusted-data boundary: `sanitize_untrusted_text` (lift: gokbase G8, S5 2.3).
 
 `sanitize_untrusted_text` is lifted from gokbase `backend/app/rag/v3/injection_defense.py` lines 28-83
-(ATTRIBUTIONS.md G8): same character classes, same order of steps, same marker set. It lands here in
+(ATTRIBUTIONS.md G8): same character classes, same order of steps, same marker set, extended as S2 1 requires
+with every arena tag, `untrusted_` plus a kind (WP-10), not only the evidence tag. It lands here in
 WP-08 because S2 8.2 `relay_test.v1` normalizes every question with it (`arena_core.scenario.relay`),
-and one copy keeps the relay test and the fence from drifting. `wrap_evidence` and the arena's own
-`untrusted_*` tag handling (S2 6.3, 6.9 G2) land with the rest of the fence in WP-11.
+and one copy keeps the relay test and the fence from drifting. The salted
+`untrusted_*` tags themselves are `arena_core.agents.untrusted` (WP-10).
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ INJECTION_MARKERS = re.compile(
     r"</?\s*(?:system|user|assistant|human|ai|tool|function|developer|sys)\s*>"
     r"|<\|[^>]{0,40}\|>"
     r"|\[/?\s*INST\s*\]|<</?\s*SYS\s*>>"
-    r"|</?\s*untrusted_evidence[^>]*>",
+    r"|</?\s*untrusted_[a-z]+[^>]*>",
     re.IGNORECASE,
 )
 
