@@ -179,6 +179,11 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "- 30 training binders",
         "30 / 2 training binders",
         "thirty over two training binders",
+        "30 x 30 training binders",
+        "30 * 30 training binders",
+        "30+30 training binders",
+        "thirty times thirty training binders",
+        "ten-twenty training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
@@ -207,6 +212,7 @@ def test_fractional_quantities_are_rejected(phrase: str) -> None:
         "unsupported number phrase"
     )
     assert cc.unsupported_numbers("It was half past twelve.") == []
+    assert cc.unsupported_numbers("Room 2-07, MS-6A, twenty-one, walk-tested two times.") == []
 
 
 @pytest.mark.parametrize("apostrophe", ["'", "\u2019", "\u2018", "\u02bc"])

@@ -225,14 +225,21 @@ _FRACTION = r"(?:half|halves|quarters?|percent|per cent|percentage)"
 # Only plain whole numbers are normalised. Every other numeric construction is rejected outright, so none can pass as
 # the whole number beside it (fail closed): fractions and proportions ("half the thirty", "two thirds", "a twelfth",
 # "thirty and a thousandth", "10 percent", 1.5, Unicode fractions such as 30\u00bd), signed quantities ("-30",
-# "- 30", "negative thirty", "minus 3") and arithmetic between numbers ("30 / 2", "thirty over two", "3 x 4" with
-# U+00D7). Ordinals are rejected only as denominators ("a fifth", "two thirds"), so "First, ..." is left alone, and
-# "half past", "quarter past", "quarter to" are clock phrases.
+# "- 30", "negative thirty", "minus 3"), and arithmetic or ranges between numbers ("30 / 2", "30 x 30", "30+30",
+# "thirty times thirty", "9 - 10", "ten-twenty"; a hyphen joins only tens and units, "twenty-one"). A token with an
+# inner hyphen such as "2-07" or "9-10" is a code and is compared whole. Ordinals are rejected only as denominators
+# ("a fifth", "two thirds"), so "First, ..." is left alone; "half past", "quarter past", "quarter to" are clock phrases.
 _OPERAND = rf"(?:\b\d+|\b{_NUMBER_WORD}\b)"
+_TENS_WORD = "(?:" + "|".join(_TENS) + ")"
+_OPERATOR = (
+    r"(?:[/*x+^\u00f7\u00d7]|(?:\s-\s*|\s*-\s)(?=\d)"
+    r"|\b(?:times|plus|minus|over|by|divided by|multiplied by)\b)"
+)
 UNSUPPORTED_NUMBER = re.compile(
     rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b"
     rf"|\b(?:an?|{_NUMBER_WORD}|\d+) {_ORDINAL}\b|\band an? {_ORDINAL}\b"
-    rf"|%|{_OPERAND}\s*(?:/|\u00f7|\u00d7|\bover\b|\bdivided by\b|\bmultiplied by\b)\s*{_OPERAND}"
+    rf"|%|{_OPERAND}\s*{_OPERATOR}\s*{_OPERAND}"
+    rf"|\b(?!{_TENS_WORD}-(?:one|two|three|four|five|six|seven|eight|nine)\b){_NUMBER_WORD}-{_NUMBER_WORD}\b"
     rf"|\b\d+\.\d+\b|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
     re.IGNORECASE,
 )
