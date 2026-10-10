@@ -173,6 +173,10 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "30\u00bd training binders",
         "-30 training binders",
         "negative thirty training binders",
+        "thirty  two training binders",
+        "thirty\ttwo training binders",
+        "thirty\u00a0two training binders",
+        "- 30 training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
@@ -241,6 +245,10 @@ def test_coordinated_clauses_and_time_lists_are_checked() -> None:
     assert cc.time_row_problems("The 417 door opened at 19:12 and 19:38.", [], records) == [
         "open goes with another time than 19:38"
     ]
+    assert cc.time_row_problems("At 19:12 the 417 door opened and closed.", [], records) == [
+        "clos goes with another time than 19:12"
+    ]
+    assert cc.time_row_problems("At 19:12 the 417 door opened, and at 19:38 it closed.", [], records) == []
 
 
 def test_a_long_clause_still_binds_its_event_to_its_time() -> None:

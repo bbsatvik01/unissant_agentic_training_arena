@@ -54,8 +54,8 @@ PERCEPTION = re.compile(
 )
 TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 ROW_START = re.compile(r"\n|(?<=[^|\s]) (?=\d{1,2}:\d{2}(?::\d{2})? \| )")  # a table row starts with its time
+SEGMENT = re.compile(r"[,;]|\band\b|\bthen\b")  # where one predicate of a sentence ends and the next begins
 SPAN = re.compile(r"\bfrom (\d{2}:\d{2})\b.{0,40}?\b(?:until|to|till)\b.{0,20}?(\d{2}:\d{2})\b")
-CLAUSE = re.compile(r"[,;]|\band\b|\bthen\b")
 _UNITS = [
     "zero",
     "one",
@@ -97,8 +97,8 @@ APOSTROPHES = str.maketrans(
 
 def fold(text: str) -> str:
     """Typographic apostrophes as "'" and dashes U+2010-U+2015, U+2212 as "-", so "didn\u2019t" is a negation and
-    "thirty\u2011two" is 32, however they are typed."""
-    return text.translate(APOSTROPHES)
+    "thirty\u2011two" is 32, however they are typed; whitespace runs (tabs, U+00A0) as one space."""
+    return re.sub(r"\s+", " ", text.translate(APOSTROPHES))
 
 
 def cardinal_value(phrase: str) -> int:
@@ -132,7 +132,7 @@ def stem(word: str) -> str:
     return w
 
 
-# Function words of four or more letters; they never say what happened at a time.
+# Function words of four or more letters, and the words "time" and "times"; they never say what happened at a time.
 FUNCTION_WORDS = frozenset(
     [
         "about",
@@ -154,6 +154,8 @@ FUNCTION_WORDS = frozenset(
         "there",
         "these",
         "they",
+        "time",
+        "times",
         "this",
         "those",
         "were",
@@ -228,7 +230,7 @@ _FRACTION = r"(?:half|halves|quarters?|percent|per cent|percentage)"
 UNSUPPORTED_NUMBER = re.compile(
     rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b"
     rf"|\b(?:an?|{_NUMBER_WORD}|\d+) {_ORDINAL}\b|\band an? {_ORDINAL}\b"
-    r"|%|\b\d+/\d+\b|\b\d+\.\d+\b|(?<![\w-])-\d|\b(?:negative|minus|plus)\b",
+    rf"|%|\b\d+/\d+\b|\b\d+\.\d+\b|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
     re.IGNORECASE,
 )
 
@@ -306,22 +308,6 @@ def quote_problems(
     return problems
 
 
-def clauses(sentence: str) -> list[str]:
-    """Clauses cut at commas, semicolons, "and" and "then"; a piece with no content word joins the clause before it
-    ("motion at 18:20 and 19:05"), or the next one when it opens the sentence ("First, at 20:53, Fenwick radioed")."""
-    out: list[str] = []
-    carry = ""
-    for piece in CLAUSE.split(sentence):
-        if any(content(w) for w in WORD.findall(piece)):
-            out.append(f"{carry} {piece}")
-            carry = ""
-        elif out:
-            out[-1] = f"{out[-1]} {piece}"
-        else:
-            carry = f"{carry} {piece}"
-    return [*out, carry] if carry.strip() else out
-
-
 def binding(word: str) -> bool:
     """A word that ties a time to its row: a content word, or an identifier or number that is not itself a time
     (badge 70315, MS-6A)."""
@@ -359,41 +345,49 @@ CALENDAR = frozenset(
 
 
 def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> list[str]:
-    """A time sits with what it describes. For each time, the binding words of its clause that are nearer to it
-    than to any other time (content words and identifiers such as badge numbers) may not come only from rows of the
-    same record that hold other times and never from a row that holds this one: "the door opened at 19:38", when the
-    record says opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge
-    70288's row. A time with no binding word of its own in a list shares the clause's. A "from ... until" span runs
-    forward. A record is judged for a time when its row at that time shares a binding word with the sentence or the
-    record names one of the clause's identifiers anywhere (otherwise its row at
-    that time is about something else); a time no row holds is not judged here."""
+    """A time sits with what it describes. Each binding word (content words and identifiers such as badge numbers)
+    belongs to the nearest time in its own segment (a stretch between commas, "and" or "then"); a segment without a
+    time belongs to the nearest segment that has one, so a coordinated predicate ("at 19:12 the door opened and
+    closed") still belongs to that time; a time
+    listed with no word of its own ("opened at 19:12 and 19:38") shares all the sentence's words. Those words may not
+    come only from rows of the same record that hold other times and never from a row that holds this one: "the door
+    opened at 19:38", when the record says opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at
+    08:12" when 08:12 is badge 70288's row. A "from ... until" span runs forward. A record is judged for a time when its
+    row at that time shares a binding word with the sentence or the record names one of the time's identifiers
+    anywhere (otherwise its row at that time is about something else); a time no row holds is not judged here."""
     sentence = fold(sentence)
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
-    # Relevance is judged on the whole sentence, so a coordinated clause keeps its shared subject ("the 417 door
-    # opened at 19:12 and closed at 19:38": the second clause is still about the door).
-    sentence_words = {stem(w) for w in WORD.findall(sentence) if binding(w) and w.lower() not in CALENDAR}
-    for clause in clauses(sentence):
-        tokens = WORD.findall(clause)
-        for i, time in enumerate(tokens):
-            if not TIME.fullmatch(time):
+    segments = [WORD.findall(piece) for piece in SEGMENT.split(sentence)]
+    tokens = [w for seg in segments for w in seg]
+    seg_of = [n for n, seg in enumerate(segments) for _ in seg]
+    sentence_words = {stem(w) for w in tokens if binding(w) and w.lower() not in CALENDAR}
+    times = [k for k, w in enumerate(tokens) if TIME.fullmatch(w)]
+
+    def owner(k: int) -> int:
+        """The time a word belongs to: the nearest time in its own segment; for a segment without one, the nearest
+        segment that has one (the earlier on a tie: "at 19:12 the door opened and closed")."""
+        same = [t for t in times if seg_of[t] == seg_of[k]]
+        if same:
+            return min(same, key=lambda t: (abs(t - k), -t))
+        return min(times, key=lambda t: (abs(seg_of[t] - seg_of[k]), seg_of[t] > seg_of[k], abs(t - k)))
+
+    for i in times:
+        time = tokens[i]
+        mine = [w for k, w in enumerate(tokens) if binding(w) and owner(k) == i]
+        if not mine:
+            mine = [w for w in tokens if binding(w)]
+        near = {stem(w) for w in mine if w.lower() not in CALENDAR}
+        idents = {stem(w) for w in mine if not content(w)}
+        for rows in tables:
+            holding = [s for row, s in rows if number_in(time, row)]
+            if not holding:
                 continue
-            # Every binding word of the clause belongs to the nearest time in it (ties to the earlier time).
-            times = [k for k, w in enumerate(tokens) if TIME.fullmatch(w)]
-            mine = [w for k, w in enumerate(tokens) if binding(w) and min(times, key=lambda t: (abs(t - k), t)) == i]
-            if not mine:  # a time in a list ("opened at 19:12 and 19:38") shares the clause's words
-                mine = [w for w in tokens if binding(w)]
-            near = {stem(w) for w in mine if w.lower() not in CALENDAR}
-            idents = {stem(w) for w in mine if not content(w)}
-            for rows in tables:
-                holding = [s for row, s in rows if number_in(time, row)]
-                if not holding:
-                    continue
-                own = set().union(*holding)
-                mentioned = set().union(*(s for _row, s in rows))
-                if not sentence_words & own and not idents & mentioned:
-                    continue  # the record neither shares the row's words nor names the clause's identifiers
-                other = set().union(*(s for row, s in rows if TIME.search(row) and not number_in(time, row)))
-                out.extend(f"{w} goes with another time than {time}" for w in sorted(near & other - own))
+            own = set().union(*holding)
+            mentioned = set().union(*(s for _row, s in rows))
+            if not sentence_words & own and not idents & mentioned:
+                continue  # the record neither shares the row's words nor names the time's identifiers
+            other = set().union(*(s for row, s in rows if TIME.search(row) and not number_in(time, row)))
+            out.extend(f"{w} goes with another time than {time}" for w in sorted(near & other - own))
     return out
 
 
