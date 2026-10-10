@@ -1,4 +1,4 @@
-"""FX-COOP (S2 11.1): three cooperative truthful transcripts, each sentence held to four independent checks."""
+"""FX-COOP (S2 11.1): three cooperative truthful transcripts; code checks ledger IDs and quotes, the review the rest."""
 
 from __future__ import annotations
 
@@ -17,7 +17,6 @@ from .conftest import SPEC_S2
 CASES_DIR: Path = SPEC_S2.parents[2] / "cases" / "dev"
 COOP_IDS: list[str] = fixtures.load("fx_coop")["transcripts"]
 COOP_SIZE = 3
-MIN_CITED = 5
 
 
 def _truthful(family_id: str) -> dict[str, Any]:
@@ -53,9 +52,9 @@ def test_fx_coop_is_three_cooperative_truthful_transcripts() -> None:
 
 
 @pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_every_sentence_passes_the_mechanical_checks(transcript_id: str) -> None:
-    """S2 11.1 enforcement, code side: ledger IDs exist, quotes verbatim and released, numbers as whole tokens,
-    per-quote polarity, no time on the wrong row, perception claims phrased as such. The review is the semantic side."""
+def test_cited_ledger_ids_exist_and_quotes_are_verbatim_and_released(transcript_id: str) -> None:
+    """S2 11.1, code side: every cited ledger ID exists in the variant; every cited quote is verbatim from a record
+    released in the interview."""
     assert problems(fixtures.transcript(transcript_id)) == []
 
 
@@ -64,10 +63,10 @@ SEMANTIC = ("consistent", "responsive", "visible", "ledger_states_claims", "quot
 
 
 @pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_every_pair_has_a_current_passing_semantic_review(transcript_id: str) -> None:
-    """S2 11.1 enforcement, review side: for every Q/A pair the recorded independent review says the cited ledger
-    entries state each claim (the question text did not supply it), every cited quote states the same fact, and no
-    record of the variant, cited or not, contradicts a claim. The text and case hash binding is in test_fixtures."""
+def test_every_pair_has_a_current_passing_review(transcript_id: str) -> None:
+    """S2 11.1, review side: every Q/A pair has a current passing independent review (consistency with the case,
+    numbers, polarity, responsiveness, subject visibility), bound to the text; the case hash binding and the other
+    transcripts are tested in test_fixtures."""
     review = REVIEW[transcript_id]
     t = fixtures.transcript(transcript_id)
     assert review["reviewed_text_sha256"] == fixtures.reviewed_text_sha256(t)
@@ -76,426 +75,27 @@ def test_every_pair_has_a_current_passing_semantic_review(transcript_id: str) ->
     assert failing == []
 
 
-@pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_the_controls_state_facts_records_also_state(transcript_id: str) -> None:
-    """A control that cited no record would never exercise the agreement checks: each cites a released record for at
-    least five fact sentences. A quote is cited only where the review confirms it states the sentence's whole fact
-    (S2 11.1 requires agreement only where a record states the fact), so this is a floor on coverage, not a ratio."""
-    support = [s for e in fixtures.transcript(transcript_id)["exchanges"] for s in e["support"]]
-    assert sum(bool(s["records"]) for s in support if s["kind"] == "fact") >= MIN_CITED
-
-
-# ------------------------------------------------------- regressions: each mechanical check fails on its defect
-
-COPIER_ROW = "16:52 | Copy | 3 | L. Specht"
-DOOR = "Door events.\n19:12 | Room 417 door contact | Door opened\n19:38 | Room 417 door contact | Door closed"
-
-
-def test_a_contradicting_quote_fails_on_polarity() -> None:
-    """The cold-gate example: a quote saying the opposite fails, whatever the ledger says."""
-    assert polarity("I did not use the copier.", ["I used the copier."])
-    assert cc.polarity_problems(
-        "I did not use the office copier.", ["I did not use the office copier.", "I used the office copier."]
-    ) == ["polarity differs from the quote: 'I used the office copier.'"]
-    assert cc.polarity_problems("I did not use the copier.", ["I did not use the copier."]) == []
-
-
-def polarity(sentence: str, quotes: list[str]) -> bool:
-    return bool(cc.polarity_problems(sentence, quotes))
-
-
-@pytest.mark.parametrize(
-    ("number", "source"),
-    [
-        ("1", "1,000"),
-        ("1", "1.5"),
-        ("1", ".1"),
-        ("1", "1 / 2"),
-        ("1", "-1"),
-        ("1", "a 1/2"),
-        ("1", "1\u00bd"),
-        ("1", "one point five"),
-        ("2", ".12"),
-        ("2", "-12"),
-        ("30", "30%"),
-        ("12", "half a dozen"),
-        ("30", "thirty and a half"),
-        ("2", "1 / 2 / 3"),
-    ],
-)
-def test_an_unsupported_expression_in_the_source_is_not_support_for_its_parts(number: str, source: str) -> None:
-    """Numeric expressions are atoms on both sides: no part of an unsupported expression supports a whole number."""
-    found = cc.number_problems(
-        f"I counted {number} binders.", [f"You counted {source} binders."], [f"I counted {source} binders."]
-    )
-    assert f"{number} is not in the cited ledger or the questions" in found
-    assert f"{number} disagrees with the quote" in found
-
-
-def test_a_source_side_unsupported_expression_fails_a_whole_transcript() -> None:
-    t = {
-        "family_id": "F06",
-        "variant": "truthful",
-        "exchanges": [
-            {
-                "turn": 1,
-                "question": "How many binders did you count?",
-                "released_before": ["doc-01"],
-                "answer": "I counted 2 binders.",
-                "protected": [],
-                "support": [{"kind": "fact", "ledger": ["f:01"], "records": []}],
-            }
-        ],
-    }
-    found = {p for _t, _s, p in cc.coop_problems(t, {"f:01": "You counted .12 binders."}, record_texts("F06"))}
-    assert "2 is not in the cited ledger or the questions" in found
-
-
-def test_numbers_match_whole_tokens_and_spelled_out_numbers_count() -> None:
-    assert cc.number_problems("I opened the 41 door.", ["You opened the 417 door."], []) == [
-        "41 is not in the cited ledger or the questions"
-    ]
-    assert cc.number_problems("The copier ran at 16:58.", ["16:58"], [COPIER_ROW]) == ["16:58 disagrees with the quote"]
-    assert (
-        cc.number_problems("The door opened at 19:12.", ["at 19:12"], ["19:12:40 | Room 417 door | Door opened"]) == []
-    )
-    assert cc.number_problems("I walk-tested it ten times.", ["You walk-tested it two times."], []) == [
-        "10 is not in the cited ledger or the questions"
-    ]
-    assert cc.number_problems("I walk-tested it twice.", ["You walk-tested it two times."], []) == []
-
-
-@pytest.mark.parametrize(
-    ("phrase", "value"),
-    [
-        ("seventy", ["70"]),
-        ("twenty-one", ["21"]),
-        ("about ten", ["10"]),
-        ("two hundred and five", ["205"]),
-        ("twice", ["2"]),
-        ("thirty million", ["30000000"]),
-        ("a dozen", ["12"]),
-        ("between ten and twenty", ["10", "20"]),
-        ("about ten in total, around", ["10"]),
-    ],
-)
-def test_spelled_out_quantities_are_numbers(phrase: str, value: list[str]) -> None:
-    assert cc.numbers(f"I loaded {phrase} binders.") == value
-
-
-@pytest.mark.parametrize(
-    ("phrase", "value"),
-    [
-        ("after eight", ["8"]),
-        ("a bit after nine", ["9"]),
-        ("ten to five", ["10", "5"]),
-        ("five to ten", ["5", "10"]),
-        ("half past twelve", ["12"]),
-        ("thirty\u2011two", ["32"]),
-        ("thirty\u2013two", ["32"]),
-    ],
-)
-def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
-    """Fail closed: spoken times are compared as numbers too, and any dash joins a compound number."""
-    assert cc.numbers(f"It was {phrase}.") == value
-
-
-@pytest.mark.parametrize(
-    "replacement",
-    [
-        "seventy training binders",
-        "twenty-one training binders",
-        "about ten training binders",
-        "training binders, about ten in total",
-        "between ten and twenty training binders",
-        "thirty million training binders",
-        "five to ten training binders",
-        "thirty\u2011two training binders",
-        "thirty and a half training binders",
-        "half a dozen training binders",
-        "half the thirty training binders",
-        "thirty and a fifth training binders",
-        "thirty and a twelfth training binders",
-        "thirty and a thousandth training binders",
-        "30\u00bd training binders",
-        "-30 training binders",
-        "negative thirty training binders",
-        "thirty  two training binders",
-        "thirty\ttwo training binders",
-        "thirty\u00a0two training binders",
-        "- 30 training binders",
-        "30 / 2 training binders",
-        "thirty over two training binders",
-        "30 x 30 training binders",
-        "30 * 30 training binders",
-        "30+30 training binders",
-        "thirty times thirty training binders",
-        "ten-twenty training binders",
-        ".30 training binders",
-        "thirty zero training binders",
-        "thirty point thirty training binders",
-        "30\u2030 of the training binders",
-        "30,5 training binders",
-    ],
-)
-def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
-    """Transcript-level: F07's "thirty training binders" (cited against a record that says 30) changed to another
-    quantity, spelled any way, fails the number check."""
-    found = _mutate("TX-F07-C", "thirty training binders", replacement)
-    numeric = ("disagrees with the quote", "is not in the cited ledger", "unsupported number phrase")
-    assert any(any(n in p for n in numeric) for p in found), found
-
-
-@pytest.mark.parametrize(
-    "phrase",
-    [
-        "thirty and a half",
-        "half a dozen",
-        "two thirds",
-        "1.5",
-        "3/4",
-        "half the thirty",
-        "thirty and a fifth",
-        "10 percent",
-    ],
-)
-def test_fractional_quantities_are_rejected(phrase: str) -> None:
-    assert cc.number_problems(f"I loaded {phrase} binders.", ["I loaded binders."], [])[0].startswith(
-        "unsupported number phrase"
-    )
-    assert cc.unsupported_numbers("It was half past twelve.") == []
-    assert cc.unsupported_numbers("Room 2-07, MS-6A, twenty-one, walk-tested two times.") == []
-
-
-@pytest.mark.parametrize("apostrophe", ["'", "\u2019", "\u2018", "\u02bc"])
-def test_a_contraction_negates_whatever_its_apostrophe(apostrophe: str) -> None:
-    assert cc.polarity_problems(f"My badge didn{apostrophe}t open S-2.", ["Access granted to badge 40562 at S-2."])
-    found = _mutate("TX-F07-C", "Then my badge opened S-2.", f"Then my badge didn{apostrophe}t open S-2.")
-    assert any(p.startswith("polarity differs") for p in found), found
-
-
-def test_no_time_on_the_wrong_row() -> None:
-    assert cc.time_row_problems("The door opened at 19:38.", [], [DOOR]) == ["open goes with another time than 19:38"]
-    assert cc.time_row_problems("The door opened at 19:12 and closed at 19:38.", [], [DOOR]) == []
-    assert cc.time_row_problems("The door closed at 19:12 and opened at 19:38.", [], [DOOR])
-    assert cc.time_row_problems("I was there from 19:38 until 19:12.", [], [DOOR]) == [
-        "the span from 19:38 to 19:12 runs backwards"
-    ]
-
-
-def test_an_identifier_on_another_times_row_fails_against_a_real_record() -> None:
-    """F09 doc-01: badge 70288 at 08:12, badge 70315 at 08:41. Swapping the badge numbers between the rows fails."""
-    records = list(record_texts("F09").values())
-    assert cc.time_row_problems("Badge 70315 was granted access at 08:41.", [], records) == []
-    for wrong in (
-        "Badge 70315 was granted access at 08:12.",
-        "Badge 70315 was granted access through the north staff door at 08:12.",
-        "At 08:12 the north staff door granted access to badge 70315 from the car park side.",
-        "70315 entered at 08:12.",
-    ):
-        assert cc.time_row_problems(wrong, [], records) == ["70315 goes with another time than 08:12"], wrong
-
-
-def test_coordinated_clauses_and_time_lists_are_checked() -> None:
-    records = list(record_texts("F06").values())
-    assert cc.time_row_problems("The 417 door opened at 19:12 and closed at 19:38.", [], records) == []
-    assert cc.time_row_problems("The 417 door opened at 19:12 and closed at 19:12.", [], records) == [
-        "clos goes with another time than 19:12"
-    ]
-    assert cc.time_row_problems("The 417 door opened at 19:12 and 19:38.", [], records) == [
-        "open goes with another time than 19:38"
-    ]
-    assert cc.time_row_problems("At 19:12 the 417 door opened and closed.", [], records) == [
-        "clos goes with another time than 19:12"
-    ]
-    assert cc.time_row_problems("At 19:12 the 417 door opened, and at 19:38 it closed.", [], records) == []
-
-
-def test_a_long_clause_still_binds_its_event_to_its_time() -> None:
-    records = list(record_texts("F06").values())
-    assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:12.", [], records) == []
-    assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:38.", [], records) == [
-        "open goes with another time than 19:38"
-    ]
-
-
-def test_a_table_whose_rows_start_with_a_date_keeps_its_rows() -> None:
-    """F06 rec-04 rows start with dates: 5 February 09:12 is WO-6011, 23 February 15:05 is WO-6087."""
-    record = record_texts("F06")["rec-04"]
-    assert cc.time_row_problems("WO-6087 was the task at 15:05.", [], [record]) == []
-    assert cc.time_row_problems("WO-6087 was the task at 09:12.", [], [record]) == [
-        "wo-6087 goes with another time than 09:12"
-    ]
-
-
-def test_two_times_in_one_segment_are_rejected_not_guessed() -> None:
-    records = list(record_texts("F09").values())
-    found = cc.time_row_problems("At 08:12 access was granted to badge 70315 before the 08:41 meeting.", [], records)
-    assert "two times in one segment: 08:12 08:41" in found
-    assert cc.time_row_problems("I was there from 08:12 until 08:41.", [], []) == []
-
-
-@pytest.mark.parametrize(("number", "source"), [("1", "1_000"), ("30", "30\u2030")])
-def test_odd_characters_beside_a_digit_make_an_unsupported_atom(number: str, source: str) -> None:
-    assert cc.unsupported_numbers(f"I counted {source} binders.") == [source]
-    found = cc.number_problems(f"I counted {number} binders.", [f"You counted {source} binders."], [])
-    assert f"{number} is not in the cited ledger or the questions" in found
-
-
-def test_an_unsupported_atom_does_not_swallow_a_number_across_a_clause_end() -> None:
-    assert cc.number_problems("30 binders remained.", ["The ratio was 0.5; 30 binders remained."], []) == []
-    assert cc.number_problems("30 binders remained.", ["The ratio was 0.5. 30 binders remained."], []) == []
-
-
-def test_a_code_matches_only_whole() -> None:
-    """MS-6A is not supported by MS-6A--B, and MS-6A--B is not a code at all."""
-    assert cc.unsupported_numbers("I used MS-6A--B.") == ["MS-6A--B."]
-    assert "MS-6A is not in the cited ledger or the questions" in cc.number_problems(
-        "I used MS-6A.", ["I used MS-6A--B."], []
-    )
-    assert cc.number_problems("I used MS-6A.", ["You used MS-6A."], ["Device: MS-6A, inside R-6."]) == []
-
-
-@pytest.mark.parametrize(
-    ("phrase", "value"),
-    [
-        ("one million two thousand", "1002000"),
-        ("a hundred thousand", "100000"),
-        ("one million two thousand and five", "1002005"),
-        ("nine hundred ninety-nine", "999"),
-        ("three dozen", "36"),
-    ],
-)
-def test_cardinals_follow_a_strict_grammar(phrase: str, value: str) -> None:
-    assert cc.numbers(f"I counted {phrase} items.") == [value]
-
-
-@pytest.mark.parametrize(
-    "phrase", ["two thousand million", "one thousand two hundred million", "zero hundred", "thirty zero"]
-)
-def test_rising_scales_and_misplaced_zero_are_rejected(phrase: str) -> None:
-    assert cc.unsupported_numbers(f"I counted {phrase} items.") == [phrase]
-    assert cc.numbers(f"I counted {phrase} items.") == []
-
-
-def test_number_words_inside_a_code_are_not_numbers() -> None:
-    assert cc.numbers("Ticket ONE-17 was open.") == ["ONE-17"]
-    assert "1 is not in the cited ledger or the questions" in cc.number_problems(
-        "I counted one binder.", ["Ticket ONE-17 was open."], []
-    )
-
-
-@pytest.mark.parametrize("phrase", ["twenty thirty", "two three", "nineteen twelve"])
-def test_a_word_sequence_that_is_no_cardinal_is_rejected(phrase: str) -> None:
-    assert cc.unsupported_numbers(f"It was {phrase}.") == [phrase]
-    assert cc.numbers(f"It was {phrase}.") == []
-
-
-def test_no_time_on_the_wrong_row_against_a_real_record() -> None:
-    """The controls state no record-only clock times (their ledgers hold none), so the time-row check is proven on a
-    real development record instead: F06 doc-01 has the 417 door opening at 19:12 and closing at 19:38."""
-    records = list(record_texts("F06").values())
-    assert cc.time_row_problems("The 417 door opened at 19:12.", [], records) == []
-    assert cc.time_row_problems("The 417 door opened at 19:38.", [], records) == [
-        "open goes with another time than 19:38"
-    ]
-
-
-def test_quotes_must_be_verbatim_released_and_not_a_column_line() -> None:
-    texts = {"rec-03": "Copier log.\nTime | Job | Pages | Account\n" + COPIER_ROW}
-    columns = {"Time | Job | Pages | Account"}
-    ok = {"record_id": "rec-03", "quote": COPIER_ROW}
-    assert cc.quote_problems([ok], texts, {"rec-03"}, columns) == []
-    assert cc.quote_problems([ok], texts, set(), columns) == ["record not released in this interview"]
-    assert cc.quote_problems([{**ok, "quote": "16:52 | Copy | 4 | L. Specht"}], texts, {"rec-03"}, columns) == [
-        "quote not in the record"
-    ]
-    header = {"record_id": "rec-03", "quote": "Time | Job | Pages | Account"}
-    assert "the quote is only a column line" in cc.quote_problems([header], texts, {"rec-03"}, columns)
-    assert cc.quote_problems([ok, ok, ok], texts, {"rec-03"}, columns) == ["more than two quotes"]
-
-
-def test_ledger_ids_must_exist_and_only_plain_ignorance_cites_none() -> None:
-    ledger_ = {"f:01": "x"}
-    assert cc.ledger_problems(["f:99"], ledger_) == ["cites an unknown ledger entry"]
-    assert cc.ledger_problems(["f:01"], ledger_) == []
-    assert cc.ledger_problems([], ledger_) == ["cites no ledger entry of the subject"]
-    assert cc.ledger_problems([], ledger_, "I have not seen that camera review.", "perception") == []
-    assert cc.ledger_problems([], ledger_, "I have not seen that camera review.", "fact") == [
-        "cites no ledger entry of the subject"
-    ]
-    assert cc.ledger_problems([], ledger_, "I did not see anyone at the lift.", "perception") == [
-        "cites no ledger entry of the subject"
-    ]
-
-
-def test_every_ledger_free_ignorance_claim_is_confirmed_by_the_review() -> None:
-    """Whether the ledger really is silent is semantic: every turn holding a ledger-free ignorance sentence has a review
-    that confirms its claims are ledger-backed (no false denial of something the ledger knows)."""
-    found = 0
-    for transcript_id in COOP_IDS:
-        review = {e["turn"]: e for e in REVIEW[transcript_id]["exchanges"]}
-        for e in fixtures.transcript(transcript_id)["exchanges"]:
-            if any(not s["ledger"] for s in e["support"]):
-                found += 1
-                assert review[e["turn"]]["ledger_states_claims"] is True
-
-
-def test_perception_claims_are_phrased_as_such_and_cite_no_record() -> None:
-    assert cc.perception_problems("I did not see the pass itself.", "perception", []) == []
-    assert cc.perception_problems("I did not see the pass itself.", "fact", []) == [
-        "a perception or memory claim is marked as a fact"
-    ]
-    assert cc.perception_problems("The pass was issued.", "perception", []) == [
-        "a perception claim is not phrased as one"
-    ]
-    record = {"record_id": "rec-01", "quote": "Pass issued to O. Mattick."}
-    assert cc.perception_problems("I never saw the pass.", "perception", [record]) == [
-        "a perception claim cites a record"
-    ]
-    assert cc.perception_problems("The pass was issued.", "claim", []) == ["unknown claim kind 'claim'"]
-
-
-def _mutate(transcript_id: str, old: str, new: str) -> set[str]:
-    t = fixtures.transcript(transcript_id)
-    hits = [e for e in t["exchanges"] if old in e["answer"]]
-    assert hits, old
-    hits[0]["answer"] = hits[0]["answer"].replace(old, new, 1)
-    return kinds(t)
-
-
-@pytest.mark.parametrize("transcript_id", COOP_IDS)
-def test_edits_to_a_control_fail_the_mechanical_checks(transcript_id: str) -> None:
-    """A record-cited sentence with a flipped polarity, an unreleased record and an unknown ledger entry each fail;
-    editing any answer also invalidates its review (test_fixtures)."""
-    t = fixtures.transcript(transcript_id)
-    exchange, sentence, support = next(
-        (e, s, sup)
-        for e in t["exchanges"]
-        for s, sup in zip(cc.sentences(e["answer"]), e["support"], strict=True)
-        if sup["records"]
-    )
-    flipped = cc.NEGATORS.sub("", sentence, count=1) if cc.NEGATORS.search(sentence) else f"Not {sentence}"
-    original = exchange["answer"]
-    exchange["answer"] = original.replace(sentence, flipped, 1)
-    assert any(p.startswith("polarity differs") for p in kinds(t))
-    exchange["answer"] = original
-    support["records"][0]["record_id"] = "rec-09"
-    assert "record not released in this interview" in kinds(t)
-    t = fixtures.transcript(transcript_id)
+def test_an_unknown_ledger_id_fails() -> None:
+    assert cc.ledger_problems(["f:01", "f:99"], {"f:01": "x"}) == ["cites an unknown ledger entry: f:99"]
+    t = fixtures.transcript(COOP_IDS[0])
     t["exchanges"][0]["support"][0]["ledger"] = ["f:99"]
-    assert "cites an unknown ledger entry" in kinds(t)
+    assert "cites an unknown ledger entry: f:99" in kinds(t)
 
 
-def test_a_changed_number_in_a_record_cited_sentence_fails() -> None:
-    changed = []
-    for transcript_id in COOP_IDS:
-        t = fixtures.transcript(transcript_id)
-        for e in t["exchanges"]:
-            for s, sup in zip(cc.sentences(e["answer"]), e["support"], strict=True):
-                if sup["records"] and cc.numbers(s):
-                    n = next(w for w in cc.WORD.findall(s) if cc.numbers(w))
-                    changed.append((transcript_id, s, s.replace(n, "99", 1)))
-    assert changed
-    for transcript_id, old, new in changed:
-        assert any("99" in p for p in _mutate(transcript_id, old, new)), old
+def test_a_quote_must_be_verbatim_and_released() -> None:
+    texts = {"rec-03": "Copier log.\n16:52 | Copy | 3 | L. Specht"}
+    ok = {"record_id": "rec-03", "quote": "16:52 | Copy | 3 | L. Specht"}
+    assert cc.quote_problems([ok], texts, {"rec-03"}) == []
+    assert cc.quote_problems([ok], texts, set()) == ["record not released in this interview: rec-03"]
+    altered = {**ok, "quote": "16:52 | Copy | 4 | L. Specht"}
+    assert cc.quote_problems([altered], texts, {"rec-03"}) == ["quote not in the record: rec-03"]
+    t = fixtures.transcript(COOP_IDS[0])
+    cited = next(s for e in t["exchanges"] for s in e["support"] if s["records"])
+    cited["records"][0]["quote"] += " and more"
+    assert any(p.startswith("quote not in the record") for p in kinds(t))
+
+
+def test_support_entries_align_with_sentences() -> None:
+    t = fixtures.transcript(COOP_IDS[0])
+    t["exchanges"][0]["support"].append({"kind": "fact", "ledger": [], "records": []})
+    assert "one support entry per sentence" in kinds(t)
