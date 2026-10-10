@@ -35,6 +35,7 @@ so no check here claims to.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from typing import Any
 
@@ -183,20 +184,60 @@ def numbers(text: str) -> list[str]:
     return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
 
-_FRACTION = (
-    r"(?:half|halves|thirds?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?|hundredths?|percent"
-    r"|per cent)"
-)
-# Fractional and proportional quantities ("half the thirty", "thirty and a fifth", "two thirds", "10 percent", 1.5,
-# 3/4) are not normalised; any of them is rejected outright, so none can pass as a whole number beside it (fail
-# closed). Only the clock phrases "half past", "quarter past" and "quarter to" are left alone.
+_ORDINAL_ROOTS = [
+    "first",
+    "second",
+    "third",
+    "fourth",
+    "fifth",
+    "sixth",
+    "seventh",
+    "eighth",
+    "ninth",
+    "tenth",
+    "eleventh",
+    "twelfth",
+    "thirteenth",
+    "fourteenth",
+    "fifteenth",
+    "sixteenth",
+    "seventeenth",
+    "eighteenth",
+    "nineteenth",
+    "twentieth",
+    "thirtieth",
+    "fortieth",
+    "fiftieth",
+    "sixtieth",
+    "seventieth",
+    "eightieth",
+    "ninetieth",
+    "hundredth",
+    "thousandth",
+    "millionth",
+    "billionth",
+    "trillionth",
+]
+_ORDINAL = r"(?:" + "|".join(_ORDINAL_ROOTS) + r"|\d+(?:st|nd|rd|th))s?"
+_FRACTION = r"(?:half|halves|quarters?|percent|per cent|percentage)"
+# Only plain whole numbers are normalised. Every other numeric construction is rejected outright, so none can pass as
+# the whole number beside it (fail closed): fractions and proportions ("half the thirty", "two thirds", "a twelfth",
+# "thirty and a thousandth", "10 percent", 1.5, 3/4, Unicode fractions such as 30\u00bd) and signed quantities ("-30",
+# "negative thirty", "minus 3"). Ordinals are rejected only as denominators ("a fifth", "two thirds"), so "First, ..."
+# is left alone, and "half past", "quarter past", "quarter to" are clock phrases.
 UNSUPPORTED_NUMBER = re.compile(
-    rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b|%|\b\d+/\d+\b|\b\d+\.\d+\b", re.IGNORECASE
+    rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b"
+    rf"|\b(?:an?|{_NUMBER_WORD}|\d+) {_ORDINAL}\b|\band an? {_ORDINAL}\b"
+    r"|%|\b\d+/\d+\b|\b\d+\.\d+\b|(?<![\w-])-\d|\b(?:negative|minus|plus)\b",
+    re.IGNORECASE,
 )
 
 
 def unsupported_numbers(text: str) -> list[str]:
-    return [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(fold(text))]
+    folded = fold(text)
+    found = [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(folded)]
+    # Any numeric character that is not an ASCII digit (vulgar fractions, superscripts, other scripts' digits).
+    return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
 
 
 def number_in(token: str, text: str) -> bool:
@@ -322,11 +363,15 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
     than to any other time (content words and identifiers such as badge numbers) may not come only from rows of the
     same record that hold other times and never from a row that holds this one: "the door opened at 19:38", when the
     record says opened at 19:12 and closed at 19:38, fails, and so does "badge 70315 at 08:12" when 08:12 is badge
-    70288's row. A "from ... until" span runs forward. A record is judged for a time when its row at that time shares a
-    binding word with the clause or the record names one of the clause's identifiers anywhere (otherwise its row at
+    70288's row. A time with no binding word of its own in a list shares the clause's. A "from ... until" span runs
+    forward. A record is judged for a time when its row at that time shares a binding word with the sentence or the
+    record names one of the clause's identifiers anywhere (otherwise its row at
     that time is about something else); a time no row holds is not judged here."""
     sentence = fold(sentence)
     out = [f"the span from {a} to {b} runs backwards" for a, b in SPAN.findall(sentence) if a > b]
+    # Relevance is judged on the whole sentence, so a coordinated clause keeps its shared subject ("the 417 door
+    # opened at 19:12 and closed at 19:38": the second clause is still about the door).
+    sentence_words = {stem(w) for w in WORD.findall(sentence) if binding(w) and w.lower() not in CALENDAR}
     for clause in clauses(sentence):
         tokens = WORD.findall(clause)
         for i, time in enumerate(tokens):
@@ -335,6 +380,8 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
             # Every binding word of the clause belongs to the nearest time in it (ties to the earlier time).
             times = [k for k, w in enumerate(tokens) if TIME.fullmatch(w)]
             mine = [w for k, w in enumerate(tokens) if binding(w) and min(times, key=lambda t: (abs(t - k), t)) == i]
+            if not mine:  # a time in a list ("opened at 19:12 and 19:38") shares the clause's words
+                mine = [w for w in tokens if binding(w)]
             near = {stem(w) for w in mine if w.lower() not in CALENDAR}
             idents = {stem(w) for w in mine if not content(w)}
             for rows in tables:
@@ -343,7 +390,7 @@ def _time_problems(sentence: str, tables: list[list[tuple[str, set[str]]]]) -> l
                     continue
                 own = set().union(*holding)
                 mentioned = set().union(*(s for _row, s in rows))
-                if not near & own and not idents & mentioned:
+                if not sentence_words & own and not idents & mentioned:
                     continue  # the record neither shares the row's words nor names the clause's identifiers
                 other = set().union(*(s for row, s in rows if TIME.search(row) and not number_in(time, row)))
                 out.extend(f"{w} goes with another time than {time}" for w in sorted(near & other - own))
