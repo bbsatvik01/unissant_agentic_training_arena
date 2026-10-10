@@ -224,13 +224,16 @@ _ORDINAL = r"(?:" + "|".join(_ORDINAL_ROOTS) + r"|\d+(?:st|nd|rd|th))s?"
 _FRACTION = r"(?:half|halves|quarters?|percent|per cent|percentage)"
 # Only plain whole numbers are normalised. Every other numeric construction is rejected outright, so none can pass as
 # the whole number beside it (fail closed): fractions and proportions ("half the thirty", "two thirds", "a twelfth",
-# "thirty and a thousandth", "10 percent", 1.5, 3/4, Unicode fractions such as 30\u00bd) and signed quantities ("-30",
-# "negative thirty", "minus 3"). Ordinals are rejected only as denominators ("a fifth", "two thirds"), so "First, ..."
-# is left alone, and "half past", "quarter past", "quarter to" are clock phrases.
+# "thirty and a thousandth", "10 percent", 1.5, Unicode fractions such as 30\u00bd), signed quantities ("-30",
+# "- 30", "negative thirty", "minus 3") and arithmetic between numbers ("30 / 2", "thirty over two", "3 x 4" with
+# U+00D7). Ordinals are rejected only as denominators ("a fifth", "two thirds"), so "First, ..." is left alone, and
+# "half past", "quarter past", "quarter to" are clock phrases.
+_OPERAND = rf"(?:\b\d+|\b{_NUMBER_WORD}\b)"
 UNSUPPORTED_NUMBER = re.compile(
     rf"\b(?!(?:half|quarter) (?:past|to)\b){_FRACTION}\b"
     rf"|\b(?:an?|{_NUMBER_WORD}|\d+) {_ORDINAL}\b|\band an? {_ORDINAL}\b"
-    rf"|%|\b\d+/\d+\b|\b\d+\.\d+\b|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
+    rf"|%|{_OPERAND}\s*(?:/|\u00f7|\u00d7|\bover\b|\bdivided by\b|\bmultiplied by\b)\s*{_OPERAND}"
+    rf"|\b\d+\.\d+\b|(?<![\w-])[-+]\s*(?:\d|{_NUMBER_WORD}\b)|\b(?:negative|minus|plus)\b",
     re.IGNORECASE,
 )
 
@@ -315,7 +318,9 @@ def binding(word: str) -> bool:
 
 
 def rows_of(texts: Iterable[str]) -> list[tuple[str, set[str]]]:
-    rows = [row for text in (fold(t) for t in texts) for row in ROW_START.split(text)]
+    """Record rows: split at the record's own line breaks first (tables whose rows start with a date too), then at a
+    time that starts a row inside a quote that runs across rows; whitespace is folded within each row."""
+    rows = [fold(row) for text in texts for line in text.split("\n") for row in ROW_START.split(line)]
     return [(row, {stem(w) for w in WORD.findall(row)}) for row in rows]
 
 

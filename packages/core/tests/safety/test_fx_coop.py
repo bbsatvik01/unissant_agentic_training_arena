@@ -177,6 +177,8 @@ def test_every_number_phrase_is_compared(phrase: str, value: list[str]) -> None:
         "thirty\ttwo training binders",
         "thirty\u00a0two training binders",
         "- 30 training binders",
+        "30 / 2 training binders",
+        "thirty over two training binders",
     ],
 )
 def test_a_changed_quantity_in_a_control_fails(replacement: str) -> None:
@@ -256,6 +258,15 @@ def test_a_long_clause_still_binds_its_event_to_its_time() -> None:
     assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:12.", [], records) == []
     assert cc.time_row_problems("The 417 door opened at the time I already mentioned, 19:38.", [], records) == [
         "open goes with another time than 19:38"
+    ]
+
+
+def test_a_table_whose_rows_start_with_a_date_keeps_its_rows() -> None:
+    """F06 rec-04 rows start with dates: 5 February 09:12 is WO-6011, 23 February 15:05 is WO-6087."""
+    record = record_texts("F06")["rec-04"]
+    assert cc.time_row_problems("WO-6087 was the task at 15:05.", [], [record]) == []
+    assert cc.time_row_problems("WO-6087 was the task at 09:12.", [], [record]) == [
+        "wo-6087 goes with another time than 09:12"
     ]
 
 
