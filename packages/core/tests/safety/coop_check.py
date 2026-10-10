@@ -177,15 +177,6 @@ def content(word: str) -> bool:
     return len(word) >= MIN_CONTENT_WORD and not any(c.isdigit() for c in word) and word.lower() not in FUNCTION_WORDS
 
 
-def numbers(text: str) -> list[str]:
-    """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21). Fail closed:
-    every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
-    gives a time in words cites no quote that gives it in digits (the review judges that agreement)."""
-    text = fold(text)
-    out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
-    return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
-
-
 _ORDINAL_ROOTS = [
     "first",
     "second",
@@ -252,6 +243,22 @@ def unsupported_numbers(text: str) -> list[str]:
     found = [m.group(0) for m in UNSUPPORTED_NUMBER.finditer(folded)]
     # Any numeric character that is not an ASCII digit (vulgar fractions, superscripts, other scripts' digits).
     return found + [c for c in folded if not c.isascii() and unicodedata.numeric(c, None) is not None]
+
+
+def numbers(text: str) -> list[str]:
+    """Numbers, times and codes, with spelled-out cardinals as digits ("seventy" 70, "twenty-one" 21). Fail closed:
+    every number phrase is compared, spoken clock times included ("ten to five" carries 10 and 5), so a sentence that
+    gives a time in words cites no quote that gives it in digits (the review judges that agreement)."""
+    # An unsupported construction is one atom on either side: none of its parts can stand for a whole number ("1" is
+    # not in "1,000", "30" is not in ".30" or "thirty point five").
+    text = UNSUPPORTED_NUMBER.sub(" \u2063 ", fold(text))
+    text = " ".join(  # a chunk holding a non-ASCII numeral (30\u00bd, \u00b2) is dropped whole
+        chunk
+        for chunk in text.split(" ")
+        if not any(not c.isascii() and unicodedata.numeric(c, None) is not None for c in chunk)
+    )
+    out = [w for w in WORD.findall(text) if any(c.isdigit() for c in w)]
+    return out + [str(cardinal_value(m.group(0))) for m in CARDINAL.finditer(text)]
 
 
 def number_in(token: str, text: str) -> bool:
