@@ -448,7 +448,8 @@ def test_a_revealed_board_is_passed_through_unchanged() -> None:
 def test_the_corrected_board_supersedes_the_original_which_stays_readable() -> None:
     h = Harness()
     tournament = _published(h)
-    corrected = {**WP16_BOARDS["assistant"], "status": "definitive"}
+    original_binding = WP16_BOARDS["assistant"]["binding"]
+    corrected = {**WP16_BOARDS["assistant"], "binding": {**original_binding, "manifest_version": 2}}
     h.db.boards.append(
         {"tournament": tournament, "board": "assistant", "label": "corrected", "manifest_version": 2, "body": corrected}
     )
