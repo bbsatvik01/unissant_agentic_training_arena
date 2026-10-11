@@ -122,3 +122,10 @@
 - **Boundaries:** it is a design language only. No Vercel name, logo, wordmark or marketing copy appears in the product. Fonts are open-licensed substitutes the file names. The motion, character and pet rules of `03-ui-direction.md` v2.1 and S6 still apply; DESIGN.md supplies the tokens they bind to.
 - **Timing:** presentational work starts after the 2026-10-18 slice gate (S6), now unblocked by this file.
 - **Reversibility:** cheap (tokens).
+
+## 2026-10-11 · D-019 Byte limits stay; every byte figure is wire bytes
+- **Decision:** coordinator. `cost_model.LIMITS` stay (subject 80,000; card/deep/final 128,000; referee 160,000 bytes), so the $74 ceiling math is unchanged. Every byte figure, limits and input caps alike, is measured as transmitted (JSON-escaped) wire bytes. Caps on fields that feed a request (question 600 chars / 2,400 bytes, model-written fields carried forward) are enforced in those same wire bytes, so S2's adversarial maximum fits LIMITS by construction.
+- **Reason:** JSON `\u` escaping makes non-ASCII text 2-3x its UTF-8 size; the S2 card worst case (117,219 UTF-8) exceeded 128,000 wire bytes. Capping inputs in the unit that is billed is the simplest fix; raising limits 2-3x would inflate every reservation.
+- **Escalation:** if a role's worst case still exceeds its limit, WP-05 reports the role, figure and driving field; limits are not raised silently.
+- **Files:** `providers/structured.py`, `contracts/rendered.py`, WP-05 port and parity test.
+- **Reversibility:** cheap.

@@ -1,15 +1,26 @@
 # State
 
-- **Date:** 2026-10-08, ~22:25 EDT
+- **Date:** 2026-10-11
 - **Branch:** `main` (local only, no remote yet)
-- **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+- **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+
+## RESUMED 2026-10-11 (owner: continue working)
+| Item | State | Next |
+| --- | --- | --- |
+| WP-11 guard (feat/wp11-guard 6d15ad7) | cold Codex gate running (bg bcpr0tmfm, scratchpad cold/) | merge on CORRECT |
+| WP-18 part 2 (feat/wp18b-web 007d133) | cold Codex gate running (same bg) | merge on CORRECT |
+| WP-05 port (ac1b3a38666e87dcf, wt-wp05-port) | resumed: merge main (conflict in providers/structured.py), use WP-10 helpers + parity test, D-019 wire bytes | cold gate, merge |
+| WP-04 pgTAP suite (aef227ff5a791ab22, wt-wp04-pgtap, Sonnet) | dispatched | cold gate, merge |
+| WP-07 observability (a928b8a9c3a763c65, wt-wp07-obs, Sonnet) | dispatched | cold gate, merge |
+- Queue: WP-12 subject + WP-14 referee after WP-05 and WP-11 merge; WP-13 after WP-12; WP-19 after WP-18b (fake port); WP-16, WP-17 after WP-14; WP-24 integration.
+- Owner asks: Supabase MCP now needs re-auth (/mcp), or .env.owner; then migrations 0600-1100 + roles. Budget plan application (D-012) before first paid call.
 
 ## HOLD 2 (owner directive 2026-10-09 ~01:50 EDT)
 - No new agents or workflows. Do not stop anything running; let it finish. Usage refreshes ~07:00 EDT.
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
-## HOLD 3 (owner directive, 2026-10-09 night): pause for some days
+## HOLD 3 (owner directive, 2026-10-09 night; lifted 2026-10-11)
 - Do not stop running agents; send nothing new. Resume when the owner returns.
 - All three agents finished on their side; nothing running. Running (normal agents, addressable with SendMessage):
   | Agent id | Work | Worktree / branch | Next step when it reports |
