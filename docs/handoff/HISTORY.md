@@ -71,3 +71,4 @@
 - 2026-10-11 first local end-to-end fake interview through real processes (api/subject/referee + local Supabase PG17): session, 3 turns, 3 coach cards, evidence release, recording export OK; finding/debrief await fake referee (WP-14 follow-up)
 - 5035094 merge UI stage 1b realistic world (Rocketbox MIT avatars, text-driven lip sync, cinematic shots, PBR)
 - 682f750 merge WP-16 reveal + leaderboards + isolation gates
+- f4cc538 merge fixture fix: S1-complete public packets in fixtures.psql (db-test green)
