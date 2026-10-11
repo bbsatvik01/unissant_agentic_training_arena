@@ -1,0 +1,50 @@
+# Local Phoenix for development and the `make dev` live trace check (S5 8.6, S8 WP-07). Pattern lifted from
+# TechnoMile `docker-compose.observability.yml` (docs/ATTRIBUTIONS.md); adapted: pinned by DIGEST (the
+# project's own gate, not TechnoMile's) rather than tag alone, container/volume names changed to this repo's.
+# LOCAL ONLY, never a deploy artifact (the hosted variant, deferred WP-33, is a separate Cloud Run service).
+#
+# Up:    PHOENIX_SECRET=<random> PHOENIX_ADMIN_SECRET=<random> docker compose -f docker-compose.dev.yml up -d
+# Down:  docker compose -f docker-compose.dev.yml down -v   (stop it when done)
+#
+# Secrets come from the shell (or a gitignored .env); compose refuses to start without them. Generate with
+# `python3 -c "import secrets; print(secrets.token_urlsafe(40))"`.
+#
+# Digest: arizephoenix/phoenix:version-20.16.0 resolves (as of 2026-10-10, docker.io registry API) to the
+# multi-arch manifest list sha256:d55a4ffac8c670e2d0bf72e44e81e32a73e832b7ce449e6e4567487adfa9d8d6 (covers
+# both amd64 and arm64; Docker picks the right one). Bumping the image means re-resolving and re-pinning this
+# digest deliberately, e.g. `docker buildx imagetools inspect arizephoenix/phoenix:version-20.16.0`, never
+# editing the tag alone.
+
+services:
+  phoenix:
+    image: arizephoenix/phoenix@sha256:d55a4ffac8c670e2d0bf72e44e81e32a73e832b7ce449e6e4567487adfa9d8d6
+    container_name: arena-phoenix-local
+    restart: "no"
+    # 127.0.0.1 only: traces hold run content (redacted, but still sensitive subject/referee hashes and
+    # coach free text, S5 8.2, 8.3).
+    ports:
+      - "127.0.0.1:${ARENA_PHOENIX_PORT:-6006}:6006"  # UI, REST read-back and OTLP-HTTP (/v1/traces)
+    mem_limit: 1g
+    environment:
+      # Without this, Phoenix's SQLite database defaults to ~/.phoenix/ inside the container's own
+      # filesystem, NOT the mounted volume below -- every bit of trace data would be lost on container
+      # recreation despite the volume (confirmed via the Phoenix self-hosting docs, Context7
+      # /arize-ai/phoenix, "PHOENIX_WORKING_DIR ... Defaults to ~/.phoenix/"; Codex self-gate round 2).
+      PHOENIX_WORKING_DIR: /mnt/data
+      PHOENIX_ENABLE_AUTH: "true"
+      PHOENIX_SECRET: ${PHOENIX_SECRET:?set PHOENIX_SECRET before bringing Phoenix up}
+      # Bearer secret for automation (`make traces-push`, the day-1 probes); a system key minted in the UI
+      # works too, and is what PHOENIX_API_KEY in .env.local should hold day to day.
+      PHOENIX_ADMIN_SECRET: ${PHOENIX_ADMIN_SECRET:?set PHOENIX_ADMIN_SECRET before bringing Phoenix up}
+      PHOENIX_TELEMETRY_ENABLED: "false"
+      PHOENIX_ENABLE_MCP_SERVER: "false"
+      PHOENIX_ENABLE_OAUTH2_AUTHORIZATION_SERVER: "false"
+      PHOENIX_DEFAULT_RETENTION_POLICY_DAYS: "14"
+    # Phoenix never prices spans: the exporter renames llm.token_count.* / gen_ai.usage.* away
+    # (observability/export_policy.py) and ops.model_calls is the only cost source (S5 8.2, direction 10).
+    # Do not configure model prices in the Phoenix UI.
+    volumes:
+      - arena-phoenix-data:/mnt/data
+
+volumes:
+  arena-phoenix-data:
