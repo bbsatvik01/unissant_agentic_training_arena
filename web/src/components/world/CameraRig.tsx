@@ -15,7 +15,7 @@ interface CameraRigProps {
   readonly place: "hub" | "room";
   readonly shot: ShotName;
   readonly reducedMotion: boolean;
-  /** Called when a flight between places lands. */
+  /** Called whenever the camera has settled in the room (after a flight, a cut, or a glide). */
   readonly onArrive?: () => void;
 }
 
@@ -35,10 +35,12 @@ export function CameraRig({ place, shot, reducedMotion, onArrive }: CameraRigPro
       const end = SHOTS[path.at(-1) ?? "hub"];
       camera.position.set(...end.position);
       target.current.set(...end.target);
-      if (flying) onArrive?.();
+      if (place === "room") onArrive?.();
       return;
     }
-    const tl = gsap.timeline(flying && onArrive !== undefined ? { onComplete: onArrive } : {});
+    // Any move that ends in the room counts as arriving (a flight, or a glide that replaced an interrupted one);
+    // arriving is idempotent for the caller.
+    const tl = gsap.timeline(place === "room" && onArrive !== undefined ? { onComplete: onArrive } : {});
     path.forEach((name, i) => {
       const s = SHOTS[name];
       const duration = flying ? (i === 0 ? 0.9 : 1.05) : 1.0;
