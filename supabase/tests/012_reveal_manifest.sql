@@ -73,12 +73,16 @@ select is(
   (select count(*)::int from arena.planned_trials where tournament_id = (select tour from tt)),
   (select array_length(regexp_split_to_array(rtrim(manifest, E'\n'), E'\n'), 1) - 1 from mv),
   'one manifest line per planned trial');
+-- Compared in the manifest's OWN line order (ordinal `n`, header at n=1 skipped) against the planned-trial
+-- ids sorted ascending -- re-sorting both sides first (as an earlier version of this check did) would only
+-- prove the two SETS of ids are equal, never that the manifest text itself is byte-sorted (S3 4.4), which
+-- is what RV-11 claims.
 select is(
-  (select string_agg(line, ',' order by line) from (
-     select split_part(x, '|', 1) as line from mv, unnest(string_to_array(rtrim(manifest, E'\n'), E'\n')) x
-      where x <> (select split_part(rtrim(manifest, E'\n'), E'\n', 1) from mv)) s),
+  (select string_agg(split_part(x, '|', 1), ',' order by n) from mv,
+     unnest(string_to_array(rtrim(manifest, E'\n'), E'\n')) with ordinality as t(x, n)
+    where n > 1),
   (select string_agg(id::text, ',' order by id::text) from arena.planned_trials where tournament_id = (select tour from tt)),
-  'the sorted line ids equal the sorted planned-trial ids');
+  'the manifest body lines appear in planned_trial_id byte order (S3 4.4)');
 
 -- RV-12a / AC-S3-4.2: export the raw rows (still exactly as v1 sealed them, before any correction below)
 -- and have Python rebuild the sealed text independently.

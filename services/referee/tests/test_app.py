@@ -634,7 +634,7 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
     app = make_app(tmp_path)
 
     async def fake_run(_connect: object, request: IsolationGateRequest) -> object:
-        assert request.tournament_id == str(TOURNAMENT_ID)
+        assert request.ig1 == (True, "pgtap ok")
         return PASSING_ISOLATION
 
     monkeypatch.setattr(admin_route, "run_isolation_gate", fake_run)
@@ -645,11 +645,9 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
             app,
             "/admin/isolation-gate/run",
             json={
-                "tournament_id": str(TOURNAMENT_ID),
                 "ig1": {"passed": True, "report_text": "pgtap ok"},
                 "ig2": {"passed": True, "report_text": "routes ok"},
                 "ig3": {"passed": True, "report_text": "context ok"},
-                "hits_by_candidate": {"A1": 0},
             },
             headers=_browser_post_headers(csrf),
             cookies={"arena_csrf": csrf},
@@ -659,4 +657,106 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
     assert resp.json()["passed"] is True
 
 
-TOURNAMENT_ID = uuid4()
+def _open_body() -> dict[str, object]:
+    return {
+        "ig1": {"passed": True, "report_text": "pgtap ok"},
+        "ig2": {"passed": True, "report_text": "routes ok"},
+        "ig3": {"passed": True, "report_text": "context ok"},
+    }
+
+
+def test_open_route_needs_an_admin_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
+    me_admin = run(_get(make_app(tmp_path), "/api/me"))
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(me_admin.json()["csrf_token"]),
+        )
+    )
+    assert resp.status_code == FORBIDDEN
+
+
+def test_open_route_rejects_a_malformed_body(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json={},  # missing ig1/ig2/ig3
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == UNPROCESSABLE
+
+
+def test_open_route_opens_on_a_passing_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_open(_connect: object, _tournament_id: str, request: IsolationGateRequest) -> object:
+        assert request.ig1 == (True, "pgtap ok")
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"opened": True, "passed": True, "evidence_hash": PASSING_ISOLATION.evidence_hash}
+
+
+def test_open_route_maps_a_failing_gate_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_open(_connect: object, _tournament_id: str, _request: IsolationGateRequest) -> object:
+        msg = "isolation gate failed"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == CONFLICT
+
+
+def test_open_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_open(_connect: object, _tournament_id: str, _request: IsolationGateRequest) -> object:
+        msg = "only a frozen tournament can open"
+        raise _Blocked(msg)
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == CONFLICT

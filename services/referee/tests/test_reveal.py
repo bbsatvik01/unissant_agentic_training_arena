@@ -108,6 +108,23 @@ def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> N
     assert insert[4].obj["binding"]["manifest_version"] == 1
 
 
+def test_seal_correction_and_publish_skips_the_board_on_rv18s_unchanged_no_op() -> None:
+    # No trial line changed: `ledger.seal_corrected_manifest` returns v1 itself (RV-18), never a new row.
+    # Publishing a "corrected" board bound to v1 would trip `arena.tg_leaderboard_label` (AR020) -- the fix
+    # is to skip the publish entirely, not to let that trigger turn a successful no-op into a 409.
+    conn = FakeConn(
+        {
+            "ledger.seal_corrected_manifest": [
+                ({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64, "version": 1},)
+            ],
+            "ledger.planned_execution": [trial_fact_row()],
+        }
+    )
+    result = run(reveal.seal_correction_and_publish(connector(conn), TOURNAMENT, ctx()))
+    assert result.manifest_version == 1
+    assert not any("arena.leaderboards" in q for q, _ in conn.executed)
+
+
 def test_seal_correction_and_publish_writes_a_corrected_leaderboard_on_the_new_version() -> None:
     conn = FakeConn(
         {

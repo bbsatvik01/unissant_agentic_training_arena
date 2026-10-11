@@ -539,15 +539,18 @@ _COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
 async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -> list[TrialFacts]:
     """`ledger.planned_execution` (already a read-only function reveal and the trust center use, S4) gives
     the latest attempt's state and trial id per planned trial; the adjudication lookup mirrors
-    `ledger.build_manifest`'s own (a replay row reads its source transcript's). `settled_cost` sums this
-    trial's own coach calls (S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) -- the candidate's
-    own calls only (M22)."""
+    `ledger.build_manifest`'s own (a replay row reads its source transcript's). `settled_cost` sums every
+    attempt's own coach calls (S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) for this planned
+    trial -- not only the latest attempt's `trial_id`: an earlier `infra_failed` attempt the candidate was
+    still billed for (coach calls made before the retry) is this planned trial's own cost too (M22), never
+    dropped just because a later attempt superseded it."""
     async with connect() as conn:
         cur = await conn.execute(
             "select p.id, p.track, p.assistant_candidate_id, f.family_code, ep.role, p.block_id,"
             "       e.state, adj.verdict, ff.classification,"
             "       coalesce((select sum(r.settled_usd) from ops.budget_reservations r"
-            "                  where r.trial_id = e.trial_id and r.purpose = any(%s)), 0)"
+            "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
+            "                    and r.purpose = any(%s)), 0)"
             "  from arena.planned_trials p"
             "  join arena.case_variants v on v.id = p.variant_id"
             "  join arena.case_families f on f.id = v.family_id"
@@ -608,11 +611,23 @@ async def fetch_leaderboard(
     connect: Connector, tournament_id: str, *, board: str = "assistant", label: str = "original"
 ) -> Mapping[str, Any] | None:
     """The published body verbatim (D-020: the read side adds nothing the spec lacks), or `None` before that
-    label exists for this tournament (not yet revealed, or not yet corrected)."""
+    label exists for this tournament (not yet revealed, or not yet corrected). `label='corrected'` can have
+    one row per corrected version over the tournament's life (each correction mints a new manifest id,
+    `unique(manifest_id, board)` does not collapse them): the highest manifest version wins, never whichever
+    row the server happens to return first."""
     async with connect() as conn:
         cur = await conn.execute(
-            "select l.body from arena.leaderboards l where l.tournament_id = %s and l.board = %s and l.label = %s",
+            "select l.body from arena.leaderboards l join ledger.inclusion_manifests m on m.id = l.manifest_id"
+            " where l.tournament_id = %s and l.board = %s and l.label = %s"
+            " order by m.version desc limit 1",
             (UUID(tournament_id), board, label),
         )
         row = await cur.fetchone()
     return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def open_tournament(connect: Connector, tournament_id: str) -> None:
+    """`arena.open_tournament` (S4): `frozen` -> `running`. Called only after the isolation gate passes
+    (`arena_referee.isolation.open_hidden_tournament`, S1 L9) -- never a standalone action."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute("select arena.open_tournament(%s)", (UUID(tournament_id),))

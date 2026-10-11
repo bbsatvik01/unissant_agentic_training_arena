@@ -15,7 +15,7 @@ the body's `not_computed` list names them.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -44,7 +44,15 @@ from arena_core.scoring.ranking import (
     rank,
     rank_intervals,
 )
-from arena_core.scoring.stats import Cluster, Eligibility, FamilyBound, Interval, cluster_bootstrap, family_level_bound
+from arena_core.scoring.stats import (
+    Cluster,
+    Eligibility,
+    FamilyBound,
+    Interval,
+    cluster_bootstrap,
+    family_level_bound,
+    ratio,
+)
 
 NOT_COMPUTED = (
     "M06_evasion_precision",
@@ -66,17 +74,21 @@ NOT_COMPUTED = (
 @dataclass(frozen=True, kw_only=True)
 class CandidateInput:
     """One assistant candidate's own data for one tournament track (S3 5.3-5.6). `trials`: this candidate's
-    own included trials (INCLUDED or INCLUDED_AS_INSUFFICIENT). `excluded_truthful_by_family`: this
-    candidate's own excluded truthful trials, by family (F14 attrition; also the M02/M21 "complete family"
-    test -- a family with any exclusion is never complete). `reasons`: the manifest `reason` field of every
-    one of this candidate's own planned rows (M23). `own_cost_rows`: (settled cost, included) per this
-    candidate's own model call (M22); `own_planned`: this candidate's own planned-trial count."""
+    own included trials (INCLUDED or INCLUDED_AS_INSUFFICIENT). `excluded_truthful_by_family` and
+    `excluded_deceptive_by_family`: this candidate's own excluded trials, by family and role (F14
+    attrition's own worst/best-case sensitivity treats an excluded deceptive trial as a trial that could
+    have gone either way, never as a trial that never happened; the M02/M21 "complete family" test -- a
+    family with any exclusion, truthful or deceptive, is never complete). `reasons`: (role, reason) for
+    every one of this candidate's own planned rows, `reason` being the manifest's own field (M23 overall
+    and per-role). `own_cost_rows`: (settled cost, included) per this candidate's own model call (M22);
+    `own_planned`: this candidate's own planned-trial count."""
 
     candidate_id: str
     display_name: str
     trials: Sequence[TrialOutcome]
     excluded_truthful_by_family: Mapping[str, int]
-    reasons: Sequence[str]
+    excluded_deceptive_by_family: Mapping[str, int]
+    reasons: Sequence[tuple[str, str]]
     own_cost_rows: Sequence[tuple[Decimal, bool]]
     own_planned: int
 
@@ -114,6 +126,7 @@ def _candidate_stats(c: CandidateInput) -> CandidateStats:
     inc_d = sum(matrix.counts[("deceptive", o)] for o in OUTPUTS)
     det = matrix.counts[("deceptive", "deceptive")]
     exc_t = sum(c.excluded_truthful_by_family.values())
+    exc_d = sum(c.excluded_deceptive_by_family.values())
     return CandidateStats(
         id=c.candidate_id,
         fp=fp,
@@ -121,7 +134,7 @@ def _candidate_stats(c: CandidateInput) -> CandidateStats:
         exc_t=exc_t,
         det=det,
         inc_d=inc_d,
-        exc_d=0,
+        exc_d=exc_d,
         qq=None,
         qq_coverage=Fraction(0),
     )
@@ -165,8 +178,18 @@ def _cost(c: CostSummary) -> dict[str, Any]:
     }
 
 
-def _execution_rates(reasons: Sequence[str]) -> dict[str, dict[str, Any]]:
+def _execution_rates(reasons: Iterable[str]) -> dict[str, dict[str, Any]]:
     return {k: {"count": n, "share": float(share)} for k, (n, share) in execution_rates(reasons).items()}
+
+
+def _execution_rates_by_role(reasons: Sequence[tuple[str, str]]) -> dict[str, Any]:
+    """M23 (S3 5.2): overall, plus one breakdown per role -- a candidate's execution/exclusion mix on its
+    truthful rows can differ sharply from its deceptive rows (e.g. subject-side invalidation skews toward
+    one role), and the overall-only rate used to hide that."""
+    return {
+        "overall": _execution_rates(reason for _role, reason in reasons),
+        "by_role": {role: _execution_rates(reason for r, reason in reasons if r == role) for role in ROLES},
+    }
 
 
 def _rank_interval(ri: RankInterval | None) -> dict[str, Any] | None:
@@ -198,6 +221,7 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
     complete_for_recall = [
         (fam, det_by_family[fam][0] < det_by_family[fam][1])  # failed: any miss (M21's symmetric bound)
         for fam in det_by_family
+        if c.excluded_deceptive_by_family.get(fam, 0) == 0  # any exclusion in the family: never complete
     ]
     matrix = count_matrix(c.trials)
     return {
@@ -217,15 +241,24 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
                 "interval": _interval(boot(clusters["fpr"], "M02")),
                 "complete_family_bound": _bound(family_level_bound(complete_for_fpr)),
             },
-            "M03_ppv": {"interval": _interval(boot(clusters["ppv"], "M03"))},
+            "M03_ppv": {
+                "point": _frac(ratio(clusters["ppv"])),
+                "interval": _interval(boot(clusters["ppv"], "M03")),
+            },
             "M04_unresolved_rate": {
-                "truthful": _interval(boot(clusters["unresolved_T"], "M04T")),
-                "deceptive": _interval(boot(clusters["unresolved_D"], "M04D")),
+                "truthful": {
+                    "interval": _interval(boot(clusters["unresolved_T"], "M04T")),
+                    "synthetic_insufficient": matrix.synthetic_insufficient["truthful"],
+                },
+                "deceptive": {
+                    "interval": _interval(boot(clusters["unresolved_D"], "M04D")),
+                    "synthetic_insufficient": matrix.synthetic_insufficient["deceptive"],
+                },
             },
             "M05_count_matrix": {r: {o: matrix.counts[(r, o)] for o in OUTPUTS} for r in ROLES},
             "M21_zero_event_bound": _bound(family_level_bound(complete_for_recall)),
             "M22_cost": _cost(cost_summary(c.own_cost_rows, c.own_planned)),
-            "M23_execution_rates": _execution_rates(c.reasons),
+            "M23_execution_rates": _execution_rates_by_role(c.reasons),
             "M25_role_prevalence": _frac(prevalence(c.trials)),
         },
         "fairness_violations": [],  # FA-3: none detected without the fairness audit's inputs (not_computed)
@@ -259,8 +292,13 @@ def build_assistant_leaderboard(
     if not board.rows:
         body["rows"] = []
         return body
+    # `rank_intervals`'s own contract (S3 5.5): its family pool is "every family with any included trial
+    # for any ELIGIBLE candidate", and it never re-decides eligibility itself -- an ineligible candidate
+    # (rank is None) passed in here would widen that pool with families no eligible candidate's interval
+    # should be resampled against.
+    ranked_ids = {row.candidate.id for row in board.rows if row.rank is not None}
     intervals = rank_intervals(
-        {c.candidate_id: _family_counts(c.trials) for c in candidates},
+        {c.candidate_id: _family_counts(c.trials) for c in candidates if c.candidate_id in ranked_ids},
         seed=seed_for(binding.manifest_sha256, "rank_interval", "all", "I"),
         b=binding.bootstrap_b,
     )

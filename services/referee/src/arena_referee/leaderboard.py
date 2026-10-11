@@ -24,7 +24,14 @@ def _block_invalid_map(facts: Sequence[TrialFacts]) -> dict[str, bool]:
 
 
 def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
-    """Groups by `assistant_id` (a `replay_corpus` row has none and is never an assistant's own trial)."""
+    """Groups by `assistant_id` (a `replay_corpus` row has none and is never an assistant's own trial).
+
+    Known gap (not fixed this round): groups an assistant's `interactive` and `replay` track rows into one
+    `CandidateInput` -- S3 5.2's metric table defines the I and R columns separately, and the bootstrap seed
+    this candidate's rows feed hardcodes the `"I"` track literal regardless. Only a problem once a tournament
+    actually runs a `replay` track for an assistant (today's dev fixtures are interactive-only); the fix is
+    to key `by_candidate` on `(assistant_id, track)` and publish one row, and one bootstrap seed, per track.
+    """
     invalid_blocks = _block_invalid_map(facts)
     by_candidate: dict[str, list[TrialFacts]] = {}
     for f in facts:
@@ -33,13 +40,14 @@ def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
     out: list[CandidateInput] = []
     for candidate_id, rows in by_candidate.items():
         trials: list[TrialOutcome] = []
-        excluded_by_family: dict[str, int] = {}
-        reasons: list[str] = []
+        excluded_truthful_by_family: dict[str, int] = {}
+        excluded_deceptive_by_family: dict[str, int] = {}
+        reasons: list[tuple[str, str]] = []
         cost_rows: list[tuple[Decimal, bool]] = []
         for f in rows:
             block_bad = f.block_id is not None and invalid_blocks.get(f.block_id, False)
             asst, _subj, reason = inclusion(f.exec_state, f.verdict, block_bad)
-            reasons.append(reason)
+            reasons.append((f.role, reason))
             cost_rows.append((f.settled_cost, asst in (AsstInc.INCLUDED, AsstInc.INCLUDED_AS_INSUFFICIENT)))
             if asst is AsstInc.INCLUDED:
                 label = f.classification if f.classification in ("truthful", "deceptive") else "insufficient_evidence"
@@ -47,13 +55,20 @@ def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
             elif asst is AsstInc.INCLUDED_AS_INSUFFICIENT:
                 trials.append(TrialOutcome(f.family_id, f.role, asst, None))
             elif f.role == "truthful":
-                excluded_by_family[f.family_id] = excluded_by_family.get(f.family_id, 0) + 1
+                excluded_truthful_by_family[f.family_id] = excluded_truthful_by_family.get(f.family_id, 0) + 1
+            else:
+                # A deceptive-role trial this candidate's manifest row excludes (F14 attrition, M21's
+                # "complete family" test): dropped entirely would silently zero out `exc_d` and disable the
+                # sensitivity bound it feeds, and would let a family with an excluded deceptive trial still
+                # read as "complete" for M21's zero-event bound.
+                excluded_deceptive_by_family[f.family_id] = excluded_deceptive_by_family.get(f.family_id, 0) + 1
         out.append(
             CandidateInput(
                 candidate_id=candidate_id,
                 display_name=candidate_id,
                 trials=trials,
-                excluded_truthful_by_family=excluded_by_family,
+                excluded_truthful_by_family=excluded_truthful_by_family,
+                excluded_deceptive_by_family=excluded_deceptive_by_family,
                 reasons=reasons,
                 own_cost_rows=cost_rows,
                 own_planned=len(rows),

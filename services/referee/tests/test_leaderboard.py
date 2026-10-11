@@ -50,7 +50,18 @@ def test_subject_invalid_excludes_the_assistant_and_counts_against_the_truthful_
     [candidate] = candidate_inputs(facts)
     assert candidate.trials == []
     assert candidate.excluded_truthful_by_family == {"F01": 1}
-    assert candidate.reasons == ["subject_invalid"]
+    assert candidate.reasons == [("truthful", "subject_invalid")]
+
+
+def test_subject_invalid_on_a_deceptive_role_trial_counts_as_an_excluded_deceptive_trial() -> None:
+    # Codex finding #11: an excluded deceptive-role trial must feed `excluded_deceptive_by_family` (F14
+    # attrition, M21's "complete family" test), the same way an excluded truthful-role trial feeds
+    # `excluded_truthful_by_family`.
+    facts = [dataclasses.replace(BASE, role="deceptive", verdict="subject_invalid")]
+    [candidate] = candidate_inputs(facts)
+    assert candidate.trials == []
+    assert candidate.excluded_truthful_by_family == {}
+    assert candidate.excluded_deceptive_by_family == {"F01": 1}
 
 
 def test_assistant_failed_with_a_valid_verdict_is_included_as_insufficient() -> None:
@@ -67,7 +78,7 @@ def test_one_infra_failure_invalidates_the_whole_block_for_every_row_in_it() -> 
     ]
     candidate = candidate_inputs(facts)[0]
     assert candidate.trials == []  # every row in the invalidated block is excluded
-    assert set(candidate.reasons) == {"block_invalid_infra"}
+    assert {reason for _role, reason in candidate.reasons} == {"block_invalid_infra"}
 
 
 def test_cost_rows_carry_every_own_call_whether_or_not_the_trial_is_included() -> None:
@@ -80,6 +91,16 @@ def test_cost_rows_carry_every_own_call_whether_or_not_the_trial_is_included() -
     ]
     candidate = candidate_inputs(facts)[0]
     assert sorted(candidate.own_cost_rows) == sorted([(Decimal("0.05"), True), (Decimal("0.02"), False)])
+
+
+def test_reasons_carry_each_row_s_own_role_for_m23s_per_role_breakdown() -> None:
+    # Codex finding #15: M23's per-role breakdown needs each reason tagged with the row's own role.
+    facts = [
+        dataclasses.replace(BASE, planned_trial_id="p1", role="truthful"),
+        dataclasses.replace(BASE, planned_trial_id="p2", role="deceptive", verdict="subject_invalid"),
+    ]
+    [candidate] = candidate_inputs(facts)
+    assert set(candidate.reasons) == {("truthful", "included"), ("deceptive", "subject_invalid")}
 
 
 def test_rows_group_by_their_own_assistant_candidate() -> None:

@@ -3,16 +3,19 @@ pure `isolation_result`/`canary_audit` (already covered end to end in `scoring/t
 
 from __future__ import annotations
 
+import pytest
+
 from arena_core.referee.isolation import (
     IsolationEvidence,
     combined_corpus_scan_evidence,
     corpus_scan_evidence,
+    count_canary_hits,
     ig4_evidence,
     ig5_evidence,
     ig6_evidence,
     report_evidence,
 )
-from arena_core.scenario.corpus import Family, build_corpus
+from arena_core.scenario.corpus import Family, build_corpus, family_canaries
 
 
 def hidden_family() -> Family:
@@ -60,6 +63,35 @@ def test_fx_i02_a_canary_hit_attributed_to_one_candidate_fails_the_gate_for_all(
     clean = ig6_evidence({"A1": 0, "A2": 0, "A3": 0})
     assert clean.passed is True
     assert clean.culprit is None
+
+
+def test_ig6_rejects_a_negative_count_rather_than_let_it_cancel_a_real_hit() -> None:
+    # Without the guard, canary_audit's sum(...) == 0 would let a -1 cancel a genuine +1 hit and pass.
+    with pytest.raises(ValueError, match="negative"):
+        ig6_evidence({"A1": 1, "A2": -1})
+
+
+def test_family_canaries_are_exactly_the_four_canary_strings() -> None:
+    canaries = family_canaries(hidden_family())
+    assert canaries == {"CANARY-aaa111", "CANARY-bbb222", "CANARY-ccc333", "CANARY-ddd444"}
+
+
+def test_count_canary_hits_scans_each_candidate_s_own_texts_only() -> None:
+    canaries = family_canaries(hidden_family())
+    hits = count_canary_hits(
+        canaries,
+        {
+            "A1": ["a clean finding", "CANARY-aaa111 leaked here"],
+            "A2": ["nothing suspicious"],
+        },
+    )
+    assert hits == {"A1": 1, "A2": 0}
+
+
+def test_count_canary_hits_counts_every_occurrence_in_every_text() -> None:
+    canaries = family_canaries(hidden_family())
+    hits = count_canary_hits(canaries, {"A1": ["CANARY-aaa111 and CANARY-bbb222", "CANARY-aaa111 again"]})
+    assert hits == {"A1": 3}
 
 
 def test_ig4_passes_only_when_the_seal_verifies_and_nothing_scans_hidden() -> None:

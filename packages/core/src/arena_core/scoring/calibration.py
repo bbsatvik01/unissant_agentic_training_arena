@@ -9,6 +9,7 @@ choice `arena_core.scoring.fairness` made for its own statistics.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Hashable, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
@@ -136,21 +137,26 @@ def agreement[R: Hashable](
 @dataclass(frozen=True)
 class CalibrationReport:
     """S3 7.5: every dimension or label set of every instrument, keyed by its own name (for EVL-7, "D1".."D5";
-    for EVL-8, "labels" and "eva"; "fidelity"; "flag_support"). AC-S3-7.3: never "met" while any one item
-    misses either threshold, and an empty report is never "met" either (nothing calibrated is not calibrated)."""
+    for EVL-8, "labels" and "eva"; "fidelity"; "flag_support"). `required` names every one calibration must
+    cover for this run; AC-S3-7.3: never "met" while any required item misses either threshold OR is simply
+    absent from `items` -- a dimension never run is exactly as uncalibrated as one that ran and failed, so an
+    `items` map that merely omits the rest can never read as "met" by being silently incomplete."""
 
     items: Mapping[str, AgreementResult]
+    required: frozenset[str]
 
     @property
     def met(self) -> bool:
-        return bool(self.items) and all(r.met for r in self.items.values())
+        return self.required <= self.items.keys() and all(self.items[name].met for name in self.required)
 
     @property
     def status(self) -> str:
         return MET if self.met else "provisional: calibration not met"
 
     def failing(self) -> tuple[str, ...]:
-        return tuple(sorted(name for name, r in self.items.items() if not r.met))
+        missing = self.required - self.items.keys()
+        failed = {name for name in self.required if name in self.items and not self.items[name].met}
+        return tuple(sorted(missing | failed))
 
 
 # ---------------------------------------------------------------- 7.2 strata sampler (AC-S3-7.4)
@@ -179,7 +185,13 @@ def sample_strata(
     """Stratified sampling by `tag_proposal` (S3 7.2's C-LAB rule; the same function serves C-RUB and C-QQ's
     strata by quality level when the caller groups by that field instead): up to `target_per_stratum` per
     stratum, seeded, with at least `min_noncompliant_fraction` of the sample non-compliant where the pool
-    allows it. Reads only `TurnStratum` fields -- AC-S3-7.4."""
+    allows it. Reads only `TurnStratum` fields -- AC-S3-7.4.
+
+    Known gap (not fixed this round): a caller wanting BOTH `tag_proposal` and `quality_level`/`role`
+    jointly stratified has to call this once per quality level/role itself and merge the results -- one
+    call here only ever stratifies by one field (`tag_proposal`, or whatever the caller pre-grouped by). No
+    production caller exists yet to say which S3 7.2 actually needs.
+    """
     rng = np.random.default_rng(seed)
     by_stratum: dict[str | None, list[TurnStratum]] = {}
     for item in items:
@@ -190,7 +202,11 @@ def sample_strata(
         rng.shuffle(pool)
         noncompliant = [i for i in pool if i.noncompliant]
         compliant = [i for i in pool if not i.noncompliant]
-        want_noncompliant = min(len(noncompliant), round(target_per_stratum * float(min_noncompliant_fraction)))
+        # Ceiling, not nearest-or-even `round()`: "at least `min_noncompliant_fraction`" must never under-
+        # shoot its own floor just because the exact target lands on a round-to-even half (target=5,
+        # fraction=1/10 -> 0.5, which `round()` gives as 0, not 1, even though one is available and owed).
+        want = math.ceil(Fraction(target_per_stratum) * min_noncompliant_fraction)
+        want_noncompliant = min(len(noncompliant), want)
         picked = noncompliant[:want_noncompliant]
         remaining = [*noncompliant[want_noncompliant:], *compliant]
         rng.shuffle(remaining)

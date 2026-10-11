@@ -2,11 +2,18 @@
 WP-16): reveal (or a later correction), then publish the assistant leaderboard bound to the manifest version
 that operation just sealed.
 
-Live current-state data at the moment of the call is exactly what that manifest version captured: `reveal`
-and `_publish` run as one operator action, before any later correction exists, and `seal_corrected_manifest`
-and its own `_publish` run together the same way for the next version. Nothing here recomputes inclusion
-itself (`arena_referee.leaderboard` reuses WP-15's `inclusion()`/`block_invalid()` on the same raw facts
-`ledger.build_manifest` reads) or ranks a candidate past the isolation gate (`arena_core.scoring.ranking`).
+`reveal_tournament`/`seal_corrected_manifest` and `_publish`'s own read of live trial facts are two
+separate round trips, not one transaction: on this 1-2-concurrent-user, operator-triggered system that
+window is narrow, but it is real -- a validity adjudication that commits between them (the schema's own
+`after_reveal` flag on `ledger.validity_adjudications` means one can) would be reflected in the leaderboard
+`_publish` builds while the manifest it is bound to was sealed a moment earlier, without it. The correct
+fix is to derive the leaderboard's inclusion directly from the sealed manifest TEXT (already carries
+`asst_inclusion`/`reason` per S3 4.4) rather than re-deriving it from a fresh query; not done here (WP-16
+round 1) given how rare the window is operationally -- flagged for the owner/WP-17, not silently assumed
+away. Nothing here recomputes inclusion ITSELF (`arena_referee.leaderboard` reuses WP-15's
+`inclusion()`/`block_invalid()` on the same raw facts `ledger.build_manifest` reads) or ranks a candidate
+past the isolation gate (`arena_core.scoring.ranking`); the open question is only which snapshot in time
+those facts come from.
 """
 
 from __future__ import annotations
@@ -102,7 +109,15 @@ async def reveal_and_publish(connect: Connector, tournament_id: str, ctx: Publis
 
 async def seal_correction_and_publish(connect: Connector, tournament_id: str, ctx: PublishContext) -> db.RevealResult:
     """S4 6, S3 4.4's correction rule: `seal_corrected_manifest`, then the "corrected" board on the new
-    version next to the unchanged original (AC-S3-4.3, FX-M03)."""
+    version next to the unchanged original (AC-S3-4.3, FX-M03).
+
+    RV-18's no-op (no trial line changed) returns manifest v1 itself, never a new version -- publishing a
+    "corrected" board bound to v1 would trip `arena.tg_leaderboard_label` (AR020: that label is only valid
+    past version 1), turning a successful no-op into a spurious "blocked" error. Skip the publish in that
+    one case and return the unchanged v1 result, exactly what the caller already has from the first reveal.
+    """
     result = await db.seal_corrected_manifest(connect, tournament_id)
+    if result.manifest_version == 1:
+        return result
     await _publish(connect, tournament_id, result, "corrected", ctx)
     return result

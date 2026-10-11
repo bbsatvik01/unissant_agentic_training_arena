@@ -156,6 +156,20 @@ class Corpus:
     grams: Mapping[Gram, frozenset[str]]
 
 
+def family_canaries(family: Family) -> frozenset[str]:
+    """The family's own four canaries (two variants x `private_packet.canary` and `evaluator_packet.canary`,
+    S1 10.4), standalone from the rest of the corpus -- IG-6's supplementary audit (S3 9) is specifically a
+    canary scan, never a full 8-gram/identifier scan of live outputs."""
+    out: set[str] = set()
+    for variant_value in _as_mapping(family.get("variants")).values():
+        variant = _as_mapping(variant_value)
+        for packet_name in ("private_packet", "evaluator_packet"):
+            canary = _as_str(_as_mapping(variant.get(packet_name)).get("canary"))
+            if canary:
+                out.add(canary)
+    return frozenset(out)
+
+
 def build_corpus(family: Family, dev_reference: frozenset[Gram] = frozenset()) -> Corpus:
     """One family's corpus (S1 10.4): the family ID, both case IDs and the four canaries (two variants x
     `private_packet.canary` and `evaluator_packet.canary`) as identifiers; the persona name (both variants

@@ -14,7 +14,7 @@ evidence the referee's DB layer reads directly (`ledger.verify_chain`, `ledger.v
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 
 from arena_core.scenario.corpus import Corpus, scan_files
@@ -26,6 +26,7 @@ __all__ = [
     "IsolationEvidence",
     "combined_corpus_scan_evidence",
     "corpus_scan_evidence",
+    "count_canary_hits",
     "ig4_evidence",
     "ig5_evidence",
     "ig6_evidence",
@@ -101,7 +102,26 @@ class CanaryResult:
     culprit: str | None
 
 
+def count_canary_hits(canaries: Collection[str], texts_by_candidate: Mapping[str, Sequence[str]]) -> dict[str, int]:
+    """IG-6's own scan (S3 9): how many times any of the sealed families' canaries appear, literally, in
+    each candidate's own assistant outputs. The caller supplies the texts (coach cards, findings -- never
+    this module's job to query a database); this only counts, so a candidate with no canary anywhere in
+    its texts is zero, never a trusted external input."""
+    return {
+        candidate: sum(1 for text in texts for canary in canaries if canary in text)
+        for candidate, texts in texts_by_candidate.items()
+    }
+
+
 def ig6_evidence(hits_by_candidate: Mapping[str, int]) -> CanaryResult:
+    """A hit count is an observed occurrence and can never be negative; a negative value could otherwise
+    cancel a real positive hit in `canary_audit`'s sum-based check (`sum(...) == 0`), passing a gate that
+    should fail. Rejecting it here, before that check runs, keeps `canary_audit` itself the one place the
+    pass rule lives (S3 9) while never trusting malformed input to decide the gate."""
+    bad = {c: n for c, n in hits_by_candidate.items() if n < 0}
+    if bad:
+        msg = f"canary hit counts cannot be negative: {sorted(bad)}"
+        raise ValueError(msg)
     passed = canary_audit(hits_by_candidate)
     culprit = next((c for c, n in sorted(hits_by_candidate.items()) if n > 0), None)
     lines = [f"{c}|{n}" for c, n in sorted(hits_by_candidate.items())]

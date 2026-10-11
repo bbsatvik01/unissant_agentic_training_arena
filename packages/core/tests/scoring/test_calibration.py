@@ -75,21 +75,33 @@ def test_identity_weights_give_cohens_kappa_and_ac1() -> None:
     assert 0 < ac1 < 1
 
 
+D1_TO_D5 = frozenset({"D1", "D2", "D3", "D4", "D5"})
+
+
 def test_ac_s3_7_3_the_report_is_never_met_while_one_item_misses_a_threshold() -> None:
     good = AgreementResult(Fraction(9, 10), Fraction(9, 10), KAPPA_THRESHOLD, Fraction(7, 10))
     bad = AgreementResult(Fraction(1, 10), Fraction(9, 10), KAPPA_THRESHOLD, Fraction(7, 10))
-    report = CalibrationReport({"D1": good, "D2": good, "D3": bad, "D4": good, "D5": good})
+    report = CalibrationReport({"D1": good, "D2": good, "D3": bad, "D4": good, "D5": good}, required=D1_TO_D5)
     assert report.met is False
     assert report.status == "provisional: calibration not met"
     assert report.failing() == ("D3",)
 
-    all_good = CalibrationReport({"D1": good, "D2": good})
+    all_good = CalibrationReport({"D1": good, "D2": good}, required=frozenset({"D1", "D2"}))
     assert all_good.met is True
     assert all_good.status == "met"
 
 
 def test_an_empty_report_is_never_met() -> None:
-    assert CalibrationReport({}).met is False
+    assert CalibrationReport({}, required=D1_TO_D5).met is False
+
+
+def test_a_report_missing_a_required_dimension_is_never_met_even_if_every_present_item_passes() -> None:
+    # Codex finding #16: only D1 ran (and passed) while D2-D5 never ran at all -- `items` holds no failing
+    # entry for them, so a check that only inspected present items would read this as "met".
+    good = AgreementResult(Fraction(9, 10), Fraction(9, 10), KAPPA_THRESHOLD, Fraction(7, 10))
+    report = CalibrationReport({"D1": good}, required=D1_TO_D5)
+    assert report.met is False
+    assert report.failing() == ("D2", "D3", "D4", "D5")
 
 
 # ---------------------------------------------------------------- AC-S3-7.4: the sampler never reads R1/R2
@@ -116,6 +128,21 @@ def test_the_sampler_draws_per_stratum_with_a_noncompliant_floor() -> None:
     for tag_items in by_tag.values():
         assert len(tag_items) == TARGET_PER_STRATUM
         assert sum(i.noncompliant for i in tag_items) >= 1
+
+
+def test_the_noncompliant_floor_rounds_up_not_to_the_nearest_even() -> None:
+    # Codex finding #17: target=5, fraction=1/10 -> exactly 0.5, which Python's `round()` gives as 0
+    # (round-half-to-even), not 1, even though one noncompliant item is available and "at least 1/10 of 5"
+    # owes it one. Checked over many seeds: under the old `round()` behavior the single noncompliant item
+    # would only be picked by chance (its uniform shuffle-in odds, not a guarantee), so at least one of
+    # these seeds would come up empty; the fixed ceiling must never miss it, for every seed.
+    items = [
+        TurnStratum(turn_ref=f"t{i}", tag_proposal="A", quality_level="medium", role="deceptive", noncompliant=nc)
+        for i, nc in enumerate([False] * 9 + [True])
+    ]
+    for seed in range(25):
+        picked = sample_strata(items, seed=seed, target_per_stratum=5, min_noncompliant_fraction=Fraction(1, 10))
+        assert sum(i.noncompliant for i in picked) >= 1, f"seed={seed}"
 
 
 def test_the_sampler_is_deterministic_for_a_fixed_seed() -> None:
