@@ -1,0 +1,126 @@
+"""The blinded trainer review queue (S3 7.3): list, get, submit, dispatched by task kind."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Coroutine
+from typing import Any, cast
+from uuid import UUID, uuid4
+
+import pytest
+
+from arena_core.db.pool import Connector
+from arena_referee import db, review
+
+RATER = uuid4()
+ITEM = uuid4()
+
+
+def run[T](coro: Coroutine[Any, Any, T]) -> T:
+    return asyncio.run(coro)
+
+
+# Never actually called: every `db.*` function is monkeypatched, and review.py only threads this through.
+_connector = cast("Connector", None)
+
+
+LAB_PAYLOAD = {
+    "task": "T-LAB",
+    "item_id": str(uuid4()),
+    "initial_documents": [],
+    "released": [],
+    "transcript": [{"turn_no": 1, "question": "Why were you there?", "answer": "A work order.", "partial": False}],
+    "facts": [{"id": "f:01", "class": "FREE", "text": "A fact that is long enough.", "certainty": "certain"}],
+    "uncertainty": [],
+    "gates": [],
+    "permitted_behaviors": [],
+    "canonical_facts": [{"id": "f:01", "statement": "A canonical fact, long enough to pass validation."}],
+}
+
+LAB_SUBMISSION = {
+    "task": "T-LAB",
+    "turns": [
+        {
+            "turn_id": "t01",
+            "label": "responsive",
+            "eva_subtype": None,
+            "pfq_reason": None,
+            "no_contradiction": True,
+            "no_invention": True,
+            "uncertainty_respected": True,
+            "disclosure_policy_respected": True,
+            "in_character": True,
+            "platform_attack": False,
+        }
+    ],
+}
+
+
+def test_list_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_list(_connect: object, rater_user_id: UUID) -> list[dict[str, Any]]:
+        assert rater_user_id == RATER
+        return [{"item_id": ITEM, "task": "T-LAB", "submitted": False}]
+
+    monkeypatch.setattr(db, "list_review_items", fake_list)
+    result = run(review.list_items(_connector, RATER))
+    assert len(result.items) == 1
+    assert result.items[0].task == "T-LAB"
+    assert result.items[0].submitted is False
+
+
+def test_get_item_parses_to_the_right_task_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, item_id: UUID, rater_user_id: UUID) -> dict[str, Any]:
+        assert (item_id, rater_user_id) == (ITEM, RATER)
+        return LAB_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    item = run(review.get_item(_connector, ITEM, RATER))
+    assert item.task == "T-LAB"
+
+
+def test_get_item_raises_when_not_assigned(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> None:
+        return None
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    with pytest.raises(review.ReviewItemNotFoundError):
+        run(review.get_item(_connector, ITEM, RATER))
+
+
+def test_submit_item_validates_against_the_items_own_task_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    submitted: dict[str, Any] = {}
+
+    async def fake_submit(
+        _connect: object, item_id: UUID, rater_user_id: UUID, submission: dict[str, Any]
+    ) -> dict[str, Any]:
+        submitted["item_id"] = item_id
+        submitted["rater_user_id"] = rater_user_id
+        submitted["submission"] = submission
+        return {"outcome": "recorded"}
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    monkeypatch.setattr(db, "submit_review_item", fake_submit)
+    result = run(review.submit_item(_connector, ITEM, RATER, LAB_SUBMISSION))
+    assert result == {"outcome": "recorded"}
+    assert submitted["submission"]["task"] == "T-LAB"
+
+
+def test_submit_item_refuses_a_mismatched_submission_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    with pytest.raises(Exception, match="task"):
+        run(review.submit_item(_connector, ITEM, RATER, {"task": "T-FLAG", "flags": []}))
+
+
+def test_submit_item_raises_when_not_assigned(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> None:
+        return None
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    with pytest.raises(review.ReviewItemNotFoundError):
+        run(review.submit_item(_connector, ITEM, RATER, LAB_SUBMISSION))

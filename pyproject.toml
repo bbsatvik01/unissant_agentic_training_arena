@@ -25,6 +25,9 @@ dependencies = [
 dev = [
   "bandit==1.9.4",
   "diff-cover==10.5.1",
+  # arena-referee's own route tests dispatch real ASGI requests against FastAPI's TestClient alternative
+  # (starlette.testclient triggers a deprecation warning under -W error; httpx's own ASGITransport does not).
+  "httpx==0.28.1",
   "mypy==2.3.1",
   # Tests read the agent port's per-attempt spans back (S5 3.6); the runtime SDK install lands with WP-07.
   "opentelemetry-sdk==1.42.1",

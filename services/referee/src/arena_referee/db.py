@@ -1,0 +1,387 @@
+"""The referee's real database IO (S4 4.1-4.4, 4.2 grants already in place: `arena_referee` reads every
+table of `arena`, `subject`, `sealed`, `training` and `ops`, and holds the two write functions WP-14 adds).
+One short-lived connection per operation (`Connector`, S5 6.4); the pooled connector lands with WP-13.
+
+This is the one module that touches `psycopg`; everything above it (`mapping`, `scoring`, `debrief`) is pure
+and takes plain rows. Deliberately thin: each function is close to its SQL, so a reviewer can check it
+against the schema directly.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any, Literal, cast
+from uuid import UUID
+
+from psycopg.types.json import Jsonb
+
+from arena_core.contracts.findings import StoredFinding
+from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.db.pool import Connector
+from arena_core.providers.port import AgentPort
+from arena_core.providers.types import AgentCall
+from arena_core.scoring.rubric import RubricResult
+from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
+from arena_referee.mapping import TrialData
+from arena_referee.scoring import ScoringDeps
+
+# ---------------------------------------------------------------- trial context (reads)
+
+
+_PACKET_QUERIES: Mapping[str, str] = {
+    "subject.private_packets": "select packet from subject.private_packets where variant_id = %s",
+    "arena.public_packets": "select packet from arena.public_packets where variant_id = %s",
+    "sealed.hidden_public_packets": "select packet from sealed.hidden_public_packets where variant_id = %s",
+}
+
+
+async def _packet_row(connect: Connector, table: str, variant_id: UUID) -> Mapping[str, Any] | None:
+    query = _PACKET_QUERIES[table]
+    async with connect() as conn:
+        cur = await conn.execute(query, (variant_id,))
+        row = await cur.fetchone()
+        return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
+    """Everything one trial's R1/R2 (or R3's two calls) read (S2 7.1-7.3, 7.5), already fetched."""
+    trial_uuid = UUID(trial_id)
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select t.variant_id, f.split from arena.trials t"
+            " join arena.case_variants v on v.id = t.variant_id"
+            " join arena.case_families f on f.id = v.family_id"
+            " where t.id = %s",
+            (trial_uuid,),
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"no trial {trial_id}"
+        raise LookupError(msg)
+    variant_id, split = row[0], cast("Literal['dev', 'hidden']", row[1])
+
+    async with connect() as conn:
+        cur = await conn.execute("select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,))
+        evaluator_row = await cur.fetchone()
+    if evaluator_row is None:
+        msg = f"no evaluator packet for variant {variant_id}"
+        raise LookupError(msg)
+    canonical_facts = evaluator_row[0]["canonical_facts"]
+
+    private_packet = await _packet_row(connect, "subject.private_packets", variant_id)
+    public_packet = await _packet_row(connect, "arena.public_packets", variant_id)
+    if public_packet is None:
+        public_packet = await _packet_row(connect, "sealed.hidden_public_packets", variant_id)
+    if private_packet is None or public_packet is None:
+        msg = f"variant {variant_id} is missing its private or public packet"
+        raise LookupError(msg)
+
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select record_id, title, content, released_after_exchanges"
+            " from arena.released_evidence where trial_id = %s order by release_seq",
+            (trial_uuid,),
+        )
+        released = [
+            {"record_id": r[0], "title": r[1], "content": r[2], "released_after": r[3], "date": None}
+            for r in await cur.fetchall()
+        ]
+
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select turn_no, question, answer, question_source from arena.turns where trial_id = %s order by turn_no",
+            (trial_uuid,),
+        )
+        transcript = [
+            {"turn_no": r[0], "question": r[1], "answer": r[2], "question_source": r[3]} for r in await cur.fetchall()
+        ]
+
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select payload from arena.trial_events where trial_id = %s and kind = 'coach_card' order by seq",
+            (trial_uuid,),
+        )
+        cards = [r[0] for r in await cur.fetchall()]
+
+    async with connect() as conn:
+        cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (trial_uuid,))
+        finding_row = await cur.fetchone()
+    final_finding = finding_row[0] if finding_row else None
+
+    return TrialData(
+        trial_id=trial_id,
+        split=split,
+        canonical_facts=canonical_facts,
+        private_packet=private_packet,
+        public_packet=public_packet,
+        released=released,
+        transcript=transcript,
+        cards=cards,
+        final_finding=final_finding,
+    )
+
+
+# ---------------------------------------------------------------- sealed writes (S2 7.2, S3 4.2)
+
+
+async def get_judgment(connect: Connector, idempotency_key: str) -> Mapping[str, Any] | None:
+    async with connect() as conn:
+        cur = await conn.execute("select payload from sealed.judgments where idempotency_key = %s", (idempotency_key,))
+        row = await cur.fetchone()
+        return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def store_labels(
+    connect: Connector, trial_id: str, labeler: str, rows: list[dict[str, Any]], prompt_sha256: str
+) -> None:
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "select sealed.record_independent_labels(%s, %s, %s, %s)",
+            (UUID(trial_id), labeler, Jsonb(rows), prompt_sha256),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class JudgmentRow:
+    trial_id: str
+    kind: str
+    rater_id: str | None
+    payload: Mapping[str, Any]
+    prompt_sha256: str | None
+    idempotency_key: str
+
+
+async def store_judgment(connect: Connector, row: JudgmentRow) -> None:
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "select sealed.record_judgment(%s, %s, %s, %s, %s, %s)",
+            (
+                UUID(row.trial_id),
+                row.kind,
+                row.rater_id,
+                Jsonb(dict(row.payload)),
+                row.prompt_sha256,
+                row.idempotency_key,
+            ),
+        )
+
+
+async def adjudicate_valid(connect: Connector, trial_id: str, reason: str, evidence_ref: str) -> None:
+    """S3 4.2 item 1: the automatic `valid` verdict, `decided_by='auto_rule'`, idempotent on the evidence
+    reference (the R1 stage key), so a resumed call reaches the same adjudication."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "select ledger.adjudicate_validity(%s, 'valid', %s, %s, 'auto_rule', %s)",
+            (UUID(trial_id), reason, evidence_ref, f"{evidence_ref}:validity"),
+        )
+
+
+def make_scoring_deps(connect: Connector, port: AgentPort, prompt_sha256: str) -> ScoringDeps:
+    """`ScoringDeps` wired to the real database and agent port."""
+
+    async def _fetch(trial_id: str) -> TrialData:
+        return await fetch_trial_data(connect, trial_id)
+
+    async def _get(key: str) -> Mapping[str, Any] | None:
+        return await get_judgment(connect, key)
+
+    async def _store_labels(trial_id: str, labeler: str, rows: list[dict[str, Any]], _prompt_sha256: str) -> None:
+        await store_labels(connect, trial_id, labeler, rows, prompt_sha256)
+
+    async def _store_judgment(
+        trial_id: str, kind: str, rater_id: str | None, payload: Mapping[str, Any], idempotency_key: str
+    ) -> None:
+        await store_judgment(
+            connect,
+            JudgmentRow(
+                trial_id=trial_id,
+                kind=kind,
+                rater_id=rater_id,
+                payload=payload,
+                prompt_sha256=prompt_sha256,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    async def _adjudicate(trial_id: str, reason: str, evidence_ref: str) -> None:
+        await adjudicate_valid(connect, trial_id, reason, evidence_ref)
+
+    async def _run_subject(call: AgentCall[RefereeSubjectReport]) -> RefereeSubjectReport:
+        return (await port.run(call)).value
+
+    async def _run_assistant(call: AgentCall[RefereeAssistantReport]) -> RefereeAssistantReport:
+        return (await port.run(call)).value
+
+    return ScoringDeps(
+        fetch_trial_data=_fetch,
+        get_judgment=_get,
+        store_labels=_store_labels,
+        store_judgment=_store_judgment,
+        adjudicate_valid=_adjudicate,
+        run_subject_call=_run_subject,
+        run_assistant_call=_run_assistant,
+        prompt_sha256=prompt_sha256,
+    )
+
+
+# ---------------------------------------------------------------- training session and debrief (S5 5.4)
+
+
+async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
+    session_uuid = UUID(session_id)
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select s.trial_id, s.voice, t.variant_id from training.sessions s"
+            " join arena.trials t on t.id = s.trial_id where s.id = %s",
+            (session_uuid,),
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"no session {session_id}"
+        raise LookupError(msg)
+    trial_id, voice, variant_id = str(row[0]), bool(row[1]), row[2]
+
+    async with connect() as conn:
+        cur = await conn.execute("select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,))
+        evaluator_row = await cur.fetchone()
+    if evaluator_row is None:
+        msg = f"no evaluator packet for variant {variant_id}"
+        raise LookupError(msg)
+
+    async with connect() as conn:
+        cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (row[0],))
+        finding_row = await cur.fetchone()
+    committed_finding = None if finding_row is None else StoredFinding.model_validate(finding_row[0])
+
+    return SessionInfo(
+        trial_id=trial_id, voice=voice, evaluator_packet=evaluator_row[0], committed_finding=committed_finding
+    )
+
+
+async def get_debrief(connect: Connector, session_id: str) -> Mapping[str, Any] | None:
+    async with connect() as conn:
+        cur = await conn.execute("select payload from training.debriefs where session_id = %s", (UUID(session_id),))
+        row = await cur.fetchone()
+        return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def publish_debrief(connect: Connector, session_id: str, payload: Mapping[str, Any]) -> None:
+    async with connect() as conn, conn.transaction():
+        await conn.execute("select training.publish_debrief(%s, %s)", (UUID(session_id), Jsonb(dict(payload))))
+
+
+async def store_rubric_score(connect: Connector, session_id: str, result: RubricResult, scorer_ref: str) -> None:
+    """`training.rubric_scores`: written only when the rubric is scorable (S5 5.6, SG2-38); idempotent on
+    (session, scorer, scorer_ref) through the table's own unique constraint."""
+    if not result.scorable:
+        return
+    rationale = {
+        "checks": {check: {"result": r.result, "turns": list(r.turns)} for check, r in sorted(result.checks.items())}
+    }
+    values = (
+        UUID(session_id),
+        "proxy",
+        scorer_ref,
+        result.dimensions["D1"],
+        result.dimensions["D2"],
+        result.dimensions["D3"],
+        result.dimensions["D4"],
+        result.dimensions["D5"],
+        Jsonb(rationale),
+    )
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "insert into training.rubric_scores"
+            " (session_id, scorer, scorer_ref, clarity_neutrality, response_relevance, evidence_follow_up,"
+            "  alternative_testing, supported_closure, rationale)"
+            " values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " on conflict (session_id, scorer, scorer_ref) do nothing",
+            values,
+        )
+
+
+def make_debrief_deps(connect: Connector, scoring: ScoringDeps, provenance: DebriefProvenance) -> DebriefDeps:
+    async def _fetch_session(session_id: str) -> SessionInfo:
+        return await fetch_session(connect, session_id)
+
+    async def _get_debrief(session_id: str) -> Mapping[str, Any] | None:
+        return await get_debrief(connect, session_id)
+
+    async def _publish(session_id: str, payload: Mapping[str, Any]) -> None:
+        await publish_debrief(connect, session_id, payload)
+
+    async def _store_rubric_score(session_id: str, result: RubricResult, scorer_ref: str) -> None:
+        await store_rubric_score(connect, session_id, result, scorer_ref)
+
+    return DebriefDeps(
+        scoring=scoring,
+        fetch_session=_fetch_session,
+        get_debrief=_get_debrief,
+        publish_debrief=_publish,
+        store_rubric_score=_store_rubric_score,
+        provenance=provenance,
+    )
+
+
+# ---------------------------------------------------------------- blinded trainer review queue (S3 7.3)
+
+
+@dataclass(frozen=True, kw_only=True)
+class NewReviewItem:
+    """One task for the sampler or an operator script to assign (S3 7.2-7.3); never exposed to the rater."""
+
+    kind: str
+    instrument: str | None
+    rater_user_id: UUID
+    context_trial_id: UUID
+    context_session_id: UUID | None
+    payload: Mapping[str, Any]
+
+
+async def create_review_item(connect: Connector, item: NewReviewItem) -> UUID:
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute(
+            "select training.create_review_item(%s, %s, %s, %s, %s, %s)",
+            (
+                item.kind,
+                item.instrument,
+                item.rater_user_id,
+                item.context_trial_id,
+                item.context_session_id,
+                Jsonb(dict(item.payload)),
+            ),
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = "create_review_item returned no row"
+        raise LookupError(msg)
+    return cast("UUID", row[0])
+
+
+async def list_review_items(connect: Connector, rater_user_id: UUID) -> list[Mapping[str, Any]]:
+    async with connect() as conn:
+        cur = await conn.execute("select training.list_review_items(%s)", (rater_user_id,))
+        row = await cur.fetchone()
+    return cast("list[Mapping[str, Any]]", row[0] if row else [])
+
+
+async def get_review_item(connect: Connector, item_id: UUID, rater_user_id: UUID) -> Mapping[str, Any] | None:
+    async with connect() as conn:
+        cur = await conn.execute("select training.get_review_item(%s, %s)", (item_id, rater_user_id))
+        row = await cur.fetchone()
+    return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def submit_review_item(
+    connect: Connector, item_id: UUID, rater_user_id: UUID, submission: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute(
+            "select training.submit_review_item(%s, %s, %s)", (item_id, rater_user_id, Jsonb(dict(submission)))
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = "submit_review_item returned no row"
+        raise LookupError(msg)
+    return cast("Mapping[str, Any]", row[0])

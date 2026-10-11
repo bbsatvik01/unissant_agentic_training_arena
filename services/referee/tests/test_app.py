@@ -1,0 +1,398 @@
+"""`create_app` (S5 1, 10.1, 10.3): the D10 guard on every request, the console, review and internal
+scoring/debrief routes, dispatched through a real ASGI call (`httpx.ASGITransport`, not
+`starlette.testclient` -- its `httpx` deprecation warning fails under this repo's `-W error`). The
+internal pipelines (`score_trial`, `publish_session_debrief`) are faked at the route's own import site
+(they are proven directly in `test_scoring.py`/`test_debrief.py`); this file is the HTTP wiring: D10,
+identity, status codes and body shapes.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+from collections.abc import Awaitable, Mapping
+from pathlib import Path
+from typing import Any
+from uuid import UUID, uuid4
+
+import httpx
+import pytest
+from fastapi import FastAPI
+
+from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.identity import DevIdentity, user_id_for
+from arena_core.referee.pipeline import ValidityDecision
+from arena_referee import db
+from arena_referee.app import create_app
+from arena_referee.routes import debrief as debrief_route
+from arena_referee.routes import score as score_route
+from arena_referee.scoring import ScoreResult
+
+ORIGIN = "http://127.0.0.1:8082"
+HOST_HEADER = "127.0.0.1:8082"
+# Fixture value only: this test hashes it itself below, exactly as a real caller's credential is hashed.
+CALLER_CREDENTIAL = "test-caller-credential"
+CALLER_HASH = hashlib.sha256(CALLER_CREDENTIAL.encode()).hexdigest()
+ADMIN_EMAIL = "admin@example.com"
+VIEWER_EMAIL = "viewer@example.com"
+
+BASE_ENV: Mapping[str, str] = {
+    "ARENA_ROLE": "referee",
+    "ARENA_GCP_PROJECT": "cna-guardian",
+    "ARENA_REFEREE_DSN": "postgresql://referee:x@127.0.0.1:1/db",
+    "ARENA_ENV": "local",
+    "ARENA_BIND_HOST": "127.0.0.1",
+    "ARENA_MODEL_MODE": "fake",
+    "ARENA_LOCAL_CALLERS": CALLER_HASH,
+}
+
+
+def run[T](aw: Awaitable[T]) -> T:
+    async def _runner() -> T:
+        return await aw
+
+    return asyncio.run(_runner())
+
+
+def _write_users_file(tmp_path: Path) -> Path:
+    path = tmp_path / "users.toml"
+    path.write_text(
+        "[[users]]\n"
+        f'email = "{ADMIN_EMAIL}"\n'
+        'display_name = "Admin User"\n'
+        'roles = ["admin", "trainer"]\n'
+        "[[users]]\n"
+        f'email = "{VIEWER_EMAIL}"\n'
+        'display_name = "Viewer User"\n'
+        'roles = ["investigator"]\n'
+    )
+    return path
+
+
+def make_app(tmp_path: Path, *, dev_user: str = ADMIN_EMAIL) -> FastAPI:
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": dev_user}
+    return create_app(env)
+
+
+def _identity(email: str, roles: frozenset[str]) -> DevIdentity:
+    return DevIdentity(user_id=user_id_for(email), email=email, display_name=email, roles=roles)
+
+
+async def _get(
+    app: FastAPI, path: str, *, host: str | None = HOST_HEADER, headers: dict[str, str] | None = None
+) -> httpx.Response:
+    request_headers = dict(headers or {})
+    if host is not None:
+        request_headers["host"] = host
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN) as client:
+        return await client.get(path, headers=request_headers)
+
+
+async def _post(
+    app: FastAPI,
+    path: str,
+    *,
+    json: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    cookies: dict[str, str] | None = None,
+) -> httpx.Response:
+    request_headers = {"host": HOST_HEADER, **(headers or {})}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN, cookies=cookies) as client:
+        return await client.post(path, json=json or {}, headers=request_headers)
+
+
+def _browser_post_headers(csrf: str) -> dict[str, str]:
+    return {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-csrf": csrf}
+
+
+FORBIDDEN = 403
+UNAUTHORIZED = 401
+DNS_REBINDING = 421
+NOT_FOUND = 404
+UNPROCESSABLE = 422
+
+
+# ---------------------------------------------------------------- D10: Host, health
+
+
+def test_health_passes_the_host_check_and_needs_no_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_get(app, "/api/health"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"ok": True}
+
+
+def test_a_foreign_host_is_refused_421_before_any_route(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_get(app, "/api/health", host="evil.example"))
+    assert resp.status_code == DNS_REBINDING
+
+
+# ---------------------------------------------------------------- console (S5 5.5)
+
+
+def test_get_me_mints_a_csrf_cookie_and_returns_the_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_get(app, "/api/me"))
+    assert resp.status_code == httpx.codes.OK
+    body = resp.json()
+    assert body["display_name"] == "Admin User"
+    assert sorted(body["roles"]) == ["admin", "trainer"]
+    assert "csrf_token" in body
+    assert "arena_csrf" in resp.cookies
+
+
+def test_get_me_refuses_an_identity_without_a_console_role(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
+    resp = run(_get(app, "/api/me"))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_get_me_refuses_when_there_is_no_identity_at_all(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    app.state.identity = None
+    resp = run(_get(app, "/api/me"))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_get_config_succeeds_for_an_admin_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_get(app, "/api/config"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"phoenix_url": None, "paused": False}
+
+
+# ---------------------------------------------------------------- review queue (S3 7.3)
+
+LAB_PAYLOAD: dict[str, Any] = {
+    "task": "T-LAB",
+    "item_id": str(uuid4()),
+    "initial_documents": [],
+    "released": [],
+    "transcript": [{"turn_no": 1, "question": "Why were you there?", "answer": "A work order.", "partial": False}],
+    "facts": [{"id": "f:01", "class": "FREE", "text": "A fact that is long enough.", "certainty": "certain"}],
+    "uncertainty": [],
+    "gates": [],
+    "permitted_behaviors": [],
+    "canonical_facts": [{"id": "f:01", "statement": "A canonical fact, long enough to pass validation."}],
+}
+
+LAB_SUBMISSION: dict[str, Any] = {
+    "task": "T-LAB",
+    "turns": [
+        {
+            "turn_id": "t01",
+            "label": "responsive",
+            "eva_subtype": None,
+            "pfq_reason": None,
+            "no_contradiction": True,
+            "no_invention": True,
+            "uncertainty_respected": True,
+            "disclosure_policy_respected": True,
+            "in_character": True,
+            "platform_attack": False,
+        }
+    ],
+}
+
+
+def test_list_review_items_needs_a_trainer_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)  # investigator only, not trainer
+    resp = run(_get(app, "/api/review/items"))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_list_review_items_returns_the_rater_s_queue(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_list(_connect: object, _rater: UUID) -> list[dict[str, Any]]:
+        return [{"item_id": str(uuid4()), "task": "T-LAB", "submitted": False}]
+
+    monkeypatch.setattr(db, "list_review_items", fake_list)
+    resp = run(_get(app, "/api/review/items"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json()["items"][0]["task"] == "T-LAB"
+
+
+def test_get_review_item_found(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    resp = run(_get(app, f"/api/review/items/{uuid4()}"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json()["task"] == "T-LAB"
+
+
+def test_get_review_item_not_assigned_is_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater: UUID) -> None:
+        return None
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    resp = run(_get(app, f"/api/review/items/{uuid4()}"))
+    assert resp.status_code == NOT_FOUND
+
+
+def test_submit_review_item_succeeds_with_a_valid_d10_request(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    async def fake_submit(
+        _connect: object, _item_id: UUID, _rater: UUID, submission: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        return {"status": "submitted", "task": submission["task"]}
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    monkeypatch.setattr(db, "submit_review_item", fake_submit)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/api/review/items/{uuid4()}",
+            json=LAB_SUBMISSION,
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"status": "submitted", "task": "T-LAB"}
+
+
+def test_submit_review_item_without_csrf_is_refused_by_d10(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_post(app, f"/api/review/items/{uuid4()}", json=LAB_SUBMISSION, headers={"origin": ORIGIN}))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_submit_review_item_not_assigned_is_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater: UUID) -> None:
+        return None
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/api/review/items/{uuid4()}",
+            json=LAB_SUBMISSION,
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == NOT_FOUND
+
+
+def test_submit_review_item_rejects_a_malformed_submission(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/api/review/items/{uuid4()}",
+            json={"task": "T-LAB"},  # missing "turns"
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == UNPROCESSABLE
+
+
+# ---------------------------------------------------------------- internal routes (D10 caller policy)
+
+
+def _caller_headers() -> dict[str, str]:
+    return {"authorization": f"Bearer {CALLER_CREDENTIAL}"}
+
+
+def test_score_route_needs_the_internal_caller_token(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score"))
+    assert resp.status_code == UNAUTHORIZED
+
+
+def test_score_route_refuses_a_browser_even_with_the_right_token(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    headers = {**_caller_headers(), "origin": ORIGIN}
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=headers))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_score_route_reports_the_verdict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+    async def fake_score_trial(_deps: object, _trial_id: str, _ctx: object) -> ScoreResult:
+        return ScoreResult(
+            subject_report=_fake_subject_report(),
+            assistant_report=_fake_assistant_report(),
+            validity=ValidityDecision(verdict="valid", deciding_turns=(), auto_recordable=True, reason="clean"),
+        )
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_trial", fake_score_trial)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"verdict": "valid", "auto_recordable": True}
+
+
+def test_score_route_maps_a_lookup_error_to_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+    async def fake_score_trial(_deps: object, trial_id: str, _ctx: object) -> ScoreResult:
+        msg = f"no trial {trial_id}"
+        raise LookupError(msg)
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_trial", fake_score_trial)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == NOT_FOUND
+
+
+def test_debrief_route_publishes_and_returns_the_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+    async def fake_publish(_deps: object, _ctx: object, session_id: str) -> dict[str, Any]:
+        return {"schema_version": "debrief.v1", "session_id": session_id}
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(debrief_route, "publish_session_debrief", fake_publish)
+    session_id = str(uuid4())
+    resp = run(_post(app, f"/internal/sessions/{session_id}/debrief", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"schema_version": "debrief.v1", "session_id": session_id}
+
+
+def test_debrief_route_maps_a_lookup_error_to_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+    async def fake_publish(_deps: object, _ctx: object, session_id: str) -> dict[str, Any]:
+        msg = f"no session {session_id}"
+        raise LookupError(msg)
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(debrief_route, "publish_session_debrief", fake_publish)
+    resp = run(_post(app, f"/internal/sessions/{uuid4()}/debrief", headers=_caller_headers()))
+    assert resp.status_code == NOT_FOUND
+
+
+def _fake_subject_report() -> RefereeSubjectReport:
+    return RefereeSubjectReport.model_validate(
+        {"schema_version": "ref_subj.v5", "turns": [], "trajectory": {"self_consistent": True, "conflicts": []}}
+    )
+
+
+def _fake_assistant_report() -> RefereeAssistantReport:
+    return RefereeAssistantReport.model_validate(
+        {"schema_version": "ref_asst.v2", "flags": [], "followups": [], "citations": [], "subchecks": []}
+    )

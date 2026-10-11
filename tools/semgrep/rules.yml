@@ -22,6 +22,13 @@ rules:
         # IAM-private (hosted) routes with per-route caller authorization.
         - "/services/api/src/arena_api/subject_client.py"
         - "/services/api/src/arena_api/referee_client.py"
+        # arena-referee's own route test: httpx.ASGITransport dispatches directly into the FastAPI app
+        # object in-process (no socket opened, no real network call) -- the same mechanism
+        # `starlette.testclient.TestClient` wraps internally, used here instead because TestClient's own
+        # import raises a `StarletteDeprecationWarning` this repo's `-W error` turns into a failure. A test
+        # file, never a role importing a real HTTP client at runtime; the rule's target (bypassing the
+        # spend guard, the caller-token check or tracing) does not apply to an in-process test transport.
+        - "/services/referee/tests/test_app.py"
     pattern-either:
       - pattern: import httpx
       - pattern: import httpx2
