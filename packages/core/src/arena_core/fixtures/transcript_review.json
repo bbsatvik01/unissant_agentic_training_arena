@@ -1,0 +1,1298 @@
+{
+  "fixture": "transcript review",
+  "review": "transcript_review.v1",
+  "method": "One fresh read-only Codex session per transcript (codex exec -s read-only --ephemeral), given the case family file and the transcript, judged each exchange: visible (only what the subject can know: its private packet and the questions, never record contents; S2 6.7, 8.4), consistent with the variant's canonical facts (private packet, event graph, records released by then; truthful variants never deny or misstate a fact, deceptive variants say nothing false; for FX-COOP transcripts also the S2 11.1 rule: every claim known to the subject, no claim contradicted by any record of the variant, a claim that a released record also states agreeing with it in content and polarity, perception and memory claims backed by the ledger only; recorded per exchange as ledger_states_claims, quotes_state_facts and uncontradicted, the semantic half of the S2 11.1 enforcement) and responsive to its question. A flagged answer is rewritten and the transcript reviewed again; reviewed_text_sha256 binds each review to the text it read (arena_core.fixtures.reviewed_text_sha256) and case_sha256 to the case file it read (canonical_sha256 of the family).",
+  "transcripts": [
+    {
+      "id": "TX-F01-T",
+      "reviewed_text_sha256": "9e4a4bada09ffb8e8bd987f7d8a23ef7d9419d5704266f168fc1e9637bd4fc23",
+      "case_sha256": "162e3f264a1317bcc9a93fb2925c541011bceac217d2e01de46ca23dbb3ddcdb",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes the dispatch and entry using FREE facts without adding unsupported timing."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues from entry with the reset and tank-emptying actions supported by f:23 and f:24."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the work order while respecting the stated lack of knowledge about its contents and creation time."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the radio log through known dispatch facts and preserves u:02 uncertainty about the completion call."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the alarm history using f:20 while correctly withholding the unknown clearance time."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the statement through personal knowledge without claiming to know Ines's recollection or paperwork practices."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Acknowledges the unknown audit and supplies the relevant FREE fact that no records boxes were touched."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts events backwards while preserving the departure range and uncertainty about the completion call."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Explains the entry using FREE facts, with 14:07 explicitly supplied by the question."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Directly states the assigned purpose and supported maintenance actions."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies Ines as the dispatch corroborator without inventing a witness inside the vault."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Explains the open door using f:24 and f:06, with the precise interval supplied by the question."
+        }
+      ]
+    },
+    {
+      "id": "TX-F02-T",
+      "reviewed_text_sha256": "be11c6f5f76763f77b2d3a408b499368ea3f71927f3087e384275f883b54d303",
+      "case_sha256": "f9e8b052924473e4c50bf4292c5338a912b74c9cec07b74cabab4f4e20f52346",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The purpose, approximate arrival, rain and solo entry match the private facts."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues the account through departure while respecting uncertainty u:01."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the register with the prescribed lack of knowledge and supported solo entry."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the elevator records without claiming access to their contents."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Connects the door log to known badge use without introducing hidden record details."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The private packet explicitly supplies her lack of knowledge about sensor maintenance."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Distinguishes her own knowledge of Bram from his unseen statement."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts the supported events backwards and preserves the uncertain departure time."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 19:42, and the remaining details are private FREE facts."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Answers the purpose directly and invokes the permitted medical privacy boundary."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies supported witnesses and limits Evan's corroboration to his involvement."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the presented double count without inventing its cause; the private matter supplies the single swipe."
+        }
+      ]
+    },
+    {
+      "id": "TX-F03-T",
+      "reviewed_text_sha256": "5f09080fbed11dfcb4cf26a9f25481c0de0a5768f1381f4e615afd6349418da1",
+      "case_sha256": "1c0caea56b4c580cf58ab0ffc6c66d6f4e09c2ab89e4160ed8e3fee973095d0d",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The opening account matches FREE facts and preserves approximate arrival timing."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer continues from sign-out through entry, repair and ticket creation using FREE facts."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The reverse chronology is accurate and preserves uncertainty about the return time."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The ticket account matches rec-03 and facts f:11 and f:24 already available privately."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer explains her use of OP-7 through known access and sign-out facts."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The sign-out account matches rec-01 while respecting uncertainty entries u:01 and u:02."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer addresses the badge record through the subject's expressly stated knowledge limits."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer acknowledges that the email contents were not presented and stays within known facts."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The entry account is accurate, and the question supplies the 07:12 time."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The stated purpose follows the known outage, on-call duty and successful repair."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer identifies the absence of witnesses and the known corroborating ticket."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The outage summary directly answers the question using FREE facts without added precision."
+        }
+      ]
+    },
+    {
+      "id": "TX-F01-D",
+      "reviewed_text_sha256": "acb85a91d6ed0acb2176ca420521b7050796710192aab6f4ce1313538f0b6108",
+      "case_sha256": "162e3f264a1317bcc9a93fb2925c541011bceac217d2e01de46ca23dbb3ddcdb",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes supported FREE facts and preserves u:02's approximate alarm-clear timing."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues from the completed B-10 job to the B-12 entry using f:47 and f:03."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the work order using the stated unknowns for f:50 and f:07 and the known B-10 dispatch."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Relates the radio log to known calls without importing record-only times or claiming knowledge of Ines's memory."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the alarm history through known B-10 facts while respecting u:02."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Acknowledges the unpresented statement and preserves the stated unknowns about Ines's memory and paperwork."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Uses the stated audit unknown and u:01's departure range without revealing f:49 behind closed gate g:02."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts available events in reverse order with permitted omissions and no unsupported precision."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 14:07, and the access-group and roster details are FREE facts."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Deflection using f:47 and f:04 is permitted because no question has presented evidence opening g:01."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies Ines as a participant who can address the B-10 calls without inventing a vault witness."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Uses door times supplied by the question and known B-10 completion facts while permissibly omitting the CORE motive."
+        }
+      ]
+    },
+    {
+      "id": "TX-F04-T",
+      "reviewed_text_sha256": "6b39d95ade83f3847ebb77e452fb7c260d11ba859258f5d7fe1e1096e8433494",
+      "case_sha256": "7536bc2c75cf3e43d438091498d0460d79218fa6d3118de140897a77b7d8cdf5",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes the supported morning sequence using the private packet's approximate timing."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the register using known arrangements and correctly preserves uncertainty about sign-in."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the repair while respecting u:01 and the unknown clock reset."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Acknowledges the unseen statement and gives the supported dock-door account from f:21."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the statement through personal observations while preserving u:02 and the unknown escort time."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues beyond the return to the repair's completion, supported by f:27 and f:14."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts the morning events in reverse order without exceeding the permitted timing precision."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 07:41, and f:21 supports being alone and remaining at the door."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Directly explains the entry's purpose using the supported bin collection and sorting sequence."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies supported absences and potential corroborators using f:12, f:21, f:28 and f:15."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Explains the alarm using f:06 and f:21 while correctly preserving ignorance about who flagged it."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies relevant records from known events and earlier questions without claiming access to unseen contents."
+        }
+      ]
+    },
+    {
+      "id": "TX-F05-D",
+      "reviewed_text_sha256": "ec4b0610015091637e358585a3810e8d21c1a3b505d93413cb5781672dc8614d",
+      "case_sha256": "a7490ba29687054c9700f40e743f3df8f6394d152e95206a280ef1abfa480af9",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The roster, backup delay and supervisor's request are supported FREE facts."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues from the call using FREE facts without identifying who presented SP-3."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Gives the requested reverse chronology while respecting uncertainty entries u:01 and u:03."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the renewal using FREE facts and the explicitly stated lack of knowledge about its delay."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Discusses Hester's call using f:02 and f:17 without importing unpresented statement details."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Permitted deflection to cabinet logging avoids disclosing f:45 while g:03 remains closed."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Accurately states unfamiliarity with camera counts and permissibly omits being alone while g:02 remains closed."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Permitted deflection uses FREE facts and preserves u:03 without revealing Tobias's gated departure."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Permitted deflection to roster and access facts neither invents statement contents nor opens g:01."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes the release, cabinet rule, logging and return using supported FREE facts."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The courier explanation is the expressly permitted deflection from CORE fact f:44."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies supported corroboration while permissibly omitting protected facts about who was present."
+        }
+      ]
+    },
+    {
+      "id": "TX-F06-T",
+      "reviewed_text_sha256": "eef460c981dbdb086063afe8a6ff677f2cd9f8d3801bbc31bb94711522c386da",
+      "case_sha256": "af244d249fbc05f5932739801a4d5b660ecbde55966facb2649badcf9fb1aaae",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The opening account matches the known dispatch, phone approval and key withdrawal."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues from the withdrawal and preserves the approximate arrival and valve-closing times."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the key history using known personal withdrawals without importing unseen entries."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the desk log while respecting uncertainty about the custodian's wording and the reporting time."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Acknowledges the unseen work order and describes only the known conditions left for repair."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Confirms the known phone approval while preserving ignorance of the signing time and paperwork routine."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Directly addresses copying, with the denial supported by private forbidden assertion x:02 and canonical fact f:27."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Recounts the main events backwards using known details and the permitted approximate reporting time."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Directly explains the entry, protective work and departure using FREE facts."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "States the known purpose of entry and accurately describes the dispatch's ambiguous location."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies known corroborating contacts without inventing an eyewitness or revealing the custodian's unknown name."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Explains the withdrawal using known PIN enrollment, approval and key access while preserving uncertainty about signing."
+        }
+      ]
+    },
+    {
+      "id": "TX-F07-D",
+      "reviewed_text_sha256": "ec5b9395d6bae954649b7721d1522d4ee4e4f3f86a40b3508595c5346fbae2af",
+      "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The opening account uses FREE facts and preserves the approximate call time."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The account continues from entry through collection, departure and arrival, with permitted omission of the drills."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer uses the record title for permitted deflection without denying prior knowledge of the camera outage."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The booking, approval and leave details match f:03–f:05 while preserving the personal boundary."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer states f:06 and permissibly deflects the pass details because the title alone does not open g:01."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The delivery account uses f:08 and f:19 without revealing the receipt details behind closed gate g:02."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The stated lack of access to stock counts matches the private packet, and the title does not open g:03."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer addresses Celia's statement through known facts about their call without claiming access to its contents."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The answer follows reverse chronology using available facts and permitted omission."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 19:52, and the remaining entry and collection details are FREE facts."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The training-kit purpose and evening request are supported, while omission of the drill collection remains permitted."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The witnesses and guard interaction match known facts, and uncertainty about other entrants is explicitly supported."
+        }
+      ]
+    },
+    {
+      "id": "TX-F08-T",
+      "reviewed_text_sha256": "15985c655095dfca365c92e994ad5166629c5ae53d911e4534bcfd9a8d528662",
+      "case_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The dispatch, ticket, approximate entry time and two walk tests match FREE facts."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues after the walk tests with supported actions and preserves both timing uncertainties."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Provides the requested reverse chronology using known facts and approximate times."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses SR-3051 using known work details consistent with the ticket record."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the alarm history while correctly limiting knowledge to his work and approximate departure."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Describes his supported parts request without importing its unpresented number or exact time."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The installation date, denial of opening the panel and stated knowledge limits match the private packet."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses Marisol's statement through their known interaction without claiming knowledge of her recollection."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 21:14, and the badge permissions and access-list status are FREE facts."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Directly identifies the assigned detector work as the entry purpose using supported facts."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies supported corroboration and correctly preserves uncertainty about other entrants."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the presented motion times using his departure and detector knowledge without identifying unknown false triggers."
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-D",
+      "reviewed_text_sha256": "28a109fb004d6e8914de8b4d61ba535c3508092a1b9a5ee390a7df2ad64157d2",
+      "case_sha256": "7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Uses the persona and FREE facts, preserves approximate timing, and permissibly omits Keable's entry."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Continues through the review to the supported departure at about ten past ten."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the register using her stated lack of knowledge and assigned role without disclosing gated facts."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Matches f:16 and the explicit unknowns about the camera fault and recording times."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Acknowledges not knowing Ashby's statement and recounts supported FREE facts."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Permissibly deflects because the camera review's title alone opens neither camera gate."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Addresses the telephone log through her Procurement role and explicit lack of knowledge about desk calls."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Provides the requested reverse chronology while retaining approximate times and omitting protected movements."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "The question supplies 08:41, while f:14 and the door-duration unknown support the remaining details."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Gives supported commuting and meeting duties while permissibly omitting the concealed purpose."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Identifies supported witnesses and repeats the packet's explicit uncertainty about other door users."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "note": "Permissibly deflects the arrival question using FREE facts f:01, f:11 and f:17."
+        }
+      ]
+    },
+    {
+      "id": "TX-F07-C",
+      "reviewed_text_sha256": "bd9be918ee8f2b18588850fc47cced70f041796e4165ad1117d644c2b9052747",
+      "case_sha256": "d2a38a85cd2e7305b8cdf2bd10f3ba9ac51f649b1f6016b181270bd03bc01183",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The cited ledger supports the leave, approximate call time, badge entries and collection purpose."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Continues through collection, exit and loading while preserving u:01 uncertainty."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The stated ignorance matches unknown entries f:16 and f:17 and known fact f:26."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The booking, approval, leave time and blank reason match the ledger and cited records."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Correctly distinguishes Celia's assurance from the unseen pass and identifies the known kit contents."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The arrival, delivery and signature are supported by f:19, f:24 and the delivery email."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Acknowledges the ledger's stock-count ignorance and accurately states what was taken and delivered."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The call, delivery request, pass assurance and staging location match the cited ledger entries."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Provides the requested reverse chronology using supported events and permitted time precision."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Directly explains the S-2 entry and subsequent exit using f:11, f:07 and f:13."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Directly states the collection purpose and Celia's instructions, supported by the ledger and statement."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "Identifies supported corroborating people and preserves f:12 uncertainty about other S-2 entrants."
+        }
+      ]
+    },
+    {
+      "id": "TX-F08-C",
+      "reviewed_text_sha256": "c01715440babd8ab7835515eabb1e489345ece83d566706b899a10a095a00100",
+      "case_sha256": "ccf9f52eb28b2aae21753d09b405f28b3d5ce504986ca4b87482d8e7c979a6a2",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The shift and dispatch account matches the cited ledger entries and records."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer continues from dispatch to entry, testing and the failed repair."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The reverse account follows the canonical sequence and preserves both approximate times."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The ticket explanation matches the ledger, and the quote supports the repair limitation."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses the alarm history while accurately stating the subject has not seen it."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The parts request and failing detector head are supported by the cited ledger entries and quotes."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The installation details, unopened panel and unfamiliarity with its log match the private packet."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses Marisol's involvement without claiming knowledge of her recollection."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The entry, badge permissions, access-list status and assigned purpose are fully supported."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer directly explains the assigned task and accurately describes the detector work."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer identifies Marisol's corroborating involvement and preserves uncertainty about other entrants."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses the later motion through known detector conditions while preserving uncertainty about individual events."
+        }
+      ]
+    },
+    {
+      "id": "TX-F09-C",
+      "reviewed_text_sha256": "ab891bc36c95aef44206c6882d2776d9f501ffd954c3dabb95589189e829454f",
+      "case_sha256": "7f3e2edd973f0af8c16f6762d94cc64faacd04dcc67584d8cc0c49b748e10f91",
+      "exchanges": [
+        {
+          "turn": 1,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The arrival account matches the cited ledger entries and badge record."
+        },
+        {
+          "turn": 2,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The account advances to departure, matching f:13 and f:25 while preserving u:02."
+        },
+        {
+          "turn": 3,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The register supports the sign-in, and f:20 explicitly supports ignorance of the recorded spelling."
+        },
+        {
+          "turn": 4,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The stated lack of knowledge matches f:09's subject view and f:16."
+        },
+        {
+          "turn": 5,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer addresses Ashby's statement using supported personal knowledge and the explicit f:12 uncertainty."
+        },
+        {
+          "turn": 6,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The ledger contains no knowledge of the camera review, and the remaining claims match f:23 and f:11."
+        },
+        {
+          "turn": 7,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The call account matches f:22 and the quoted log entry, with the subsequent meeting supported by f:23."
+        },
+        {
+          "turn": 8,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The requested reverse chronology follows supported events and retains approximate times."
+        },
+        {
+          "turn": 9,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The entry details match f:04, f:24 and f:14 and both cited badge-record excerpts."
+        },
+        {
+          "turn": 10,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The assigned meeting duties explain the arrival's purpose without adding an unsupported reason."
+        },
+        {
+          "turn": 11,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The answer identifies corroborating participants and accurately limits knowledge of other door users."
+        },
+        {
+          "turn": 12,
+          "consistent": true,
+          "responsive": true,
+          "visible": true,
+          "ledger_states_claims": true,
+          "quotes_state_facts": true,
+          "uncontradicted": true,
+          "note": "The visitor-arrival account matches f:22, f:23 and f:21, including the explicit f:02 knowledge limit."
+        }
+      ]
+    }
+  ]
+}

@@ -1,15 +1,32 @@
 # State
 
-- **Date:** 2026-10-08, ~22:25 EDT
+- **Date:** 2026-10-11
 - **Branch:** `main` (local only, no remote yet)
-- **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+- **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+
+## RESUMED 2026-10-11 (owner: full speed, simple, UI is the centerpiece D-020, record runs D-021, Codex gates sparingly)
+| Item | State | Next |
+| --- | --- | --- |
+| WP-18 part 2 | MERGED (cc4d45f) + follow-up merged | done |
+| WP-11 guard | MERGED (066e044); py-check green on main | done |
+| WP-05 port | MERGED (8ab36a8) | done |
+| WP-12 subject | MERGED | pilot via WP-13 (D-024) |
+| WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
+| WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
+| WP-13 orchestrator (ad05fb8f3c14649dc, Opus, wt-wp13-orch) | building: routes, SSE, D-021 export-run, D-024 actor, local launcher | review, merge |
+| WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
+| WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
+| UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
+| Supabase 0600-1100 | background MCP apply declined by permission prompt at 0600 (nothing applied; stored format = file minus trailing newline). Asked owner for .env.owner (session-pooler DSN) to apply with psql -1 -v ON_ERROR_STOP=1 | apply, record in schema_migrations, set global ceiling $74 (D-022), roles, advisors |
+- Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
+- Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).
 
 ## HOLD 2 (owner directive 2026-10-09 ~01:50 EDT)
 - No new agents or workflows. Do not stop anything running; let it finish. Usage refreshes ~07:00 EDT.
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
-## HOLD 3 (owner directive, 2026-10-09 night): pause for some days
+## HOLD 3 (owner directive, 2026-10-09 night; lifted 2026-10-11)
 - Do not stop running agents; send nothing new. Resume when the owner returns.
 - All three agents finished on their side; nothing running. Running (normal agents, addressable with SendMessage):
   | Agent id | Work | Worktree / branch | Next step when it reports |

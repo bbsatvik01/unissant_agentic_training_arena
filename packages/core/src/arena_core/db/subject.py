@@ -1,0 +1,209 @@
+"""Typed wrappers for the subject's own two S4 functions (S2 6.2, 6.7, 6.10; S5 5.1, 5.2).
+
+`subject.turn_context` and `arena.record_subject_turn` are the whole SQL surface `arena_subject` holds EXECUTE
+on (S4 section 12: the role has no table privileges at all). Kept apart from `db/calls.py` (the spend-guard
+wrappers, WP-05): these two calls carry case content and a guard verdict, never a dollar amount, so they follow
+the same shape (one `select <fn>(...)::text` per call, the jsonb result parsed with `json.loads`) without
+borrowing that module's private helpers.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Any, Literal, cast, get_args
+from uuid import UUID
+
+from psycopg.types.json import Jsonb
+
+from arena_core.db.calls import Conn, GuardProtocolError
+
+RecordOutcome = Literal["recorded", "quarantined"]
+
+
+@dataclass(frozen=True)
+class TurnContext:
+    """`subject.turn_context(trial, work_item)`'s result: the subject's whole view for one open
+    `subject_answer` work item at the current version (S2 6.2, 6.7)."""
+
+    trial_id: UUID
+    turn_no: int
+    transcript_version: int
+    exchanges: int
+    private_packet: dict[str, Any]
+    public_packet: dict[str, Any]
+    transcript: list[dict[str, Any]]
+    released_evidence: list[dict[str, Any]]
+    disclosure_state: dict[str, Any]
+    subject_manifest: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RecordResult:
+    """`arena.record_subject_turn`'s result: the answer was recorded, or the guard rejected it and the trial was
+    quarantined atomically (S2 6.10). `transcript_version` is absent on a quarantine (the SQL omits it)."""
+
+    outcome: RecordOutcome
+    turn_no: int
+    transcript_version: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecordSubjectTurn:
+    """The arguments of `arena.record_subject_turn` (S2 6.10): `utterance` is `""` and `tag` is `None` only for
+    a G0 (schema or provider-blocked) quarantine; a G1-G7 quarantine still carries the model's actual utterance
+    and tag, so the offending artifact is stored in full."""
+
+    trial_id: UUID
+    work_item_id: UUID
+    utterance: str
+    tag: dict[str, Any] | None
+    guard_result: dict[str, Any]
+
+
+_BACKSLASH = "\\"
+_NUL = "\x00"
+
+
+def _pg_text(value: str) -> str:
+    """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL byte. A G1-G7 quarantine still stores the
+    model's utterance and tag verbatim, and a G0 quarantine stores the last raw reply (S2 6.10) - either can
+    contain one from an adversarial or malformed model output, so a quarantined artifact is always run
+    through this before the SQL call (see `_quarantine_safe` below - an accepted answer never is, and so
+    always round-trips byte-for-byte unchanged: see that function's docstring for why).
+
+    Standard C-style escaping, not a bare substitution: every existing backslash is doubled *first*, so a
+    NUL becomes the four characters `\\x00` that can only ever have come from an actual NUL byte here - the
+    model writing the literal six characters `\\u0000`, or the four characters `\\x00`, has its own
+    backslash doubled to `\\\\u0000` / `\\\\x00` by this same first step, so the two cases can never collide
+    (verified by a round-trip test over both). Applied unconditionally within its quarantine-only scope, not
+    gated on whether this particular value happens to contain a NUL - the same text, in the same quarantined
+    row, must decode consistently regardless of which other field tripped the NUL check."""
+    return value.replace(_BACKSLASH, _BACKSLASH * 2).replace(_NUL, _BACKSLASH + "x00")
+
+
+def _pg_safe(value: object) -> object:
+    """`_pg_text` applied through an arbitrary JSON-shaped tree (a tag or guard-result object), keys
+    included (a malformed reply's content can end up in a dict key too, through nothing this module
+    controls)."""
+    if isinstance(value, str):
+        return _pg_text(value)
+    if isinstance(value, dict):
+        return {(_pg_text(k) if isinstance(k, str) else k): _pg_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_pg_safe(v) for v in value]
+    return value
+
+
+def _quarantine_safe(req: RecordSubjectTurn) -> RecordSubjectTurn:
+    """A guard-PASSING answer is stored exactly as the subject produced it: G1 already rejects any embedded
+    NUL before an utterance can pass (S2 6.9), so an accepted answer never needs - and must never receive -
+    the NUL-escaping transform. Applying it unconditionally doubled every accepted answer's own backslashes
+    (silently corrupting ordinary text like `C:\\Temp`, and able to push a boundary-length answer past a
+    database CHECK constraint on length) for no safety benefit, since there is nothing to escape. Only a
+    quarantined artifact (G1-G7 or G0, `guard_result["passed"] is False`) - which stores the model's raw,
+    possibly-adversarial text verbatim - is run through `_pg_text`/`_pg_safe` at all."""
+    if req.guard_result.get("passed", True):
+        return req
+    return RecordSubjectTurn(
+        trial_id=req.trial_id,
+        work_item_id=req.work_item_id,
+        utterance=_pg_text(req.utterance),
+        tag=None if req.tag is None else cast("dict[str, Any]", _pg_safe(req.tag)),
+        guard_result=cast("dict[str, Any]", _pg_safe(req.guard_result)),
+    )
+
+
+def _obj(raw: object, fn: str) -> dict[str, Any]:
+    if not isinstance(raw, str):
+        msg = f"{fn} returned {type(raw).__name__}, expected jsonb"
+        raise GuardProtocolError(msg)
+    parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        msg = f"{fn} returned a non-object"
+        raise GuardProtocolError(msg)
+    return cast("dict[str, Any]", parsed)
+
+
+def _require(raw: dict[str, Any], keys: tuple[str, ...], fn: str) -> None:
+    missing = [key for key in keys if key not in raw]
+    if missing:
+        msg = f"{fn}: missing {', '.join(missing)}"
+        raise GuardProtocolError(msg)
+
+
+_TURN_CONTEXT_FIELDS = (
+    "trial_id",
+    "turn_no",
+    "transcript_version",
+    "exchanges",
+    "private_packet",
+    "public_packet",
+    "transcript",
+    "released_evidence",
+    "disclosure_state",
+    "subject_manifest",
+)
+
+
+async def turn_context(conn: Conn, trial_id: UUID, work_item_id: UUID) -> TurnContext:
+    """`subject.turn_context(trial, work_item)`. Raises (AR003, as `psycopg.Error`) when the work item is not the
+    trial's open `subject_answer` item at the current version."""
+    fn = "subject.turn_context"
+    async with conn.transaction():
+        cur = await conn.execute("select subject.turn_context(%s, %s)::text", (trial_id, work_item_id))
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"{fn} returned no row"
+        raise GuardProtocolError(msg)
+    raw = _obj(row[0], fn)
+    _require(raw, _TURN_CONTEXT_FIELDS, fn)
+    try:
+        return TurnContext(
+            trial_id=UUID(str(raw["trial_id"])),
+            turn_no=int(raw["turn_no"]),
+            transcript_version=int(raw["transcript_version"]),
+            exchanges=int(raw["exchanges"]),
+            private_packet=raw["private_packet"],
+            public_packet=raw["public_packet"],
+            transcript=raw["transcript"],
+            released_evidence=raw["released_evidence"],
+            disclosure_state=raw["disclosure_state"],
+            subject_manifest=raw["subject_manifest"],
+        )
+    except (TypeError, ValueError) as exc:
+        msg = f"{fn}: malformed result ({exc})"
+        raise GuardProtocolError(msg) from exc
+
+
+async def record_subject_turn(conn: Conn, req: RecordSubjectTurn) -> RecordResult:
+    """`arena.record_subject_turn(trial, work_item, utterance, tag_proposal, guard_result)` (S2 6.10)."""
+    fn = "arena.record_subject_turn"
+    safe = _quarantine_safe(req)
+    async with conn.transaction():
+        cur = await conn.execute(
+            "select arena.record_subject_turn(%s, %s, %s, %s, %s)::text",
+            (
+                safe.trial_id,
+                safe.work_item_id,
+                safe.utterance,
+                None if safe.tag is None else Jsonb(safe.tag),
+                Jsonb(safe.guard_result),
+            ),
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"{fn} returned no row"
+        raise GuardProtocolError(msg)
+    raw = _obj(row[0], fn)
+    _require(raw, ("outcome", "turn_no"), fn)
+    outcome = raw["outcome"]
+    if outcome not in get_args(RecordOutcome):
+        msg = f"{fn}: unknown outcome {outcome!r}"
+        raise GuardProtocolError(msg)
+    version = raw.get("transcript_version")
+    return RecordResult(
+        outcome=cast("RecordOutcome", outcome),
+        turn_no=int(raw["turn_no"]),
+        transcript_version=None if version is None else int(version),
+    )

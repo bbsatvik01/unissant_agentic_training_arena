@@ -94,10 +94,16 @@ arena_referee,function,"ops.set_export_state(jsonb,text)",EXECUTE,allow
 arena_referee,function,"ops.settle_reservation(uuid,text)",EXECUTE,allow
 arena_referee,function,sealed.hidden_split_digest(),EXECUTE,allow
 arena_referee,function,sealed.ingest_case_family(jsonb),EXECUTE,allow
+arena_referee,function,"sealed.record_independent_labels(uuid,text,jsonb,text)",EXECUTE,allow
+arena_referee,function,"sealed.record_judgment(uuid,text,text,jsonb,text,text)",EXECUTE,allow
 arena_referee,function,sealed.seal_hidden_split(jsonb),EXECUTE,allow
 arena_referee,function,sealed.verify_hidden_seal(),EXECUTE,allow
+arena_referee,function,"training.create_review_item(text,text,uuid,uuid,uuid,jsonb)",EXECUTE,allow
+arena_referee,function,"training.get_review_item(uuid,uuid)",EXECUTE,allow
+arena_referee,function,training.list_review_items(uuid),EXECUTE,allow
 arena_referee,function,"training.publish_debrief(uuid,jsonb)",EXECUTE,allow
 arena_referee,function,"training.session_counts(text,text,boolean,text)",EXECUTE,allow
+arena_referee,function,"training.submit_review_item(uuid,uuid,jsonb)",EXECUTE,allow
 arena_referee,schema,arena,USAGE,allow
 arena_referee,schema,ledger,USAGE,allow
 arena_referee,schema,ops,USAGE,allow
@@ -149,6 +155,7 @@ arena_referee,view,ledger.v_commitments,SELECT,deny
 arena_referee,view,ledger.v_events,SELECT,deny
 arena_referee,view,ops.v_call_costs,SELECT,deny
 arena_referee,view,ops.v_latency,SELECT,deny
+arena_referee,table,training.review_items,SELECT,deny
 arena_referee,view,training.v_my_acknowledgements,SELECT,deny
 arena_referee,view,training.v_my_debrief,SELECT,deny
 arena_referee,view,training.v_my_scores,SELECT,deny

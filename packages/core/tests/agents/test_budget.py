@@ -12,7 +12,6 @@ import pytest
 from arena_core.agents import budget
 from arena_core.agents.budget import (
     INPUT_LIMITS,
-    REPAIR_BYTES,
     max_context,
     over_limit,
     question_fill,
@@ -43,6 +42,7 @@ from arena_core.contracts.subject import SubjectTurn
 from arena_core.providers.structured import sent_schema
 from arena_core.scenario.content import content_text
 from arena_core.scenario.validators import validate_family
+from arena_core.spend.limits import REPAIR_BYTES
 
 from . import fixtures as fx
 from .test_coach_outputs import CTX7, good_card
@@ -70,8 +70,12 @@ def test_an_expanding_question_is_refused_before_it_reaches_a_prompt() -> None:
 
 
 def test_the_question_bounds_are_600_characters_and_2400_bytes_as_rendered() -> None:
-    # S2 1, 2: 600 characters of 4 bytes is a valid question.
-    assert check_question("\U00020000" * 599 + "?")
+    # S2 1, 2; D-019: 600 characters and 2,400 wire bytes. 600 ASCII characters fit; 200 characters outside the BMP
+    # (12 wire bytes each) are the byte cap, one more is refused.
+    assert check_question("a" * 599 + "?")
+    assert check_question("\U00020000" * 200)
+    with pytest.raises(TextTooLongError, match="2412 bytes as rendered"):
+        check_question("\U00020000" * 201)
     assert rendered_bytes(question_fill()) == QUESTION_MAX_BYTES
     assert check_question(question_fill()) == question_fill()
     with pytest.raises(TextTooLongError, match="601 characters"):
@@ -86,11 +90,13 @@ def test_an_expanding_answer_is_refused() -> None:
 @pytest.mark.parametrize(
     ("path", "value", "message"),
     [
-        (("finding", "rationale"), "\ufdfa" * 300, "longer than 600 characters as rendered"),
+        # Within every raw cap (200 characters, 1,200 wire bytes) but 3,600 characters once NFKC unfolds them.
+        (("finding", "rationale"), "\ufdfa" * 200, "longer than 600 characters as rendered"),
         (("flags", 0, "missing_fact"), "\ufdfa" * 30, "longer than 120 characters as rendered"),
         (("follow_up", "question"), "\ufdfa" * 100, "longer than 300 characters as rendered"),
-        # Within every raw cap (600 characters, 1,200 bytes) but 1,500 bytes once backslashes are escaped.
-        (("finding", "rationale"), "\u4e00" * 300 + "\\" * 300, "longer than 1200 bytes as rendered (D11)"),
+        # Within every raw cap (33 characters, 198 wire bytes) and 594 characters as rendered, but 3,564 wire bytes
+        # once NFKC unfolds each character into 18 Arabic letters.
+        (("finding", "rationale"), "\ufdfa" * 33, "longer than 1200 bytes as rendered (D11)"),
         (("follow_up", "purpose"), "\u200b", "empty as rendered"),
     ],
 )
@@ -145,22 +151,22 @@ def _inflate(family: dict[str, Any]) -> dict[str, Any]:
     return family
 
 
-def test_request_bytes_counts_the_schema_and_the_texts_in_utf8() -> None:
+def test_request_bytes_counts_the_schema_and_the_texts_in_wire_bytes() -> None:
     prompt = Prompt(system_instruction="s一", user_message='u"', salt="0" * 8)
     schema = sent_schema(CoachingCard)
     bare = request_bytes(prompt, {}, 1_600, "MINIMAL")
     full = request_bytes(prompt, schema, 1_600, "MINIMAL")
-    assert full - bare == len(json.dumps(schema, ensure_ascii=False, separators=(",", ":")).encode()) - len(b"{}")
+    assert full - bare == len(json.dumps(schema)) - len("{}")  # as the SDK serializes it (D-019)
     longer = Prompt(system_instruction="s一一", user_message='u""', salt="0" * 8)
-    # One ideograph is 3 bytes; one double quote serializes escaped, 2 bytes.
-    assert request_bytes(longer, {}, 1_600, "MINIMAL") - bare == 3 + 2
+    # One ideograph is its six-byte \\u escape; one double quote serializes escaped, 2 bytes.
+    assert request_bytes(longer, {}, 1_600, "MINIMAL") - bare == 6 + 2
 
 
 def test_json_escapes_count_toward_the_bound() -> None:
-    # 900 characters, 1,800 raw UTF-8 bytes, but 2,250 bytes in a serialized request.
+    # 900 characters, 1,800 raw UTF-8 bytes, but 3,600 wire bytes in the request the SDK sends (D-019).
     answer = '"' * 450 + "\u4e00" * 450
-    assert rendered_bytes(answer) == 450 * 2 + 450 * 3
-    with pytest.raises(ValueError, match="answer: 2250 bytes as rendered"):
+    assert rendered_bytes(answer) == 450 * 2 + 450 * 6
+    with pytest.raises(ValueError, match="longer than 1800 bytes as sent"):  # refused on its raw wire bytes already
         TranscriptTurn(turn_no=1, question="What happened?", answer=answer)
 
 

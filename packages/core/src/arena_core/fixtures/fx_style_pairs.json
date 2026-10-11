@@ -1,0 +1,6 @@
+{
+  "fixture": "FX-STYLE-PAIRS",
+  "spec": "S2 11.1, 11.6",
+  "note": "Ten development transcripts. The plain member is the transcript as authored; style.py renders the styled member (fillers, an unease sentence and article drops at fixed positions outside the protected spans), so facts and quotes are identical across each pair.",
+  "transcripts": ["TX-F01-T", "TX-F02-T", "TX-F03-T", "TX-F01-D", "TX-F04-T", "TX-F05-D", "TX-F06-T", "TX-F07-D", "TX-F08-T", "TX-F09-D"]
+}

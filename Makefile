@@ -45,7 +45,7 @@ SYNC_TOOLS ?=
 
 .PHONY: help bootstrap hooks check deps-sync tools-sync py-check sec-check \
 	lint format-check typecheck no-rigging silent-except roles cost-parity supabase-config ratchet deps-policy \
-	push-clean test scope-coverage diff-cover db-test web-check \
+	push-clean test scope-coverage diff-cover db-test web-check traces-push \
 	bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses
 
 help:
@@ -53,6 +53,7 @@ help:
 	@echo "make check       full gate: python, web, database, security (BASE_REF=$(BASE_REF))"
 	@echo "make web-check   web/: frozen pnpm install, then pnpm check (lint, tsc, tests, coverage, build)"
 	@echo "make db-test     migrations and pgTAP on plain PostgreSQL 17 and on Supabase Postgres 17 (Docker, psql)"
+	@echo "make traces-push export pending/held-and-revealed trace mirror rows to local Phoenix and verify"
 
 bootstrap:
 	uv sync --locked
@@ -148,6 +149,14 @@ web-check:
 # containers removed on exit. Any failing, skipped or TODO test fails it.
 db-test:
 	supabase/tests/harness/db_test.sh
+
+# ------------------------------------------------------------------ observability
+# traces-push (S5 8.4, 8.6; WP-07): operator-invoked, not part of `make check`. Exports every row
+# ops.v_exportable_spans currently names (pending spans a killed or offline exporter missed, and held spans
+# of a tournament just revealed) to local Phoenix, then reads them back and marks the confirmed ones
+# verified. Needs ARENA_REFEREE_DSN and PHOENIX_OTLP_ENDPOINT (shape: .env.local.example).
+traces-push:
+	$(UV_RUN) python -m arena_core.observability.pump
 
 # ------------------------------------------------------------------ security
 sec-check: tools-sync bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses

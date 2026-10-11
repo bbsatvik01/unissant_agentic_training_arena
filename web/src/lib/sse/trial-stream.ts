@@ -8,9 +8,11 @@
  * - Reconnects follow `[250, 1000, 2000, 4000, 8000]` ms: the donor's 2 s first retry alone would
  *   break the 3 s KPI-4 budget on any reconnect (S6 5.1).
  * - Each payload is checked before the reducer sees it: at most 16 KB of UTF-8 (S6 5.2) and a
- *   trial-scope envelope for this trial. A frame failing either check, or rejected by the caller's
+ *   trial-scope envelope for this trial. The parsed object is handed on whole, unknown keys included, so the
+ *   caller's schema validation sees exactly what the server sent. A frame failing either check, or rejected by the caller's
  *   validator and reducer, is dropped and counted, never rendered (S6 5.2, FE-SSE-6).
- * - The `after=` cursor is the highest persisted `seq` the caller accepted. Synthesized frames
+ * - The `after=` cursor is the highest persisted `seq` the caller accepted (or, with `resumeCursor`, the end of the
+ *   caller's gap-free prefix). Synthesized frames
  *   (`seq: null`: the snapshot, `subject.thinking`, `coach.working`, `trial.status`, `notice`) and
  *   replayed duplicates are handed to the caller but never move the cursor and never refill the
  *   retry budget, so a stream that only ever re-sends its snapshot still gives up (FE-SSE-1).
@@ -80,8 +82,17 @@ export function parseTrialFrame(raw: unknown, trialId: string): TrialFrame | Exc
   if (seq !== null && !isCount(seq)) return "envelope";
   if (typeof type !== "string" || type === "" || typeof ts !== "string" || !isRecord(data)) return "envelope";
   if (version !== undefined && !isCount(version)) return "envelope";
-  const frame: TrialFrame = { v: 1, seq, scope: "trial", scope_id: trialId, type, ts, data };
-  return version === undefined ? frame : { ...frame, transcript_version: version };
+  // The checks above make `value` a trial envelope; any other key stays for the schema validator to refuse.
+  return value as unknown as TrialFrame;
+}
+
+function parsedOrUndefined(data: unknown): unknown {
+  if (typeof data !== "string") return undefined;
+  try {
+    return JSON.parse(data) as unknown;
+  } catch {
+    return undefined;
+  }
 }
 
 /** `GET /api/trials/{id}/events?ticket=..&after=..` (S5 5.5, 6.3). */
@@ -103,10 +114,18 @@ export interface TrialStreamOptions extends PassThroughOptions {
   mintTicket: (trialId: string) => Promise<string>;
   /** Validate and fold one well-formed frame; return true only when it was accepted. */
   onFrame: (frame: TrialFrame) => boolean;
-  /** One frame was dropped (S6 5.2: dropped and counted, never rendered). */
-  onDrop?: (reason: TrialDropReason) => void;
+  /**
+   * One frame was dropped (S6 5.2: dropped and counted, never rendered). `raw` is the payload parsed as JSON when it
+   * parses (for the caller to identify what it lost, never to render), else undefined.
+   */
+  onDrop?: (reason: TrialDropReason, raw: unknown) => void;
   /** Resume point carried over from an earlier handle (the reducer already holds frames up to it). */
   initialLastSeq?: number | null;
+  /**
+   * Where an accepted persisted frame moves the cursor to, when that is not the frame's own seq: the caller's
+   * gap-free prefix, so a resume replays a frame that is still missing below it. Defaults to the frame's seq.
+   */
+  resumeCursor?: (frame: TrialFrame & { readonly seq: number }) => number;
 }
 
 export interface TrialStreamHandle extends TicketedStreamHandle {
@@ -117,13 +136,13 @@ export interface TrialStreamHandle extends TicketedStreamHandle {
 }
 
 export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle {
-  const { trialId, mintTicket, onFrame, onDrop, initialLastSeq = null, ...passThrough } = options;
+  const { trialId, mintTicket, onFrame, onDrop, initialLastSeq = null, resumeCursor, ...passThrough } = options;
   let lastSeq = initialLastSeq;
   let dropped = 0;
 
-  const drop = (reason: TrialDropReason): MessageVerdict => {
+  const drop = (reason: TrialDropReason, data: unknown): MessageVerdict => {
     dropped += 1;
-    onDrop?.(reason);
+    onDrop?.(reason, parsedOrUndefined(data));
     return false;
   };
 
@@ -134,11 +153,13 @@ export function openTrialStream(options: TrialStreamOptions): TrialStreamHandle 
     resolveUrl: async ({ lastEventId }) => trialEventsUrl(trialId, await mintTicket(trialId), lastEventId),
     onMessage: (event) => {
       const frame = parseTrialFrame(event.data, trialId);
-      if (typeof frame === "string") return drop(frame);
-      if (!onFrame(frame)) return drop("rejected");
-      if (frame.seq === null || (lastSeq !== null && frame.seq <= lastSeq)) return false;
-      lastSeq = frame.seq;
-      return { cursor: String(frame.seq) };
+      if (typeof frame === "string") return drop(frame, event.data);
+      if (!onFrame(frame)) return drop("rejected", event.data);
+      if (frame.seq === null) return false;
+      const next = resumeCursor === undefined ? frame.seq : resumeCursor({ ...frame, seq: frame.seq });
+      if (lastSeq !== null && next <= lastSeq) return false;
+      lastSeq = next;
+      return { cursor: String(next) };
     },
   });
 

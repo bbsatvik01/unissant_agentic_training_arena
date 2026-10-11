@@ -5,17 +5,17 @@ line and one line per row, cells joined by " | ". Cells and column names carry n
 (public-packet schema v1.2) and every row has one cell per column (V2), so every cell survives and every
 row is one line. Every consumer carries the content object or this rendering; none reads `body` alone.
 
-The byte budget is measured on canonical JSON (S1 8.4) in UTF-8. Each limit is at most half the smallest
-store or event it feeds (S4 evidence event and SSE delta 16 KiB, artifact 32 KiB, packets 64 KiB public and
-private, 128 KiB evaluator), so jsonb overhead and envelope fields always fit.
+The byte budget is measured on canonical JSON (S1 8.4) in wire bytes (D-019: `ensure_ascii`, every non-ASCII
+character as its `\\uXXXX` escape, as a request body carries it; never fewer than its UTF-8 bytes). Each limit is at
+most half the smallest store or event it feeds (S4 evidence event and SSE delta 16 KiB, artifact 32 KiB, packets
+64 KiB public and private, 128 KiB evaluator), so jsonb overhead and envelope fields always fit.
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator, Mapping
 from typing import Any
-
-from arena_core.ids import canonical_json
 
 MAX_RECORD_CONTENT = 4096  # one record's content, initial document or releasable record
 MAX_RELEASABLE_CONTENT = 12288  # all releasable records of one variant, contents summed
@@ -38,9 +38,10 @@ def content_text(content: Mapping[str, Any]) -> str:
 
 
 def size(obj: object) -> int:
-    """Canonical JSON size in UTF-8 bytes. A lone surrogate (which V1.storage refuses) is measured, not
-    raised on, so one bad character never hides the other V1 findings."""
-    return len(canonical_json(obj).encode("utf-8", "surrogatepass"))
+    """Canonical JSON size in wire bytes (D-019): the canonical form with every non-ASCII character escaped. A lone
+    surrogate (which V1.storage refuses) is measured, not raised on, so one bad character never hides the other V1
+    findings."""
+    return len(json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False))
 
 
 def budget_overruns(family: Mapping[str, Any]) -> Iterator[tuple[str, str]]:

@@ -25,7 +25,13 @@ dependencies = [
 dev = [
   "bandit==1.9.4",
   "diff-cover==10.5.1",
+  # arena-referee's own route tests dispatch real ASGI requests against FastAPI's TestClient alternative
+  # (starlette.testclient triggers a deprecation warning under -W error; httpx's own ASGITransport does not).
+  "httpx==0.28.1",
   "mypy==2.3.1",
+  # Tests read the agent port's per-attempt spans back (S5 3.6); version matches arena-core's own runtime
+  # dependency (WP-07's observability install), never drifting apart from the real SDK tests run against.
+  "opentelemetry-sdk==1.45.0",
   "pip-audit==2.10.1",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
@@ -92,7 +98,7 @@ strict = true
 warn_unused_ignores = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = ["packages", "services", "tools", "conftest.py"]
+files = ["packages", "services", "tools", "scripts", "conftest.py"]
 explicit_package_bases = true
 mypy_path = [
   "packages/core/src",
@@ -116,7 +122,7 @@ markers = [
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
 branch = true
-source = ["arena_core", "arena_api", "arena_subject", "arena_referee", "arena_tournament", "tools"]
+source = ["arena_core", "arena_api", "arena_subject", "arena_referee", "arena_tournament", "tools", "scripts"]
 omit = ["tools/tests/*", "tools/envs/*"]
 # Repo-relative paths in coverage.xml, so tools/check_scope.py and diff-cover map files unambiguously.
 relative_files = true

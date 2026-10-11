@@ -1,11 +1,18 @@
 [project]
 name = "arena-core"
 version = "0.1.0"
-description = "Shared core: boot checks, config and the deterministic scenario engine (S1) now; the agent port, spend guard, turn orchestrator, event store and observability land in later work packages (S5 1)."
+description = "Shared core: boot checks, config, the deterministic scenario engine (S1), the agent port and the spend-guard client (S5 3, 4); the turn orchestrator, event store and observability land in later work packages (S5 1)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
+  "google-genai==2.24.0",
+  "httpx==0.28.1",
   "jsonschema==4.26.0",
   "numpy==2.5.3",
+  "openinference-instrumentation-google-genai==1.4.10",
+  "opentelemetry-api==1.45.0",
+  "opentelemetry-exporter-otlp-proto-http==1.45.0",
+  "opentelemetry-sdk==1.45.0",
+  "psycopg[binary]==3.3.6",
   "pydantic==2.13.5",
   "referencing==0.37.0",
 ]

@@ -1,0 +1,440 @@
+"""The Vertex adapter (S5 3.6, T7; S2 AT-PORT-1): the built request for every call type, the client's project and
+retry settings, and the parsing of every typed stop. No test reaches the network: the client is a stand-in.
+
+The adapter module stays the only importer of google.genai (S5 1.2 item 2 rule c, tools/check_roles.py) and of a raw
+HTTP client (tools/semgrep arena-no-raw-http): the SDK response, error and transport types these tests feed it are
+reached through the names the adapter module declares for this purpose (`SDK_TYPES`, `SDK_ERRORS`, `TRANSPORT`)."""
+
+from __future__ import annotations
+
+import asyncio
+import dataclasses
+import json
+from collections.abc import Callable, Coroutine
+from decimal import Decimal
+from typing import Any, Protocol, cast
+
+import pytest
+from google.auth.credentials import AnonymousCredentials, Credentials
+from google.auth.exceptions import DefaultCredentialsError
+from google.oauth2.credentials import Credentials as TokenCredentials
+from pydantic import BaseModel
+
+from arena_core.providers import vertex
+from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError, ProviderFailedError
+from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.providers.types import AgentCall, CallContext, Message, ModelRequest, Usage, request_body, request_bytes
+from arena_core.spend.limits import ATTEMPTS, LIMITS, CallType, ThinkingLevel, VertexModel
+from arena_core.spend.memory import RunBudget
+
+gtypes: Any = vertex.SDK_TYPES
+genai_errors: Any = vertex.SDK_ERRORS
+httpx: Any = vertex.TRANSPORT
+PROMPT_TOKENS, ANSWER_TOKENS, THOUGHT_TOKENS, CACHED_TOKENS = 900, 120, 30, 50
+HTTP_BAD, HTTP_UNAVAILABLE, HTTP_RATE = 400, 503, 429
+TIMEOUT_S = 6.0
+# google-auth ships no annotations for these constructors; typed aliases keep the tests strictly checked.
+anonymous: Callable[[], Credentials] = AnonymousCredentials
+no_adc: Callable[[str], Exception] = DefaultCredentialsError
+token_credentials: Callable[[str], Credentials] = TokenCredentials
+
+
+def run[T](coro: Coroutine[Any, Any, T]) -> T:
+    return asyncio.run(coro)
+
+
+def request(call_type: CallType = CallType.CARD, thinking: ThinkingLevel = ThinkingLevel.MINIMAL) -> ModelRequest:
+    return ModelRequest(
+        model=VertexModel.FLASH_LITE_35,
+        system="You are a coach.",
+        messages=(Message("user", "Q"), Message("model", "A"), Message("user", "fix it")),
+        json_schema={"type": "object", "properties": {"a": {"type": "string"}}, "required": ["a"]},
+        max_output_tokens=LIMITS[call_type].output_tokens,
+        thinking=thinking,
+        seed=1234,
+    )
+
+
+@pytest.mark.parametrize("call_type", [t for t in CallType if t is not CallType.PORTRAIT])
+def test_the_built_config_carries_the_output_limit_one_sdk_attempt_and_the_app_label(call_type: CallType) -> None:
+    config = vertex.build_config(request(call_type), TIMEOUT_S)
+    assert config.max_output_tokens == LIMITS[call_type].output_tokens
+    assert config.http_options is not None
+    assert config.http_options.retry_options is not None
+    assert config.http_options.retry_options.attempts == 1
+    assert config.labels == {"app": "unissant-arena"}
+
+
+def test_thinking_is_sent_as_thinking_level_never_thinking_budget_and_no_sampling_knobs() -> None:
+    config = vertex.build_config(request(thinking=ThinkingLevel.LOW), TIMEOUT_S)
+    assert config.thinking_config is not None
+    assert config.thinking_config.thinking_level == gtypes.ThinkingLevel.LOW
+    assert config.thinking_config.thinking_budget is None
+    assert (config.temperature, config.top_p, config.top_k) == (None, None, None)
+    assert config.response_mime_type == "application/json"
+    assert config.response_json_schema == request().json_schema
+    assert config.seed == request().seed
+    assert config.system_instruction == "You are a coach."
+
+
+def test_contents_are_text_parts_with_the_model_role_kept() -> None:
+    contents = vertex.build_contents(request())
+    assert [(c.role, c.parts[0].text) for c in contents if isinstance(c, gtypes.Content) and c.parts] == [
+        ("user", "Q"),
+        ("model", "A"),
+        ("user", "fix it"),
+    ]
+
+
+def test_the_client_is_built_on_cna_guardian_only_with_sdk_retries_off() -> None:
+    client = vertex.build_vertex_client("cna-guardian", "global", anonymous())
+    options = client._api_client._http_options  # the SDK keeps the effective options here
+    assert options.retry_options is not None
+    assert options.retry_options.attempts == 1
+    assert options.base_url == "https://aiplatform.googleapis.com/"
+    assert client._api_client.project == "cna-guardian"
+    assert client._api_client.vertexai is True
+
+
+@pytest.mark.parametrize("project", ["kbg-production", "gen-lang-client-0635695834", ""])
+def test_any_other_project_is_refused(project: str) -> None:
+    with pytest.raises(ConfigError, match="D-015"):
+        vertex.build_vertex_client(project, "global", anonymous())
+
+
+@pytest.mark.parametrize(
+    ("location", "url"),
+    [
+        ("global", "https://aiplatform.googleapis.com/"),
+        ("us", "https://aiplatform.us.rep.googleapis.com/"),
+        ("us-central1", "https://us-central1-aiplatform.googleapis.com/"),
+    ],
+)
+def test_the_host_is_pinned_per_location(location: str, url: str) -> None:
+    assert vertex.vertex_base_url(location) == url
+
+
+def test_credentials_are_adc_unless_impersonation_is_named() -> None:
+    source = anonymous()
+    seen: dict[str, Any] = {}
+
+    def default_fn(**_kw: object) -> tuple[Credentials, str | None]:
+        return source, None
+
+    def impersonate_fn(**kw: object) -> Credentials:
+        seen.update(kw)
+        return anonymous()
+
+    assert vertex.vertex_credentials({}, default_fn=default_fn, impersonate_fn=impersonate_fn) is source
+    target = "arena@cna-guardian.iam.gserviceaccount.com"
+    vertex.vertex_credentials({vertex.IMPERSONATE_VAR: target}, default_fn=default_fn, impersonate_fn=impersonate_fn)
+    assert seen["target_principal"] == target
+    assert seen["source_credentials"] is source
+
+
+def test_vertex_adapter_reads_the_project_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(vertex, "vertex_credentials", lambda _env: anonymous())
+    adapter = vertex.vertex_adapter({"ARENA_GCP_PROJECT": "cna-guardian"})
+    assert isinstance(adapter, vertex.VertexAdapter)
+    with pytest.raises(ConfigError):
+        vertex.vertex_adapter({"ARENA_GCP_PROJECT": "kbg-production"})
+
+
+# ---------------------------------------------------------------- the adapter against a stand-in client
+
+
+def response(
+    *,
+    text: str | None = '{"a": "x"}',
+    finish: object = "STOP",
+    usage: bool = True,
+    candidates: bool = True,
+    block: object = None,
+) -> object:
+    parts = [gtypes.Part(text="thinking...", thought=True)]  # a thought part is never part of the answer
+    if text is not None:
+        parts.append(gtypes.Part(text=text))
+    meta = (
+        gtypes.GenerateContentResponseUsageMetadata(
+            prompt_token_count=PROMPT_TOKENS,
+            candidates_token_count=ANSWER_TOKENS,
+            thoughts_token_count=THOUGHT_TOKENS,
+            cached_content_token_count=CACHED_TOKENS,
+        )
+        if usage
+        else None
+    )
+    return gtypes.GenerateContentResponse(
+        candidates=[gtypes.Candidate(content=gtypes.Content(role="model", parts=parts), finish_reason=finish)]
+        if candidates
+        else [],
+        usage_metadata=meta,
+        prompt_feedback=gtypes.GenerateContentResponsePromptFeedback(block_reason=block) if block else None,
+    )
+
+
+class Models:
+    def __init__(self, outcome: object) -> None:
+        self.outcome = outcome
+        self.calls: list[dict[str, Any]] = []
+
+    async def generate_content(self, *, model: str, contents: list[object], config: object) -> object:
+        self.calls.append({"model": model, "contents": contents, "config": config})
+        if isinstance(self.outcome, BaseException):
+            raise self.outcome
+        return self.outcome
+
+
+class Aio:
+    def __init__(self, models: Models) -> None:
+        self.models = models
+
+
+class Client:
+    def __init__(self, outcome: object) -> None:
+        self.aio = Aio(Models(outcome))
+
+
+def generate(outcome: object) -> tuple[Any, Client]:
+    client = Client(outcome)
+    adapter = vertex.VertexAdapter(cast("vertex.VertexClient", client))
+    return run(adapter.generate(request(), timeout_s=TIMEOUT_S)), client
+
+
+def test_a_reply_is_parsed_with_thinking_billed_as_output() -> None:
+    raw, client = generate(response())
+    assert raw.text == '{"a": "x"}'  # thought parts are never part of the answer
+    assert raw.usage == Usage(PROMPT_TOKENS, ANSWER_TOKENS + THOUGHT_TOKENS, THOUGHT_TOKENS, CACHED_TOKENS)
+    sent = client.aio.models.calls[0]
+    assert sent["model"] == "gemini-3.5-flash-lite"
+    assert sent["config"].labels == {"app": "unissant-arena"}
+
+
+def call_error(outcome: object) -> ProviderCallError:
+    with pytest.raises(ProviderCallError) as failed:
+        generate(outcome)
+    return failed.value
+
+
+def test_max_tokens_is_truncated_and_carries_its_usage() -> None:
+    err = call_error(response(finish=gtypes.FinishReason.MAX_TOKENS))
+    assert (err.kind, err.maybe_billed, err.usage is not None) == (ErrorKind.TRUNCATED, True, True)
+
+
+def test_a_safety_stop_is_blocked() -> None:
+    assert call_error(response(finish=gtypes.FinishReason.SAFETY)).kind == ErrorKind.BLOCKED
+
+
+def test_no_candidates_with_a_block_reason_is_blocked_and_without_one_empty() -> None:
+    assert call_error(response(candidates=False, block=gtypes.BlockedReason.SAFETY)).kind == ErrorKind.BLOCKED
+    assert call_error(response(candidates=False)).kind == ErrorKind.EMPTY
+
+
+def test_an_empty_text_is_empty_and_missing_usage_stays_unknown() -> None:
+    err = call_error(response(text="  ", usage=False))
+    assert (err.kind, err.usage) == (ErrorKind.EMPTY, None)
+
+
+@pytest.mark.parametrize(
+    ("status", "kind"),
+    [(HTTP_UNAVAILABLE, ErrorKind.TRANSIENT), (HTTP_RATE, ErrorKind.TRANSIENT), (HTTP_BAD, ErrorKind.BAD_REQUEST)],
+)
+def test_an_api_error_is_typed_by_status_and_never_billed(status: int, kind: ErrorKind) -> None:
+    err = call_error(genai_errors.APIError(status, {"error": {"message": "echoed prompt text", "status": "X"}}))
+    assert (err.kind, err.status, err.maybe_billed) == (kind, status, False)
+    assert "echoed" not in err.message
+
+
+def test_a_timeout_may_have_been_billed_and_a_refused_connection_was_not() -> None:
+    assert call_error(httpx.ReadTimeout("slow")).maybe_billed is True
+    assert call_error(httpx.ReadError("dropped")).maybe_billed is True
+    refused = call_error(httpx.ConnectError("refused"))
+    assert (refused.kind, refused.maybe_billed) == (ErrorKind.TRANSIENT, False)
+
+
+def test_a_credentials_failure_is_a_bad_request() -> None:
+    assert call_error(no_adc("no adc")).kind == ErrorKind.BAD_REQUEST
+
+
+# ---------------------------------------------------------------- the measured body is the body on the wire (D11)
+
+
+class SentRequest(Protocol):
+    content: bytes
+
+
+def wire_body(request: ModelRequest) -> bytes:
+    """Drive the pinned SDK through the adapter with an in-memory transport and return the raw body it sent."""
+    bodies: list[bytes] = []
+
+    def handler(sent: SentRequest) -> object:
+        bodies.append(sent.content)
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [{"content": {"role": "model", "parts": [{"text": "{}"}]}, "finishReason": "STOP"}],
+                "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1, "totalTokenCount": 4},
+            },
+        )
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    run(vertex.VertexAdapter(client).generate(request, timeout_s=TIMEOUT_S))
+    [body] = bodies
+    return body
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "plain",
+        "\u20ac" * 40_000,
+        "\U0001f600" * 600,
+        "\\" * 300 + '"' * 300 + "\x01" * 50,
+        "line\nbreak\ttab",
+    ],
+    ids=["ascii", "three-byte-40k", "four-byte", "escapes", "whitespace"],
+)
+def test_request_bytes_equal_the_raw_bytes_the_sdk_transmits(text: str) -> None:
+    req = dataclasses.replace(request(), system=f"sys {text}", messages=(*request().messages, Message("model", text)))
+    raw = wire_body(req)
+    assert request_bytes(req) == len(raw)  # the bound is the transmitted body, byte for byte
+    assert json.loads(raw) == request_body(req)
+
+
+def test_escaping_is_counted_a_non_ascii_character_costs_its_escape() -> None:
+    base = request_bytes(dataclasses.replace(request(), system=""))
+    assert request_bytes(dataclasses.replace(request(), system="\u20ac")) - base == len("\\u20ac")
+    assert request_bytes(dataclasses.replace(request(), system="\U0001f600")) - base == len("\\ud83d\\ude00")
+
+
+# ---------------------------------------------------------------- partial usage metadata never under-counts
+
+
+Counts = tuple[int | None, int | None, int | None, int | None, int | None]  # prompt, candidates, thoughts, total, tool
+
+
+def usage_metadata(counts: Counts) -> object:
+    prompt, candidates, thoughts, total, tool = counts
+    return gtypes.GenerateContentResponseUsageMetadata(
+        prompt_token_count=prompt,
+        candidates_token_count=candidates,
+        thoughts_token_count=thoughts,
+        total_token_count=total,
+        tool_use_prompt_token_count=tool,
+    )
+
+
+@pytest.mark.parametrize(
+    ("counts", "want"),
+    [
+        ((10, 5, 2, None, None), Usage(10, 7, 2, 0)),
+        ((10, None, None, 100, None), Usage(10, 90, 0, 0)),
+        ((10, 5, None, 40, None), Usage(10, 30, 0, 0)),
+        ((10, None, None, 20, 4), Usage(14, 6, 0, 0)),
+        ((10, None, None, None, None), None),
+        ((None, 5, None, 9, None), None),
+    ],
+    ids=["complete", "total-only", "total-above-parts", "tool-prompt", "no-output-count", "no-prompt-count"],
+)
+def test_billed_usage_is_unknown_or_an_upper_bound(counts: Counts, want: Usage | None) -> None:
+    assert vertex.billed_usage(cast("Any", usage_metadata(counts))) == want
+    assert vertex.billed_usage(None) is None
+
+
+def test_a_cut_off_reply_keeps_its_visible_text_for_the_repair() -> None:
+    err = call_error(response(text='{"a": "partial', finish=gtypes.FinishReason.MAX_TOKENS))
+    assert err.reply_text == '{"a": "partial'
+    assert call_error(response(text="blocked part", finish=gtypes.FinishReason.SAFETY)).reply_text == "blocked part"
+
+
+def adapter_over(content: bytes, encoding: str | None = None) -> vertex.VertexAdapter:
+    """The real SDK client on an in-memory transport that answers every request with ``content`` (HTTP 200)."""
+    headers = {"content-type": "application/json", **({"content-encoding": encoding} if encoding else {})}
+
+    def handler(_sent: SentRequest) -> object:
+        return httpx.Response(200, content=content, headers=headers)
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    return vertex.VertexAdapter(
+        vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    )
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"not json at all",
+        b'{"candidates": "not a list"}',
+        b'{"candidates": 1}',
+        b'{"candidates": true}',
+        b'{"usageMetadata": {"promptTokenCount": "x"}}',
+    ],
+    ids=["not-json", "string-candidates", "int-candidates", "bool-candidates", "bad-usage"],
+)
+def test_a_malformed_200_response_is_a_typed_transient_failure_that_may_have_been_billed(content: bytes) -> None:
+    with pytest.raises(ProviderCallError) as failed:
+        run(adapter_over(content).generate(request(), timeout_s=TIMEOUT_S))
+    assert (failed.value.kind, failed.value.maybe_billed, failed.value.usage) == (ErrorKind.TRANSIENT, True, None)
+    assert "malformed response" in failed.value.message
+
+
+def test_through_the_port_a_malformed_envelope_is_retried_receipted_and_settled_usage_unknown() -> None:
+    budget = RunBudget(Decimal(1))
+    agent = AgentPort(adapter_over(b'{"candidates": 1}'), budget, PortOptions(sleep=_no_sleep))
+    call = AgentCall(
+        model=VertexModel.FLASH_LITE_35,
+        thinking=ThinkingLevel.MINIMAL,
+        system="s",
+        messages=(Message("user", "q"),),
+        schema=Small,
+        context=CallContext(call_type=CallType.CARD, purpose="coach.card", step_key="malformed-step"),
+    )
+    with pytest.raises(ProviderFailedError, match="after 4 attempt"):
+        run(agent.run(call))
+    assert [(r.seq, r.report.status) for r in budget.rows] == [(n, "error") for n in range(1, ATTEMPTS + 1)]
+    [held] = budget.reservations.values()
+    assert (held.state, held.settled_usd) == ("usage_unknown", held.reserved_usd)
+
+
+class Small(BaseModel):
+    a: str
+
+
+async def _no_sleep(_seconds: float) -> None:
+    return None
+
+
+def test_an_undecodable_compressed_body_is_a_typed_transient_failure_that_may_have_been_billed() -> None:
+    with pytest.raises(ProviderCallError) as failed:
+        run(adapter_over(b"definitely not gzip", encoding="gzip").generate(request(), timeout_s=TIMEOUT_S))
+    assert (failed.value.kind, failed.value.maybe_billed) == (ErrorKind.TRANSIENT, True)
+    assert "DecodingError" in failed.value.message
+
+
+def test_through_the_sdk_a_reply_with_an_unpaired_surrogate_is_repaired() -> None:
+    replies = [
+        b'{"candidates": [{"content": {"role": "model", "parts": [{"text": "{\\"a\\": \\"\\\\ud800"}]},'
+        b' "finishReason": "STOP"}], "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1}}',
+        b'{"candidates": [{"content": {"role": "model", "parts": [{"text": "{\\"a\\": \\"ok\\"}"}]},'
+        b' "finishReason": "STOP"}], "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1}}',
+    ]
+
+    def handler(_sent: SentRequest) -> object:
+        return httpx.Response(200, content=replies.pop(0), headers={"content-type": "application/json"})
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    adapter = vertex.VertexAdapter(
+        vertex.build_vertex_client("cna-guardian", "global", token_credentials("t"), http_client=transport)
+    )
+    budget = RunBudget(Decimal(1))
+    call = AgentCall(
+        model=VertexModel.FLASH_LITE_35,
+        thinking=ThinkingLevel.MINIMAL,
+        system="s",
+        messages=(Message("user", "q"),),
+        schema=Small,
+        context=CallContext(call_type=CallType.CARD, purpose="coach.card", step_key="surrogate-step"),
+    )
+    result = run(AgentPort(adapter, budget, PortOptions(sleep=_no_sleep)).run(call))
+    assert (result.value, result.attempts, len(budget.rows)) == (Small(a="ok"), 2, 2)

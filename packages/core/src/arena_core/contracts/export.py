@@ -26,6 +26,7 @@ from arena_core.contracts.coaching import (
     TournamentWireCard,
     TrainingWireCard,
 )
+from arena_core.contracts.common import wire_bytes
 from arena_core.contracts.debrief import Debrief
 from arena_core.contracts.events import ReplayPage, TournamentPoll, TrialFrame
 from arena_core.contracts.findings import Finding, StoredFinding
@@ -110,10 +111,10 @@ def dumps(document: object) -> str:
 def _max_bytes(
     validator: Validator, limit: int, instance: object, schema: Mapping[str, Any]
 ) -> Iterator[ValidationError]:
-    """The arena keyword `maxBytes` (S2 1, Text size): a string of at most `limit` UTF-8 bytes."""
+    """The arena keyword `maxBytes` (S2 1, Text size; D-019): a string of at most `limit` wire bytes."""
     del validator, schema
-    if isinstance(instance, str) and len(instance.encode("utf-8")) > limit:
-        yield ValidationError(f"longer than {limit} UTF-8 bytes")
+    if isinstance(instance, str) and wire_bytes(instance) > limit:
+        yield ValidationError(f"longer than {limit} bytes as sent")
 
 
 # types-jsonschema declares `validators.extend` without parameter types; its documented signature is

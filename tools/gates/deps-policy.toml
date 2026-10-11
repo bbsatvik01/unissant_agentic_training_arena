@@ -26,8 +26,11 @@ banned = ["litellm", "crawl4ai", "pymupdf", "pymupdfb", "dbos", "google-adk", "g
 # Banned extras: (package, extra). None yet.
 banned_extras = []
 
-# Exact versions required whenever the package appears in a lock. None yet; WP-05 pins google-genai here.
+# Exact versions required whenever the package appears in a lock. google-genai: the agent port (S5 3) depends on
+# its request and usage shapes (labels, thinking_level, HttpRetryOptions, usage_metadata); bumped deliberately,
+# behind the port tests.
 [python.exact]
+google-genai = "2.24.0"
 
 [node]
 # xlsx: GHSA-4r6h-8v6p-xvw6, no fixed release on npm (kept from TechnoMile for WP-18's web tree).

@@ -586,3 +586,78 @@ def test_main_without_a_dsn_fails_on_a_broken_cost_model(tmp_path: Path, capsys:
     model.write_text("import sys\nsys.exit(3)\n")
     assert cp.main(["--root", str(tmp_path)]) == 1
     assert "cost-parity: FAIL" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------- the agent port's own tables (S5 4.9, WP-05)
+
+
+def test_the_port_limits_and_rates_equal_the_real_cost_model(model: cp.CostModel) -> None:
+    assert cp.compare_port_module(model) == []
+
+
+@pytest.mark.gateproof
+def test_a_one_byte_limit_drift_between_the_port_and_the_cost_model_fails(model: cp.CostModel) -> None:
+    limits = dict(model.limits)
+    limits["card"] = (limits["card"][0] + 1, limits["card"][1])
+    errors = cp.compare_port_module(dataclasses.replace(model, limits=limits))
+    assert any("limits.LIMITS['card']" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_one_cent_rate_drift_between_the_port_and_the_cost_model_fails(model: cp.CostModel) -> None:
+    prices = dict(model.liability_prices)
+    p_in, p_out = prices["3.5-flash-lite"]
+    prices["3.5-flash-lite"] = (p_in, p_out + Decimal("0.01"))
+    errors = cp.compare_port_module(dataclasses.replace(model, liability_prices=prices))
+    assert any("rates.LIABILITY_RATES[gemini-3.5-flash-lite]" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_an_attempts_drift_fails_the_count_and_every_reservation(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, attempts=ATTEMPTS + 1))
+    assert any("ATTEMPTS" in e for e in errors)
+    assert any("liab_reservation" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_runtime_call_kind_the_port_does_not_know_fails(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, limits={**model.limits, "triage": (1, 1)}))
+    assert any("limits.LIMITS['triage'] = None" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_main_without_a_dsn_fails_on_a_port_drift(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cp, "ATTEMPTS", ATTEMPTS + 1)
+    assert cp.main(["--root", str(REPO_ROOT)]) == 1
+    assert "limits.ATTEMPTS" in capsys.readouterr().err
+
+
+@pytest.mark.gateproof
+def test_a_retry_factor_drift_fails_the_unit_estimate(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, retry_factor=model.retry_factor + Decimal("0.01")))
+    assert any("RETRY_FACTOR" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_unit_whose_modeled_cost_drifts_from_the_port_estimate_fails(model: cp.CostModel) -> None:
+    calls, high = model.units["interactive_block"]
+    units = {**model.units, "interactive_block": (calls, high + Decimal("0.01"))}
+    errors = cp.compare_port_module(dataclasses.replace(model, units=units))
+    assert any("unit 'interactive_block'" in e for e in errors)
+
+
+@pytest.mark.gateproof
+def test_a_thinking_allowance_drift_or_an_unpriced_unit_fails(model: cp.CostModel) -> None:
+    errors = cp.compare_port_module(dataclasses.replace(model, think_high={**model.think_high, "LOW": 999}))
+    assert any("THINK_HIGH_TOKENS" in e for e in errors)
+    calls, high = model.units["corpus_case"]
+    unpriced = {"corpus_case": ([("3.1-pro-preview", 1, 1, "HIGH"), *calls], high)}
+    errors = cp.compare_port_module(dataclasses.replace(model, units=unpriced))
+    assert any("does not price" in e for e in errors)
+
+
+def test_the_cost_model_exports_every_admitted_unit_kind(model: cp.CostModel) -> None:
+    assert set(model.units) == {"interactive_block", "replay_transcript", "corpus_case", "experiments"}
+    assert model.admit_factor == Decimal("1.5")

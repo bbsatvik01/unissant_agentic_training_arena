@@ -22,11 +22,12 @@ from tools.tests.conftest import REPO_ROOT
 HARNESS = REPO_ROOT / "supabase" / "tests" / "harness"
 SUPABASE_IMAGE = re.search(r'^SUPABASE_IMAGE="([^"]+)"$', (HARNESS / "db_test.sh").read_text(), re.MULTILINE)
 
-STEPS = 4  # plain path, Supabase path, cost parity, capability fixture
+STEPS = 6  # plain path, Supabase path, cost parity, capability fixture, subject suite, spend-guard suite
 SERVERS = 2  # the plain and the Supabase container
-STEPS_ON_SUPABASE = 3  # the Supabase path and the two steps that read its database
+STEPS_ON_SUPABASE = 5  # the Supabase path and the four steps that read its database
 
-# FAKE_FAIL entries: daemon, build, run-plain, run-supabase, pgtap-plain, pgtap-supabase, uv, fixture.
+# FAKE_FAIL entries: daemon, build, run-plain, run-supabase, pgtap-plain, pgtap-supabase, uv (the cost-parity run),
+# it-subject (the subject suite's pytest run), it-spend (the spend-guard suite's pytest run), fixture.
 STUB = """
 import os, pathlib, sys
 tool = sys.argv[1]
@@ -54,7 +55,14 @@ if tool == "docker":
         print("127.0.0.1:" + os.environ.get("FAKE_PORT", "55001"))
     sys.exit(0)
 if tool == "uv":
-    sys.exit(1 if "uv" in fail else 0)
+    parity = "tools.check_cost_parity" in args
+    subject_it = any("it_answer.py" in a for a in args)
+    spend_it = any("it_spend_guard.py" in a for a in args)
+    sys.exit(
+        1
+        if ("uv" in fail and parity) or ("it-subject" in fail and subject_it) or ("it-spend" in fail and spend_it)
+        else 0
+    )
 # psql
 db = args[args.index("-d") + 1] if "-d" in args else ""
 if "-f" in args:
@@ -149,6 +157,16 @@ def test_all_steps_pass(repo: Path) -> None:
         re.fullmatch(r"uv run --locked python -m tools.check_cost_parity --dsn postgresql://\S+/postgres", line)
         for line in log
     )
+    # both integration suites run on that same database, after the steps that read its seeds as migrated, the
+    # subject suite before the spend-guard suite (which applies ceilings and the kill switch last)
+    subject_suite = [i for i, line in enumerate(log) if line.endswith("services/subject/tests/it_answer.py")]
+    spend_suite = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_spend_guard.py")]
+    parity = [i for i, line in enumerate(log) if "tools.check_cost_parity" in line]
+    assert len(subject_suite) == 1, log
+    assert len(spend_suite) == 1, log
+    assert parity[0] < subject_suite[0] < spend_suite[0]
+    assert "-W error" in log[subject_suite[0]]
+    assert "-W error" in log[spend_suite[0]]
 
 
 def test_every_server_binds_loopback_and_a_docker_picked_port_and_is_removed(repo: Path) -> None:
@@ -180,6 +198,8 @@ def test_an_existing_plain_image_is_reused(repo: Path, monkeypatch: pytest.Monke
         ("pgtap-supabase", "Supabase path"),
         ("uv", "cost parity"),
         ("fixture", "capability fixture"),
+        ("it-subject", "subject integration suite"),
+        ("it-spend", "spend-guard integration suite"),
     ],
 )
 def test_a_failing_step_fails_db_test_and_the_other_steps_still_run(
@@ -236,7 +256,15 @@ MUTANTS = [
         '  "$HERE/run_pgtap.sh" --in-place "$ADMIN/postgres" || true\n',
     ),
     ('  supabase_up || return 1\n  (cd "$ROOT"', '  (cd "$ROOT"'),
+    ("  supabase_up || return 1\n  local dsn", "  local dsn"),
 ]
+
+
+def _replace_nth(text: str, old: str, new: str, index: int) -> str:
+    """Replace only the `index`-th (0-based) occurrence of `old`, leaving every other one untouched."""
+    parts = text.split(old)
+    assert len(parts) > index + 1, (index, text.count(old))
+    return old.join(parts[: index + 1]) + new + old.join(parts[index + 1 :])
 
 
 @pytest.mark.gateproof
@@ -244,15 +272,20 @@ MUTANTS = [
 def test_the_failing_step_proof_catches_each_mutant(
     repo: Path, monkeypatch: pytest.MonkeyPatch, before: str, after: str
 ) -> None:
+    """Some patterns (the `supabase_up` guard) now recur across more than one integration-suite step, each
+    added the same safe way (D-016: lift the proven pattern); every occurrence is mutated and proven essential
+    on its own, one at a time, so a step that drops its own guard is caught whichever step it is."""
     script = repo / "supabase" / "tests" / "harness" / "db_test.sh"
-    text = script.read_text()
-    assert text.count(before) == 1, before
-    script.write_text(text.replace(before, after))
-    monkeypatch.setenv("FAKE_FAIL", "pgtap-supabase,run-supabase" if "supabase_up" in before else "pgtap-supabase")
-    code, out = run(repo)
-    if "supabase_up" in before:
-        # without the guard, cost parity runs against no Supabase server and passes: one FAIL fewer than the
-        # three test_without_the_supabase_server_parity_and_fixture_fail_too requires
-        assert out.count("-- FAIL: ") < STEPS_ON_SUPABASE, out
-    else:
-        assert code == 0, out  # the failing step no longer fails db-test: the proof above (code == 1) catches it
+    original = script.read_text()
+    occurrences = original.count(before)
+    assert occurrences >= 1, before
+    for index in range(occurrences):
+        script.write_text(_replace_nth(original, before, after, index))
+        monkeypatch.setenv("FAKE_FAIL", "pgtap-supabase,run-supabase" if "supabase_up" in before else "pgtap-supabase")
+        code, out = run(repo)
+        if "supabase_up" in before:
+            # without the guard, that one step runs against no Supabase server and passes: one FAIL fewer than
+            # test_without_the_supabase_server_parity_and_fixture_fail_too requires
+            assert out.count("-- FAIL: ") < STEPS_ON_SUPABASE, (index, out)
+        else:
+            assert code == 0, (index, out)  # the failing step no longer fails db-test: the proof above catches it

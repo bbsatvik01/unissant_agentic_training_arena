@@ -70,3 +70,23 @@ def run_role_module(module: str, env: dict[str, str]) -> subprocess.CompletedPro
     return subprocess.run(  # noqa: S603
         [sys.executable, "-m", module], cwd=REPO_ROOT, env=env, capture_output=True, text=True, check=False
     )
+
+
+def popen_role_module(module: str, env: dict[str, str]) -> subprocess.Popen[str]:
+    """The same fixed-shape, caller-controlled launch as `run_role_module`, but non-blocking: for a role
+    whose `main()` serves once its boot checks pass (S5 10.1) and so never exits on its own, the caller
+    reads its startup line, then signals it (`popen_role_module(...).terminate()`) and waits with a
+    timeout, instead of blocking forever on `subprocess.run`. stderr is merged into stdout (uvicorn logs
+    its own startup and shutdown lines there) so the caller reads one ordered stream, never two pipes at
+    once without a selector or a thread."""
+    # S603 false positive: same argv shape as run_role_module, reviewed there; the allowlist entry covers
+    # this call too (same file, same pattern).
+    return subprocess.Popen(  # noqa: S603
+        [sys.executable, "-m", module],
+        cwd=REPO_ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )

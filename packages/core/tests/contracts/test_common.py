@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from pydantic import ValidationError
 
-from arena_core.contracts.common import turn_id, turn_no
+from arena_core.contracts.common import turn_id, turn_no, wire_bytes
 from arena_core.contracts.events import Content
 from arena_core.contracts.review import LabelVerdict
 
@@ -38,3 +40,26 @@ def test_a_rater_label_carries_exactly_its_reason() -> None:
         LabelVerdict.model_validate(
             {"turn_id": "t02", "label": "evasion", "eva_subtype": None, "pfq_reason": None, **checks}
         )
+
+
+# The same table as web/src/lib/contracts/validate.test.ts ("maxBytes counts wire bytes"): browser and server agree.
+WIRE_CASES = [
+    ("a", 1),
+    ('"', 2),
+    ("\\", 2),
+    ("\n", 2),
+    ("\t", 2),
+    ("\u0001", 6),
+    ("\u007f", 6),
+    ("é", 6),
+    ("€", 6),
+    ("\U0001f600", 12),
+    ('ab€"', 10),
+]
+
+
+@pytest.mark.parametrize(("text", "expected"), WIRE_CASES)
+def test_wire_bytes_count_the_json_escapes(text: str, expected: int) -> None:
+    """D-019: every byte cap is in the bytes the SDK transmits (`json.dumps` with `ensure_ascii`)."""
+    assert wire_bytes(text) == expected
+    assert wire_bytes(text) == len(json.dumps(text)) - len('""')
