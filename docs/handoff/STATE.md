@@ -9,6 +9,25 @@
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
+## HOLD 3 (owner directive, 2026-10-09 night): pause for some days
+- Do not stop running agents; send nothing new. Resume when the owner returns.
+- All three agents finished on their side; nothing running. Running (normal agents, addressable with SendMessage):
+  | Agent id | Work | Worktree / branch | Next step when it reports |
+  | --- | --- | --- | --- |
+  | ac1b3a38666e87dcf | WP-05 DONE on its side (1e7d458, self Codex CORRECT): wire-exact byte measure (json \\u escapes), S5 4.10 cap replay (13,614 calls, matches simulate_d009), per-role lifecycle | /private/tmp/wt-wp05-port feat/wp05-port | on resume: cold Codex gate, merge; then switch port to WP-10 sent_schema/budget.request_bytes/repair helpers + parity test |
+  | adb48fe0d3cc9a911 | WP-11 DONE on its side (6d15ad7, one scoped Codex round CORRECT): FX-COOP checker cut to IDs + verbatim released quotes + review binding (S2 11.1 07c756b); G2 uses the fence marker set | /private/tmp/wt-wp11-guard feat/wp11-guard | on resume: cold Codex gate (scoped to current spec), merge |
+  | a80b942018d564e81 | WP-18 part 2 DONE on its side (007d133, self Codex CORRECT): 5 findings fixed; snapshot contract gained question_seq/event_seq/SnapshotCard; ajv validators now compiled at build time (CSP blocker fixed); retryable ending state | /private/tmp/wt-wp18b-web feat/wp18b-web | on resume: cold Codex gate, merge; confirm the exact-path lint/coverage exclusion of generated web/src/lib/contracts/compiled/validators.js (1.7 MB, ~160 KB gz); update S5/S6 snapshot fields |
+- OPEN DECISION (cost_model, mine): escaped wire bytes make non-ASCII cost 2-3x UTF-8, so S2's adversarial maximum exceeds input limits (card 117,219 -> well over 128,000). Options: cap questions/model fields in transmitted bytes (simplest), or raise LIMITS 2-3x. Decide on resume with WP-10's renderer numbers. db-test now ~27 min (cap replay).
+- Supabase blocked at migration 0600 of 10 (0100-0500 applied byte-exact); owner action: .env.owner with the session-pooler DSN, or restart the Claude Code session so the MCP allow rules load; then apply 0600-1000 and roles.
+- Next queue after the three merges: WP-12 subject service, WP-13 orchestrator + routes + SSE, WP-14 referee, WP-07 observability, then WP-19 slice UI (DESIGN.md D-018) and WP-24 integration; first local end-to-end text run follows.
+- Spec follow-ups collected: content_text separator (S2 4.4.1 ' ; ' vs code ' | '); AC-S3-4.5 F01 material count; S3 5.3 code block duplicate rule; S3 5.5 full ranking key; S2 HOLD range wording; finding_contract migration into spec 0004; web-check CI job.
+- Durable checkpoint: /Users/balla/arena-checkpoint/2026-10-09-1831
+
+## WP-10 merged (2026-10-09 night)
+- WP-10 prompts/builders/manifests/byte bounds merged (8b3b0df; cold Codex CORRECT, 3 rounds). Question cap 600 chars and 2,400 normalized bytes (contracts/rendered.py). S2 11.1 FX-COOP enforcement split recorded (a355544).
+- In fix loops: WP-05 port (serialized byte bound, cap replay, per-role tests), WP-11 guard (FX-COOP option A), WP-18 part 2 (5 findings).
+- Supabase still blocked at 0600 (owner: .env.owner or session restart).
+
 ## Progress (2026-10-09 evening)
 - WP-15 scorer merged (cold Codex CORRECT, 2 rounds). Spec follow-ups from it: AC-S3-4.5 says 12 material facts for F01 truthful (file has 13); S3 5.3 reference code duplicate rule; S3 5.5 full (recall, QQ) key; rubric CONFIG lexicon/prompts must be filled by the WP that adds them (lineage tripwire).
 - In fix loops with the same agents: WP-10 prompts (3 majors), WP-11 guard (fixture content), WP-05 port (building), WP-18 part 2 (building).

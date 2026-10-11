@@ -46,3 +46,9 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** the agent treated conversational context as a new instruction; its return contract did not require evidence of the edit.
 - **Fix:** S1 queued for a rerun; S8's applied markers for S1 rows are wrong until then.
 - **Prevention pattern:** workflow prompts state that the agent's task is fixed and owner questions go to the orchestrator; return schemas require files_written to be non-empty (or an explicit blocked reason) and the orchestrator checks it before trusting downstream markers.
+
+### 2026-10-09 · A fixture checker grew into a natural-language parser over 26 Codex rounds
+- **Symptom:** WP-11's FX-COOP checker (646 lines) added number grammars, fraction and time-binding rules round after round; each Codex round found another spelling to bypass the word-level checks.
+- **Root cause:** a semantic rule ("every claim matches a record") was assigned to deterministic code that cannot decide it, so every round produced a new adversarial counterexample; the coordinator did not cap the scope of the self-gate.
+- **Fix:** S2 11.1 now assigns semantics to the recorded, hash-bound independent review; code checks only IDs and verbatim released quotes (07c756b). The agent was told to run one Codex round scoped to the current spec.
+- **Prevention pattern:** when a gate loop passes ~5 rounds on the same class, stop and ask whether the check is decidable by code at all; if not, move it to a recorded review and shrink the code. Scope every Codex prompt to the current spec, and never let fixture or test tooling outgrow the product code it supports (D-016).

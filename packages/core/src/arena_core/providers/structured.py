@@ -3,23 +3,17 @@
 `lint_schema` (TechnoMile lines 47-80, lifted unchanged; ATTRIBUTIONS.md) refuses an output schema the Gemini
 decoder handles badly: an unbounded list, a free-form object, or a field with a default (every output field must
 be required; an optional value is nullable, never defaulted, S2 1). Every model-facing contract passes it (WP-02).
-
-`vertex_schema` (TechnoMile lines 84-100, lifted unchanged) drops the keywords Vertex does not document, so lengths and
-word counts are enforced by the Pydantic models in code (S2 1). `extract_json_text` and `parse_output` (lines 103-135)
-are adapted: the reply either validates or it does not (no repair of truncated JSON, no defaults), and a failure
-carries S2 10's repair error list: at most 10 `field.path: message` items of at most 100 bytes each, built from the
-validator's location and message only, never from an input or output value.
+`vertex_schema` (TechnoMile lines 17-41 and 84-100, lifted unchanged; ATTRIBUTIONS.md) keeps only the keywords
+Vertex documents for `response_json_schema`; `sent_schema` is the one schema a request carries and a manifest
+hashes (S2 3.1: "the canonical JSON Schema actually sent to Vertex, after `vertex_schema`"). `parse_output` lands
+with the agent port in WP-05, which sends `sent_schema(model)`.
 """
 
-import json
-import re
-from typing import Any, cast
+from typing import Any
 
-from pydantic import BaseModel, ValidationError
-from pydantic_core import ErrorDetails
+from pydantic import BaseModel
 
 from arena_core.providers.errors import ConfigError
-from arena_core.spend.limits import REPAIR_ERROR_ITEM_BYTES, REPAIR_ERROR_ITEMS
 
 # Keywords Vertex accepts in response_json_schema (google-genai 2.24.0 GenerationConfig docs).
 _VERTEX_SCHEMA_KEYS = frozenset(
@@ -48,7 +42,6 @@ _VERTEX_SCHEMA_KEYS = frozenset(
     }
 )
 _NAMED_SUBSCHEMAS = frozenset({"properties", "$defs"})
-_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
 
 
 def _walk_schema(node: object, path: str, problems: list[str]) -> None:
@@ -89,7 +82,7 @@ def lint_schema(schema: type[BaseModel]) -> dict[str, Any]:
 
 
 def vertex_schema(node: object) -> object:
-    """Drop JSON Schema keywords Vertex does not document (for example maxLength, default, const)."""
+    """Drop JSON Schema keywords Vertex does not document (e.g. maxLength, default, const)."""
     if isinstance(node, list):
         return [vertex_schema(item) for item in node]
     if not isinstance(node, dict):
@@ -107,72 +100,10 @@ def vertex_schema(node: object) -> object:
     return out
 
 
-def vertex_root(json_schema: dict[str, Any]) -> dict[str, Any]:
-    """`vertex_schema` of a whole model schema: a dict maps to a dict (the function's first branch for dicts)."""
-    return cast("dict[str, Any]", vertex_schema(json_schema))
-
-
-class OutputInvalidError(ValueError):
-    """The reply did not validate. ``errors`` is the repair list (S2 10); ``str()`` joins it."""
-
-    def __init__(self, errors: tuple[str, ...]) -> None:
-        self.errors = errors
-        super().__init__("; ".join(errors))
-
-
-def _cut_bytes(text: str, limit: int) -> str:
-    """The longest prefix of ``text`` whose UTF-8 encoding is at most ``limit`` bytes (character boundary)."""
-    return text.encode("utf-8")[:limit].decode("utf-8", errors="ignore")
-
-
-def _item(path: str, message: str) -> str:
-    return _cut_bytes(f"{path}: {message}", REPAIR_ERROR_ITEM_BYTES)
-
-
-def extract_json_text(text: str) -> str:
-    """The JSON object in a reply: the whole reply, a fenced block, or the outermost {...} span."""
-    stripped = text.strip()
-    fenced = _FENCE.match(stripped)
-    if fenced:
-        return fenced.group(1)
-    start, end = stripped.find("{"), stripped.rfind("}")
-    if start == -1 or end < start:
-        raise OutputInvalidError((_item("<root>", "no JSON object in the reply"),))
-    return stripped[start : end + 1]
-
-
-# Pydantic error types raised by a contract's own validators: their messages may quote model-written values (an ID,
-# a phrase), so the repair names only the rule codes they cite, never the message (S2 10: no value is echoed).
-_CUSTOM_ERROR_TYPES = frozenset({"value_error", "assertion_error"})
-_RULE_CODE = re.compile(r"\(([A-Z][A-Z0-9-]{0,11})\)")
-# A location part the model chose (an unexpected key) is not echoed either.
-_MODEL_CHOSEN_LOC_TYPES = frozenset({"extra_forbidden"})
-
-
-def _repair_item(err: ErrorDetails) -> str:
-    loc = [str(part) for part in err["loc"]]
-    if err["type"] in _MODEL_CHOSEN_LOC_TYPES and loc:
-        loc[-1] = "<unexpected field>"
-    path = ".".join(loc) or "<root>"
-    if err["type"] in _CUSTOM_ERROR_TYPES:
-        codes = sorted(set(_RULE_CODE.findall(str(err["msg"]))))
-        message = f"fails rule {', '.join(codes)}" if codes else "fails a rule of the schema"
-    else:
-        message = str(err["msg"])
-    return _item(path, message)
-
-
-def parse_output[T: BaseModel](text: str, schema: type[T], context: object | None = None) -> T:
-    """Validate the reply against ``schema`` (with its validation ``context``); raise OutputInvalidError with the
-    repair list on failure."""
-    candidate = extract_json_text(text)
-    try:
-        json.loads(candidate)
-    except ValueError:
-        raise OutputInvalidError((_item("<root>", "the reply is not valid JSON"),)) from None
-    try:
-        return schema.model_validate_json(candidate, context=context)
-    except ValidationError as exc:
-        # Built-in messages describe the schema's own bounds; `input` and `ctx` are never included (S2 10).
-        errors = exc.errors(include_url=False, include_input=False, include_context=False)
-        raise OutputInvalidError(tuple(_repair_item(err) for err in errors[:REPAIR_ERROR_ITEMS])) from None
+def sent_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """The `response_json_schema` of a request for `model`: linted, then filtered by `vertex_schema`."""
+    out = vertex_schema(lint_schema(model))
+    if not isinstance(out, dict):
+        msg = f"schema {model.__name__} is not an object schema"
+        raise ConfigError(msg)
+    return out

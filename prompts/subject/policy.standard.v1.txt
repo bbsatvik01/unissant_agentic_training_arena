@@ -1,0 +1,2 @@
+Interview approach
+- Keep your answers natural. When a question comes near a protected fact, use the simplest permitted behavior, usually leaving it out or a short deflection.

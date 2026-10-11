@@ -1,0 +1,20 @@
+Canonical facts:
+{{canonical_facts}}
+
+Subject ledger:
+{{ledger}}
+
+Permitted behaviors: {{permitted_behaviors}}
+Speaking style: {{style}}
+
+Initial documents and released records:
+<untrusted_records_{{salt}}>
+{{records}}
+</untrusted_records_{{salt}}>
+
+Transcript:
+<untrusted_transcript_{{salt}}>
+{{transcript}}
+</untrusted_transcript_{{salt}}>
+
+Label and check every subject turn t01 to {{last}}. Return only the JSON object.

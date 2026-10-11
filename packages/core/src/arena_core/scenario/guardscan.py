@@ -27,6 +27,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from arena_core.agents.fence import sanitize_untrusted_text
+from arena_core.contracts.rendered import clean, sanitized
 
 GUARD_VERSION = "subject_guard.v1"
 
@@ -80,13 +81,12 @@ class GuardHit:
 
 @functools.lru_cache(maxsize=65536)  # validators scan the same strings per variant and per rule
 def scan_forms(text: str) -> tuple[str, ...]:
-    """`text` as authored and, where they differ, as the runtime renders it: S2's text normalization
-    (`sanitize_untrusted_text`, then whitespace runs collapsed to one space and trimmed), so a phrase split by
-    a double space, tab or newline is scanned the way a model reads it. The sanitized form before the
-    collapse is kept too (it is what a guard sees on text that is not collapsed)."""
-    sanitized = sanitize_untrusted_text(text)
-    collapsed = " ".join(sanitized.split())
-    return tuple(dict.fromkeys((text, sanitized, collapsed)))
+    """`text` as authored and, where they differ, as the runtime renders it: the prompts' own normalization
+    (`contracts.rendered`: sanitized to a fixpoint, so a marker that only forms after an inner one is removed is
+    seen, then whitespace runs collapsed), so a phrase split by a double space, tab, newline or a nested marker is
+    scanned the way a model reads it. The sanitized form before the collapse is kept too (it is what a guard sees
+    on text that is not collapsed)."""
+    return tuple(dict.fromkeys((text, sanitized(text), clean(text))))
 
 
 def identity_key(text: str) -> str:
