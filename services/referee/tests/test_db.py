@@ -153,7 +153,8 @@ def _trial_data_conn(extra: AnswerMap | None = None) -> FakeConn:
         "sealed.hidden_public_packets": None,
         "arena.released_evidence": [],
         "arena.turns": [],
-        "trial_events": [],
+        "kind = 'coach_card'": [],
+        "kind = 'coach_unavailable'": [],
         "arena.final_findings": [],
     }
     base.update(extra or {})
@@ -184,7 +185,8 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
         {
             "arena.released_evidence": [("rec-01", "Work order", {"body": "x"}, 1)],
             "arena.turns": [(1, "Why?", "Because.", "investigator")],
-            "trial_events": [({"text": "a card"},)],
+            "kind = 'coach_card'": [({"text": "a card"},)],
+            "kind = 'coach_unavailable'": [(3,)],
             "arena.final_findings": [({"label": "deceptive"},)],
         }
     )
@@ -196,6 +198,7 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
         {"turn_no": 1, "question": "Why?", "answer": "Because.", "question_source": "investigator"}
     ]
     assert data.cards == [{"text": "a card"}]
+    assert data.unavailable_turns == [3]
     assert data.final_finding == {"label": "deceptive"}
 
 

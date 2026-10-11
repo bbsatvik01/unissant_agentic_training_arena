@@ -10,12 +10,13 @@ from decimal import Decimal
 from fractions import Fraction
 from typing import Any
 
+from arena_core.contracts.referee import RefereeSubjectReport
 from arena_core.referee.leaderboard import TrialScore
 from arena_core.scoring.inclusion import Exec, SubjInc
 from arena_core.scoring.kpi import LatencyRow
 from arena_referee.db import StoredTrialJudgments, TrialFacts
 from arena_referee.leaderboard import candidate_inputs, subject_inputs, trial_score
-from arena_referee.mapping import TrialData
+from arena_referee.mapping import TrialData, build_triggers
 
 TWO = 2
 FULL_BLOCK = 18
@@ -187,8 +188,12 @@ def _r1_turn(n: int) -> dict[str, Any]:
     }
 
 
-def stored(n: int, *, open_questions: bool = True, unavailable: tuple[int, ...] = ()) -> StoredTrialJudgments:
-    """`n` relayed-or-not proposals, each judged by R2 (`open_questions=False` makes every one closed)."""
+def stored(
+    n: int, *, open_questions: bool = True, unavailable: tuple[int, ...] = (), uncertain: tuple[int, ...] = ()
+) -> StoredTrialJudgments:
+    """`n` proposals, each judged by R2 (`open_questions=False` makes every one closed), plus `unavailable` turns
+    whose card never came; `uncertain` answers are labeled genuine uncertainty, and R2 answers each 2b trigger the
+    referee input carries (`build_triggers`, the same population the scorer uses)."""
     data = TrialData(
         trial_id=TRIAL,
         split="dev",
@@ -202,15 +207,30 @@ def stored(n: int, *, open_questions: bool = True, unavailable: tuple[int, ...] 
         ],
         cards=[_card(k) for k in range(1, n + 1)],
         final_finding=None,
+        unavailable_turns=unavailable,
+    )
+    turns = [
+        {**_r1_turn(k), "label": "genuine_uncertainty", "asked_fact_status": "unknown", "uncertainty_expressed": True}
+        if k in uncertain
+        else _r1_turn(k)
+        for k in range(1, n + 1 + len(unavailable))
+    ]
+    data = dataclasses.replace(
+        data,
+        transcript=[
+            {"turn_no": k, "question": f"Q{k}?", "answer": f"Answer {k}.", "question_source": "investigator"}
+            for k in range(1, n + 1 + len(unavailable))
+        ],
     )
     r1 = {
         "report": {
             "schema_version": "ref_subj.v5",
-            "turns": [_r1_turn(k) for k in range(1, n + 1)],
+            "turns": turns,
             "trajectory": {"self_consistent": True, "conflicts": []},
         },
         "quote_invalid": [],
     }
+    triggers = build_triggers(data, RefereeSubjectReport.model_validate(r1["report"]), "assistant")
     followups = [
         {
             "turn_id": f"t{k:02d}",
@@ -227,8 +247,9 @@ def stored(n: int, *, open_questions: bool = True, unavailable: tuple[int, ...] 
         {"id": s, "result": "pass", "turn_ids": []} for s in ("3a", "3b", "4a", "4c", "4d")
     ]
     subchecks.append({"id": "3d", "result": "na", "turn_ids": []})
+    subchecks += [{"id": t.subcheck_id, "result": "fail", "turn_ids": []} for t in triggers if t.subcheck_id == "2b"]
     r2 = {"schema_version": "ref_asst.v2", "flags": [], "followups": followups, "citations": [], "subchecks": subchecks}
-    return StoredTrialJudgments(data=data, unavailable_turns=unavailable, r1=r1, r2=r2)
+    return StoredTrialJudgments(data=data, r1=r1, r2=r2)
 
 
 def test_trial_score_computes_qq_from_the_stored_judgments() -> None:
@@ -250,6 +271,15 @@ def test_a_missing_card_is_a_proposal_that_fails_and_two_proposals_are_unscorabl
     assert with_gap is not None
     assert full is not None
     assert with_gap < full
+
+
+def test_r2_and_the_scorer_share_the_proposal_population_when_a_card_never_came() -> None:
+    # Codex r4 #2: cards 1-3, card 4 unavailable, answer 4 genuine uncertainty. R2's triggers must include the
+    # missing proposal's 2b window, or the scorer finds 2b applicable where R2 answered nothing and raises.
+    case = stored(3, unavailable=(4,), uncertain=(4,))
+    triggers = build_triggers(case.data, RefereeSubjectReport.model_validate(case.r1["report"]), "assistant")
+    assert [(t.subcheck_id, t.question_turns) for t in triggers] == [("2b", [4])]
+    assert trial_score("F01", case).qq is not None
 
 
 def test_candidate_inputs_attach_scores_and_latency_to_each_included_trial() -> None:

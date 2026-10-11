@@ -24,6 +24,7 @@ from arena_referee.debrief import demeanor_hit
 from arena_referee.mapping import (
     adapted_cards,
     available_after,
+    proposal_turns,
     question_sources,
     record_released_after,
     trial_rows,
@@ -40,9 +41,8 @@ def trial_score(family_id: str, stored: StoredTrialJudgments) -> TrialScore:
     labels = adapt_subject_report(subject, frozenset(stored.r1.get("quote_invalid", ())))
     cards = adapted_cards(data)
     proposal_text = {c.turn_no: c.follow_up.question for c in cards}
-    card_turns = set(proposal_text) | set(stored.unavailable_turns)
     questions = assistant_questions(
-        card_turns,
+        proposal_turns(data),
         frozenset(c.turn_no for c in cards if c.valid),
         question_sources(data),
         assistant.followups,

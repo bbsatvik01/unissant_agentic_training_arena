@@ -11,7 +11,7 @@ SQL, so a reviewer can check it against the schema directly.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Literal, cast
@@ -128,6 +128,13 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         cards = [r[0] for r in await cur.fetchall()]
 
     async with connect() as conn:
+        cur = await conn.execute(
+            "select turn_no from arena.trial_events where trial_id = %s and kind = 'coach_unavailable' order by seq",
+            (trial_uuid,),
+        )
+        unavailable_turns = [r[0] for r in await cur.fetchall()]
+
+    async with connect() as conn:
         cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (trial_uuid,))
         finding_row = await cur.fetchone()
     final_finding = finding_row[0] if finding_row else None
@@ -142,6 +149,7 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         transcript=transcript,
         cards=cards,
         final_finding=final_finding,
+        unavailable_turns=unavailable_turns,
     )
 
 
@@ -520,12 +528,10 @@ async def fetch_isolation_result(connect: Connector, commit_sha: str) -> Isolati
 
 @dataclass(frozen=True, kw_only=True)
 class StoredTrialJudgments:
-    """One assistant trial's stored scoring inputs: its data, the turns whose card never came
-    (`coach_unavailable`, each a proposal that fails every per-question test, S3 2.9), and R1's and R2's stored
-    judgment payloads (`sealed.judgments`, keys `<trial>:referee_subject` and `<trial>:referee_assistant:...`)."""
+    """One assistant trial's stored scoring inputs: its data and R1's and R2's stored judgment payloads
+    (`sealed.judgments`, keys `<trial>:referee_subject` and `<trial>:referee_assistant:...`)."""
 
     data: TrialData
-    unavailable_turns: Collection[int]
     r1: Mapping[str, Any]
     r2: Mapping[str, Any]
 
@@ -617,14 +623,7 @@ async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> Sto
     r1 = await get_judgment(connect, f"{trial_id}:referee_subject")
     if r1 is None or r2 is None:
         return None
-    async with connect() as conn:
-        cur = await conn.execute(
-            "select turn_no from arena.trial_events where trial_id = %s and kind = 'coach_unavailable'",
-            (UUID(trial_id),),
-        )
-        unavailable = [r[0] for r in await cur.fetchall()]
-    data = await fetch_trial_data(connect, trial_id)
-    return StoredTrialJudgments(data=data, unavailable_turns=unavailable, r1=r1, r2=r2)
+    return StoredTrialJudgments(data=await fetch_trial_data(connect, trial_id), r1=r1, r2=r2)
 
 
 async def fetch_latency_rows(connect: Connector, trial_ids: list[str]) -> list[LatencyRow]:
