@@ -9,12 +9,13 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
-import { DebriefScore } from "../components/overlay/DebriefScore";
+import { DebriefScene } from "../components/overlay/DebriefScene";
 import { EvidencePanel } from "../components/overlay/EvidencePanel";
 import { FindingPanel } from "../components/overlay/FindingPanel";
 import { Tabs } from "../components/overlay/Tabs";
 import { Transcript } from "../components/overlay/Transcript";
-import type { WallDocument } from "../components/world/moments";
+import type { ScoreCard, WallDocument } from "../components/world/moments";
+import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
 import { createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
@@ -277,6 +278,14 @@ export function WorldRoute() {
   const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
   const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;
   const showDebrief = place === "room" && debriefReady && !debriefClosed;
+  // The debrief scene's score cards on the wall: the document's total and five dimension scores, as they are.
+  const scoreCards: readonly ScoreCard[] | null = useMemo(() => {
+    if (!showDebrief || debrief === null || !debrief.scored || debrief.rubric.total === null) return null;
+    return [
+      { label: "Total", title: "Rubric total", score: `${String(debrief.rubric.total)}/100` },
+      ...debrief.rubric.dimensions.map((d) => ({ label: d.dim_id, title: RUBRIC[d.dim_id].name, score: `${String(d.score)}/4` })),
+    ];
+  }, [showDebrief, debrief]);
   // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
   const reason = composerReason(view, mode, live);
@@ -350,16 +359,17 @@ export function WorldRoute() {
       </header>
 
       <main className="stage">
-        <aside className="side left" data-open={leftOpen ? "true" : "false"}>
+        <aside className="side left" data-open={leftOpen && !showDebrief ? "true" : "false"}>
           <button
             type="button"
             className="panel-toggle"
-            aria-expanded={leftOpen}
+            aria-expanded={leftOpen && !showDebrief}
+            disabled={showDebrief}
             onClick={() => {
               setLeftOpen((v) => !v);
             }}
           >
-            {leftOpen ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
+            {leftOpen && !showDebrief ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
           </button>
           {place === "hub" ? (
             <section className="panel" aria-labelledby="cases-title">
@@ -446,6 +456,7 @@ export function WorldRoute() {
                 still={still}
                 reducedMotion={still}
                 showPet={showPet}
+                scoreCards={scoreCards}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
                 onArrive={onArrive}
@@ -464,8 +475,9 @@ export function WorldRoute() {
             </button>
           ) : null}
           {showDebrief && debrief !== null ? (
-            <DebriefScore
+            <DebriefScene
               debrief={debrief}
+              view={view}
               reducedMotion={still}
               onClose={() => {
                 setDebriefClosed(true);

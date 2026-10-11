@@ -1161,3 +1161,79 @@ td {
   background: var(--arena-glass-strong);
   backdrop-filter: blur(18px);
 }
+
+/* The debrief scene: a tall card on the right, beside the wall where the score cards pin themselves. */
+.debrief-scene {
+  top: 72px;
+  bottom: 56px;
+  right: 12px;
+  left: auto;
+  width: min(440px, calc(100vw - 24px));
+  max-height: none;
+  padding-bottom: 0;
+  overflow: hidden;
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+}
+
+.debrief-scene .tabs {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  min-height: 0;
+}
+
+.debrief-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arena-space-1);
+  padding: var(--arena-space-3) var(--arena-space-4) 0;
+}
+
+.dim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arena-space-1);
+  padding: var(--arena-space-2) 0;
+  border-top: 1px solid var(--arena-hairline);
+}
+
+.dim-head {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: var(--arena-space-2);
+  font-weight: 500;
+}
+
+.checks {
+  font-size: 12px;
+  color: var(--arena-ink-2);
+  letter-spacing: 0;
+}
+
+.checks li[data-result="fail"] {
+  color: var(--arena-warn);
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arena-space-3);
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arena-space-1);
+  padding-bottom: var(--arena-space-3);
+  border-bottom: 1px solid var(--arena-hairline);
+}
+
+.dims .dim {
+  display: flex;
+  grid-template-columns: none;
+}
+
+.dims .checks li {
+  display: block;
+}

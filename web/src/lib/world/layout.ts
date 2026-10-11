@@ -87,7 +87,8 @@ export type ShotName =
   | "subject_close"
   | "observation"
   | "wall"
-  | "table";
+  | "table"
+  | "debrief";
 
 export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   hub: { position: [6.4, 2.25, 4.9], target: [-1.2, 1.35, -5.2], fov: 46 },
@@ -100,6 +101,8 @@ export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   subject_close: { position: inRoom([0.22, 1.3, 0.62]), target: inRoom([0, 1.12, -0.8]), fov: 30 },
   observation: { position: inRoom([0.15, 1.75, -3.55]), target: inRoom([1.75, 1.0, -5.0]), fov: 46 },
   wall: { position: inRoom([-1.6, 1.55, 0.1]), target: inRoom([-1.75, 1.5, -3]), fov: 40 },
+  // The debrief scene: the score cards on the wall, framed left of centre so the debrief card beside it leaves them clear.
+  debrief: { position: inRoom([-1.2, 1.55, 0.35]), target: inRoom([-1.2, 1.5, -3]), fov: 42 },
   table: { position: inRoom([-1.05, 1.5, 0.85]), target: inRoom([-0.4, 0.8, 0.15]), fov: 42 },
 };
 
