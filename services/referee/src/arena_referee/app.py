@@ -21,6 +21,7 @@ from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, 
 from arena_core.identity import DevIdentity, resolve_dev_user
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort
+from arena_core.referee.fake_referee import FAKE_REFEREE_REPLIES
 from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_core.spend.guard import DbSpendGuard
 from arena_referee import db
@@ -31,15 +32,24 @@ from arena_referee.scoring import PromptContext, default_dev_rubric
 REFEREE_PORT = 8082  # S5 10.1
 _BROWSER_ORIGINS_VAR = "ARENA_BROWSER_ORIGINS"
 _LOCAL_CALLERS_VAR = "ARENA_LOCAL_CALLERS"
+_PORT_VAR = "ARENA_REFEREE_PORT"
 
 
-def _default_origins() -> frozenset[str]:
-    return frozenset({f"http://127.0.0.1:{REFEREE_PORT}", f"http://localhost:{REFEREE_PORT}"})
+def port(env: dict[str, str]) -> int:
+    """`REFEREE_PORT` (S5 10.1), overridable so an integration test can run a real referee subprocess on a
+    scratch port instead of the fixed one `scripts/dev.sh` always binds -- never set outside a test:
+    nothing in production or `scripts/dev.sh` names this variable, so every real run still gets 8082."""
+    return int(env.get(_PORT_VAR, str(REFEREE_PORT)))
+
+
+def _default_origins(env: dict[str, str]) -> frozenset[str]:
+    bound = port(env)
+    return frozenset({f"http://127.0.0.1:{bound}", f"http://localhost:{bound}"})
 
 
 def _browser_origins(env: dict[str, str]) -> frozenset[str]:
     raw = env.get(_BROWSER_ORIGINS_VAR, "").strip()
-    return frozenset(o.strip() for o in raw.split(",") if o.strip()) if raw else _default_origins()
+    return frozenset(o.strip() for o in raw.split(",") if o.strip()) if raw else _default_origins(env)
 
 
 def _caller_hashes(env: dict[str, str]) -> frozenset[str]:
@@ -51,7 +61,8 @@ def _caller_hashes(env: dict[str, str]) -> frozenset[str]:
 
 
 def _guard_config(env: dict[str, str]) -> GuardConfig:
-    allowed_hosts = frozenset({f"127.0.0.1:{REFEREE_PORT}", f"localhost:{REFEREE_PORT}"})
+    bound = port(env)
+    allowed_hosts = frozenset({f"127.0.0.1:{bound}", f"localhost:{bound}"})
     callers = _caller_hashes(env)
     return GuardConfig(
         allowed_hosts=allowed_hosts, allowed_origins=_browser_origins(env), internal_caller_hashes=lambda _p: callers
@@ -89,7 +100,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     resolved_env = dict(os.environ if env is None else env)
     settings: Settings = boot(ArenaRole.REFEREE, resolved_env)
     connect = dsn_connector(settings.dsn)
-    adapter = model_adapter(resolved_env)
+    adapter = model_adapter(resolved_env, canned=FAKE_REFEREE_REPLIES)
     guard = DbSpendGuard(connect)
     port = AgentPort(adapter, guard)
     manifest = with_hash(referee_manifest())

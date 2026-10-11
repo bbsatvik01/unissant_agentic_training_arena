@@ -44,6 +44,15 @@ async def _packet_row(connect: Connector, table: str, variant_id: UUID) -> Mappi
         return cast("Mapping[str, Any] | None", row[0] if row else None)
 
 
+async def fetch_source_trial_id(connect: Connector, trial_id: str) -> str | None:
+    """A `replay` trial's source corpus transcript (`arena.trials.source_trial_id`, set by `start_trial`,
+    S4 privileged_functions.sql), or None for any other kind (never set)."""
+    async with connect() as conn:
+        cur = await conn.execute("select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
+        row = await cur.fetchone()
+        return None if row is None or row[0] is None else str(row[0])
+
+
 async def fetch_trial_kind(connect: Connector, trial_id: str) -> str | None:
     """`arena.trials.kind` ('training', 'interactive', 'replay_corpus' or 'replay'), or None if the trial
     does not exist. A separate, cheap lookup from `fetch_trial_data` (shared by the interactive scoring
@@ -137,6 +146,72 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         cards=cards,
         final_finding=final_finding,
     )
+
+
+# ---------------------------------------------------------------- tournament lifecycle (S5 5.3; WP-17)
+
+
+async def fetch_block_trial_ids(connect: Connector, tournament_id: str, block_no: int) -> list[str]:
+    """Every interactive trial of one block (its latest attempt only, S4 `ledger.planned_execution`'s own
+    rule): the id the block-boundary score call scores (C-42). `block_no` is the roster's own 1-based
+    number (`arena.blocks.block_no`), not that row's internal id -- `arena_public` has no grant to read the
+    latter (S4 9.3), so the job names the block this way instead."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select t.id from arena.planned_trials p join arena.blocks b on b.id = p.block_id"
+            " join arena.trials t on t.planned_trial_id = p.id"
+            " where b.tournament_id = %s and b.block_no = %s and p.track = 'interactive'"
+            " and t.attempt = (select max(t2.attempt) from arena.trials t2 where t2.planned_trial_id = p.id)",
+            (UUID(tournament_id), block_no),
+        )
+        return [str(row[0]) for row in await cur.fetchall()]
+
+
+async def _existing_corpus_seal(connect: Connector, tournament_id: str) -> str | None:
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select corpus_sha256 from ledger.corpus_seals where tournament_id = %s", (UUID(tournament_id),)
+        )
+        row = await cur.fetchone()
+        return None if row is None else cast("str", row[0])
+
+
+async def seal_replay_corpus(connect: Connector, tournament_id: str) -> str:
+    """`ledger.seal_replay_corpus` (SG2-27, SG3-24): idempotent, a retry returns the stored seal -- but only
+    while the tournament is still `running`, the function's own precondition. A job resumed after the
+    tournament already closed (a safe no-op's whole `run`, not a resumed mid-job retry) calls this again
+    regardless; once a seal row exists, read it back directly instead of asking the function to repeat a
+    state transition that has already moved on."""
+    existing = await _existing_corpus_seal(connect, tournament_id)
+    if existing is not None and await fetch_tournament_status(connect, tournament_id) != "running":
+        return existing
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute("select ledger.seal_replay_corpus(%s)", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    return cast("str", row[0] if row else "")
+
+
+async def fetch_tournament_status(connect: Connector, tournament_id: str) -> str | None:
+    async with connect() as conn:
+        cur = await conn.execute("select status from arena.tournaments where id = %s", (UUID(tournament_id),))
+        row = await cur.fetchone()
+        return None if row is None else cast("str", row[0])
+
+
+# Every status `close_tournament_run` can ever leave behind, in order; a retry that lands here already
+# closed is the lost-response case `RefereeClient.close`'s one retry exists for (SG3-24), not a real refusal.
+_CLOSED_OR_LATER = frozenset({"sealed", "scoring", "revealed"})
+
+
+async def close_tournament_run(connect: Connector, tournament_id: str) -> None:
+    """`arena.close_tournament_run`: running -> sealed, once every planned trial has an execution record
+    and the replay corpus (if any) is sealed. Idempotent here, not just retried (SG3-24): a tournament
+    already `sealed` or later answers success without calling the function again, because that function's
+    own state check (`running` only) would otherwise turn a lost first response into a 409 on retry."""
+    if await fetch_tournament_status(connect, tournament_id) in _CLOSED_OR_LATER:
+        return
+    async with connect() as conn, conn.transaction():
+        await conn.execute("select arena.close_tournament_run(%s)", (UUID(tournament_id),))
 
 
 # ---------------------------------------------------------------- sealed writes (S2 7.2, S3 4.2)

@@ -391,12 +391,58 @@ def test_score_route_rejects_an_unknown_trial_before_scoring(tmp_path: Path, mon
     assert resp.status_code == NOT_FOUND
 
 
-def test_score_route_refuses_a_non_interactive_trial(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """S5 5.3: corpus and replay trials have a different call shape and are WP-16/WP-17's to wire; this
-    route refuses them with a clear error rather than silently mis-scoring them."""
+def test_score_route_scores_a_corpus_trial_with_r1_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """S5 5.3 (WP-17): a `replay_corpus` transcript gets R1 and its initial validity verdict, never R2."""
+
+    async def fake_score_corpus_trial(_deps: object, _trial_id: str, _prompts: object) -> ValidityDecision:
+        return ValidityDecision(verdict="valid", deciding_turns=(), auto_recordable=True, reason="clean")
 
     async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
         return "replay_corpus"
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_corpus_trial", fake_score_corpus_trial)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"verdict": "valid", "auto_recordable": True}
+
+
+def test_score_route_scores_a_replay_trial_with_r2_against_the_sources_r1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S5 5.3; D2 (WP-17): a `replay` trial gets R2 only, against its source corpus transcript's stored R1
+    report (never a fresh R1 call)."""
+    seen_reports: list[RefereeSubjectReport] = []
+
+    async def fake_score_replay_trial(
+        _deps: object, _trial_id: str, _ctx: object, source_report: RefereeSubjectReport
+    ) -> RefereeAssistantReport:
+        seen_reports.append(source_report)
+        return _fake_assistant_report()
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay"
+
+    async def fake_source_report(_request: object, _trial_id: UUID) -> RefereeSubjectReport:
+        return _fake_subject_report()
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_replay_trial", fake_score_replay_trial)
+    monkeypatch.setattr(score_route, "_source_subject_report", fake_source_report)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"verdict": None, "auto_recordable": False}
+    assert seen_reports == [_fake_subject_report()]
+
+
+def test_score_route_rejects_an_unrecognized_trial_kind(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A trial kind the route does not know (never training, interactive, replay_corpus or replay) is
+    refused with a clear error rather than silently mis-scored."""
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "training"
 
     app = make_app(tmp_path)
     monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
