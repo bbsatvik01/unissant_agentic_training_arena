@@ -43,7 +43,8 @@ PINNED_TABLES: dict[str, object] = {
         "warn_unused_ignores": True,
         "warn_unreachable": True,
         "enable_error_code": ["ignore-without-code", "redundant-expr", "truthy-bool"],
-        "files": ["packages", "services", "tools", "conftest.py"],
+        # scripts/ joined with its first file (WP-05, scripts/budget_plan.py): type-checked and measured like the rest.
+        "files": ["packages", "services", "tools", "scripts", "conftest.py"],
         "explicit_package_bases": True,
         "mypy_path": ["packages/core/src", *SERVICE_SRC],
     },
@@ -60,7 +61,7 @@ PINNED_TABLES: dict[str, object] = {
     "coverage": {
         "run": {
             "branch": True,
-            "source": [*PACKAGES, "tools"],
+            "source": [*PACKAGES, "tools", "scripts"],
             "omit": ["tools/tests/*", "tools/envs/*"],
             "relative_files": True,
         },

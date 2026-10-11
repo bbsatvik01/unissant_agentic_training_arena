@@ -1,22 +1,21 @@
 """Maximal-context check (S2 2, D11, O-10; AT-PORT-3's case side): every call kind, rendered for a case at its caps,
 fits its input limit with the repair allowance.
 
-The input bound is bytes (D11). `request_bytes` is the one measure: the serialized request (system instruction,
-contents, and the generation config with the `response_json_schema` a request carries, `providers.structured.
-sent_schema`) as UTF-8 JSON; the agent port measures the same function (WP-05). `max_context(family, role)` renders
-the worst case S2 2 fixes for one variant of an authored family: 12 exchanges; every investigator question at 600
-characters of 4 bytes (`QUESTION_MAX_BYTES`, 2,400); every answer at 1,800 bytes; every model or
-finding field at its byte cap; every releasable record released; 33 earlier flags, the running finding and A1's deep
-update; 36 flags, 12 follow-ups or investigator questions, the finding projection, 22 citations and every trigger
-for the referee. Filler text is a CJK ideograph (3 bytes, NFKC-stable): it reaches each byte cap within each
-character cap, and JSON serializes it unescaped exactly as `"` serializes escaped (2 bytes per character).
+The input bound is bytes (D11), counted on the wire (D-019). `request_bytes` is the one measure: the exact body
+google-genai transmits for the request (`providers.types.request_bytes`, the function the agent port reserves on,
+WP-05), with the `response_json_schema` a request carries (`providers.structured.sent_schema`) and the widest seed.
+`max_context(family, role)` renders the worst case S2 2 fixes for one variant of an authored family: 12 exchanges;
+every investigator question at its cap (`QUESTION_MAX_BYTES`, 2,400 wire bytes); every answer at 1,800 wire bytes;
+every model or finding field at its byte cap; every releasable record released; 33 earlier flags, the running finding
+and A1's deep update; 36 flags, 12 follow-ups or investigator questions, the finding projection, 22 citations and
+every trigger for the referee. Filler text is a CJK ideograph (NFKC-stable, six wire bytes as its `\\uXXXX`
+escape): it reaches each wire-byte cap within each character cap.
 `over_limit(family)` lists every call kind whose worst case plus `REPAIR_BYTES` exceeds its limit; S1's authoring
 validator calls it (D-014: a family that does not fit goes back to its author).
 """
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from functools import cache
 from typing import Any, Literal
@@ -59,12 +58,16 @@ from arena_core.contracts.coaching import (
     StoredDeepUpdate,
     StoredFlag,
 )
-from arena_core.contracts.common import MAX_TURNS
+from arena_core.contracts.common import MAX_TURNS, wire_bytes
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.review import TriggerEntry
+from arena_core.providers.port import SEED_MASK
 from arena_core.providers.structured import sent_schema
+from arena_core.providers.types import Message, ModelRequest
+from arena_core.providers.types import request_bytes as port_request_bytes
+from arena_core.spend.limits import REPAIR_BYTES, VertexModel
+from arena_core.spend.limits import ThinkingLevel as SpendThinking
 
-REPAIR_BYTES = 5_200  # S2 2: the most a repair adds to a request
 # S2 2 input limits in bytes (cost_model.LIMITS), by call kind and referee purpose.
 INPUT_LIMITS = {
     "subject": 80_000,
@@ -89,32 +92,40 @@ _IDEOGRAPH = "一"
 SALT = "0" * 8
 
 
-_FOUR_BYTE = "\U00020000"  # a CJK Extension B ideograph: 4 UTF-8 bytes, NFKC-stable
+_IDEOGRAPH_WIRE = wire_bytes(_IDEOGRAPH)  # 6: `\\u4e00`
+# The widest seed the port sends (S2 1 masked to int32): a worst case measures with the most seed digits.
+WIDEST_SEED = SEED_MASK
 
 
 def question_fill() -> str:
-    """The largest question: 600 characters of 4 bytes, `QUESTION_MAX_BYTES` (S2 1, 2)."""
-    return _FOUR_BYTE * (QUESTION_MAX_BYTES // 4)
+    """The largest question: `QUESTION_MAX_BYTES` (2,400) wire bytes (S2 1, 2; D-019)."""
+    return fill(QUESTION_MAX_BYTES)
 
 
 def fill(n_bytes: int) -> str:
-    """Text of exactly `n_bytes` UTF-8 bytes, stable under the renderer's normalization."""
-    return _IDEOGRAPH * (n_bytes // 3) + "a" * (n_bytes % 3)
+    """Text of exactly `n_bytes` wire bytes (D-019), stable under the renderer's normalization."""
+    return _IDEOGRAPH * (n_bytes // _IDEOGRAPH_WIRE) + "a" * (n_bytes % _IDEOGRAPH_WIRE)
 
 
-def request_bytes(prompt: Prompt, schema: Mapping[str, Any], max_output_tokens: int, thinking_level: str) -> int:
-    """UTF-8 bytes of the serialized request (D11): the measure the reservation and the input bound use."""
-    request = {
-        "system_instruction": {"parts": [{"text": prompt.system_instruction}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt.user_message}]}],
-        "generation_config": {
-            "response_mime_type": "application/json",
-            "response_json_schema": schema,
-            "max_output_tokens": max_output_tokens,
-            "thinking_config": {"thinking_level": thinking_level},
-        },
-    }
-    return len(json.dumps(request, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+def request_bytes(
+    prompt: Prompt,
+    schema: Mapping[str, Any],
+    max_output_tokens: int,
+    thinking_level: str,
+    seed: int = WIDEST_SEED,
+) -> int:
+    """Wire bytes of the request the port sends for `prompt` (D11, D-019): exactly `providers.types.request_bytes`
+    of the same request, the number the reservation and the input bound use."""
+    request = ModelRequest(
+        model=VertexModel.FLASH_LITE_35,  # the model is in the URL, not the body
+        system=prompt.system_instruction,
+        messages=(Message("user", prompt.user_message),),
+        json_schema=dict(schema),
+        max_output_tokens=max_output_tokens,
+        thinking=SpendThinking(thinking_level.lower()),
+        seed=seed,
+    )
+    return port_request_bytes(request)
 
 
 def _sized(prompts: PromptSet, key: str, prompt: Prompt) -> int:
@@ -284,7 +295,7 @@ def _gate_bytes(packet: SubjectPacket, user_message: str) -> dict[str, int]:
         head = line.split(" ", 1)[0]
         gate = head if head in out and line.startswith(f"{head} condition:") else unc_gate.get(head)
         if gate is not None:
-            out[gate] += len(json.dumps(line, ensure_ascii=False).encode("utf-8"))
+            out[gate] += wire_bytes(line) + 2  # the line as a JSON string, its quotes included
     return out
 
 

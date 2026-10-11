@@ -7,9 +7,11 @@ with `after = last_seq`. REST, so no 16 KB limit. Two branches, exclusive by `ch
 - voice: `voice_exchanges[]` (`{exchange_no, lines[{role, text, partial}]}`, role-tagged and unpaired, D-016),
   `turns`, `cards`, `updates` and `coach_failures` empty, `exchanges_used` = stored windows (the cap's authority).
 
-`transcript_version` on answers and releases lets the client apply the complete-card rule (S6 4.5, SG4-23) from
-the snapshot exactly as from deltas. The snapshot never carries a role, a correct finding or a resolution (S6
-FE-DEB-5): every model refuses unknown keys.
+`transcript_version` on answers and releases, and the row `seq` of each question, release and card
+(`question_seq`, `event_seq`), let the client apply the complete-card rule (S6 4.5, SG4-23, FE-COACH-7) to the
+snapshot exactly as to deltas: a card is current when no later turn's question precedes it and it reads the
+newest version among its answer and the releases before it. The snapshot never carries a role, a correct finding
+or a resolution (S6 FE-DEB-5): every model refuses unknown keys.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ from arena_core.contracts.events import (
     CoachUpdate,
     EvidenceReleased,
     QuestionSource,
+    Seq,
     Text600,
     Text900,
     TrialStatus,
@@ -52,10 +55,18 @@ class SnapshotTurn(Contract):
     partial: bool
     committed_at: Timestamp | None
     answer_version: Version | None
+    question_seq: Seq
 
 
 class SnapshotRelease(EvidenceReleased):
     transcript_version: Version
+    event_seq: Seq
+
+
+class SnapshotCard(CoachCard):
+    """A card in the snapshot, with its row's `seq` (the order the complete-card rule needs)."""
+
+    event_seq: Seq
 
 
 class RequestableRecord(Contract):
@@ -105,12 +116,20 @@ class TextTrialSnapshot(_SnapshotFields):
     channel: Literal["text"]
     turns: Annotated[list[SnapshotTurn], Field(max_length=12)]
     voice_exchanges: Annotated[list[VoiceExchange], Field(max_length=0)]
-    cards: Annotated[list[CoachCard], Field(max_length=12)]
+    cards: Annotated[list[SnapshotCard], Field(max_length=12)]
     updates: Annotated[list[CoachUpdate], Field(max_length=12)]
     coach_failures: Annotated[list[CoachFailed], Field(max_length=12)]
 
     @model_validator(mode="after")
     def _rules(self) -> Self:
+        seqs = [t.question_seq for t in self.turns]
+        seqs += [r.event_seq for r in self.released] + [c.event_seq for c in self.cards]
+        if any(seq > self.last_seq for seq in seqs):
+            msg = "event seqs: a question, release or card seq is after last_seq"
+            raise ValueError(msg)
+        if len(set(seqs)) != len(seqs):
+            msg = "event seqs: one seq is used twice"
+            raise ValueError(msg)
         numbers = [t.turn_no for t in self.turns]
         if numbers != list(range(1, len(numbers) + 1)):
             msg = "turns: numbered 1..n in order"
@@ -126,12 +145,19 @@ class VoiceTrialSnapshot(_SnapshotFields):
     channel: Literal["voice"]
     turns: Annotated[list[SnapshotTurn], Field(max_length=0)]
     voice_exchanges: Annotated[list[VoiceExchange], Field(max_length=12)]
-    cards: Annotated[list[CoachCard], Field(max_length=0)]
+    cards: Annotated[list[SnapshotCard], Field(max_length=0)]
     updates: Annotated[list[CoachUpdate], Field(max_length=0)]
     coach_failures: Annotated[list[CoachFailed], Field(max_length=0)]
 
     @model_validator(mode="after")
     def _rules(self) -> Self:
+        seqs = [r.event_seq for r in self.released]
+        if any(seq > self.last_seq for seq in seqs):
+            msg = "event seqs: a release seq is after last_seq"
+            raise ValueError(msg)
+        if len(set(seqs)) != len(seqs):
+            msg = "event seqs: one seq is used twice"
+            raise ValueError(msg)
         numbers = [e.exchange_no for e in self.voice_exchanges]
         if numbers != list(range(1, len(numbers) + 1)):
             msg = "voice_exchanges: numbered 1..n in order"

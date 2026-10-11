@@ -21,6 +21,7 @@ from arena_core.contracts.citations import Record, Turn, finding_citation_ok
 from arena_core.contracts.common import turn_no
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import CitationVerdict, FollowupVerdict, SubcheckVerdict
+from arena_core.safety.demeanor import lexicon_text as demeanor_lexicon_text
 from arena_core.scoring.exact import (
     DIMENSIONS,
     RubricError,
@@ -114,10 +115,15 @@ class RubricConfig:
     model_ids: tuple[str, ...]
 
 
-# The configured inputs. The lexicon file and the frozen referee prompts are not authored yet (they arrive with the
-# referee prompt work): they are empty here, and the work package that adds them changes this value and must
-# append a lineage entry, or the tripwire fails.
-CONFIG = RubricConfig(lexicon_text="", prompt_texts=(), model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"))
+# The configured inputs. The demeanor lexicon is WP-11's `demeanor_lexicon.v1` (S2 4.4), read from the one module that
+# holds it, so a lexicon change changes this value and needs a lineage entry. The frozen referee prompts are not
+# authored yet (they arrive with the referee prompt work): empty here; the work package that adds them changes this
+# value and must append a lineage entry, or the tripwire fails.
+CONFIG = RubricConfig(
+    lexicon_text=demeanor_lexicon_text(),
+    prompt_texts=(),
+    model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"),
+)
 
 
 class LineageError(RuntimeError):
@@ -133,6 +139,12 @@ LINEAGE: tuple[LineageEntry, ...] = (
         supersedes=None,
         date="2026-10-09",
         note="rubric.v1 as S3 v2.8 defines it; lexicon and referee prompts not yet authored (WP-15)",
+    ),
+    LineageEntry(
+        sha256="17b16e3f2c8720fa4a44bdda257837b9382bc4aeaf4ac277aa1fb8a791d3b6b7",
+        supersedes="14323cee9fa5b0445fd8a11f6c706266bbfb7bd8a39856092347fb47725a5a8d",
+        date="2026-10-11",
+        note="demeanor_lexicon.v1 (S2 4.4) bound into the rubric hash (WP-11); referee prompts not yet authored",
     ),
 )
 

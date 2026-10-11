@@ -412,7 +412,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -482,7 +483,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -2128,7 +2130,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -2198,7 +2201,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -2241,7 +2245,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -2311,7 +2316,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -2356,7 +2362,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -2426,7 +2433,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -2824,7 +2832,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [
@@ -2894,7 +2903,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [
@@ -2990,7 +3000,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -4182,7 +4193,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -4252,7 +4264,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -5505,7 +5518,7 @@
         ],
         "finding": null,
         "commitment_hash": null,
-        "last_seq": 3,
+        "last_seq": 6,
         "channel": "text",
         "turns": [
           {
@@ -5515,7 +5528,8 @@
             "answer": "It was a busy shift.",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -5585,7 +5599,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 6
           }
         ],
         "updates": [],
@@ -5649,7 +5664,8 @@
             "answer": "\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac\u20ac",
             "partial": false,
             "committed_at": "2026-10-20T15:04:05.123Z",
-            "answer_version": 2
+            "answer_version": 2,
+            "question_seq": 1
           }
         ],
         "voice_exchanges": [],
@@ -5719,7 +5735,8 @@
               "latency_ms": 1840,
               "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
               "transcript_version": 2
-            }
+            },
+            "event_seq": 3
           }
         ],
         "updates": [],
@@ -6512,6 +6529,323 @@
         "last": 4
       },
       "layer": "schema"
+    },
+    {
+      "id": "neg-87",
+      "schema": "snapshot",
+      "layer": "invariant",
+      "why": "a snapshot card seq after last_seq",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2,
+            "question_seq": 1
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            },
+            "event_seq": 9
+          }
+        ],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "neg-88",
+      "schema": "snapshot",
+      "layer": "invariant",
+      "why": "a snapshot card and a question share one seq",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 1,
+        "exchanges_cap": 12,
+        "released": [],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "text",
+        "turns": [
+          {
+            "turn_no": 1,
+            "question": "Why did you enter?",
+            "source": "investigator",
+            "answer": "It was a busy shift.",
+            "partial": false,
+            "committed_at": "2026-10-20T15:04:05.123Z",
+            "answer_version": 2,
+            "question_seq": 1
+          }
+        ],
+        "voice_exchanges": [],
+        "cards": [
+          {
+            "turn_no": 1,
+            "card": {
+              "schema_version": "card.v1",
+              "turn_id": "t01",
+              "question": {
+                "question_type": "open",
+                "neutrality_issues": [],
+                "assessment": "An open question about the reason for entry."
+              },
+              "answer_category": "non_responsive",
+              "flags": [
+                {
+                  "kind": "non_responsive",
+                  "turn_id": "t01",
+                  "quote": "It was a busy shift.",
+                  "missing_fact": "purpose of entry",
+                  "conflict_turn_id": null,
+                  "conflict_quote": null,
+                  "conflict_record_id": null,
+                  "conflict_record_quote": null,
+                  "flag_ref": "t01.f1"
+                }
+              ],
+              "follow_up": {
+                "question": "What task required entry?",
+                "tactic": "funnel_probe",
+                "purpose": "Ask for the task the entry served.",
+                "record_request": null
+              },
+              "finding": {
+                "label": "insufficient_evidence",
+                "likelihood": "roughly_even_chance",
+                "confidence": "low",
+                "basis_flag_refs": [],
+                "cited_turns": [
+                  1
+                ],
+                "cited_records": [],
+                "corroboration_needed": [
+                  "the work order",
+                  "the timeline"
+                ],
+                "rationale": "The reason for entry is not yet stated; the work order and the timeline would settle it.",
+                "alternative_explanations": null,
+                "last_revised_turn": 1
+              },
+              "boundary_notice": false,
+              "commit_requested": false,
+              "card_seq": 1,
+              "turn_no": 1,
+              "validation": {
+                "valid": true,
+                "flags": {
+                  "t01.f1": {
+                    "citation_ok": true,
+                    "demeanor_based": false,
+                    "duplicate": false
+                  }
+                },
+                "demeanor_in_rationale": false
+              },
+              "latency_ms": 1840,
+              "work_item": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+              "transcript_version": 2
+            },
+            "event_seq": 1
+          }
+        ],
+        "updates": [],
+        "coach_failures": []
+      }
+    },
+    {
+      "id": "neg-89",
+      "schema": "snapshot",
+      "layer": "invariant",
+      "why": "a voice snapshot with two releases sharing one seq",
+      "value": {
+        "status": "running",
+        "reason_code": null,
+        "mode": "practice",
+        "split": "dev",
+        "exchanges_used": 2,
+        "exchanges_cap": 12,
+        "released": [
+          {
+            "record_id": "rec-02",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "date": null,
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry."
+            },
+            "released_at_turn": 1,
+            "trigger": "scheduled",
+            "transcript_version": 3,
+            "event_seq": 2
+          },
+          {
+            "record_id": "rec-03",
+            "title": "Lab B panel alarm log",
+            "kind": "record",
+            "doc_kind": "alarm_log",
+            "date": null,
+            "content": {
+              "body": "Lab B panel alarm log for the evening of the entry."
+            },
+            "released_at_turn": 1,
+            "trigger": "scheduled",
+            "transcript_version": 3,
+            "event_seq": 2
+          }
+        ],
+        "requestable": [
+          {
+            "record_id": "rec-02",
+            "kind": "alarm_log",
+            "title": "Lab B panel alarm log",
+            "description": "Panel alarm events for Lab B on the evening of the entry.",
+            "requestable_after_exchanges": 2,
+            "date": null
+          }
+        ],
+        "finding": null,
+        "commitment_hash": null,
+        "last_seq": 3,
+        "channel": "voice",
+        "turns": [],
+        "voice_exchanges": [
+          {
+            "exchange_no": 1,
+            "lines": [
+              {
+                "role": "investigator",
+                "text": "Why did you enter?",
+                "partial": false
+              },
+              {
+                "role": "subject",
+                "text": "It was a busy shift.",
+                "partial": false
+              }
+            ]
+          },
+          {
+            "exchange_no": 2,
+            "lines": [
+              {
+                "role": "subject",
+                "text": "The freezer alarm was going off, so I",
+                "partial": true
+              }
+            ]
+          }
+        ],
+        "cards": [],
+        "updates": [],
+        "coach_failures": []
+      }
     }
   ]
 }

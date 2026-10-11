@@ -11,6 +11,10 @@
 #      then, on that migrated database:
 #   3. cost parity: the migrated seeds equal cost_model.py (WI-S4-08)        tools/check_cost_parity.py --dsn
 #   4. the committed capability fixture equals the one regenerated from it (S4 section 10)
+#   5. the spend-guard integration suite (S5 4.10, 3.6; WP-05): the agent port and the guard client against the real
+#      migrated functions, then the budget-plan apply and check (D-012). It runs last because it applies ceilings,
+#      reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
+#                                                    pytest packages/core/tests/db/it_spend_guard.py
 # Every step runs; the script exits 1 if any failed. Needs docker, psql, python3 and uv.
 set -euo pipefail
 # The URIs below fully name each disposable server: no libpq environment variable may redirect them (PGHOSTADDR
@@ -139,10 +143,19 @@ regenerate_capability_fixture() {
   fi
 }
 
+spend_guard_integration() {
+  supabase_up || return 1
+  local dsn="$ADMIN/postgres"
+  (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
+    -p no:cacheprovider -W error packages/core/tests/db/it_spend_guard.py)
+}
+
 step "migrations and pgTAP on plain PostgreSQL 17 with pgTAP, throwaway database with the shim (plain path)" plain_path
 step "migrations and pgTAP on the Supabase Postgres 17 container's database (Supabase path)" supabase_path
 step "cost parity of the migrated seeds with cost_model.py (WI-S4-08)" cost_parity
 step "capability fixture equals the one regenerated from the migrated database" regenerate_capability_fixture
+step "spend-guard integration suite on the migrated database (agent port, guard client, budget plan)" \
+  spend_guard_integration
 cleanup
 
 if [[ $fail -ne 0 ]]; then

@@ -839,3 +839,41 @@ describe("openTicketedStream: only the newest attempt takes effect", () => {
     expect(h.handle.lastEventId).toBe("5");
   });
 });
+
+describe("trial stream: caller-named resume cursor", () => {
+  it("moves the cursor to resumeCursor's answer, never backwards", async () => {
+    const sources: { url: string; onmessage: ((e: MessageEvent) => void) | null; onopen: null; onerror: ((e: Event) => void) | null; close(): void }[] = [];
+    const timers: (() => void)[] = [];
+    let prefix = 3;
+    const handle = openTrialStream({
+      trialId: "t1",
+      mintTicket: () => Promise.resolve("tk"),
+      onFrame: () => true,
+      initialLastSeq: 2,
+      resumeCursor: () => prefix,
+      eventSourceFactory: (url) => {
+        const es = { url, onmessage: null, onopen: null, onerror: null, close: () => undefined };
+        sources.push(es);
+        return es;
+      },
+      scheduler: { setTimeout: (fn) => timers.push(fn), clearTimeout: () => undefined },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    const send = (seq: number | null) => {
+      const data = JSON.stringify({ v: 1, seq, scope: "trial", scope_id: "t1", type: "notice", ts: "x", transcript_version: 1, data: {} });
+      sources.at(-1)?.onmessage?.({ data, lastEventId: "" } as MessageEvent);
+    };
+    send(5);
+    expect(handle.lastSeq).toBe(3);
+    prefix = 2;
+    send(6);
+    expect(handle.lastSeq).toBe(3);
+    send(null);
+    expect(handle.lastSeq).toBe(3);
+    sources.at(-1)?.onerror?.(new Event("error"));
+    timers.shift()?.();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sources.at(-1)?.url).toContain("after=3");
+    handle.close();
+  });
+});

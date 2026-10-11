@@ -162,7 +162,7 @@ MATRIX = [
     (
         "600 four-byte characters",
         {"finding.rationale": "\U0001f600" * 600},
-        "finding.rationale: longer than 1200 UTF-8 bytes",
+        "finding.rationale: longer than 1200 bytes as sent",
     ),
 ]
 
