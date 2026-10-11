@@ -422,6 +422,17 @@ create temp table tt14noactor on commit drop as select tests.error($$ select tra
 select pg_temp.tt_act('D');
 create temp table tt14badkind on commit drop as select tests.error($$ select training.acknowledge('terms') $$) as v;
 create temp table tt14first on commit drop as select training.acknowledge('ex4') as at;
+-- this whole file runs inside one transaction, where now() is constant: comparing the second call's
+-- return to the first call's return would pass even if acknowledge always returned a fresh now() instead
+-- of the stored first timestamp. Backdate the stored row to a value now() can never equal, so the second
+-- call's return can only match it by actually reading the stored acknowledged_at.
+do $$
+begin
+  alter table training.acknowledgements disable trigger acknowledgements_append_only;
+  update training.acknowledgements set acknowledged_at = '2020-01-01T00:00:00+00'
+   where user_id = tests.uid('D') and kind = 'ex4';
+  alter table training.acknowledgements enable trigger acknowledgements_append_only;
+end $$;
 create temp table tt14second on commit drop as select training.acknowledge('ex4') as at;
 create temp table tt14mine on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_acknowledgements')::text as c;
@@ -430,11 +441,12 @@ create temp table tt14other on commit drop as select tests.as_role('arena_public
   'select count(*) from training.v_my_acknowledgements')::text as c;
 select pg_temp.tt_act('');
 select is(array[(select v from tt14noactor), (select v from tt14badkind),
-                ((select at from tt14first) = (select at from tt14second))::text, (select c from tt14mine),
+                ((select at from tt14second) = '2020-01-01T00:00:00+00'::timestamptz)::text, (select c from tt14mine),
                 (select c from tt14other)],
   array['AR040: no investigator identity on this request', 'AR007: unknown acknowledgement', 'true', '1', '0'],
-  'TT-14 X-15: acknowledge(''ex4'') with no actor is refused (AR040); kind terms is refused (AR007); twice by '
-  || 'one actor keeps the first timestamp; v_my_acknowledgements shows one row to that actor and none to '
+  'TT-14 X-15: acknowledge(''ex4'') with no actor is refused (AR040); kind terms is refused (AR007); a second '
+  || 'call returns the stored (backdated) first timestamp, not a fresh now(); v_my_acknowledgements shows '
+  || 'one row to that actor and none to '
   || 'another');
 
 -- ---------------------------------------------------------------------------- TT-15, TT-16 (SG4-10, SG3-31, SG3-13)

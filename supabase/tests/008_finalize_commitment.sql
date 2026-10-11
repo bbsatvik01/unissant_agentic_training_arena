@@ -392,7 +392,9 @@ begin
   alter table arena.released_evidence enable trigger released_evidence_append_only;
   alter table arena.turns disable trigger turns_answer_once;
   alter table arena.turns disable trigger turns_running;
-  update arena.turns set question_source = 'harness_fallback', relay_outcome = 'fallback_no_card'
+  -- question_source only: also setting relay_outcome here would tamper two hashed fields at once, so a
+  -- commitment that omitted question_source specifically would still fail via relay_outcome alone.
+  update arena.turns set question_source = 'harness_fallback'
    where trial_id = (select trial from fct) and turn_no = 1;
   alter table arena.turns enable trigger turns_answer_once;
   alter table arena.turns enable trigger turns_running;

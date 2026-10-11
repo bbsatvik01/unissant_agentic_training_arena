@@ -87,6 +87,17 @@ select ok(
   'RR-24 subject.turn_context returns private_packet for the open subject_answer item at the current version');
 select arena.record_subject_turn((select trial from rrt), (select wi from rrwi_answer), 'Running late.', null,
          '{"passed": true}'::jsonb);
+-- answering also bumps the trial's transcript_version, so rrwi_answer is now BOTH done and stale: the
+-- combined guard's version-mismatch disjunct alone would already raise the same AR003, never isolating the
+-- done/closed-item disjunct this probe exists to test. Advance the item's own bound version to the trial's
+-- current one (never possible through the API: a done item stays done) so only its done-ness is left.
+do $$
+begin
+  alter table arena.work_items disable trigger work_items_once;
+  update arena.work_items set transcript_version = (select transcript_version from arena.trials where id = (select trial from pg_temp.rrt))
+   where id = (select wi from pg_temp.rrwi_answer);
+  alter table arena.work_items enable trigger work_items_once;
+end $$;
 select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
                       format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_answer)))),
           'AR003: context needs the open subject_answer work item at the current version',
