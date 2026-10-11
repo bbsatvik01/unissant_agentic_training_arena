@@ -26,6 +26,11 @@ services:
       - "127.0.0.1:${ARENA_PHOENIX_PORT:-6006}:6006"  # UI, REST read-back and OTLP-HTTP (/v1/traces)
     mem_limit: 1g
     environment:
+      # Without this, Phoenix's SQLite database defaults to ~/.phoenix/ inside the container's own
+      # filesystem, NOT the mounted volume below -- every bit of trace data would be lost on container
+      # recreation despite the volume (confirmed via the Phoenix self-hosting docs, Context7
+      # /arize-ai/phoenix, "PHOENIX_WORKING_DIR ... Defaults to ~/.phoenix/"; Codex self-gate round 2).
+      PHOENIX_WORKING_DIR: /mnt/data
       PHOENIX_ENABLE_AUTH: "true"
       PHOENIX_SECRET: ${PHOENIX_SECRET:?set PHOENIX_SECRET before bringing Phoenix up}
       # Bearer secret for automation (`make traces-push`, the day-1 probes); a system key minted in the UI

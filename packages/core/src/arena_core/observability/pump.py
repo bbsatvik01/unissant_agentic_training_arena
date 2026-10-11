@@ -44,6 +44,16 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_LIMIT = 500  # matches ops.mirror_spans's own batch cap
 DEFAULT_READBACK_TIMEOUT_S = 5.0
 _STATUS_CODES = {"UNSET": StatusCode.UNSET, "OK": StatusCode.OK, "ERROR": StatusCode.ERROR}
+# Stranded-row retry is a read-only query, not a write subject to ops.mirror_spans's 500-row cap, and it
+# must clear the WHOLE current backlog in one pass regardless of how small options.batch_limit is tuned for
+# the pending-row page size (Codex self-gate round 2, major: drain() only loops on the pending-row count, so
+# capping this to batch_limit too left a multi-row stranded backlog only partly retried per drain() call,
+# and oldest-first ordering means a row that is never confirmable would otherwise occupy the one slot a
+# small batch_limit allows, forever starving every row behind it). Sized generously above S4 8.4's whole-
+# project sizing estimate (about 37,000 spans over its entire lifetime): a backlog beyond this would mean
+# Phoenix has been losing already-acknowledged spans on a sustained, pathological scale, not the occasional
+# blip this retry exists for -- out of scope here.
+STRANDED_RETRY_LIMIT = 5_000
 
 
 class SpanReader(Protocol):
@@ -145,26 +155,31 @@ def rebuild_span(row: ExportableSpan, project: str) -> ReadableSpan:
 def pump_once(
     conn: SqlConnection, exporter: SpanExporter, reader: SpanReader, *, options: PumpOptions = DEFAULT_PUMP_OPTIONS
 ) -> PumpResult:
-    """One pass: export up to ``options.batch_limit`` exportable rows, mark them ``exported``, then read back
-    and verify -- for those plus any trace an earlier pass marked ``exported`` but never confirmed (a
-    timeout, or Phoenix briefly down; ``ops.v_exportable_spans`` only ever lists ``pending``/``held`` rows, so
-    a stranded ``exported`` row is never handed back by it and would stay ``exported`` forever without this
-    retry). A failed export leaves every new row ``pending`` or ``held`` for the next run (never marked
-    ``exported``); a read-back failure for one trace simply confirms nothing for it this pass -- the next
-    pump run tries again, new or stranded alike."""
+    """One pass: export up to ``options.batch_limit`` newly-exportable rows, mark them ``exported``, then
+    read back and verify -- for those plus any row an earlier pass already marked ``exported`` but never
+    confirmed. ``ops.v_exportable_spans`` only ever lists ``pending``/``held`` rows, so a stranded
+    ``exported`` row is never handed back by it; and a read-back failure there does not prove the span truly
+    reached Phoenix (S5 8.4: "Phoenix is a viewer, not the store"; its own ingest queue is in memory and can
+    lose an already-OTLP-acknowledged span). So a stranded row is not just re-verified here, it is
+    RE-EXPORTED (S5 8.4: "Export is retried from the mirror") -- resending an already-ingested span is
+    harmless, same idempotency ``ops.mirror_spans`` already relies on. A failed export leaves every new row
+    ``pending``/``held`` and every stranded row ``exported``, both unchanged, for the next run; a read-back
+    failure for one trace simply confirms nothing for it this pass -- the next pump run tries again, new or
+    stranded alike."""
     rows = exportable_spans(conn, limit=options.batch_limit)
-    exported = 0
-    by_trace: dict[str, set[str]] = {}
-    if rows:
-        result = exporter.export([rebuild_span(row, options.project) for row in rows])
+    stranded = exported_unverified_spans(conn, limit=STRANDED_RETRY_LIMIT)
+    to_export = rows + stranded
+    if to_export:
+        result = exporter.export([rebuild_span(row, options.project) for row in to_export])
         if result is not SpanExportResult.SUCCESS:
             return PumpResult(read=len(rows), exported=0, verified=0, export_failed=True)
+    exported = 0
+    if rows:
         keys = [(row.trace_id, row.span_id) for row in rows]
         exported = set_export_state(conn, keys, "exported")
-        for row in rows:
-            by_trace.setdefault(row.trace_id, set()).add(row.span_id)
-    for trace_id, span_id in exported_unverified_spans(conn, limit=options.batch_limit):
-        by_trace.setdefault(trace_id, set()).add(span_id)
+    by_trace: dict[str, set[str]] = {}
+    for row in to_export:
+        by_trace.setdefault(row.trace_id, set()).add(row.span_id)
     verify_keys: list[tuple[str, str]] = []
     for trace_id, span_ids in by_trace.items():
         try:

@@ -168,9 +168,25 @@ def test_unregistered_span_name_is_hashed() -> None:
 
 
 def test_sensitive_span_name_keeps_only_the_operation_word() -> None:
+    """Regression (Codex self-gate round 2, major): the "arena." namespace prefix is skipped first, so
+    different sensitive span kinds stay distinguishable instead of all collapsing to the literal "arena"."""
     span = _span(name="arena.guard")
     _sanitizer().span(span, sensitive=True, tainted=True)
-    assert span.name == "arena"
+    assert span.name == "guard"
+
+
+def test_sensitive_span_names_of_different_kinds_stay_distinguishable() -> None:
+    for name, expected in (
+        ("arena.agent.subject", "agent"),
+        ("arena.referee.eval", "referee"),
+        ("arena.voice.session", "voice"),
+        ("llm.subject", "llm"),
+        ("arena.harness", "harness"),
+        ("arena.finalize", "finalize"),
+    ):
+        span = _span(name=name)
+        _sanitizer().span(span, sensitive=True, tainted=True)
+        assert span.name == expected
 
 
 def test_sensitive_span_name_not_a_known_operation_is_hashed() -> None:

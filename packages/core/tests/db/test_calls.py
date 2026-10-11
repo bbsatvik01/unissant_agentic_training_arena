@@ -116,11 +116,31 @@ def test_run_rolls_back_and_reraises_on_a_failed_write() -> None:
 
 def test_exported_unverified_spans_reads_trace_mirror_directly() -> None:
     """Not ``ops.v_exportable_spans`` (it never lists ``exported`` rows): a direct select against
-    ``ops.trace_mirror``, which ``arena_referee``'s grant also reaches."""
+    ``ops.trace_mirror``, which ``arena_referee``'s grant also reaches. Returns full rows (not just the
+    keys): the pump re-exports a stranded row, which needs the whole span, not only its ids."""
     query_limit = 10
-    conn = _FakeConnection([(TRACE_ID, SPAN_ID)])
+    started = datetime(2026, 10, 10, tzinfo=UTC)
+    ended = datetime(2026, 10, 10, 0, 0, 1, tzinfo=UTC)
+    row: tuple[object, ...] = (
+        TRACE_ID,
+        SPAN_ID,
+        None,
+        "arena-referee",
+        "trial-1",
+        "arena.turn",
+        "CHAIN",
+        "OK",
+        started,
+        ended,
+        {"attributes": {}},
+        "exported",
+    )
+    conn = _FakeConnection([row])
     found = calls.exported_unverified_spans(conn, limit=query_limit)
-    assert found == [(TRACE_ID, SPAN_ID)]
+    assert len(found) == 1
+    assert found[0].trace_id == TRACE_ID
+    assert found[0].span_id == SPAN_ID
+    assert found[0].export_state == "exported"
     query, params = conn.cursor().executed[0]
     assert "ops.trace_mirror" in query
     assert "export_state = 'exported'" in query

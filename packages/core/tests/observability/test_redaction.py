@@ -372,3 +372,34 @@ def test_mask_structured_still_fails_closed_on_a_genuinely_malformed_top_level_l
 
 def test_credential_values_full_apostrophe_prose_finds_nothing() -> None:
     assert _credential_values("Ask about John's timeline.") == []
+
+
+def test_mask_structured_leaves_ordinary_prose_nested_one_level_down_alone() -> None:
+    """Regression (Codex self-gate round 2, major): round 1 fixed this at the TOP level but the nested-
+    string branch kept the old, too-strict rule -- any string value merely CONTAINING a quote or bracket was
+    treated as an ambiguous serialized sub-structure, so ordinary prose one level inside an already-valid
+    JSON object was still blanket-redacted. S5 8.3: public coach free text exports in clear regardless of
+    nesting depth."""
+    text = '{"text":"Ask about John\'s timeline."}'
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_leaves_prose_with_a_bracket_nested_one_level_down_alone() -> None:
+    text = '{"text":"See [section 2] for details."}'
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_still_fails_closed_on_a_genuinely_malformed_nested_literal() -> None:
+    """A nested string that actually STARTS like a literal (a brace, here) but will not parse cleanly is
+    still genuinely ambiguous and withholds the whole text -- only "merely contains a stray character
+    somewhere" stopped counting as looking structured, not "starts like one and then breaks"."""
+    text = '{"data":"{almost json but broken"}'
+    assert _mask_structured(text) == REDACTED
+
+
+def test_credential_values_still_finds_a_stringified_nested_credential() -> None:
+    """The fix narrows what counts as an ambiguous nested sub-structure; it must not narrow what counts as a
+    genuine one. A credential blob stringified one level down (a common real shape: a header map serialized
+    into a single field) is still parsed through to its leaves."""
+    text = '{"headers":"{\\"Authorization\\": \\"Bearer sk-ant-' + "z" * 24 + '\\"}"}'
+    assert _credential_values(text) == ["Bearer sk-ant-" + "z" * 24]

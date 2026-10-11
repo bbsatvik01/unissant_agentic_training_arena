@@ -528,14 +528,19 @@ def _credential_values(text: str) -> list[str] | None:
     ``_parse``), when it is still serialized at ``MAX_STRUCTURED_DEPTH``, or when there are more than
     ``MAX_CREDENTIAL_VALUES`` values. Text with no bracket or quote at all is left to the lexical rules.
 
-    The WHOLE text is read with ``_parse`` (not ``_strict``): ordinary prose that merely contains a stray
-    quote or bracket somewhere (an apostrophe in "Ask about John's timeline.", a literal bracket in running
-    text) does not even attempt to open a literal (``_parse`` returns ``_UNPARSED``) and is left alone here,
-    never escalated to a blanket redaction -- the lexical passes that follow this one in ``Redaction.text()``
+    The WHOLE text, AND every nested string value found inside an already-confirmed structure, is read with
+    ``_parse`` (not ``_strict``): ordinary prose that merely contains a stray quote or bracket somewhere (an
+    apostrophe in "Ask about John's timeline.", a literal bracket in running text) does not even attempt to
+    open a literal (``_parse`` returns ``_UNPARSED``) and is left alone, never escalated to a blanket
+    redaction, AT ANY NESTING DEPTH -- the lexical passes that follow this one in ``Redaction.text()``
     (``_mask_credential_fields``, ``_mask_named_fields``, the prefix scan) still catch an actual credential
-    named field anywhere in such text. ``_strict``'s stricter "prose around it is unparseable too" rule still
-    applies to a NESTED string found inside an already-confirmed structure (immediately below): a string
-    value one level down that itself looks structured but will not parse cleanly is genuinely ambiguous."""
+    named field anywhere in such text. A nested string is genuinely ambiguous, and withholds the whole text,
+    only when it actually STARTS like a literal (a bracket or quote, same test ``_parse`` itself uses) and
+    then fails to parse cleanly -- a stringified credential blob (``"headers": "{\\"Authorization\\": ...}"``)
+    still parses through to its leaves exactly as before; only "contains a stray character somewhere" no
+    longer counts as looking structured (regression: Codex self-gate round 2, major -- the nested case kept
+    the OLD, too-strict interpretation round 1 removed from the top level, so prose one level down, e.g.
+    ``{"text": "Ask about John's timeline."}``, was still blanket-redacted)."""
     if not _looks_structured(text):
         return []
     top = _parse(text)
@@ -556,21 +561,17 @@ def _credential_values(text: str) -> list[str] | None:
         elif isinstance(item, list | tuple | set | frozenset):
             stack.extend((element, depth) for element in item)
         elif isinstance(item, str) and _looks_structured(item):
+            nested = _parse(item)
+            if nested is _UNPARSED:
+                continue  # ordinary prose nested inside a confirmed structure, not a serialized sub-value
             if depth >= MAX_STRUCTURED_DEPTH:
                 return None  # still serialized at the depth limit: what it holds cannot be judged (fail closed)
-            stack.append((_strict(item), depth + 1))
+            stack.append((nested, depth + 1))
     return None if len(found) > MAX_CREDENTIAL_VALUES else found
 
 
 def _looks_structured(text: str) -> bool:
     return any(char in text for char in "{[\"'")
-
-
-def _strict(text: str) -> object:
-    """``_parse``, where text with quotes or brackets that does not start as a literal (prose around it) is
-    unparseable too: no parser can tell what those quotes enclose."""
-    parsed = _parse(text)
-    return _Unparseable("quotes or brackets in prose") if parsed is _UNPARSED else parsed
 
 
 def _forms(value: str) -> set[str]:

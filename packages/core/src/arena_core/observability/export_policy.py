@@ -514,7 +514,10 @@ class Sanitizer:
     def name(self, name: str, *, sensitive: bool) -> str:
         """Public: kept only when it is a fixed name or a REGISTERED one (our span helpers; names built from
         our code) and holds no credential-shaped token or registered secret, else hashed. Sensitive
-        (subject_private or evaluator): the leading word if it is a known operation, else a hash."""
+        (subject_private or evaluator): the discriminating operation word if it is a known one, else a hash
+        -- the shared "arena." namespace prefix is skipped first (S5 8.1's span names almost all carry it;
+        matching on the bare leading word would otherwise collapse every one of them to the same "arena",
+        losing the kind distinction OPERATIONS exists to keep: regression, Codex self-gate round 2, major)."""
         if not sensitive:
             registered = name in FIXED_NAMES or name in FIXED_EVENT_NAMES or KNOWN.span_name(name)
             if registered and not self._redaction.credential_shaped(name):
@@ -524,9 +527,16 @@ class Sanitizer:
                 if match is not None:
                     return match.group("head") + hash_payload(match.group("label")) + match.group("tail")
             return hash_payload(name)
+        operation = self._operation_word(name)
+        return operation if operation in OPERATIONS else hash_payload(name)
+
+    def _operation_word(self, name: str) -> str:
         match = _OPERATION.match(name)
         operation = match.group(0) if match else ""
-        return operation if operation in OPERATIONS else hash_payload(name)
+        if operation == "arena" and name.startswith("arena."):
+            match = _OPERATION.match(name[len("arena.") :])
+            operation = match.group(0) if match else ""
+        return operation
 
     def attributes(
         self, attrs: Mapping[str, AttributeValue], *, sensitive: bool, tainted: bool

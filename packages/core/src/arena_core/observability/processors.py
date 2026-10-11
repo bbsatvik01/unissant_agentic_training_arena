@@ -21,6 +21,20 @@ discovered later:
   this request was confirmed delivered" proof): S5 8.9's durability acceptance only requires that a killed
   exporter still leaves every span in the mirror and that the pump can re-export and verify it later, which
   ``SpanMirror`` and ``pump.py`` provide without per-request delivery bookkeeping.
+
+Out of WP-07's own scope (Codex self-gate round 2, major; raised again as a real gap, not edge-case
+hardening, so recorded explicitly rather than silently dropped): S5 8.4's "the outcome goes to
+``ops.record_trace_summary`` (spans expected, spans mirrored, export failures) with ``telemetry_incomplete``
+derived" is never called from here. The DB wrapper is ready (``db.calls.record_trace_summary``,
+``TraceSummary``), but "spans expected" for one request or job task is knowledge only the request/task
+BOUNDARY has -- this module's helpers and ``Tracing.flush()`` are a library ``spans.py`` callers use, not
+that boundary itself. ``Tracing.flush()``'s own return value cannot stand in for it either (its docstring
+already says so: "best effort... never proof of delivery" -- the OTel SDK's own ``force_flush`` reports
+only whether every processor finished within the deadline, never whether the exporter's calls inside that
+window actually succeeded). Wiring ``record_trace_summary`` in belongs to whichever work package owns that
+boundary (the api role's request middleware, the subject/referee services, the tournament job -- WP-05/12/14,
+none built yet when this was written), the same way S5 8.9's KPI-4 bullet is explicitly the turn
+orchestrator's (WP-13), not this module's.
 """
 
 import json
@@ -159,6 +173,17 @@ class Lineage:
             nodes[ctx.span_id] = node
             if node.sensitive:
                 self._taint(nodes, parent_id)
+            if node.split == HIDDEN:
+                # Hidden escalates upward too, not just downward (Codex round-2 finding 1): a request's
+                # hidden-ness is supposed to be known at its root before any child starts (S5 8.5), but a
+                # span helper lets ANY caller pass split="hidden" deep in the tree. If one ever does, every
+                # still-open ancestor -- which would otherwise export its own content directly, unaware a
+                # descendant just turned out to be hidden -- is marked hidden right now, and a sibling
+                # created after this point inherits hidden normally through ordinary downward inheritance.
+                # This cannot protect a sibling that already ended (and, in API mode, already exported
+                # synchronously) before this span started: nothing can recall an export already sent, which
+                # is exactly why the real design puts hidden-ness on the root before any span begins.
+                self._taint_hidden(nodes, parent_id)
             self._evict()
 
     def classify(self, ctx: trace.SpanContext | None) -> Classification:
@@ -185,6 +210,16 @@ class Lineage:
             if node is None or node.tainted:
                 return
             node.tainted = True
+            span_id = node.parent
+
+    def _taint_hidden(self, nodes: dict[int, _Node], span_id: int | None) -> None:
+        """Hidden walks upward independently of ``tainted`` (a different axis: reveal timing, not data
+        sensitivity). Stops at an already-hidden ancestor -- everything above it was escalated when IT was."""
+        for _ in range(_MAX_ANCESTRY):
+            node = nodes.get(span_id) if span_id is not None else None
+            if node is None or node.split == HIDDEN:
+                return
+            node.split = HIDDEN
             span_id = node.parent
 
     def _evict(self) -> None:
@@ -325,11 +360,14 @@ def _bounded_otlp(
     links: list[dict[str, object]],
 ) -> dict[str, object]:
     """Builds the mirror row's ``otlp`` payload, cut down to ``MIRROR_OTLP_BUDGET`` bytes if it does not
-    already fit. Cut order, least valuable first: links, then events, then the largest attribute values
-    (halved repeatedly, then dropped outright) -- attributes carry the identifiers and metrics S5 8.2 needs
-    the mirror for at all, so they are the last thing cut. A span this large is already a rare, pathological
-    case (ordinary attribute values are far smaller); losing its events or links here is the fail-closed
-    trade against the alternative, a whole mirror batch rejected by the DB's hard byte check."""
+    already fit. Cut order, least valuable first: links, then events, then the status description (a human-
+    readable error message -- diagnostic, like events/links, not an identifier), then the largest attribute
+    values (halved repeatedly, then dropped outright) -- attributes carry the identifiers and metrics S5 8.2
+    needs the mirror for at all, so they are the last thing cut. A span this large is already a rare,
+    pathological case (ordinary attribute values are far smaller, and ``Sanitizer.text()`` bounds a
+    description by CHARACTERS, which a multi-byte-per-character string -- CJK, emoji -- can still turn into
+    many more BYTES than that character bound); losing its events, links or description here is the fail-
+    closed trade against the alternative, a whole mirror batch rejected by the DB's hard byte check."""
     otlp_attrs: dict[str, object] = {k: _otlp_value(v) for k, v in attrs.items()}
     payload: dict[str, object] = {"attributes": otlp_attrs}
     if status_description:
@@ -338,16 +376,10 @@ def _bounded_otlp(
         payload["events"] = events
     if links:
         payload["links"] = links
-    if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
-        return payload
-    if "links" in payload:
-        del payload["links"]
+    for key in ("links", "events", "status_description"):
         if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
             return payload
-    if "events" in payload:
-        del payload["events"]
-        if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
-            return payload
+        payload.pop(key, None)
     while otlp_attrs and _payload_bytes(payload) > MIRROR_OTLP_BUDGET:
         key = max(otlp_attrs, key=lambda k: _value_bytes(otlp_attrs[k]))
         value = otlp_attrs[key]

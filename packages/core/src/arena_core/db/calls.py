@@ -149,18 +149,23 @@ def _row_to_exportable(row: tuple[object, ...]) -> ExportableSpan:
     )
 
 
-def exported_unverified_spans(conn: SqlConnection, *, limit: int = MIRROR_BATCH_LIMIT) -> list[tuple[str, str]]:
-    """``(trace_id, span_id)`` pairs still ``exported`` (direct ``select`` against ``ops.trace_mirror``, not
-    the ``ops.v_exportable_spans`` view, which never lists ``exported`` rows): a pump pass that marked these
-    exported but could not confirm them by read-back (a timeout, Phoenix briefly down) must retry them on a
-    later run, or they stay ``exported`` forever -- `ops.v_exportable_spans` has no path back from
-    ``exported`` to ``pending``."""
+def exported_unverified_spans(conn: SqlConnection, *, limit: int = MIRROR_BATCH_LIMIT) -> list[ExportableSpan]:
+    """Full rows still ``exported`` (direct ``select`` against ``ops.trace_mirror``, not the
+    ``ops.v_exportable_spans`` view, which never lists ``exported`` rows -- it has no path back from
+    ``exported`` to ``pending``). S5 8.4: "Export is retried from the mirror" -- a row an earlier pass
+    marked ``exported`` but never confirmed by read-back may really not be in Phoenix at all (OTLP returning
+    SUCCESS only means Phoenix accepted the HTTP call; its own ingest queue is in memory and can still lose
+    the span after that, S5 8.4's "Phoenix is a viewer, not the store"). The caller (``pump.py``) therefore
+    RE-EXPORTS these rows, not just re-reads-back for them -- re-sending an already-ingested span is
+    harmless (idempotent on trace and span id, same as ``ops.mirror_spans``)."""
     cur = conn.cursor()
     cur.execute(
-        "select trace_id, span_id from ops.trace_mirror where export_state = 'exported' order by created_at limit %s",
+        "select trace_id, span_id, parent_span_id, service, trial_id, name, kind, status, started_at, "
+        "ended_at, otlp, export_state from ops.trace_mirror where export_state = 'exported' "
+        "order by created_at limit %s",
         (limit,),
     )
-    return [(cast(str, row[0]), cast(str, row[1])) for row in cur.fetchall()]
+    return [_row_to_exportable(row) for row in cur.fetchall()]
 
 
 def set_export_state(conn: SqlConnection, keys: Sequence[tuple[str, str]], state: str) -> int:

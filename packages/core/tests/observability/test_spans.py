@@ -122,7 +122,7 @@ def test_referee_task_is_evaluator_kind_and_data_class(install_tracing: InstallT
     with spans.referee_task("subject"):  # split="none" by default: reaches the direct exporter
         pass
     task = _by_data_class(exporter.get_finished_spans(), ep.EVALUATOR)
-    assert task.name == "arena"  # sensitive name reduced to its leading operation word
+    assert task.name == "referee"  # sensitive name reduced to its discriminating operation word
     assert _attrs(task)[ep.SPAN_KIND_ATTR] == spans.Kind.EVALUATOR.value
 
 

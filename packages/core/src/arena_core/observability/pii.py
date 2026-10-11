@@ -44,13 +44,21 @@ _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 # Tighter phone regex: requires at least one separator character (space, dash, dot, or parenthesis) within the
 # digit sequence to distinguish phone numbers from pure digit runs such as UUID segments, long ids, and ISO
 # timestamps. It reads as an optional leading country code with its own trailing separator, then one or two
-# area or trunk code groups (optionally parenthesised, each followed by a mandatory separator), then a
-# subscriber number of seven or eight digits split in two halves, at a word boundary.
+# area or trunk code groups, then a subscriber number of seven or eight digits split in two halves, at a word
+# boundary. Each area/trunk group is EITHER parenthesised with no separator required after the closing paren
+# (the parens alone already disambiguate it from a bare digit run -- a UUID segment or ISO timestamp never
+# contains a literal paren) OR bare digits with a MANDATORY trailing separator (still needed there: "415555"
+# alone would otherwise look like any other digit run).
 #
-# True positives: 415-555-0199, +1 (415) 555-0199, +44 20 7946 0958.
+# True positives: 415-555-0199, +1 (415) 555-0199, +44 20 7946 0958, (415)555-0199, +1(415)555-0199 (a
+# parenthesised area code immediately followed by the exchange, no separator in between -- regression, Codex
+# self-gate round 2, major: the original regex required a separator even after a closing paren, so this
+# common format survived unredacted).
 # False positives avoided: a plain date (2026-05-08), a dotted version (3.12.13), a UUID segment, a bare
 # six-digit id -- none of these match.
-_PHONE_RE = re.compile(r"\+?(\b[1-9]\d{0,2}[\s\-().])?(\(?\d{2,4}\)?[\s\-.]){1,2}\d{3,4}[\s\-.]?\d{3,4}\b")
+_PHONE_RE = re.compile(
+    r"\+?(\b[1-9]\d{0,2}[\s\-().])?((\(\d{2,4}\)[\s\-.]?)|(\d{2,4}[\s\-.])){1,2}\d{3,4}[\s\-.]?\d{3,4}\b"
+)
 _CARD_RE = re.compile(r"\b(?:\d[ -]?){13,19}\b")
 
 DEFAULT_TEXT_CAP = 80_000

@@ -60,14 +60,16 @@ def test_lineage_inherits_split_and_binding_from_parent() -> None:
 
 
 def test_lineage_explicit_split_on_a_child_overrides_the_parent() -> None:
+    """A child's own explicit, non-escalating split value is used as its classification even though it
+    differs from its parent's -- without forcing the parent to adopt it (unlike ``hidden``, "dev" is not an
+    escalating value the ancestor chain must also carry; see the dedicated hidden-upward-taint tests)."""
     lineage = proc.Lineage()
-    root = _start("root", attributes={ep.SPLIT_ATTR: "dev"})
+    root = _start("root", attributes={ep.SPLIT_ATTR: "none"})
     lineage.started(root, _no_parent())
-    child = _start("child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "hidden"})
+    child = _start("child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "dev"})
     lineage.started(child, root.get_span_context())
-    assert lineage.classify(child.get_span_context()).split == "hidden"
-    # the parent's own classification is unaffected by its child's explicit split
-    assert lineage.classify(root.get_span_context()).split == "dev"
+    assert lineage.classify(child.get_span_context()).split == "dev"
+    assert lineage.classify(root.get_span_context()).split == "none"
 
 
 def test_lineage_split_is_monotonic_a_child_cannot_downgrade_a_hidden_parent() -> None:
@@ -104,6 +106,50 @@ def test_lineage_taints_ancestors_when_a_sensitive_child_starts() -> None:
     assert root_verdict.sensitive is False  # the root itself is still public
     assert root_verdict.tainted is True  # but it is tainted by its sensitive child
     assert lineage.classify(child.get_span_context()).sensitive is True
+
+
+def test_lineage_hidden_child_escalates_its_still_open_ancestor() -> None:
+    """Regression (Codex self-gate round 2, blocker): hidden must also escalate UPWARD, not only inherit
+    downward (S5 8.5's whole-trace withholding is otherwise one-directional). A request's hidden-ness is
+    supposed to be set at its root before any child starts, but the span helpers let any caller pass
+    split="hidden" deep in the tree; if one ever does, the still-open root must not export its own content
+    directly just because it did not yet know its trace turned out to be hidden."""
+    lineage = proc.Lineage()
+    root = _start("root")  # no split of its own: inherits "none", unaware it will turn out hidden
+    lineage.started(root, _no_parent())
+    child = _start("child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(child, root.get_span_context())
+    assert lineage.classify(root.get_span_context()).split == "hidden"
+
+
+def test_lineage_hidden_upward_taint_stops_at_an_already_hidden_ancestor() -> None:
+    """The upward walk is bounded the same way sensitivity's is: it stops as soon as it reaches an ancestor
+    already hidden, since everything above that ancestor was escalated when IT was."""
+    lineage = proc.Lineage()
+    root = _start("root", attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(root, _no_parent())
+    mid = _start("mid", parent=_ctx_of(root))
+    lineage.started(mid, root.get_span_context())
+    child = _start("child", parent=_ctx_of(mid), attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(child, mid.get_span_context())  # redundant: mid already inherited hidden from root
+    assert lineage.classify(mid.get_span_context()).split == "hidden"
+    assert lineage.classify(root.get_span_context()).split == "hidden"
+
+
+def test_lineage_a_sibling_started_after_a_hidden_child_inherits_hidden_from_the_escalated_root() -> None:
+    """A sibling created AFTER the hidden descendant already escalated the still-open root inherits hidden
+    through ordinary downward inheritance -- no separate mechanism needed for it. (A sibling that already
+    ended, and in API mode already exported, BEFORE the hidden descendant started cannot be protected this
+    way or any other: nothing can recall an export already sent, which is exactly why the real design puts
+    hidden-ness on the root before any span of the request begins.)"""
+    lineage = proc.Lineage()
+    root = _start("root")
+    lineage.started(root, _no_parent())
+    hidden_child = _start("hidden-child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(hidden_child, root.get_span_context())
+    later_sibling = _start("later-sibling", parent=_ctx_of(root))
+    lineage.started(later_sibling, root.get_span_context())
+    assert lineage.classify(later_sibling.get_span_context()).split == "hidden"
 
 
 def test_lineage_classify_fails_closed_for_an_unrecorded_span() -> None:
@@ -314,6 +360,18 @@ def test_bounded_otlp_cuts_events_after_links_when_still_over_budget() -> None:
     assert _attrs_of(payload) == {"keep": "short"}
 
 
+def test_bounded_otlp_cuts_an_oversized_status_description_after_events_and_links() -> None:
+    """Regression (Codex self-gate round 2, major): the limiter used to never touch status_description at
+    all, so a long multi-byte-per-character description (CJK, emoji -- Sanitizer.text() bounds it by
+    CHARACTERS, not bytes) alone could still blow the row's byte budget even with empty attrs/events/links."""
+    attrs: dict[str, ep.AttributeValue] = {"keep": "short"}
+    description = "中" * 20_000  # 3 bytes per char in UTF-8: ~60 KB, over budget on its own
+    payload = proc._bounded_otlp(attrs, status_description=description, events=[], links=[])
+    assert "status_description" not in payload
+    assert proc._payload_bytes(payload) <= proc.MIRROR_OTLP_BUDGET
+    assert _attrs_of(payload) == {"keep": "short"}
+
+
 def test_bounded_otlp_cuts_both_links_and_events_when_dropping_either_alone_is_not_enough() -> None:
     attrs: dict[str, ep.AttributeValue] = {"keep": "short"}
     links: list[dict[str, object]] = [{"trace_id": "a" * 32, "span_id": "b" * 16, "attributes": {"k": "v" * 40_000}}]
@@ -337,15 +395,18 @@ def test_bounded_otlp_shrinks_a_single_oversized_attribute_value() -> None:
     assert len(out["huge"]) < HUGE_ATTR_CHARS  # cut down to fit, not dropped
 
 
-def test_bounded_otlp_shrinks_attributes_when_dropping_links_and_events_is_still_not_enough() -> None:
-    """Dropping links, then events, each leaves the payload still over budget here (the oversized attribute
-    alone is the problem): both deletions run, and the final shrink-the-largest-value loop still has to."""
+def test_bounded_otlp_shrinks_attributes_when_dropping_links_events_and_description_is_still_not_enough() -> None:
+    """Dropping links, then events, then the status description, each leaves the payload still over budget
+    here (the oversized attribute alone is the problem): every deletion runs, and the final shrink-the-
+    largest-value loop still has to."""
     attrs: dict[str, ep.AttributeValue] = {"huge": "x" * HUGE_ATTR_CHARS, "small": "kept"}
     links: list[dict[str, object]] = [{"trace_id": "a" * 32, "span_id": "b" * 16, "attributes": {"k": "v" * 40_000}}]
     events: list[dict[str, object]] = [{"name": "big", "attributes": {"blob": "x" * 40_000}, "timestamp": 1}]
-    payload = proc._bounded_otlp(attrs, status_description=None, events=events, links=links)
+    description = "中" * 20_000
+    payload = proc._bounded_otlp(attrs, status_description=description, events=events, links=links)
     assert "links" not in payload
     assert "events" not in payload
+    assert "status_description" not in payload
     assert proc._payload_bytes(payload) <= proc.MIRROR_OTLP_BUDGET
     out = _attrs_of(payload)
     assert out["small"] == "kept"

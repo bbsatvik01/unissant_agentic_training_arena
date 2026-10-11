@@ -166,8 +166,12 @@ class _FakeCursor:
                 for r in rows
             ]
         elif "ops.trace_mirror where export_state" in query:
+            now = datetime(2026, 10, 10, tzinfo=UTC)
             rows = [r for r in self.conn.rows if r.export_state == "exported"]
-            self.last = [(r.trace_id, r.span_id) for r in rows]
+            self.last = [
+                (r.trace_id, r.span_id, None, r.service, None, r.name, r.kind, "OK", now, now, r.otlp, r.export_state)
+                for r in rows
+            ]
         elif "ops.set_export_state" in query:
             payload, state = params[0], cast(str, params[1])
             assert isinstance(payload, Jsonb)
@@ -320,6 +324,22 @@ def test_a_child_cannot_downgrade_out_of_a_hidden_request(install_tracing: Insta
         spans.referee_task("subject", split="dev"),  # an explicit, less-restrictive split
     ):
         pass
+    installed.flush()
+    assert exporter.get_finished_spans() == ()
+    assert all(row.split == "hidden" for row in sink.rows)
+
+
+def test_a_hidden_child_also_protects_its_still_open_root_and_later_sibling(install_tracing: InstallTracing) -> None:
+    """Regression (Codex self-gate round 2, blocker): a request that does not yet know it is hidden at its
+    root, but turns out hidden because of a span deep inside it, must not export that root (or a sibling
+    created afterward) directly -- S5 8.5's whole-trace withholding, proven end to end through the real
+    ``spans.py`` helpers and ``ExportGate``, not just the ``Lineage`` unit."""
+    installed, exporter, sink = install_tracing()
+    with spans.request():  # no tournament binding: this root does not yet know it will turn out hidden
+        with spans.referee_task("eval", split="hidden"):
+            pass
+        with spans.referee_task("other"):  # a later sibling of the hidden span, same open root
+            pass
     installed.flush()
     assert exporter.get_finished_spans() == ()
     assert all(row.split == "hidden" for row in sink.rows)

@@ -28,6 +28,17 @@ def test_redact_text_passes_through_dates_and_versions() -> None:
     assert out == text  # none of these look like a phone number
 
 
+def test_redact_text_masks_a_parenthesised_area_code_with_no_trailing_separator() -> None:
+    """Regression (Codex self-gate round 2, major): a parenthesised area code immediately followed by the
+    exchange (no space, dash or dot after the closing paren) used to survive unredacted -- the parens alone
+    already disambiguate it from a bare digit run, so a separator should not be required there too."""
+    for text in ("(415)555-0199", "+1(415)555-0199", "call (415)555-0199 now"):
+        out = pii.redact_text(text)
+        assert out is not None
+        assert "415" not in out
+        assert "[phone]" in out
+
+
 def test_redact_text_none_stays_none() -> None:
     assert pii.redact_text(None) is None
 
