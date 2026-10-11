@@ -1,0 +1,791 @@
+{
+ "format": "arena.recording.v1",
+ "trial_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+ "case": {
+  "case_id": "C-7Q2MXK4D",
+  "title": "Records vault entry during a busy shift",
+  "objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+  "domain": "facility_access",
+  "difficulty_level": 2,
+  "subject": {
+   "display_name": "Jordan Pell",
+   "position": "Facilities Technician II"
+  },
+  "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+  "initial_documents": [
+   {
+    "doc_id": "doc-01",
+    "kind": "access_exception_report",
+    "title": "Access exception report, Records Vault B-12, 12 March 2026",
+    "content": {
+     "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
+     "table": {
+      "rows": [
+       [
+        "14:07:12",
+        "B-12 main door",
+        "Badge 30418 (J. Pell)",
+        "Access granted"
+       ],
+       [
+        "14:09:40",
+        "B-12 main door",
+        "-",
+        "Door held open, alarm raised"
+       ],
+       [
+        "14:12:05",
+        "B-12 main door",
+        "-",
+        "Door closed, alarm cleared"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Door",
+       "Credential",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-02",
+    "kind": "policy_excerpt",
+    "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+    "content": {
+     "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+    }
+   },
+   {
+    "doc_id": "doc-03",
+    "kind": "staffing_note",
+    "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+    "content": {
+     "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "status": "running",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 0,
+  "exchanges_cap": 12,
+  "released": [],
+  "requestable": [
+   {
+    "record_id": "rec-01",
+    "kind": "work_order",
+    "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+    "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-02",
+    "kind": "dispatch_log",
+    "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+    "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-03",
+    "kind": "alarm_log",
+    "title": "Building environmental alarm history, B wing, 12 March 2026",
+    "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-04",
+    "kind": "seal_audit",
+    "title": "Records Vault B-12 seal audit, 12 March 2026",
+    "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+    "requestable_after_exchanges": 6,
+    "date": null
+   }
+  ],
+  "finding": null,
+  "commitment_hash": null,
+  "last_seq": 0,
+  "channel": "text",
+  "turns": [],
+  "voice_exchanges": [],
+  "cards": [],
+  "updates": [],
+  "coach_failures": []
+ },
+ "events": [
+  {
+   "at_ms": 86,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.319Z",
+    "transcript_version": 1,
+    "seq": 1,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 1,
+     "text": "Can you describe, in your own words, what you did at the Annex that afternoon?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 86,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.319Z",
+    "transcript_version": 1,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 230,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.463Z",
+    "transcript_version": 2,
+    "seq": 2,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 1,
+     "text": "I do not have anything further to add right now.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-11T15:31:58.463Z"
+    }
+   }
+  },
+  {
+   "at_ms": 230,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.463Z",
+    "transcript_version": 2,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 342,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.575Z",
+    "transcript_version": 2,
+    "seq": 3,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 1,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t01",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "An open, neutral question."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through what happened next, step by step?",
+       "tactic": "funnel_probe",
+       "purpose": "Get the next part of the account in the subject's own words.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "check the account against the case records"
+       ],
+       "rationale": "The account so far has not been tested against the records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 1,
+      "turn_no": 1,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 44,
+      "work_item": "0ac6780d-3a2f-4898-aa3d-7bb6cbe25901",
+      "transcript_version": 2
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 508,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.741Z",
+    "transcript_version": 3,
+    "seq": 4,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 2,
+     "text": "What time did you leave, as near as you can say?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 508,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.741Z",
+    "transcript_version": 3,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 634,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.867Z",
+    "transcript_version": 4,
+    "seq": 5,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 2,
+     "text": "I do not have anything further to add right now.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-11T15:31:58.867Z"
+    }
+   }
+  },
+  {
+   "at_ms": 634,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.867Z",
+    "transcript_version": 4,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 724,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:58.957Z",
+    "transcript_version": 4,
+    "seq": 6,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 2,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t02",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "An open, neutral question."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through what happened next, step by step?",
+       "tactic": "funnel_probe",
+       "purpose": "Get the next part of the account in the subject's own words.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        2
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "check the account against the case records"
+       ],
+       "rationale": "The account so far has not been tested against the records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 2,
+      "turn_no": 2,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 35,
+      "work_item": "81a0bb67-4353-4aaa-bf3c-213cf706e886",
+      "transcript_version": 4
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 807,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.040Z",
+    "transcript_version": 5,
+    "seq": 7,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 3,
+     "text": "Who asked you to go there?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 807,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.040Z",
+    "transcript_version": 5,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 913,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.146Z",
+    "transcript_version": 6,
+    "seq": 8,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 3,
+     "text": "I do not have anything further to add right now.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-11T15:31:59.146Z"
+    }
+   }
+  },
+  {
+   "at_ms": 913,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.146Z",
+    "transcript_version": 6,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 1037,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.270Z",
+    "transcript_version": 6,
+    "seq": 9,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 3,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t03",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "An open, neutral question."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through what happened next, step by step?",
+       "tactic": "funnel_probe",
+       "purpose": "Get the next part of the account in the subject's own words.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        3
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "check the account against the case records"
+       ],
+       "rationale": "The account so far has not been tested against the records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 3,
+      "turn_no": 3,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 48,
+      "work_item": "67ef4708-1fb6-440d-ae6b-6e9f7d948867",
+      "transcript_version": 6
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1154,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.387Z",
+    "transcript_version": 6,
+    "seq": 10,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 3,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t03",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        3
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "check the account against the case records"
+       ],
+       "rationale": "The account so far has not been tested against the records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1224,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.457Z",
+    "transcript_version": 7,
+    "seq": 11,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 4,
+     "text": "What did you do while the door was open?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 1224,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.457Z",
+    "transcript_version": 7,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 1339,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.572Z",
+    "transcript_version": 8,
+    "seq": 12,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 4,
+     "text": "I do not have anything further to add right now.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-11T15:31:59.572Z"
+    }
+   }
+  },
+  {
+   "at_ms": 1339,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.572Z",
+    "transcript_version": 8,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 1440,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.673Z",
+    "transcript_version": 8,
+    "seq": 13,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 4,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t04",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "An open, neutral question."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through what happened next, step by step?",
+       "tactic": "funnel_probe",
+       "purpose": "Get the next part of the account in the subject's own words.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        4
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "check the account against the case records"
+       ],
+       "rationale": "The account so far has not been tested against the records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 4,
+      "turn_no": 4,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 38,
+      "work_item": "0828f071-ac86-4dcf-b8a7-ed7213383ee3",
+      "transcript_version": 8
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1597,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.830Z",
+    "transcript_version": 9,
+    "seq": 14,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-01",
+     "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "work_order",
+     "date": null,
+     "content": {
+      "body": "2 work orders.",
+      "table": {
+       "columns": [
+        "Work order",
+        "Created",
+        "Created by",
+        "Location",
+        "Task",
+        "Status"
+       ],
+       "rows": [
+        [
+         "WO-4469",
+         "13:35",
+         "I. Marrow",
+         "A-wing lobby",
+         "Replace entrance mat",
+         "Closed 13:52"
+        ],
+        [
+         "WO-4478",
+         "14:31",
+         "I. Marrow",
+         "B-12 Records Vault",
+         "Humidity alarm; dehumidifier reset; condensate tank emptied",
+         "Closed 14:31"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 4,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 1652,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.885Z",
+    "transcript_version": 10,
+    "seq": 15,
+    "type": "finding.committed",
+    "data": {
+     "by": "investigator",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1
+      ],
+      "cited_records": [
+       "doc-01"
+      ],
+      "corroboration_needed": [
+       "check the work orders"
+      ],
+      "rationale": "The account is not yet tested against the records.",
+      "alternative_explanations": null,
+      "last_revised_turn": null
+     },
+     "committed_at": "2026-10-11T15:31:59.885Z"
+    }
+   }
+  },
+  {
+   "at_ms": 1652,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.885Z",
+    "transcript_version": 10,
+    "seq": null,
+    "type": "trial.status",
+    "data": {
+     "status": "completed",
+     "reason_code": null
+    }
+   }
+  },
+  {
+   "at_ms": 1652,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d6881de0-44b2-47d1-8fc3-ac8a61cf0167",
+    "ts": "2026-10-11T15:31:59.885Z",
+    "transcript_version": 10,
+    "seq": 16,
+    "type": "trial.finalized",
+    "data": {
+     "commitment_hash": "9851764a0fab7344743a0bcf16c35603efac7cb9d319aadcb9a74255cba4ac38"
+    }
+   }
+  }
+ ],
+ "debrief": null
+}

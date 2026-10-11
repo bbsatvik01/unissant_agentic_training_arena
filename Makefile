@@ -210,3 +210,17 @@ osv-scanner:
 licenses:
 	$(UV_RUN) python -m tools.check_licenses python
 	uv run --project tools/envs/semgrep --locked python tools/check_licenses.py python
+
+# ------------------------------------------------------------------ local fake-model stack (WP-13; S5 10, D-016, D-021)
+# scripts/dev.sh db-up once (a disposable local database), then make dev; make export-run TRIAL=<id> writes
+# recordings/<id>.json.
+.PHONY: dev dev-db dev-db-down export-run
+dev-db:
+	scripts/dev.sh db-up
+dev-db-down:
+	scripts/dev.sh db-down
+dev:
+	scripts/dev.sh up
+export-run:
+	@test -n "$(TRIAL)" || { echo "usage: make export-run TRIAL=<trial-id>"; exit 2; }
+	scripts/dev.sh export-run "$(TRIAL)"

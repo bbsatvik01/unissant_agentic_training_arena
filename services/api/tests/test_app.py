@@ -1,0 +1,405 @@
+"""arena-api routes in process (S5 5.5, 5.6, 6.3-6.5, 10.3-10.4) over the in-memory S4 (`fakedb`) and the real agent
+port on the fake adapter: the D10 boundary, the dev identity, the kill switch, the whole interview path, the
+ticketed stream and the recording."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from collections.abc import Coroutine
+from dataclasses import dataclass, field
+from decimal import Decimal
+from http import HTTPStatus
+from typing import Any
+from uuid import UUID, uuid4
+
+import httpx
+import pytest
+
+from arena_api.app import create_app, guard_config
+from arena_api.referee_client import RefereeError
+from arena_api.state import QUESTION_MAX_CHARS, ApiState
+from arena_core.db.arena import ArenaDb, ArenaError
+from arena_core.db.pool import Connector
+from arena_core.identity import DevIdentity, user_id_for
+from arena_core.providers.fake import FakeAdapter
+from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.spend.memory import RunBudget
+from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
+from arena_core.turns.orchestrator import SubjectOutcome, SubjectUnavailableError
+from packages.core.tests.turns.fakedb import PACKET, FakeArenaDb
+
+BASE = "http://127.0.0.1:8080"
+TURNS = 3  # A1's deep update falls on the third exchange
+EMAIL = "a@example.test"
+WHO = DevIdentity(user_id=user_id_for(EMAIL), email=EMAIL, display_name="A", roles=frozenset({"investigator"}))
+
+
+def run[T](coro: Coroutine[Any, Any, T]) -> T:
+    return asyncio.run(coro)
+
+
+async def _no_sleep(_s: float) -> None:
+    return None
+
+
+@dataclass(frozen=True)
+class Req:
+    body: object = None
+    raw: bool = False
+    headers: dict[str, str] = field(default_factory=dict)
+    params: dict[str, str | int] = field(default_factory=dict)
+
+
+class Harness:
+    def __init__(self, *, identity: DevIdentity | None = WHO, mode: str = "practice") -> None:
+        self.db = FakeArenaDb(WHO.user_id, mode=mode)
+        self.subject_error: SubjectUnavailableError | None = None
+        self.referee_error: RefereeError | None = None
+
+        def make_db(_c: Connector, _actor: UUID) -> ArenaDb:
+            return self.db
+
+        port = AgentPort(FakeAdapter(canned=FAKE_COACH_REPLIES), RunBudget(Decimal(100)), PortOptions(sleep=_no_sleep))
+        self.state = ApiState(
+            connect=self.db._connect,
+            identity=identity,
+            port=port,
+            subject=self.subject,
+            debrief=self.debrief,
+            make_db=make_db,
+            stream_max_s=0.3,
+            stream_poll_s=0.01,
+            ping_after_s=0.05,
+        )
+        self.app = create_app(self.state, guard_config({}), phoenix_url=None)
+
+    async def subject(self, _trial: UUID, work_item: UUID, _actor: UUID | None) -> SubjectOutcome:
+        if self.subject_error is not None:
+            raise self.subject_error
+        return self.db.record_answer(work_item)
+
+    async def debrief(self, session: UUID) -> dict[str, Any]:
+        if self.referee_error is not None:
+            raise self.referee_error
+        self.db.debriefs[session] = {"schema_version": "debrief.v1", "session_id": str(session)}
+        return self.db.debriefs[session]
+
+    async def _call(self, method: str, path: str, request: Req) -> httpx.Response:
+        transport = httpx.ASGITransport(app=self.app)
+        headers = dict(request.headers)
+        async with httpx.AsyncClient(transport=transport, base_url=BASE) as client:
+            if method == "POST" and not request.raw:
+                me = await client.get("/api/me")
+                token = me.json().get("csrf_token", "")
+                client.cookies.set("arena_csrf", token)
+                headers.update({"Origin": BASE, "X-Arena-CSRF": token})
+            return await client.request(method, path, json=request.body, headers=headers, params=request.params)
+
+    def get(
+        self, path: str, *, headers: dict[str, str] | None = None, params: dict[str, str | int] | None = None
+    ) -> httpx.Response:
+        return run(self._call("GET", path, Req(headers=headers or {}, params=params or {})))
+
+    def post(
+        self, path: str, body: object = None, *, raw: bool = False, headers: dict[str, str] | None = None
+    ) -> httpx.Response:
+        return run(self._call("POST", path, Req(body=body, raw=raw, headers=headers or {})))
+
+    @property
+    def trial(self) -> str:
+        return str(self.db.trial_id)
+
+    def start(self, mode: str = "practice") -> dict[str, Any]:
+        r = self.post(
+            "/api/sessions", {"case_id": PACKET["case_id"], "mode": mode, "voice": False, "idem_key": str(uuid4())}
+        )
+        assert r.status_code == HTTPStatus.OK, r.text
+        return dict(r.json())
+
+    def turn(self, question: str = "What happened at B-12?", version: int | None = None) -> httpx.Response:
+        body = {
+            "question": question,
+            "release_ids": [],
+            "expected_version": self.db.version if version is None else version,
+            "idem_key": str(uuid4()),
+        }
+        return self.post(f"/api/trials/{self.trial}/turns", body)
+
+
+FINDING = {
+    "label": "insufficient_evidence",
+    "likelihood": "roughly_even_chance",
+    "confidence": "low",
+    "basis_flag_refs": [],
+    "cited_turns": [1],
+    "cited_records": ["doc-01"],
+    "corroboration_needed": ["the work orders for that afternoon"],
+    "rationale": "The entry is not yet tested against the work orders.",
+}
+
+
+# ------------------------------------------------------------------ D10 boundary and identity (S5 10.3, 10.4)
+
+
+def test_health_is_liveness_only() -> None:
+    h = Harness(identity=None)
+    assert h.get("/api/health").json() == {"ok": True}
+
+
+def test_a_foreign_host_is_421_before_routing() -> None:
+    h = Harness()
+    assert h.get("/api/me", headers={"Host": "evil.example"}).status_code == HTTPStatus.MISDIRECTED_REQUEST
+
+
+def test_posts_need_an_allowed_origin_and_the_csrf_header() -> None:
+    h = Harness()
+    body = {"case_id": PACKET["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    foreign = h.post("/api/sessions", body, raw=True, headers={"Origin": "http://evil.example"})
+    no_csrf = h.post("/api/sessions", body, raw=True, headers={"Origin": BASE})
+    assert (foreign.status_code, no_csrf.status_code) == (403, 403)
+    assert "start_session" not in h.db.calls
+
+
+def test_internal_paths_are_not_served_here() -> None:
+    assert Harness().post("/internal/answer", {}, raw=True).status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_a_user_outside_the_allowlist_is_403_everywhere() -> None:
+    h = Harness(identity=None)
+    assert h.get("/api/me").status_code == HTTPStatus.FORBIDDEN
+    assert h.get("/api/cases").status_code == HTTPStatus.FORBIDDEN
+
+
+def test_the_kill_switch_pauses_every_api_route() -> None:
+    h = Harness()
+    h.db.paused = True
+    r = h.get("/api/cases")
+    assert (r.status_code, r.json()) == (503, {"code": "paused"})
+
+
+def test_me_sets_the_csrf_cookie_and_reports_the_identity() -> None:
+    h = Harness()
+    r = h.get("/api/me")
+    body = r.json()
+    assert body["user_id"] == str(WHO.user_id)
+    assert body["ex4_acknowledged"] is None
+    assert body["study"] is None
+    assert "arena_csrf=" in r.headers["set-cookie"]
+    assert "samesite=strict" in r.headers["set-cookie"].lower()
+    assert h.post("/api/me/ack-ex4").status_code == HTTPStatus.OK
+    assert h.get("/api/me").json()["ex4_acknowledged"].startswith("2026-10-11")
+
+
+def test_config_flags() -> None:
+    body = Harness().get("/api/config").json()
+    assert body["question_max_chars"] == QUESTION_MAX_CHARS
+    assert body["voice_available"] is False
+    assert body["paused"] is False
+
+
+# ------------------------------------------------------------------ cases and sessions
+
+
+def test_cases_list_one_variant_per_family_and_the_brief() -> None:
+    h = Harness()
+    cases = h.get("/api/cases").json()["cases"]
+    assert [c["case_id"] for c in cases] == [PACKET["case_id"]]
+    assert "role" not in json.dumps(cases)
+    brief = h.get(f"/api/cases/{PACKET['case_id']}").json()
+    assert brief["brief"]["case_id"] == PACKET["case_id"]
+    assert h.get("/api/cases/C-ZZZZZZZZ").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_session_start_and_read() -> None:
+    h = Harness()
+    started = h.start()
+    assert started["phase"] == "practice"
+    assert started["trial_id"] == h.trial
+    s = h.get(f"/api/sessions/{started['session_id']}").json()
+    assert s["status"] == "running"
+    assert h.get(f"/api/sessions/{uuid4()}").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_session_start_refusals() -> None:
+    h = Harness()
+    voice = h.post(
+        "/api/sessions", {"case_id": PACKET["case_id"], "mode": "practice", "voice": True, "idem_key": str(uuid4())}
+    )
+    unassigned = h.post(
+        "/api/sessions", {"case_id": "C-ZZZZZZZZ", "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    )
+    assert (voice.status_code, unassigned.status_code) == (422, 404)
+    h.db.fail_next["start_session"] = ArenaError("AR040", "daily session quota reached")
+    quota = h.post(
+        "/api/sessions", {"case_id": PACKET["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    )
+    assert quota.status_code == HTTPStatus.TOO_MANY_REQUESTS
+    h.db.fail_next["start_session"] = ArenaError("AR007", "pre and post tests run in assessment mode")
+    refused = h.post(
+        "/api/sessions", {"case_id": PACKET["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    )
+    assert refused.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ------------------------------------------------------------------ the interview (S5 5.2, 5.4)
+
+
+def test_a_whole_practice_interview() -> None:
+    h = Harness()
+    h.start()
+    for n in range(1, TURNS + 1):
+        r = h.turn()
+        assert r.status_code == HTTPStatus.OK, r.text
+        assert r.json()["turn_no"] == n
+        assert r.json()["last_seq"] == len(h.db.events)
+    snap = h.get(f"/api/trials/{h.trial}/snapshot").json()
+    assert snap["exchanges_used"] == TURNS
+    assert len(snap["cards"]) == TURNS
+    assert len(snap["updates"]) == 1
+    ev = h.post(f"/api/trials/{h.trial}/evidence-requests", {"record_ids": ["rec-01"], "idem_key": str(uuid4())})
+    assert ev.json()["released"][0]["record_id"] == "rec-01"
+    done = h.post(f"/api/trials/{h.trial}/finding", {"finding": FINDING, "idem_key": str(uuid4())})
+    assert done.status_code == HTTPStatus.OK
+    assert done.json()["status"] == "completed"
+    assert done.json()["commitment_hash"] == "c" * 64
+
+
+def test_a_601_character_question_is_422_before_anything_is_written() -> None:
+    h = Harness()
+    h.start()
+    assert h.turn("x" * 601).status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "submit_question" not in h.db.calls
+
+
+def test_a_stale_turn_is_409_and_an_unknown_trial_404() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    stale = h.turn(version=0)
+    assert (stale.status_code, stale.json()["code"]) == (409, "stale_version")
+    other = h.post(
+        f"/api/trials/{uuid4()}/turns",
+        {"question": "Q?", "release_ids": [], "expected_version": 0, "idem_key": str(uuid4())},
+    )
+    assert other.status_code == HTTPStatus.NOT_FOUND
+    for path in ("snapshot", "recording"):
+        assert h.get(f"/api/trials/{uuid4()}/{path}").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_subject_unavailable_is_503() -> None:
+    h = Harness()
+    h.start()
+    h.subject_error = SubjectUnavailableError("provider_failed")
+    assert h.turn().status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+def test_evidence_and_finding_refusals() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    unknown = h.post(f"/api/trials/{h.trial}/evidence-requests", {"record_ids": ["rec-05"], "idem_key": str(uuid4())})
+    assert unknown.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    extra = h.post(f"/api/trials/{h.trial}/finding", {"finding": {**FINDING, "verdict": "x"}, "idem_key": str(uuid4())})
+    long = h.post(
+        f"/api/trials/{h.trial}/finding", {"finding": {**FINDING, "rationale": "x" * 601}, "idem_key": str(uuid4())}
+    )
+    half = h.post(
+        f"/api/trials/{h.trial}/finding", {"finding": {**FINDING, "cited_turns": [1.5]}, "idem_key": str(uuid4())}
+    )
+    absent = h.post(
+        f"/api/trials/{h.trial}/finding",
+        {"finding": {**FINDING, "cited_records": ["doc-04"]}, "idem_key": str(uuid4())},
+    )
+    assert [r.status_code for r in (extra, long, half, absent)] == [422, 422, 422, 422]
+    assert h.db.finding is None
+    for path in ("evidence-requests", "finding"):
+        assert h.post(
+            f"/api/trials/{uuid4()}/{path}", {"record_ids": ["rec-01"], "finding": FINDING, "idem_key": str(uuid4())}
+        ).status_code in (404, 422)
+
+
+# ------------------------------------------------------------------ stream (S5 6.3, 6.4)
+
+
+def _sse(h: Harness, after: int = 0) -> list[dict[str, Any]]:
+    ticket = h.post(f"/api/trials/{h.trial}/stream-tickets").json()["ticket"]
+    body = h.get(f"/api/trials/{h.trial}/events", params={"ticket": ticket, "after": after}).text
+    return [json.loads(line[6:]) for line in body.splitlines() if line.startswith("data: ")]
+
+
+def test_the_stream_replays_after_the_cursor_and_pings() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    h.turn()
+    frames = _sse(h)
+    assert [f["type"] for f in frames] == ["question.accepted", "subject.answer", "coach.card"] * 2
+    assert [f["seq"] for f in _sse(h, after=3)] == [4, 5, 6]
+
+
+def test_a_ticket_is_single_use_and_bound_to_its_trial() -> None:
+    h = Harness()
+    h.start()
+    ticket = h.post(f"/api/trials/{h.trial}/stream-tickets").json()["ticket"]
+    wrong = h.get(f"/api/trials/{uuid4()}/events", params={"ticket": ticket})
+    assert wrong.status_code == HTTPStatus.UNAUTHORIZED
+    assert h.get(f"/api/trials/{h.trial}/events", params={"ticket": ticket}).status_code == HTTPStatus.UNAUTHORIZED
+    assert h.post(f"/api/trials/{uuid4()}/stream-tickets").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_after_the_debrief_the_ticket_route_answers_stream_closed() -> None:
+    h = Harness()
+    started = h.start()
+    h.turn()
+    h.post(f"/api/trials/{h.trial}/finding", {"finding": FINDING, "idem_key": str(uuid4())})
+    assert h.get(f"/api/sessions/{started['session_id']}/debrief").json() == {"status": "scoring"}
+    published = h.post(f"/api/sessions/{started['session_id']}/debrief")
+    assert published.json()["schema_version"] == "debrief.v1"
+    assert h.get(f"/api/sessions/{started['session_id']}/debrief").json()["schema_version"] == "debrief.v1"
+    closed = h.post(f"/api/trials/{h.trial}/stream-tickets")
+    assert (closed.status_code, closed.json()) == (409, {"code": "stream_closed"})
+
+
+@pytest.mark.parametrize(("status", "expected"), [(409, 409), (500, 502)])
+def test_debrief_referee_errors(status: int, expected: int) -> None:
+    h = Harness()
+    started = h.start()
+    h.referee_error = RefereeError(status, "nope")
+    assert h.post(f"/api/sessions/{started['session_id']}/debrief").status_code == expected
+    assert h.post(f"/api/sessions/{uuid4()}/debrief").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_assessment_stream_withholds_cards_until_the_end() -> None:
+    h = Harness(mode="assessment")
+    h.start(mode="assessment")
+    h.turn()
+    assert "coach.card" not in {f["type"] for f in _sse(h)}
+
+
+# ------------------------------------------------------------------ recording, telemetry
+
+
+def test_recording_route_returns_the_player_format() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    rec = h.get(f"/api/trials/{h.trial}/recording").json()
+    assert rec["format"] == "arena.recording.v1"
+    assert rec["debrief"] is None
+    assert [e["frame"]["type"] for e in rec["events"]][:2] == ["question.accepted", "subject.thinking"]
+
+
+def test_kpi4_ack_and_contract_violation() -> None:
+    h = Harness()
+    h.start()
+    ack = h.post("/api/telemetry/kpi4", {"trial_id": h.trial, "turn_no": 1, "client_valid": True})
+    assert ack.json() == {"recorded": True}
+    bad = h.post("/api/telemetry/kpi4", {"trial_id": h.trial, "turn_no": 1, "client_valid": True, "at": 1})
+    assert bad.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    h.db.fail_next["ack_card"] = ArenaError("AR040", "no")
+    assert (
+        h.post("/api/telemetry/kpi4", {"trial_id": h.trial, "turn_no": 1, "client_valid": True}).status_code
+        == HTTPStatus.NOT_FOUND
+    )
+    assert h.post("/api/telemetry/contract-violation", {"frame": "x"}).status_code == HTTPStatus.NO_CONTENT

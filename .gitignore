@@ -48,3 +48,10 @@ tmp/
 .DS_Store
 .idea/
 .vscode/
+
+# Local stack state (scripts/dev.sh): caller tokens, pidfile, the generated allowlist.
+.run/
+
+# Run recordings (D-021, make export-run); only the committed sample is tracked.
+recordings/*
+!recordings/sample-F01.json

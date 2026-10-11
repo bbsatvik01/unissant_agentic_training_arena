@@ -22,7 +22,8 @@ Outcome = str | ProviderCallError | Callable[[ModelRequest], str]
 @dataclass
 class FakeAdapter:
     script: list[Outcome] = field(default_factory=list)
-    canned: Mapping[str, str] = field(default_factory=dict)  # schema title -> reply text
+    # schema title -> reply text, or a function of the request that writes it
+    canned: Mapping[str, str | Callable[[ModelRequest], str]] = field(default_factory=dict)
     usage: Usage | None = field(default_factory=Usage)  # None: the reply reports no usage
     delay_s: float = 0.0
     requests: list[ModelRequest] = field(default_factory=list)
