@@ -27,3 +27,9 @@ path = "packages/core/tests/observability/test_phoenix.py"
 marker = "nosemgrep"
 line = "import httpx  # nosemgrep: arena-no-raw-http-httpx"
 reason = "arena-no-raw-http (S5 1.1, 1.2) keeps raw HTTP clients out of code paths that bypass the agent port, the spend guard or a role's caller-token check; this import is in the test of observability/phoenix.py (already excluded from the same rule), used only to build httpx.Response/httpx.Request FIXTURES for a scripted HttpGetter fake (PhoenixSpanReader's own Protocol) -- the test never opens a real connection (verified false positive; WP-07, S5 8.4/8.6, no network export in tests)"
+
+[[allow]]
+path = "services/tournament/src/arena_tournament/roster.py"
+marker = "noqa"
+line = "rng = random.Random(seed)  # noqa: S311 - a reproducible shuffle (direction 7.2's recorded seed), never a secret"
+reason = "Ruff S311 flags every non-cryptographic PRNG; this seeds the frozen roster's block order (direction 7.2: 'order within a block comes from a recorded seed') so a reviewer or the fairness audit can reproduce it byte for byte from the tournament's own seed column -- the opposite of a secret, which a CSPRNG would make irreproducible (verified false positive; WP-17, roster.build_roster)"
