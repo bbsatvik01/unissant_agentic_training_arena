@@ -560,7 +560,8 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
     """`ledger.planned_execution` (already a read-only function reveal and the trust center use, S4) gives
     the latest attempt's state and trial id per planned trial; the adjudication lookup mirrors
     `ledger.build_manifest`'s own (a replay row reads its source transcript's). `settled_cost` sums every
-    attempt's own coach calls (S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) for this planned
+    attempt's own coach calls' `ops.model_calls.cost_usd` receipts (S3 5.3: the only cost source, never a
+    reservation's settlement; S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) for this planned
     trial -- not only the latest attempt's `trial_id`: an earlier `infra_failed` attempt the candidate was
     still billed for (coach calls made before the retry) is this planned trial's own cost too (M22), never
     dropped just because a later attempt superseded it."""
@@ -568,7 +569,8 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
         cur = await conn.execute(
             "select p.id, p.track, p.assistant_candidate_id, p.subject_candidate_id, f.family_code, ep.role,"
             "       p.block_id, e.state, adj.verdict, ff.classification,"
-            "       coalesce((select sum(r.settled_usd) from ops.budget_reservations r"
+            "       coalesce((select sum(c.cost_usd) from ops.model_calls c"
+            "                  join ops.budget_reservations r on r.id = c.reservation_id"
             "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
             "                    and r.purpose = any(%s)), 0), e.trial_id"
             "  from arena.planned_trials p"
