@@ -86,6 +86,10 @@ export const EVIDENCE_MS = 2_600;
 export const HAND_MS = 1_400;
 /** How long a conflict flag is pointed out. */
 export const FLAG_MS = 6_000;
+/** The reaction cut to the observation room while the coach works: it starts this long after the coach starts... */
+export const REACTION_AFTER_MS = 2_500;
+/** ...and holds this long, then the edit returns to whoever is talking. */
+export const REACTION_MS = 2_600;
 /** How long the seal is stamped. */
 export const SEAL_MS = 2_400;
 
@@ -205,13 +209,35 @@ function caption(view: TrialView, input: WorldInput, wall: readonly WallPaper[],
   return "Waiting for the next question.";
 }
 
-function shotFor(world: Pick<WorldState, "wall" | "flag" | "seal">): ShotName {
+/**
+ * The shot the room camera holds (D-025 cinematic presentation), in priority order: the signature moments first
+ * (seal on the table, a record pinning itself on the wall, a conflict being pointed out), then whoever is talking
+ * (over the investigator's shoulder for the question, a close-up for the answer), then the observation room while
+ * the coaches work, else the wide room shot. Lifecycle and timing only: no shot is chosen by what was said.
+ */
+function shotFor(world: Pick<WorldState, "wall" | "flag" | "seal" | "subject" | "investigator" | "status" | "mode">, reaction: boolean): ShotName {
   if (world.seal?.fresh === true) return "table";
   if (world.wall.some((p) => p.fresh)) return "wall";
-  // A conflict between two turns is pointed out from the observation room; one with a record is shown in the
-  // room shot, where the thread from the wall to the subject's seat is in view.
-  if (world.flag !== null && world.flag.conflictRecord === null) return "mirror";
+  // A conflict with a record is shown wide, where the thread from the wall to the subject's seat is in view; one
+  // between two turns is pointed out from the observation room.
+  if (world.flag !== null) return world.flag.conflictRecord === null ? "observation" : "room";
+  if (world.investigator.speech !== null) return "over_shoulder";
+  // A reaction shot of the coaches at work, cut into the answer (the answer's audio and captions carry on).
+  if (reaction) return "observation";
+  if (world.subject.pose === "speaking" || world.subject.pose === "thinking") return "subject_close";
+  if (world.status === "coach_working" && world.mode === "practice") return "observation";
   return "room";
+}
+
+/** True inside the reaction-shot window of the newest turn's coach work (practice only). */
+function reactionShot(view: TrialView, input: WorldInput): boolean {
+  if (view.mode !== "practice") return false;
+  const newest = view.turns.at(-1);
+  if (newest === undefined) return false;
+  const at = input.arrivals.get(`coach.working:${String(newest.turn_no)}`);
+  if (at === undefined) return false;
+  const since = input.nowMs - at;
+  return since >= REACTION_AFTER_MS && since < REACTION_AFTER_MS + REACTION_MS;
 }
 
 /** The world at `input.nowMs`, or null before the snapshot. */
@@ -248,19 +274,21 @@ export function deriveWorld(input: WorldInput): WorldState | null {
     paused: input.paused,
     idleMs: input.nowMs - latest,
   });
-  const partial = { wall, flag, seal };
+  const subject = { pose, speech: answer };
+  const investigator = { speech: question };
+  const partial = { wall, flag, seal, subject, investigator, status: view.status, mode: view.mode };
   return {
     status: view.status,
     mode: view.mode,
-    subject: { pose, speech: answer },
-    investigator: { speech: question },
+    subject,
+    investigator,
     coaches: coachPoses(view, input, flag),
     wall,
     flag,
     pet,
     seal,
     debriefReady: view.debriefReady !== null,
-    shot: shotFor(partial),
+    shot: shotFor(partial, reactionShot(view, input)),
     caption: caption(view, input, wall, pose),
     exchanges: { used: view.exchangesUsed, cap: view.exchangesCap },
   };

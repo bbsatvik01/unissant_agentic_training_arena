@@ -13,7 +13,7 @@ import { EvidencePanel } from "../components/overlay/EvidencePanel";
 import { FindingPanel } from "../components/overlay/FindingPanel";
 import { Tabs } from "../components/overlay/Tabs";
 import { Transcript } from "../components/overlay/Transcript";
-import type { WallDocument } from "../components/world/Room";
+import type { WallDocument } from "../components/world/moments";
 import { EX4_TEXT } from "../lib/copy/ex4";
 import type { RoomStatus } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
@@ -51,6 +51,8 @@ export function WorldRoute() {
   const [tab, setTab] = useState("coach");
   const [fileError, setFileError] = useState<string | null>(null);
   const [showPet, setShowPet] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   const recording = load.state === "ready" ? load.recording : null;
   const subjectName = recording?.case.subject.display_name ?? active?.subject.display_name ?? "Subject";
@@ -149,7 +151,9 @@ export function WorldRoute() {
   const onArrive = useCallback(() => {
     setArrived(true);
   }, []);
+  // A citation always lands in a visible transcript: it opens the panel if the viewer had collapsed it.
   const onCite = useCallback((turn: number, quote: string) => {
+    setLeftOpen(true);
     setCite((c) => ({ turn, quote, nonce: (c?.nonce ?? 0) + 1 }));
   }, []);
 
@@ -221,7 +225,17 @@ export function WorldRoute() {
       </header>
 
       <main className="stage">
-        <aside className="side left">
+        <aside className="side left" data-open={leftOpen ? "true" : "false"}>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-expanded={leftOpen}
+            onClick={() => {
+              setLeftOpen((v) => !v);
+            }}
+          >
+            {leftOpen ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
+          </button>
           {place === "hub" ? (
             <section className="panel" aria-labelledby="cases-title">
               <header className="panel-head">
@@ -298,6 +312,7 @@ export function WorldRoute() {
                 world={world}
                 cases={CASES}
                 recordedCaseId={RECORDED_CASE_ID}
+                subjectName={subjectName}
                 focusedCase={focused}
                 documents={wallDocs}
                 clock={playback.clock}
@@ -309,27 +324,27 @@ export function WorldRoute() {
                 onArrive={onArrive}
               />
             </Suspense>
-            {place === "room" && world?.debriefReady === true && debrief !== null && debriefClosed ? (
-              <button
-                type="button"
-                className="btn-secondary-sm debrief-open"
-                onClick={() => {
-                  setDebriefClosed(false);
-                }}
-              >
-                Open debrief
-              </button>
-            ) : null}
-            {showDebrief ? (
-              <DebriefScore
-                debrief={debrief}
-                reducedMotion={still}
-                onClose={() => {
-                  setDebriefClosed(true);
-                }}
-              />
-            ) : null}
           </div>
+          {place === "room" && world?.debriefReady === true && debrief !== null && debriefClosed ? (
+            <button
+              type="button"
+              className="btn-secondary-sm debrief-open"
+              onClick={() => {
+                setDebriefClosed(false);
+              }}
+            >
+              Open debrief
+            </button>
+          ) : null}
+          {showDebrief ? (
+            <DebriefScore
+              debrief={debrief}
+              reducedMotion={still}
+              onClose={() => {
+                setDebriefClosed(true);
+              }}
+            />
+          ) : null}
           {place === "room" ? (
             <div className="room-controls">
               <p className="caption" role="status">
@@ -358,7 +373,17 @@ export function WorldRoute() {
           )}
         </div>
 
-        <aside className="side right">
+        <aside className="side right" data-open={rightOpen ? "true" : "false"}>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-expanded={rightOpen}
+            onClick={() => {
+              setRightOpen((v) => !v);
+            }}
+          >
+            {rightOpen ? "Hide" : place === "hub" ? "Brief" : "Coach, evidence, finding"}
+          </button>
           {place === "hub" ? (
             focusCard === null ? null : (
               <section className="panel" aria-labelledby="brief-title">

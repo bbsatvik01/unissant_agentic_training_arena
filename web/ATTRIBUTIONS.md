@@ -120,3 +120,9 @@ What changed: the cast is one unstyled development placeholder (`src/components/
 ## New code (no source)
 
 `src/lib/sse/trial-stream.ts` (trial stream on top of the lifted client), `tools/dependency-exceptions.test.ts` with `dependency-exceptions.json` (the enforced exception register), `tools/vite-proxy.test.ts` (the dev proxy against a real upstream: Host rewritten for HTTP and the WebSocket upgrade, Origin preserved, S5 10.3), `src/lib/contracts/card.ts` (the card.v1 question block, mirrored from S2 4.1 until WP-02 generates contract types), `src/lib/copy/ex4.ts`, and the scaffold (`src/main.tsx`, `src/router.tsx`, `src/routes/placeholder.tsx`, configuration files).
+
+## Microsoft Rocketbox avatars (MIT)
+
+`public/avatars/` holds eight characters and six seated motion clips from the Microsoft Rocketbox Avatar Library,
+converted to glTF and three.js clip JSON. Provenance, the conversion steps and the MIT licence text are in
+`public/avatars/LICENSE.md`.

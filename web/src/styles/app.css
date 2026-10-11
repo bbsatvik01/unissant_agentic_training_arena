@@ -865,3 +865,285 @@ td {
   right: var(--arena-space-4);
   bottom: var(--arena-space-4);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * Cinematic layout (D-025): the 3D world is the stage, full-bleed; the overlay floats on it as translucent
+ * DESIGN.md surfaces (white at high opacity over a blur, hairline, soft shadow), and each side panel collapses.
+ * ------------------------------------------------------------------------------------------------------------- */
+:root {
+  --arena-glass: rgb(255 255 255 / 0.84);
+  --arena-glass-strong: rgb(255 255 255 / 0.92);
+  --arena-glass-shadow: 0 0 0 1px rgb(255 255 255 / 0.5), 0 8px 32px rgb(0 0 0 / 0.18);
+}
+
+.app {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  background: #1b1c1e;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  pointer-events: none;
+}
+
+.stage > * {
+  pointer-events: auto;
+}
+
+.center {
+  position: static;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #1b1c1e;
+  z-index: 0;
+}
+
+.topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  height: 48px;
+  z-index: 3;
+  border: 0;
+  border-radius: var(--arena-radius-lg);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side {
+  position: absolute;
+  top: 72px;
+  bottom: 56px;
+  width: min(360px, calc(50vw - 24px));
+  z-index: 2;
+  transition: transform var(--arena-motion-base) var(--arena-ease-standard), opacity var(--arena-motion-base) var(--arena-ease-standard);
+}
+
+.side.left {
+  left: 12px;
+}
+
+.side.right {
+  right: 12px;
+  width: min(390px, calc(50vw - 24px));
+}
+
+.side .panel {
+  background: var(--arena-glass);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side[data-open="false"] .panel,
+.side[data-open="false"] > .panel {
+  display: none;
+}
+
+.side[data-open="false"] {
+  bottom: auto;
+  width: auto;
+}
+
+.panel-toggle {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  height: 26px;
+  padding: 0 var(--arena-space-3);
+  border-radius: var(--arena-radius-pill);
+  background: var(--arena-canvas);
+  box-shadow: 0 0 0 1px var(--arena-hairline);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.side[data-open="false"] .panel-toggle {
+  position: static;
+  height: 32px;
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side.right .panel-toggle {
+  right: auto;
+  left: auto;
+  right: 12px;
+}
+
+.tabs .tab-list {
+  padding-right: 72px;
+}
+
+.room-controls,
+.center > .caption {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2 * min(392px, 50vw) - 24px));
+  min-width: 360px;
+  z-index: 2;
+}
+
+.center > .caption,
+.room-controls .caption {
+  color: var(--arena-canvas);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.room-controls .playback,
+.room-controls .composer textarea {
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+}
+
+.ex4 {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  border: 0;
+  border-radius: var(--arena-radius-pill);
+  padding: var(--arena-space-2) var(--arena-space-4);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+  text-align: center;
+}
+
+/* The debrief floats above the panels (outside the 3D view's stacking context). */
+.debrief {
+  /* Between the header (72px) and its 200px bottom offset, scrolling inside when that is short. */
+  max-height: calc(100vh - 272px);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.debrief,
+.debrief-open {
+  position: fixed;
+  z-index: 4;
+  right: calc(min(390px, 50vw - 24px) + 28px);
+  bottom: 200px;
+}
+
+.playback {
+  flex-wrap: wrap;
+}
+
+.viewport-loading {
+  color: var(--arena-canvas);
+}
+
+@media (max-width: 1199px) and (min-width: 1024px) {
+  /* Mid widths: slimmer panels, and the controls take exactly the space between them. */
+  .side,
+  .side.right {
+    width: 300px;
+  }
+
+  .room-controls,
+  .center > .caption {
+    width: calc(100vw - 2 * 312px - 24px);
+    min-width: 0;
+  }
+
+  .debrief,
+  .debrief-open {
+    right: 324px;
+  }
+}
+
+@media (max-width: 1023px) {
+  /* Narrow screens: the 3D view takes the top half and stays put; header, controls, panels and the EX-4 line
+     follow in a scrolling column below it, full width, each panel tall enough to use. */
+  .app {
+    overflow-y: auto;
+  }
+
+  .viewport {
+    position: fixed;
+    top: 0;
+    bottom: auto;
+    height: 46vh;
+  }
+
+  .stage {
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: calc(46vh + 12px) 12px 72px;
+    pointer-events: auto;
+  }
+
+  .topbar {
+    position: fixed;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
+  .side,
+  .side.left,
+  .side.right,
+  .room-controls,
+  .center > .caption {
+    position: relative;
+    inset: auto;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    width: auto;
+    min-width: 0;
+  }
+
+  .side .panel {
+    height: 70vh;
+  }
+
+  .center {
+    order: -1;
+  }
+
+  .ex4 {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 0 12px 12px;
+  }
+
+  .debrief,
+  .debrief-open {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    top: 72px;
+    bottom: auto;
+  }
+
+  .debrief {
+    max-height: calc(100vh - 84px);
+  }
+}
