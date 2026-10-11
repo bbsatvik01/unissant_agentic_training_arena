@@ -82,6 +82,18 @@ describe("choosePose", () => {
     return arm.quaternion;
   }
 
+  it("returns to the idle clip under motion off after a finished cross-fade disabled it", () => {
+    const { root, rig: r, arm, mixer, actions } = setup();
+    actions[0]?.play();
+    const ctx = { rig: r, mixer, scene: root, track: [], beats: [], actions, thinking: true, still: false, pose: "thinking" as const, speech: null, persona: subjectPersona("Jordan Pell"), gaze: [0, 1.4, 2] as const, clock: { current: 0 }, random: () => 0.5 };
+    const s = state();
+    choosePose(actions, true, false);
+    for (let i = 0; i < 90; i += 1) stepAvatar(ctx, s, i / 60, 1 / 60);
+    choosePose(actions, false, true);
+    for (let i = 0; i < 30; i += 1) stepAvatar({ ...ctx, thinking: false, still: true, pose: "listening" }, s, (90 + i) / 60, 1 / 60);
+    expect(arm.quaternion.angleTo(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), 0.8))).toBeLessThan(0.02);
+  });
+
   it.each([
     [true, false, 0.8],
     [true, true, -0.6],

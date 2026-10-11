@@ -167,8 +167,8 @@ export function choosePose(actions: readonly AnimationAction[], thinking: boolea
   if (base === undefined || thoughtful === undefined) return;
   const [on, off] = thinking ? [thoughtful, base] : [base, thoughtful];
   if (still) {
-    on.stopFading().play();
-    on.setEffectiveWeight(1);
+    // reset() re-enables an action a finished fade-out disabled; then full weight at once.
+    on.stopFading().reset().setEffectiveWeight(1).play();
     off.stopFading();
     off.setEffectiveWeight(0);
     return;
