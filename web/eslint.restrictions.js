@@ -5,7 +5,7 @@
  * pattern fails lint).
  *
  *   - FE-TECH-3 (S6 1.2): `fetch(` only inside `src/lib/api/`; no `@supabase/*` import anywhere.
- *   - FE-SSE-7 (S6 5.4): animated components (`src/components/{companion,avatar,arena,motion}/**`)
+ *   - FE-SSE-7 (S6 5.4): animated components (`src/components/{companion,avatar,arena,motion,world,overlay}/**`)
  *     import nothing from `src/lib/api/`; they read reducer state only.
  *
  * This is a tripwire for the ordinary violation, not a sandbox: it does not follow aliases of the
@@ -111,7 +111,7 @@ export const restrictions = [
     },
   },
   {
-    files: [`src/components/{companion,avatar,arena,motion}/**/*.${EXT}`],
+    files: [`src/components/{companion,avatar,arena,motion,world,overlay}/**/*.${EXT}`],
     rules: {
       "no-restricted-imports": ["error", { patterns: [SUPABASE_PATTERN, API_PATTERN] }],
       "no-restricted-syntax": ["error", ...SUPABASE_SYNTAX, ...API_SYNTAX, ...GLOB_SYNTAX, ...OPAQUE_LOAD_SYNTAX],
