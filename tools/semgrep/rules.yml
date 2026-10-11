@@ -22,6 +22,10 @@ rules:
         # IAM-private (hosted) routes with per-route caller authorization.
         - "/services/api/src/arena_api/subject_client.py"
         - "/services/api/src/arena_api/referee_client.py"
+        # arena-subject's own app test: httpx.ASGITransport drives the FastAPI app in process (no socket,
+        # no network, the same technique FastAPI's own docs recommend over starlette.testclient, which this
+        # repo avoids because its newer releases deprecate plain httpx, S8 WP-12); never a live HTTP call.
+        - "/services/subject/tests/test_app.py"
     pattern-either:
       - pattern: import httpx
       - pattern: import httpx2

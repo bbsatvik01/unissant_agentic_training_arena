@@ -34,9 +34,10 @@ from arena_core.db import subject as db_subject
 from arena_core.db.pool import Connector, dsn_connector
 from tools import proc
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DSN_VAR = "ARENA_IT_ADMIN_DSN"
-FIXTURES_SQL = REPO_ROOT / "supabase" / "tests" / "harness" / "fixtures.psql"
+TESTS_DIR = REPO_ROOT / "supabase" / "tests"
+FIXTURES_SQL = TESTS_DIR / "harness" / "fixtures.psql"
 TOURNAMENT_POSITION = 4  # tests.tournament(...): position 4 is the deceptive interactive trial (A1 x S1)
 
 
@@ -50,7 +51,10 @@ def admin_dsn() -> str:
     if not dsn:
         msg = f"{DSN_VAR} is not set: this suite runs inside make db-test on a freshly migrated database"
         raise RuntimeError(msg)
-    loaded = proc.run("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", str(FIXTURES_SQL), dsn])
+    # fixtures.psql shells out to `cat ../../docs/spec/seed-families/F0N.json` (its own comment: "read by psql
+    # on the client from the runner's working directory"), relative to supabase/tests/, exactly as
+    # db_test.sh's other psql -f calls run with that as cwd.
+    loaded = proc.run("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", "harness/fixtures.psql", dsn], cwd=TESTS_DIR)
     if loaded.returncode != 0:
         msg = f"could not load {FIXTURES_SQL}: {loaded.stderr.strip()}"
         raise RuntimeError(msg)
@@ -123,10 +127,16 @@ async def open_subject_turn(dsn: str, trial_id: UUID, question: str) -> UUID:
 
 async def new_trial(dsn: str) -> UUID:
     """A fresh tournament, one interactive block, position 4 (deceptive, A1 x S1); each call seeds its own
-    tournament so trials never collide across tests."""
+    tournament so trials never collide across tests. `tests.tournament` only freezes and opens the
+    tournament (status `running`); each planned trial still starts on its own (`arena.start_trial`,
+    `planned` -> `running`) before it can take a question."""
     tournament = await admin_scalar(dsn, "select tests.tournament('dev', array['interactive'])::text")
     trial = await admin_scalar(dsn, "select tests.trial(%s, %s)::text", (tournament, TOURNAMENT_POSITION))
-    return UUID(trial)
+    trial_id = UUID(trial)
+    async with await AsyncConnection.connect(dsn) as conn:
+        await conn.execute("select arena.start_trial(%s)", (trial_id,))
+        await conn.commit()
+    return trial_id
 
 
 def tag() -> dict[str, Any]:
@@ -170,8 +180,9 @@ def test_turn_context_and_record_subject_turn_round_trip_for_real(admin_dsn: str
         async with connect() as conn:
             await db_subject.turn_context(conn, trial_id, work_item_id)
 
-    with pytest.raises(psycopg.Error, match="AR003"):
+    with pytest.raises(psycopg.Error) as exc_info:
         run(reuse())
+    assert exc_info.value.sqlstate == "AR003"
 
 
 def test_a_guard_rejection_quarantines_the_trial_at_s4_level(admin_dsn: str) -> None:
