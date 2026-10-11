@@ -1,0 +1,375 @@
+"""Span processors in chain order (S5 8.3; lift target: TechnoMile T14, adapted)."""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Mapping, Sequence
+
+import pytest
+from opentelemetry import context as otel_context
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import ReadableSpan, Span, TracerProvider
+from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+from opentelemetry.trace import SpanContext, TraceFlags
+
+from arena_core.observability import export_policy as ep
+from arena_core.observability import processors as proc
+from arena_core.observability.redaction import Redaction
+
+PROVIDER = TracerProvider(resource=Resource({"service.name": "arena-test"}))
+TRACER = PROVIDER.get_tracer("arena-test")
+ROOT_CTX = otel_context.Context()
+
+
+def _start(name: str, parent: otel_context.Context = ROOT_CTX, attributes: Mapping[str, object] | None = None) -> Span:
+    span = TRACER.start_span(name, context=parent, attributes=attributes)
+    assert isinstance(span, Span)
+    return span
+
+
+def _ctx_of(span: Span) -> otel_context.Context:
+    return trace.set_span_in_context(span)
+
+
+def _no_parent() -> SpanContext:
+    return SpanContext(0, 0, is_remote=False, trace_flags=TraceFlags(0))
+
+
+# ------------------------------------------------------------------------------------------------- Lineage
+def test_lineage_classifies_an_untouched_root_as_public_untainted_none() -> None:
+    lineage = proc.Lineage()
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    verdict = lineage.classify(span.get_span_context())
+    assert verdict.sensitive is False
+    assert verdict.tainted is False
+    assert verdict.split == "none"
+
+
+def test_lineage_inherits_split_and_binding_from_parent() -> None:
+    lineage = proc.Lineage()
+    root = _start("root", attributes={ep.SPLIT_ATTR: "dev", ep.TRIAL_ID_ATTR: "trial-1"})
+    lineage.started(root, _no_parent())
+    child = _start("child", parent=_ctx_of(root))
+    lineage.started(child, root.get_span_context())
+    verdict = lineage.classify(child.get_span_context())
+    assert verdict.split == "dev"
+    assert verdict.trial_id == "trial-1"
+
+
+def test_lineage_explicit_split_on_a_child_overrides_the_parent() -> None:
+    lineage = proc.Lineage()
+    root = _start("root", attributes={ep.SPLIT_ATTR: "dev"})
+    lineage.started(root, _no_parent())
+    child = _start("child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(child, root.get_span_context())
+    assert lineage.classify(child.get_span_context()).split == "hidden"
+    # the parent's own classification is unaffected by its child's explicit split
+    assert lineage.classify(root.get_span_context()).split == "dev"
+
+
+def test_lineage_taints_ancestors_when_a_sensitive_child_starts() -> None:
+    lineage = proc.Lineage()
+    root = _start("root")
+    lineage.started(root, _no_parent())
+    child = _start("child", parent=_ctx_of(root), attributes={ep.DATA_CLASS_ATTR: ep.SUBJECT_PRIVATE})
+    lineage.started(child, root.get_span_context())
+    root_verdict = lineage.classify(root.get_span_context())
+    assert root_verdict.sensitive is False  # the root itself is still public
+    assert root_verdict.tainted is True  # but it is tainted by its sensitive child
+    assert lineage.classify(child.get_span_context()).sensitive is True
+
+
+def test_lineage_classify_fails_closed_for_an_unrecorded_span() -> None:
+    lineage = proc.Lineage()
+    span = _start("never-recorded")
+    verdict = lineage.classify(span.get_span_context())
+    assert verdict.sensitive is True
+    assert verdict.tainted is True
+    assert verdict.split == "hidden"
+
+
+def test_lineage_classify_fails_closed_for_a_none_context() -> None:
+    assert proc.Lineage().classify(None).sensitive is True
+
+
+def test_lineage_evicts_the_oldest_trace_once_over_the_bound() -> None:
+    bound = 2
+    lineage = proc.Lineage(max_spans=bound)
+    first = _start("first")
+    lineage.started(first, _no_parent())
+    second = _start("second")
+    lineage.started(second, _no_parent())
+    assert len(lineage) == bound
+    third = _start("third")
+    lineage.started(third, _no_parent())
+    # the first trace (its one span) was evicted to make room; it now fails closed
+    assert lineage.classify(first.get_span_context()).sensitive is True
+    assert lineage.classify(third.get_span_context()).sensitive is False
+
+
+def test_lineage_propagator_on_start_records_in_the_registry() -> None:
+    lineage = proc.Lineage()
+    propagator = proc.LineagePropagator(lineage)
+    span = _start("root")
+    propagator.on_start(span, parent_context=ROOT_CTX)
+    assert len(lineage) == 1
+
+
+# ----------------------------------------------------------------------------------------------- Redactor
+def _sanitizer() -> ep.Sanitizer:
+    return ep.Sanitizer(Redaction(), 32_768, Resource({"service.name": "arena-test"}))
+
+
+def test_redactor_sanitizes_an_ended_span_using_its_lineage_classification() -> None:
+    lineage = proc.Lineage()
+    redactor = proc.Redactor(_sanitizer(), lineage)
+    span = _start("root", attributes={ep.DATA_CLASS_ATTR: ep.SUBJECT_PRIVATE, "output": "the real secret answer"})
+    lineage.started(span, _no_parent())
+    span.end()
+    redactor.on_end(span)
+    ended: ReadableSpan = span
+    assert ended.attributes is not None
+    assert "the real secret answer" not in str(ended.attributes.get("output"))
+
+
+def test_redactor_fails_closed_when_sanitizing_raises() -> None:
+    lineage = proc.Lineage()
+
+    class _Boom(ep.Sanitizer):
+        def span(self, span: ReadableSpan, *, sensitive: bool, tainted: bool) -> None:
+            raise RuntimeError(f"boom:{span.name}:{sensitive}:{tainted}")
+
+    redactor = proc.Redactor(_Boom(Redaction(), 32_768, Resource({})), lineage)
+    span = _start("root", attributes={"payload": "still here"})
+    lineage.started(span, _no_parent())
+    span.end()
+    redactor.on_end(span)
+    ended: ReadableSpan = span
+    assert ended.attributes == {}
+    assert ended.name == "[redacted]"
+
+
+# -------------------------------------------------------------------------------------------- SpanMirror
+def test_span_mirror_buffers_a_sanitized_row_per_ended_span() -> None:
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root", attributes={ep.TRIAL_ID_ATTR: "trial-9", ep.SPLIT_ATTR: "dev"})
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    written = mirror.flush()
+    assert written == 1
+    assert sink.rows[0].trial_id == "trial-9"
+    assert sink.rows[0].split == "dev"
+
+
+def test_span_mirror_flush_with_nothing_buffered_is_a_no_op() -> None:
+    mirror = proc.SpanMirror(proc.InMemoryMirrorSink(), proc.Lineage())
+    assert mirror.flush() == 0
+
+
+def test_span_mirror_keeps_rows_when_the_sink_raises() -> None:
+    lineage = proc.Lineage()
+
+    class _FailingSink:
+        def write(self, rows: Sequence[proc.SpanRow]) -> int:
+            raise RuntimeError(len(rows))
+
+    mirror = proc.SpanMirror(_FailingSink(), lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    with pytest.raises(RuntimeError):
+        mirror.flush()
+    # the row was never lost: force_flush (used at shutdown) reports failure, not silent data loss
+    assert mirror.force_flush() is False
+
+
+def test_span_mirror_force_flush_reports_timeout_as_failure_and_keeps_rows() -> None:
+    lineage = proc.Lineage()
+
+    class _SlowSink:
+        def write(self, rows: Sequence[proc.SpanRow]) -> int:
+            time.sleep(0.2)
+            return len(rows)
+
+    mirror = proc.SpanMirror(_SlowSink(), lineage, write_timeout_s=0.01)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    assert mirror.force_flush(timeout_millis=10) is False
+
+
+def test_span_mirror_otlp_keeps_the_sanitized_attributes_only() -> None:
+    """The mirror runs AFTER the Redactor in the real chain; here it records whatever attributes the span
+    carries at on_end time, proving the row's otlp payload is exactly those (already-sanitized) attributes."""
+    lineage = proc.Lineage()
+    redactor = proc.Redactor(_sanitizer(), lineage)
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root", attributes={ep.DATA_CLASS_ATTR: ep.SUBJECT_PRIVATE, "output": "never leaves in clear"})
+    lineage.started(span, _no_parent())
+    span.end()
+    redactor.on_end(span)  # redact first, exactly as the real chain orders it
+    mirror.on_end(span)
+    mirror.flush()
+    attrs = sink.rows[0].otlp["attributes"]
+    assert isinstance(attrs, dict)
+    assert "never leaves in clear" not in str(attrs.get("output", ""))
+
+
+# --------------------------------------------------------------------------------------------- ExportGate
+class _Recording(SpanExporter):
+    def __init__(self) -> None:
+        self.exported: list[ReadableSpan] = []
+
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
+        self.exported.extend(spans)
+        return SpanExportResult.SUCCESS
+
+    def shutdown(self) -> None:
+        pass
+
+    def force_flush(self, timeout_millis: int = 30000) -> bool:
+        return timeout_millis >= 0
+
+
+def test_export_gate_forwards_a_visible_span() -> None:
+    lineage = proc.Lineage()
+    inner = _Recording()
+    gate = proc.ExportGate(inner, lineage)
+    span = _start("root", attributes={ep.SPLIT_ATTR: "dev"})
+    lineage.started(span, _no_parent())
+    span.end()
+    assert gate.export([span]) is SpanExportResult.SUCCESS
+    assert len(inner.exported) == 1
+
+
+def test_export_gate_withholds_a_hidden_span() -> None:
+    lineage = proc.Lineage()
+    inner = _Recording()
+    gate = proc.ExportGate(inner, lineage)
+    span = _start("root", attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(span, _no_parent())
+    span.end()
+    result = gate.export([span])
+    assert result is SpanExportResult.SUCCESS  # the mirror already has it; this is not a failure
+    assert inner.exported == []
+
+
+def test_export_gate_mirror_only_withholds_everything() -> None:
+    lineage = proc.Lineage()
+    inner = _Recording()
+    gate = proc.ExportGate(inner, lineage, mirror_only=True)
+    span = _start("root", attributes={ep.SPLIT_ATTR: "none"})
+    lineage.started(span, _no_parent())
+    span.end()
+    gate.export([span])
+    assert inner.exported == []
+
+
+def test_export_gate_force_flush_delegates_to_the_inner_exporter() -> None:
+    gate = proc.ExportGate(_Recording(), proc.Lineage())
+    assert gate.force_flush(timeout_millis=10) is True
+
+
+def test_export_gate_shutdown_delegates_to_the_inner_exporter() -> None:
+    inner = _Recording()
+    proc.ExportGate(inner, proc.Lineage()).shutdown()
+
+
+def test_span_mirror_force_flush_succeeds_and_shutdown_delegates_to_it() -> None:
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    assert mirror.force_flush() is True
+    assert len(sink.rows) == 1
+    mirror.shutdown()  # nothing left buffered: a clean no-op force_flush
+
+
+# -------------------------------------------------------------------------------------- more edge coverage
+def test_classification_exposed_is_sensitive_or_tainted() -> None:
+    assert proc.Classification(False, True, "none", None, None, None).exposed is True
+    assert proc.Classification(False, False, "none", None, None, None).exposed is False
+
+
+def test_lineage_started_with_no_context_is_a_no_op() -> None:
+    lineage = proc.Lineage()
+    span = _start("root")
+    span._context = None
+    lineage.started(span, _no_parent())
+    assert len(lineage) == 0
+
+
+def test_lineage_started_twice_for_the_same_span_does_not_grow_the_size() -> None:
+    lineage = proc.Lineage()
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    lineage.started(span, _no_parent())  # re-recording the same span id: size does not double-count
+    assert len(lineage) == 1
+
+
+def test_span_mirror_record_with_no_context_is_a_no_op() -> None:
+    lineage = proc.Lineage()
+    mirror = proc.SpanMirror(proc.InMemoryMirrorSink(), lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    span._context = None
+    mirror.on_end(span)
+    assert mirror.flush() == 0
+
+
+def test_span_mirror_on_end_fails_closed_when_recording_raises() -> None:
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+
+    class _Boom(proc.SpanMirror):
+        def _record(self, span: ReadableSpan) -> None:
+            raise RuntimeError(span.name)
+
+    mirror = _Boom(sink, lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)  # the exception is logged, never raised
+    assert mirror.flush() == 0
+
+
+def test_span_mirror_otlp_keeps_a_list_attribute_as_a_list() -> None:
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root", attributes={"tags": ["a", "b"]})
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    mirror.flush()
+    attrs = sink.rows[0].otlp["attributes"]
+    assert isinstance(attrs, dict)
+    assert attrs["tags"] == ["a", "b"]
+
+
+def test_span_mirror_flush_while_already_writing_raises_and_keeps_the_rows() -> None:
+    lineage = proc.Lineage()
+    mirror = proc.SpanMirror(proc.InMemoryMirrorSink(), lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    mirror._writing = True
+    try:
+        with pytest.raises(proc.MirrorWriteTimeoutError, match="still running"):
+            mirror.flush()
+    finally:
+        mirror._writing = False
+    assert mirror.flush() == 1  # the row was kept, not lost

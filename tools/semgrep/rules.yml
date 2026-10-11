@@ -18,6 +18,9 @@ rules:
         # Span read-back and export to the operator's own Phoenix (S5 8.6): a fixed, operator-configured
         # URL, not a model call and not a role route. One file.
         - "/packages/core/src/arena_core/observability/phoenix.py"
+        # The test of that one file: builds httpx.Response/httpx.Request fixtures for a scripted
+        # HttpGetter fake (WP-07) and never opens a real connection; no network export in tests.
+        - "/packages/core/tests/observability/test_phoenix.py"
         # arena-api's internal clients for arena-subject and arena-referee (S5 5.5): loopback (local) or
         # IAM-private (hosted) routes with per-route caller authorization.
         - "/services/api/src/arena_api/subject_client.py"
