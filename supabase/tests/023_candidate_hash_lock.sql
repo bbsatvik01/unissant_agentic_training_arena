@@ -1,4 +1,6 @@
--- 018_candidate_hash_lock.sql (S2 3.2; WP-10; migration 1100). Two real sessions through dblink. This file does not
+-- 023_candidate_hash_lock.sql (S2 3.2; WP-10; migration 1100; renumbered from 018_candidate_hash_lock.sql in WP-04
+-- to free the TESTS.md section-18 name 018_keepalive_and_misc.sql for its own file). Two real sessions through
+-- dblink. This file does not
 -- load harness/fixtures.psql: creating its SQL functions takes share locks on the arena tables for the rest of the
 -- test transaction, which would block session A's ACCESS EXCLUSIVE locks.
 begin;

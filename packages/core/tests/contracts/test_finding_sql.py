@@ -1,4 +1,4 @@
-"""The finding the database test commits (supabase/tests/016_finding.sql, FN-02) is exactly the shared contract's
+"""The finding the database test commits (supabase/tests/021_finding_contract.sql, FN-02) is exactly the shared contract's
 stored investigator finding, so the database accepts what the contract produces (S2 4.8, S5 5.4)."""
 
 from __future__ import annotations
@@ -24,5 +24,5 @@ def test_the_database_test_commits_the_contracts_stored_finding() -> None:
     )
     stored = canonical_json(body.stored().model_dump(mode="json"))
     assert '"alternative_explanations":null' in stored
-    sql = (REPO_ROOT / "supabase" / "tests" / "016_finding.sql").read_text(encoding="utf-8")
+    sql = (REPO_ROOT / "supabase" / "tests" / "021_finding_contract.sql").read_text(encoding="utf-8")
     assert f"'{stored}'::jsonb" in sql
