@@ -5,6 +5,8 @@ description = "ARENA_ROLE=subject: answer(), the deterministic guard, Live voice
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "arena-core",
+  "fastapi>=0.141.1",
+  "uvicorn>=0.54.0",
 ]
 
 [build-system]
