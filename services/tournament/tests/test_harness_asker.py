@@ -210,3 +210,31 @@ def test_every_port_call_reuses_one_pooled_connection_across_a_whole_trial(echo_
 
     assert all(card is not None for card in on_loop(three_exchanges))
     assert pooled.round_trips == EXCHANGES
+
+
+def _harness_orch(rig: Rig) -> Orchestrator:
+    """The tournament job's orchestrator (`main.build_runner`): `harness=True`."""
+    return Orchestrator(db=rig.db, port=rig.port, subject=rig.subject, signals=TrialSignals(), harness=True)
+
+
+def test_card_with_the_kill_switch_on_stops_the_trial_budget_truncated() -> None:
+    """ST-4 ("the kill switch is on" -> budget_truncated), as on the subject path: never a coach_unavailable
+    the harness relays past (a real gap, Codex round 2)."""
+    rig = Rig()
+    orch = _harness_orch(rig)
+    on_loop(lambda loop: HarnessAsker(rig.db.trial_id, orch, loop).ask(1, QUESTION, []))
+    rig.budget.kill_switch = True
+    with pytest.raises(BudgetStopError):
+        on_loop(lambda loop: HarnessAsker(rig.db.trial_id, orch, loop).card(1))
+    assert rig.db.execution_state == "budget_truncated"
+    assert "coach_unavailable" not in rig.kinds()
+
+
+def test_final_with_the_kill_switch_on_stops_the_trial_budget_truncated() -> None:
+    """ST-4, not ST-6: the kill switch on the final call is a budget stop, never assistant_failed."""
+    rig = Rig()
+    rig.turn()
+    rig.budget.kill_switch = True
+    with pytest.raises(BudgetStopError):
+        on_loop(lambda loop: HarnessAsker(rig.db.trial_id, _harness_orch(rig), loop).final())
+    assert rig.db.execution_state == "budget_truncated"

@@ -26,7 +26,6 @@ from uuid import UUID
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.db.arena import ArenaDb, EventRow, QuestionOrigin
-from arena_core.providers.errors import BudgetRefusedError
 from arena_core.scenario.relay import ReleasedRecord
 from arena_core.turns.harness import (
     BudgetStopError,
@@ -37,7 +36,7 @@ from arena_core.turns.harness import (
     TransientStopError,
     TrialPorts,
 )
-from arena_core.turns.orchestrator import Orchestrator, TurnRefusedError
+from arena_core.turns.orchestrator import HARNESS_BUDGET_STOPS, Orchestrator, TurnRefusedError
 
 COACH_EVENT_KINDS = ("coach_card", "coach_unavailable")
 # The corpus track's own release step already applied every due record before this exchange's question
@@ -132,7 +131,7 @@ class HarnessAsker(TrialPorts):
         n_completed = 0 if meta is None else int(meta["exchanges"])
         try:
             completed = self._run(self.orchestrator.final_and_finalize(self.trial, n_completed))
-        except BudgetRefusedError as exc:
+        except HARNESS_BUDGET_STOPS as exc:
             self._run(self.orchestrator.stop(self.trial, "budget_truncated", str(exc)))
             raise BudgetStopError(dispatched=True) from exc
         if not completed:

@@ -54,7 +54,7 @@ def build_runner(env: Mapping[str, str]) -> TournamentRunner:
     db = ArenaDb(connect, actor=None)  # S4 2.3: a harness/job request never sets arena.actor_id
     port = AgentPort(model_adapter(env, canned=FAKE_COACH_REPLIES), DbSpendGuard(connect), PortOptions())
     caller = env.get(LOCAL_CALLER_VAR, "")
-    orchestrator = Orchestrator(db=db, port=port, subject=subject_client(caller), signals=TrialSignals())
+    orchestrator = Orchestrator(db=db, port=port, subject=subject_client(caller), signals=TrialSignals(), harness=True)
     referee = RefereeClient(caller)
     return TournamentRunner(db=db, orchestrator=orchestrator, referee=referee, manifests={})
 

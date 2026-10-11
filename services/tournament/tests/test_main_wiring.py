@@ -75,6 +75,7 @@ def test_build_runner_wires_a_runner_with_empty_manifests_and_no_live_connection
     runner = main.build_runner(GOOD_ENV)
     assert isinstance(runner, TournamentRunner)
     assert runner.manifests == {}
+    assert runner.orchestrator.harness  # ST-4: the kill switch on a coach call is a budget stop here
 
 
 def test_run_tournament_fills_manifests_before_running(monkeypatch: pytest.MonkeyPatch) -> None:

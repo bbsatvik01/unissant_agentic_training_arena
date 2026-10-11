@@ -31,7 +31,7 @@ from arena_core.agents.manifests import CandidateManifest, load_prompts
 from arena_core.agents.views import CoachCall
 from arena_core.contracts.coaching import CoachingCard, DeepUpdate, FinalFinding
 from arena_core.db.arena import ArenaDb, ArenaError, QuestionOrigin
-from arena_core.providers.errors import BudgetRefusedError, ProviderError, StructuredOutputError
+from arena_core.providers.errors import BudgetRefusedError, KillSwitchOnError, ProviderError, StructuredOutputError
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, CallContext, Message
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
@@ -39,6 +39,8 @@ from arena_core.turns.coach import CardMeta, CoachInputs, coach_inputs, deep_due
 
 log = logging.getLogger("arena_core.turns")
 TURN_DEADLINE_S = 60.0  # S5 5.2: the app-level deadline of one turn request
+# S2 8.5 ST-4: a harness trial stops `budget_truncated` when the spend guard refuses "or the kill switch is on"
+HARNESS_BUDGET_STOPS: tuple[type[ProviderError], ...] = (BudgetRefusedError, KillSwitchOnError)
 _CALL_TYPES: dict[CoachCall, CallType] = {"card": CallType.CARD, "deep": CallType.DEEP, "final": CallType.FINAL}
 
 
@@ -137,6 +139,10 @@ class Orchestrator:
     signals: TrialSignals
     clock: Callable[[], float] = time.monotonic
     deadline_s: float = TURN_DEADLINE_S
+    # A harness-driven orchestrator (arena-tournament): the kill switch on a coach call is an ST-4 budget stop,
+    # like a spend-guard refusal. An investigator's practice turn keeps its card-failure path (the next request
+    # gets the 503 `paused`, S5 4.8).
+    harness: bool = False
 
     async def _open(self, trial: UUID, kind: str, key: str, expected_version: int | None = None) -> dict[str, Any]:
         return await self.db.open_work_item(trial, kind, key, expected_version)
@@ -325,7 +331,7 @@ class Orchestrator:
         step, so the deep update binds to it on the first run and on any retry alike (a retry cannot tell the two
         outcomes apart without reading assessment coaching). A failed deep update is dropped."""
         log.warning("coach %s for turn %s failed: %s: %s", step.call, step.n, type(exc).__name__, exc)
-        if isinstance(exc, BudgetRefusedError):
+        if isinstance(exc, HARNESS_BUDGET_STOPS if self.harness else BudgetRefusedError):
             await self._fail(
                 step.trial, "budget_truncated", f"the coach {step.call} call was refused by the spend guard"
             )
@@ -405,7 +411,8 @@ class Orchestrator:
         job) makes no model call at all.
 
         Returns False when the final call failed after its one repair (ST-6; the caller records
-        `assistant_failed`); True once the commitment is recorded. `BudgetRefusedError` propagates (ST-4; the
+        `assistant_failed`); True once the commitment is recorded. `BudgetRefusedError` and `KillSwitchOnError`
+        propagate (ST-4; the
         caller maps it to a budget stop) rather than being swallowed, unlike a card's failure path, because
         there is no `coach_unavailable` equivalent for the one committing call of a harness trial."""
         key = request_key(trial, 0, "finalize", "harness_final")
@@ -418,7 +425,7 @@ class Orchestrator:
         ctx = self._context(_Step("final", trial, n_completed, work_item, int(item["transcript_version"]), key))
         try:
             final = await self.port.run(self._call(FinalFinding, "final", inputs, manifest, ctx))
-        except BudgetRefusedError:
+        except HARNESS_BUDGET_STOPS:
             raise
         except ProviderError as exc:
             log.warning("final call for %s failed: %s: %s", trial, type(exc).__name__, exc)

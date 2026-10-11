@@ -18,10 +18,9 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from arena_core.db.arena import ArenaDb
-from arena_core.providers.errors import BudgetRefusedError
 from arena_core.scenario.relay import REPLAY_EXCHANGES
 from arena_core.turns.harness import Execution
-from arena_core.turns.orchestrator import Orchestrator, request_key
+from arena_core.turns.orchestrator import HARNESS_BUDGET_STOPS, Orchestrator, request_key
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ class ReplayScorer:
                 return Execution(state)
         try:
             completed = await self.orchestrator.final_and_finalize(trial, REPLAY_EXCHANGES)
-        except BudgetRefusedError as exc:
+        except HARNESS_BUDGET_STOPS as exc:
             await self.orchestrator.stop(trial, "budget_truncated", str(exc))
             return Execution.BUDGET_TRUNCATED
         if not completed:
