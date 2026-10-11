@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type ProxyOptions } from "vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig, searchForWorkspaceRoot, type ProxyOptions } from "vite";
 
 /**
  * One origin (S6 1.3, S5 10.1): the dev server binds to loopback and proxies `/api`, including the
@@ -34,10 +35,15 @@ export function arenaApiProxy(target: string): Record<string, ProxyOptions> {
   };
 }
 
+/** The one folder outside the web workspace the app reads: the database tests' fixtures, whose capability matrix the
+ * trust center renders as is (S6 4.11, FE-TRUST-3). Vite checks `?raw` imports against folders, not single files. */
+export const DB_FIXTURES = fileURLToPath(new URL("../supabase/tests/fixtures/", import.meta.url));
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: "127.0.0.1",
     proxy: arenaApiProxy(ARENA_API_ORIGIN),
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), DB_FIXTURES] },
   },
 });

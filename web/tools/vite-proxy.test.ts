@@ -104,3 +104,11 @@ describe("proxy target", () => {
     for (const bad of ["http://localhost:8082", "https://127.0.0.1:8082", "http://10.0.0.1:8082", "http://127.0.0.1:8082/x"]) expect(() => proxyTarget(bad)).toThrow();
   });
 });
+
+describe("file access", () => {
+  it("allows the web workspace and the database fixtures folder only", () => {
+    const allow = (viteConfig as { server?: { fs?: { allow?: string[] } } }).server?.fs?.allow ?? [];
+    expect(allow).toHaveLength(2);
+    expect(allow.some((p) => p.endsWith("/supabase/tests/fixtures/"))).toBe(true);
+  });
+});

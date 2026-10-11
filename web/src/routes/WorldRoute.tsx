@@ -459,6 +459,11 @@ export function WorldRoute() {
               Ground rule
             </button>
           ) : null}
+          {place === "hub" ? (
+            <a className="btn-secondary-sm" href="/trust/methodology">
+              Trust center
+            </a>
+          ) : null}
           {place === "hub" && live && meCtl.me !== null ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
                 setShowProgress((v) => !v);
