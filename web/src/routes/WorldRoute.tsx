@@ -7,6 +7,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
+import { ArenaView } from "../components/overlay/ArenaView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
 import { DebriefScene } from "../components/overlay/DebriefScene";
@@ -17,8 +18,11 @@ import { Transcript } from "../components/overlay/Transcript";
 import type { ScoreCard, WallDocument } from "../components/world/moments";
 import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
+import { parseBoard, type Board } from "../lib/arena/leaderboard";
+import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
 import { createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
+import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
 import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
@@ -79,6 +83,22 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string } | null>(null);
+  const [showArena, setShowArena] = useState(false);
+  // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
+  const openArena = () => {
+    setShowArena(true);
+    if (arena !== null) return;
+    void Promise.all([import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([lb, tour]) => {
+      const poll: unknown = tour.default.poll;
+      setArena({
+        name: lb.default.tournament.name,
+        assistant: parseBoard(lb.default.assistant),
+        subject: parseBoard(lb.default.subject),
+        tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+      });
+    });
+  };
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -345,6 +365,11 @@ export function WorldRoute() {
           {place === "room" ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
               {sound ? "Mute voices" : "Unmute voices"}
+            </button>
+          ) : null}
+          {place === "hub" ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? () => { setShowArena(false); } : openArena}>
+              Arena
             </button>
           ) : null}
           <button type="button" className="btn-secondary-sm" aria-pressed={paused} onClick={togglePaused}>
@@ -665,6 +690,19 @@ export function WorldRoute() {
         </aside>
       </main>
 
+      {place === "hub" && showArena && arena !== null ? (
+        <ArenaView
+          name={arena.name}
+          example
+          assistant={arena.assistant}
+          subject={arena.subject}
+          tournament={arena.tournament}
+          motionOff={still}
+          onClose={() => {
+            setShowArena(false);
+          }}
+        />
+      ) : null}
       <footer className="ex4">{EX4_TEXT}</footer>
     </div>
   );
