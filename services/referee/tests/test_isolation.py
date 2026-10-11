@@ -434,35 +434,33 @@ def test_the_dev_gate_needs_ig1_to_ig3_recorded_and_passing() -> None:
     assert sorted(result.items) == ["IG-1", "IG-2", "IG-3", "IG-5", "IG-6"]
 
 
-def test_ig4_scans_a_manifest_referenced_prompt_outside_the_default_roots(tmp_path: Path) -> None:
-    # Codex r6 #1: whatever a manifest names reaches a model, so it is scanned wherever it lives.
+def test_ig4_scans_a_registered_manifest_s_prompt_absent_from_the_local_manifest_directory(tmp_path: Path) -> None:
+    # Coordinator r7 #2: execution loads manifests from arena.candidates, so the scan reads them there; this
+    # candidate has no file under prompts/manifests and its prompt lives outside the default roots.
     root = tmp_path / "prompts"
     root.mkdir()
     (root / "coach.md").write_text("All cases are synthetic.")
     elsewhere = tmp_path / "experiments" / "few-shot.cfg"
     elsewhere.parent.mkdir()
     elsewhere.write_text("Case C-FHIDD shows CANARY-FHID3.")
-    manifests = tmp_path / "manifests"
-    manifests.mkdir()
-    (manifests / "A9.json").write_text(json.dumps({"prompt": {"files": [{"path": str(elsewhere)}]}}))
-    conn = FakeConn(
-        {
-            "sealed.family_ingests": [("hidden", hidden_family_json("FHID", "Jo Rivers"), False)],
-            "sealed.verify_hidden_seal": [(True,)],
-            "ledger.verify_chain": [(None,)],
-            "ledger.corpus_digest": [(True,)],
-        }
-    )
+    registered: list[tuple[Any, ...]] = [({"prompt": {"files": [{"path": "experiments/few-shot.cfg"}]}},)]
+    answers: dict[str, list[tuple[Any, ...]]] = {
+        "sealed.family_ingests": [("hidden", hidden_family_json("FHID", "Jo Rivers"), False)],
+        "sealed.verify_hidden_seal": [(True,)],
+        "ledger.verify_chain": [(None,)],
+        "ledger.corpus_digest": [(True,)],
+    }
     request = isolation.IsolationGateRequest(
         git_sha="0" * 40,
         ig1=(True, "a"),
         ig2=(True, "b"),
         ig3=(True, "c"),
         scan_roots=(root,),
-        manifest_dir=manifests,
+        prompt_file_root=tmp_path,
     )
-    result = run(isolation.run_isolation_gate(connector(conn), request))
-    assert result.items["IG-4"][0] is False
-    (manifests / "A9.json").write_text(json.dumps({"prompt": {"files": []}}))
-    clean = run(isolation.run_isolation_gate(connector(FakeConn(conn.answers)), request))
+    leaky = run(
+        isolation.run_isolation_gate(connector(FakeConn({**answers, "from arena.candidates": registered})), request)
+    )
+    assert leaky.items["IG-4"][0] is False
+    clean = run(isolation.run_isolation_gate(connector(FakeConn(answers)), request))
     assert clean.items["IG-4"][0] is True
