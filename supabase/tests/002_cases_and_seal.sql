@@ -317,7 +317,9 @@ create temp table cs12 on commit drop as select tests.manifest('assistant', 'CS1
 select ok((select arena.register_candidate('assistant', 'CS12A', 'v1', m) from cs12) is not null,
   'CS-12 setup: register the official CS12A v1 manifest');
 select is(array[
-    tests.error(format('select arena.register_candidate(%L, %L, %L, %L::jsonb)', 'assistant', 'CS12X', 'v1',
+    -- candidate_id CS12A (matching m, not CS12X): a candidate_id mismatch would independently raise this
+    -- same AR007 regardless of the missing 'tools' key, masking whether the key-presence check itself fires.
+    tests.error(format('select arena.register_candidate(%L, %L, %L, %L::jsonb)', 'assistant', 'CS12A', 'v1',
                        (select m - 'tools' from cs12))),
     tests.error(format('select arena.register_candidate(%L, %L, %L, %L::jsonb)', 'assistant', 'CS12X', 'v1',
                        '{"manifest_version": "manifest.v1"}')),
@@ -443,11 +445,19 @@ select is((select count(*) from cs19f), 3::bigint,
 
 -- ---------------------------------------------------------------------------- CS-20 (reuses CS02H, sealed as
 -- part of CS-07: a fresh hidden ingest is no longer possible once sealed, CS-09)
-create or replace function pg_temp.cs20_tamper(p_sql text) returns boolean
+-- p_revert_sql restores the field this tamper touched before returning, so each check below reflects only
+-- its own tamper and never the still-standing corruption of an earlier one in this same array (a prior
+-- tamper's lingering effect would otherwise make verify_hidden_seal() false regardless of whether this
+-- probe's own field is actually guarded).
+create or replace function pg_temp.cs20_tamper(p_sql text, p_revert_sql text) returns boolean
 language plpgsql as $$
+declare
+  v_result boolean;
 begin
   execute p_sql;
-  return sealed.verify_hidden_seal();
+  v_result := sealed.verify_hidden_seal();
+  execute p_revert_sql;
+  return v_result;
 end $$;
 -- The variant id is captured once, before any tamper: the role tamper below changes the only row CS02H has
 -- with role = 'truthful', so tests.variant('CS02H', 'truthful') would resolve to NULL for every later probe.
@@ -456,15 +466,27 @@ select is(array[
     pg_temp.cs20_tamper(format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
       || 'update sealed.evidence_artifacts set scheduled_turn = 9 where variant_id = %L and record_id = %L; '
       || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
+      (select id from cs20v), 'rec-02'),
+      format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
+      || 'update sealed.evidence_artifacts set scheduled_turn = 2 where variant_id = %L and record_id = %L; '
+      || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
       (select id from cs20v), 'rec-02')),
     pg_temp.cs20_tamper(format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
       || 'update sealed.evidence_artifacts set title = %L where variant_id = %L and record_id = %L; '
       || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
-      'Tampered', (select id from cs20v), 'rec-01')),
+      'Tampered', (select id from cs20v), 'rec-01'),
+      format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
+      || 'update sealed.evidence_artifacts set title = %L where variant_id = %L and record_id = %L; '
+      || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
+      'Work order', (select id from cs20v), 'rec-01')),
     pg_temp.cs20_tamper(format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
       || 'update sealed.evidence_artifacts set doc_kind = %L, kind = %L where variant_id = %L and record_id = %L; '
       || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
-      'badge_log', 'record', (select id from cs20v), 'rec-01')),
+      'badge_log', 'record', (select id from cs20v), 'rec-01'),
+      format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
+      || 'update sealed.evidence_artifacts set doc_kind = %L, kind = %L where variant_id = %L and record_id = %L; '
+      || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
+      'work_order', 'record', (select id from cs20v), 'rec-01')),
     -- requestable couples with scheduled_turn/request_after_turn by the table's own evidence_one_predicate
     -- check (exactly one release mechanism per artifact), so flipping it alone is schema-impossible; this
     -- converts rec-01 from on-request to scheduled, which is still a requestable-flag tamper and still an
@@ -473,13 +495,26 @@ select is(array[
       || 'update sealed.evidence_artifacts set requestable = false, scheduled_turn = 5, request_after_turn = null '
       || 'where variant_id = %L and record_id = %L; '
       || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
+      (select id from cs20v), 'rec-01'),
+      format('alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable; '
+      || 'update sealed.evidence_artifacts set requestable = true, scheduled_turn = null, request_after_turn = 1 '
+      || 'where variant_id = %L and record_id = %L; '
+      || 'alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable',
       (select id from cs20v), 'rec-01')),
     pg_temp.cs20_tamper(format('alter table sealed.evaluator_packets disable trigger evaluator_packets_immutable; '
       || 'update sealed.evaluator_packets set role = %L where variant_id = %L; '
       || 'alter table sealed.evaluator_packets enable trigger evaluator_packets_immutable',
-      'deceptive', (select id from cs20v))),
+      'deceptive', (select id from cs20v)),
+      format('alter table sealed.evaluator_packets disable trigger evaluator_packets_immutable; '
+      || 'update sealed.evaluator_packets set role = %L where variant_id = %L; '
+      || 'alter table sealed.evaluator_packets enable trigger evaluator_packets_immutable',
+      'truthful', (select id from cs20v))),
     pg_temp.cs20_tamper(format('alter table arena.case_variants disable trigger case_variants_immutable; '
       || 'update arena.case_variants set difficulty = 5 where id = %L; '
+      || 'alter table arena.case_variants enable trigger case_variants_immutable',
+      (select id from cs20v)),
+      format('alter table arena.case_variants disable trigger case_variants_immutable; '
+      || 'update arena.case_variants set difficulty = 2 where id = %L; '
       || 'alter table arena.case_variants enable trigger case_variants_immutable',
       (select id from cs20v)))],
   array[false, false, false, false, false, false],

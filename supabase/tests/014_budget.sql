@@ -473,8 +473,12 @@ select is(array[
                                                     'coach.card', null, null, null) $$),
     (tests.as_role('arena_public', $$ select ops.reserve_model_call('bu33-key-00001', 'global', 'gemini-3.5-flash-lite',
        'card', 'coach.card', null, null, 1000) $$) ->> 'outcome'),
-    tests.error($$ select ops.reserve_model_call('bu33-key-00001', 'global', 'gemini-3.5-flash-lite', 'card',
-                                                 'coach.card', null, null, 2000) $$)],
+    -- Same role as the reservation above (reservation identity includes caller_role via ops.invoker_role()):
+    -- an unwrapped call here would run as a different role and raise AR003 on that mismatch alone, whatever
+    -- the byte count is, masking whether input_bytes is actually part of the identity check.
+    tests.error(format('select tests.as_role(%L, %L)', 'arena_public',
+      $$ select ops.reserve_model_call('bu33-key-00001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                       'coach.card', null, null, 2000) $$))],
   array['AR007', 'AR007', 'AR007', 'reserved', 'AR003: reservation key reused with different inputs'],
   'BU-33 D11: input_bytes over the call kind''s limit, 0, or null are each refused (AR007); the same key with '
   || 'another byte count is refused (AR003)');

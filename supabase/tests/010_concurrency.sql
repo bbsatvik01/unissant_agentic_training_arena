@@ -258,11 +258,20 @@ begin
   end loop;
 end $$;
 select pg_temp.co06_run(tests.uid('A'));
-select is(
-  (select coalesce(sum((result::jsonb ->> 'reserved_usd')::numeric), 0) <= 0.12 from co06 where result ~ '"outcome" *: *"reserved"')::text,
-  'true',
+-- bool_and/coalesce(sum(...), 0) <= 0.12 would hold even if every one of the 20 calls came back as an
+-- unrecognized/error result (nothing matches "reserved", sum defaults to 0): check every row is a
+-- well-formed reserved-or-per_user_cap-refused result, and that exactly floor(0.12 / 0.0544) = 2 are
+-- admitted, so a broken cap (or a broken connection) actually fails this.
+select is(array[
+    (select count(*) from co06)::text,
+    (select bool_and(result ~ '"outcome" *: *"reserved"'
+                      or (result ~ '"outcome" *: *"refused"' and result ~ '"reason" *: *"per_user_cap"')) from co06)::text,
+    (select count(*) from co06 where result ~ '"outcome" *: *"reserved"')::text,
+    (select coalesce(sum((result::jsonb ->> 'reserved_usd')::numeric), 0) <= 0.12 from co06 where result ~ '"outcome" *: *"reserved"')::text],
+  array['20', 'true', '2', 'true'],
   'CO-06 20 reservations over 4 concurrent dblink connections (5 rounds) for one actor against a per-user '
-  || 'cap of 0.12: the sum reserved for that actor never exceeds the cap');
+  || 'cap of 0.12: every call reserves or is refused per_user_cap (no suppressed error), exactly 2 of the '
+  || '0.054400 calls are admitted, and the sum reserved for that actor never exceeds the cap');
 select dblink_exec('coa', 'alter table ops.budget_reservations disable trigger budget_reservations_settle_once');
 select dblink_exec('coa', $q$delete from ops.budget_reservations where idempotency_key like 'co06-%'$q$);
 select dblink_exec('coa', 'alter table ops.budget_reservations enable trigger budget_reservations_settle_once');

@@ -118,13 +118,22 @@ select is(array[
 -- ---------------------------------------------------------------------------- FC-07
 select is(ledger.verify_commitment((select trial from fct)), true, 'FC-07 verify_commitment holds right after finalization');
 do $$
+declare
+  v_nonce   bytea;
+  v_payload jsonb;
 begin
   alter table arena.final_findings disable trigger final_findings_append_only;
   alter table ledger.finding_commitments disable trigger finding_commitments_append_only;
   update arena.final_findings set finding = finding || '{"rationale": "Tampered."}'::jsonb
    where trial_id = (select trial from fct);
-  update ledger.finding_commitments set payload = ledger.commitment_payload((select trial from fct),
-           (select finding from arena.final_findings where trial_id = (select trial from fct)))
+  v_payload := ledger.commitment_payload((select trial from fct),
+                 (select finding from arena.final_findings where trial_id = (select trial from fct)));
+  select nonce into v_nonce from sealed.commitment_nonces where trial_id = (select trial from fct);
+  -- payload AND commitment_sha256 are both recomputed to match the tampered finding: otherwise the stale
+  -- commitment_sha256 alone would make verify_commitment false, masking whether the ledger event's own
+  -- embedded commitment_sha256 (SG3-42's cross-check, still stale here) is actually what is being tested.
+  update ledger.finding_commitments set payload = v_payload,
+         commitment_sha256 = encode(sha256(v_nonce || convert_to(v_payload::text, 'UTF8')), 'hex')
    where trial_id = (select trial from fct);
   alter table ledger.finding_commitments enable trigger finding_commitments_append_only;
   alter table arena.final_findings enable trigger final_findings_append_only;
@@ -231,8 +240,16 @@ create temp table fc12r2 on commit drop as
     jsonb_build_object('label', 'insufficient_evidence', 'likelihood', 'roughly_even_chance', 'confidence', 'low',
       'rationale', 'Not established.', 'basis_flag_refs', '[]'::jsonb, 'cited_turns', '[]'::jsonb, 'cited_records', '[]'::jsonb,
       'corroboration_needed', '[]'::jsonb)) as r;
-select isnt((select r ->> 'commitment_sha256' from fc12r1), (select r ->> 'commitment_sha256' from fc12r2),
-  'FC-12 two finalizations of identical payloads produce different commitments (fresh nonces)');
+-- commitment_payload bakes in each trial's own id (and manifest fields keyed to it), so two different
+-- trials' commitments would differ even with a hardcoded/reused nonce; checking the stored nonces
+-- themselves is what actually proves each finalize call drew a fresh one.
+select is(array[
+    ((select r ->> 'commitment_sha256' from fc12r1) <> (select r ->> 'commitment_sha256' from fc12r2))::text,
+    ((select nonce from sealed.commitment_nonces where trial_id = (select trial from fc12t1)) <>
+     (select nonce from sealed.commitment_nonces where trial_id = (select trial from fc12t2)))::text],
+  array['true', 'true'],
+  'FC-12 two finalizations of identical findings produce different commitments, from two independently '
+  || 'generated nonces (not merely from the two trials'' own differing ids, which the payload also carries)');
 
 -- ---------------------------------------------------------------------------- FC-13
 select tests.throws(

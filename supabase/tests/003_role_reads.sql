@@ -92,6 +92,9 @@ select is_empty($$
   'RR-25 anon and authenticated are denied on representative objects of the six schemas');
 
 -- ---------------------------------------------------------------------------- RR-26
+-- A hidden-split family must actually exist first: with none ingested yet, this join is empty no matter
+-- whether arena.v_dev_cases' own split = 'dev' filter runs at all.
+select tests.family('RR26H', 'hidden');
 select is((select count(*) from arena.v_dev_cases v
              join arena.case_families f on f.family_code = v.family_code where f.split <> 'dev'),
           0::bigint, 'RR-26 arena.v_dev_cases contains no hidden variant');

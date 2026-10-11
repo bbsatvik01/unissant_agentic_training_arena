@@ -624,6 +624,10 @@ select pg_temp.rv_start((select trial from rvh3));
 select pg_temp.rv_start((select trial from rvh4));
 select pg_temp.rv_complete((select trial from rvh3), 'rvh-3');
 select pg_temp.rv_complete((select trial from rvh4), 'rvh-4');
+-- A real adjudication row for rvh3 first (deleted right after RV-19's check): with none existing yet, "0
+-- rows via v_adjudications" would hold even if arena.trial_visible's hidden-trial filter were removed
+-- entirely, since there would be nothing underneath to leak.
+select pg_temp.rv_adj((select trial from rvh3), 'valid', 'rv19-pre-adj');
 
 -- RV-19: before reveal.
 create temp table rv19 on commit drop as select tests.as_role('arena_public', format(
@@ -642,8 +646,15 @@ select is(array[
     (select (r -> 'payload') from rv19)::text, (select (r ->> 'hash_visible') from rv19)],
   array['0', '0', '0', '0', 'null', 'true'],
   'RV-19 before reveal of a hidden tournament, as arena_public: v_transcripts, v_findings, v_trial_events '
-  || 'and v_adjudications return no rows for its trials; v_commitments.payload is null while the commitment '
+  || 'and v_adjudications return no VISIBLE rows for its trials (rvh3 already has a real adjudication row, '
+  || 'proving this hides it rather than finding nothing); v_commitments.payload is null while the commitment '
   || 'hash stays visible');
+do $$
+begin
+  alter table ledger.validity_adjudications disable trigger validity_adjudications_append_only;
+  delete from ledger.validity_adjudications where idempotency_key = 'rv19-pre-adj';
+  alter table ledger.validity_adjudications enable trigger validity_adjudications_append_only;
+end $$;
 
 -- RV-22 (D9): before reveal.
 create temp table rv22 on commit drop as select tests.as_role('arena_public', format(

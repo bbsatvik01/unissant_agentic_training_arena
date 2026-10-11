@@ -207,15 +207,32 @@ select ledger.seal_replay_corpus((select tour from recorpus));
 create temp table rerepb on commit drop as
   select (tests.as_role('arena_public', format('select arena.start_trial(%L)',
             (select tests.trial((select tour from recorpus), 2)))) ->> 'trial_id')::uuid as replay_trial;
+-- A finalized trial with a real, still-open release work item (opened before finalization, never completed):
+-- a random/unknown work item id would raise AR003 regardless of trial status, never reaching
+-- release_evidence's own v.status <> 'running' check; this fixture reaches that check specifically.
+select arena.record_subject_turn((select trial from ret),
+         (arena.open_work_item((select trial from ret), 'subject_answer',
+            tests.k((select trial from ret), 4, 'subject_answer', 'subject.answer')) ->> 'work_item_id')::uuid,
+         'Logged off at the gate.', null, '{"passed": true}'::jsonb);
+create temp table re13wi on commit drop as
+  select (arena.open_work_item((select trial from ret), 'release', tests.k((select trial from ret), 4, 'release', 'postfin'))
+          ->> 'work_item_id')::uuid as wi;
+create temp table re13f on commit drop as select
+  jsonb_build_object('label', 'truthful', 'likelihood', 'likely', 'confidence', 'moderate', 'basis_flag_refs', '[]'::jsonb,
+    'cited_turns', jsonb_build_array((select max(turn_no) from arena.turns where trial_id = (select trial from ret) and answer is not null)),
+    'cited_records', '["rec-01"]'::jsonb, 'corroboration_needed', '[]'::jsonb, 'rationale', 'Consistent account.') as f;
+select arena.finalize_trial((select trial from ret),
+         (arena.open_work_item((select trial from ret), 'finalize', tests.k((select trial from ret), 4, 'finalize', 'done'))
+           ->> 'work_item_id')::uuid, (select f from re13f));
 select is(array[
     -- open_work_item itself refuses a 'release' kind on a replay trial (release_evidence's own identical check,
     -- just below, is unreachable through the API for the same reason: no replay trial ever holds a release item).
     tests.error(format('select arena.open_work_item(%L, %L, %L)', (select replay_trial from rerepb), 'release',
       tests.k((select replay_trial from rerepb), 0, 'release', 're13'))),
-    tests.error(format('select arena.release_evidence(%L, %L, %L)', (select trial from ret), gen_random_uuid(), '{}'::text[]))],
-  array['AR001: release does not apply to a replay trial', 'AR003: unknown work item'],
+    tests.error(format('select arena.release_evidence(%L, %L, %L)', (select trial from ret), (select wi from re13wi), '{}'::text[]))],
+  array['AR001: release does not apply to a replay trial', 'AR001: evidence is released into a running interview'],
   'RE-13 release is refused on a replay trial (AR001, caught at open_work_item, the only path that ever reaches '
-  || 'release_evidence) and finds no work item on a finalized trial (AR003)');
+  || 'release_evidence) and on a finalized trial via its own still-open release item (AR001)');
 
 -- ---------------------------------------------------------------------------- RE-14
 -- A dedicated variant with all 6 allowed artifacts (rec-01..06), all releasable at 0 exchanges, so one call
@@ -264,17 +281,23 @@ create temp table reh on commit drop as select tests.tournament('hidden', array[
 create temp table reht on commit drop as
   select (tests.as_role('arena_public', format('select arena.start_trial(%L)',
             (select tests.trial((select tour from reh), 3)))) ->> 'trial_id')::uuid as trial;
-select is((select count(*) from arena.v_released_evidence where trial_id = (select trial from reht)), 0::bigint,
-  'RE-15 arena.v_released_evidence for a hidden running trial, read as arena_public, is empty');
+-- A real released row is needed first (arena.trial_visible's split/revealed rule): with nothing released
+-- yet, this count would be 0 even if that visibility filter were removed entirely.
+select tests.exchange((select trial from reht), 'Question 1', '{}', 'Answer 1');   -- rec-01 is requestable only after this
+select arena.release_evidence((select trial from reht),
+         (arena.open_work_item((select trial from reht), 'release', tests.k((select trial from reht), 1, 'release', 'rec01'))
+           ->> 'work_item_id')::uuid, array['rec-01']);
+select is(array[
+    (select count(*) from arena.released_evidence where trial_id = (select trial from reht))::text,
+    (select count(*) from arena.v_released_evidence where trial_id = (select trial from reht))::text],
+  array['1', '0'],
+  'RE-15 a hidden running trial has one released-evidence row, but arena.v_released_evidence (read as '
+  || 'arena_public) still shows none');
 
 -- ---------------------------------------------------------------------------- RE-16
-select tests.exchange((select trial from reht), 'Question 1', '{}', 'Answer 1');   -- rec-01 is requestable only after this
 select arena.submit_question((select trial from reht),
          (select transcript_version from arena.trials where id = (select trial from reht)), 'Question 2',
          tests.k((select trial from reht), 2, 'question', 'harness_fixed'), 'harness_fixed');
-select arena.release_evidence((select trial from reht),
-         (arena.open_work_item((select trial from reht), 'release', tests.k((select trial from reht), 2, 'release', 'turn'))
-           ->> 'work_item_id')::uuid, array['rec-01']);
 create temp table re16ctx on commit drop as
   select tests.as_role('arena_subject', format('select subject.turn_context(%L, %L)', (select trial from reht),
            (arena.open_work_item((select trial from reht), 'subject_answer',

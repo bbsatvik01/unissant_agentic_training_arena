@@ -24,15 +24,20 @@ select is(array[(select state from ledger.terminal_records where trial_id = (sel
 create temp table ef02planned on commit drop as select tests.trial((select tour from eftour), 4) as trial;
 create temp table ef02running on commit drop as
   select (tests.as_role('arena_public', format('select arena.start_trial(%L)', (select trial from ef02planned))) ->> 'trial_id')::uuid as trial;
+-- A genuinely planned trial with a REAL failure work item (not a random/unknown id, which would raise
+-- AR003 regardless of trial status and never reach the state guard): efplanned is already terminated by
+-- EF-01 by this point, so it could never exercise "assistant_failed from planned" either.
+create temp table ef02b on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+create temp table ef02bplanned on commit drop as select tests.trial((select tour from ef02b), 3) as trial;
 select is(array[
     tests.error(format('select arena.record_execution_failure(%L, %L, %L, %L)', (select trial from ef02running),
       (arena.open_work_item((select trial from ef02running), 'failure', tests.k((select trial from ef02running), 0, 'failure', 'ef02a'))
         ->> 'work_item_id'), 'budget_skipped', 'too late')),
-    tests.error(format('select arena.record_execution_failure(%L, %L, %L, %L)', (select trial from efplanned),
-      gen_random_uuid(), 'assistant_failed', 'too early'))],
-  array['AR001: budget_skipped is not allowed from running', 'AR003: unknown work item'],
-  'EF-02 budget_skipped from running (AR001) and assistant_failed from planned via an unknown item (AR003, the '
-  || 'terminated trial from EF-01 holds no open failure item either) are each refused');
+    tests.error(format('select arena.record_execution_failure(%L, %L, %L, %L)', (select trial from ef02bplanned),
+      (arena.open_work_item((select trial from ef02bplanned), 'failure', tests.k((select trial from ef02bplanned), 0, 'failure', 'ef02b'))
+        ->> 'work_item_id'), 'assistant_failed', 'too early'))],
+  array['AR001: budget_skipped is not allowed from running', 'AR001: assistant_failed is not allowed from planned'],
+  'EF-02 budget_skipped from running and assistant_failed from planned are each refused (AR001)');
 
 -- ---------------------------------------------------------------------------- EF-03
 create temp table efcorpus on commit drop as select tests.tournament('dev', array['replay_corpus']) as tour;
@@ -75,6 +80,14 @@ select arena.record_execution_failure((select trial from ef05a2run),
   (arena.open_work_item((select trial from ef05a2run), 'failure', tests.k((select trial from ef05a2run), 0, 'failure', 'ef05a3'))
     ->> 'work_item_id')::uuid, 'infra_failed', 'blip 2');
 create temp table ef05a3 on commit drop as select arena.retry_trial((select pt from ef02pt)) as trial;
+-- Attempt 3 must actually finish infra_failed: left planned/unfinished, its terminal state is null, which
+-- is itself "distinct from infra_failed" and would raise the guard's AR001 on its own, masking whether the
+-- attempt >= 3 cap (what this probe claims to test) is doing anything.
+create temp table ef05a3run on commit drop as
+  select (tests.as_role('arena_public', format('select arena.start_trial(%L)', (select trial from ef05a3))) ->> 'trial_id')::uuid as trial;
+select arena.record_execution_failure((select trial from ef05a3run),
+  (arena.open_work_item((select trial from ef05a3run), 'failure', tests.k((select trial from ef05a3run), 0, 'failure', 'ef05a4'))
+    ->> 'work_item_id')::uuid, 'infra_failed', 'blip 3');
 select tests.throws(
   format('select arena.retry_trial(%L)', (select pt from ef02pt)),
   'AR001', 'infra_failed latest attempt below 3 attempts', 'EF-05 a fourth attempt is refused (AR001, at most 3 attempts)');
@@ -151,9 +164,19 @@ select arena.record_subject_turn((select tests.trial((select tour from efrep10),
 select arena.finalize_trial((select tests.trial((select tour from efrep10), 1)),
          (arena.open_work_item((select tests.trial((select tour from efrep10), 1)), 'finalize',
             tests.k((select tests.trial((select tour from efrep10), 1)), 1, 'finalize', 'ef13')) ->> 'work_item_id')::uuid, null);
+-- An adjudication exists first (deleted right after the next probe): the combined check raises the same
+-- AR001 whichever of R1/adjudication is missing, so without this the "missing R1" probe below would still
+-- pass even if its own clause (not the adjudication clause) were removed.
+select ledger.adjudicate_validity((select tests.trial((select tour from efrep10), 1)), 'valid', 'no deception', null, 'auto_rule', 'ef13-pre-adj');
 select tests.throws(
   format('select ledger.seal_replay_corpus(%L)', (select tour from efrep10)),
   'AR001', 'R1 report and an initial validity verdict', 'EF-13 SG2-27: a completed corpus transcript lacking its R1 report is refused (AR001)');
+do $$
+begin
+  alter table ledger.validity_adjudications disable trigger validity_adjudications_append_only;
+  delete from ledger.validity_adjudications where idempotency_key = 'ef13-pre-adj';
+  alter table ledger.validity_adjudications enable trigger validity_adjudications_append_only;
+end $$;
 insert into sealed.judgments (trial_id, kind, payload, idempotency_key)
   values ((select tests.trial((select tour from efrep10), 1)), 'fidelity_detail', jsonb_build_object('summary', 'none'), 'ef13-r1-00');
 select tests.throws(

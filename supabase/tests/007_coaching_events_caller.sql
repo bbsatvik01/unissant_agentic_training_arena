@@ -151,8 +151,15 @@ select is(array[(select count(*) from cc08b)::text, (select count(*) from cc08c)
           array['0', '0'], 'CC-08 another actor and no actor each get nothing from events_after');
 
 -- ---------------------------------------------------------------------------- CC-10
+-- ccpracs has far fewer than 200 real events; a count under the cap would pass trivially even if the
+-- LIMIT were removed entirely. Synthetic 'live' rows (the owner inserting into the append-only
+-- trial_events table directly) push it over 200 so the cap itself is what the assertion exercises.
+insert into arena.trial_events (trial_id, seq, kind, visibility, transcript_version, turn_no, payload)
+  select (select trial from ccpracs), s, 'question_recorded', 'live', 1, 1, '{}'::jsonb
+    from generate_series((select coalesce(max(seq), 0) from arena.trial_events where trial_id = (select trial from ccpracs)) + 1,
+                          (select coalesce(max(seq), 0) from arena.trial_events where trial_id = (select trial from ccpracs)) + 210) s;
 select set_config('arena.actor_id', tests.uid('A')::text, true);
-select is((select count(*) from arena.events_after((select trial from ccpracs), 0, 500)) <= 200, true,
+select is((select count(*) from arena.events_after((select trial from ccpracs), 0, 500)), 200::bigint,
   'CC-10 events_after page size is capped at 200 even when a larger limit is requested');
 select set_config('arena.actor_id', '', true);
 
@@ -187,11 +194,28 @@ select is(array[
                 'true'],
   'CC-11b arena_public cannot read ops.v_latency_report; arena_referee cannot read ops.v_latency (the actor-scoped '
   || 'projection); the referee''s own ops.v_latency_report carries every owner''s samples with no actor filter');
+-- Actor B's own training trial and sample: the WHERE above already enforced exactly the predicate bool_and
+-- checked, so any row that passed the filter trivially satisfied it (a leak from another owner would never
+-- have been caught). Including actor B's trial id in the candidate set, and checking it is excluded from
+-- the result, actually exercises arena.trial_visible's owner_user_id = arena.actor_id() gate.
+select set_config('arena.actor_id', tests.uid('B')::text, true);
+create temp table ccpracsb on commit drop as
+  select (training.start_session(tests.variant('CCPRAC', 'truthful'), 'practice', tests.candidate('assistant', 'A1'),
+            tests.candidate('subject', 'S1'), false, 'cc11b-other-owner') ->> 'trial_id')::uuid as trial;
+select arena.submit_question((select trial from ccpracsb), 0, 'Q1', tests.k((select trial from ccpracsb), 1, 'question', 'investigator'));
+select arena.record_subject_turn((select trial from ccpracsb),
+         (arena.open_work_item((select trial from ccpracsb), 'subject_answer',
+            tests.k((select trial from ccpracsb), 1, 'subject_answer', 'subject.answer')) ->> 'work_item_id')::uuid,
+         'Answer 1', null, '{"passed": true}'::jsonb);
+select set_config('arena.actor_id', '', true);
+
 select set_config('arena.actor_id', tests.uid('A')::text, true);
-select is((select bool_and(trial_id in ((select trial from ccpracs), (select trial from ccassess)))
-             from ops.v_latency where trial_id in ((select trial from ccpracs), (select trial from ccassess))),
-          true, 'CC-11b arena_public''s ops.v_latency returns the actor''s own training rows (dev tournament '
-                 || 'rows are visible to arena_public regardless of actor, SCN-12; only hidden/training rows are gated)');
+select is((select array_agg(trial_id order by trial_id) from ops.v_latency
+            where trial_id in ((select trial from ccpracs), (select trial from ccassess), (select trial from ccpracsb))),
+          (select array_agg(t order by t) from unnest(array[(select trial from ccpracs), (select trial from ccassess)]) t),
+          'CC-11b arena_public''s ops.v_latency returns the actor''s own training rows (dev tournament '
+                 || 'rows are visible to arena_public regardless of actor, SCN-12) and excludes actor B''s own '
+                 || 'training row (only hidden/training rows are gated)');
 select set_config('arena.actor_id', '', true);
 
 -- ---------------------------------------------------------------------------- CC-12
