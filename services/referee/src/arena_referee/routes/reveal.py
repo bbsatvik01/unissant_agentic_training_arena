@@ -24,7 +24,7 @@ from arena_referee.isolation import (
     fetch_fresh_dev_isolation_result,
     fetch_fresh_isolation_result,
     open_hidden_tournament,
-    recorded_gate_request,
+    open_hidden_with_recorded_reports,
 )
 from arena_referee.reveal import (
     PublishConfig,
@@ -165,16 +165,12 @@ async def open_route(
         msg = "the referee app was not configured with ARENA_GIT_SHA"
         raise RuntimeError(msg)
     try:
-        if body is not None:
-            gate_request = isolation_gate_request(body, git_sha)
-        else:  # the console sends no body: the suite reports recorded for this commit
-            gate_request = await recorded_gate_request(connect, git_sha)
+        if body is None:  # the console sends no body: the suite reports recorded for this commit, as recorded
+            result = await open_hidden_with_recorded_reports(connect, str(tournament_id), git_sha)
+        else:
+            result = await open_hidden_tournament(connect, str(tournament_id), isolation_gate_request(body, git_sha))
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except GateNotRunError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    try:
-        result = await open_hidden_tournament(connect, str(tournament_id), gate_request)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except psycopg.Error as exc:

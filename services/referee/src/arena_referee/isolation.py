@@ -205,13 +205,6 @@ async def _recorded_ig123(connect: Connector, git_sha: str) -> dict[str, tuple[b
     return {item: stale.items[item] for item in _IG123}
 
 
-async def recorded_gate_request(connect: Connector, git_sha: str) -> IsolationGateRequest:
-    """The gate request from IG-1..3 already recorded for this commit (`/api/admin/isolation-gate/run`), so the
-    console can open a hidden tournament without re-sending the suite reports; IG-4..6 still run fresh."""
-    ig = await _recorded_ig123(connect, git_sha)
-    return IsolationGateRequest(git_sha=git_sha, ig1=ig["IG-1"], ig2=ig["IG-2"], ig3=ig["IG-3"])
-
-
 async def _ig5(connect: Connector) -> tuple[bool, str]:
     chain_ok = await verify_chain(connect)
     corpus_seal_ok = await verify_all_corpus_seals(connect)
@@ -341,6 +334,18 @@ async def fetch_fresh_isolation_result(connect: Connector, git_sha: str) -> Isol
     fresh and rewritten every call, exactly as `run_isolation_gate` does, never read back stale."""
     ig123 = await _recorded_ig123(connect, git_sha)
     return await _recompute_and_record(connect, ig123=ig123, git_sha=git_sha, scan_roots=DEFAULT_SCAN_ROOTS)
+
+
+async def open_hidden_with_recorded_reports(connect: Connector, tournament_id: str, git_sha: str) -> IsolationResult:
+    """The console's open (no body): IG-1..3 are the evidence already recorded for this commit
+    (`/api/admin/isolation-gate/run`), reused as recorded; IG-4..6 run fresh (`fetch_fresh_isolation_result`).
+    Opens only if the whole gate passes; a failing gate raises and the tournament stays frozen."""
+    result = await fetch_fresh_isolation_result(connect, git_sha)
+    if not result.passed:
+        msg = f"isolation gate failed ({result.evidence_hash}); tournament {tournament_id} was not opened"
+        raise RuntimeError(msg)
+    await db.open_tournament(connect, tournament_id)
+    return result
 
 
 async def open_hidden_tournament(

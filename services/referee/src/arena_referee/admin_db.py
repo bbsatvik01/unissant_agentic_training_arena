@@ -140,19 +140,35 @@ async def call(connect: Connector, sql: str, params: tuple[object, ...]) -> obje
     return None if row is None else row[0]
 
 
+_ROSTER_KEYS = ("track", "block_no", "variant_id", "assistant_candidate_id", "subject_candidate_id", "repeat")
+
+
 async def roster_has(connect: Connector, tournament_id: UUID, rows: list[dict[str, Any]]) -> bool:
-    """Whether every submitted roster row is already planned at its position with the same track and variant."""
+    """Whether every submitted roster row is already planned, every field it names equal (its position, track,
+    block, variant, candidates, repeat and replay source): only an identical repeat is a no-op."""
     async with connect() as conn:
         cur = await conn.execute(
-            "select position, track, variant_id::text from arena.planned_trials where tournament_id = %s",
+            "select p.position, p.track, b.block_no, p.variant_id::text, p.assistant_candidate_id::text,"
+            " p.subject_candidate_id::text, p.repeat, s.position"
+            " from arena.planned_trials p left join arena.blocks b on b.id = p.block_id"
+            " left join arena.planned_trials s on s.id = p.source_planned_trial_id where p.tournament_id = %s",
             (tournament_id,),
         )
-        planned = {(int(p), str(t), str(v)) for p, t, v in await cur.fetchall()}
-    try:
-        wanted = {(int(r["position"]), str(r["track"]), str(r["variant_id"])) for r in rows}
-    except (KeyError, TypeError, ValueError):
-        return False
-    return wanted <= planned
+        planned = {
+            int(r[0]): {**dict(zip(_ROSTER_KEYS, r[1:7], strict=True)), "source_position": r[7]}
+            for r in await cur.fetchall()
+        }
+    for row in rows:
+        position = row.get("position")
+        have = planned.get(position) if isinstance(position, int) else None
+        if have is None:
+            return False
+        for key, value in row.items():
+            if key == "position":
+                continue
+            if key not in have or str(have[key]) != str(value):
+                return False
+    return True
 
 
 @dataclass(frozen=True)

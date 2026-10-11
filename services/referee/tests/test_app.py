@@ -1143,25 +1143,27 @@ def test_the_leaderboard_read_is_admin_only(tmp_path: Path) -> None:
 def test_the_console_opens_a_hidden_tournament_with_the_recorded_reports(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The console sends no body: IG-1..3 come from the reports recorded for this commit (IG-4..6 run fresh)."""
+    """The console sends no body: IG-1..3 are the evidence recorded for this commit, reused as recorded (IG-4..6
+    fresh); a body still runs the full gate from the given reports."""
     app = make_app(tmp_path)
     post = _admin_posts(app)
-    seen: list[IsolationGateRequest] = []
+    opened_with: list[str] = []
 
     async def hidden(_connect: object, _tid: str) -> str:
         return "hidden"
 
-    async def recorded(_connect: object, git_sha: str) -> IsolationGateRequest:
-        return IsolationGateRequest(git_sha=git_sha, ig1=(True, "r1"), ig2=(True, "r2"), ig3=(True, "r3"))
-
-    async def opened(_connect: object, _tid: str, request: IsolationGateRequest) -> IsolationResult:
-        seen.append(request)
+    async def with_recorded(_connect: object, _tid: str, git_sha: str) -> IsolationResult:
+        opened_with.append(git_sha)
         return isolation_result(dict.fromkeys(IG_ITEMS, (True, "ok")))
 
+    async def with_body(_connect: object, _tid: str, _request: IsolationGateRequest) -> IsolationResult:
+        msg = "the bodyless open must not re-run IG-1..3 from a request"
+        raise AssertionError(msg)
+
     monkeypatch.setattr(db, "fetch_tournament_split", hidden)
-    monkeypatch.setattr(reveal_route, "recorded_gate_request", recorded)
-    monkeypatch.setattr(reveal_route, "open_hidden_tournament", opened)
+    monkeypatch.setattr(reveal_route, "open_hidden_with_recorded_reports", with_recorded)
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", with_body)
     resp = run(_post_no_body(app, f"/api/admin/tournaments/{uuid4()}/open", **post))
     assert resp.status_code == httpx.codes.OK, resp.text
     assert resp.json()["gated"] is True
-    assert seen[0].ig1 == (True, "r1")
+    assert opened_with == [BASE_ENV["ARENA_GIT_SHA"]]
