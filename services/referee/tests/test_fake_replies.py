@@ -1,8 +1,8 @@
-"""Fake-mode referee replies (S5 10.4): `subject_reply`/`assistant_reply` vary with the actual transcript
-(not fixed text), and a fake F01-shaped training session publishes a complete `debrief.v1` end to end
-through the real `AgentPort` and `FakeAdapter` -- the exact pipeline `ARENA_MODEL_MODE=fake` runs, so a
-regression here is the 502 a local fake interview hit before this fix (no canned reply for either
-referee schema)."""
+"""`arena_core.referee.fake_referee`, exercised from the referee service's own real pipeline (S5 10.4):
+`referee_subject_reply`/`referee_assistant_reply` vary with the actual transcript (not fixed text), and a
+fake F01-shaped training session publishes a complete `debrief.v1` end to end through the real `AgentPort`
+and `FakeAdapter` -- the exact pipeline `ARENA_MODEL_MODE=fake` runs, so a regression here is the 502 a
+local fake interview hit before this fix (no canned reply for either referee schema)."""
 
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort
 from arena_core.providers.structured import sent_schema
 from arena_core.providers.types import AgentCall, ModelRequest
+from arena_core.referee.fake_referee import FAKE_REFEREE_REPLIES, referee_assistant_reply, referee_subject_reply
 from arena_core.scoring.rubric import CHECKS, MIN_QUESTIONS, RubricResult
 from arena_core.spend.memory import RunBudget
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo, publish_session_debrief
-from arena_referee.fake_replies import FAKE_REFEREE_REPLIES, assistant_reply, subject_reply
 from arena_referee.mapping import TrialData, build_assistant_input, build_subject_input, build_triggers
 from arena_referee.scoring import (
     PromptContext,
@@ -178,12 +178,13 @@ def trial_data(n_questions: int) -> TrialData:
     )
 
 
-# ---------------------------------------------------------------- subject_reply / assistant_reply, directly
+# ---------------------------------------------------------------- referee_subject_reply / referee_assistant_reply
 
 
 def _request_of[T: BaseModel](call: AgentCall[T]) -> ModelRequest:
     """What the real `AgentPort` actually hands `FakeAdapter.generate` (`_Plan.request`, port.py): the one
-    shape `subject_reply`/`assistant_reply` are typed to read, built here the same way for a direct test."""
+    shape `referee_subject_reply`/`referee_assistant_reply` are typed to read, built here the same way for
+    a direct test."""
     return ModelRequest(
         model=call.model,
         system=call.system,
@@ -210,17 +211,17 @@ def test_replies_ignore_a_line_shaped_collision_inside_a_document_body() -> None
         triggers = build_triggers(poisoned, _empty_subject_report(), "assistant")
         a_inp = build_assistant_input(poisoned, "assistant", triggers)
         acall = assistant_agent_call(a_inp, REFEREE, RUBRIC, poisoned.trial_id, "referee_assistant")
-        _validated(acall, assistant_reply(_request_of(acall)))  # raises (via the assert) if poisoned
+        _validated(acall, referee_assistant_reply(_request_of(acall)))  # raises (via the assert) if poisoned
 
         scall = subject_agent_call(build_subject_input(poisoned), REFEREE, poisoned.trial_id, "referee_subject")
-        _validated(scall, subject_reply(_request_of(scall)))
+        _validated(scall, referee_subject_reply(_request_of(scall)))
 
 
 def test_subject_reply_quotes_a_real_span_of_each_turns_own_answer() -> None:
     data = trial_data(MIN_QUESTIONS)
     inp = build_subject_input(data)
     call = subject_agent_call(inp, REFEREE, data.trial_id, "referee_subject")
-    reply = subject_reply(_request_of(call))
+    reply = referee_subject_reply(_request_of(call))
     report = _validated(call, reply)
     assert [t.turn_id for t in report.turns] == [f"t0{n}" for n in range(1, MIN_QUESTIONS + 1)]
     for n, t in enumerate(report.turns, start=1):
@@ -244,8 +245,8 @@ def test_assistant_reply_varies_with_a_longer_and_a_shorter_transcript() -> None
     long_call = assistant_agent_call(
         build_assistant_input(long_, "assistant", triggers_long), REFEREE, RUBRIC, long_.trial_id, "referee_assistant"
     )
-    short_report = _validated(short_call, assistant_reply(_request_of(short_call)))
-    long_report = _validated(long_call, assistant_reply(_request_of(long_call)))
+    short_report = _validated(short_call, referee_assistant_reply(_request_of(short_call)))
+    long_report = _validated(long_call, referee_assistant_reply(_request_of(long_call)))
     assert len(short_report.followups) == _SHORT_TURNS
     assert len(long_report.followups) == _LONG_TURNS
     assert len(short_report.followups) != len(long_report.followups)

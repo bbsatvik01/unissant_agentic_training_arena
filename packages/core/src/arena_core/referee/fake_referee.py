@@ -6,9 +6,12 @@ actually names. A reply that does not match the request's own `RefAsstContext`/`
 port's structured-output validation and repairs into a `ProviderFailedError` (a 502 at the route) instead
 of succeeding -- these exist so a local fake run exercises the whole pipeline end to end.
 
-`referee_subject` and `r3_subject` share `RefereeSubjectReport`'s schema title; `referee_assistant` and
-`r3_investigator` share `RefereeAssistantReport`'s -- one reply function per schema serves all four
-purposes, keyed here exactly as `FakeAdapter.canned` expects (S2 7.1-7.3, 7.5).
+The one fake referee module (WP-14/WP-17): `referee_subject`/`r3_subject` share
+`RefereeSubjectReport`'s schema title, and `referee_assistant`/`r3_investigator` share
+`RefereeAssistantReport`'s, so one reply function per schema serves R1, R2 and both of R3's calls -- keyed
+here exactly as `FakeAdapter.canned` expects (S2 7.1-7.3, 7.5). Shared under `arena_core` (not a service
+package) because arena-referee and arena-tournament both construct a `FakeAdapter` in fake mode, and
+`check_roles` refuses arena-tournament importing arena-referee's own package directly (S5 1.2 item 2).
 """
 
 from __future__ import annotations
@@ -68,9 +71,10 @@ def _quote_of(answer: str) -> str:
     return answer if len(words) <= MIN_QUOTE_WORDS else " ".join(words[:MIN_QUOTE_WORDS])
 
 
-def subject_reply(request: ModelRequest) -> str:
-    """ref_subj.v5: one clean, responsive judgment per transcript turn, each quoting a real span of that
-    turn's own answer (so the quote check passes and the label is never a generic "no quote given")."""
+def referee_subject_reply(request: ModelRequest) -> str:
+    """ref_subj.v5 (R1 or `r3_subject`): one clean, responsive judgment per transcript turn, each quoting a
+    real span of that turn's own answer (so the quote check passes and the label is never a generic "no
+    quote given")."""
     text = _user(request)
     turns = [
         {
@@ -99,10 +103,10 @@ def subject_reply(request: ModelRequest) -> str:
     return json.dumps(report)
 
 
-def assistant_reply(request: ModelRequest) -> str:
-    """ref_asst.v2: a flag-support, follow-up and citation verdict for exactly what the request names (the
-    rater's RefAsstContext checks every one is answered once and none extra), plus every rubric sub-check
-    this dev placeholder defines, each passing -- a clean, unremarkable interview in fake mode."""
+def referee_assistant_reply(request: ModelRequest) -> str:
+    """ref_asst.v2 (R2 or `r3_investigator`): a flag-support, follow-up and citation verdict for exactly
+    what the request names (RefAsstContext checks every one is answered once and none extra), plus every
+    rubric sub-check this dev placeholder defines, each passing -- a clean, unremarkable interview."""
     text = _user(request)
     flags = [
         {"flag_ref": ref, "quote_relevant": True, "claim_holds": True, "content_based": True, "no_outside_facts": True}
@@ -133,4 +137,7 @@ def assistant_reply(request: ModelRequest) -> str:
 
 
 # Schema title -> reply writer, for `providers.mode.model_adapter(canned=...)`.
-FAKE_REFEREE_REPLIES = {"RefereeSubjectReport": subject_reply, "RefereeAssistantReport": assistant_reply}
+FAKE_REFEREE_REPLIES = {
+    "RefereeSubjectReport": referee_subject_reply,
+    "RefereeAssistantReport": referee_assistant_reply,
+}
