@@ -38,12 +38,15 @@ function Answer({ text, quote }: { text: string; quote: string | null }) {
 export function Transcript({ turns, released, subjectName, highlighted, quote, focusTurn }: TranscriptProps) {
   const refs = useRef(new Map<number, HTMLElement>());
   const end = useRef<HTMLDivElement>(null);
+  // Keyed on the primitive values, so only a new chip activation moves focus, never an unrelated render.
+  const focusNo = focusTurn?.turn ?? null;
+  const focusNonce = focusTurn?.nonce ?? null;
   useEffect(() => {
-    if (focusTurn === null) return;
-    const el = refs.current.get(focusTurn.turn);
+    if (focusNo === null || focusNonce === null) return;
+    const el = refs.current.get(focusNo);
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
     el?.focus({ preventScroll: true });
-  }, [focusTurn]);
+  }, [focusNo, focusNonce]);
   const lastAnswer = turns.at(-1)?.answer ?? null;
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });

@@ -859,3 +859,9 @@ td {
   outline: 2px solid var(--arena-focus-ring);
   outline-offset: 2px;
 }
+
+.debrief-open {
+  position: absolute;
+  right: var(--arena-space-4);
+  bottom: var(--arena-space-4);
+}

@@ -158,6 +158,8 @@ describe("deriveWorld", () => {
     expect(deriveWorld({ ...base, view: notFound })?.flag).toBe(null);
     const recordMismatch = withCard({ ...last.card, flags: last.card.flags.map((f) => ({ ...f, conflict_record_quote: "Words the statement never had." })) });
     expect(deriveWorld({ ...base, view: recordMismatch })?.flag).toBe(null);
+    const initialDoc = withCard({ ...last.card, flags: last.card.flags.map((f) => ({ ...f, conflict_record_id: "doc-01", conflict_record_quote: "Invented words about the door." })) });
+    expect(deriveWorld({ ...base, view: initialDoc })?.flag).toBe(null);
   });
 
   it("stamps the seal when the trial is finalized, then ends with the companion asleep and the debrief ready", () => {

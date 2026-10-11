@@ -160,7 +160,8 @@ function flagMoment(view: TrialView, input: WorldInput): FlagMoment | null {
       card.card.validation.flags[flag.flag_ref]?.citation_ok !== false &&
       quoteOk(flag.quote, answer(turnNo(flag.turn_id))) &&
       (flag.conflict_quote === null || quoteOk(flag.conflict_quote, answer(turnNo(flag.conflict_turn_id)))) &&
-      (flag.conflict_record_quote === null || record === undefined || quoteOk(flag.conflict_record_quote, contentText(record.content)));
+      // A record the world cannot read (an initial document) fails closed: no moment, the card still shows the flag.
+      (flag.conflict_record_quote === null || (record !== undefined && quoteOk(flag.conflict_record_quote, contentText(record.content))));
     if (verified && (flag.kind === "contradiction" || flag.kind === "evidence_conflict")) {
       return {
         kind: flag.kind,

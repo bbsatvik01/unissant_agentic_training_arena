@@ -30,9 +30,12 @@ export function DebriefScore({ debrief, reducedMotion, onClose }: { debrief: Deb
   const root = useRef<HTMLDivElement>(null);
   useGSAP(
     () => {
-      if (reducedMotion) return;
       for (const el of root.current?.querySelectorAll<HTMLElement>("[data-count]") ?? []) {
         const target = Number(el.dataset["count"]);
+        if (reducedMotion) {
+          el.textContent = String(target);
+          continue;
+        }
         const counter = { value: 0 };
         gsap.to(counter, {
           value: target,
@@ -47,7 +50,8 @@ export function DebriefScore({ debrief, reducedMotion, onClose }: { debrief: Deb
         });
       }
     },
-    { scope: root, dependencies: [debrief.session_id, reducedMotion] },
+    // Turning motion off mid-count kills the running tweens and shows the server values at once.
+    { scope: root, dependencies: [debrief.session_id, reducedMotion], revertOnUpdate: true },
   );
   const scored = debrief.scored ? debrief : null;
   return (
