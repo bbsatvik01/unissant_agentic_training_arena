@@ -123,10 +123,11 @@ EOF
 }
 
 db_down() {
+  # The files go first, right after the directory check, before anything slow runs.
   localdb_dir
-  docker rm -f -v "$CONTAINER" >/dev/null 2>&1 || true
   rm -f "$LOCALDB"/.env.local "$LOCALDB"/.env.local.public "$LOCALDB"/.env.local.subject \
     "$LOCALDB"/.env.local.referee "$LOCALDB"/users.toml
+  docker rm -f -v "$CONTAINER" >/dev/null 2>&1 || true
 }
 
 # The shared settings of a run against the owner's project: generated once when absent, never overwritten.

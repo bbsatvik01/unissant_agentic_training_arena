@@ -6,6 +6,7 @@ hash, never printed."""
 from __future__ import annotations
 
 import hashlib
+import json
 import shlex
 import shutil
 import stat
@@ -20,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 OWNER_ONLY = 0o600
 ROOT_FILES = (".env.local", ".env.local.public", ".env.local.subject", ".env.local.referee")
 STUB = """
-import sys
+import json, os, sys
 tool, args = sys.argv[1], sys.argv[2:]
 if tool == "docker" and args[:1] == ["inspect"]:
     if "-f" not in args:
@@ -32,6 +33,10 @@ if tool == "docker" and args[:1] == ["port"]:
     print("127.0.0.1:55001")
 if tool == "uv" and any("user_id_for" in a for a in args):
     print("00000000-0000-0000-0000-00000000000a")
+if tool == "uv" and "run" in args and os.environ.get("ARENA_ROLE"):
+    keep = {k: v for k, v in os.environ.items() if k.startswith("ARENA_") and k != "ARENA_LOCAL_CALLERS"}
+    with open(os.path.join(os.path.dirname(__file__), "..", "children.log"), "a") as log:
+        print(json.dumps({"argv": args, "env": keep}), file=log)
 if tool == "psql" and "-f" in args and args[args.index("-f") + 1] == "-":
     sys.stdin.read()
 sys.exit(0)
@@ -64,6 +69,23 @@ def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("PATH", f"{bindir}:/usr/bin:/bin")
     monkeypatch.delenv("ENV_DIR", raising=False)
     return root
+
+
+def children(root: Path) -> list[dict[str, object]]:
+    """What each launched child saw: the stub appends it next to its own bin directory (children run with a
+    clean environment, so nothing else can tell the stub where to write)."""
+    log = root.parent / "children.log"
+    return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+
+def two_configs(root: Path) -> None:
+    """Synthetic root (as the owner's) and .run/localdb settings, each naming its own database."""
+    local = root / ".run" / "localdb"
+    local.mkdir(parents=True)
+    for where, tag in ((root, "root"), (local, "local")):
+        (where / ".env.local").write_text(f"ARENA_ENV=local\nARENA_CASE_DRAW_SEED={tag}\n")
+        for file, var in (("public", "PUBLIC"), ("subject", "SUBJECT"), ("referee", "REFEREE")):
+            (where / f".env.local.{file}").write_text(f"ARENA_{var}_DSN=postgresql://{tag}-{file}@127.0.0.1:1/x\n")
 
 
 def dev(root: Path, *args: str) -> tuple[int, str]:
@@ -150,3 +172,37 @@ def test_equivalent_spellings_of_the_root_generate_the_shared_settings(
     monkeypatch.chdir(repo)
     dev(repo, "up")
     assert "ARENA_MODEL_MODE=fake" in (repo / ".env.local").read_text()
+
+
+@pytest.mark.parametrize(("env_dir", "tag"), [(None, "root"), (".run/localdb", "local")])
+def test_each_child_gets_the_selected_settings_and_only_its_own_credential(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, env_dir: str | None, tag: str
+) -> None:
+    two_configs(repo)
+    if env_dir is not None:
+        monkeypatch.setenv("ENV_DIR", env_dir)
+    code, out = dev(repo, "up")
+    assert code == 0, out
+    own = {"subject": "ARENA_SUBJECT_DSN", "referee": "ARENA_REFEREE_DSN", "api": "ARENA_PUBLIC_DSN"}
+    seen = {}
+    for child in children(repo):
+        env = child["env"]
+        assert isinstance(env, dict)
+        role = env["ARENA_ROLE"]
+        seen[role] = env
+        assert env["ARENA_CASE_DRAW_SEED"] == tag
+        assert sorted(k for k in env if k.endswith("_DSN")) == [own[role]]
+        assert env[own[role]].startswith(f"postgresql://{tag}-")
+    assert sorted(seen) == ["api", "referee", "subject"]
+
+
+def test_export_run_reads_the_selected_settings(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    two_configs(repo)
+    monkeypatch.setenv("ENV_DIR", ".run/localdb")
+    code, out = dev(repo, "export-run", "00000000-0000-0000-0000-000000000001")
+    assert code == 0, out
+    [child] = children(repo)
+    env = child["env"]
+    assert isinstance(env, dict)
+    assert env["ARENA_PUBLIC_DSN"] == "postgresql://local-public@127.0.0.1:1/x"
+    assert sorted(k for k in env if k.endswith("_DSN")) == ["ARENA_PUBLIC_DSN"]

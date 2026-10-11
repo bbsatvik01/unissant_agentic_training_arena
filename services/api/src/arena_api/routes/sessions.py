@@ -6,6 +6,7 @@ A training session runs the configured coach and subject candidates (`ARENA_TRAI
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -19,6 +20,7 @@ from arena_core.db.arena import ArenaDb, ArenaError, SessionStart
 from arena_core.identity import DevIdentity
 
 router = APIRouter()
+log = logging.getLogger("arena_api.sessions")
 
 
 @router.post("/api/sessions", response_model=None)
@@ -39,6 +41,7 @@ async def start_session(
     try:
         started = await db.start_session(start)
     except ArenaError as exc:
+        log.info("session start refused: %s", exc.code)
         if "quota" in exc.message:
             return JSONResponse({"code": "quota"}, status_code=429)
         return error_response(exc)
