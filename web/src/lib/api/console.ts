@@ -6,7 +6,7 @@
  */
 import type { ReviewItem, ReviewList, ReviewSubmission } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
-import type { AdminAction } from "../console/admin";
+import type { AdminAction, VerdictBody } from "../console/admin";
 import { ContractError, type ApiClient, type Me } from "./client";
 
 export interface ConsoleApi {
@@ -19,7 +19,7 @@ export interface ConsoleApi {
   readonly adminBudget: () => Promise<unknown>;
   readonly adminAction: (tournamentId: string, action: AdminAction) => Promise<unknown>;
   readonly adminReviews: () => Promise<unknown>;
-  readonly adminVerdict: (trialId: string, body: { verdict: "valid" | "subject_invalid"; reason: string }) => Promise<unknown>;
+  readonly adminVerdict: (trialId: string, body: VerdictBody) => Promise<unknown>;
 }
 
 function id(value: string): string {

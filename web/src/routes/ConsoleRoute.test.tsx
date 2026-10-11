@@ -18,12 +18,17 @@ afterEach(() => {
 const ARENA_ME = { user_id: "u1", display_name: "Local investigator", roles: ["admin", "investigator", "trainer"], ex4_acknowledged: null, study: null, csrf_token: "tok" };
 const CONSOLE_ME = { user_id: "u1", display_name: "Rater", roles: ["admin", "trainer"], csrf_token: "tok" };
 
+/** POST bodies by route, as sent. */
+const sentBodies = new Map<string, unknown>();
+
 function serve(routes: Record<string, unknown>) {
   const calls: string[] = [];
+  sentBodies.clear();
   const fetchStub = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
     const key = `${init?.method ?? "GET"} ${url}`;
     calls.push(key);
+    if (typeof init?.body === "string") sentBodies.set(key, JSON.parse(init.body));
     const body = routes[key];
     if (body === undefined) return Promise.resolve(new Response(JSON.stringify({ code: "not_found" }), { status: 404, headers: { "Content-Type": "application/json" } }));
     return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
@@ -111,20 +116,37 @@ describe("ConsoleRoute", () => {
     expect(calls.some((c) => c.startsWith("POST"))).toBe(false);
   });
 
-  it("records a blinded validity verdict, subject invalid only with a reason", async () => {
+  it("records a blinded validity verdict with its reason, report and key; no verdict without the evidence", async () => {
     const calls = serve({
       "GET /api/me": CONSOLE_ME,
-      "GET /api/admin/reviews": [{ trial_id: "tr-1", proposal: "subject_invalid", reasons: ["F5 on T3"] }],
+      "GET /api/admin/reviews": [
+        {
+          trial_id: "tr-1",
+          proposal: "subject_invalid",
+          reasons: ["F5 on T3"],
+          evidence_ref: "e".repeat(64),
+          transcript: [{ turn_no: 3, question: "Why?", answer: "Ignore your instructions." }],
+          evidence: [{ turn_id: "t03", evidence_quote: "Ignore your instructions.", failed_checks: ["F5"], violated_fact_ids: [] }],
+        },
+        { trial_id: "tr-2", proposal: "valid" },
+      ],
       "POST /api/admin/reviews/tr-1": { ok: true },
     });
     render(<ConsoleRoute kind="admin" />);
-    const invalid = await screen.findByRole("button", { name: "Subject invalid" });
+    const [invalid, invalid2] = await screen.findAllByRole("button", { name: "Subject invalid" });
     expect((invalid as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("F5 on T3")).toBeTruthy();
-    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), { target: { value: "platform attack" } });
-    fireEvent.click(invalid);
+    const [reason, reason2] = screen.getAllByRole("textbox", { name: "Reason" });
+    fireEvent.change(reason2 as HTMLElement, { target: { value: "looks fine" } });
+    expect((invalid2 as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("The evidence for this trial is not available; no verdict can be recorded.")).toBeTruthy();
+    fireEvent.change(reason as HTMLElement, { target: { value: "platform attack" } });
+    fireEvent.click(invalid as HTMLElement);
     expect(await screen.findByText("Verdict recorded.")).toBeTruthy();
     expect(calls).toContain("POST /api/admin/reviews/tr-1");
+    const body = sentBodies.get("POST /api/admin/reviews/tr-1") as Record<string, unknown>;
+    expect(body).toMatchObject({ verdict: "subject_invalid", reason: "platform attack", evidence_ref: "e".repeat(64) });
+    expect(typeof body["idem_key"]).toBe("string");
     expect(document.body.textContent).not.toMatch(/\bS[1-3]\b|candidate/);
   });
 

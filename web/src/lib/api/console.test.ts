@@ -33,7 +33,7 @@ describe("console routes (S6 4.12, 4.13)", () => {
     await api.adminTournaments();
     await api.adminTournament("t1");
     await api.adminReviews();
-    await api.adminVerdict("t9", { verdict: "valid", reason: "" });
+    await api.adminVerdict("t9", { verdict: "valid", reason: "compliant", evidence_ref: "a".repeat(64), idem_key: "k" });
     expect(calls).toEqual([
       "GET /api/review/items",
       "GET /api/review/items/abc",

@@ -3,7 +3,7 @@
  * tournament in scoring, and one lifecycle action at a time (each POST carries the referee's CSRF token through
  * the client). A 404 means the server does not offer that route yet, which the console says plainly.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../lib/api/client";
 import type { ConsoleApi } from "../../lib/api/console";
@@ -92,16 +92,21 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
     [adminAction],
   );
 
+  // One idempotency key per trial and verdict, kept across retries so a resent verdict is the same request.
+  const keys = useRef(new Map<string, string>());
   const decide = useCallback(
-    (trialId: string, verdict: "valid" | "subject_invalid", reason: string) => {
-      const body = verdictBody(verdict, reason);
+    (review: ValidityReview, verdict: "valid" | "subject_invalid", reason: string) => {
+      const slot = `${review.trial_id}:${verdict}`;
+      const key = keys.current.get(slot) ?? crypto.randomUUID();
+      keys.current.set(slot, key);
+      const body = verdictBody(review, verdict, reason, key);
       if (body === null) {
-        setMessage("A subject_invalid verdict needs a reason.");
+        setMessage("A verdict needs a reason and the referee's report.");
         return;
       }
-      setBusy(trialId);
+      setBusy(review.trial_id);
       setMessage(null);
-      adminVerdict(trialId, body).then(
+      adminVerdict(review.trial_id, body).then(
         () => {
           setBusy(null);
           setMessage("Verdict recorded.");

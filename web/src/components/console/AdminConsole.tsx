@@ -8,7 +8,7 @@
 import { useState } from "react";
 
 import type { AdminAction, AdminTournament, BudgetRow, Precondition, ValidityReview } from "../../lib/console/admin";
-import { killSwitchOf, nextAction, revealAllowed } from "../../lib/console/admin";
+import { killSwitchOf, nextAction, revealAllowed, reviewable } from "../../lib/console/admin";
 
 export type Section<T> = { readonly state: "loading" } | { readonly state: "missing" } | { readonly state: "error" } | { readonly state: "ready"; readonly value: T };
 
@@ -21,11 +21,13 @@ interface AdminConsoleProps {
   readonly busy: string | null;
   readonly message: string | null;
   readonly onAction: (tournamentId: string, action: AdminAction) => void;
-  readonly onVerdict: (trialId: string, verdict: "valid" | "subject_invalid", reason: string) => void;
+  readonly onVerdict: (review: ValidityReview, verdict: "valid" | "subject_invalid", reason: string) => void;
 }
 
 function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: number; busy: boolean; onVerdict: AdminConsoleProps["onVerdict"] }) {
   const [reason, setReason] = useState("");
+  const ready = reviewable(review);
+  const blocked = busy || !ready || reason.trim() === "";
   return (
     <div className="console-tournament">
       <p>
@@ -38,6 +40,47 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
           ))}
         </ul>
       )}
+      <details className="validity-evidence">
+        <summary>Evidence: questions and subject turns, records, private packet, the referee&apos;s per-turn evidence</summary>
+        <ol className="review-transcript">
+          {review.transcript.map((t) => (
+            <li key={t.turn_no}>
+              <span className="mono">T{t.turn_no}</span>
+              <p className="line">
+                <span className="speaker">Question</span>
+                {t.question}
+              </p>
+              {t.answer === null ? null : (
+                <p className="line">
+                  <span className="speaker">Subject</span>
+                  {t.answer}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+        {review.released.map((r) => (
+          <p key={r.record_id} className="fine">
+            <span className="mono">{r.record_id}</span> {r.title}: {r.body}
+          </p>
+        ))}
+        {review.facts.length === 0 ? null : (
+          <ul>
+            {review.facts.map((f) => (
+              <li key={f.id}>
+                <span className="mono">{f.id}</span> {f.text}
+              </li>
+            ))}
+          </ul>
+        )}
+        {review.evidence.map((e) => (
+          <p key={e.turn_id} className="fine">
+            <span className="mono">{e.turn_id.toUpperCase()}</span> &quot;{e.evidence_quote}&quot;; failed: {e.failed_checks.join(", ") || "none"}
+            {e.violated_fact_ids.length === 0 ? "" : `; contradicts ${e.violated_fact_ids.join(", ")}`}
+          </p>
+        ))}
+      </details>
+      {ready ? null : <p className="fine">The evidence for this trial is not available; no verdict can be recorded.</p>}
       <label className="field">
         <span>Reason</span>
         <input
@@ -53,9 +96,9 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
         <button
           type="button"
           className="btn-secondary-sm"
-          disabled={busy}
+          disabled={blocked}
           onClick={() => {
-            onVerdict(review.trial_id, "valid", reason);
+            onVerdict(review, "valid", reason);
           }}
         >
           Valid
@@ -63,9 +106,9 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
         <button
           type="button"
           className="btn-secondary-sm"
-          disabled={busy || reason.trim() === ""}
+          disabled={blocked}
           onClick={() => {
-            onVerdict(review.trial_id, "subject_invalid", reason);
+            onVerdict(review, "subject_invalid", reason);
           }}
         >
           Subject invalid
@@ -137,7 +180,7 @@ export function AdminConsole({ budget, tournaments, preconditions, reviews, busy
           <h2 id="validity-title">Subject validity reviews</h2>
         </header>
         <div className="panel-body">
-          <p className="fine">Blinded: which subject played a trial is not shown. A subject invalid verdict needs a reason.</p>
+          <p className="fine">Blinded: the coach, its cards and its finding are not shown, so a verdict cannot depend on them. Every verdict needs a reason and cites the referee&apos;s report.</p>
           <Unavailable section={reviews} />
           {reviews.state === "ready" && reviews.value.length === 0 ? <p className="empty">No reviews waiting.</p> : null}
           {reviews.state === "ready" ? reviews.value.map((r, i) => <ReviewRow key={r.trial_id} review={r} n={i + 1} busy={busy !== null} onVerdict={onVerdict} />) : null}

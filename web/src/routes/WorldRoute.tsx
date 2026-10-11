@@ -235,7 +235,9 @@ export function WorldRoute() {
 
   const openCase = useCallback(
     (caseId: string) => {
-      const card = cases.find((c) => c.case_id === caseId) ?? (active?.case_id === caseId ? active : null);
+      // With the server, only a case it offers now can open (a study step changes the offer); offline, the case
+      // of a recording already in hand can open again.
+      const card = cases.find((c) => c.case_id === caseId) ?? (!live && active?.case_id === caseId ? active : null);
       if (card === null) return;
       setActive(card);
       // With the server, the room offers a live interview (and the recorded run for F01); without it, the recorded
@@ -360,7 +362,8 @@ export function WorldRoute() {
   }, [flag, cite]);
 
   const freshId = world?.wall.find((p) => p.fresh)?.record_id ?? null;
-  const focusCard = cases.find((c) => c.case_id === focused) ?? active ?? cases[0] ?? null;
+  const activeOffered = active !== null && (!live || cases.some((c) => c.case_id === active.case_id));
+  const focusCard = cases.find((c) => c.case_id === focused) ?? (activeOffered ? active : null) ?? cases[0] ?? null;
   const liveDebrief = session.debrief !== null && "schema_version" in session.debrief ? session.debrief : null;
   const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
   const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;

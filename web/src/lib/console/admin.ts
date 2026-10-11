@@ -124,32 +124,86 @@ export function revealAllowed(preconditions: readonly Precondition[] | null): bo
   return preconditions !== null && preconditions.length > 0 && preconditions.every((p) => p.passed);
 }
 
-/** One subject-validity review in the admin queue (S6 4.13, S3 7.x validity): blinded, so only the trial's opaque
- * id and the code's automatic proposal with its reasons, never a candidate identity. */
+/** R1's evidence for one subject turn: the quote, the failed checks and the canonical facts it contradicts. */
+export interface TurnEvidence {
+  readonly turn_id: string;
+  readonly evidence_quote: string;
+  readonly failed_checks: readonly string[];
+  readonly violated_fact_ids: readonly string[];
+}
+
+/** One subject-validity review in the admin queue (S6 4.13, S3 4.2 item 2): blinded (no assistant identity, cards
+ * or finding), with what a reviewer needs to confirm or reject the automatic proposal: the questions and subject
+ * turns, the released records, the private packet's facts, R1's per-turn evidence, and the R1 report hash the
+ * verdict cites (`evidence_ref`). */
 export interface ValidityReview {
   readonly trial_id: string;
   readonly proposed: "valid" | "subject_invalid" | null;
   readonly reasons: readonly string[];
+  readonly evidence_ref: string | null;
+  readonly transcript: readonly { readonly turn_no: number; readonly question: string; readonly answer: string | null }[];
+  readonly released: readonly { readonly record_id: string; readonly title: string; readonly body: string }[];
+  readonly facts: readonly { readonly id: string; readonly text: string }[];
+  readonly evidence: readonly TurnEvidence[];
+}
+
+function strings(v: unknown): readonly string[] {
+  return Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === "string") : [];
+}
+
+function list<T>(v: unknown, read: (x: Json) => T | null): readonly T[] {
+  if (!Array.isArray(v)) return [];
+  return (v as unknown[]).flatMap((x) => {
+    const r = isRecord(x) ? read(x) : null;
+    return r === null ? [] : [r];
+  });
 }
 
 /** `GET /api/admin/reviews`: an array or `{reviews: [...]}`; null when not one. */
 export function parseValidityReviews(v: unknown): readonly ValidityReview[] | null {
-  const list = rows(v, "reviews");
-  if (list === null) return null;
+  const items = rows(v, "reviews");
+  if (items === null) return null;
   const out: ValidityReview[] = [];
-  for (const r of list) {
+  for (const r of items) {
     if (!isRecord(r) || typeof r["trial_id"] !== "string") return null;
     const p = r["proposed"] ?? r["proposal"] ?? null;
-    const reasons = Array.isArray(r["reasons"]) ? (r["reasons"] as unknown[]).filter((x): x is string => typeof x === "string") : [];
-    out.push({ trial_id: r["trial_id"], proposed: p === "valid" || p === "subject_invalid" ? p : null, reasons });
+    out.push({
+      trial_id: r["trial_id"],
+      proposed: p === "valid" || p === "subject_invalid" ? p : null,
+      reasons: strings(r["reasons"]),
+      evidence_ref: typeof r["evidence_ref"] === "string" && r["evidence_ref"] !== "" ? r["evidence_ref"] : null,
+      transcript: list(r["transcript"], (x) =>
+        typeof x["turn_no"] === "number" && typeof x["question"] === "string" ? { turn_no: x["turn_no"], question: x["question"], answer: typeof x["answer"] === "string" ? x["answer"] : null } : null,
+      ),
+      released: list(r["released"], (x) => {
+        const content = isRecord(x["content"]) ? x["content"] : null;
+        return typeof x["record_id"] === "string" && typeof x["title"] === "string" ? { record_id: x["record_id"], title: x["title"], body: typeof content?.["body"] === "string" ? content["body"] : "" } : null;
+      }),
+      facts: list(r["facts"], (x) => (typeof x["id"] === "string" && typeof x["text"] === "string" ? { id: x["id"], text: x["text"] } : null)),
+      evidence: list(r["evidence"], (x) =>
+        typeof x["turn_id"] === "string" ? { turn_id: x["turn_id"], evidence_quote: typeof x["evidence_quote"] === "string" ? x["evidence_quote"] : "", failed_checks: strings(x["failed_checks"]), violated_fact_ids: strings(x["violated_fact_ids"]) } : null,
+      ),
+    });
   }
   return out;
 }
 
-/** The verdict body for `POST /api/admin/reviews/{trial_id}`, or null when it cannot be sent: a subject_invalid
- * verdict needs a reason (S6 4.13: "recording valid or subject_invalid with reason"). */
-export function verdictBody(verdict: "valid" | "subject_invalid", reason: string): { verdict: "valid" | "subject_invalid"; reason: string } | null {
+/** Whether a reviewer has what S3 4.2 asks them to look at: the subject turns and the R1 report the verdict cites. */
+export function reviewable(review: ValidityReview): boolean {
+  return review.transcript.length > 0 && review.evidence_ref !== null;
+}
+
+export interface VerdictBody {
+  readonly verdict: "valid" | "subject_invalid";
+  readonly reason: string;
+  readonly evidence_ref: string;
+  readonly idem_key: string;
+}
+
+/** The verdict body for `POST /api/admin/reviews/{trial_id}` (S5 5.5: verdict, reason, evidence_ref, idem_key), or
+ * null when it cannot be sent: the ledger needs a reason for either verdict and the R1 report reference. */
+export function verdictBody(review: ValidityReview, verdict: "valid" | "subject_invalid", reason: string, idemKey: string): VerdictBody | null {
   const r = reason.trim();
-  if (verdict === "subject_invalid" && r === "") return null;
-  return { verdict, reason: r };
+  if (r === "" || review.evidence_ref === null) return null;
+  return { verdict, reason: r, evidence_ref: review.evidence_ref, idem_key: idemKey };
 }

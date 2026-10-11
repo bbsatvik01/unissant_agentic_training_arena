@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from "react";
 
-import type { CaseFile, Content, FlagItem, LabelItem, ReviewItem, ReviewListEntry, ReviewRecord, ReviewTurn, RubricItem } from "../../lib/contracts/generated/types";
+import type { CaseFile, Content, FlagItem, LabelItem, ReviewItem, ReviewListEntry, ReviewRecord, ReviewTurn, RubricItem, TriggerEntry } from "../../lib/contracts/generated/types";
 import { checkName } from "../../lib/copy/rubric";
 import { missing, turnId, type CitationDraft, type FlagDraft, type FollowupDraft, type LabelDraft, type ReviewDraft, type SubcheckDraft } from "../../lib/console/review";
 
@@ -142,6 +142,14 @@ function CaseFileView({ file }: { file: CaseFile }) {
   );
 }
 
+/** One code-built trigger entry in words: the check, what triggered it (turns and record), and the questions that
+ * may answer it. */
+export function triggerText(t: TriggerEntry): string {
+  const at = [...t.trigger_turns.map((n) => `T${String(n)}`), ...(t.trigger_record === null ? [] : [t.trigger_record])];
+  const window = t.question_turns.map((n) => `T${String(n)}`);
+  return `${t.subcheck_id}: triggered by ${at.length === 0 ? "nothing listed" : at.join(", ")}; questions to look at: ${window.length === 0 ? "none" : window.join(", ")}`;
+}
+
 function YesNo({ label, value, onChange }: { label: string; value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <label className="field">
@@ -240,7 +248,15 @@ function RubForm({ item, draft, onEdit }: { item: RubricItem; draft: Extract<Rev
       </section>
       <section className="review-section">
         <h3 className="eyebrow">Other checks</h3>
-        <p className="fine">Code-built trigger entries: {item.triggers.length === 0 ? "none" : item.triggers.map((t) => `${t.subcheck_id} at ${t.trigger_turns.map((n) => `T${String(n)}`).join(", ") || (t.trigger_record ?? "")}`).join("; ")}</p>
+        {item.triggers.length === 0 ? (
+          <p className="fine">Code-built trigger entries: none.</p>
+        ) : (
+          <ul className="triggers">
+            {item.triggers.map((t, i) => (
+              <li key={`${t.subcheck_id}-${String(i)}`}>{triggerText(t)}</li>
+            ))}
+          </ul>
+        )}
         {draft.subchecks.map((s: SubcheckDraft, i) => (
           <fieldset key={s.id} className="review-form">
             <legend>
