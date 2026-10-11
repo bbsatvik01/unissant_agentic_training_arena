@@ -865,3 +865,187 @@ td {
   right: var(--arena-space-4);
   bottom: var(--arena-space-4);
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * Cinematic layout (D-025): the 3D world is the stage, full-bleed; the overlay floats on it as translucent
+ * DESIGN.md surfaces (white at high opacity over a blur, hairline, soft shadow), and each side panel collapses.
+ * ------------------------------------------------------------------------------------------------------------- */
+:root {
+  --arena-glass: rgb(255 255 255 / 0.84);
+  --arena-glass-strong: rgb(255 255 255 / 0.92);
+  --arena-glass-shadow: 0 0 0 1px rgb(255 255 255 / 0.5), 0 8px 32px rgb(0 0 0 / 0.18);
+}
+
+.app {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  background: #1b1c1e;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  pointer-events: none;
+}
+
+.stage > * {
+  pointer-events: auto;
+}
+
+.center {
+  position: static;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #1b1c1e;
+  z-index: 0;
+}
+
+.topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  height: 48px;
+  z-index: 3;
+  border: 0;
+  border-radius: var(--arena-radius-lg);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side {
+  position: absolute;
+  top: 72px;
+  bottom: 56px;
+  width: min(360px, calc(50vw - 24px));
+  z-index: 2;
+  transition: transform var(--arena-motion-base) var(--arena-ease-standard), opacity var(--arena-motion-base) var(--arena-ease-standard);
+}
+
+.side.left {
+  left: 12px;
+}
+
+.side.right {
+  right: 12px;
+  width: min(390px, calc(50vw - 24px));
+}
+
+.side .panel {
+  background: var(--arena-glass);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side[data-open="false"] .panel,
+.side[data-open="false"] > .panel {
+  display: none;
+}
+
+.side[data-open="false"] {
+  bottom: auto;
+  width: auto;
+}
+
+.panel-toggle {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  height: 26px;
+  padding: 0 var(--arena-space-3);
+  border-radius: var(--arena-radius-pill);
+  background: var(--arena-canvas);
+  box-shadow: 0 0 0 1px var(--arena-hairline);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.side[data-open="false"] .panel-toggle {
+  position: static;
+  height: 32px;
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+}
+
+.side.right .panel-toggle {
+  right: auto;
+  left: auto;
+  right: 12px;
+}
+
+.tabs .tab-list {
+  padding-right: 72px;
+}
+
+.room-controls,
+.center > .caption {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2 * min(392px, 50vw) - 24px));
+  min-width: 360px;
+  z-index: 2;
+}
+
+.center > .caption,
+.room-controls .caption {
+  color: var(--arena-canvas);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.room-controls .playback,
+.room-controls .composer textarea {
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+}
+
+.ex4 {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  border: 0;
+  border-radius: var(--arena-radius-pill);
+  padding: var(--arena-space-2) var(--arena-space-4);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+  text-align: center;
+}
+
+.debrief,
+.debrief-open {
+  right: calc(min(390px, 50vw - 24px) + 28px);
+  bottom: 200px;
+}
+
+.viewport-loading {
+  color: var(--arena-canvas);
+}
+
+@media (max-width: 1023px) {
+  .side {
+    width: calc(100vw - 24px);
+  }
+
+  .room-controls,
+  .center > .caption {
+    width: calc(100vw - 24px);
+    min-width: 0;
+  }
+}
