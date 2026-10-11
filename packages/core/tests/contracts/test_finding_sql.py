@@ -1,5 +1,5 @@
-"""The finding the database test commits (supabase/tests/002a_finding_contract.sql, FN-02) is exactly the shared contract's
-stored investigator finding, so the database accepts what the contract produces (S2 4.8, S5 5.4)."""
+"""The finding the database test commits (supabase/tests/002a_finding_contract.sql, FN-02) is exactly the shared
+contract's stored investigator finding, so the database accepts what the contract produces (S2 4.8, S5 5.4)."""
 
 from __future__ import annotations
 

@@ -24,11 +24,13 @@
 set -euo pipefail
 unset PGHOSTADDR PGHOST PGPORT PGSERVICE PGSERVICEFILE PGDATABASE PGOPTIONS
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 RUN="$ROOT/.run"
 LOCALDB="$RUN/localdb"
 ENV_DIR="${ENV_DIR:-$ROOT}"
 case "$ENV_DIR" in /*) ;; *) ENV_DIR="$ROOT/$ENV_DIR" ;; esac
+# Canonical, so "." or a trailing slash still names the root (symlinks resolved).
+[[ -d "$ENV_DIR" ]] && ENV_DIR="$(cd "$ENV_DIR" && pwd -P)"
 CONTAINER="arena-dev-db"
 # The image make db-test runs (supabase/tests/harness/db_test.sh), pinned by digest.
 IMAGE="supabase/postgres:17.11.0.002@sha256:0450166354dc9c1d25f0322ac8b580774d4fb0184d2b087f6e4fe9499c66cf53"
@@ -39,18 +41,25 @@ die() { echo "dev.sh: $*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null || die "$1 is not installed"; }
 secret() { python3 -I -c 'import secrets; print(secrets.token_hex(24))'; }
 
-# Write a new file (mode 0600) from stdin; refuse to replace one that exists.
+# Write a new file (mode 0600) from stdin; refuse to replace anything at that path. noclobber creates the file
+# exclusively (O_EXCL), so a file or a symlink appearing between the check and the write is refused too.
 new_file() {
-  [[ ! -e "$1" ]] || die "$1 exists; refusing to overwrite it"
-  (umask 077; cat >"$1")
+  [[ ! -e "$1" && ! -L "$1" ]] || die "$1 exists; refusing to overwrite it"
+  (umask 077; set -o noclobber; cat >"$1") || die "could not create $1 exclusively"
+}
+
+# The disposable database's own directory: a real directory under .run, never a symlink to somewhere else.
+localdb_dir() {
+  [[ ! -L "$RUN" && ! -L "$LOCALDB" ]] || die "$RUN or $LOCALDB is a symlink; refusing to use it"
+  mkdir -p "$LOCALDB"; chmod 700 "$RUN" "$LOCALDB"
 }
 
 db_up() {
   need docker; need psql; need uv
-  mkdir -p "$LOCALDB"; chmod 700 "$RUN" "$LOCALDB"
+  localdb_dir
   local target
   for target in .env.local .env.local.public .env.local.subject .env.local.referee users.toml; do
-    [[ ! -e "$LOCALDB/$target" ]] || die "$LOCALDB/$target exists; run: scripts/dev.sh db-down"
+    [[ ! -e "$LOCALDB/$target" && ! -L "$LOCALDB/$target" ]] || die "$LOCALDB/$target exists; run: scripts/dev.sh db-down"
   done
   if docker inspect "$CONTAINER" >/dev/null 2>&1; then die "$CONTAINER exists; run: scripts/dev.sh db-down"; fi
   local owner_pw; owner_pw="$(secret)"
@@ -114,6 +123,7 @@ EOF
 }
 
 db_down() {
+  localdb_dir
   docker rm -f -v "$CONTAINER" >/dev/null 2>&1 || true
   rm -f "$LOCALDB"/.env.local "$LOCALDB"/.env.local.public "$LOCALDB"/.env.local.subject \
     "$LOCALDB"/.env.local.referee "$LOCALDB"/users.toml

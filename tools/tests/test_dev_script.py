@@ -62,6 +62,7 @@ def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     python.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
     python.chmod(python.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("PATH", f"{bindir}:/usr/bin:/bin")
+    monkeypatch.delenv("ENV_DIR", raising=False)
     return root
 
 
@@ -118,3 +119,34 @@ def test_up_generates_a_missing_root_env_local_and_never_overwrites_one(repo: Pa
     before = hashlib.sha256((repo / ".env.local").read_bytes()).hexdigest()
     dev(repo, "up")
     assert hashlib.sha256((repo / ".env.local").read_bytes()).hexdigest() == before
+
+
+def test_db_up_refuses_a_symlink_that_points_at_a_root_file(repo: Path) -> None:
+    local = repo / ".run" / "localdb"
+    local.mkdir(parents=True)
+    (local / ".env.local").symlink_to(repo / ".env.local")  # dangling: the root file does not exist
+    code, out = dev(repo, "db-up")
+    assert code != 0
+    assert "exists" in out
+    assert not (repo / ".env.local").exists()
+
+
+def test_a_symlinked_local_directory_is_refused_and_the_root_files_survive(repo: Path) -> None:
+    before = owner_files(repo)
+    (repo / ".run").mkdir()
+    (repo / ".run" / "localdb").symlink_to(repo)
+    for command in ("db-down", "db-up"):
+        code, out = dev(repo, command)
+        assert code != 0
+        assert "symlink" in out
+    assert digests(repo) == before
+
+
+@pytest.mark.parametrize("env_dir", [".", "./", "{root}/"])
+def test_equivalent_spellings_of_the_root_generate_the_shared_settings(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, env_dir: str
+) -> None:
+    monkeypatch.setenv("ENV_DIR", env_dir.format(root=repo))
+    monkeypatch.chdir(repo)
+    dev(repo, "up")
+    assert "ARENA_MODEL_MODE=fake" in (repo / ".env.local").read_text()
