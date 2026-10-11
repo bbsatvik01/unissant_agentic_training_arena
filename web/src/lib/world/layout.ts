@@ -100,7 +100,7 @@ export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   subject_close: { position: inRoom([0.22, 1.3, 0.62]), target: inRoom([0, 1.12, -0.8]), fov: 30 },
   observation: { position: inRoom([0.15, 1.75, -3.55]), target: inRoom([1.75, 1.0, -5.0]), fov: 46 },
   wall: { position: inRoom([-1.6, 1.55, 0.1]), target: inRoom([-1.75, 1.5, -3]), fov: 40 },
-  table: { position: inRoom([0.3, 1.62, 1.05]), target: inRoom([-0.3, 0.8, 0.1]), fov: 44 },
+  table: { position: inRoom([-1.05, 1.5, 0.85]), target: inRoom([-0.4, 0.8, 0.15]), fov: 42 },
 };
 
 /** The waypoints of the flight from the hub into the interview room (case open, a signature moment). */
