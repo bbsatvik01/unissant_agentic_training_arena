@@ -362,13 +362,16 @@ create temp table bu17v on commit drop as select tests.as_role('arena_subject', 
 create temp table bu17d on commit drop as select tests.as_role('arena_public', format(
   'select ops.mark_dispatched(%L)', (select r ->> 'id' from bu16))) as r;
 create temp table bu17u on commit drop as select tests.as_role('arena_public', $$ select ops.admit_unit('global', 0.01) $$) as r;
+-- admit_unit's decision carries ops.admit_unit's own bare 'skip' value (the one exact literal the suite's
+-- pgTAP-directive ban exempts); kept apart from its reason here so no array element pairs it with other
+-- text (which the ban would then catch as the pgTAP directive, not the exempted literal).
 select is(array[concat_ws('/', (select r ->> 'outcome' from bu17), (select r ->> 'reason' from bu17)),
                 concat_ws('/', (select r ->> 'outcome' from bu17v), (select r ->> 'reason' from bu17v)),
                 concat_ws('/', (select r ->> 'outcome' from bu17d), (select r ->> 'reason' from bu17d)),
-                concat_ws('/', (select r ->> 'decision' from bu17u), (select r ->> 'reason' from bu17u))],
-          array['refused/kill_switch', 'refused/kill_switch', 'refused/kill_switch', 'skip/kill_switch'],
-  'BU-17 while the kill switch is on, reserve_model_call, reserve_voice, mark_dispatched and admit_unit are '
-  || 'each refused or skip with reason kill_switch');
+                (select r ->> 'decision' from bu17u), (select r ->> 'reason' from bu17u)],
+          array['refused/kill_switch', 'refused/kill_switch', 'refused/kill_switch', 'skip', 'kill_switch'],
+  'BU-17 while the kill switch is on, reserve_model_call, reserve_voice and mark_dispatched are each '
+  || 'refused (kill_switch); admit_unit''s own no-op decision and reason are kill_switch''s own vocabulary');
 select ops.set_kill_switch(false, 'bu17 restore');
 -- bu17v's own reservation attempt was itself refused (kill_switch), so it wrote no row to release.
 
