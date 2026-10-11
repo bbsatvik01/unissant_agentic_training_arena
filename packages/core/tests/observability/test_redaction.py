@@ -348,3 +348,27 @@ def test_mask_structured_withholds_everything_when_a_core_survives_elsewhere() -
     text = '{"api_key": "secretcore123"} secretcore123secretcore123'
     out = _mask_structured(text)
     assert out == REDACTED
+
+
+def test_mask_structured_leaves_ordinary_prose_with_an_apostrophe_alone() -> None:
+    """Regression (Codex self-gate round 1, major): "Ask about John's timeline." merely contains an
+    apostrophe; it never attempts to be a JSON or Python literal, so it must not be blanket-redacted. S5 8.3
+    requires public coach free text to export in clear."""
+    text = "Ask about John's timeline."
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_leaves_prose_with_a_bracket_alone() -> None:
+    text = "the card lists [pending] items for review"
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_still_fails_closed_on_a_genuinely_malformed_top_level_literal() -> None:
+    # Starts with "{" (an actual attempt at a literal) but is not valid JSON or a Python literal: still
+    # withheld, unlike ordinary prose that merely contains a stray quote or bracket.
+    text = "{not: valid, at: all"
+    assert _mask_structured(text) == REDACTED
+
+
+def test_credential_values_full_apostrophe_prose_finds_nothing() -> None:
+    assert _credential_values("Ask about John's timeline.") == []

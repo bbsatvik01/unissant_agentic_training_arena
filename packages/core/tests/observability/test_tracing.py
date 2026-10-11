@@ -28,6 +28,22 @@ def test_install_with_an_injected_exporter_does_not_need_an_endpoint(install_tra
     assert tracing.active() is installed
 
 
+def test_install_mirror_only_mode_does_not_need_an_endpoint_either() -> None:
+    """The tournament job's mirror-only mode (S5 8.5, a hidden, unrevealed tournament) never calls the inner
+    exporter at all (``ExportGate.export`` short-circuits on ``mirror_only`` before touching it), so it must
+    not need ``PHOENIX_OTLP_ENDPOINT`` configured to turn tracing on -- without this, mirror-only mode (and
+    so the mirror write itself, the only durability this run has before Phoenix is ever reachable) would be
+    fully off, the opposite of ``test_install_is_a_noop_with_no_endpoint_and_no_exporter``'s case."""
+    sink = proc.InMemoryMirrorSink()
+    settings = tracing.TracingSettings(service_name="arena-tournament", mode="job", mirror_only=True)
+    installed = tracing.install(settings, mirror_sink=sink, instrument_genai=False)
+    assert installed is not None
+    with spans.referee_task("subject"):
+        pass
+    installed.flush()
+    assert len(sink.rows) == 1
+
+
 def test_install_is_idempotent_within_one_process(install_tracing: InstallTracing) -> None:
     first, _exporter, _sink = install_tracing()
     settings = tracing.TracingSettings(service_name="arena-test-2", mode="api")

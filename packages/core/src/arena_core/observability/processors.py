@@ -23,9 +23,10 @@ discovered later:
   ``SpanMirror`` and ``pump.py`` provide without per-request delivery bookkeeping.
 """
 
+import json
 import logging
 import threading
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Protocol, override
@@ -121,16 +122,33 @@ class Lineage:
         if ctx is None:
             return
         attrs: dict[str, AttributeValue] = dict(span.attributes or {})
+        own_data_class = attrs.get(DATA_CLASS_ATTR)
         own_split = _str_attr(attrs, SPLIT_ATTR)
         with self._lock:
             nodes = self._touch(ctx.trace_id)
             same_trace = parent.is_valid and parent.trace_id == ctx.trace_id
             parent_id = parent.span_id if same_trace else None
             parent_node = nodes.get(parent_id) if parent_id is not None else None
+            # Sensitivity INHERITS downward (S5 8.1: llm.<call_type>'s data class is literally "inherits"):
+            # a span with no data_class of its own takes its parent's, not a bare False default -- otherwise
+            # an llm_call() nested under a subject_private agent_subject() would export public by default.
+            if DATA_CLASS_ATTR in attrs:
+                sensitive = own_data_class in SENSITIVE_CLASSES
+            else:
+                sensitive = parent_node.sensitive if parent_node is not None else False
+            # split is monotonic (S4 11: "the database never lowers it"; S5 8.5): hidden wins over any own
+            # or inherited value, never downgraded by a child naming a different split explicitly.
+            parent_split = parent_node.split if parent_node is not None else "none"
+            if HIDDEN in (own_split, parent_split):
+                split = HIDDEN
+            elif own_split in SPLITS:
+                split = own_split
+            else:
+                split = parent_split
             node = _Node(
                 parent=parent_id,
-                sensitive=attrs.get(DATA_CLASS_ATTR) in SENSITIVE_CLASSES,
-                split=own_split if own_split in SPLITS else (parent_node.split if parent_node is not None else "none"),
+                sensitive=sensitive,
+                split=split,
                 trial_id=_str_attr(attrs, TRIAL_ID_ATTR) or (parent_node.trial_id if parent_node is not None else None),
                 tournament_id=_str_attr(attrs, TOURNAMENT_ID_ATTR)
                 or (parent_node.tournament_id if parent_node is not None else None),
@@ -259,6 +277,87 @@ def _otlp_value(value: AttributeValue) -> AttributeValue:
     return value
 
 
+# S4's ops.trace_mirror.otlp column: "jsonb_typeof(otlp) = 'object' and pg_column_size(otlp) <= 32768"
+# (migration 20261008000600_ops_budget_traces.sql). The Redactor already bounds one attribute value's own
+# length, but a span with many attributes, or several sanitized events, can still sum past the row's cap;
+# this budget is the backstop, with headroom under 32768 for jsonb's own on-disk framing.
+MIRROR_OTLP_BUDGET = 30_000
+
+
+def _payload_bytes(payload: Mapping[str, object]) -> int:
+    return len(json.dumps(payload, default=str, ensure_ascii=False).encode())
+
+
+def _value_bytes(value: object) -> int:
+    return len(json.dumps(value, default=str, ensure_ascii=False).encode())
+
+
+def _mirror_events(span: ReadableSpan) -> list[dict[str, object]]:
+    return [
+        {
+            "name": ev.name,
+            "attributes": {k: _otlp_value(v) for k, v in (ev.attributes or {}).items()},
+            "timestamp": ev.timestamp,
+        }
+        for ev in span.events
+    ]
+
+
+def _mirror_links(span: ReadableSpan) -> list[dict[str, object]]:
+    links: list[dict[str, object]] = []
+    for link in span.links:
+        ctx = link.context  # never None: Link's own constructor requires a SpanContext
+        links.append(
+            {
+                "trace_id": f"{ctx.trace_id:032x}",
+                "span_id": f"{ctx.span_id:016x}",
+                "attributes": {k: _otlp_value(v) for k, v in (link.attributes or {}).items()},
+            }
+        )
+    return links
+
+
+def _bounded_otlp(
+    attrs: dict[str, AttributeValue],
+    *,
+    status_description: str | None,
+    events: list[dict[str, object]],
+    links: list[dict[str, object]],
+) -> dict[str, object]:
+    """Builds the mirror row's ``otlp`` payload, cut down to ``MIRROR_OTLP_BUDGET`` bytes if it does not
+    already fit. Cut order, least valuable first: links, then events, then the largest attribute values
+    (halved repeatedly, then dropped outright) -- attributes carry the identifiers and metrics S5 8.2 needs
+    the mirror for at all, so they are the last thing cut. A span this large is already a rare, pathological
+    case (ordinary attribute values are far smaller); losing its events or links here is the fail-closed
+    trade against the alternative, a whole mirror batch rejected by the DB's hard byte check."""
+    otlp_attrs: dict[str, object] = {k: _otlp_value(v) for k, v in attrs.items()}
+    payload: dict[str, object] = {"attributes": otlp_attrs}
+    if status_description:
+        payload["status_description"] = status_description
+    if events:
+        payload["events"] = events
+    if links:
+        payload["links"] = links
+    if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
+        return payload
+    if "links" in payload:
+        del payload["links"]
+        if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
+            return payload
+    if "events" in payload:
+        del payload["events"]
+        if _payload_bytes(payload) <= MIRROR_OTLP_BUDGET:
+            return payload
+    while otlp_attrs and _payload_bytes(payload) > MIRROR_OTLP_BUDGET:
+        key = max(otlp_attrs, key=lambda k: _value_bytes(otlp_attrs[k]))
+        value = otlp_attrs[key]
+        if isinstance(value, str) and len(value) > 1:
+            otlp_attrs[key] = value[: len(value) // 2]
+        else:
+            del otlp_attrs[key]
+    return payload
+
+
 MIRROR_WRITE_S = 5.0  # a flush at a request or stage boundary never blocks longer than this (S5 8.4)
 
 
@@ -307,7 +406,12 @@ class SpanMirror(SpanProcessor):
             status=span.status.status_code.name,
             started_at=_ts(span.start_time),
             ended_at=_ts(span.end_time),
-            otlp={"attributes": {k: _otlp_value(v) for k, v in attrs.items()}},
+            otlp=_bounded_otlp(
+                attrs,
+                status_description=span.status.description,
+                events=_mirror_events(span),
+                links=_mirror_links(span),
+            ),
         )
         with self._lock:
             self._rows.append(row)

@@ -154,7 +154,11 @@ def install(
     module allowed to import `google.genai` (S5 1.2 item 2 rule c) and calls `install()` before doing so.
     """
     boot_env = os.environ if env is None else env
-    if not settings.endpoint and exporter is None:
+    # Mirror-only mode (the tournament job on a hidden, unrevealed tournament, S5 8.5) never calls the inner
+    # exporter at all (``ExportGate.export`` short-circuits on ``mirror_only`` before touching it), so it
+    # needs no endpoint configured: requiring one here would leave tracing -- and so the mirror write itself
+    # -- fully off for exactly the run that most needs its spans durable before Phoenix is ever reachable.
+    if not settings.mirror_only and not settings.endpoint and exporter is None:
         return None
     with _Registry.lock:
         if _Registry.active is not None:

@@ -249,7 +249,6 @@ KEY_WORDS = frozenset(
         "work_item",
     ]
 )
-_METRIC_KEYS = frozenset({"arena.attempt", COST_USD_ATTR, LATENCY_MS_ATTR, KPI4_SERVER_MS_ATTR})
 _METRIC_PREFIXES = ("arena.observed.",)
 
 
@@ -424,7 +423,6 @@ METADATA: Mapping[str, Validator] = {
     KPI4_SERVER_MS_ATTR: _number,
     OUTCOME_ATTR: _enum(OUTCOMES),
     "exception.type": _exception_type,
-    **dict.fromkeys(_METRIC_KEYS, _number),
 }
 
 
@@ -562,8 +560,14 @@ class Sanitizer:
         return self._public(value)
 
     def _inert(self, value: AttributeValue) -> bool:
-        """A validated value is kept only if redaction would not change it (shape is not safety)."""
-        return not isinstance(value, str) or self.text(value) == value
+        """A validated value is kept only if CREDENTIAL redaction (T16) would not change it (shape is not
+        safety): checked against ``self._redaction`` directly, not the full ``self.text()`` pipeline. A
+        METADATA-constrained value (a UUID, an enum member, a bounded int, a decimal string) is a structured
+        system value, never free text, so the broader PII pass (``pii.redact_text``'s email/phone/card
+        patterns, run by ``self.text()`` for actual free text) does not apply to it: a plain decimal cost
+        like "12.345000" would otherwise false-positive-match the phone pattern and be hashed away, breaking
+        S5 8.2's "Phoenix shows arena.cost_usd as a plain attribute"."""
+        return not isinstance(value, str) or self._redaction.text(value) == value
 
     def _public(self, value: AttributeValue) -> AttributeValue:
         if isinstance(value, str):

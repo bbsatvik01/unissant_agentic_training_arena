@@ -526,11 +526,23 @@ def _credential_values(text: str) -> list[str] | None:
     """Every scalar under a credential-named key in ``text`` parsed, nested serializations included. None (withhold
     the whole text) when the text or any string inside it looks structured but cannot be parsed safely (see
     ``_parse``), when it is still serialized at ``MAX_STRUCTURED_DEPTH``, or when there are more than
-    ``MAX_CREDENTIAL_VALUES`` values. Text with no bracket or quote at all is left to the lexical rules."""
+    ``MAX_CREDENTIAL_VALUES`` values. Text with no bracket or quote at all is left to the lexical rules.
+
+    The WHOLE text is read with ``_parse`` (not ``_strict``): ordinary prose that merely contains a stray
+    quote or bracket somewhere (an apostrophe in "Ask about John's timeline.", a literal bracket in running
+    text) does not even attempt to open a literal (``_parse`` returns ``_UNPARSED``) and is left alone here,
+    never escalated to a blanket redaction -- the lexical passes that follow this one in ``Redaction.text()``
+    (``_mask_credential_fields``, ``_mask_named_fields``, the prefix scan) still catch an actual credential
+    named field anywhere in such text. ``_strict``'s stricter "prose around it is unparseable too" rule still
+    applies to a NESTED string found inside an already-confirmed structure (immediately below): a string
+    value one level down that itself looks structured but will not parse cleanly is genuinely ambiguous."""
     if not _looks_structured(text):
         return []
+    top = _parse(text)
+    if top is _UNPARSED:
+        return []
     found: list[str] = []
-    stack: list[tuple[object, int]] = [(_strict(text), 0)]
+    stack: list[tuple[object, int]] = [(top, 0)]
     while stack:
         item, depth = stack.pop()
         if isinstance(item, _Unparseable) or len(found) > MAX_CREDENTIAL_VALUES:

@@ -325,3 +325,35 @@ def test_public_structural_attribute_with_a_numeric_sequence_passes_through() ->
     _sanitizer().span(span, sensitive=False, tainted=False)
     assert span.attributes is not None
     assert span.attributes["input_tokens"] == [1, 2, 3]
+
+
+def test_cost_usd_decimal_string_stays_in_clear_as_the_plain_attribute_8_2_requires() -> None:
+    """Regression (Codex self-gate round 1): a stray ``**dict.fromkeys(_METRIC_KEYS, _number)`` merge once
+    silently overwrote arena.cost_usd's decimal-string validator with the bounds-free numeric one, hashing
+    every valid cost value away (S5 8.2: "Phoenix shows arena.cost_usd as a plain attribute")."""
+    span = _span(attributes={ep.COST_USD_ATTR: "12.345000"})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    assert span.attributes is not None
+    assert span.attributes[ep.COST_USD_ATTR] == "12.345000"
+
+
+def test_arena_attempt_out_of_bounds_is_hashed_not_passed_through() -> None:
+    """Regression: arena.attempt must stay bounded to 0-100 (S5 8.2), not accepted as any plain number."""
+    out_of_range = 10_000
+    span = _span(attributes={"arena.attempt": out_of_range})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    value = attrs["arena.attempt"]
+    assert isinstance(value, str)
+    assert value.startswith("sha256:")
+
+
+def test_coach_free_text_with_an_apostrophe_still_exports_in_clear() -> None:
+    """Regression (Codex self-gate round 1, major): ordinary coach text containing an apostrophe or bracket
+    must not be blanket-redacted (S5 8.3: "coach payloads ... export in clear for development and revealed
+    work")."""
+    span = _span(attributes={"output": "Ask about John's timeline, then check the [pending] items."})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    out = attrs["output"]
+    assert out == "Ask about John's timeline, then check the [pending] items."

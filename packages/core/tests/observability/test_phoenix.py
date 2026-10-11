@@ -6,7 +6,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping, Sequence
 
-import httpx
+import httpx  # nosemgrep: arena-no-raw-http
 import pytest
 
 from arena_core.observability.phoenix import (

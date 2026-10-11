@@ -19,6 +19,7 @@ from psycopg.types.json import Jsonb
 from arena_core.db.calls import SqlConnection
 from arena_core.observability import processors as proc
 from arena_core.observability import pump, spans, tracing
+from arena_core.observability.export_policy import AttributeValue
 from arena_core.observability.phoenix import PhoenixReadError
 
 from .conftest import InstallTracing
@@ -85,6 +86,32 @@ def test_role_label_never_appears_on_any_span_across_a_full_fake_trial(install_t
         assert label not in mirrored_text
 
 
+# ============================================================================================ bullet 1 (cont.)
+def test_llm_call_nested_under_agent_subject_inherits_subject_private(install_tracing: InstallTracing) -> None:
+    """Regression (Codex self-gate round 1, blocker): "Both llm_call('subject') and an automatically created
+    LLM span beneath agent_subject export and mirror input.value containing private canaries and role
+    labels verbatim." llm.<call_type>'s data class is "inherits" (S5 8.1); with no data_class of its own it
+    must take agent_subject's, hashing the subject's private payload."""
+    installed, exporter, sink = install_tracing()
+    canary = "CANARY-f04r02f08"
+    with spans.agent_subject(spans.extract_context({}), trial_id=TRIAL_ID), spans.llm_call("subject", attempt=1):
+        trace.get_current_span().set_attribute("input.value", f"the subject's canary is {canary}")
+    installed.flush()
+
+    exported_text = str([(s.name, dict(s.attributes or {})) for s in exporter.get_finished_spans()])
+    mirrored_text = str([(r.name, r.otlp) for r in sink.rows])
+    assert canary not in exported_text
+    assert canary not in mirrored_text
+    llm_span = next(
+        s for s in exporter.get_finished_spans() if dict(s.attributes or {}).get("arena.call_type") == "subject"
+    )
+    llm_attrs: dict[str, AttributeValue] = dict(llm_span.attributes or {})
+    assert llm_attrs.get("arena.data_class") != "public"
+    input_value = llm_attrs.get("input.value")
+    assert isinstance(input_value, str)
+    assert input_value.startswith("sha256:")  # the key stays visible; the free-text value is hashed
+
+
 # ============================================================================================ bullet 5
 def test_one_turn_span_per_turn_even_with_a_repair_and_a_retry(install_tracing: InstallTracing) -> None:
     """ "One arena.turn span per turn even when the card needed a repair and a transient retry (nesting
@@ -138,6 +165,9 @@ class _FakeCursor:
                 (r.trace_id, r.span_id, None, r.service, None, r.name, r.kind, "OK", now, now, r.otlp, r.export_state)
                 for r in rows
             ]
+        elif "ops.trace_mirror where export_state" in query:
+            rows = [r for r in self.conn.rows if r.export_state == "exported"]
+            self.last = [(r.trace_id, r.span_id) for r in rows]
         elif "ops.set_export_state" in query:
             payload, state = params[0], cast(str, params[1])
             assert isinstance(payload, Jsonb)
@@ -148,6 +178,8 @@ class _FakeCursor:
                         row.export_state = state
                         moved += 1
             self.last = [(moved,)]
+        else:
+            raise AssertionError(query)
         return self
 
     def fetchone(self) -> tuple[object, ...] | None:
@@ -165,6 +197,9 @@ class _FakeMirror:
         return _FakeCursor(self)
 
     def commit(self) -> None:
+        pass
+
+    def rollback(self) -> None:
         pass
 
 
@@ -273,3 +308,18 @@ def test_hidden_block_scoring_trace_held_through_exporter_and_pump_until_reveal(
     assert len(pump_exporter.exported) == len(sink.rows)
     assert isinstance(conn, _FakeMirror)
     assert all(row.export_state == "verified" for row in conn.rows)
+
+
+def test_a_child_cannot_downgrade_out_of_a_hidden_request(install_tracing: InstallTracing) -> None:
+    """Regression (Codex self-gate round 1, blocker): "Hidden gating is per-span and permits downgrades. A
+    child explicitly marked dev beneath a hidden request reaches the direct exporter." S4 11: the database
+    never lowers a span's classification; no span of a hidden trace may reach the direct exporter."""
+    installed, exporter, sink = install_tracing()
+    with (
+        spans.request(tournament_id=TOURNAMENT_ID, split="hidden"),
+        spans.referee_task("subject", split="dev"),  # an explicit, less-restrictive split
+    ):
+        pass
+    installed.flush()
+    assert exporter.get_finished_spans() == ()
+    assert all(row.split == "hidden" for row in sink.rows)

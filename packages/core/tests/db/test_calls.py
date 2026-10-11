@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import cast
 
+import pytest
 from psycopg.types.json import Jsonb
 
 from arena_core.db import calls
@@ -15,12 +17,16 @@ SPAN_ID = "1" * 16
 
 
 class _FakeCursor:
-    def __init__(self, results: list[tuple[object, ...] | None]) -> None:
+    def __init__(self, results: list[tuple[object, ...] | None], *, fail_on: str | None = None) -> None:
         self._results = results
         self.executed: list[tuple[str, Sequence[object]]] = []
+        self._fail_on = fail_on
 
     def execute(self, query: str, params: Sequence[object] = ()) -> _FakeCursor:
         self.executed.append((query, params))
+        if self._fail_on is not None and self._fail_on in query:
+            msg = "simulated write failure"
+            raise RuntimeError(msg)
         return self
 
     def fetchone(self) -> tuple[object, ...] | None:
@@ -32,15 +38,19 @@ class _FakeCursor:
 
 
 class _FakeConnection:
-    def __init__(self, results: list[tuple[object, ...] | None] | None = None) -> None:
-        self._cursor = _FakeCursor(results or [])
+    def __init__(self, results: list[tuple[object, ...] | None] | None = None, *, fail_on: str | None = None) -> None:
+        self._cursor = _FakeCursor(results or [], fail_on=fail_on)
         self.committed = 0
+        self.rolled_back = 0
 
     def cursor(self) -> _FakeCursor:
         return self._cursor
 
     def commit(self) -> None:
         self.committed += 1
+
+    def rollback(self) -> None:
+        self.rolled_back += 1
 
 
 def _row() -> SpanRow:
@@ -75,6 +85,46 @@ def test_mirror_spans_with_no_rows_is_a_no_op() -> None:
     conn = _FakeConnection()
     assert calls.mirror_spans(conn, "arena-api", []) == 0
     assert conn.committed == 0
+
+
+def test_mirror_spans_chunks_a_large_buffer_to_the_500_row_cap() -> None:
+    """``ops.mirror_spans`` itself refuses more than 500 spans in one call; a buffer with 501 rows must be
+    sent as two calls (500 then 1), never one oversized call the function would reject outright."""
+    first_chunk_written, second_chunk_written, expected_calls = 300, 1, 2
+    rows = [_row() for _ in range(calls.MIRROR_BATCH_LIMIT + 1)]
+    conn = _FakeConnection([(first_chunk_written,), (second_chunk_written,)])
+    written = calls.mirror_spans(conn, "arena-api", rows)
+    assert written == first_chunk_written + second_chunk_written
+    assert len(conn.cursor().executed) == expected_calls
+    first_payload = cast(Jsonb, conn.cursor().executed[0][1][1])
+    second_payload = cast(Jsonb, conn.cursor().executed[1][1][1])
+    assert len(first_payload.obj) == calls.MIRROR_BATCH_LIMIT
+    assert len(second_payload.obj) == 1
+    assert conn.committed == expected_calls
+
+
+def test_run_rolls_back_and_reraises_on_a_failed_write() -> None:
+    """A failed statement leaves PostgreSQL's connection in an aborted-transaction state until rolled back;
+    a long-lived connection (``PostgresMirrorSink`` holds one across many flushes) that is never rolled back
+    after one failure would then refuse every later statement too."""
+    conn = _FakeConnection(fail_on="ops.mirror_spans")
+    with pytest.raises(RuntimeError):
+        calls.mirror_spans(conn, "arena-api", [_row()])
+    assert conn.rolled_back == 1
+    assert conn.committed == 0
+
+
+def test_exported_unverified_spans_reads_trace_mirror_directly() -> None:
+    """Not ``ops.v_exportable_spans`` (it never lists ``exported`` rows): a direct select against
+    ``ops.trace_mirror``, which ``arena_referee``'s grant also reaches."""
+    query_limit = 10
+    conn = _FakeConnection([(TRACE_ID, SPAN_ID)])
+    found = calls.exported_unverified_spans(conn, limit=query_limit)
+    assert found == [(TRACE_ID, SPAN_ID)]
+    query, params = conn.cursor().executed[0]
+    assert "ops.trace_mirror" in query
+    assert "export_state = 'exported'" in query
+    assert params[0] == query_limit
 
 
 def test_exportable_spans_maps_rows_into_the_dataclass() -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping, Sequence
+from typing import cast
 
 import pytest
 from opentelemetry import context as otel_context
@@ -11,7 +12,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, Span, TracerProvider
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
-from opentelemetry.trace import SpanContext, TraceFlags
+from opentelemetry.trace import SpanContext, Status, StatusCode, TraceFlags
 
 from arena_core.observability import export_policy as ep
 from arena_core.observability import processors as proc
@@ -67,6 +68,30 @@ def test_lineage_explicit_split_on_a_child_overrides_the_parent() -> None:
     assert lineage.classify(child.get_span_context()).split == "hidden"
     # the parent's own classification is unaffected by its child's explicit split
     assert lineage.classify(root.get_span_context()).split == "dev"
+
+
+def test_lineage_split_is_monotonic_a_child_cannot_downgrade_a_hidden_parent() -> None:
+    """Regression (Codex self-gate round 1, blocker): S4 11 and S5 8.5 -- the database never lowers a
+    span's classification, and no span of a hidden trace is exportable while any span of it is held.
+    A child explicitly naming "dev" beneath a hidden parent must still classify hidden, not escape it."""
+    lineage = proc.Lineage()
+    root = _start("root", attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(root, _no_parent())
+    child = _start("child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "dev"})
+    lineage.started(child, root.get_span_context())
+    assert lineage.classify(child.get_span_context()).split == "hidden"
+
+
+def test_lineage_sensitivity_inherits_downward_to_an_unlabeled_child() -> None:
+    """Regression (Codex self-gate round 1, blocker): S5 8.1 -- llm.<call_type>'s data class is literally
+    "inherits". A span with no data_class of its own (as every llm_call() is) must take its parent's, not
+    default to public -- otherwise a subject's LLM payload under agent_subject() would export in clear."""
+    lineage = proc.Lineage()
+    subject = _start("arena.agent.subject", attributes={ep.DATA_CLASS_ATTR: ep.SUBJECT_PRIVATE})
+    lineage.started(subject, _no_parent())
+    llm = _start("llm.subject", parent=_ctx_of(subject))  # no data_class of its own
+    lineage.started(llm, subject.get_span_context())
+    assert lineage.classify(llm.get_span_context()).sensitive is True
 
 
 def test_lineage_taints_ancestors_when_a_sensitive_child_starts() -> None:
@@ -221,6 +246,133 @@ def test_span_mirror_otlp_keeps_the_sanitized_attributes_only() -> None:
     attrs = sink.rows[0].otlp["attributes"]
     assert isinstance(attrs, dict)
     assert "never leaves in clear" not in str(attrs.get("output", ""))
+
+
+def test_span_mirror_otlp_carries_sanitized_events_links_and_status_description() -> None:
+    """A span's events and links are already sanitized by the Redactor (it mutates them in place, S5 8.3)
+    before the mirror runs; the mirror must still store them, or a trace that is only ever recoverable from
+    the mirror (a killed exporter, or a hidden tournament before reveal) permanently loses its exception
+    diagnostics and link context."""
+    lineage = proc.Lineage()
+    redactor = proc.Redactor(_sanitizer(), lineage)
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.add_event("exception", attributes={"exception.type": "ValueError"})
+    other_ctx = SpanContext(span.context.trace_id, 0xFEED, is_remote=False, trace_flags=TraceFlags(0))
+    span.add_link(other_ctx, attributes={"k": "v"})
+    span.set_status(Status(StatusCode.ERROR, "boom"))
+    span.end()
+    redactor.on_end(span)
+    mirror.on_end(span)
+    mirror.flush()
+    otlp = sink.rows[0].otlp
+    events = cast("list[dict[str, object]]", otlp["events"])
+    links = cast("list[dict[str, object]]", otlp["links"])
+    assert events[0]["name"] == "exception"
+    assert "exception.type" in cast("dict[str, object]", events[0]["attributes"])
+    link_attrs = cast("dict[str, object]", links[0]["attributes"])
+    assert len(link_attrs) == 1  # sanitized (an unregistered key is hashed, S5 8.2)
+    assert isinstance(otlp["status_description"], str)
+
+
+def test_span_mirror_otlp_omits_empty_events_links_and_status_description() -> None:
+    """An ordinary OK span with no events or links stays small: the optional keys are absent, not empty
+    lists/strings, so they cost nothing of the row's 32 KB budget."""
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root")
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    mirror.flush()
+    otlp = sink.rows[0].otlp
+    assert "events" not in otlp
+    assert "links" not in otlp
+    assert "status_description" not in otlp
+
+
+def _attrs_of(payload: dict[str, object]) -> dict[str, object]:
+    return cast("dict[str, object]", payload["attributes"])
+
+
+def test_bounded_otlp_cuts_links_before_dropping_attributes() -> None:
+    attrs: dict[str, ep.AttributeValue] = {"keep": "short"}
+    links: list[dict[str, object]] = [{"trace_id": "a" * 32, "span_id": "b" * 16, "attributes": {"k": "v" * 40_000}}]
+    payload = proc._bounded_otlp(attrs, status_description=None, events=[], links=links)
+    assert "links" not in payload
+    assert _attrs_of(payload) == {"keep": "short"}
+
+
+def test_bounded_otlp_cuts_events_after_links_when_still_over_budget() -> None:
+    attrs: dict[str, ep.AttributeValue] = {"keep": "short"}
+    events: list[dict[str, object]] = [{"name": "big", "attributes": {"blob": "x" * 40_000}, "timestamp": 1}]
+    payload = proc._bounded_otlp(attrs, status_description=None, events=events, links=[])
+    assert "events" not in payload
+    assert _attrs_of(payload) == {"keep": "short"}
+
+
+def test_bounded_otlp_cuts_both_links_and_events_when_dropping_either_alone_is_not_enough() -> None:
+    attrs: dict[str, ep.AttributeValue] = {"keep": "short"}
+    links: list[dict[str, object]] = [{"trace_id": "a" * 32, "span_id": "b" * 16, "attributes": {"k": "v" * 40_000}}]
+    events: list[dict[str, object]] = [{"name": "big", "attributes": {"blob": "x" * 40_000}, "timestamp": 1}]
+    payload = proc._bounded_otlp(attrs, status_description=None, events=events, links=links)
+    assert "links" not in payload
+    assert "events" not in payload
+    assert _attrs_of(payload) == {"keep": "short"}
+
+
+HUGE_ATTR_CHARS = 60_000
+
+
+def test_bounded_otlp_shrinks_a_single_oversized_attribute_value() -> None:
+    attrs: dict[str, ep.AttributeValue] = {"huge": "x" * HUGE_ATTR_CHARS, "small": "kept"}
+    payload = proc._bounded_otlp(attrs, status_description=None, events=[], links=[])
+    assert proc._payload_bytes(payload) <= proc.MIRROR_OTLP_BUDGET
+    out = _attrs_of(payload)
+    assert out["small"] == "kept"
+    assert isinstance(out["huge"], str)
+    assert len(out["huge"]) < HUGE_ATTR_CHARS  # cut down to fit, not dropped
+
+
+def test_bounded_otlp_shrinks_attributes_when_dropping_links_and_events_is_still_not_enough() -> None:
+    """Dropping links, then events, each leaves the payload still over budget here (the oversized attribute
+    alone is the problem): both deletions run, and the final shrink-the-largest-value loop still has to."""
+    attrs: dict[str, ep.AttributeValue] = {"huge": "x" * HUGE_ATTR_CHARS, "small": "kept"}
+    links: list[dict[str, object]] = [{"trace_id": "a" * 32, "span_id": "b" * 16, "attributes": {"k": "v" * 40_000}}]
+    events: list[dict[str, object]] = [{"name": "big", "attributes": {"blob": "x" * 40_000}, "timestamp": 1}]
+    payload = proc._bounded_otlp(attrs, status_description=None, events=events, links=links)
+    assert "links" not in payload
+    assert "events" not in payload
+    assert proc._payload_bytes(payload) <= proc.MIRROR_OTLP_BUDGET
+    out = _attrs_of(payload)
+    assert out["small"] == "kept"
+    assert isinstance(out["huge"], str)
+    assert len(out["huge"]) < HUGE_ATTR_CHARS
+
+
+def test_bounded_otlp_drops_attributes_outright_when_the_budget_cannot_be_met(monkeypatch: pytest.MonkeyPatch) -> None:
+    """However small the budget, the cut loop always terminates: once every value is gone it returns an empty
+    ``attributes`` object rather than looping forever trying to fit the impossible."""
+    monkeypatch.setattr(proc, "MIRROR_OTLP_BUDGET", 1)
+    attrs: dict[str, ep.AttributeValue] = {"a": "bb", "c": "dd"}
+    payload = proc._bounded_otlp(attrs, status_description=None, events=[], links=[])
+    assert payload == {"attributes": {}}
+
+
+def test_bounded_otlp_within_budget_is_returned_unchanged() -> None:
+    attrs: dict[str, ep.AttributeValue] = {"a": "b"}
+    events: list[dict[str, object]] = [{"name": "e"}]
+    links: list[dict[str, object]] = [{"k": "v"}]
+    payload = proc._bounded_otlp(attrs, status_description="d", events=events, links=links)
+    assert payload == {
+        "attributes": {"a": "b"},
+        "status_description": "d",
+        "events": [{"name": "e"}],
+        "links": [{"k": "v"}],
+    }
 
 
 # --------------------------------------------------------------------------------------------- ExportGate
