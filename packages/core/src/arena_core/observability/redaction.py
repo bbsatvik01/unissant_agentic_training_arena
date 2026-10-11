@@ -476,12 +476,31 @@ def _unique_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return dict(pairs)
 
 
+#  pii.py's own redaction markers (C1 ``redact_text``) are exactly these four, fixed strings. Ordinary coach
+# prose that happens to START with a redacted email/phone/card/token (common: a transcript line opening
+# with a contact's email) STILL starts with a bracket after that substitution, which would otherwise make
+# the "does this look structured" gate below mistake it for an attempt at array syntax -- escalating public
+# text that must export in clear (S5 8.3) into a blanket "[redacted]" of the whole surrounding text the
+# moment the attempted parse fails (Codex self-gate round 4, major; reproduced through the real processor
+# chain, both as a bare string and nested one level inside a JSON object).
+_PII_MARKERS = ("[email]", "[phone]", "[card]", "[token]")
+
+
+def _past_pii_marker(text: str) -> str:
+    for marker in _PII_MARKERS:
+        if text.startswith(marker):
+            return text[len(marker) :]
+    return text
+
+
 def _parse(text: str) -> object:
     """The value ``text`` serializes, JSON first and then a Python literal. ``_UNPARSED`` when it does not look
-    structured (it starts with no bracket or quote); an ``_Unparseable`` when it looks structured but no parser
-    accepts it whole, it repeats a key, it is too long, or parsing ran out of depth or memory."""
+    structured (it starts with no bracket or quote, SKIPPING a leading PII marker first -- see
+    ``_past_pii_marker``); an ``_Unparseable`` when it looks structured but no parser accepts it whole, it
+    repeats a key, it is too long, or parsing ran out of depth or memory."""
     stripped = text.strip()
-    if not stripped or stripped[0] not in "{[\"'":
+    gate = _past_pii_marker(stripped)
+    if not gate or gate[0] not in "{[\"'":
         return _UNPARSED
     if len(stripped) > MAX_STRUCTURED_LENGTH:
         return _Unparseable("too long to parse")

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from arena_core.observability.redaction import (
+    _UNPARSED,
     MAX_CREDENTIAL_VALUES,
     MAX_NAME_LENGTH,
     MAX_STRUCTURED_DEPTH,
@@ -24,6 +25,7 @@ from arena_core.observability.redaction import (
     _parse,
     _parse_json,
     _parse_literal,
+    _past_pii_marker,
     _prefix_at_end,
     _quote_kind,
     _repr_forms,
@@ -413,3 +415,40 @@ def test_credential_values_still_finds_a_stringified_nested_credential() -> None
     into a single field) is still parsed through to its leaves."""
     text = '{"headers":"{\\"Authorization\\": \\"Bearer sk-ant-' + "z" * 24 + '\\"}"}'
     assert _credential_values(text) == ["Bearer sk-ant-" + "z" * 24]
+
+
+def test_past_pii_marker_strips_a_known_marker_prefix() -> None:
+    assert _past_pii_marker("[email] said hello") == " said hello"
+    assert _past_pii_marker("[phone] called") == " called"
+    assert _past_pii_marker("[card] ending") == " ending"
+    assert _past_pii_marker("[token] used") == " used"
+    assert _past_pii_marker("ordinary text") == "ordinary text"
+    assert _past_pii_marker("[section 2] for details") == "[section 2] for details"
+
+
+def test_parse_treats_text_starting_with_a_pii_marker_as_unstructured() -> None:
+    """Regression (Codex self-gate round 4, major): pii.py's own "[email]"/"[phone]"/"[card]"/"[token]"
+    markers are bracket-shaped, so ordinary coach prose that happens to start with a redacted contact
+    detail ("investigator@x.com said..." -> "[email] said...") used to make ``_parse`` THINK it was looking
+    at the start of a literal array, attempt a parse, fail, and (via ``_credential_values``) blanket-redact
+    the whole surrounding text. S5 8.3: public coach text exports in clear."""
+    assert _parse("[email] said hello and gave a statement.") is _UNPARSED
+    assert _parse("[phone] called about the case.") is _UNPARSED
+
+
+def test_mask_structured_leaves_text_starting_with_a_pii_marker_alone() -> None:
+    text = "[email] said hello and gave a long statement about the case."
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_leaves_a_pii_marker_at_the_start_of_a_nested_string_alone() -> None:
+    text = '{"text":"[email] supplied the timeline.","advice":"Ask about the radio log."}'
+    assert _mask_structured(text) == text
+
+
+def test_mask_structured_still_fails_closed_on_a_malformed_literal_after_a_pii_marker() -> None:
+    """The fix only widens what counts as "not even attempting a literal" when the PII-marker-stripped
+    remainder itself does not look structured either; it must not blind the parser to a genuinely
+    suspicious shape that merely happens to follow a marker."""
+    text = "[email]{not: valid, at: all"
+    assert _mask_structured(text) == REDACTED

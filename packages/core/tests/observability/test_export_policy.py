@@ -10,7 +10,7 @@ from opentelemetry.sdk.util.instrumentation import InstrumentationScope
 from opentelemetry.trace import Link, SpanContext, Status, StatusCode, TraceFlags, TraceState
 
 from arena_core.observability import export_policy as ep
-from arena_core.observability.redaction import Redaction
+from arena_core.observability.redaction import Redaction, hash_payload
 
 RESOURCE = Resource({"service.name": "arena-api"})
 
@@ -381,6 +381,43 @@ def test_a_huge_sequence_under_an_unregistered_key_is_still_cut() -> None:
     out = next(iter(attrs.values()))
     assert isinstance(out, list)
     assert len(out) == ep.MAX_SEQUENCE_ELEMENTS
+
+
+def test_a_mapping_valued_attribute_never_passes_through_unredacted() -> None:
+    """Regression (Codex self-gate round 4, blocker): the OTel SDK does not reject a raw ``dict`` passed to
+    ``set_attribute`` (verified against the real SDK), and a Mapping is not a ``Sequence`` -- so
+    ``_public()``'s own fallback ("return value") would otherwise hand it back exactly as given. Reproduced
+    through the real processor chain: a secret inside a dict-valued, public, structural-keyed attribute
+    must never survive verbatim."""
+    span = _span(attributes={"output": {"api_key": "SECRET-VALUE"}})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    assert "SECRET-VALUE" not in str(attrs["output"])
+
+
+def test_a_mixed_sequence_with_none_never_passes_through_unredacted() -> None:
+    """Regression (Codex self-gate round 4, blocker): a sequence holding anything but a plain scalar (here,
+    ``None`` alongside a secret string) is not "a Sequence of ALL str", so it missed ``_public()``'s own
+    string-sequence branch and fell to its final "return value" fallback, unredacted."""
+    span = _span(attributes={"output": ["SECRET-VALUE", None]})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    assert "SECRET-VALUE" not in str(attrs["output"])
+
+
+def test_a_bytes_valued_attribute_is_hashed_whole_not_reconstructable() -> None:
+    """Regression (Codex self-gate round 4, blocker): ``bytes`` IS a ``Sequence`` of per-byte ints, so
+    ``hashed()`` used to mask it one byte at a time -- each of only 256 possible values, so a precomputed
+    256-entry lookup table of ``hash_payload(repr(i))`` reconstructed the original bytes verbatim from the
+    "redacted" output. Must now be hashed as one opaque blob."""
+    span = _span(attributes={"input.value": b"sealed-canary-value"})
+    _sanitizer().span(span, sensitive=True, tainted=True)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    hashed_value = attrs["input.value"]
+    assert isinstance(hashed_value, str)
+    assert hashed_value.startswith("sha256:")
+    lookup = {hash_payload(repr(i)): i for i in range(256)}
+    assert hashed_value not in lookup
 
 
 def test_cost_usd_decimal_string_stays_in_clear_as_the_plain_attribute_8_2_requires() -> None:

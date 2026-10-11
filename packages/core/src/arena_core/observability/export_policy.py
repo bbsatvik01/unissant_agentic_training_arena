@@ -444,6 +444,28 @@ def _bounded_sequence(value: AttributeValue) -> AttributeValue:
     return value
 
 
+def _is_safe_scalar(value: object) -> bool:
+    return isinstance(value, str | bool | int | float)
+
+
+def _shape_safe(value: object) -> bool:
+    """Whether ``value`` is one of the only shapes ``_public()``/``hashed()`` below actually handle: a plain
+    scalar, or a Sequence of plain scalars. The OTel SDK's ``set_attribute`` does not reject anything else
+    at call time (verified: it silently accepts ``bytes`` and even a raw ``dict``) -- and every other shape
+    leaks or becomes trivially reversible if it reaches either function (Codex self-gate round 4, blocker,
+    reproduced through the real processor chain): a ``Mapping`` or a sequence holding anything but a plain
+    scalar (``None``, a nested dict, ...) falls through ``_public()``'s own fallback UNREDACTED (it is not a
+    ``str`` and not "a Sequence of ALL str", so its last line, "return value", hands it back exactly as
+    given); ``bytes``/``bytearray`` IS a ``Sequence`` of per-byte ints, so ``hashed()`` would mask it one
+    byte at a time, each one of only 256 possible values -- a 256-entry lookup table of
+    ``hash_payload(repr(i))`` reconstructs the original bytes verbatim from the "redacted" output."""
+    if _is_safe_scalar(value):
+        return True
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
+        return all(_is_safe_scalar(v) for v in value)
+    return False
+
+
 def hashed(value: AttributeValue) -> AttributeValue:
     if isinstance(value, str):
         return hash_payload(value)
@@ -579,9 +601,15 @@ class Sanitizer:
         return "arena.hashed_key." + hash_payload(key)[7:23]
 
     def _value(self, key: str, value: AttributeValue, *, sensitive: bool, tainted: bool, count: bool) -> AttributeValue:
-        value = _bounded_sequence(value)
         if is_credential_name(key):
             return REDACTED  # a credential-named field is masked whatever its value looks like
+        if not _shape_safe(value):
+            # bytes/bytearray, a Mapping, or a sequence holding anything but a plain scalar: hash the WHOLE
+            # value as one opaque blob. Never _public()'s passthrough (a Mapping or mixed sequence is not a
+            # "str" or "a Sequence of ALL str", so it would reach that fallback untouched) and never
+            # hashed()'s per-element split (reversible for bytes, see _shape_safe).
+            return hash_payload(repr(value))
+        value = _bounded_sequence(value)
         numeric = isinstance(value, int | float) and not isinstance(value, bool)
         if count or key.startswith(_METRIC_PREFIXES):
             return value if numeric else hashed(value)  # counts and metrics are numbers only
