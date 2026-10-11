@@ -14,6 +14,7 @@ import pytest
 from arena_core.contracts.adapter import adapt_subject_report, contradiction_triggers
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import SubcheckVerdict
+from arena_core.safety import demeanor
 from arena_core.scoring import rubric
 from arena_core.scoring.exact import RubricError, dimension_score
 from arena_core.scoring.rubric import (
@@ -632,6 +633,18 @@ def test_ac_s3_2_6_changing_the_lexicon_a_prompt_or_a_model_needs_a_new_lineage_
     monkeypatch.setattr(rubric, "CONFIG", changed)
     with pytest.raises(LineageError):
         lineage_checked_sha256()
+
+
+def test_the_configured_lexicon_is_the_demeanor_lexicon_and_changing_it_changes_the_hash() -> None:
+    """S3 2.11: the rubric hash binds `demeanor_lexicon.v1` itself (WP-11), so editing the lexicon changes the hash
+    and, without a new lineage entry, fails the tripwire."""
+    assert rubric.CONFIG.lexicon_text == demeanor.lexicon_text()
+    assert rubric.CONFIG.lexicon_text.splitlines() == [demeanor.DEMEANOR_LEXICON_VERSION, *demeanor.DEMEANOR_LEXICON]
+    c = rubric.CONFIG
+    edited = demeanor.lexicon_text(demeanor.DEMEANOR_LEXICON[:-1])
+    assert rubric_sha256(edited, c.prompt_texts, c.model_ids) != rubric_sha256(
+        c.lexicon_text, c.prompt_texts, c.model_ids
+    )
 
 
 def test_the_rubric_hash_binds_the_lexicon_prompts_and_models() -> None:

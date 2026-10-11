@@ -10,7 +10,8 @@
  * - deep update (`coaching.StoredDeepUpdate`): citations, basis flags, coverage turns, gaps and the revised
  *   turn are at or before `as_of_turn`; each record is covered at most once.
  * - snapshot (`snapshot`): `exchanges_used` within the cap; turns or exchanges numbered 1..n; the count is
- *   the answered turns (text) or the stored exchanges (voice).
+ *   the answered turns (text) or the stored exchanges (voice); the question, release and card seqs are distinct
+ *   and at or before `last_seq`.
  * - table (`events.TableContent`): every row has one cell per column.
  * - review submissions (`review.RubricSubmission`, `FlagSubmission`, `LabelSubmission`): each question,
  *   citation, sub-check, flag and turn judged once; turns in order.
@@ -92,6 +93,15 @@ function snapshotErrors(snapshot: Json): string[] {
   const used = snapshot["exchanges_used"];
   if (typeof used === "number" && typeof snapshot["exchanges_cap"] === "number" && used > snapshot["exchanges_cap"])
     errors.push("snapshot: exchanges_used exceeds exchanges_cap");
+  const seqs = [
+    ...list(snapshot["turns"]).filter(isObject).map((t) => t["question_seq"]),
+    ...list(snapshot["released"]).filter(isObject).map((r) => r["event_seq"]),
+    ...list(snapshot["cards"]).filter(isObject).map((c) => c["event_seq"]),
+  ];
+  const last = snapshot["last_seq"];
+  if (typeof last === "number" && seqs.some((seq) => typeof seq === "number" && seq > last))
+    errors.push("snapshot: an event seq is after last_seq");
+  if (new Set(seqs).size !== seqs.length) errors.push("snapshot: one event seq is used twice");
   if (snapshot["channel"] === "voice") {
     const exchanges = list(snapshot["voice_exchanges"]).filter(isObject);
     if (!numbered(exchanges.map((e) => e["exchange_no"]))) errors.push("snapshot: voice_exchanges not numbered 1..n");

@@ -58,3 +58,5 @@
 - 8b3b0df WP-10 merged.
 - HOLD 3: paused for some days; three agents still running; checkpoint saved.
 - 07c756b FX-COOP checker scope cut (over-engineering stopped at round 26).
+- b804273 merge WP-18b follow-up (2 rare-path fixes, coordinator review)
+- 066e044 merge WP-11 guard/relay/lexicons/replay (cold Codex major fixed 3330378); py-check green on main (4 tool tests needed make bootstrap in main tree)

@@ -8,8 +8,11 @@ import tseslint from "typescript-eslint";
 import { restrictions } from "./eslint.restrictions.js";
 
 export default defineConfig([
-  // Build and test output only; every source file is linted.
-  globalIgnores(["dist/**", "coverage/**"]),
+  // Build and test output, and one machine-written file: the wire validators ajv compiles at build time
+  // (src/lib/contracts/compiled/validators.js, S6 1.3: the CSP forbids compiling them in the page). Its generator
+  // (tools/validators-codegen.ts) is linted and typed, a test fails when the file differs from a fresh generation,
+  // and every wire fixture runs through it (validate.test.ts). Every hand-written source file is linted.
+  globalIgnores(["dist/**", "coverage/**", "src/lib/contracts/compiled/validators.js"]),
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
     extends: [js.configs.recommended, tseslint.configs.strictTypeChecked, reactHooks.configs.flat.recommended],

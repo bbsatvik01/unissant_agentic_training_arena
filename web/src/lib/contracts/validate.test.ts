@@ -101,4 +101,19 @@ describe("maxBytes counts wire bytes, as the server does (D-019)", () => {
   it.each(cases)("%j is %i wire bytes", (text, bytes) => {
     expect(wireBytes(text)).toBe(bytes);
   });
+
+  it("the compiled maxBytes keyword accepts a field at its wire cap and refuses one byte more", () => {
+    const { valid } = fixture();
+    const sample = valid.find((c) => c.schema === "training-card" && hasFinding(c.value));
+    if (sample === undefined) throw new Error("no training-card fixture with a finding");
+    const card = structuredClone(sample.value) as { finding: { rationale: string } };
+    card.finding.rationale = "\u20ac".repeat(200); // 1,200 wire bytes: the cap
+    expect(wireErrors("training-card", card)).toEqual([]);
+    card.finding.rationale += "a";
+    expect(wireErrors("training-card", card).map((e) => e.keyword)).toContain("maxBytes");
+  });
 });
+
+function hasFinding(value: unknown): boolean {
+  return typeof value === "object" && value !== null && "finding" in value && value.finding !== null;
+}
