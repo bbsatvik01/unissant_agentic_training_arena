@@ -1,4 +1,4 @@
-"""The database test of the candidate hash (supabase/tests/017_candidate_hash.sql) asserts the values Python
+"""The database test of the candidate hash (supabase/tests/002b_candidate_hash.sql) asserts the values Python
 computes, so the stored `arena.candidates.sha256` is S2 3.2's manifest hash on both sides."""
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from arena_core.agents.manifests import committed_manifest, manifest_sha256
 from arena_core.agents.templates import REPO_ROOT
 from arena_core.ids import canonical_json
 
-SQL = (REPO_ROOT / "supabase" / "tests" / "017_candidate_hash.sql").read_text(encoding="utf-8")
+SQL = (REPO_ROOT / "supabase" / "tests" / "002b_candidate_hash.sql").read_text(encoding="utf-8")
 
 
 def _literals() -> list[str]:

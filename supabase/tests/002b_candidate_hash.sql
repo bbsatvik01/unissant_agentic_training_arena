@@ -1,4 +1,6 @@
--- 017_candidate_hash.sql (S2 3.1, 3.2; WP-10). Rows for migration 1100: the database's candidate hash is S2 3.2's
+-- 022_candidate_hash.sql (S2 3.1, 3.2; WP-10; renumbered from 017_candidate_hash.sql in WP-04 to free the
+-- TESTS.md section-17 name 017_trace_mirror.sql for its own file). Rows for migration 1100: the database's
+-- candidate hash is S2 3.2's
 -- manifest hash, the one arena_core.agents.manifests.manifest_sha256 computes (the literals below are checked against
 -- the Python side by packages/core/tests/agents/test_manifest_sql.py).
 -- CH-01 ledger.canonical_json renders a value exactly as Python's canonical JSON (sorted keys by code point, compact
@@ -7,7 +9,7 @@
 -- returns the same row; CH-04 a manifest whose embedded sha256 is not its own hash is refused with AR007; CH-05 a
 -- manifest holding a fractional number is refused with AR007; CH-06 the migration guard passes while no tournament
 -- has frozen; CH-07 it refuses once one has (the rewrite would break that roster's commitment). CH-08 (two
--- sessions) is 018_candidate_hash_lock.sql, CH-09 is in 016_finding.sql.
+-- sessions) is 023_candidate_hash_lock.sql, CH-09 is in 021_finding_contract.sql.
 begin;
 \ir harness/fixtures.psql
 select plan(8);
@@ -40,6 +42,10 @@ select is(tests.error(format('select arena.register_candidate(%L, %L, %L, %L)', 
           'AR007: canonical JSON holds integers only (S2 3.1: a manifest has no floats)',
   'CH-05 a manifest holding a fractional number is refused');
 
+-- Zero tournaments would pass this vacuously even if the guard wrongly rejected every draft -- create one
+-- genuinely draft (never frozen) tournament first, so "passes while every tournament is a draft" is actually
+-- exercised against a draft row, not against the absence of any row.
+select arena.create_tournament('ch06-draft', 'dev', 1, 'global');
 select is(tests.error('select arena.candidate_hash_migration_guard()'), '00000',
   'CH-06 the migration guard passes while every tournament is a draft');
 select tests.tournament('dev', array['interactive']);
