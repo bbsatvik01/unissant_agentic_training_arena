@@ -115,7 +115,7 @@ function Table() {
         )),
       )}
       <Recorder position={[0.45, y + 0.02, -0.05]} rotation={0.3} />
-      <FolderStack position={[FOLDER_SPOT[0] - 0.36, y + 0.02, FOLDER_SPOT[2] - 0.05]} rotation={0.15} count={3} />
+      <FolderStack position={[FOLDER_SPOT[0], y + 0.02, FOLDER_SPOT[2]]} rotation={0.15} count={3} />
       <Cup position={[0.68, y + 0.02, -0.28]} />
       {/* the investigator's notepad and pen */}
       <Block size={[0.21, 0.008, 0.29]} at={[0.25, y + 0.024, 0.28]} material={paint("white")} rot={[0, -0.12, 0]} />

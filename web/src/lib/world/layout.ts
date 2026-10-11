@@ -33,7 +33,7 @@ export const TABLE = { center: [0, 0.75, 0] as Vec3, width: 1.6, depth: 0.9 } as
 export const SUBJECT_SEAT: Vec3 = [0, 0, -0.78];
 export const INVESTIGATOR_SEAT: Vec3 = [0, 0, 0.85];
 export const PET_SPOT: Vec3 = [0.62, 0.775, 0.3];
-export const FOLDER_SPOT: Vec3 = [-0.32, 0.775, 0.22];
+export const FOLDER_SPOT: Vec3 = [-0.42, 0.808, 0.18];
 /** The point the subject looks at when looking at the investigator (eye height over the empty chair). */
 export const INVESTIGATOR_EYES: Vec3 = [0, 1.22, 0.95];
 /** Coach desks in the observation room (local to `ROOM`), left to right as seen through the mirror. */
@@ -100,7 +100,7 @@ export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   subject_close: { position: inRoom([0.22, 1.3, 0.62]), target: inRoom([0, 1.12, -0.8]), fov: 30 },
   observation: { position: inRoom([0.15, 1.75, -3.55]), target: inRoom([1.75, 1.0, -5.0]), fov: 46 },
   wall: { position: inRoom([-1.6, 1.55, 0.1]), target: inRoom([-1.75, 1.5, -3]), fov: 40 },
-  table: { position: inRoom([0.35, 1.5, 0.78]), target: inRoom([-0.18, 0.78, 0.12]), fov: 38 },
+  table: { position: inRoom([0.3, 1.62, 1.05]), target: inRoom([-0.3, 0.8, 0.1]), fov: 44 },
 };
 
 /** The waypoints of the flight from the hub into the interview room (case open, a signature moment). */

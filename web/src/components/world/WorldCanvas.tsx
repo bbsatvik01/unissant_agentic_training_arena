@@ -89,6 +89,8 @@ function TierMonitor({ tier, place, onTier }: { tier: Tier; place: "hub" | "room
   const intervals = useRef<number[]>([]);
   const last = useRef<number | null>(null);
   const settleUntil = useRef(0);
+  /** Over-budget windows in a row: one slow window (a texture upload, a tab switch) is not enough to step down. */
+  const strikes = useRef(0);
   useFrame(() => {
     const now = performance.now();
     // Ignore the first seconds after a change (shader compiles, texture uploads).
@@ -101,7 +103,9 @@ function TierMonitor({ tier, place, onTier }: { tier: Tier; place: "hub" | "room
     if (intervals.current.length >= WINDOW) {
       const next = nextTier(tier, intervals.current);
       intervals.current = [];
-      if (next !== tier) {
+      strikes.current = next === tier ? 0 : strikes.current + 1;
+      if (strikes.current >= 2) {
+        strikes.current = 0;
         settleUntil.current = now + 2500;
         onTier(next);
       }
@@ -110,8 +114,9 @@ function TierMonitor({ tier, place, onTier }: { tier: Tier; place: "hub" | "room
   // Loading the room's people and compiling their shaders stalls frames for a few seconds after each move between
   // places; those frames say nothing about the steady-state cost, so the window restarts after a settle period.
   useEffect(() => {
-    settleUntil.current = performance.now() + 6000;
+    settleUntil.current = performance.now() + 8000;
     intervals.current = [];
+    strikes.current = 0;
   }, [place]);
   return null;
 }
@@ -135,7 +140,9 @@ function Environment() {
 }
 
 export default function WorldCanvas(props: WorldCanvasProps) {
-  const [tier, setTier] = useState<Tier>(PINNED ?? "high");
+  // Medium is the laptop default (60 fps measured on the demo Mac); `?tier=high` adds ambient occlusion and 2x
+  // pixel ratio on stronger machines.
+  const [tier, setTier] = useState<Tier>(PINNED ?? "medium");
   const settings = TIERS[tier];
   const shot: ShotName = props.place === "hub" ? "hub" : (props.world?.shot ?? "room");
   const persona = subjectPersona(props.subjectName);
