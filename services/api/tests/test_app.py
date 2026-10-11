@@ -8,6 +8,7 @@ import asyncio
 import json
 from collections.abc import Coroutine
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from decimal import Decimal
 from http import HTTPStatus
 from pathlib import Path
@@ -473,3 +474,71 @@ def test_no_board_before_reveal_and_unknown_or_unpublished_is_404() -> None:
     tournament = _published(h)
     bad = h.get(f"/api/leaderboards/{tournament}", params={"board": "investigator"})
     assert bad.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ------------------------------------------------------------------ progress (S5 5.5, S6 4.8, S3 6.1)
+
+
+POST_SCORE = 6
+
+
+def _debrief(total: int | None, *, scored: bool = True) -> dict[str, Any]:
+    return {"scored": scored, "rubric": {"scorable": total is not None, "total": total}}
+
+
+def _test_session(h: Harness, phase: str, total: int | None) -> UUID:
+    session = uuid4()
+    h.db.more_sessions.append(
+        {
+            "session_id": session,
+            "trial_id": uuid4(),
+            "phase": phase,
+            "voice": False,
+            "created_at": datetime(2026, 10, 12, tzinfo=UTC),
+            "mode": "assessment",
+            "status": "finalized",
+            "exchanges": 3,
+            "variant_id": uuid4(),
+        }
+    )
+    if total is not None:
+        h.db.debriefs[session] = _debrief(total)
+    return session
+
+
+def test_progress_lists_the_sessions_and_no_kpi1_until_both_phases_are_scored() -> None:
+    h = Harness()
+    _test_session(h, "pre", 8)
+    body = h.get("/api/progress").json()
+    assert [s["phase"] for s in body["sessions"]] == ["practice", "pre"]
+    assert body["sessions"][0]["case_title"] == PACKET["title"]
+    assert body["sessions"][1]["case_title"] is None
+    assert body["kpi1"] is None
+
+
+def test_progress_kpi1_is_the_per_participant_pair_of_means() -> None:
+    h = Harness()
+    _test_session(h, "pre", 8)
+    _test_session(h, "pre", 10)
+    _test_session(h, "pre", None)  # unpublished or unscorable: left out
+    _test_session(h, "post", 12)
+    _test_session(h, "post", 15)
+    kpi1 = h.get("/api/progress").json()["kpi1"]
+    assert kpi1 == {"pre": 9.0, "post": 13.5, "absolute_change": 4.5, "relative_change": 0.5}
+
+
+def test_progress_relative_change_is_null_at_a_zero_baseline() -> None:
+    h = Harness()
+    _test_session(h, "pre", 0)
+    _test_session(h, "post", POST_SCORE)
+    kpi1 = h.get("/api/progress").json()["kpi1"]
+    assert kpi1["absolute_change"] == POST_SCORE
+    assert kpi1["relative_change"] is None
+
+
+def test_an_unscored_voice_debrief_has_no_score() -> None:
+    h = Harness()
+    pre = _test_session(h, "pre", None)
+    h.db.debriefs[pre] = _debrief(None, scored=False)
+    _test_session(h, "post", 6)
+    assert h.get("/api/progress").json()["kpi1"] is None
