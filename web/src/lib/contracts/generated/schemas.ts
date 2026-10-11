@@ -3511,25 +3511,6 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "CardValidation",
         "type": "object"
       },
-      "CoachCard": {
-        "additionalProperties": false,
-        "properties": {
-          "turn_no": {
-            "maximum": 12,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "card": {
-            "$ref": "#/$defs/TrainingWireCard"
-          }
-        },
-        "required": [
-          "turn_no",
-          "card"
-        ],
-        "title": "CoachCard",
-        "type": "object"
-      },
       "CoachFailed": {
         "additionalProperties": false,
         "properties": {
@@ -3884,6 +3865,30 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
         "title": "RequestableRecord",
         "type": "object"
       },
+      "SnapshotCard": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "card": {
+            "$ref": "#/$defs/TrainingWireCard"
+          },
+          "event_seq": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_no",
+          "card",
+          "event_seq"
+        ],
+        "title": "SnapshotCard",
+        "type": "object"
+      },
       "SnapshotRelease": {
         "additionalProperties": false,
         "properties": {
@@ -3970,6 +3975,10 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "transcript_version": {
             "minimum": 0,
             "type": "integer"
+          },
+          "event_seq": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
@@ -3981,7 +3990,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "content",
           "released_at_turn",
           "trigger",
-          "transcript_version"
+          "transcript_version",
+          "event_seq"
         ],
         "title": "SnapshotRelease",
         "type": "object"
@@ -4045,6 +4055,10 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
                 "type": "null"
               }
             ]
+          },
+          "question_seq": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
@@ -4054,7 +4068,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "answer",
           "partial",
           "committed_at",
-          "answer_version"
+          "answer_version",
+          "question_seq"
         ],
         "title": "SnapshotTurn",
         "type": "object"
@@ -4713,7 +4728,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "cards": {
             "items": {
-              "$ref": "#/$defs/CoachCard"
+              "$ref": "#/$defs/SnapshotCard"
             },
             "maxItems": 12,
             "type": "array"
@@ -5049,7 +5064,7 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           },
           "cards": {
             "items": {
-              "$ref": "#/$defs/CoachCard"
+              "$ref": "#/$defs/SnapshotCard"
             },
             "maxItems": 0,
             "type": "array"
