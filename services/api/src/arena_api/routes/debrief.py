@@ -7,6 +7,7 @@ published.
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from arena_api.state import ApiState, actor_db, api_state
 from arena_core.db.arena import ArenaDb
 
 router = APIRouter()
+log = logging.getLogger("arena_api.debrief")
 
 
 async def _own(db: ArenaDb, session_id: UUID) -> None:
@@ -33,7 +35,8 @@ async def run_debrief(
         published = await state.debrief(session_id)
     except RefereeError as exc:
         status = exc.status if exc.status in (404, 409, 503) else 502  # anything else is the referee's failure
-        raise HTTPException(status_code=status, detail=exc.detail) from exc
+        log.warning("a debrief failed at the referee: HTTP %d", exc.status)
+        raise HTTPException(status_code=status, detail="referee_failed") from exc
     for trial in {s["trial_id"] for s in await db.my_sessions() if s["session_id"] == session_id}:
         state.signals.notify(trial)
     return published

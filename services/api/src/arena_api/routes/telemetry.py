@@ -31,4 +31,5 @@ async def ack_card(body: CardAck, db: Annotated[ArenaDb, Depends(actor_db)]) -> 
 @router.post("/api/telemetry/contract-violation", status_code=204)
 async def contract_violation(request: Request) -> None:
     body = (await request.body())[:MAX_REPORT_BYTES]
-    log.warning("client projection check failed: %r", body.decode("utf-8", errors="replace"))
+    # The report itself is client text: only its size is logged (no log injection, no unbounded line).
+    log.warning("client projection check failed (%d-byte report)", len(body))

@@ -40,7 +40,7 @@ async def start_session(
         started = await db.start_session(start)
     except ArenaError as exc:
         if "quota" in exc.message:
-            return JSONResponse({"code": "quota", "detail": exc.message}, status_code=429)
+            return JSONResponse({"code": "quota"}, status_code=429)
         return error_response(exc)
     return {
         "session_id": started["session_id"],

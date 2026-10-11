@@ -40,7 +40,7 @@ async def stream_ticket(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)
         return {"ticket": await db.issue_ticket("sse", trial_id), "expires_in_s": 60}
     except ArenaError as exc:
         if exc.code == "AR040":  # the owner's ended trial whose debrief is published (SG4-21)
-            log.info("stream ticket for %s refused: %s", trial_id, exc.message)
+            log.info("stream ticket refused: %s", exc.code)
             return JSONResponse({"code": "stream_closed"}, status_code=409)
         raise
 

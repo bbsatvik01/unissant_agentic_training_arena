@@ -62,5 +62,6 @@ def actor_db(request: Request) -> ArenaDb:
 
 
 def error_response(exc: TurnRefusedError | ArenaError) -> JSONResponse:
+    """The refusal's status and stable code only: database and exception text never reach the browser."""
     refused = refusal(exc) if isinstance(exc, ArenaError) else exc
-    return JSONResponse({"code": refused.code, "detail": str(refused)}, status_code=refused.status)
+    return JSONResponse({"code": refused.code}, status_code=refused.status)
