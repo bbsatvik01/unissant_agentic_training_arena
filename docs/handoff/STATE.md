@@ -13,7 +13,8 @@
 | WP-12 subject | MERGED | pilot via WP-13 (D-024) |
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
 | WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
-| WP-13 orchestrator (ad05fb8f3c14649dc) | done 60439ea (Codex CORRECT r5-r6); BLOCKER before merge: dev.sh dev-db overwrites/deletes the root .env.local.* Supabase role files -> agent moving local-DB env to .run/localdb + ENV_DIR | merge |
+| WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
+| WP-17 tournament (a0989bb31b07d2da1, Sonnet, wt-wp17-tourney) | building + demo-tournament CLI | review, merge |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |

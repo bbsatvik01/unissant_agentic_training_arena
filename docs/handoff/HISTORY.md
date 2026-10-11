@@ -67,3 +67,4 @@
 - 8c49fed merge WP-04 pgTAP suite (23 files green both paths; no migration bug)
 - 2026-10-11 Supabase: migrations 0600-1100 and 20261011000100 applied to fzjgcwkvveetegpngujr (owner DSN, one transaction each, stored byte-exact); global budget ceiling 74.00 applied (D-022)
 - 38792cd merge UI stage 1 3D world (7 self Codex rounds; web-check green)
+- bcacc28 merge WP-13 orchestrator/API/SSE/recordings/launcher
