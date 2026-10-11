@@ -212,15 +212,20 @@ licenses:
 	uv run --project tools/envs/semgrep --locked python tools/check_licenses.py python
 
 # ------------------------------------------------------------------ local fake-model stack (WP-13; S5 10, D-016, D-021)
-# scripts/dev.sh db-up once (a disposable local database), then make dev; make export-run TRIAL=<id> writes
-# recordings/<id>.json.
-.PHONY: dev dev-db dev-db-down export-run
+# make dev runs against the role files in ENV_DIR (default: the repository root, the owner's Supabase project);
+# make dev-db creates a disposable local database whose files live in .run/localdb, and make dev-local runs
+# against it. make export-run TRIAL=<id> writes recordings/<id>.json. dev-db and dev-db-down never write or
+# delete the root .env.local* files.
+ENV_DIR ?=
+.PHONY: dev dev-local dev-db dev-db-down export-run
 dev-db:
 	scripts/dev.sh db-up
 dev-db-down:
 	scripts/dev.sh db-down
 dev:
-	scripts/dev.sh up
+	ENV_DIR="$(ENV_DIR)" scripts/dev.sh up
+dev-local:
+	ENV_DIR=.run/localdb scripts/dev.sh up
 export-run:
-	@test -n "$(TRIAL)" || { echo "usage: make export-run TRIAL=<trial-id>"; exit 2; }
-	scripts/dev.sh export-run "$(TRIAL)"
+	@test -n "$(TRIAL)" || { echo "usage: make export-run TRIAL=<trial-id> [ENV_DIR=.run/localdb]"; exit 2; }
+	ENV_DIR="$(ENV_DIR)" scripts/dev.sh export-run "$(TRIAL)"
