@@ -33,6 +33,36 @@ begin
   perform pg_temp.tt_act('');
   return v_trial;
 end $$;
+-- a fresh VOICE practice session for the given actor on a fresh dev family, finalized via its one voice
+-- exchange alone (no turns exist to cite; both citation arrays can be empty, D-016).
+create or replace function pg_temp.tt_voice_finalized(p_actor text, p_code text, p_key text) returns uuid
+language plpgsql as $$
+declare
+  v_trial uuid; v_ticket uuid; v_res uuid; v_session text; v_wi uuid;
+begin
+  perform tests.family(p_code, 'dev');
+  perform pg_temp.tt_act(p_actor);
+  v_trial := (training.start_session(tests.variant(p_code, 'truthful'), 'practice', tests.candidate('assistant', 'A1'),
+    tests.candidate('subject', 'S1'), true, p_key) ->> 'trial_id')::uuid;
+  v_ticket := (training.redeem_access_ticket(training.issue_access_ticket('voice', v_trial), 'voice') ->> 'ticket_id')::uuid;
+  perform tests.as_role('arena_subject', format('select to_jsonb(training.claim_voice_ticket(%L, %L, %L, %L))',
+    v_ticket, tests.uid(p_actor), v_trial, 'practice'));
+  v_res := (tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, %L, null)',
+    p_key || '-res', 'global', 'voice_session', 'voice.session', v_trial)) ->> 'id')::uuid;
+  v_session := tests.as_role('arena_subject', format('select to_jsonb(training.open_voice_session(%L, %L))',
+    v_ticket, v_res)) #>> '{}';
+  perform tests.as_role('arena_subject', format('select training.record_voice_exchange(%L, 1::smallint, %L)',
+    v_session, jsonb_build_array(jsonb_build_object('role', 'investigator', 'text', 'Q1', 'partial', false))));
+  perform tests.as_role('arena_subject', format('select to_jsonb(training.close_voice_session(%L, %L)::text)',
+    v_session, p_key || '-done'));
+  perform tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', v_res, 'released'));
+  v_wi := (arena.open_work_item(v_trial, 'finalize', tests.k(v_trial, 1, 'finalize', p_key)) ->> 'work_item_id')::uuid;
+  perform arena.finalize_trial(v_trial, v_wi, jsonb_build_object('label', 'insufficient_evidence', 'likelihood',
+    'roughly_even_chance', 'confidence', 'low', 'rationale', 'tt voice', 'basis_flag_refs', '[]'::jsonb,
+    'cited_turns', '[]'::jsonb, 'cited_records', '[]'::jsonb, 'corroboration_needed', '[]'::jsonb));
+  perform pg_temp.tt_act('');
+  return v_trial;
+end $$;
 -- text_sessions_per_user_day (seeded 5) counts every one of an actor's sessions created today, text or
 -- voice, any mode (start_session, no filter). Several sections below reuse the same actor for more than
 -- five sessions; this backdates that actor's today's rows out of the count once a section is done with
@@ -120,12 +150,17 @@ select is(array[(select count(*)::text from tt04 where sid is not null), (select
 -- for a participant, SG4-10), so a fresh plain practice session here uses an actor outside that concern.
 select tests.family('TT05DEV', 'dev');
 create temp table tt05owner on commit drop as select pg_temp.tt_finalized('C', 'TT05DEV', 'tt05-owner-01') as trial;
+-- a finalized VOICE trial (actor A, untouched by any voice-quota boundary elsewhere in this file) for
+-- tt05voice: tt05owner's own session has voice = false, so a voice ticket on it would be refused by the
+-- "session has no voice flag" check alone, regardless of its finalized status -- never actually proving
+-- the finalized-trial refusal this assertion exists to test.
+create temp table tt05voicetrial on commit drop as select pg_temp.tt_voice_finalized('A', 'TT05VOICE', 'tt05-voice-01') as trial;
 select pg_temp.tt_act('A');
 create temp table tt05other on commit drop as select tests.error(format('select training.issue_access_ticket(%L, %L)',
   'sse', (select trial from tt05owner))) as v;
-select pg_temp.tt_act('C');
 create temp table tt05voice on commit drop as select tests.error(format('select training.issue_access_ticket(%L, %L)',
-  'voice', (select trial from tt05owner))) as v;
+  'voice', (select trial from tt05voicetrial))) as v;
+select pg_temp.tt_act('C');
 create temp table tt05badkind on commit drop as select tests.error(format('select training.issue_access_ticket(%L, %L)',
   'not-a-kind', (select trial from tt05owner))) as v;
 create temp table tt05sse on commit drop as select training.issue_access_ticket('sse', (select trial from tt05owner)) as tok;
@@ -365,9 +400,15 @@ create temp table tt13mine on commit drop as select tests.as_role('arena_public'
 select pg_temp.tt_act('C');
 create temp table tt13other on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_voice_exchanges')::text as c;
+select pg_temp.tt_act('D');
+-- while actor is still D (the trial's owner): arena.v_transcripts filters by arena.trial_visible(trial_id),
+-- which itself checks arena.actor_id() for a training trial. Checking this with no actor set would return
+-- zero rows from that filter alone, regardless of whether the voice session wrote any turns -- the property
+-- this assertion exists to prove.
+create temp table tt13transcripts on commit drop as select count(*)::text as c from arena.v_transcripts
+  where trial_id = (select trial from tt13trial);
 select pg_temp.tt_act('');
-select is(array[(select c from tt13mine), (select c from tt13other),
-                (select count(*)::text from arena.v_transcripts where trial_id = (select trial from tt13trial))],
+select is(array[(select c from tt13mine), (select c from tt13other), (select c from tt13transcripts)],
   array['1', '0', '0'],
   'TT-13 D7, D-016: a voice session''s exchanges appear in training.v_my_voice_exchanges for their owner and '
   || 'in no other actor''s view; arena.v_transcripts has no row for a voice session''s trial');
