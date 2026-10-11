@@ -260,6 +260,7 @@ export function WorldRoute() {
           ) : (
             <Transcript
               turns={view?.turns ?? []}
+              voiceExchanges={view?.voiceExchanges ?? []}
               released={view?.released ?? []}
               subjectName={subjectName}
               highlighted={highlighted}

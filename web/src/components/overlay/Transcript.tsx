@@ -7,11 +7,13 @@
 import { useEffect, useRef } from "react";
 
 import { quoteOk } from "../../lib/contracts/quote";
-import type { SnapshotRelease } from "../../lib/contracts/generated/types";
+import type { SnapshotRelease, VoiceExchange } from "../../lib/contracts/generated/types";
 import type { TurnView } from "../../lib/trial/trialReducer";
 
 interface TranscriptProps {
   readonly turns: readonly TurnView[];
+  /** A voice session's exchanges (display only, V1..Vn; S6 4.3). */
+  readonly voiceExchanges?: readonly VoiceExchange[];
   readonly released: readonly SnapshotRelease[];
   readonly subjectName: string;
   readonly highlighted: ReadonlySet<number>;
@@ -35,7 +37,7 @@ function Answer({ text, quote }: { text: string; quote: string | null }) {
   );
 }
 
-export function Transcript({ turns, released, subjectName, highlighted, quote, focusTurn }: TranscriptProps) {
+export function Transcript({ turns, voiceExchanges = [], released, subjectName, highlighted, quote, focusTurn }: TranscriptProps) {
   const refs = useRef(new Map<number, HTMLElement>());
   const end = useRef<HTMLDivElement>(null);
   // Keyed on the primitive values, so only a new chip activation moves focus, never an unrelated render.
@@ -58,7 +60,21 @@ export function Transcript({ turns, released, subjectName, highlighted, quote, f
         <span className="eyebrow">{turns.length === 0 ? "No turns yet" : `${String(turns.length)} turns`}</span>
       </header>
       <div className="panel-body" role="log" aria-live="polite">
-        {turns.length === 0 ? <p className="empty">The interview has not started.</p> : null}
+        {turns.length + voiceExchanges.length === 0 ? <p className="empty">The interview has not started.</p> : null}
+        {voiceExchanges.map((v) => (
+          <article key={`v${String(v.exchange_no)}`} className="turn" aria-labelledby={`voice-${String(v.exchange_no)}`}>
+            <h3 id={`voice-${String(v.exchange_no)}`} className="turn-no">
+              V{v.exchange_no}
+            </h3>
+            {v.lines.map((line, i) => (
+              <p key={i} className="line">
+                <span className="speaker">{line.role === "investigator" ? "Investigator" : subjectName}</span>
+                {line.text}
+                {line.partial ? <span className="pending"> (interrupted)</span> : null}
+              </p>
+            ))}
+          </article>
+        ))}
         {turns.map((t) => {
           const marked = highlighted.has(t.turn_no);
           const releases = released.filter((r) => r.released_at_turn === t.turn_no);

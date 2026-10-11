@@ -48,6 +48,23 @@ describe("overlay", () => {
     expect(screen.getByRole("log")).toBeTruthy();
   });
 
+  it("shows a voice session's exchanges as V1..Vn, marking an interrupted line", () => {
+    render(
+      <Transcript
+        turns={[]}
+        voiceExchanges={[{ exchange_no: 1, lines: [{ role: "investigator", text: "Where were you?", partial: false }, { role: "subject", text: "In the hall", partial: true }] }]}
+        released={[]}
+        subjectName="S"
+        highlighted={new Set()}
+        quote={null}
+        focusTurn={null}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "V1" })).toBeTruthy();
+    expect(screen.getByText("(interrupted)", { exact: false })).toBeTruthy();
+    expect(screen.queryByText("The interview has not started.")).toBe(null);
+  });
+
   it("shows only the placeholder in assessment", () => {
     const view = viewOf(new LogBuilder("assessment").ask(), "assessment");
     render(<CoachPanel view={view} released={[]} documents={[]} onCite={() => undefined} onUseQuestion={null} />);
