@@ -18,17 +18,19 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from arena_core.identity import DevIdentity
 from arena_core.scoring.inclusion import RevealBlockedError
 from arena_referee import db
-from arena_referee.identity_dep import require_admin_role, require_console_role
+from arena_referee.identity_dep import require_admin_role
 from arena_referee.isolation import (
     GateNotRunError,
     fetch_fresh_dev_isolation_result,
     fetch_fresh_isolation_result,
     open_hidden_tournament,
+    recorded_gate_request,
 )
 from arena_referee.reveal import (
     PublishConfig,
     PublishContext,
     ScoringIncompleteError,
+    publish_existing,
     reveal_and_publish,
     seal_correction_and_publish,
 )
@@ -89,10 +91,16 @@ async def _run(coro: Coroutine[Any, Any, db.RevealResult], action: str) -> dict[
     return _as_json(result)
 
 
-async def run_publish(request: Request, tournament_id: UUID, ctx: PublishContext) -> dict[str, object]:
-    """Reveal-and-publish on an already revealed tournament: `ledger.reveal` returns manifest v1 again (RV-15)
-    and the boards are inserted unless they exist (`unique(manifest_id, board)`), so it is idempotent."""
-    return await _run(reveal_and_publish(request.app.state.connect, str(tournament_id), ctx), "publish")
+async def run_publish(
+    request: Request, tournament_id: UUID, ctx: PublishContext, manifest_version: int
+) -> dict[str, object]:
+    """Publish the boards of an existing manifest version of a revealed tournament (S5 5.5): version 1 through
+    `ledger.reveal`, which returns it again (RV-15), a later one by reading that sealed corrected manifest; never a
+    new seal. Boards are inserted unless they exist (`unique(manifest_id, board)`), so a repeat is a no-op."""
+    connect = request.app.state.connect
+    if manifest_version == 1:
+        return await _run(reveal_and_publish(connect, str(tournament_id), ctx), "publish")
+    return await _run(publish_existing(connect, str(tournament_id), manifest_version, ctx), "publish")
 
 
 @router.post("/{tournament_id}/reveal")
@@ -115,7 +123,7 @@ async def correction_route(
 async def leaderboard_route(
     tournament_id: UUID,
     request: Request,
-    _identity: Annotated[DevIdentity, Depends(require_console_role)],
+    _identity: Annotated[DevIdentity, Depends(require_admin_role)],
     label: Literal["original", "corrected"] = "original",
     board: Literal["assistant", "subject"] = "assistant",
 ) -> dict[str, object]:
@@ -157,9 +165,14 @@ async def open_route(
         msg = "the referee app was not configured with ARENA_GIT_SHA"
         raise RuntimeError(msg)
     try:
-        gate_request = isolation_gate_request(body or {}, git_sha)
+        if body is not None:
+            gate_request = isolation_gate_request(body, git_sha)
+        else:  # the console sends no body: the suite reports recorded for this commit
+            gate_request = await recorded_gate_request(connect, git_sha)
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except GateNotRunError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     try:
         result = await open_hidden_tournament(connect, str(tournament_id), gate_request)
     except RuntimeError as exc:

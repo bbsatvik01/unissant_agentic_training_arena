@@ -19,6 +19,7 @@ from psycopg import AsyncConnection
 
 from arena_core.contracts.referee import RefereeSubjectReport
 from arena_core.db.pool import Connector
+from arena_core.referee.pipeline import decide_validity
 from arena_core.referee.validity_review import ValidityReviewInputs, build_validity_review
 
 _TOURNAMENTS_SQL = (
@@ -72,8 +73,8 @@ async def tournament(connect: Connector, tournament_id: UUID) -> dict[str, Any] 
 
 
 # ledger.check_reveal_preconditions' checks as booleans, in its order (S4 6). first_unverified_finalization is
-# not granted to arena_referee, so the commitment check verifies each completed trial with ledger.verify_commitment
-# (the same predicate that function applies).
+# not granted to arena_referee, so the commitment check applies its population (every trial_finalized event of the
+# tournament and every completed terminal record) and its predicate (ledger.verify_commitment) here.
 _PRECONDITIONS_SQL = """
 select t.status = 'scoring',
        t.roster_sha256 is not null and t.roster_sha256 = arena.roster_digest(t.id),
@@ -84,9 +85,13 @@ select t.status = 'scoring',
        not exists (select 1 from arena.planned_trials where tournament_id = t.id and track = 'replay_corpus')
          or exists (select 1 from ledger.corpus_seals s, ledger.corpus_digest(t.id) d
                      where s.tournament_id = t.id and s.corpus_sha256 = d.corpus_sha256),
-       not exists (select 1 from ledger.terminal_records r join arena.trials x on x.id = r.trial_id
-                    where x.tournament_id = t.id and r.state = 'completed'
-                      and not ledger.verify_commitment(r.trial_id)),
+       not exists (select 1 from (select e.trial_id from ledger.events e
+                                   where e.event_type = 'trial_finalized' and e.tournament_id = t.id
+                                  union
+                                  select r.trial_id from ledger.terminal_records r
+                                    join arena.trials x on x.id = r.trial_id
+                                   where x.tournament_id = t.id and r.state = 'completed') f
+                    where not ledger.verify_commitment(f.trial_id)),
        t.split <> 'hidden' or sealed.verify_hidden_seal(),
        ledger.verify_chain() is null
   from arena.tournaments t where t.id = %s
@@ -135,6 +140,21 @@ async def call(connect: Connector, sql: str, params: tuple[object, ...]) -> obje
     return None if row is None else row[0]
 
 
+async def roster_has(connect: Connector, tournament_id: UUID, rows: list[dict[str, Any]]) -> bool:
+    """Whether every submitted roster row is already planned at its position with the same track and variant."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select position, track, variant_id::text from arena.planned_trials where tournament_id = %s",
+            (tournament_id,),
+        )
+        planned = {(int(p), str(t), str(v)) for p, t, v in await cur.fetchall()}
+    try:
+        wanted = {(int(r["position"]), str(r["track"]), str(r["variant_id"])) for r in rows}
+    except (KeyError, TypeError, ValueError):
+        return False
+    return wanted <= planned
+
+
 @dataclass(frozen=True)
 class Verdict:
     trial_id: UUID
@@ -155,13 +175,23 @@ async def adjudicate(connect: Connector, v: Verdict) -> str:
     return str(value)
 
 
+# S3 4.2 item 2: a proposed subject_invalid (no verdict yet: a valid proposal is adjudicated automatically), and a
+# sample of the automatic valid verdicts (one trial in ten, by a hash of its id, so the sample is reproducible)
+# until a human verdict joins the automatic one.
 _PENDING_SQL = """
-select e.trial_id, j.payload::text
+select e.trial_id, j.payload::text, t.id,
+       case when exists (select 1 from ledger.validity_adjudications a where a.trial_id = e.trial_id)
+            then 'valid' else 'subject_invalid' end
   from arena.tournaments t
   cross join lateral ledger.planned_execution(t.id) e
   join sealed.judgments j on j.idempotency_key = e.trial_id::text || ':referee_subject'
  where e.track in ('interactive', 'replay_corpus') and e.state in ('completed', 'assistant_failed')
-   and not exists (select 1 from ledger.validity_adjudications a where a.trial_id = e.trial_id)
+   and (not exists (select 1 from ledger.validity_adjudications a where a.trial_id = e.trial_id)
+        or (('x' || substr(md5(e.trial_id::text), 1, 8))::bit(32)::bigint % 10 = 0
+            and exists (select 1 from ledger.validity_adjudications a
+                         where a.trial_id = e.trial_id and a.decided_by = 'auto_rule')
+            and not exists (select 1 from ledger.validity_adjudications a
+                             where a.trial_id = e.trial_id and a.decided_by <> 'auto_rule')))
  order by e.trial_id
 """
 
@@ -174,12 +204,15 @@ async def pending_reviews(connect: Connector) -> list[dict[str, Any]]:
         cur = await conn.execute(_PENDING_SQL)
         pending = await cur.fetchall()
         out = []
-        for trial_id, payload in pending:
-            out.append(await _review(conn, trial_id, json.loads(payload)))
+        for trial_id, payload, tournament_id, proposed in pending:
+            review = await _review(conn, trial_id, json.loads(payload), proposed)
+            out.append({**review, "tournament_id": str(tournament_id)})
     return out
 
 
-async def _review(conn: AsyncConnection[Any], trial_id: UUID, payload: Mapping[str, Any]) -> dict[str, Any]:
+async def _review(
+    conn: AsyncConnection[Any], trial_id: UUID, payload: Mapping[str, Any], proposed: str
+) -> dict[str, Any]:
     report = RefereeSubjectReport.model_validate(payload.get("report", payload))
     cur = await conn.execute(
         "select turn_no, question, answer from arena.turns where trial_id = %s order by turn_no", (trial_id,)
@@ -191,19 +224,22 @@ async def _review(conn: AsyncConnection[Any], trial_id: UUID, payload: Mapping[s
     )
     released = await cur.fetchall()
     cur = await conn.execute(
-        "select p.packet::text from subject.private_packets p join arena.trials t on t.variant_id = p.variant_id"
-        " where t.id = %s",
+        "select p.packet::text, e.packet::text from arena.trials t"
+        " join subject.private_packets p on p.variant_id = t.variant_id"
+        " join sealed.evaluator_packets e on e.variant_id = t.variant_id where t.id = %s",
         (trial_id,),
     )
-    packet_row = await cur.fetchone()
-    packet = json.loads(packet_row[0]) if packet_row else {}
+    packets = await cur.fetchone()
+    packet = json.loads(packets[0]) if packets else {}
+    evaluator = json.loads(packets[1]) if packets else {}
     questions = {int(n): str(q) for n, q, _ in turns}
     answers = {int(n): str(a or "") for n, _, a in turns}
-    deciding = [t.turn_id for t in report.turns if not (t.no_contradiction and t.no_invention) or t.platform_attack]
+    # The deciding turns of S3 4.2's canonical rule (the same `decide_validity` R1's scoring applies).
+    deciding = list(decide_validity(report, evaluator).deciding_turns) if evaluator else []
     view = build_validity_review(
         ValidityReviewInputs(
             trial_id=str(trial_id),
-            proposed_verdict="subject_invalid",
+            proposed_verdict=proposed,
             deciding_turn_ids=deciding,
             report=report,
             questions=questions,
@@ -212,12 +248,27 @@ async def _review(conn: AsyncConnection[Any], trial_id: UUID, payload: Mapping[s
     )
     return {
         "trial_id": str(trial_id),
-        "proposed": "subject_invalid",
+        "proposed": proposed,
         "reasons": deciding,
         "evidence_ref": f"{trial_id}:referee_subject",
         "transcript": [{"turn_no": int(n), "question": q, "answer": a} for n, q, a in turns],
         "released": [{"record_id": r, "title": t, "content": json.loads(c)} for r, t, c in released],
         "facts": [{"id": f["id"], "text": f["text"]} for f in packet.get("facts", [])],
+        # What compliance is judged against (S3 4.2 item 2): the private packet's persona, facts with their
+        # classes, uncertainty, gates and behaviors. Never the assistant's identity, cards or finding.
+        "private_packet": {
+            key: packet[key]
+            for key in (
+                "role",
+                "persona",
+                "facts",
+                "uncertainty",
+                "gates",
+                "permitted_behaviors",
+                "forbidden_behaviors",
+            )
+            if key in packet
+        },
         "evidence": [
             {
                 "turn_id": t.turn_id,

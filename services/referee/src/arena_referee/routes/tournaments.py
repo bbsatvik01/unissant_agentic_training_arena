@@ -46,10 +46,22 @@ class Publish(BaseModel):
     manifest_version: int = Field(default=1, ge=1)
 
 
-async def _step(request: Request, sql: str, params: tuple[object, ...]) -> object:
+ORDER = ("draft", "frozen", "running", "sealed", "scoring", "revealed")
+
+
+async def _step(
+    request: Request, sql: str, params: tuple[object, ...], *, done: tuple[UUID, str] | None = None
+) -> object:
+    """One S4 call. `done` is (tournament, the status the step leads to): a repeat of a step whose tournament has
+    already reached that status (or a later one) returns the current state instead of S4's refusal (S5 5.5: each
+    admin action is idempotent)."""
     try:
         return await admin_db.call(request.app.state.connect, sql, params)
     except psycopg.Error as exc:
+        if done is not None:
+            found = await admin_db.tournament(request.app.state.connect, done[0])
+            if found is not None and ORDER.index(found["status"]) >= ORDER.index(done[1]):
+                return None
         # S4 refuses a transition its state does not allow (AR001), a key reused with other input (AR003) or a
         # bad argument (AR007): the admin sees S4's code, the tournament is unchanged.
         raise HTTPException(status_code=409, detail=exc.sqlstate or "refused") from exc
@@ -62,6 +74,9 @@ async def _detail(request: Request, tournament_id: UUID) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     found["progress"] = await admin_db.progress(connect, tournament_id)
     found["preconditions"] = await admin_db.reveal_preconditions(connect, tournament_id)
+    found["review_queue"] = sum(
+        r["tournament_id"] == str(tournament_id) for r in await admin_db.pending_reviews(connect)
+    )
     return found
 
 
@@ -87,40 +102,49 @@ async def create_tournament(body: TournamentCreate, request: Request, _admin: Ad
 
 @router.post("/{tournament_id}/roster")
 async def add_roster(tournament_id: UUID, body: RosterRows, request: Request, _admin: Admin) -> dict[str, Any]:
-    added = await _step(request, "select arena.add_planned_trials(%s, %s)", (tournament_id, Jsonb(body.rows)))
+    try:
+        added = await admin_db.call(
+            request.app.state.connect, "select arena.add_planned_trials(%s, %s)", (tournament_id, Jsonb(body.rows))
+        )
+    except psycopg.Error as exc:
+        # A repeat of rows already on the roster is a no-op (S5 5.5); anything else is S4's refusal.
+        if not await admin_db.roster_has(request.app.state.connect, tournament_id, body.rows):
+            raise HTTPException(status_code=409, detail=exc.sqlstate or "refused") from exc
+        added = 0
     return {**await _detail(request, tournament_id), "added": added}
 
 
 @router.post("/{tournament_id}/freeze")
 async def freeze(tournament_id: UUID, request: Request, _admin: Admin) -> dict[str, Any]:
-    await _step(request, "select arena.freeze_tournament(%s)", (tournament_id,))
+    await _step(request, "select arena.freeze_tournament(%s)", (tournament_id,), done=(tournament_id, "frozen"))
     return await _detail(request, tournament_id)
 
 
 @router.post("/{tournament_id}/close")
 async def close(tournament_id: UUID, request: Request, _admin: Admin) -> dict[str, Any]:
     """Requires the replay corpus seal made earlier by the corpus-seal route; never seals it here (SG3-24)."""
-    await _step(request, "select arena.close_tournament_run(%s)", (tournament_id,))
+    await _step(request, "select arena.close_tournament_run(%s)", (tournament_id,), done=(tournament_id, "sealed"))
     return await _detail(request, tournament_id)
 
 
 @router.post("/{tournament_id}/scoring")
 async def begin_scoring(tournament_id: UUID, request: Request, _admin: Admin) -> dict[str, Any]:
-    await _step(request, "select arena.begin_scoring(%s)", (tournament_id,))
+    await _step(request, "select arena.begin_scoring(%s)", (tournament_id,), done=(tournament_id, "scoring"))
     return await _detail(request, tournament_id)
 
 
 @router.post("/{tournament_id}/publish")
 async def publish(tournament_id: UUID, request: Request, _admin: Admin, body: Publish | None = None) -> dict[str, Any]:
-    """S5 5.5: compute and insert the boards of a revealed manifest (idempotent: an existing board is kept).
-    Reveal and corrections already publish right after sealing; this repeats it for manifest version 1 of a
-    revealed tournament (a publish interrupted after the seal). A later version is published by its correction."""
+    """S5 5.5: compute and insert the boards of one sealed manifest version of a revealed tournament
+    (idempotent: an existing board is kept). Reveal and corrections publish right after sealing; this repeats it,
+    for example after a publish interrupted past the seal. It never seals a manifest."""
     found = await admin_db.tournament(request.app.state.connect, tournament_id)
     if found is None:
         raise HTTPException(status_code=404, detail="not_found")
     if found["status"] != "revealed":
         raise HTTPException(status_code=409, detail="reveal the tournament first")
-    if (body or Publish()).manifest_version != 1:
-        raise HTTPException(status_code=409, detail="a corrected manifest is published by its correction")
     ctx = await publish_context(request, tournament_id)
-    return await run_publish(request, tournament_id, ctx)
+    try:
+        return await run_publish(request, tournament_id, ctx, (body or Publish()).manifest_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="no such manifest version") from exc

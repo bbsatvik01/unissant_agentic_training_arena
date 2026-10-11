@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.identity import DevIdentity, user_id_for
 from arena_core.referee.pipeline import ValidityDecision
-from arena_core.scoring.ranking import IG_ITEMS, isolation_result
+from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_referee import admin_db, db
 from arena_referee.app import create_app
@@ -911,6 +911,7 @@ def test_open_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeypat
 # ---------------------------------------------------------------- admin console routes (S5 5.5 admin table)
 
 
+MANIFESTS = 2  # the stand-in tournament has manifest versions 1 and 2
 ROWS_ADDED = 3  # what the stand-in's add_planned_trials answers
 TOURNAMENT_ROW = {"id": str(uuid4()), "name": "dev-1", "split": "dev", "status": "scoring"}
 
@@ -945,7 +946,7 @@ class _Console:
         return [{"bucket": "global", "ceiling_usd": "74.000000", "kill_switch": False}]
 
     async def pending_reviews(self, _connect: object) -> list[dict[str, Any]]:
-        return [{"trial_id": "t9", "proposed": "subject_invalid"}]
+        return [{"trial_id": "t9", "proposed": "subject_invalid", "tournament_id": TOURNAMENT_ROW["id"]}]
 
     async def adjudicate(self, _connect: object, v: admin_db.Verdict) -> str:
         self.verdicts.append(v)
@@ -982,9 +983,9 @@ def test_admin_reads_list_detail_budget_and_reviews(tmp_path: Path, console: _Co
     assert detail["progress"] == []
     assert run(_get(app, f"/api/admin/tournaments/{uuid4()}")).status_code == NOT_FOUND
     assert run(_get(app, "/api/admin/budget")).json()["buckets"][0]["bucket"] == "global"
-    assert run(_get(app, "/api/admin/reviews")).json() == {
-        "reviews": [{"trial_id": "t9", "proposed": "subject_invalid"}]
-    }
+    reviews = run(_get(app, "/api/admin/reviews")).json()["reviews"]
+    assert [(r["trial_id"], r["proposed"]) for r in reviews] == [("t9", "subject_invalid")]
+    assert detail["review_queue"] == 1
     assert console.calls == []
 
 
@@ -1032,14 +1033,18 @@ def test_publish_needs_a_revealed_tournament_and_republishes_version_1(
     async def ctx(_request: object, _tid: UUID) -> object:
         return object()
 
-    async def published(_request: object, _tid: UUID, _ctx: object) -> dict[str, object]:
-        return {"manifest_version": 1}
+    async def published(_request: object, _tid: UUID, _ctx: object, version: int) -> dict[str, object]:
+        if version > MANIFESTS:
+            raise LookupError(version)
+        return {"manifest_version": version}
 
     monkeypatch.setattr(tournaments_route, "publish_context", ctx)
     monkeypatch.setattr(tournaments_route, "run_publish", published)
     assert run(_post(app, f"/api/admin/tournaments/{tid}/publish", **post)).json() == {"manifest_version": 1}
     later = run(_post(app, f"/api/admin/tournaments/{tid}/publish", json={"manifest_version": 2}, **post))
-    assert later.status_code == httpx.codes.CONFLICT
+    assert later.json() == {"manifest_version": 2}
+    absent = run(_post(app, f"/api/admin/tournaments/{tid}/publish", json={"manifest_version": 9}, **post))
+    assert absent.status_code == NOT_FOUND
     assert run(_post(app, f"/api/admin/tournaments/{uuid4()}/publish", **post)).status_code == NOT_FOUND
 
 
@@ -1102,3 +1107,61 @@ def test_without_a_built_bundle_nothing_is_mounted(tmp_path: Path) -> None:
     env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
     app = create_app({**env, "ARENA_WEB_DIST": str(tmp_path / "missing")})
     assert run(_get(app, "/admin")).status_code == NOT_FOUND
+
+
+def test_a_repeated_step_returns_the_current_state(
+    tmp_path: Path, console: _Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = make_app(tmp_path)
+    post = _admin_posts(app)
+    tid = TOURNAMENT_ROW["id"]
+    console.refuse = "already sealed"
+    monkeypatch.setitem(TOURNAMENT_ROW, "status", "sealed")
+    assert run(_post(app, f"/api/admin/tournaments/{tid}/close", **post)).json()["status"] == "sealed"
+    assert run(_post(app, f"/api/admin/tournaments/{tid}/freeze", **post)).status_code == httpx.codes.OK
+    assert run(_post(app, f"/api/admin/tournaments/{tid}/scoring", **post)).status_code == httpx.codes.CONFLICT
+
+    async def planned(_connect: object, _tid: UUID, rows: list[dict[str, Any]]) -> bool:
+        return rows == [{"position": 1}]
+
+    monkeypatch.setattr(admin_db, "roster_has", planned)
+    same = run(_post(app, f"/api/admin/tournaments/{tid}/roster", json={"rows": [{"position": 1}]}, **post))
+    assert same.json()["added"] == 0
+    other = run(_post(app, f"/api/admin/tournaments/{tid}/roster", json={"rows": [{"position": 2}]}, **post))
+    assert other.status_code == httpx.codes.CONFLICT
+
+
+def test_the_leaderboard_read_is_admin_only(tmp_path: Path) -> None:
+    trainer = "trainer@example.com"
+    users = _write_users_file(tmp_path)
+    users.write_text(users.read_text() + f'[[users]]\nemail = "{trainer}"\ndisplay_name = "T"\nroles = ["trainer"]\n')
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(users), "ARENA_DEV_USER": trainer}
+    app = create_app(env)
+    assert run(_get(app, f"/api/admin/tournaments/{uuid4()}/leaderboard")).status_code == FORBIDDEN
+
+
+def test_the_console_opens_a_hidden_tournament_with_the_recorded_reports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The console sends no body: IG-1..3 come from the reports recorded for this commit (IG-4..6 run fresh)."""
+    app = make_app(tmp_path)
+    post = _admin_posts(app)
+    seen: list[IsolationGateRequest] = []
+
+    async def hidden(_connect: object, _tid: str) -> str:
+        return "hidden"
+
+    async def recorded(_connect: object, git_sha: str) -> IsolationGateRequest:
+        return IsolationGateRequest(git_sha=git_sha, ig1=(True, "r1"), ig2=(True, "r2"), ig3=(True, "r3"))
+
+    async def opened(_connect: object, _tid: str, request: IsolationGateRequest) -> IsolationResult:
+        seen.append(request)
+        return isolation_result(dict.fromkeys(IG_ITEMS, (True, "ok")))
+
+    monkeypatch.setattr(db, "fetch_tournament_split", hidden)
+    monkeypatch.setattr(reveal_route, "recorded_gate_request", recorded)
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", opened)
+    resp = run(_post_no_body(app, f"/api/admin/tournaments/{uuid4()}/open", **post))
+    assert resp.status_code == httpx.codes.OK, resp.text
+    assert resp.json()["gated"] is True
+    assert seen[0].ig1 == (True, "r1")

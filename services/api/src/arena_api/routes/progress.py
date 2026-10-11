@@ -3,8 +3,9 @@
 KPI-1 for one participant is S3 6.1's per-participant pair: `pre` and `post` are the means of the scorable
 pre-test and post-test session scores (the published `debrief.v1` rubric totals; an unscorable or unpublished
 session has no score and is left out), `absolute_change = post - pre`, and `relative_change = (post - pre) / pre`,
-null at a zero baseline. It is null until both phases have at least one score. The client formats; it computes
-nothing (FE-PRG-1).
+null at a zero baseline. It is null until the protocol is complete (S6 4.8): both pre-tests and both post-tests
+ended (`training.v_my_study`) and every one of their debriefs published, and then also when a phase has no
+scorable session (attrition, SG2-38). The client formats; it computes nothing (FE-PRG-1).
 """
 
 from __future__ import annotations
@@ -47,12 +48,16 @@ def kpi1(pre: list[int], post: list[int]) -> dict[str, float | None] | None:
 @router.get("/api/progress")
 async def progress(db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
     sessions = await db.my_sessions()
+    study = await db.study()
     titles: dict[UUID, str] = {c["variant_id"]: c["public_packet"].get("title", "") for c in await db.dev_cases()}
     scores: dict[str, list[int]] = {"pre": [], "post": []}
+    published = {"pre": 0, "post": 0}
     rows = []
     for s in sessions:
         if s["phase"] in scores:
-            score = _score(await db.debrief(s["session_id"]))
+            debrief = await db.debrief(s["session_id"])
+            published[s["phase"]] += debrief is not None
+            score = _score(debrief)
             if score is not None:
                 scores[s["phase"]].append(score)
         rows.append(
@@ -67,4 +72,13 @@ async def progress(db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
                 "case_title": titles.get(s["variant_id"]) or None,
             }
         )
-    return {"sessions": rows, "kpi1": kpi1(scores["pre"], scores["post"])}
+    complete = (
+        study is not None
+        and len(study["pre"]) > 0
+        and len(study["post"]) > 0
+        and study["pre_ended"] >= len(study["pre"])
+        and study["post_ended"] >= len(study["post"])
+        and published["pre"] >= len(study["pre"])
+        and published["post"] >= len(study["post"])
+    )
+    return {"sessions": rows, "kpi1": kpi1(scores["pre"], scores["post"]) if complete else None}

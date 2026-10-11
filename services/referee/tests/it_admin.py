@@ -85,6 +85,8 @@ def test_lifecycle_reads_and_preconditions_as_the_referee(referee: tuple[Connect
         "subject_candidate_id": str(s1),
     }
     assert run(admin_db.call(connect, "select arena.add_planned_trials(%s, %s)", (tid, Jsonb([row])))) == 1
+    assert run(admin_db.roster_has(connect, tid, [row])) is True
+    assert run(admin_db.roster_has(connect, tid, [{**row, "position": 2}])) is False
     run(admin_db.call(connect, "select arena.freeze_tournament(%s)", (tid,)))
 
     found = run(admin_db.tournament(connect, tid))

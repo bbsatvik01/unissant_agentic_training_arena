@@ -482,6 +482,7 @@ def test_no_board_before_reveal_and_unknown_or_unpublished_is_404() -> None:
 
 
 POST_SCORE = 6
+FULL_POST_MEAN = 65.0
 
 
 def _debrief(total: int | None, *, scored: bool = True) -> dict[str, Any]:
@@ -508,7 +509,20 @@ def _test_session(h: Harness, phase: str, total: int | None) -> UUID:
     return session
 
 
-def test_progress_lists_the_sessions_and_no_kpi1_until_both_phases_are_scored() -> None:
+def _study(h: Harness, pre_ended: int = 2, post_ended: int = 2) -> None:
+    h.db.study_row = {
+        "code": "P1",
+        "counterbalance": "AB",
+        "pre_ended": pre_ended,
+        "practice_ended": 3,
+        "post_ended": post_ended,
+        "pre": [uuid4(), uuid4()],
+        "post": [uuid4(), uuid4()],
+        "tested": [],
+    }
+
+
+def test_progress_lists_the_sessions_and_no_kpi1_before_the_protocol_is_complete() -> None:
     h = Harness()
     _test_session(h, "pre", 8)
     body = h.get("/api/progress").json()
@@ -518,11 +532,26 @@ def test_progress_lists_the_sessions_and_no_kpi1_until_both_phases_are_scored() 
     assert body["kpi1"] is None
 
 
+def test_kpi1_waits_for_both_post_tests_and_every_debrief() -> None:
+    h = Harness()
+    _study(h, post_ended=1)
+    for phase, total in (("pre", 30), ("pre", 50), ("post", 60)):
+        _test_session(h, phase, total)
+    assert h.get("/api/progress").json()["kpi1"] is None  # one post-test still to come
+    _study(h)
+    pending = _test_session(h, "post", None)  # ended, its debrief not yet published
+    assert h.get("/api/progress").json()["kpi1"] is None
+    h.db.debriefs[pending] = _debrief(70)
+    assert h.get("/api/progress").json()["kpi1"]["post"] == FULL_POST_MEAN
+
+
 def test_progress_kpi1_is_the_per_participant_pair_of_means() -> None:
     h = Harness()
+    _study(h)
     _test_session(h, "pre", 8)
     _test_session(h, "pre", 10)
-    _test_session(h, "pre", None)  # unpublished or unscorable: left out
+    unscorable = _test_session(h, "post", None)
+    h.db.debriefs[unscorable] = _debrief(None)  # published but unscorable: left out of the mean
     _test_session(h, "post", 12)
     _test_session(h, "post", 15)
     kpi1 = h.get("/api/progress").json()["kpi1"]
@@ -531,7 +560,10 @@ def test_progress_kpi1_is_the_per_participant_pair_of_means() -> None:
 
 def test_progress_relative_change_is_null_at_a_zero_baseline() -> None:
     h = Harness()
+    _study(h)
     _test_session(h, "pre", 0)
+    _test_session(h, "pre", 0)
+    _test_session(h, "post", POST_SCORE)
     _test_session(h, "post", POST_SCORE)
     kpi1 = h.get("/api/progress").json()["kpi1"]
     assert kpi1["absolute_change"] == POST_SCORE
@@ -540,10 +572,13 @@ def test_progress_relative_change_is_null_at_a_zero_baseline() -> None:
 
 def test_an_unscored_voice_debrief_has_no_score() -> None:
     h = Harness()
-    pre = _test_session(h, "pre", None)
-    h.db.debriefs[pre] = _debrief(None, scored=False)
-    _test_session(h, "post", 6)
-    assert h.get("/api/progress").json()["kpi1"] is None
+    _study(h)
+    for phase in ("pre", "pre"):
+        voice = _test_session(h, phase, None)
+        h.db.debriefs[voice] = _debrief(None, scored=False)
+    _test_session(h, "post", POST_SCORE)
+    _test_session(h, "post", POST_SCORE)
+    assert h.get("/api/progress").json()["kpi1"] is None  # no scorable pre-test: attrition
 
 
 def test_a_session_does_not_start_before_the_ex4_acknowledgement() -> None:

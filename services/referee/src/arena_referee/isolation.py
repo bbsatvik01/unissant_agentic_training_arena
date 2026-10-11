@@ -205,6 +205,13 @@ async def _recorded_ig123(connect: Connector, git_sha: str) -> dict[str, tuple[b
     return {item: stale.items[item] for item in _IG123}
 
 
+async def recorded_gate_request(connect: Connector, git_sha: str) -> IsolationGateRequest:
+    """The gate request from IG-1..3 already recorded for this commit (`/api/admin/isolation-gate/run`), so the
+    console can open a hidden tournament without re-sending the suite reports; IG-4..6 still run fresh."""
+    ig = await _recorded_ig123(connect, git_sha)
+    return IsolationGateRequest(git_sha=git_sha, ig1=ig["IG-1"], ig2=ig["IG-2"], ig3=ig["IG-3"])
+
+
 async def _ig5(connect: Connector) -> tuple[bool, str]:
     chain_ok = await verify_chain(connect)
     corpus_seal_ok = await verify_all_corpus_seals(connect)
