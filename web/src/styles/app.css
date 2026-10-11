@@ -1072,9 +1072,10 @@ td {
   }
 
   .viewport {
-    top: auto;
+    position: fixed;
+    top: 0;
+    bottom: auto;
     height: 46vh;
-    position: absolute;
   }
 
   .stage {
@@ -1116,12 +1117,6 @@ td {
 
   .center {
     order: -1;
-  }
-
-  .center > .caption,
-  .room-controls .caption {
-    color: var(--arena-ink);
-    text-shadow: none;
   }
 
   .ex4 {
