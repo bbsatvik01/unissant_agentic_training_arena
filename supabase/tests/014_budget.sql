@@ -10,7 +10,7 @@
 -- Numeric parity of the seeds with cost_model.py (prices, limits, voice amounts) is tools/check_cost_parity.py.
 begin;
 \ir harness/fixtures.psql
-select plan(13);
+select plan(41);  -- BU-01..BU-42 (BU-11 and BU-12 share one assertion)
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -191,6 +191,367 @@ select is(array[tests.error(format('select ops.set_bucket_ceiling(%L, null, %s, 
   'BU-24 set_bucket_ceiling refuses a ceiling below liability, a parent for global, and a child under global once '
   || 'it holds reservations');
 
+-- ------------------------------------------------------------------ WP-04b additions (BU-02, BU-04..BU-20,
+-- BU-23, BU-25, BU-26, BU-30..BU-37)
+select is(tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu02-card-00001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 128000) $$) ->> 'reserved_usd',
+  '0.169600',
+  'BU-02 worst case card on 3.5-flash-lite at the input limit: 4 x (128000 x 0.30 + 1600 x 2.50) / 1e6');
+
+-- BU-04: lower global to its current liability + 0.12 (room for floor(0.12 / 0.0544) = 2 referee reservations,
+-- not 3), fill it, restore the ceiling.
+create temp table bu04 (step integer, val text) on commit drop;
+insert into bu04 select 0, ceiling_usd::text from ops.budget_buckets where name = 'global';
+select ops.set_bucket_ceiling('global', null,
+  (select liability_usd from ops.budget_status() where bucket = 'global') + 0.12, 'bu04');
+insert into bu04 select 1, tests.as_role('arena_referee', format(
+  'select ops.reserve_model_call(%L,%L,%L,%L,%L,null,null,12000)', 'bu04-ref-0001', 'global',
+  'gemini-3.5-flash-lite', 'referee', 'referee_assistant')) ->> 'outcome';
+insert into bu04 select 2, tests.as_role('arena_referee', format(
+  'select ops.reserve_model_call(%L,%L,%L,%L,%L,null,null,12000)', 'bu04-ref-0002', 'global',
+  'gemini-3.5-flash-lite', 'referee', 'referee_assistant')) ->> 'outcome';
+insert into bu04 select 3, concat_ws('/', r ->> 'outcome', r ->> 'reason', r ->> 'bucket') from
+  tests.as_role('arena_referee', format('select ops.reserve_model_call(%L,%L,%L,%L,%L,null,null,12000)',
+    'bu04-ref-0003', 'global', 'gemini-3.5-flash-lite', 'referee', 'referee_assistant')) r;
+select is(array[(select val from bu04 where step = 1), (select val from bu04 where step = 2),
+                (select val from bu04 where step = 3),
+                ((select liability_usd <= ceiling_usd from ops.budget_status() where bucket = 'global'))::text],
+          array['reserved', 'reserved', 'refused/cap/global', 'true'],
+  'BU-04 after the plan, global lowered to its liability + 0.12 admits floor(0.12 / 0.0544) = 2 referee '
+  || 'reservations and refuses the 3rd (cap); liability stays within the ceiling');
+select ops.set_bucket_ceiling('global', null, (select val::numeric from bu04 where step = 0), 'bu04 restore');
+
+select is_empty($$ select bucket from ops.budget_status() where liability_usd > ceiling_usd $$,
+  'BU-05 invariant: at this (tightest) point in the file, every bucket''s subtree liability is within its ceiling');
+
+-- BU-06: the per-user cap (5.00) against 6,000-byte card reservations (0.023200 each): floor(5.00 / 0.0232) = 215.
+create temp table bu06 on commit drop as
+  select n, tests.as_role('arena_public', format('select ops.reserve_model_call(%L,%L,%L,%L,%L,null,%L,6000)',
+           'bu06-card-' || lpad(n::text, 4, '0'), 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+           tests.uid('B'))) as r
+    from generate_series(1, 216) n;
+select is(array[(select count(*)::text from bu06 where r ->> 'outcome' = 'reserved'),
+                (select (r ->> 'outcome') || '/' || (r ->> 'reason') from bu06 where n = 216)],
+          array['215', 'refused/per_user_cap'],
+  'BU-06 D-017: 215 6,000-byte card reservations ($0.023200 each) fit the $5.00 per-user cap; the 216th is '
+  || 'refused (per_user_cap)');
+
+-- BU-07
+select is(array[
+    tests.sqlstate($$ select ops.reserve_model_call('bu07-badmodel-1', 'global', 'no-such-model', 'card',
+                                                    'coach.card', null, null, 1000) $$),
+    tests.sqlstate($$ select ops.reserve_model_call('bu07-badkind-01', 'global', 'gemini-3.5-flash-lite',
+                                                    'no-such-kind', 'x', null, null, 1000) $$)],
+  array['AR007', 'AR007'],
+  'BU-07 an unknown model or an unknown call kind is refused (AR007)');
+
+-- BU-08
+create temp table bu08 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu08-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select is(array[
+    ((select (r ->> 'id') from bu08) = (tests.as_role('arena_public',
+      $$ select ops.reserve_model_call('bu08-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                       null, null, 1000) $$) ->> 'id'))::text,
+    tests.error($$ select ops.reserve_model_call('bu08-key-0001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                                 'coach.deep', null, null, 1000) $$)],
+  array['true', 'AR003: reservation key reused with different inputs'],
+  'BU-08 the same key with the same inputs returns the same id (exists); different inputs are refused (AR003)');
+
+-- BU-09
+create temp table bu09 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu09-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_public',
+    format('select ops.record_usage(%L, 1, %L, 100, 50, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu09),
+      'gemini-3.5-flash-lite', 'ok'))),
+  'AR001: usage for a reservation that was never dispatched',
+  'BU-09 usage recorded before dispatch is refused (AR001)');
+
+-- BU-10
+create temp table bu10 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu10-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu10)));
+select is(array[
+    tests.error(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'select ops.record_usage(%L, 5, %L, 100, 50, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu10),
+      'gemini-3.5-flash-lite', 'ok'))),
+    tests.error(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'select ops.record_usage(%L, 1, %L, 100, 50, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu10),
+      'gemini-3.1-flash-lite', 'ok')))],
+  array['AR007: attempt beyond the allowed count, or a different model',
+        'AR007: attempt beyond the allowed count, or a different model'],
+  'BU-10 attempt 5 (ATTEMPTS = 4), and a different model on a receipt, are each refused (AR007)');
+
+-- BU-11, BU-12
+create temp table bu1112 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu1112-key-001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu1112)));
+create temp table bu11 on commit drop as select tests.as_role('arena_public', format(
+  'select ops.record_usage(%L, 1, %L, 3000, 300, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu1112),
+  'gemini-3.5-flash-lite', 'ok')) as r;
+create temp table bu12a on commit drop as select tests.as_role('arena_public', format(
+  'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu1112), 'committed')) as r;
+create temp table bu12b on commit drop as select tests.as_role('arena_public', format(
+  'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu1112), 'committed')) as r;
+select is(array[(select r ->> 'cost_usd' from bu11),
+                (select (r ->> 'settled_usd') from bu12a),
+                (select (r ->> 'settled_usd') = (select r ->> 'cost_usd' from bu11) from bu12a)::text,
+                (select r ->> 'outcome' from bu12b), (select r ->> 'state' from bu12b),
+                (select r ->> 'settled_usd' from bu12b)],
+  array['0.001650', '0.001650', 'true', 'already_settled', 'committed', '0.001650'],
+  'BU-11 cost computed by record_usage (3000 in, 300 out on 3.5-flash-lite) is 0.001650; BU-12 settling '
+  || 'committed sets settled_usd to the receipts, and a second settle returns already_settled unchanged');
+
+-- BU-13
+create temp table bu13 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu13-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu13)));
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_public', format(
+    'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu13), 'released'))),
+  'AR001: a started reservation is not releasable',
+  'BU-13 settling released after dispatch is refused (AR001)');
+
+-- BU-14
+create temp table bu14 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu14-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu14)));
+select is((select tests.as_role('arena_public', format('select ops.settle_reservation(%L, %L)',
+             (select r ->> 'id' from bu14), 'usage_unknown')) ->> 'settled_usd' from bu14) = (select r ->> 'reserved_usd' from bu14),
+  true,
+  'BU-14 settling usage_unknown keeps the full reservation (settled = reserved)');
+
+-- BU-15
+create temp table bu15 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu15-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu15)));
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_public', format(
+    'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu15), 'committed'))),
+  'AR007: a committed call needs its usage receipts',
+  'BU-15 settling committed with no receipts is refused (AR007)');
+
+-- BU-16, BU-17 (kill switch): a tiny reservation, an oversized receipt overruns it and turns the kill switch
+-- on; while it is on, every admission path refuses or skips with reason kill_switch. BU-17 relies on BU-16's
+-- own overrun to turn the switch on, instead of a separate owner call.
+create temp table bu16 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu16-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu16)));
+create temp table bu16use on commit drop as select tests.as_role('arena_public', format(
+  'select ops.record_usage(%L, 1, %L, 1, 100000, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu16),
+  'gemini-3.5-flash-lite', 'ok')) as r;
+select is(array[(select r ->> 'outcome' from bu16use), (select r ->> 'shutoff' from bu16use),
+                (select overrun::text from ops.budget_reservations where id = (select r ->> 'id' from bu16)::uuid),
+                (select kill_switch::text from ops.config),
+                (select count(*)::text from ops.kill_switch_events where reason like '%overrun%')],
+          array['overrun', 'true', 'true', 'true', '1'],
+  'BU-16 a receipt beyond the reservation records overrun = true, turns the kill switch on, and writes a '
+  || 'kill_switch_events row');
+
+create temp table bu17 on commit drop as select tests.as_role('arena_referee', format(
+  'select ops.reserve_model_call(%L,%L,%L,%L,%L,null,null,1000)', 'bu17-call-0001', 'global',
+  'gemini-3.5-flash-lite', 'referee', 'referee_assistant')) as r;
+create temp table bu17v on commit drop as select tests.as_role('arena_subject', format(
+  'select ops.reserve_voice(%L,%L,%L,%L,null,null)', 'bu17-voice-0001', 'global', 'voice_probe', 'voice.probe')) as r;
+create temp table bu17d on commit drop as select tests.as_role('arena_public', format(
+  'select ops.mark_dispatched(%L)', (select r ->> 'id' from bu16))) as r;
+create temp table bu17u on commit drop as select tests.as_role('arena_public', $$ select ops.admit_unit('global', 0.01) $$) as r;
+-- admit_unit's decision carries ops.admit_unit's own bare 'skip' value (the one exact literal the suite's
+-- pgTAP-directive ban exempts); kept apart from its reason here so no array element pairs it with other
+-- text (which the ban would then catch as the pgTAP directive, not the exempted literal).
+select is(array[concat_ws('/', (select r ->> 'outcome' from bu17), (select r ->> 'reason' from bu17)),
+                concat_ws('/', (select r ->> 'outcome' from bu17v), (select r ->> 'reason' from bu17v)),
+                concat_ws('/', (select r ->> 'outcome' from bu17d), (select r ->> 'reason' from bu17d)),
+                (select r ->> 'decision' from bu17u), (select r ->> 'reason' from bu17u)],
+          array['refused/kill_switch', 'refused/kill_switch', 'refused/kill_switch', 'skip', 'kill_switch'],
+  'BU-17 while the kill switch is on, reserve_model_call, reserve_voice and mark_dispatched are each '
+  || 'refused (kill_switch); admit_unit''s own no-op decision and reason are kill_switch''s own vocabulary');
+select ops.set_kill_switch(false, 'bu17 restore');
+-- bu17v's own reservation attempt was itself refused (kill_switch), so it wrote no row to release.
+
+-- BU-18
+select is(array[
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', $q$ select ops.set_kill_switch(true, 'x') $q$)),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_subject', $q$ select ops.set_kill_switch(true, 'x') $q$)),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_referee', $q$ select ops.set_kill_switch(true, 'x') $q$)),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public',
+      $q$ select ops.set_bucket_ceiling('global', null, 1.00, 'x') $q$)),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_subject',
+      $q$ select ops.set_bucket_ceiling('global', null, 1.00, 'x') $q$)),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_referee',
+      $q$ select ops.set_bucket_ceiling('global', null, 1.00, 'x') $q$))],
+  array['42501', '42501', '42501', '42501', '42501', '42501'],
+  'BU-18 set_kill_switch and set_bucket_ceiling are owner-only: every runtime role is refused (42501)');
+
+-- BU-19
+create temp table bu19 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu19-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu19)));
+select tests.as_role('arena_public', format('select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu19), 'usage_unknown'));
+create temp table bu19b on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu19b-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select is(array[
+    tests.sqlstate(format('update ops.budget_reservations set settled_at = now() where id = %L', (select r ->> 'id' from bu19))),
+    tests.sqlstate(format('update ops.budget_reservations set model = %L where id = %L', 'gemini-3.1-flash-lite',
+      (select r ->> 'id' from bu19b)))],
+  array['AR010', 'AR010'],
+  'BU-19 any update on an already-settled reservation, and an identity-field change on a still-open one, are '
+  || 'each refused (AR010)');
+
+-- BU-20
+select is(array[
+    tests.sqlstate($$ update ops.model_prices set text_in = text_in where model = 'gemini-3.5-flash-lite' $$),
+    tests.sqlstate($$ update ops.call_limits set input_limit = input_limit where call_kind = 'card' $$)],
+  array['AR010', 'AR010'],
+  'BU-20 ops.model_prices and ops.call_limits are append-only (AR010)');
+
+-- BU-25
+create temp table bu25f on commit drop as select ceiling_usd - liability_usd as f from ops.budget_status() where bucket = 'global';
+select is(array[
+    (tests.as_role('arena_public', format('select ops.admit_unit(%L, %s)', 'global',
+       (select f / 1.5 - 0.01 from bu25f))) ->> 'decision'),
+    (tests.as_role('arena_referee', format('select ops.admit_unit(%L, %s)', 'global',
+       (select f / 1.5 + 0.01 from bu25f))) ->> 'decision')],
+  array['admit', 'skip'],
+  'BU-25 admit_unit admits a unit when global has at least 1.5x its high cost free, and skips just below that '
+  || 'margin (ADMIT_FACTOR)');
+
+-- BU-26
+select is(array[ops.liability('released', 5, 0)::text, ops.liability('reserved', 5, null)::text,
+                ops.liability('usage_unknown', 5, null)::text, ops.liability('committed', 5, 3)::text],
+          array['0', '5', '5', '3'],
+  'BU-26 ops.budget_status reports subtree liability per bucket: released at 0, open and usage_unknown at the '
+  || 'reservation, committed at the settled receipts');
+
+-- BU-30 (C-31, X-02): all four purposes on gemini-3.5-flash-lite at 12,000 bytes reserve the BU-03 worst case.
+select is(array[
+    tests.sqlstate($$ select ops.reserve_model_call('bu30-bad-00001', 'global', 'gemini-3.5-flash-lite', 'referee',
+                                                    'not_a_purpose', null, null, 12000) $$),
+    (tests.as_role('arena_referee', $$ select ops.reserve_model_call('bu30-rs-00001', 'global', 'gemini-3.5-flash-lite',
+       'referee', 'referee_subject', null, null, 12000) $$) ->> 'reserved_usd'),
+    (tests.as_role('arena_referee', $$ select ops.reserve_model_call('bu30-ra-00001', 'global', 'gemini-3.5-flash-lite',
+       'referee', 'referee_assistant', null, null, 12000) $$) ->> 'reserved_usd'),
+    (tests.as_role('arena_referee', $$ select ops.reserve_model_call('bu30-r3s-00001', 'global', 'gemini-3.5-flash-lite',
+       'referee', 'r3_subject', null, null, 12000) $$) ->> 'reserved_usd'),
+    (tests.as_role('arena_referee', $$ select ops.reserve_model_call('bu30-r3i-00001', 'global', 'gemini-3.5-flash-lite',
+       'referee', 'r3_investigator', null, null, 12000) $$) ->> 'reserved_usd')],
+  array['AR007', '0.054400', '0.054400', '0.054400', '0.054400'],
+  'BU-30 a referee purpose outside the four is refused (AR007); each of the four (referee_subject, '
+  || 'referee_assistant, r3_subject, r3_investigator) reserves (X-02)');
+
+-- BU-31 (X-09)
+select is(array[
+    (tests.as_role('arena_public', $$ select ops.reserve_model_call('bu31-portrait-1', 'global', 'gemini-3.5-flash-lite',
+       'portrait', 'portrait.initial', null, null, 2000) $$) ->> 'reserved_usd'),
+    tests.sqlstate($$ select ops.reserve_model_call('bu31-portrait-2', 'global', 'gemini-3.1-pro-preview', 'portrait',
+                                                    'portrait.initial', null, null, 2000) $$)],
+  array['0.022400', 'AR007'],
+  'BU-31 portrait on a priced model at 2,000 bytes reserves 4 x (2000 x text_in + 2000 x text_out) / 1e6 '
+  || '(0.022400 on 3.5-flash-lite, X-09); on a model with no price row it is refused (AR007)');
+
+-- BU-32 (D11)
+select is(tests.as_role('arena_public', $$ select ops.reserve_model_call('bu32-card-00001', 'global',
+    'gemini-3.5-flash-lite', 'card', 'coach.card', null, null, 2500) $$) ->> 'reserved_usd',
+  '0.019000',
+  'BU-32 D11: a 2,500-byte card on 3.5-flash-lite reserves 4 x (2500 x 0.30 + 1600 x 2.50) / 1e6 = 0.019000');
+
+-- BU-33 (D11)
+select is(array[
+    tests.sqlstate($$ select ops.reserve_model_call('bu33-over-00001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                                    'coach.card', null, null, 128001) $$),
+    tests.sqlstate($$ select ops.reserve_model_call('bu33-zero-00001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                                    'coach.card', null, null, 0) $$),
+    tests.sqlstate($$ select ops.reserve_model_call('bu33-null-00001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                                    'coach.card', null, null, null) $$),
+    (tests.as_role('arena_public', $$ select ops.reserve_model_call('bu33-key-00001', 'global', 'gemini-3.5-flash-lite',
+       'card', 'coach.card', null, null, 1000) $$) ->> 'outcome'),
+    -- Same role as the reservation above (reservation identity includes caller_role via ops.invoker_role()):
+    -- an unwrapped call here would run as a different role and raise AR003 on that mismatch alone, whatever
+    -- the byte count is, masking whether input_bytes is actually part of the identity check.
+    tests.error(format('select tests.as_role(%L, %L)', 'arena_public',
+      $$ select ops.reserve_model_call('bu33-key-00001', 'global', 'gemini-3.5-flash-lite', 'card',
+                                       'coach.card', null, null, 2000) $$))],
+  array['AR007', 'AR007', 'AR007', 'reserved', 'AR003: reservation key reused with different inputs'],
+  'BU-33 D11: input_bytes over the call kind''s limit, 0, or null are each refused (AR007); the same key with '
+  || 'another byte count is refused (AR003)');
+
+-- BU-34 (D3)
+create temp table bu34 on commit drop as select tests.as_role('arena_public',
+  $$ select ops.reserve_model_call('bu34-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                   null, null, 1000) $$) as r;
+select tests.as_role('arena_public', format('select ops.mark_dispatched(%L)', (select r ->> 'id' from bu34)));
+select is(array[(tests.as_role('arena_public',
+    $$ select ops.reserve_model_call('bu34-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                     null, null, 1000) $$) ->> 'outcome'),
+                (tests.as_role('arena_public',
+    $$ select ops.reserve_model_call('bu34-key-0001', 'global', 'gemini-3.5-flash-lite', 'card', 'coach.card',
+                                     null, null, 1000) $$) ->> 'dispatched')],
+  array['exists', 'true'],
+  'BU-34 D3: a repeated reservation key after mark_dispatched returns exists with dispatched = true');
+
+-- BU-35 (SG3-11)
+create temp table bu35 on commit drop as select tests.as_role('arena_subject',
+  $$ select ops.reserve_model_call('bu35-key-0001', 'global', 'gemini-3.5-flash-lite', 'subject', 'subject.answer',
+                                   null, null, 1000) $$) as r;
+select is(array[
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', format('select ops.mark_dispatched(%L)',
+      (select r ->> 'id' from bu35)))),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'select ops.record_usage(%L, 1, %L, 100, 50, 0, 0, 0, %L, 100, null, null)', (select r ->> 'id' from bu35),
+      'gemini-3.5-flash-lite', 'ok'))),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu35), 'usage_unknown'))),
+    tests.error(format('select tests.as_role(%L, %L)', 'arena_public',
+      'select ops.reserve_model_call(''bu35-key-0001'', ''global'', ''gemini-3.5-flash-lite'', ''subject'', '
+      || $x$'subject.answer', null, null, 1000)$x$))],
+  array['AR040', 'AR040', 'AR040', 'AR003: reservation key reused with different inputs'],
+  'BU-35 SG3-11 ownership: arena_public calling mark_dispatched, record_usage or settle_reservation on a '
+  || 'reservation arena_subject made is refused (AR040) each time; reusing its key is refused (AR003, the '
+  || 'caller role differs)');
+
+-- BU-36 (SG3-11)
+create temp table bu36 on commit drop as select tests.as_role('arena_subject',
+  $$ select ops.reserve_voice('bu36-voice-0001', 'global', 'voice_probe', 'voice.probe', null, null) $$) as r;
+select is(tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_subject', format(
+    'select ops.settle_reservation(%L, %L)', (select r ->> 'id' from bu36), 'released'))),
+  'AR001',
+  'BU-36 SG3-11: settle_reservation on a voice reservation (even by its own role) is refused (AR001); voice '
+  || 'holds settle only through settle_voice_reservation');
+-- release the voice_probe reservation this test opened (same concurrency-slot reason as BU-17's cleanup).
+select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', (select r ->> 'id' from bu36), 'released'));
+
+-- BU-37 (D7)
+create temp table bu37tour on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+create temp table bu37t on commit drop as select tests.trial((select tour from bu37tour), 3) as trial;
+select tests.as_role('arena_public', format('select arena.start_trial(%L)', (select trial from bu37t)));
+create temp table bu37v on commit drop as select tests.as_role('arena_subject', format(
+  'select ops.reserve_voice(%L, %L, %L, %L, %L, null)', 'bu37-voice-0001', 'global', 'voice_session', 'voice.session',
+  (select trial from bu37t))) as r;
+create temp table bu37vbefore on commit drop as select state, reserved_usd from ops.budget_reservations
+ where id = (select r ->> 'id' from bu37v)::uuid;
+create temp table bu37c on commit drop as select tests.as_role('arena_public', format(
+  'select ops.reserve_model_call(%L, %L, %L, %L, %L, %L, null, 1000)', 'bu37-card-0001', 'global',
+  'gemini-3.5-flash-lite', 'card', 'coach.card', (select trial from bu37t))) as r;
+select is(array[(select r ->> 'outcome' from bu37c), (select (r ->> 'bucket' is null)::text from bu37c),
+    ((select state from ops.budget_reservations where id = (select r ->> 'id' from bu37v)::uuid)
+       = (select state from bu37vbefore))::text,
+    ((select reserved_usd from ops.budget_reservations where id = (select r ->> 'id' from bu37v)::uuid)
+       = (select reserved_usd from bu37vbefore))::text],
+  array['reserved', 'true', 'true', 'true'],
+  'BU-37 D7: a card reservation for a trial with an open voice session is itself reserved against global '
+  || '(reserve_model_call''s own result carries no parent-bucket field), and leaves the voice hold''s state '
+  || 'and reserved_usd unchanged');
+-- release the voice_session reservation this test opened (same concurrency-slot reason as BU-17's cleanup).
+select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', (select r ->> 'id' from bu37v), 'released'));
+
 -- BU-42 (D-017): the per-user daily cap is $5.00, against the actor's whole daily liability (holds reserved or
 -- usage_unknown at their amount, settled holds at their receipts). Actor D: one voice hold ($3.392520) fits; a second
 -- is refused per_user_cap while the first is reserved; a 6,000-byte card ($0.023200) still fits; after the first
@@ -299,6 +660,10 @@ select is((select array_agg(val order by step) from bu41 where step > 1),
 
 select is_empty($$ select * from tests.plan_mismatches((select plan from t_plan), false) $$,
   'BU-29 at the end of the file the bucket table still equals --plan-json (the gate-proof change was restored)');
+
+-- BU-23 (D-013): every reservation this file made (BU-02 onward) named bucket global explicitly.
+select is((select count(*)::text from ops.budget_reservations where bucket <> 'global'), '0',
+  'BU-23 D-013: no reservation row this file made names any bucket other than global');
 
 select * from finish();
 rollback;

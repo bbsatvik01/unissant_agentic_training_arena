@@ -154,3 +154,8 @@
 ## 2026-10-11 · D-024 Fidelity pilot runs through WP-13; actor on subject calls
 - **Decision:** coordinator. The fidelity pilot (S2 11.4) runs real trials created through WP-13's orchestrator instead of synthetic trial IDs (spend reservations FK to arena.trials). WP-13 passes the investigator's user id into subject/coach calls so the per-user daily cap (D-017) applies; any schema change for it goes through the owner-approved migration path.
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-025 Realistic characters, not stylized figures
+- **Decision:** owner directive ("the ui has to be fully realistic, use amazing personalities ... realistic movements and speaking ... do not simply use stick figures"). Characters are realistic rigged 3D humans (open-licensed avatar sets such as Microsoft Rocketbox (MIT) or VRM/GLB with ARKit blendshapes), animated with motion-capture clips (idle, sit, gesture, listen, think, type), with lip-synced speech (viseme-driven, e.g. the MIT TalkingHead approach on three.js) and distinct personalities per subject persona and coach (look, voice, gesture set). Licences verified before use; assets stored locally. Supersedes D-020's "procedural, stylized geometry" for characters; rooms may stay lightweight. PRB-4 still applies: no nervous or stress tells keyed to role.
+- **Also:** KPI-1 study with the owner and one friend on 2026-10-24 (owner confirmed).
+- **Reversibility:** moderate.

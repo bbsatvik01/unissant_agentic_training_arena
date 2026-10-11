@@ -4,3 +4,6 @@
  */
 export const EX4_TEXT =
   "All cases are synthetic. Evasive wording alone does not prove a violation, and a simulated score is not a finding about a real person.";
+
+/** The sentence shown beside flag lists (S6 8): taken verbatim from `EX4_TEXT`, never retyped (FE-EX4-3). */
+export const EX4_EVASION_SENTENCE = EX4_TEXT.slice(EX4_TEXT.indexOf("Evasive"), EX4_TEXT.indexOf(", and a simulated"));

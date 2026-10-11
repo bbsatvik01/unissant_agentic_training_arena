@@ -1,4 +1,11 @@
--- 016_finding.sql (S2 4.8, S5 5.4; WP-02). Rows for migration 1000 (proposed for the spec): the stored finding the
+-- 002a_finding_contract.sql (S2 4.8, S5 5.4; WP-02; renumbered from 016_finding.sql in WP-04 to free the TESTS.md
+-- section-16 name 016_training_tickets.sql for its own file, then again from 021_finding_contract.sql: CH-09
+-- below needs no tournament to exist in the database at all, which a plain filename sort no longer gave once
+-- 010_concurrency.sql's dblink-committed tournaments (frozen, with finding commitments, undeletable under
+-- arena's on-delete-restrict schema and its append-only ledger) outlived their own file's rollback. 002a..002c
+-- sort right after 002_cases_and_seal.sql and before every numbered TESTS.md section file, so the migration
+-- guard's own global preconditions -- CH-09 here, CH-06 in 002b, CH-08 in 002c -- still hold). Rows for
+-- migration 1000: the stored finding the
 -- shared contract produces (arena_core.contracts.findings.InvestigatorFinding.stored(), its canonical JSON below,
 -- checked against the contract by packages/core/tests/contracts/test_finding_sql.py) commits through
 -- arena.finalize_trial. FN-01 an alternative_explanations that is neither an array nor null is still AR007;

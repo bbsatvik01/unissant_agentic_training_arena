@@ -39,3 +39,10 @@ WP-02 added `src/lib/contracts`: the wire types and schemas generated from `cont
 - `src/lib/trial/sessionController.ts`: snapshot bootstrap, ticketed stream from `snapshot.last_seq`, every frame through the compiled validators before the reducer, KPI-4 acknowledgements (S6 5.6), the 1 s catch-up check, the 60 s hidden-tab close and resume, and the end of a session through `debrief.ready`, a published debrief or a 409 `stream_closed` (SG4-21).
 
 Test helpers that build valid frame logs from the shared wire fixtures live in `src/test/`.
+
+UI stage 1 (D-020, D-021) added the 3D world and recorded playback:
+
+- `src/lib/world`: the pure layer the scene is a function of. `worldState.ts` (`deriveWorld`: reducer view, session clock and frame arrivals to one `WorldState`: figure poses, coach desks, evidence wall, flag moment, seal, companion pose, camera shot, caption), `recording.ts` (the `arena.recording.v1` format, arrival keys, the playback cursor: `seek` folds the recording's frames through `trialReducer`), `parseRecording.ts` (whole-recording validation against the wire schemas), `cadence.ts` (speech timing and mouth openness from text shape), `layout.ts` (geometry and camera shots), `cases.ts`, `palette.ts`.
+- `src/components/world`: the lazily loaded scene (react-three-fiber): precinct hub with the case board, corridor flight, interview room with the evidence wall, one-way mirror, observation room with three coach desks, subject figure and companion; GSAP for the signature moments.
+- `src/components/overlay`: transcript, coach card, evidence list, findings lock, composer, playback bar, debrief score.
+- `src/fixtures/recordings/F01-truthful.json`: a hand-built practice run on dev case F01 (truthful variant), validated in `recording.test.ts`. `?fps` in the URL publishes frame-interval samples on `window.__arenaFps`.
