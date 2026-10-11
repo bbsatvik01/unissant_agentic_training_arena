@@ -140,3 +140,7 @@
 - **Decision:** owner directive ("all the runs we do locally need to be recorded ... played back ... so that no spend is wasted"). The persisted event log plus stored model outputs is the recording. Each trial exports to a self-contained recording file (`recordings/<trial>.json`, `make export-run`); the UI has a Playback mode that replays a recording through the same reducer into the same 3D world with original timing (speed control, scrub), with no API or model call. Recordings double as the demo fallback in front of judges.
 - **Files:** WP-13 (export route/command), UI lead (player).
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-022 Codex rounds and budget posture
+- **Decision:** owner directive. Each agent may run up to 7 Codex rounds. Real bugs found by Codex are fixed; hardening for rare edge cases is recorded in one line and skipped. The $74 global budget plan is approved for application to the database (after migration 0600 lands); the owner asked not to be overly strict about budget, so tuning stays loose (no extra per-phase limits).
+- **Reversibility:** cheap.
