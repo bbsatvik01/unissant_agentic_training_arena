@@ -53,6 +53,8 @@ class HiddenTournamentError(Exception):
 
 MAX_ATTEMPTS = 3  # S4 arena.retry_trial: at most 3 attempts total (2 retries after infra_failed)
 BUCKET = "global"  # D-013: one global spend bucket
+# S3: "every completed and assistant_failed trial" needs review (assistant_failed counts as insufficient_evidence)
+NEEDS_REVIEW = frozenset({Execution.COMPLETED, Execution.ASSISTANT_FAILED})
 Attempt = dict[str, Any]
 Row = Mapping[str, Any]
 Step = Callable[[UUID], Awaitable[Execution]]
@@ -181,7 +183,7 @@ class TournamentRunner:
 
             async def step(trial_id: UUID) -> Execution:
                 outcome = await ReplayScorer(self.db, self.orchestrator).run(trial_id)
-                if outcome is Execution.COMPLETED:
+                if outcome in NEEDS_REVIEW:
                     await self.referee.score_trial(trial_id)
                 return outcome
 

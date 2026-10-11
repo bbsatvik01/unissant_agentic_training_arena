@@ -13,9 +13,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from arena_core.agents.manifests import CandidateManifest
 from arena_core.db.arena import ArenaDb
 from arena_core.turns.harness import Execution
 from arena_core.turns.orchestrator import Orchestrator
+from arena_tournament import admission
+from arena_tournament import runner as runner_module
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.runner import MAX_ATTEMPTS, Attempt, HiddenTournamentError, TournamentRunner
 
@@ -204,3 +207,45 @@ def test_run_replay_track_prerequisite_proceeds_for_a_dev_tournament() -> None:
     db = _FakeDb(split="dev")
     runner = _runner_with(db, _FakeOrchestrator())
     run(runner.run_replay_track_prerequisite(uuid4()))  # an empty roster: nothing else to do
+
+
+class _FakeReferee:
+    def __init__(self) -> None:
+        self.scored: list[UUID] = []
+
+    async def score_trial(self, trial: UUID) -> None:
+        self.scored.append(trial)
+
+
+@pytest.mark.parametrize(
+    ("outcome", "scored"),
+    [
+        (Execution.COMPLETED, True),
+        (Execution.ASSISTANT_FAILED, True),  # S2/S3: judged too, as included_as_insufficient
+        (Execution.BUDGET_TRUNCATED, False),
+    ],
+)
+def test_replay_track_scores_every_trial_that_needs_review(
+    monkeypatch: pytest.MonkeyPatch, outcome: Execution, *, scored: bool
+) -> None:
+    """S3: "every completed and assistant_failed trial" needs review, so a replay trial whose final call failed
+    still goes to the referee (a real gap, Codex round 2: only COMPLETED was dispatched)."""
+
+    class _Scorer:
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        async def run(self, _trial: UUID) -> Execution:
+            return outcome
+
+    monkeypatch.setattr(runner_module, "ReplayScorer", _Scorer)
+    monkeypatch.setattr(admission, "replay_trial_calls", lambda _manifest: [])
+    referee = _FakeReferee()
+    runner = _runner_with(_FakeDb(), _FakeOrchestrator())
+    runner.referee = cast("RefereeClient", referee)
+    planned_id, assistant_id = uuid4(), uuid4()
+    runner.manifests = {assistant_id: cast("CandidateManifest", object())}
+    attempts = _attempts(None)
+    row = {"planned_trial_id": planned_id, "assistant_candidate_id": assistant_id}
+    run(runner._run_replay_track([row], {planned_id: attempts}))
+    assert referee.scored == ([attempts[0]["trial_id"]] if scored else [])
