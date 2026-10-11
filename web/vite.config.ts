@@ -12,7 +12,9 @@ const ARENA_API_ORIGIN = proxyTarget(process.env["ARENA_PROXY_TARGET"]);
 /**
  * The proxy target: arena-api on 8080 by default. `ARENA_PROXY_TARGET=http://127.0.0.1:8082` fronts the referee
  * instead, so the trainer and admin consoles (S6 4.12, 4.13) boot from the referee's own `/api/me` in local
- * development. Only a loopback http origin is accepted.
+ * development. Only a loopback http origin is accepted. The referee checks each POST's Origin against its own
+ * allowlist (`ARENA_BROWSER_ORIGINS`, default its own port), so console submissions through this dev server need
+ * that allowlist to name the dev server's origin; the spec's path is the referee serving the built bundle itself.
  */
 export function proxyTarget(value: string | undefined): string {
   if (value === undefined || value === "") return "http://127.0.0.1:8080";

@@ -7,6 +7,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { EX4_TEXT } from "../lib/copy/ex4";
 import { fixture } from "../test/wire-fixtures";
 import { ConsoleRoute } from "./ConsoleRoute";
 
@@ -43,6 +44,8 @@ describe("ConsoleRoute", () => {
     render(<ConsoleRoute kind={kind} />);
     expect(await screen.findByText("Not available here.")).toBeTruthy();
     expect(calls).toEqual(["GET /api/me"]);
+    // FE-EX4-1: the full statement on every route.
+    expect(screen.getByText(EX4_TEXT)).toBeTruthy();
   });
 
   it("lets a trainer open an item, answer every field and submit, with no timestamp on screen", async () => {
@@ -111,6 +114,7 @@ describe("ConsoleRoute", () => {
     });
     expect((reveal as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Off.")).toBeTruthy();
+    expect(screen.getByText(EX4_TEXT)).toBeTruthy();
     const budget = screen.getByRole("region", { name: "Budget" });
     expect(within(budget).getByText("$75.00")).toBeTruthy();
     expect(calls.some((c) => c.startsWith("POST"))).toBe(false);

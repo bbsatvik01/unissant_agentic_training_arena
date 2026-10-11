@@ -1660,3 +1660,7 @@ td {
     padding: var(--arena-space-4);
   }
 }
+.console-ex4 {
+  padding-top: var(--arena-space-4);
+  border-top: 1px solid var(--arena-hairline);
+}

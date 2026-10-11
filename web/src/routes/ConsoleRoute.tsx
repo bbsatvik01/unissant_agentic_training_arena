@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminConsole } from "../components/console/AdminConsole";
 import { TrainerConsole } from "../components/console/TrainerConsole";
 import { createApiClient, type Me } from "../lib/api/client";
+import { EX4_TEXT } from "../lib/copy/ex4";
 import { createConsoleApi } from "../lib/api/console";
 import { useAdmin } from "./console/useAdmin";
 import { useReview } from "./console/useReview";
@@ -70,6 +71,7 @@ export function ConsoleRoute({ kind }: { kind: "review" | "admin" }) {
         />
       ) : null}
       {allowed && kind === "admin" ? <AdminConsole budget={admin.budget} tournaments={admin.tournaments} preconditions={admin.preconditions} reviews={admin.reviews} busy={admin.busy} message={admin.message} onAction={admin.act} onVerdict={admin.decide} /> : null}
+      <footer className="console-ex4 fine">{EX4_TEXT}</footer>
     </div>
   );
 }
