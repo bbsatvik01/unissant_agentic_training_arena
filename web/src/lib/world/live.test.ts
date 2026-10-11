@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { LogBuilder, snapshot } from "../../test/trial-log";
 import { initialTrialState, trialReducer } from "../trial/trialReducer";
-import { EMPTY_TRACKER, trackArrivals } from "./live";
+import { draftAfterSend, EMPTY_TRACKER, trackArrivals } from "./live";
 
 describe("trackArrivals (the live seam)", () => {
   it("ignores a state without a snapshot", () => {
@@ -24,5 +24,13 @@ describe("trackArrivals (the live seam)", () => {
     expect(trackArrivals(next, state, 3000)).toBe(next);
     t = next;
     expect(t.started).toBe(true);
+  });
+});
+
+describe("draftAfterSend", () => {
+  it("clears the draft that was sent, and keeps one typed while the request was in flight", () => {
+    expect(draftAfterSend("Where were you?", "Where were you?")).toBe("");
+    expect(draftAfterSend("And after that?", "Where were you?")).toBe("And after that?");
+    expect(draftAfterSend("", "Where were you?")).toBe("");
   });
 });

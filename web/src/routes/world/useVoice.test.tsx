@@ -130,4 +130,28 @@ describe("useVoice", () => {
     expect(cancel).toHaveBeenCalled();
     expect(speak).toHaveBeenCalledTimes(2);
   });
+
+  it("keeps a coach suggestion queued behind the answer when the next question comes", () => {
+    const clock = { current: 1000 };
+    const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-6" };
+    const { rerender } = renderHook((p: typeof props) => {
+      useVoice(p);
+    }, { initialProps: props });
+    speak.mock.calls[0]?.[0].onstart?.();
+    clock.current = 1200;
+    rerender({ ...props, world: world(LINE, null, true) });
+    expect(speak.mock.calls[1]?.[0].text).toBe("Suggested follow-up: What time did you leave?");
+    cancel.mockReset();
+    const question = { turn: 2, text: "What time did you leave B-12?", startedAt: 1400 };
+    clock.current = 1450;
+    rerender({ ...props, world: world(null, question, false) });
+    expect(cancel).not.toHaveBeenCalled();
+    expect(speak.mock.calls[2]?.[0].text).toBe(question.text);
+    // Once the coach has spoken, dialogue supersedes dialogue again.
+    speak.mock.calls[1]?.[0].onend?.();
+    const next = { turn: 3, text: "And then?", startedAt: 3000 };
+    clock.current = 3050;
+    rerender({ ...props, world: world(null, next, false) });
+    expect(cancel).toHaveBeenCalled();
+  });
 });

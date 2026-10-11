@@ -48,3 +48,9 @@ export function trackArrivals(tracker: ArrivalTracker, state: TrialState, nowMs:
   for (const frame of fresh) arrivals = noteArrival(arrivals, frame, nowMs);
   return { seenSeqs: seqs, seenHints: hints, arrivals, started: true };
 }
+
+/** The composer's draft once a question was accepted: cleared only when it still holds the question sent, so a next
+ * question typed (or taken from a card) while the earlier request was in flight is kept. */
+export function draftAfterSend(current: string, sent: string): string {
+  return current === sent ? "" : current;
+}

@@ -43,6 +43,8 @@ interface Memory {
   cards: Set<number>;
   lastClock: number;
   speaking: { readonly utterance: SpeechSynthesisUtterance; readonly kind: "dialogue" | "coach" } | null;
+  /** Coach utterances queued or speaking: while any is, a new line queues instead of cancelling. */
+  coachPending: number;
 }
 
 /** Speak `text`; a dialogue line reports its voice to `speechSync` (queued until it starts, so its mouth waits). */
@@ -57,7 +59,13 @@ function speak(memory: Memory, kind: "dialogue" | "coach", persona: Persona, tex
   u.rate = line === null ? rate : fitRate(text, rate);
   u.volume = volume;
   const epoch = speechSync.epoch();
+  let pending = kind === "coach";
+  if (pending) memory.coachPending += 1;
   const done = () => {
+    if (pending) {
+      pending = false;
+      memory.coachPending = Math.max(0, memory.coachPending - 1);
+    }
     if (memory.speaking?.utterance === u) memory.speaking = null;
     if (line !== null) speechSync.end(line, epoch);
   };
@@ -77,6 +85,7 @@ function speak(memory: Memory, kind: "dialogue" | "coach", persona: Persona, tex
 /** Stop every voice; lines go back to their text cadence. */
 function silence(memory: Memory): void {
   memory.speaking = null;
+  memory.coachPending = 0;
   speechSync.clear();
   synth()?.cancel();
 }
@@ -94,7 +103,7 @@ function noteClock(memory: Memory, now: number): void {
 }
 
 export function useVoice({ world, view, subjectName, clock, active, scope }: Options): void {
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null });
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0 });
   useEffect(() => {
     forget(memory.current);
     memory.current.lastClock = 0;
@@ -126,8 +135,9 @@ export function useVoice({ world, view, subjectName, clock, active, scope }: Opt
       if (m.spoken.has(key)) continue;
       m.spoken.add(key);
       if (clock.current - line.startedAt > START_WINDOW_MS) continue;
-      // A newer line supersedes the dialogue being spoken; the coach's suggestion is never cut, the line waits.
-      if (m.speaking?.kind !== "coach") synth()?.cancel();
+      // A newer line supersedes the dialogue being spoken; the coach's suggestion (speaking or queued) is never
+      // cut: the line waits behind it.
+      if (m.coachPending === 0) synth()?.cancel();
       speak(m, "dialogue", who === "s" ? subjectPersona(subjectName) : INVESTIGATOR, line.text, 1, line, clock);
     }
   }, [active, subject, question, subjectName, clock]);

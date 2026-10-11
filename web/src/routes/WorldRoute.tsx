@@ -27,6 +27,7 @@ import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
 import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { draftAfterSend } from "../lib/world/live";
 import type { CaseDocument, Recording } from "../lib/world/recording";
 import type { WorldState } from "../lib/world/worldState";
 import { useLiveSession } from "./world/useLiveSession";
@@ -583,7 +584,7 @@ export function WorldRoute() {
                   reason === null
                     ? (text) => {
                         void session.ask(text).then((ok) => {
-                          if (ok) setDraft("");
+                          if (ok) setDraft((current) => draftAfterSend(current, text));
                         });
                       }
                     : null
