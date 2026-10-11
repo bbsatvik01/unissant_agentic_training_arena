@@ -1029,6 +1029,11 @@ td {
 }
 
 /* The debrief floats above the panels (outside the 3D view's stacking context). */
+.debrief {
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+}
+
 .debrief,
 .debrief-open {
   position: fixed;
@@ -1134,5 +1139,9 @@ td {
     width: auto;
     top: 72px;
     bottom: auto;
+  }
+
+  .debrief {
+    max-height: calc(100vh - 84px);
   }
 }
