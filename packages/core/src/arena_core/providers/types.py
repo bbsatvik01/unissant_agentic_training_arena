@@ -100,6 +100,8 @@ class AgentCall[T: BaseModel]:
     # Passed to the schema's validators on every reply (for example a SubjectContext or a CitationContext): the
     # context-dependent rules of S2 4.2, 6.8 and 7.2 are part of the schema the one repair answers (S2 10).
     validation_context: object | None = None
+    # The request's untrusted-tag salt (S2 1): a reply that repeats it is refused like a schema failure.
+    salt: str | None = None
 
 
 @dataclass(frozen=True)

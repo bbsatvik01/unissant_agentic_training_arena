@@ -17,9 +17,6 @@ ATTEMPTS = 4
 REPAIR_BYTES = 5_200
 # S2 10 (TechnoMile a2a.py REPAIRS = 1).
 MAX_REPAIRS = 1
-# S2 10: a repair lists at most 10 `field.path: message` items of at most 100 bytes each.
-REPAIR_ERROR_ITEMS = 10
-REPAIR_ERROR_ITEM_BYTES = 100
 
 
 class CallType(StrEnum):

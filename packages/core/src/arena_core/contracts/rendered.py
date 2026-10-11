@@ -6,10 +6,11 @@ Both are pure and memoized (a prompt renders the same answers and records on eve
 It never raises: text built so that every pass rebuilds a marker (`<sys<system>tem>` nested past any pass count)
 loses its angle and square brackets, after which no marker can form.
 
-`rendered_bytes` is the D11 measure of a field: the UTF-8 bytes its cleaned text occupies in a serialized request
-(JSON string escapes included: `"` and `\\` count 2, a control character 6). NFKC can expand one character to 18
-(U+FDFA) and escaping doubles a quote, so neither a character cap nor a raw byte cap bounds a prompt; every byte
-bound S2 sets on a field is checked on this measure (`check_rendered`, `rendered_overruns`):
+`rendered_bytes` is the D11 measure of a field: the wire bytes its cleaned text occupies in the request body the SDK
+transmits (D-019, `common.wire_bytes`: `"` and `\\` count 2, a control character 6, a non-ASCII character 6).
+NFKC can expand one character to 18 (U+FDFA) and escaping doubles a quote, so neither a character cap nor a raw
+byte cap bounds a prompt; every byte bound S2 sets on a field is checked on this measure (`check_rendered`,
+`rendered_overruns`):
 
 - an investigator or harness question: at most 600 characters and `QUESTION_MAX_BYTES` (2,400) rendered bytes
   (`check_question`; S5's turn submission refuses a longer one before commit, and S6's form states the same bound);
@@ -19,7 +20,6 @@ bound S2 sets on a field is checked on this measure (`check_rendered`, `rendered
 
 from __future__ import annotations
 
-import json
 import re
 import typing
 from dataclasses import dataclass, replace
@@ -29,10 +29,10 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from arena_core.agents.fence import sanitize_untrusted_text
-from arena_core.contracts.common import ByteLimit
+from arena_core.contracts.common import ByteLimit, wire_bytes
 
 QUESTION_MAX_CHARS = 600
-QUESTION_MAX_BYTES = 2400  # S2 1, 2: 600 characters counted at 4 bytes each
+QUESTION_MAX_BYTES = 2400  # S2 1, 2; D-019: wire bytes (600 ASCII characters fit; 400 BMP characters)
 ANSWER_MAX_BYTES = 1800
 ANSWER_MAX_CHARS = 900
 _WHITESPACE = re.compile(r"\s+")
@@ -63,8 +63,8 @@ def clean(text: str) -> str:
 
 
 def rendered_bytes(text: str) -> int:
-    """UTF-8 bytes `text` occupies in a serialized request once cleaned (D11)."""
-    return len(json.dumps(clean(text), ensure_ascii=False).encode("utf-8")) - 2
+    """The wire bytes `text` occupies in a request once cleaned (D11, D-019: `common.wire_bytes` of the clean text)."""
+    return wire_bytes(clean(text))
 
 
 def check_rendered(text: str, max_bytes: int, what: str, max_chars: int | None = None) -> str:

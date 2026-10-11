@@ -22,6 +22,9 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import Tracer
 from pydantic import BaseModel, Field
 
+from arena_core.agents.budget import request_bytes as budget_request_bytes
+from arena_core.agents.coach_prompts import Prompt
+from arena_core.agents.repair import MAX_ERROR_BYTES, MAX_ERRORS, UNKNOWN_KEY, output_errors, repair_message
 from arena_core.contracts.subject import SubjectContext, SubjectTurn
 from arena_core.db.calls import GuardProtocolError, ModelCallRequest, SettleOutcome, UsageReport, UsageResult
 from arena_core.providers.errors import (
@@ -48,6 +51,7 @@ from arena_core.providers.port import (
     seed_for,
 )
 from arena_core.providers.retry import RetryPolicy
+from arena_core.providers.structured import sent_schema
 from arena_core.providers.types import (
     AgentCall,
     AgentResult,
@@ -66,8 +70,6 @@ from arena_core.spend.limits import (
     DEFAULT_TIMING,
     LIMITS,
     REPAIR_BYTES,
-    REPAIR_ERROR_ITEM_BYTES,
-    REPAIR_ERROR_ITEMS,
     CallType,
     ThinkingLevel,
     VertexModel,
@@ -262,8 +264,8 @@ def test_the_repair_lists_at_most_ten_errors_of_at_most_100_bytes_and_never_echo
     run(agent.run(call))
     note = adapter.requests[1].messages[-1].text
     items = note.removesuffix(". Reply again with only the corrected JSON object.").split("; ")
-    assert len(items) == REPAIR_ERROR_ITEMS
-    assert all(len(item.encode("utf-8")) <= REPAIR_ERROR_ITEM_BYTES for item in items)
+    assert len(items) == MAX_ERRORS
+    assert all(len(item.encode("utf-8")) <= MAX_ERROR_BYTES for item in items)
     assert "CANARY" not in note
 
 
@@ -671,31 +673,35 @@ def subject_call() -> AgentCall[SubjectTurn]:
     )
 
 
-def test_the_schema_s_context_rules_are_applied_and_repaired_without_echoing_the_value() -> None:
-    """A fact ID the packet does not have passes the bare schema but fails with the call's SubjectContext (V2)."""
-    adapter = FakeAdapter(script=[subject_reply("f:999"), subject_reply("f:01")])
+def test_the_schema_s_context_rules_are_applied_and_repaired_with_the_shared_repair_message() -> None:
+    """A fact ID the packet does not have passes the bare schema but fails with the call's SubjectContext (V2); the
+    repair turn is exactly the shared helper's (agents.repair, WP-10), so port and prompt builders cannot drift."""
+    bad = subject_reply("f:999")
+    adapter = FakeAdapter(script=[bad, subject_reply("f:01")])
     agent, _ = port(adapter)
     result = run(agent.run(subject_call()))
     assert result.value.tag.disclosed == ["f:01"]
     assert result.attempts == TWO
     note = adapter.requests[1].messages[-1].text
     assert "V2" in note
-    assert "f:999" not in note
+    _, errors = output_errors(SubjectTurn, bad, SUBJECT_CTX)
+    assert note == repair_message(errors)
 
 
-def test_a_custom_rule_message_never_echoes_model_values_and_an_unexpected_key_is_not_named() -> None:
+def test_a_repair_never_names_a_key_the_reply_invented_and_never_carries_its_free_text() -> None:
     both = subject_reply("f:01", withheld=("f:01",))
     extra = json.dumps({**json.loads(subject_reply("f:01")), "PLANTED-KEY-NAME": 1})
     adapter = FakeAdapter(script=[both, subject_reply("f:01")])
     agent, _ = port(adapter)
     run(agent.run(subject_call()))
     note = adapter.requests[1].messages[-1].text
-    assert ("V3" in note, "f:01" in note) == (True, False)
+    assert "V3" in note
+    assert "freezer" not in note  # the reply's free text (its utterance) never reaches the trusted turn
     adapter = FakeAdapter(script=[extra, subject_reply("f:01")])
     agent, _ = port(adapter)
     run(agent.run(subject_call()))
     note = adapter.requests[1].messages[-1].text
-    assert "<unexpected field>" in note
+    assert UNKNOWN_KEY in note
     assert "PLANTED" not in note
 
 
@@ -1189,3 +1195,29 @@ def test_a_cancellation_during_reservation_releases_the_fresh_hold_and_a_retry_s
     budget.reserved_event = None
     retry = run(AgentPort(FakeAdapter(script=[VALID]), budget, PortOptions(sleep=no_sleep)).run(call))
     assert budget.reservations[retry.reservation_id].key.endswith(":2")
+
+
+# ---------------------------------------------------------------- one byte measure: the port and WP-10's budget (D-019)
+
+
+@pytest.mark.parametrize(
+    "user_message",
+    ["What happened at 14:00?", 'Ü€ "quoted" \\ back\nslash \U0001f600 ' * 40],
+    ids=["ascii", "escapes-and-non-ascii"],
+)
+def test_the_port_reserves_exactly_the_bytes_the_budget_measures_for_the_same_request(user_message: str) -> None:
+    """S2 2 / D11 / D-019: the maximal-context check (agents.budget.request_bytes) and the reservation measure one
+    number for one request: the wire body the port sends."""
+    prompt = Prompt(system_instruction="You are a coach. — Reply with JSON.", user_message=user_message, salt="0" * 8)
+    adapter = FakeAdapter(script=[VALID])
+    agent, budget = port(adapter)
+    call = dataclasses.replace(
+        card(), system=prompt.system_instruction, messages=(Message("user", prompt.user_message),)
+    )
+    result = run(agent.run(call))
+    sent = adapter.requests[0]
+    measured = budget_request_bytes(
+        prompt, sent_schema(Reply), LIMITS[CallType.CARD].output_tokens, "MINIMAL", seed=sent.seed
+    )
+    assert measured == request_bytes(sent)
+    assert budget.reservations[result.reservation_id].input_bytes == measured + REPAIR_BYTES

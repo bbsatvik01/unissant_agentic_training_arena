@@ -50,8 +50,9 @@ def test_v1_utterance_characters_bytes_and_words() -> None:
         SubjectTurn.model_validate({**_subject(), "utterance": "w " * 121})
     with pytest.raises(ValidationError, match="900 characters"):
         SubjectTurn.model_validate({**_subject(), "utterance": "x" * 901})
-    with pytest.raises(ValidationError, match="1800 UTF-8 bytes"):
-        SubjectTurn.model_validate({**_subject(), "utterance": "\u20ac" * 601})
+    SubjectTurn.model_validate({**_subject(), "utterance": "\u20ac" * 300})  # 1,800 wire bytes (D-019): the cap
+    with pytest.raises(ValidationError, match="1800 bytes as sent"):
+        SubjectTurn.model_validate({**_subject(), "utterance": "\u20ac" * 301})
     with pytest.raises(ValidationError):
         SubjectTurn.model_validate({**_subject(), "utterance": ""})
 

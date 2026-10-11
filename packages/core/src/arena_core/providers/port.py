@@ -35,6 +35,7 @@ from uuid import UUID
 from opentelemetry.trace import Status, StatusCode, Tracer
 from pydantic import BaseModel
 
+from arena_core.agents.repair import MAX_TOKENS_REPAIR, output_errors, repair_message
 from arena_core.db.calls import GUARD_ERRORS, ModelCallRequest, SettleOutcome, UsageReport, UsageResult, UsageStatus
 from arena_core.policy import check_call_policy
 from arena_core.providers.errors import (
@@ -50,7 +51,7 @@ from arena_core.providers.errors import (
     StructuredOutputError,
 )
 from arena_core.providers.retry import RetryPolicy
-from arena_core.providers.structured import OutputInvalidError, lint_schema, parse_output, vertex_root
+from arena_core.providers.structured import sent_schema
 from arena_core.providers.telemetry import default_tracer, llm_span, span_ids
 from arena_core.providers.types import (
     AgentCall,
@@ -71,10 +72,9 @@ STEP_KEY_MIN, STEP_KEY_MAX = 6, 190
 MAX_KEY_ROUNDS = 8
 SEED_MASK = 0x7FFFFFFF  # Vertex GenerationConfig.seed is int32
 
-REPAIR_SUFFIX = "Reply again with only the corrected JSON object."
-TRUNCATED_NOTE = "Your reply was cut off at the output limit. Reply again with only the corrected JSON object, shorter."
+TRUNCATED_NOTE = MAX_TOKENS_REPAIR
 BLOCKED_NOTE = "Reply again with only the JSON object."
-EMPTY_NOTE = f"<root>: the reply was empty. {REPAIR_SUFFIX}"
+EMPTY_NOTE = repair_message(["reply: empty"])
 # A settlement that cannot be written (a database error, a stalled write) leaves the hold charged in full.
 LEDGER_FAILURES: tuple[type[Exception], ...] = (*GUARD_ERRORS, LedgerStalledError)
 OVERRUN_MESSAGE = "usage overran the reservation; the kill switch is on"
@@ -162,7 +162,7 @@ class AgentPort:
         if not STEP_KEY_MIN <= len(call.context.step_key) <= STEP_KEY_MAX:
             msg = f"step key must be {STEP_KEY_MIN}..{STEP_KEY_MAX} characters"
             raise PolicyRefusedError(msg)
-        json_schema = vertex_root(lint_schema(call.schema))
+        json_schema = sent_schema(call.schema)  # the one schema a request carries and a manifest hashes (S2 3.1)
         measured = request_bytes(_Plan(call, limits, json_schema, 0).request(call.messages, attempt=1))
         reserved_bytes = measured + REPAIR_BYTES
         if reserved_bytes > limits.input_bytes:
@@ -304,10 +304,10 @@ class AgentPort:
             result = await self._attempt(live, plan, request, attempt_timeout)
             current: _Failure
             if isinstance(result, RawCompletion):
-                try:
-                    value = parse_output(result.text, call.schema, call.validation_context)
-                except OutputInvalidError as exc:
-                    current = _Failure("schema", f"{exc}. {REPAIR_SUFFIX}", result.text, "schema validation failed")
+                # The one validation and repair message (S2 10), shared with the prompt builders (agents.repair).
+                value, errors = output_errors(call.schema, result.text, call.validation_context, call.salt)
+                if value is None:
+                    current = _Failure("schema", repair_message(errors), result.text, "schema validation failed")
                 else:
                     if opts.clock() > deadline:
                         # S2 2: the deadline bounds the call, its receipt included; a late value is a failed call.

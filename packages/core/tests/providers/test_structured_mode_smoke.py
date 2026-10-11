@@ -15,14 +15,7 @@ from arena_core.providers import mode, smoke
 from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.retry import RetryPolicy
-from arena_core.providers.structured import (
-    OutputInvalidError,
-    extract_json_text,
-    lint_schema,
-    parse_output,
-    vertex_root,
-    vertex_schema,
-)
+from arena_core.providers.structured import sent_schema, vertex_schema
 from arena_core.providers.types import Message, ModelAdapter, ModelRequest, Usage
 from arena_core.spend.guard import SpendGuard
 from arena_core.spend.limits import ATTEMPTS, ThinkingLevel, VertexModel
@@ -54,32 +47,14 @@ def req(title: str = "Item") -> ModelRequest:
 # ---------------------------------------------------------------- structured
 
 
-def test_vertex_schema_drops_undocumented_keywords_and_keeps_bounds() -> None:
-    filtered = vertex_root(lint_schema(Item))
+def test_the_sent_schema_drops_undocumented_keywords_and_keeps_bounds() -> None:
+    """The port sends `sent_schema` (WP-10's one schema shaping; the parser and repair list live in agents.repair)."""
+    filtered = sent_schema(Item)
     tags = filtered["properties"]["tags"]
     assert tags["maxItems"] == MAX_TAGS  # a bound Vertex documents is kept
     assert "maxLength" not in filtered["properties"]["name"]
     assert vertex_schema([{"default": 1, "type": "x"}]) == [{"type": "x"}]
     assert vertex_schema("leaf") == "leaf"
-
-
-def test_parse_output_accepts_a_fenced_or_embedded_object() -> None:
-    assert parse_output('```json\n{"name": "a", "tags": []}\n```', Item) == Item(name="a", tags=[])
-    assert extract_json_text('prose {"a": 1} more') == '{"a": 1}'
-
-
-@pytest.mark.parametrize(
-    ("text", "first"),
-    [
-        ("no object here", "<root>: no JSON object in the reply"),
-        ("{not json}", "<root>: the reply is not valid JSON"),
-        ('{"name": "toolong", "tags": []}', "name: String should have at most 5 characters"),
-    ],
-)
-def test_parse_failures_carry_the_repair_list(text: str, first: str) -> None:
-    with pytest.raises(OutputInvalidError) as failed:
-        parse_output(text, Item)
-    assert failed.value.errors[0] == first
 
 
 # ---------------------------------------------------------------- fake adapter and mode

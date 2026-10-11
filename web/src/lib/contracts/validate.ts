@@ -15,15 +15,32 @@ import { invariantErrors } from "./invariants";
 
 export type WireSchemaName = keyof WireTypes;
 
-const utf8 = new TextEncoder();
+/** JSON's two-character escapes: backspace, tab, line feed, form feed, carriage return. */
+const SHORT_ESCAPES = new Set([0x08, 0x09, 0x0a, 0x0c, 0x0d]);
+
+/**
+ * The bytes `text` occupies on the wire inside a request body (D-019), exactly as the server's
+ * `contracts.common.wire_bytes` counts them (Python `json.dumps`, `ensure_ascii`): printable ASCII 1, `"` and `\\`
+ * 2, a short escape 2, every other UTF-16 code unit 6 (DEL and control characters included; 12 outside the BMP).
+ */
+export function wireBytes(text: string): number {
+  let n = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    if (c === 0x22 || c === 0x5c || SHORT_ESCAPES.has(c)) n += 2;
+    else if (c < 0x20 || c > 0x7e) n += 6;
+    else n += 1;
+  }
+  return n;
+}
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-/** The arena keyword `maxBytes` (S2 1, Text size): a string of at most that many UTF-8 bytes. */
+/** The arena keyword `maxBytes` (S2 1, Text size; D-019): a string of at most that many wire bytes. */
 ajv.addKeyword({
   keyword: "maxBytes",
   type: "string",
   schemaType: "number",
-  validate: (limit: number, data: string) => utf8.encode(data).length <= limit,
+  validate: (limit: number, data: string) => wireBytes(data) <= limit,
 });
 const validators = new Map<string, ValidateFunction>(
   Object.entries(WIRE_SCHEMAS).map(([stem, schema]) => [stem, ajv.compile(schema)]),

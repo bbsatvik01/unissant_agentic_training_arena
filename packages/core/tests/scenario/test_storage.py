@@ -9,7 +9,6 @@ from typing import Any
 
 import pytest
 
-from arena_core.ids import canonical_json
 from arena_core.scenario import content, storage
 from arena_core.scenario.validators import validate_family
 
@@ -72,10 +71,11 @@ def _set_rec04(family: Family, body: str) -> None:
 
 
 def test_a_record_at_the_limit_passes_and_one_more_character_fails(seed: Callable[[str], Family]) -> None:
-    """AC-S1-29: a record content of exactly 4,096 canonical bytes passes V1d; one more character fails."""
-    overhead = len(canonical_json({"body": ""}).encode("utf-8"))
-    body = FOUR_BYTE * ((content.MAX_RECORD_CONTENT - overhead) // 4)
-    body += "x" * (content.MAX_RECORD_CONTENT - overhead - len(body.encode("utf-8")))
+    """AC-S1-29: a record content of exactly 4,096 canonical wire bytes passes V1d (D-019: a character outside the BMP
+    is its 12-byte surrogate-pair escape); one more character fails."""
+    overhead = content.size({"body": ""})
+    body = FOUR_BYTE * ((content.MAX_RECORD_CONTENT - overhead) // 12)
+    body += "x" * (content.MAX_RECORD_CONTENT - overhead - content.size(body) + 2)
     at_limit = seed("F01")
     _set_rec04(at_limit, body)
     assert content.size({"body": body}) == content.MAX_RECORD_CONTENT
@@ -107,7 +107,7 @@ def test_the_dev_families_are_within_the_budget(dev_families: list[Family]) -> N
 
 
 def test_size_measures_a_lone_surrogate_instead_of_raising() -> None:
-    assert content.size(chr(0xD800)) == len('""') + 3
+    assert content.size(chr(0xD800)) == len('"\\ud800"')  # measured as its wire escape (D-019)
 
 
 @pytest.mark.parametrize(
