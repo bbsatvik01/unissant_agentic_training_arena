@@ -7,7 +7,7 @@
 ## RESUMED 2026-10-11 (owner: full speed, simple, UI is the centerpiece D-020, record runs D-021, Codex gates sparingly)
 | Item | State | Next |
 | --- | --- | --- |
-| WP-18 part 2 | MERGED (cc4d45f); web-check green; 2 rare-path Codex majors -> follow-up with a80b942018d564e81 (fix/wp18b-followup) | review small diff, merge |
+| WP-18 part 2 | MERGED (cc4d45f) + follow-up merged | done |
 | WP-11 guard (adb48fe0d3cc9a911) | cold Codex: 1 major (lexicon not in rubric hash, rubric.py:120); agent fixing, no new Codex round | review, merge |
 | WP-05 port (ac1b3a38666e87dcf) | merging main + WP-10 helpers + D-019 | cold gate, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
