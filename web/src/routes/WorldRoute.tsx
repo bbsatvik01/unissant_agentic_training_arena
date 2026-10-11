@@ -82,19 +82,25 @@ export function WorldRoute() {
     if (arrived && place === "room" && recording !== null) play();
   }, [arrived, place, recording, play]);
 
-  const openCase = useCallback((caseId: string) => {
-    const card = CASES.find((c) => c.case_id === caseId) ?? null;
-    if (card === null) return;
-    setActive(card);
-    // A recording already loaded is kept (reopening the case replays it from the start).
-    setLoad((l) => (card.case_id !== RECORDED_CASE_ID ? { state: "none" } : l.state === "ready" && l.recording.case.case_id === card.case_id ? l : { state: "loading" }));
-    setArrived(false);
-    setDebriefClosed(false);
-    setCite(null);
-    setDraft("");
-    setPlace("room");
-    seekTo(0);
-  }, [seekTo]);
+  const openCase = useCallback(
+    (caseId: string) => {
+      // A case from the board, or the case of a recording file opened earlier (kept with its recording).
+      const card = CASES.find((c) => c.case_id === caseId) ?? (active?.case_id === caseId ? active : null);
+      if (card === null) return;
+      setActive(card);
+      // A recording already loaded for this case is kept (reopening replays it from the start).
+      setLoad((l) =>
+        l.state === "ready" && l.recording.case.case_id === card.case_id ? l : card.case_id === RECORDED_CASE_ID ? { state: "loading" } : { state: "none" },
+      );
+      setArrived(false);
+      setDebriefClosed(false);
+      setCite(null);
+      setDraft("");
+      setPlace("room");
+      seekTo(0);
+    },
+    [seekTo, active],
+  );
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   const openRecordingFile = useCallback((file: File) => {
     void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
@@ -277,6 +283,7 @@ export function WorldRoute() {
               released={view?.released ?? []}
               subjectName={subjectName}
               highlighted={highlighted}
+              motionOff={still}
               quote={cite === null ? null : { turn: cite.turn, text: cite.quote }}
               focusTurn={cite === null ? null : { turn: cite.turn, nonce: cite.nonce }}
             />

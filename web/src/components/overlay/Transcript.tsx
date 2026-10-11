@@ -21,6 +21,8 @@ interface TranscriptProps {
   readonly quote: { readonly turn: number; readonly text: string } | null;
   /** Set by a chip activation: scroll to the turn and move focus to it (S6 4.5 AST-7). */
   readonly focusTurn: { readonly turn: number; readonly nonce: number } | null;
+  /** Reduced motion or the pause control: citation navigation jumps instead of scrolling smoothly. */
+  readonly motionOff?: boolean;
 }
 
 /** Marks the quoted span only when the shared predicate accepts the quote and it appears verbatim; a quote that
@@ -37,16 +39,21 @@ function Answer({ text, quote }: { text: string; quote: string | null }) {
   );
 }
 
-export function Transcript({ turns, voiceExchanges = [], released, subjectName, highlighted, quote, focusTurn }: TranscriptProps) {
+export function Transcript({ turns, voiceExchanges = [], released, subjectName, highlighted, quote, focusTurn, motionOff = false }: TranscriptProps) {
   const refs = useRef(new Map<number, HTMLElement>());
   const end = useRef<HTMLDivElement>(null);
+  // Read at activation time: changing the motion setting alone never moves focus.
+  const motionRef = useRef(motionOff);
+  useEffect(() => {
+    motionRef.current = motionOff;
+  });
   // Keyed on the primitive values, so only a new chip activation moves focus, never an unrelated render.
   const focusNo = focusTurn?.turn ?? null;
   const focusNonce = focusTurn?.nonce ?? null;
   useEffect(() => {
     if (focusNo === null || focusNonce === null) return;
     const el = refs.current.get(focusNo);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    el?.scrollIntoView({ block: "center", behavior: motionRef.current ? "auto" : "smooth" });
     el?.focus({ preventScroll: true });
   }, [focusNo, focusNonce]);
   const lastAnswer = turns.at(-1)?.answer ?? null;
