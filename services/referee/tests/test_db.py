@@ -30,8 +30,10 @@ from arena_core.scoring.rubric import CheckResult, RubricResult
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
 from arena_referee import db
 from arena_referee.debrief import DebriefProvenance
+from arena_referee.mapping import TrialData
 
 TRIAL = "00000000-0000-0000-0000-00000000000a"
+SOURCE_TRIAL = "00000000-0000-0000-0000-00000000000d"
 VARIANT = UUID("00000000-0000-0000-0000-0000000000b1")
 SESSION = "00000000-0000-0000-0000-00000000000c"
 
@@ -662,3 +664,31 @@ def test_fetch_leaderboard_returns_the_body_or_none() -> None:
     missing = FakeConn({"arena.leaderboards": []})
     assert run(db.fetch_leaderboard(connector(missing), str(TOURNAMENT), label="corrected")) is None
     assert missing.executed[0][1] == (TOURNAMENT, "assistant", "corrected")
+
+
+@pytest.mark.parametrize(("source", "r1_trial"), [(None, TRIAL), (SOURCE_TRIAL, SOURCE_TRIAL)])
+def test_stored_trial_judgments_read_r1_from_a_replay_s_source_trial(
+    monkeypatch: pytest.MonkeyPatch, source: str | None, r1_trial: str
+) -> None:
+    # Codex r5 #4: a replay runs R2 only; its R1 is the corpus transcript's (S3 1.3.2).
+    judgments = {
+        f"{TRIAL}:referee_assistant:flag_support": {"r2": True},
+        f"{r1_trial}:referee_subject": {"r1": True},
+    }
+
+    async def fake_get(_connect: object, key: str) -> Mapping[str, Any] | None:
+        return judgments.get(key)
+
+    data = cast("TrialData", object())
+
+    async def fake_data(_connect: object, trial_id: str) -> TrialData:
+        assert trial_id == TRIAL  # the replay's own turns, cards and releases
+        return data
+
+    monkeypatch.setattr(db, "get_judgment", fake_get)
+    monkeypatch.setattr(db, "fetch_trial_data", fake_data)
+    conn = FakeConn({"select source_trial_id from arena.trials": [(UUID(source) if source else None,)]})
+    stored = run(db.fetch_stored_trial_judgments(connector(conn), TRIAL))
+    assert stored is not None
+    assert (stored.r1, stored.r2) == ({"r1": True}, {"r2": True})
+    assert stored.data is data

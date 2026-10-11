@@ -618,9 +618,14 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
 
 async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> StoredTrialJudgments | None:
     """One trial's stored R1 and R2 judgments (`arena_referee.scoring`'s stage keys) and its data, or None when
-    the trial was never scored (no R2 row: a replay trial, or scoring not yet run)."""
+    the trial was never scored. A replay trial's R1 is its source corpus transcript's."""
+    async with connect() as conn:
+        cur = await conn.execute("select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
+        row = await cur.fetchone()
+    # A replay trial runs R2 only; its R1 is the source corpus transcript's (S3 1.3.2, D2), on the same turns.
+    r1_trial = str(row[0]) if row is not None and row[0] is not None else trial_id
     r2 = await get_judgment(connect, f"{trial_id}:referee_assistant:flag_support")
-    r1 = await get_judgment(connect, f"{trial_id}:referee_subject")
+    r1 = await get_judgment(connect, f"{r1_trial}:referee_subject")
     if r1 is None or r2 is None:
         return None
     return StoredTrialJudgments(data=await fetch_trial_data(connect, trial_id), r1=r1, r2=r2)
