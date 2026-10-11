@@ -10,7 +10,7 @@
 | WP-18 part 2 | MERGED (cc4d45f) + follow-up merged | done |
 | WP-11 guard | MERGED (066e044); py-check green on main | done |
 | WP-05 port | MERGED (8ab36a8) | done |
-| WP-12 subject (a810ab185aeaef4e8, Sonnet, wt-wp12-subject, based on feat/wp05-port) | building, fake model | review, merge |
+| WP-12 subject | MERGED | pilot via WP-13 (D-024) |
 | WP-14 referee (a82783ff6d2a01d89, Sonnet, wt-wp14-referee, based on feat/wp05-port) | building, fake model | review, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |

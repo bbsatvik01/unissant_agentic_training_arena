@@ -150,3 +150,7 @@
 - **Also accepted:** WP-10's repair turn may name the offending pattern-constrained ID (e.g. "f:999 is not a fact ID"); free text and invented keys still never appear.
 - **Spec wording follow-up:** S2/S5 "UTF-8 bytes" -> "wire bytes"; S5 4.4 script invocation form.
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-024 Fidelity pilot runs through WP-13; actor on subject calls
+- **Decision:** coordinator. The fidelity pilot (S2 11.4) runs real trials created through WP-13's orchestrator instead of synthetic trial IDs (spend reservations FK to arena.trials). WP-13 passes the investigator's user id into subject/coach calls so the per-user daily cap (D-017) applies; any schema change for it goes through the owner-approved migration path.
+- **Reversibility:** cheap.
