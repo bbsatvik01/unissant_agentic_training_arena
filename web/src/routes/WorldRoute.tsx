@@ -411,7 +411,7 @@ export function WorldRoute() {
         <div className="topbar-meta">
           {place === "room" && view !== null ? (
             <>
-              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment"}</span>
+              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment: coaching is saved for your debrief"}</span>
               <span className="badge mono">
                 {view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>
