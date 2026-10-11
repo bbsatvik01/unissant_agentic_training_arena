@@ -7,21 +7,22 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "../../lib/api/client";
 import type { ConsoleApi } from "../../lib/api/console";
-import { parseBudget, parsePreconditions, parseTournaments, type AdminAction, type AdminTournament, type BudgetRow, type Precondition } from "../../lib/console/admin";
+import { parseBudget, parsePreconditions, parseTournaments, parseValidityReviews, verdictBody, type AdminAction, type AdminTournament, type BudgetRow, type Precondition, type ValidityReview } from "../../lib/console/admin";
 import type { Section } from "../../components/console/AdminConsole";
 
 function failed(e: unknown): Section<never> {
   return e instanceof ApiError && e.status === 404 ? { state: "missing" } : { state: "error" };
 }
 
-export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction">, enabled: boolean) {
+export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction" | "adminReviews" | "adminVerdict">, enabled: boolean) {
   const [budget, setBudget] = useState<Section<readonly BudgetRow[]>>({ state: "loading" });
   const [tournaments, setTournaments] = useState<Section<readonly AdminTournament[]>>({ state: "loading" });
   const [preconditions, setPreconditions] = useState<Readonly<Record<string, readonly Precondition[] | null>>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Section<readonly ValidityReview[]>>({ state: "loading" });
   const [round, setRound] = useState(0);
-  const { adminBudget, adminTournaments, adminTournament, adminAction } = api;
+  const { adminBudget, adminTournaments, adminTournament, adminAction, adminReviews, adminVerdict } = api;
 
   useEffect(() => {
     if (!enabled) return;
@@ -34,6 +35,16 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
       },
       (e: unknown) => {
         if (!cancelled) setBudget(failed(e));
+      },
+    );
+    adminReviews().then(
+      (raw) => {
+        if (cancelled) return;
+        const list = parseValidityReviews(raw);
+        setReviews(list === null ? { state: "error" } : { state: "ready", value: list });
+      },
+      (e: unknown) => {
+        if (!cancelled) setReviews(failed(e));
       },
     );
     adminTournaments().then(
@@ -60,7 +71,7 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
     return () => {
       cancelled = true;
     };
-  }, [adminBudget, adminTournaments, adminTournament, enabled, round]);
+  }, [adminBudget, adminTournaments, adminTournament, adminReviews, enabled, round]);
 
   const act = useCallback(
     (tournamentId: string, action: AdminAction) => {
@@ -81,5 +92,29 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
     [adminAction],
   );
 
-  return { budget, tournaments, preconditions, busy, message, act };
+  const decide = useCallback(
+    (trialId: string, verdict: "valid" | "subject_invalid", reason: string) => {
+      const body = verdictBody(verdict, reason);
+      if (body === null) {
+        setMessage("A subject_invalid verdict needs a reason.");
+        return;
+      }
+      setBusy(trialId);
+      setMessage(null);
+      adminVerdict(trialId, body).then(
+        () => {
+          setBusy(null);
+          setMessage("Verdict recorded.");
+          setRound((r) => r + 1);
+        },
+        (e: unknown) => {
+          setBusy(null);
+          setMessage(e instanceof ApiError && e.status === 404 ? "The server does not offer this action yet." : "The server refused the verdict.");
+        },
+      );
+    },
+    [adminVerdict],
+  );
+
+  return { budget, tournaments, preconditions, reviews, busy, message, act, decide };
 }

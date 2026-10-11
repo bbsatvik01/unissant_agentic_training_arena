@@ -17,7 +17,8 @@ export function useReview(api: Pick<ConsoleApi, "reviewItems" | "reviewItem" | "
   const [item, setItem] = useState<ReviewItem | null>(null);
   const [itemFailed, setItemFailed] = useState(false);
   const [draft, setDraft] = useState<ReviewDraft | null>(null);
-  const [submit, setSubmit] = useState<SubmitState>("idle");
+  // Each item's submission state, so a late answer for one item never shows on another.
+  const [submits, setSubmits] = useState<Readonly<Record<string, SubmitState>>>({});
   const { reviewItems, reviewItem, submitReview } = api;
 
   useEffect(() => {
@@ -55,12 +56,16 @@ export function useReview(api: Pick<ConsoleApi, "reviewItems" | "reviewItem" | "
     };
   }, [reviewItem, selected]);
 
-  const select = useCallback((itemId: string) => {
-    setSelected(itemId);
-    setItem(null);
-    setDraft(null);
-    setSubmit("idle");
-  }, []);
+  const select = useCallback(
+    (itemId: string) => {
+      // Choosing the open item again keeps it and its answers.
+      if (itemId === selected) return;
+      setSelected(itemId);
+      setItem(null);
+      setDraft(null);
+    },
+    [selected],
+  );
 
   const edit = useCallback((change: (d: ReviewDraft) => void) => {
     setDraft((d) => {
@@ -75,19 +80,24 @@ export function useReview(api: Pick<ConsoleApi, "reviewItems" | "reviewItem" | "
     if (selected === null || draft === null) return;
     const body = toSubmission(draft);
     if (body === null) return;
-    setSubmit("sending");
-    submitReview(selected, body).then(
+    const itemId = selected;
+    const mark = (state: SubmitState) => {
+      setSubmits((m) => ({ ...m, [itemId]: state }));
+    };
+    mark("sending");
+    submitReview(itemId, body).then(
       (answer) => {
         // training.submit_review_item answers {outcome: "recorded"} or, for a repeat, {outcome: "exists"}.
         const repeat = typeof answer === "object" && answer !== null && "outcome" in answer && answer.outcome === "exists";
-        setSubmit(repeat ? "already" : "sent");
-        setItems((l) => l?.map((i) => (i.item_id === selected ? { ...i, submitted: true } : i)) ?? l);
+        mark(repeat ? "already" : "sent");
+        setItems((l) => l?.map((i) => (i.item_id === itemId ? { ...i, submitted: true } : i)) ?? l);
       },
       () => {
-        setSubmit("failed");
+        mark("failed");
       },
     );
   }, [selected, draft, submitReview]);
 
+  const submit: SubmitState = selected === null ? "idle" : (submits[selected] ?? "idle");
   return { items, listFailed, selected, item, itemFailed, draft, submit, select, edit, send };
 }

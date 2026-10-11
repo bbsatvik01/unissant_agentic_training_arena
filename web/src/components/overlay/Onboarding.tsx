@@ -67,9 +67,7 @@ export function Onboarding({ acknowledged, onAcknowledge, onClose }: OnboardingP
           </h3>
           <p>The room reads lines aloud with your browser&apos;s speech voices. Some browsers provide those voices through an online service from the browser&apos;s maker; mute the voices at any time from the top bar. Speaking to the subject by microphone is not offered in this version.</p>
         </section>
-        <p className="fine">
-          How sessions are scored: <a href="/trust/methodology">methodology</a>.
-        </p>
+        <p className="fine">Each session is scored on five rubric dimensions (clarity and neutrality, response relevance, evidence-based follow-up, testing alternative explanations, supported closure); your debrief shows every check and the evidence behind it.</p>
       </div>
       <footer className="onboarding-foot">
         {acknowledged === null ? (

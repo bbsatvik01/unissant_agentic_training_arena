@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { killSwitchOf, nextAction, parseBudget, parsePreconditions, parseTournaments, revealAllowed } from "./admin";
+import { killSwitchOf, nextAction, parseBudget, parsePreconditions, parseTournaments, parseValidityReviews, revealAllowed, verdictBody } from "./admin";
 
 describe("admin console data (S6 4.13)", () => {
   it("reads the budget rows from ops.v_budget_status, numbers or decimal strings", () => {
@@ -28,5 +28,14 @@ describe("admin console data (S6 4.13)", () => {
     expect(revealAllowed([])).toBe(false);
     expect(parsePreconditions({})).toBe(null);
     expect(parsePreconditions({ preconditions: [{ name: 1, passed: true }] })).toBe(null);
+  });
+
+  it("reads the blinded validity queue and needs a reason for subject_invalid", () => {
+    expect(parseValidityReviews({ reviews: [{ trial_id: "t-9", proposal: "subject_invalid", reasons: ["F5 on T3", 4] }] })).toEqual([{ trial_id: "t-9", proposed: "subject_invalid", reasons: ["F5 on T3"] }]);
+    expect(parseValidityReviews([{ trial_id: "t-9" }])).toEqual([{ trial_id: "t-9", proposed: null, reasons: [] }]);
+    expect(parseValidityReviews([{ trial: 1 }])).toBe(null);
+    expect(verdictBody("subject_invalid", "  ")).toBe(null);
+    expect(verdictBody("subject_invalid", " platform attack on T3 ")).toEqual({ verdict: "subject_invalid", reason: "platform attack on T3" });
+    expect(verdictBody("valid", "")).toEqual({ verdict: "valid", reason: "" });
   });
 });

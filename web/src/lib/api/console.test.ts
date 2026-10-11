@@ -32,6 +32,8 @@ describe("console routes (S6 4.12, 4.13)", () => {
     await api.adminBudget();
     await api.adminTournaments();
     await api.adminTournament("t1");
+    await api.adminReviews();
+    await api.adminVerdict("t9", { verdict: "valid", reason: "" });
     expect(calls).toEqual([
       "GET /api/review/items",
       "GET /api/review/items/abc",
@@ -40,6 +42,8 @@ describe("console routes (S6 4.12, 4.13)", () => {
       "GET /api/admin/budget",
       "GET /api/admin/tournaments",
       "GET /api/admin/tournaments/t1",
+      "GET /api/admin/reviews",
+      "POST /api/admin/reviews/t9",
     ]);
   });
 

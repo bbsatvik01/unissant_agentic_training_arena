@@ -123,3 +123,33 @@ export function nextAction(status: TournamentStatus): { readonly action: AdminAc
 export function revealAllowed(preconditions: readonly Precondition[] | null): boolean {
   return preconditions !== null && preconditions.length > 0 && preconditions.every((p) => p.passed);
 }
+
+/** One subject-validity review in the admin queue (S6 4.13, S3 7.x validity): blinded, so only the trial's opaque
+ * id and the code's automatic proposal with its reasons, never a candidate identity. */
+export interface ValidityReview {
+  readonly trial_id: string;
+  readonly proposed: "valid" | "subject_invalid" | null;
+  readonly reasons: readonly string[];
+}
+
+/** `GET /api/admin/reviews`: an array or `{reviews: [...]}`; null when not one. */
+export function parseValidityReviews(v: unknown): readonly ValidityReview[] | null {
+  const list = rows(v, "reviews");
+  if (list === null) return null;
+  const out: ValidityReview[] = [];
+  for (const r of list) {
+    if (!isRecord(r) || typeof r["trial_id"] !== "string") return null;
+    const p = r["proposed"] ?? r["proposal"] ?? null;
+    const reasons = Array.isArray(r["reasons"]) ? (r["reasons"] as unknown[]).filter((x): x is string => typeof x === "string") : [];
+    out.push({ trial_id: r["trial_id"], proposed: p === "valid" || p === "subject_invalid" ? p : null, reasons });
+  }
+  return out;
+}
+
+/** The verdict body for `POST /api/admin/reviews/{trial_id}`, or null when it cannot be sent: a subject_invalid
+ * verdict needs a reason (S6 4.13: "recording valid or subject_invalid with reason"). */
+export function verdictBody(verdict: "valid" | "subject_invalid", reason: string): { verdict: "valid" | "subject_invalid"; reason: string } | null {
+  const r = reason.trim();
+  if (verdict === "subject_invalid" && r === "") return null;
+  return { verdict, reason: r };
+}

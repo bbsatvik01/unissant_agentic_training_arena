@@ -110,4 +110,35 @@ describe("ConsoleRoute", () => {
     expect(within(budget).getByText("$75.00")).toBeTruthy();
     expect(calls.some((c) => c.startsWith("POST"))).toBe(false);
   });
+
+  it("records a blinded validity verdict, subject invalid only with a reason", async () => {
+    const calls = serve({
+      "GET /api/me": CONSOLE_ME,
+      "GET /api/admin/reviews": [{ trial_id: "tr-1", proposal: "subject_invalid", reasons: ["F5 on T3"] }],
+      "POST /api/admin/reviews/tr-1": { ok: true },
+    });
+    render(<ConsoleRoute kind="admin" />);
+    const invalid = await screen.findByRole("button", { name: "Subject invalid" });
+    expect((invalid as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("F5 on T3")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), { target: { value: "platform attack" } });
+    fireEvent.click(invalid);
+    expect(await screen.findByText("Verdict recorded.")).toBeTruthy();
+    expect(calls).toContain("POST /api/admin/reviews/tr-1");
+    expect(document.body.textContent).not.toMatch(/\bS[1-3]\b|candidate/);
+  });
+
+  it("shows the whole committed finding to the rater, corroboration included", async () => {
+    const rub = fixture("review-item:T-RUB") as { finding: Record<string, unknown> };
+    const item = { ...rub, finding: { ...rub.finding, label: "insufficient_evidence", corroboration_needed: ["Radio log for 14:00-14:10"], alternative_explanations: ["Dispatched verbally"] } };
+    serve({
+      "GET /api/me": CONSOLE_ME,
+      "GET /api/review/items": { items: [{ item_id: "44444444-4444-4444-8444-444444444444", task: "T-RUB", submitted: false }] },
+      "GET /api/review/items/44444444-4444-4444-8444-444444444444": item,
+    });
+    render(<ConsoleRoute kind="review" />);
+    fireEvent.click(await screen.findByRole("button", { name: /Item 1/ }));
+    expect(await screen.findByText("Radio log for 14:00-14:10")).toBeTruthy();
+    expect(screen.getByText("Dispatched verbally")).toBeTruthy();
+  });
 });

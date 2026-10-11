@@ -5,7 +5,9 @@
  * (FE-ADM-2). No infra control (workers, instances, timeouts, health checks) and no ceiling editor appear here.
  * A section whose route the server does not offer yet says so.
  */
-import type { AdminAction, AdminTournament, BudgetRow, Precondition } from "../../lib/console/admin";
+import { useState } from "react";
+
+import type { AdminAction, AdminTournament, BudgetRow, Precondition, ValidityReview } from "../../lib/console/admin";
 import { killSwitchOf, nextAction, revealAllowed } from "../../lib/console/admin";
 
 export type Section<T> = { readonly state: "loading" } | { readonly state: "missing" } | { readonly state: "error" } | { readonly state: "ready"; readonly value: T };
@@ -15,9 +17,62 @@ interface AdminConsoleProps {
   readonly tournaments: Section<readonly AdminTournament[]>;
   /** Preconditions by tournament id, for tournaments in scoring. */
   readonly preconditions: Readonly<Record<string, readonly Precondition[] | null>>;
+  readonly reviews: Section<readonly ValidityReview[]>;
   readonly busy: string | null;
   readonly message: string | null;
   readonly onAction: (tournamentId: string, action: AdminAction) => void;
+  readonly onVerdict: (trialId: string, verdict: "valid" | "subject_invalid", reason: string) => void;
+}
+
+function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: number; busy: boolean; onVerdict: AdminConsoleProps["onVerdict"] }) {
+  const [reason, setReason] = useState("");
+  return (
+    <div className="console-tournament">
+      <p>
+        <strong>Trial {n}</strong> <span className="fine">automatic proposal: {review.proposed === null ? "none" : review.proposed.replace("_", " ")}</span>
+      </p>
+      {review.reasons.length === 0 ? null : (
+        <ul className="checks">
+          {review.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      )}
+      <label className="field">
+        <span>Reason</span>
+        <input
+          type="text"
+          value={reason}
+          maxLength={300}
+          onChange={(e) => {
+            setReason(e.target.value);
+          }}
+        />
+      </label>
+      <div className="start-row">
+        <button
+          type="button"
+          className="btn-secondary-sm"
+          disabled={busy}
+          onClick={() => {
+            onVerdict(review.trial_id, "valid", reason);
+          }}
+        >
+          Valid
+        </button>
+        <button
+          type="button"
+          className="btn-secondary-sm"
+          disabled={busy || reason.trim() === ""}
+          onClick={() => {
+            onVerdict(review.trial_id, "subject_invalid", reason);
+          }}
+        >
+          Subject invalid
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Unavailable({ section }: { section: Section<unknown> }) {
@@ -27,7 +82,7 @@ function Unavailable({ section }: { section: Section<unknown> }) {
   return null;
 }
 
-export function AdminConsole({ budget, tournaments, preconditions, busy, message, onAction }: AdminConsoleProps) {
+export function AdminConsole({ budget, tournaments, preconditions, reviews, busy, message, onAction, onVerdict }: AdminConsoleProps) {
   const kill = budget.state === "ready" ? killSwitchOf(budget.value) : null;
   return (
     <main className="console-admin">
@@ -75,6 +130,17 @@ export function AdminConsole({ budget, tournaments, preconditions, busy, message
             </table>
           ) : null}
           <p className="fine">Ceilings are applied by the operator from the budget plan; they are not edited here.</p>
+        </div>
+      </section>
+      <section className="panel console-card" aria-labelledby="validity-title">
+        <header className="panel-head">
+          <h2 id="validity-title">Subject validity reviews</h2>
+        </header>
+        <div className="panel-body">
+          <p className="fine">Blinded: which subject played a trial is not shown. A subject invalid verdict needs a reason.</p>
+          <Unavailable section={reviews} />
+          {reviews.state === "ready" && reviews.value.length === 0 ? <p className="empty">No reviews waiting.</p> : null}
+          {reviews.state === "ready" ? reviews.value.map((r, i) => <ReviewRow key={r.trial_id} review={r} n={i + 1} busy={busy !== null} onVerdict={onVerdict} />) : null}
         </div>
       </section>
       <section className="panel console-card" aria-labelledby="tour-title">

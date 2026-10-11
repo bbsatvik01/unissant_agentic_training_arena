@@ -18,6 +18,8 @@ export interface ConsoleApi {
   readonly adminTournament: (tournamentId: string) => Promise<unknown>;
   readonly adminBudget: () => Promise<unknown>;
   readonly adminAction: (tournamentId: string, action: AdminAction) => Promise<unknown>;
+  readonly adminReviews: () => Promise<unknown>;
+  readonly adminVerdict: (trialId: string, body: { verdict: "valid" | "subject_invalid"; reason: string }) => Promise<unknown>;
 }
 
 function id(value: string): string {
@@ -48,5 +50,7 @@ export function createConsoleApi(client: ApiClient): ConsoleApi {
     adminTournament: (tournamentId) => client.get(`/api/admin/tournaments/${id(tournamentId)}`),
     adminBudget: () => client.get("/api/admin/budget"),
     adminAction: (tournamentId, action) => client.post(`/api/admin/tournaments/${id(tournamentId)}/${action}`),
+    adminReviews: () => client.get("/api/admin/reviews"),
+    adminVerdict: (trialId, body) => client.post(`/api/admin/reviews/${id(trialId)}`, body),
   };
 }

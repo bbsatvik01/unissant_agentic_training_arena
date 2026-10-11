@@ -145,22 +145,27 @@ export function WorldRoute() {
     });
   };
 
-  // The live arena, when its server answers: the cases offered to this user.
+  const live = liveCases !== null;
+  const meCtl = useMe(api, live);
+  const study = meCtl.me?.study ?? null;
+  // The live arena, when its server answers: the cases offered to this user. A study participant's offer changes
+  // with the step (the server lists only the next test set, S6 3.2), so the list is read again whenever the study
+  // status changes; a focused card no longer offered is let go.
+  const studyKey = study === null ? "" : `${study.next_phase}:${String(study.ended.pre)}:${String(study.ended.practice)}:${String(study.ended.post)}`;
   useEffect(() => {
     let cancelled = false;
     api.listCases().then(
       (cases) => {
-        if (!cancelled) setLiveCases(cases);
+        if (cancelled) return;
+        setLiveCases(cases);
+        setFocused((f) => (f !== null && cases.some((c) => c.case_id === f) ? f : null));
       },
       () => undefined,
     );
     return () => {
       cancelled = true;
     };
-  }, [api]);
-  const live = liveCases !== null;
-  const meCtl = useMe(api, live);
-  const study = meCtl.me?.study ?? null;
+  }, [api, studyKey]);
   const canStartLive = live && meCtl.me !== null && meCtl.me.ex4_acknowledged !== null;
   const mustAcknowledge = live && meCtl.me !== null && meCtl.me.ex4_acknowledged === null;
   const modes = allowedModes(study);

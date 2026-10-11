@@ -288,6 +288,29 @@ function RubForm({ item, draft, onEdit }: { item: RubricItem; draft: Extract<Rev
             <p>
               {words(item.finding.label)}, {words(item.finding.likelihood)}, {item.finding.confidence} confidence. {item.finding.rationale}
             </p>
+            <p className="fine">
+              Cited: {[...item.finding.cited_turns.map((n) => `T${String(n)}`), ...item.finding.cited_records].join(", ") || "nothing"}.
+            </p>
+            {item.finding.corroboration_needed.length === 0 ? null : (
+              <div>
+                <span className="eyebrow">Corroboration to seek</span>
+                <ul>
+                  {item.finding.corroboration_needed.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {item.finding.alternative_explanations === null || item.finding.alternative_explanations.length === 0 ? null : (
+              <div>
+                <span className="eyebrow">Alternative explanations</span>
+                <ul>
+                  {item.finding.alternative_explanations.map((a) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {draft.citations.map((c: CitationDraft, i) => (
               <YesNo
                 key={c.cite}
