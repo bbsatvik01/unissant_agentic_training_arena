@@ -12,7 +12,7 @@
 | WP-05 port | MERGED (8ab36a8) | done |
 | WP-12 subject | MERGED | pilot via WP-13 (D-024) |
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
-| WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
+| WP-16 reveal + leaderboards (a2cee75ff393af4c4, fresh agent, wt-wp16-reveal e426e43) | py-check green; coordinator Codex r3: blocker (referee ARENA_GIT_SHA breaks make dev), dev reveal blocked by hidden gate, QQ/M06-M10/M16 missing from ranking, no subject board, IG-6 skips mirror; fixing. Calibration report builder deferred to WP-25a | review, merge |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
 | WP-17 tournament (a0989bb31b07d2da1, Sonnet, wt-wp17-tourney) | building + demo-tournament CLI | review, merge |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
