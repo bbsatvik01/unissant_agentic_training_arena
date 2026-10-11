@@ -2586,3 +2586,37 @@ describe("session controller: a retry after the question was recorded but not an
     expect(sent[1]).toEqual(sent[0]);
   });
 });
+
+describe("session controller: follow-up regressions", () => {
+  it("a malformed duplicate of an accepted card does not remove it", async () => {
+    const h = harness();
+    const c = h.make();
+    await begin(c);
+    const b = new LogBuilder().ask();
+    for (const f of b.frames) h.last().send(f);
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    const card = b.frames.at(-1) as TrialFrame;
+    h.last().send({ ...card, data: { turn_no: 1, card: { ...cardFor(1, 2), candidate_id: "x" } } });
+    await flush();
+    expect(trialView(c).cards.map((x) => x.turn_no)).toEqual([1]);
+    expect(h.acks).toEqual([{ trial_id: TRIAL_ID, turn_no: 1, client_valid: true }]);
+  });
+
+  it("after dispose, public methods and the bootstrap do no I/O", async () => {
+    const h = harness();
+    const c = h.make({ api: { ...h.api, requestDebrief: () => Promise.resolve(fixture("debrief:scored") as never) } });
+    c.subscribe(() => {
+      if (c.getState().trial.view !== null) c.dispose();
+    });
+    await c.start();
+    await flush();
+    // disposed by a subscriber when the snapshot arrived: no ticket, no stream
+    expect(h.log).toEqual([`snapshot ${TRIAL_ID}`]);
+    const body = (fixture("finding-commit") as { finding: never }).finding;
+    await Promise.allSettled([c.submitTurn("Why?"), c.requestEvidence(["rec-02"]), c.submitFinding(body), c.requestDebrief(), c.start()]);
+    c.reconnect();
+    await flush();
+    expect(h.log).toEqual([`snapshot ${TRIAL_ID}`]);
+    expect(h.turns).toEqual([]);
+  });
+});

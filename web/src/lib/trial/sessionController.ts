@@ -223,6 +223,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   let reported = 0;
   let started: Promise<void> | null = null;
   let disposed = false;
+  let disposing = false;
   let unsubscribeVisibility: (() => void) | null = null;
 
   /** Read through a function: awaits in between can dispose the controller, which a narrowed flag would hide. */
@@ -529,6 +530,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
     const turn = brokenCardTurn(frame);
     const v = view();
     if (turn !== null && v?.mode === "practice" && v.channel === "text") {
+      // A malformed copy of a card already settled (acknowledged) changes nothing: the verdict stands.
+      if (acked.has(turn)) return;
       streamCards.add(turn);
       droppedCards.add(turn);
       dispatch({ type: "card_refused", turn_no: turn });
@@ -686,8 +689,10 @@ export function createSessionController(options: SessionControllerOptions): Sess
       set({ connection: "failed", error });
       return;
     }
-    if (disposed) return;
+    if (isDisposed()) return;
     dispatch({ type: "snapshot", snapshot });
+    // A subscriber told of the snapshot may have disposed the controller.
+    if (isDisposed()) return;
     cursor = snapshot.last_seq;
     if (snapshot.status !== "running") {
       // Not awaited: start() settles once the snapshot is in; the debrief read (with its retries) follows.
@@ -700,6 +705,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   return {
     start() {
+      if (isDisposed()) return Promise.resolve();
       // A bootstrap that failed (the snapshot could not be read) may be started again.
       if (state.connection === "failed") started = null;
       started ??= run();
@@ -713,6 +719,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       };
     },
     submitTurn(question) {
+      if (isDisposed()) return Promise.reject(new Error("the session controller is disposed"));
       const v = view();
       if (v === null) return Promise.reject(new Error("the room cannot act before the snapshot is read"));
       // A retry of the same question resends the same request, key and version included, so the server resumes the
@@ -750,6 +757,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       });
     },
     requestEvidence(recordIds) {
+      if (isDisposed()) return Promise.reject(new Error("the session controller is disposed"));
       return once(`evidence:${JSON.stringify(recordIds)}`, async () => {
         requireView();
         const ids = [...recordIds];
@@ -774,6 +782,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       });
     },
     submitFinding(finding) {
+      if (isDisposed()) return Promise.reject(new Error("the session controller is disposed"));
       return once(`finding:${JSON.stringify(finding)}`, async () => {
         requireView();
         const match = JSON.stringify(finding);
@@ -800,6 +809,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       });
     },
     async requestDebrief() {
+      if (isDisposed()) throw new Error("the session controller is disposed");
       const debrief = await api.requestDebrief(sessionId);
       // With the terminal snapshot in, this finishes at once (finishIfLoaded), whatever older reads still do.
       setDebrief(debrief);
@@ -807,6 +817,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       await complete();
     },
     reconnect() {
+      if (isDisposed()) return;
       if (state.connection === "end_failed" || state.connection === "scoring") {
         void complete();
         return;
@@ -821,6 +832,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
       stream.reconnect();
     },
     dispose() {
+      // Idempotent, and safe from a subscriber that disposes while being told of the closing itself.
+      if (disposing || isDisposed()) return;
+      disposing = true;
       stopStream("close");
       clearHiddenTimer();
       for (const handle of catchUpTimers) scheduler.clearTimeout(handle);
