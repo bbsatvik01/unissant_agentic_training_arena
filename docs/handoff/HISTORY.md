@@ -64,3 +64,4 @@
 - d9fb1f1 merge WP-07 observability (4 self Codex rounds; gates green on merged tree)
 - fdf66e7 merge WP-12 subject service (6 self Codex rounds; py-check green on merged tree)
 - 4e3aefa merge WP-14 referee + debrief + review queue (Codex CORRECT r3; py-check green)
+- 8c49fed merge WP-04 pgTAP suite (23 files green both paths; no migration bug)

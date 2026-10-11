@@ -14,7 +14,7 @@
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
 | WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
 | WP-13 orchestrator (ad05fb8f3c14649dc, Opus, wt-wp13-orch) | building: routes, SSE, D-021 export-run, D-024 actor, local launcher | review, merge |
-| WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
+| WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
 | Supabase 0600-1100 | background MCP apply declined by permission prompt at 0600 (nothing applied; stored format = file minus trailing newline). Asked owner for .env.owner (session-pooler DSN) to apply with psql -1 -v ON_ERROR_STOP=1 | apply, record in schema_migrations, set global ceiling $74 (D-022), roles, advisors |
