@@ -109,7 +109,7 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
     await expect(createApiClient({ fetch: t.fetch }).me()).resolves.toMatchObject({ study });
     const consoleMe = { user_id: "u2", display_name: "Rater", roles: ["trainer"], csrf_token: "tok-2" };
     const c = transport({ "GET /api/me": [() => json(200, consoleMe)] });
-    await expect(createApiClient({ fetch: c.fetch }).me()).resolves.toMatchObject({ roles: ["trainer"], ex4_acknowledged: null, study: null });
+    await expect(createApiClient({ fetch: c.fetch }).me()).resolves.toMatchObject({ roles: ["trainer"], ex4_acknowledged: null, study: null, console: true });
   });
 
   it("returns the validated profile from me() and keeps its token", async () => {
@@ -121,6 +121,7 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
       roles: ["investigator"],
       ex4_acknowledged: null,
       study: null,
+      console: false,
       csrf_token: "tok-1",
     });
     await api.post("/api/x");

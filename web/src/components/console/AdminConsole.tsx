@@ -1,0 +1,132 @@
+/**
+ * The admin console (S6 4.13), on the referee origin: the kill switch, read-only, with the owner's command beside
+ * it; the budget rows (ceiling, liability, open reservations, headroom); and the tournaments, each with the one
+ * transition its state allows. Reveal lists the server's preconditions and is enabled only when every one passes
+ * (FE-ADM-2). No infra control (workers, instances, timeouts, health checks) and no ceiling editor appear here.
+ * A section whose route the server does not offer yet says so.
+ */
+import type { AdminAction, AdminTournament, BudgetRow, Precondition } from "../../lib/console/admin";
+import { killSwitchOf, nextAction, revealAllowed } from "../../lib/console/admin";
+
+export type Section<T> = { readonly state: "loading" } | { readonly state: "missing" } | { readonly state: "error" } | { readonly state: "ready"; readonly value: T };
+
+interface AdminConsoleProps {
+  readonly budget: Section<readonly BudgetRow[]>;
+  readonly tournaments: Section<readonly AdminTournament[]>;
+  /** Preconditions by tournament id, for tournaments in scoring. */
+  readonly preconditions: Readonly<Record<string, readonly Precondition[] | null>>;
+  readonly busy: string | null;
+  readonly message: string | null;
+  readonly onAction: (tournamentId: string, action: AdminAction) => void;
+}
+
+function Unavailable({ section }: { section: Section<unknown> }) {
+  if (section.state === "loading") return <p className="fine">Loading.</p>;
+  if (section.state === "missing") return <p className="empty">The server does not offer this yet.</p>;
+  if (section.state === "error") return <p className="empty">This could not be read.</p>;
+  return null;
+}
+
+export function AdminConsole({ budget, tournaments, preconditions, busy, message, onAction }: AdminConsoleProps) {
+  const kill = budget.state === "ready" ? killSwitchOf(budget.value) : null;
+  return (
+    <main className="console-admin">
+      <section className="panel console-card" aria-labelledby="kill-title">
+        <header className="panel-head">
+          <h2 id="kill-title">Kill switch</h2>
+        </header>
+        <div className="panel-body">
+          <p>
+            {kill === null ? "State unknown." : kill ? <strong>On: no model call or voice session can start.</strong> : "Off."}
+          </p>
+          <p className="fine">
+            Read-only here. The owner sets it from the operator shell: <code className="mono">scripts/kill_switch.sh on</code> or <code className="mono">scripts/kill_switch.sh off</code>.
+          </p>
+        </div>
+      </section>
+      <section className="panel console-card" aria-labelledby="budget-title">
+        <header className="panel-head">
+          <h2 id="budget-title">Budget</h2>
+        </header>
+        <div className="panel-body">
+          <Unavailable section={budget} />
+          {budget.state === "ready" ? (
+            <table className="board">
+              <thead>
+                <tr>
+                  <th scope="col">Bucket</th>
+                  <th scope="col">Ceiling</th>
+                  <th scope="col">Committed</th>
+                  <th scope="col">Open reservations</th>
+                  <th scope="col">Headroom</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budget.value.map((r) => (
+                  <tr key={r.bucket}>
+                    <td className="mono">{r.bucket}</td>
+                    <td>{r.ceiling}</td>
+                    <td>{r.liability}</td>
+                    <td>{r.open}</td>
+                    <td>{r.headroom}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+          <p className="fine">Ceilings are applied by the operator from the budget plan; they are not edited here.</p>
+        </div>
+      </section>
+      <section className="panel console-card" aria-labelledby="tour-title">
+        <header className="panel-head">
+          <h2 id="tour-title">Tournaments</h2>
+        </header>
+        <div className="panel-body">
+          <Unavailable section={tournaments} />
+          {message === null ? null : (
+            <p className="fine" role="status">
+              {message}
+            </p>
+          )}
+          {tournaments.state === "ready" && tournaments.value.length === 0 ? <p className="empty">No tournaments.</p> : null}
+          {tournaments.state === "ready"
+            ? tournaments.value.map((t) => {
+                const next = nextAction(t.status);
+                const pre = preconditions[t.id] ?? null;
+                const blocked = next?.action === "reveal" && !revealAllowed(pre);
+                return (
+                  <div key={t.id} className="console-tournament">
+                    <p>
+                      <strong>{t.name}</strong> <span className="fine">{t.split} split, {t.status}</span>
+                    </p>
+                    {next?.action === "reveal" ? (
+                      <ul className="checks">
+                        {pre === null ? <li>The server has not reported the reveal preconditions.</li> : null}
+                        {pre?.map((p) => (
+                          <li key={p.name} data-result={p.passed ? "pass" : "fail"}>
+                            {p.name}: {p.passed ? "met" : "not met"}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {next === null ? null : (
+                      <button
+                        type="button"
+                        className={next.action === "reveal" ? "btn-primary" : "btn-secondary-sm"}
+                        disabled={blocked || busy !== null}
+                        onClick={() => {
+                          onAction(t.id, next.action);
+                        }}
+                      >
+                        {busy === t.id ? "Working" : next.label}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            : null}
+        </div>
+      </section>
+    </main>
+  );
+}

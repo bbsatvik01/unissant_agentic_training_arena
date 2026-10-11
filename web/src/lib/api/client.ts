@@ -54,6 +54,9 @@ export interface Me {
   readonly roles: readonly string[];
   readonly ex4_acknowledged: string | null;
   readonly study: Study | null;
+  /** True on the referee origin, whose console `/api/me` carries no `ex4_acknowledged` key (S5 5.5). The
+   * trainer and admin consoles act only here (FE-REV-4, FE-ADM-1). */
+  readonly console: boolean;
   readonly csrf_token: string;
 }
 
@@ -133,7 +136,7 @@ export function parseMe(value: unknown): Me | null {
   if (typeof token !== "string" || token === "") return null;
   const study = parseStudy(value["study"]);
   if (study === undefined) return null;
-  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, study, csrf_token: token };
+  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, study, console: !("ex4_acknowledged" in value), csrf_token: token };
 }
 
 /** The server's reason in an error body: `{code}`, `{detail: "<code>"}` or `{detail: {code}}`. */
