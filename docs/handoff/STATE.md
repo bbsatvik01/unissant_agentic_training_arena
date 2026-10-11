@@ -13,7 +13,7 @@
 | WP-12 subject (a810ab185aeaef4e8, Sonnet, wt-wp12-subject, based on feat/wp05-port) | building, fake model | review, merge |
 | WP-14 referee (a82783ff6d2a01d89, Sonnet, wt-wp14-referee, based on feat/wp05-port) | building, fake model | review, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
-| WP-07 observability (a928b8a9c3a763c65, Sonnet) | building | review, merge |
+| WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
 | Supabase 0600-1100 | background MCP apply declined by permission prompt at 0600 (nothing applied; stored format = file minus trailing newline). Asked owner for .env.owner (session-pooler DSN) to apply with psql -1 -v ON_ERROR_STOP=1 | apply, record in schema_migrations, set global ceiling $74 (D-022), roles, advisors |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
