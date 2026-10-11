@@ -1030,7 +1030,9 @@ td {
 
 /* The debrief floats above the panels (outside the 3D view's stacking context). */
 .debrief {
-  max-height: calc(100vh - 96px);
+  /* Between the header (72px) and its 200px bottom offset, scrolling inside when that is short. */
+  max-height: calc(100vh - 272px);
+  min-height: 0;
   overflow-y: auto;
 }
 
