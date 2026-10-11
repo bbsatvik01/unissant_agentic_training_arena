@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -20,12 +21,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from arena_api.state import ApiState, actor_db, api_state
-from arena_core.db.arena import ArenaDb, ArenaError
+from arena_core.db.arena import ArenaDb, ArenaError, iso
 from arena_core.events.load import load_trial, stored_events
-from arena_core.events.projections import Viewer, live_deltas
+from arena_core.events.projections import Viewer, live_deltas, notice_message
 
 router = APIRouter()
 log = logging.getLogger("arena_api.sse")
+PAUSE_CHECK_S = 5.0  # S5 4.8: the kill switch is read at most every 5 s
+PAUSED_TEXT = "The arena is paused by its operator. Your session is saved."
 
 
 @router.post("/api/trials/{trial_id}/stream-tickets", response_model=None)
@@ -47,6 +50,7 @@ async def _stream(request: Request, db: ArenaDb, state: ApiState, trial_id: UUID
     if opening is None:
         return
     started = last_write = time.monotonic()
+    last_pause_check, paused, version = -PAUSE_CHECK_S, False, opening.transcript_version
     cursor = after
     while time.monotonic() - started < state.stream_max_s:
         rows = await db.trial_events(trial_id, cursor)
@@ -57,9 +61,15 @@ async def _stream(request: Request, db: ArenaDb, state: ApiState, trial_id: UUID
             events = stored_events(trial_id, rows, opening.packet, await db.released(trial_id), state_of)
             for message in live_deltas(events, viewer):
                 yield message
-            cursor = rows[-1].seq
+            cursor, version = rows[-1].seq, rows[-1].transcript_version
             last_write = time.monotonic()
             continue
+        if not paused and time.monotonic() - last_pause_check >= PAUSE_CHECK_S:
+            last_pause_check = time.monotonic()
+            paused = bool((await db.public_config())["paused"])
+            if paused:  # S5 4.8, 6.2: an open stream learns of the kill switch
+                yield notice_message(str(trial_id), iso(datetime.now(UTC)), version, "paused", PAUSED_TEXT)
+                last_write = time.monotonic()
         if time.monotonic() - last_write >= state.ping_after_s:
             yield b": ping\n\n"
             last_write = time.monotonic()

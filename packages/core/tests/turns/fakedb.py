@@ -354,6 +354,10 @@ class FakeArenaDb(ArenaDb):
             "assistant_candidate_id": self.coach_id,
         }
 
+    async def open_question(self, trial: UUID) -> bool:
+        assert trial == self.trial_id
+        return any(t["answer"] is None for t in self.turns.values())
+
     async def released(self, trial: UUID) -> list[dict[str, Any]]:
         assert trial == self.trial_id
         return [

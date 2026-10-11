@@ -403,3 +403,15 @@ def test_kpi4_ack_and_contract_violation() -> None:
         == HTTPStatus.NOT_FOUND
     )
     assert h.post("/api/telemetry/contract-violation", {"frame": "x"}).status_code == HTTPStatus.NO_CONTENT
+
+
+def test_an_open_stream_hears_the_kill_switch() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    ticket = h.post(f"/api/trials/{h.trial}/stream-tickets").json()["ticket"]
+    h.db.paused = True  # turned on after the middleware's last read (it caches for 5 s)
+    body = h.get(f"/api/trials/{h.trial}/events", params={"ticket": ticket}).text
+    frames = [json.loads(line[6:]) for line in body.splitlines() if line.startswith("data: ")]
+    assert frames[-1]["type"] == "notice"
+    assert frames[-1]["data"]["kind"] == "paused"

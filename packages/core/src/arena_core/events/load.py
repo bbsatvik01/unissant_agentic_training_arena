@@ -108,6 +108,9 @@ async def load_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     # Read the trial again after its events: a terminal record commits with its trial_ended event, so this read
     # is at least as new as every row above (the trial cannot end between the reads unnoticed).
     meta = await db.trial(trial) or meta
+    if meta["status"] != "running" and not any(r.kind == "trial_ended" for r in rows):
+        # The trial ended between the reads: read its rows again, now that the end has committed.
+        rows, released = await db.all_events(trial), await db.released(trial)
     events = stored_events(trial, rows, packet, released, meta["execution_state"])
     status = s6_status(str(meta["status"]), meta["execution_state"])
     ended = [e for e in events if e.kind == "trial_ended"]

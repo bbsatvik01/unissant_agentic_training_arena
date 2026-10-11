@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
+from arena_core.db.arena import EventRow
 from arena_core.events.load import RECORDING_FORMAT, LoadedTrial, load_trial, recording_of, snapshot_of, stored_events
 from arena_core.events.projections import (
     MAX_DELTA_BYTES,
@@ -18,6 +19,7 @@ from arena_core.events.projections import (
     notice_message,
     s6_status,
 )
+from arena_core.turns.orchestrator import Orchestrator, TrialSignals
 
 from .fakedb import PACKET, FakeArenaDb
 from .test_orchestrator import FINDING, Rig, run
@@ -215,3 +217,30 @@ def test_notice_frame() -> None:
     assert frame["seq"] is None
     assert not body.startswith(b"id:")
     assert len(body) < MAX_DELTA_BYTES
+
+
+class EndsWhileLoading(FakeArenaDb):
+    """The trial finalizes after its events were read and before the trial row is read again."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.cut: int | None = None
+
+    async def all_events(self, trial: UUID) -> list[EventRow]:
+        rows = await super().all_events(trial)
+        if self.cut is not None:
+            rows, self.cut = rows[: self.cut], None
+        return rows
+
+
+def test_a_trial_that_ends_while_it_is_loaded_is_read_again() -> None:
+    rig = Rig()
+    rig.db = EndsWhileLoading()
+    rig.orch = Orchestrator(db=rig.db, port=rig.port, subject=rig.subject, signals=TrialSignals())
+    rig.turn()
+    run(rig.orch.commit_finding(rig.db.trial_id, FINDING, str(uuid4())))
+    rig.db.cut = len(rig.db.events) - 2  # the first read missed finding_committed and trial_ended
+    snap = snapshot_of(_loaded(rig.db))
+    assert snap["status"] == "completed"
+    assert snap["commitment_hash"] == "c" * 64
+    assert snap["finding"] is not None

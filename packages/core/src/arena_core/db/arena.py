@@ -224,6 +224,13 @@ class ArenaDb:
         )
         return dict(zip(keys, r, strict=True))
 
+    async def open_question(self, trial: UUID) -> bool:
+        """Whether the trial has a question with no answer yet (`arena.v_transcripts`)."""
+        rows = await self.fetch(
+            "select exists (select 1 from arena.v_transcripts where trial_id = %s and answer is null)", (trial,)
+        )
+        return bool(rows and rows[0][0])
+
     async def released(self, trial: UUID) -> list[dict[str, Any]]:
         rows = await self.fetch(
             "select record_id, released_after_exchanges, content::text from arena.v_released_evidence"

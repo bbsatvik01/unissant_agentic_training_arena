@@ -38,6 +38,7 @@ from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
 from arena_core.turns.coach import CardMeta, CoachInputs, coach_inputs, deep_due, store_card, store_deep
 
 log = logging.getLogger("arena_core.turns")
+TURN_DEADLINE_S = 60.0  # S5 5.2: the app-level deadline of one turn request
 
 
 def request_key(trial: UUID, turn_no: int, kind: str, purpose: str) -> str:
@@ -134,6 +135,7 @@ class Orchestrator:
     subject: SubjectCall
     signals: TrialSignals
     clock: Callable[[], float] = time.monotonic
+    deadline_s: float = TURN_DEADLINE_S
 
     async def _open(self, trial: UUID, kind: str, key: str, expected_version: int | None = None) -> dict[str, Any]:
         return await self.db.open_work_item(trial, kind, key, expected_version)
@@ -149,11 +151,16 @@ class Orchestrator:
     async def run_turn(
         self, trial: UUID, question: str, release_ids: list[str], expected_version: int, idem_key: str
     ) -> dict[str, Any]:
-        async with self.signals.lock(trial):
-            try:
+        try:
+            async with asyncio.timeout(self.deadline_s), self.signals.lock(trial):
                 return await self._turn(trial, question, release_ids, expected_version, idem_key)
-            except ArenaError as exc:
-                raise refusal(exc) from exc
+        except ArenaError as exc:
+            raise refusal(exc) from exc
+        except TimeoutError as exc:
+            # S5 5.2: the request's 60 s deadline. Every finished step is stored; a retry with the same idem_key
+            # resumes at the first unfinished one (an interrupted model call is recovered by its step key).
+            log.warning("turn on %s passed its %ss deadline", trial, self.deadline_s)
+            raise TurnRefusedError(504, "turn_deadline") from exc
 
     async def _turn(
         self, trial: UUID, question: str, release_ids: list[str], expected_version: int, idem_key: str
@@ -312,6 +319,8 @@ class Orchestrator:
 
     async def request_evidence(self, trial: UUID, record_ids: list[str], idem_key: str) -> dict[str, Any]:
         async with self.signals.lock(trial):
+            if await self.db.open_question(trial):  # S5 5.4: between turns only; the open turn's retry owns it
+                raise TurnRefusedError(409, "turn_in_progress", "the last question is not answered yet")
             try:
                 key = request_key(trial, 0, "release", f"evidence:{idem_key}")
                 result = await self.db.release_between_turns(trial, key, record_ids)

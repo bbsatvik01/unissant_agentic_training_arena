@@ -394,3 +394,34 @@ def test_a_reused_key_with_a_different_body_is_refused() -> None:
     with pytest.raises(TurnRefusedError) as finding:
         run(rig.orch.commit_finding(rig.db.trial_id, {**FINDING, "rationale": "Changed."}, finding_key))
     assert finding.value.code == "idempotency_conflict"
+
+
+def test_an_evidence_request_while_a_question_is_unanswered_is_409_and_the_turn_retry_still_answers() -> None:
+    rig = Rig()
+    rig.turn()
+    rig.turn()
+    rig.subject_error = SubjectUnavailableError("provider_failed")
+    key = str(uuid4())
+    with pytest.raises(TurnRefusedError):
+        rig.turn(key=key)
+    with pytest.raises(TurnRefusedError) as busy:
+        run(rig.orch.request_evidence(rig.db.trial_id, ["rec-01"], str(uuid4())))
+    assert (busy.value.status, busy.value.code) == (HTTPStatus.CONFLICT, "turn_in_progress")
+    rig.subject_error = None
+    assert run(rig.orch.run_turn(rig.db.trial_id, "What did you do in B-12?", [], 0, key))["outcome"] == "recorded"
+
+
+def test_a_turn_past_its_deadline_is_504_and_its_retry_resumes() -> None:
+    rig = Rig()
+
+    async def stalled(_t: UUID, _w: UUID, _a: UUID | None) -> SubjectOutcome:
+        await asyncio.sleep(1)
+        raise AssertionError
+
+    stuck = Orchestrator(db=rig.db, port=rig.port, subject=stalled, signals=rig.orch.signals, deadline_s=0.05)
+    key = str(uuid4())
+    with pytest.raises(TurnRefusedError) as exc_info:
+        run(stuck.run_turn(rig.db.trial_id, "Why?", [], 0, key))
+    assert (exc_info.value.status, exc_info.value.code) == (HTTPStatus.GATEWAY_TIMEOUT, "turn_deadline")
+    assert run(rig.orch.run_turn(rig.db.trial_id, "Why?", [], 0, key))["outcome"] == "recorded"
+    assert rig.kinds().count("question_recorded") == 1
