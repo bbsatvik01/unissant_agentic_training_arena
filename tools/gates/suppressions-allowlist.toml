@@ -25,5 +25,5 @@ reason = "Same false positive as the subprocess.run call above, same argv shape 
 [[allow]]
 path = "packages/core/tests/observability/test_phoenix.py"
 marker = "nosemgrep"
-line = "import httpx  # nosemgrep: arena-no-raw-http"
+line = "import httpx  # nosemgrep: arena-no-raw-http-httpx"
 reason = "arena-no-raw-http (S5 1.1, 1.2) keeps raw HTTP clients out of code paths that bypass the agent port, the spend guard or a role's caller-token check; this import is in the test of observability/phoenix.py (already excluded from the same rule), used only to build httpx.Response/httpx.Request FIXTURES for a scripted HttpGetter fake (PhoenixSpanReader's own Protocol) -- the test never opens a real connection (verified false positive; WP-07, S5 8.4/8.6, no network export in tests)"
