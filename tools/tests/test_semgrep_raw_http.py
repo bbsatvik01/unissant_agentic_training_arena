@@ -1,6 +1,7 @@
-"""Gate proof for the raw-HTTP rule (S5 1.1/1.2): HTTP clients only in the agent port, the api's role
-clients and the Phoenix read-back. Adapted from TechnoMile tools/tests/test_semgrep_raw_http.py
-(ATTRIBUTIONS.md): same harness, this repo's allowed and forbidden paths."""
+"""Gate proof for the raw-HTTP rules (S5 1.1/1.2): HTTP clients only in the agent port, the api's role
+clients, the Phoenix read-back, and (httpx only) the two WP-12 tests that drive arena-subject's own app
+directly. Adapted from TechnoMile tools/tests/test_semgrep_raw_http.py (ATTRIBUTIONS.md): same harness,
+this repo's allowed and forbidden paths."""
 
 import json
 import shutil
@@ -14,11 +15,14 @@ from tools.tests.conftest import REPO_ROOT
 RULES = REPO_ROOT / "tools" / "semgrep" / "rules.yml"
 SEMGREP_ENV = REPO_ROOT / "tools" / "envs" / "semgrep"
 RULE_ID = "arena-no-raw-http"
+HTTPX_RULE_ID = "arena-no-raw-http-httpx"
 
-VIOLATIONS = {
+HTTPX_VIOLATIONS = {
     "httpx_get.py": "import httpx\n\n\ndef grab(url: str) -> bytes:\n    return httpx.get(url).content\n",
     "httpx_from.py": "from httpx import Client\n\nCLIENT = Client()\n",
     "httpx2_import.py": "import httpx2\n",
+}
+OTHER_VIOLATIONS = {
     "requests_import.py": "import requests\n\nrequests.get('https://example.com', timeout=5)\n",
     "urllib_open.py": "import urllib.request\n\nurllib.request.urlopen('https://example.com')\n",
     "urllib_from.py": "from urllib.request import urlopen\n",
@@ -26,12 +30,19 @@ VIOLATIONS = {
     "http_client.py": "import http.client\n\nhttp.client.HTTPSConnection('example.com')\n",
     "aiohttp_import.py": "import aiohttp\n",
 }
+VIOLATIONS = {**HTTPX_VIOLATIONS, **OTHER_VIOLATIONS}
 
+# Excluded from both rules: full exemption (the agent port, the Phoenix read-back, the api's role clients).
 ALLOWED_DIRS = ["packages/core/src/arena_core/providers"]
 ALLOWED_FILES = [
     "packages/core/src/arena_core/observability/phoenix.py",
     "services/api/src/arena_api/subject_client.py",
     "services/api/src/arena_api/referee_client.py",
+]
+# Excluded from the httpx rule only: still forbidden from every other client (requests, urllib, aiohttp, ...).
+HTTPX_ONLY_ALLOWED_FILES = [
+    "services/subject/tests/test_app.py",
+    "services/subject/tests/test_main.py",
 ]
 FORBIDDEN_DIRS = [
     "services/api/src/arena_api",
@@ -60,8 +71,12 @@ def semgrep_json(target: Path, *, respect_git_ignore: bool) -> dict[str, object]
     return parsed
 
 
+def _rule_for(name: str) -> str:
+    return HTTPX_RULE_ID if name in HTTPX_VIOLATIONS else RULE_ID
+
+
 @pytest.mark.gateproof
-def test_raw_http_rule_flags_forbidden_paths_and_allows_the_port_and_role_clients(tmp_path: Path) -> None:
+def test_raw_http_rules_flag_forbidden_paths_and_allow_the_port_and_role_clients(tmp_path: Path) -> None:
     shutil.copy(REPO_ROOT / ".semgrepignore", tmp_path / ".semgrepignore")
     for directory in FORBIDDEN_DIRS + ALLOWED_DIRS:
         for name, body in VIOLATIONS.items():
@@ -69,7 +84,11 @@ def test_raw_http_rule_flags_forbidden_paths_and_allows_the_port_and_role_client
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(body)
     for allowed in ALLOWED_FILES:
+        (tmp_path / allowed).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / allowed).write_text(VIOLATIONS["httpx_get.py"])
+    for httpx_only in HTTPX_ONLY_ALLOWED_FILES:
+        (tmp_path / httpx_only).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / httpx_only).write_text(VIOLATIONS["httpx_get.py"] + VIOLATIONS["requests_import.py"])
 
     results = semgrep_json(tmp_path, respect_git_ignore=False)["results"]
     assert isinstance(results, list)
@@ -77,14 +96,20 @@ def test_raw_http_rule_flags_forbidden_paths_and_allows_the_port_and_role_client
 
     for directory in FORBIDDEN_DIRS:
         for name in VIOLATIONS:
-            assert (f"{directory}/{name}", RULE_ID) in flagged, f"missed {directory}/{name}"
+            assert (f"{directory}/{name}", _rule_for(name)) in flagged, f"missed {directory}/{name}"
     for directory in ALLOWED_DIRS:
         assert not [p for p, _ in flagged if p.startswith(directory + "/")], f"false positive in {directory}"
     for allowed in ALLOWED_FILES:
         assert (allowed, RULE_ID) not in flagged, f"false positive on {allowed}"
+        assert (allowed, HTTPX_RULE_ID) not in flagged, f"false positive on {allowed}"
+    for httpx_only in HTTPX_ONLY_ALLOWED_FILES:
+        # httpx is allowed there (the narrowed exemption)...
+        assert (httpx_only, HTTPX_RULE_ID) not in flagged, f"false positive on {httpx_only}"
+        # ...but every other raw client in the same file is still caught: the exemption is not a blanket one.
+        assert (httpx_only, RULE_ID) in flagged, f"{httpx_only} should still be caught for its requests import"
 
 
 @pytest.mark.gateproof
-def test_repo_itself_is_clean_under_the_rule() -> None:
+def test_repo_itself_is_clean_under_the_rules() -> None:
     results = semgrep_json(REPO_ROOT, respect_git_ignore=True)["results"]
     assert results == []

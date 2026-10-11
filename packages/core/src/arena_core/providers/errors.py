@@ -74,11 +74,23 @@ class KillSwitchOnError(ProviderError):
 
 
 class StructuredOutputError(ProviderError):
-    """No schema-valid reply after the one repair, or the attempt cap was reached first."""
+    """No schema-valid reply after the one repair, or the attempt cap was reached first. `reply_text` is the
+    last attempt's raw text (S2 6.10: a subject G0_schema quarantine stores it, or `""` when there was
+    none), never echoed back to a provider."""
+
+    def __init__(self, message: str, *, reply_text: str = "") -> None:
+        super().__init__(message)
+        self.reply_text = reply_text
 
 
 class ProviderBlockedError(ProviderError):
-    """The provider blocked the reply (safety or similar) and the one repair did not clear it."""
+    """The provider blocked the reply (safety or similar) and the one repair did not clear it. `reply_text`
+    is whatever visible text the last blocked attempt carried (S2 6.10: a subject G0_blocked quarantine
+    stores it, or `""` when there was none)."""
+
+    def __init__(self, message: str, *, reply_text: str = "") -> None:
+        super().__init__(message)
+        self.reply_text = reply_text
 
 
 class ProviderFailedError(ProviderError):

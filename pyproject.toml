@@ -29,8 +29,9 @@ dev = [
   # (starlette.testclient triggers a deprecation warning under -W error; httpx's own ASGITransport does not).
   "httpx==0.28.1",
   "mypy==2.3.1",
-  # Tests read the agent port's per-attempt spans back (S5 3.6); the runtime SDK install lands with WP-07.
-  "opentelemetry-sdk==1.42.1",
+  # Tests read the agent port's per-attempt spans back (S5 3.6); version matches arena-core's own runtime
+  # dependency (WP-07's observability install), never drifting apart from the real SDK tests run against.
+  "opentelemetry-sdk==1.45.0",
   "pip-audit==2.10.1",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",

@@ -1,25 +1,52 @@
-"""Typed wrappers for S4's spend-guard functions, under S4's own names (S4 section 12; S5 4.6, C-30).
+"""Typed wrappers for S4 functions, under S4's own names (S4 section 12; S5 4.6's `db/calls.py`, C-30).
 
-Each wrapper runs one `select ops.<function>(...)` inside its own transaction (a savepoint when the caller already
-holds one), so a refusal the function RETURNS commits with the transaction, exactly as S4 designs it. The jsonb
-result is read as text and parsed with `Decimal` for every number: money is S4's `ops.usd` (numeric(14, 6)), never a
-float. Errors the functions RAISE (AR001, AR003, AR007, AR040, 42501) propagate as `psycopg.Error`: they are defects
-or role violations, not outcomes a caller can act on.
+Two independent sets of wrappers share this module, each under its own connection style:
 
-The caller never supplies an amount (S5 4.6): reservations take a byte size, usage takes token counts, and the
-database prices both.
+Spend guard (S5 3, 4; WP-05): each wrapper runs one ``select ops.<function>(...)`` inside its own
+transaction (a savepoint when the caller already holds one), over the ASYNC pool (S5 6.4, ``db/pool.py``;
+``AsyncConnection``) the long-running api/subject/referee services use. A refusal the function RETURNS
+commits with the transaction, exactly as S4 designs it. The jsonb result is read as text and parsed with
+``Decimal`` for every number: money is S4's ``ops.usd`` (numeric(14, 6)), never a float. Errors the
+functions RAISE (AR001, AR003, AR007, AR040, 42501) propagate as ``psycopg.Error``: they are defects or role
+violations, not outcomes a caller can act on. The caller never supplies an amount: reservations take a byte
+size, usage takes token counts, and the database prices both.
+
+Observability mirror and pump (S4 8.4; S5 4.6's `db/calls.py`, C-30; WP-07): ``ops.mirror_spans``,
+``ops.set_export_state``, ``ops.record_trace_summary``, ``ops.prune_trace_mirror``, a reader for
+``ops.v_exportable_spans``, and a reader for already-``exported``-but-not-yet-``verified`` rows (direct
+``ops.trace_mirror`` select; ``arena_referee``'s grant reaches the whole table, not just the view). A plain,
+SYNCHRONOUS connection (``SqlConnection``, satisfied by ``psycopg.Connection``): ``make traces-push`` is a
+one-shot CLI, so a throwaway sync connection per run is simplest (D-016) and needs no pool. Every wrapper
+here assumes the connection's cursor returns plain tuple rows (``psycopg``'s default): a caller that
+configured a non-tuple ``row_factory`` must pass a cursor-scoped override instead. Every write runs through
+``_run``: on a failed statement the connection is rolled back before the exception propagates. PostgreSQL
+leaves a connection in "current transaction is aborted" after any failed statement; a long-lived connection
+(``PostgresMirrorSink`` holds one across many flushes) that is never rolled back after one failure would
+refuse every later statement too (verified via the psycopg docs, Context7 `/psycopg/psycopg`, "Transactions
+management").
+
+Later work packages add the rest of this file's wrappers (turn work, review queue, ...) under the same S4
+names as they need them.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
-from typing import Any, Literal, cast, get_args
+from typing import Any, Literal, Protocol, cast, get_args
 from uuid import UUID
 
 import psycopg
 from psycopg import AsyncConnection
+from psycopg.types.json import Jsonb
+
+from arena_core.observability.processors import SpanRow
+
+# ============================================================================================= spend guard
+# S5 3, 4; WP-05. Async wrappers over the long-running services' pool (db/pool.py).
 
 SettleOutcome = Literal["committed", "usage_unknown", "released"]
 ReserveOutcome = Literal["reserved", "exists", "refused"]
@@ -325,3 +352,199 @@ async def set_kill_switch(conn: Conn, *, on: bool, reason: str) -> None:
     """`ops.set_kill_switch(on, reason)`: owner credential only."""
     async with conn.transaction():
         await conn.execute("select ops.set_kill_switch(%s, %s)", (on, reason))
+
+
+# ======================================================================================= observability mirror
+# S4 8.4; WP-07. Sync wrappers for the mirror writer and the `make traces-push` pump.
+
+# ops.mirror_spans refuses more than this many spans in one call (S4 8.4); PostgresMirrorSink chunks to it.
+MIRROR_BATCH_LIMIT = 500
+
+
+class SqlCursor(Protocol):
+    def execute(self, query: str, params: Sequence[object] = ()) -> object: ...
+    def fetchone(self) -> tuple[object, ...] | None: ...
+    def fetchall(self) -> list[tuple[object, ...]]: ...
+
+
+class SqlConnection(Protocol):
+    """The slice of ``psycopg.Connection`` these wrappers use (tests pass a scripted stand-in)."""
+
+    def cursor(self) -> SqlCursor: ...
+
+    def commit(self) -> None: ...
+
+    def rollback(self) -> None: ...
+
+
+def _run(conn: SqlConnection, query: str, params: Sequence[object]) -> SqlCursor:
+    """Execute one statement and commit; on any failure, roll back first so the connection is usable again
+    for the next call, then re-raise."""
+    cur = conn.cursor()
+    try:
+        cur.execute(query, params)
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+    return cur
+
+
+def _span_payload(row: SpanRow) -> dict[str, object]:
+    return {
+        "trace_id": row.trace_id,
+        "span_id": row.span_id,
+        "parent_span_id": row.parent_span_id,
+        "trial_id": row.trial_id,
+        "tournament_id": row.tournament_id,
+        "split": row.split,
+        "name": row.name,
+        "kind": row.kind,
+        "status": row.status,
+        "started_at": row.started_at.isoformat(),
+        "ended_at": row.ended_at.isoformat(),
+        "otlp": row.otlp,
+    }
+
+
+def _chunks(rows: Sequence[SpanRow], size: int) -> list[Sequence[SpanRow]]:
+    return [rows[i : i + size] for i in range(0, len(rows), size)]
+
+
+def mirror_spans(conn: SqlConnection, service: str, rows: Sequence[SpanRow]) -> int:
+    """``select ops.mirror_spans(%s, %s)`` (S4 8.4): an idempotent batch insert, chunked to at most
+    ``MIRROR_BATCH_LIMIT`` spans per call (the function's own limit; a larger buffer would be refused
+    outright). Returns the number of NEW rows across every chunk (a span already mirrored by an earlier,
+    retried write does not count). A failure in one chunk leaves later chunks unsent; already-committed
+    chunks stay mirrored (each chunk commits on its own)."""
+    if not rows:
+        return 0
+    total = 0
+    for chunk in _chunks(rows, MIRROR_BATCH_LIMIT):
+        cur = _run(conn, "select ops.mirror_spans(%s, %s)", (service, Jsonb([_span_payload(r) for r in chunk])))
+        written = cur.fetchone()
+        total += cast(int, written[0]) if written is not None else 0
+    return total
+
+
+@dataclass(frozen=True)
+class ExportableSpan:
+    """One row of ``ops.v_exportable_spans`` (S4 8.4): a span the pump may export now -- pending, or held and
+    now revealed -- with no span of its trace still held for an unrevealed tournament."""
+
+    trace_id: str
+    span_id: str
+    parent_span_id: str | None
+    service: str
+    trial_id: str | None
+    name: str
+    kind: str
+    status: str
+    started_at: datetime
+    ended_at: datetime
+    otlp: dict[str, object]
+    export_state: str
+
+
+def exportable_spans(conn: SqlConnection, *, limit: int = MIRROR_BATCH_LIMIT) -> list[ExportableSpan]:
+    """``select * from ops.v_exportable_spans`` (S4 8.4), oldest first so a pump run drains the backlog in
+    commit order; bounded to ``limit`` per call. The caller loops (``pump.py``) until a call returns fewer
+    rows than ``limit``."""
+    cur = conn.cursor()
+    cur.execute(
+        "select trace_id, span_id, parent_span_id, service, trial_id, name, kind, status, started_at, "
+        "ended_at, otlp, export_state from ops.v_exportable_spans order by started_at limit %s",
+        (limit,),
+    )
+    return [_row_to_exportable(row) for row in cur.fetchall()]
+
+
+def _row_to_exportable(row: tuple[object, ...]) -> ExportableSpan:
+    trial_id, otlp = row[4], row[10]
+    return ExportableSpan(
+        trace_id=cast(str, row[0]),
+        span_id=cast(str, row[1]),
+        parent_span_id=cast("str | None", row[2]),
+        service=cast(str, row[3]),
+        trial_id=str(trial_id) if trial_id is not None else None,
+        name=cast(str, row[5]),
+        kind=cast(str, row[6]),
+        status=cast(str, row[7]),
+        started_at=cast(datetime, row[8]),
+        ended_at=cast(datetime, row[9]),
+        otlp=otlp if isinstance(otlp, dict) else {},
+        export_state=cast(str, row[11]),
+    )
+
+
+def exported_unverified_spans(conn: SqlConnection, *, limit: int = MIRROR_BATCH_LIMIT) -> list[ExportableSpan]:
+    """Full rows still ``exported`` (direct ``select`` against ``ops.trace_mirror``, not the
+    ``ops.v_exportable_spans`` view, which never lists ``exported`` rows -- it has no path back from
+    ``exported`` to ``pending``). S5 8.4: "Export is retried from the mirror" -- a row an earlier pass
+    marked ``exported`` but never confirmed by read-back may really not be in Phoenix at all (OTLP returning
+    SUCCESS only means Phoenix accepted the HTTP call; its own ingest queue is in memory and can still lose
+    the span after that, S5 8.4's "Phoenix is a viewer, not the store"). The caller (``pump.py``) therefore
+    RE-EXPORTS these rows, not just re-reads-back for them -- re-sending an already-ingested span is
+    harmless (idempotent on trace and span id, same as ``ops.mirror_spans``)."""
+    cur = conn.cursor()
+    cur.execute(
+        "select trace_id, span_id, parent_span_id, service, trial_id, name, kind, status, started_at, "
+        "ended_at, otlp, export_state from ops.trace_mirror where export_state = 'exported' "
+        "order by created_at limit %s",
+        (limit,),
+    )
+    return [_row_to_exportable(row) for row in cur.fetchall()]
+
+
+def set_export_state(conn: SqlConnection, keys: Sequence[tuple[str, str]], state: str) -> int:
+    """``select ops.set_export_state(%s, %s)`` (S4 8.4): moves exactly the named ``(trace_id, span_id)`` pairs
+    from pending/held to ``exported``, or from ``exported`` to ``verified`` -- and only the ones the function
+    allows (a held span moves only once its tournament is revealed). Returns the number actually moved."""
+    if not keys:
+        return 0
+    payload = [{"trace_id": trace_id, "span_id": span_id} for trace_id, span_id in keys]
+    cur = _run(conn, "select ops.set_export_state(%s, %s)", (Jsonb(payload), state))
+    moved = cur.fetchone()
+    return cast(int, moved[0]) if moved is not None else 0
+
+
+@dataclass(frozen=True)
+class TraceSummary:
+    """One ``ops.record_trace_summary`` row: spans expected vs mirrored for one request or job task."""
+
+    trace_id: str
+    scope: str
+    trial_id: str | None
+    expected: int
+    mirrored: int
+    failures: int
+
+
+def record_trace_summary(conn: SqlConnection, summary: TraceSummary) -> None:
+    """``select ops.record_trace_summary(%s, %s, %s, %s, %s, %s)`` (S4 8.4), once (a second call for the same
+    ``(trace_id, scope)`` is ignored by the function)."""
+    _run(
+        conn,
+        "select ops.record_trace_summary(%s, %s, %s, %s, %s, %s)",
+        (summary.trace_id, summary.scope, summary.trial_id, summary.expected, summary.mirrored, summary.failures),
+    )
+
+
+def prune_trace_mirror(conn: SqlConnection, days: int) -> int:
+    """``select ops.prune_trace_mirror(%s)`` (S4 8.4; referee admin task): drops verified, non-hidden spans
+    older than ``days`` (>= 7). Returns the number of rows dropped."""
+    cur = _run(conn, "select ops.prune_trace_mirror(%s)", (days,))
+    dropped = cur.fetchone()
+    return cast(int, dropped[0]) if dropped is not None else 0
+
+
+class PostgresMirrorSink:
+    """``observability.processors.MirrorSink`` over a live connection: every flush writes through
+    ``mirror_spans`` (chunked to ``MIRROR_BATCH_LIMIT``)."""
+
+    def __init__(self, conn: SqlConnection, service: str) -> None:
+        self._conn = conn
+        self._service = service
+
+    def write(self, rows: Sequence[SpanRow]) -> int:
+        return mirror_spans(self._conn, self._service, rows)
