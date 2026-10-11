@@ -18,7 +18,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from arena_core.identity import DevIdentity
 from arena_referee import db
 from arena_referee.identity_dep import require_admin_role, require_console_role
-from arena_referee.isolation import fetch_fresh_isolation_result, open_hidden_tournament
+from arena_referee.isolation import (
+    fetch_fresh_dev_isolation_result,
+    fetch_fresh_isolation_result,
+    open_hidden_tournament,
+)
 from arena_referee.reveal import PublishConfig, PublishContext, reveal_and_publish, seal_correction_and_publish
 from arena_referee.routes.admin import isolation_gate_request
 
@@ -30,7 +34,7 @@ router = APIRouter(prefix="/admin/tournaments")
 _BLOCKED_SQLSTATES = frozenset({"AR020", "AR021"})
 
 
-async def _publish_context(request: Request) -> PublishContext:
+async def _publish_context(request: Request, tournament_id: UUID) -> PublishContext:
     """Built fresh for this call: the fixed `PublishConfig` from app startup, plus the isolation result
     RECOMPUTED fresh for the running commit against the tournament's now-completed data (Codex finding #1:
     reading back whatever a prior `/open` call happened to cache would publish a leaderboard bound to
@@ -40,7 +44,16 @@ async def _publish_context(request: Request) -> PublishContext:
     if config is None or not git_sha:
         msg = "the referee app was not configured with a PublishConfig and ARENA_GIT_SHA"
         raise RuntimeError(msg)
-    isolation = await fetch_fresh_isolation_result(request.app.state.connect, git_sha)
+    connect = request.app.state.connect
+    try:
+        split = await db.fetch_tournament_split(connect, str(tournament_id))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    # A dev tournament has no hidden seal and records no suite reports at open; it runs only its own checks.
+    if split == "dev":
+        isolation = await fetch_fresh_dev_isolation_result(connect, git_sha)
+    else:
+        isolation = await fetch_fresh_isolation_result(connect, git_sha)
     qq_calibrated: bool = getattr(request.app.state, "qq_calibrated", False)
     return PublishContext(isolation=isolation, qq_calibrated=qq_calibrated, config=config)
 
@@ -67,7 +80,7 @@ async def _run(coro: Coroutine[Any, Any, db.RevealResult], action: str) -> dict[
 async def reveal_route(
     tournament_id: UUID, request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
-    ctx = await _publish_context(request)
+    ctx = await _publish_context(request, tournament_id)
     return await _run(reveal_and_publish(request.app.state.connect, str(tournament_id), ctx), "reveal")
 
 
@@ -75,7 +88,7 @@ async def reveal_route(
 async def correction_route(
     tournament_id: UUID, request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
-    ctx = await _publish_context(request)
+    ctx = await _publish_context(request, tournament_id)
     return await _run(seal_correction_and_publish(request.app.state.connect, str(tournament_id), ctx), "correction")
 
 

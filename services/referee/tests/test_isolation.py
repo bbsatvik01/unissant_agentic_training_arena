@@ -322,3 +322,23 @@ def test_fetch_fresh_isolation_result_refuses_when_ig123_was_never_recorded() ->
     conn = FakeConn({"distinct on (check_name)": []})
     with pytest.raises(RuntimeError, match="never recorded"):
         run(isolation.fetch_fresh_isolation_result(connector(conn), "0" * 40))
+
+
+def test_the_dev_gate_fails_on_a_dev_canary_in_an_assistant_output_and_never_reads_the_hidden_seal() -> None:
+    cand = "00000000-0000-0000-0000-0000000000c1"
+    conn = FakeConn(
+        {
+            "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "e.payload": [(cand, '{"text": "ask about CANARY-FDEV1"}')],
+            "ledger.verify_chain": [(None,)],
+            "ledger.corpus_seals": [(True,)],
+        }
+    )
+    result = run(isolation.fetch_fresh_dev_isolation_result(connector(conn), "a" * 40))
+    assert not result.passed
+    assert result.items["IG-6"][0] is False
+    assert result.items["IG-5"][0] is True
+    assert not any("hidden" in q for q, _ in conn.executed)
+    ig6_rows = [p for q, p in conn.executed if "insert into arena.isolation_checks" in q and "ig6" in str(p)]
+    assert len(ig6_rows) == 1
+    assert str(ig6_rows[0][0]) == cand  # the culprit is attributed (FX-I02)

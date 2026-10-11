@@ -31,7 +31,7 @@ from arena_core.referee.isolation import (
     report_evidence,
 )
 from arena_core.scenario.corpus import Corpus, build_corpus, dev_reference_grams, family_canaries
-from arena_core.scoring.ranking import IsolationResult
+from arena_core.scoring.ranking import DEV_IG_ITEMS, IsolationResult, isolation_result
 from arena_referee import db
 
 # The development prompt and fixture surfaces S1 10.4/AC-S1-21 name: template and few-shot text a rostered
@@ -171,6 +171,32 @@ class IsolationGateRequest:
 _IG123 = ("IG-1", "IG-2", "IG-3")
 
 
+async def _ig5(connect: Connector) -> tuple[bool, str]:
+    chain_ok = await verify_chain(connect)
+    corpus_seal_ok = await verify_all_corpus_seals(connect)
+    commitments = await fetch_commitment_results(connect)
+    return ig5_evidence(chain_verifies=chain_ok, corpus_seal_verifies=corpus_seal_ok, commitments=commitments)
+
+
+async def _record(connect: Connector, evidence: IsolationEvidence, git_sha: str) -> None:
+    # Known gap (not fixed this round, Codex finding #2): each item below commits in its own transaction
+    # (`db.record_isolation_check`), not all atomically. If a write fails partway through, the NEXT read of
+    # `arena.isolation_checks` ("latest row per check_name") would fold this run's successful writes together
+    # with an EARLIER run's result for whichever item never got rewritten. A write failure does propagate to
+    # the caller (`routes.reveal._run` never swallows it), so the gap is in what a LATER read sees.
+    for item, (passed, evidence_hash) in evidence.items.items():
+        await db.record_isolation_check(
+            connect,
+            db.IsolationCheckRow(
+                check_name=db.CHECK_NAMES[item],
+                passed=passed,
+                evidence_hash=evidence_hash,
+                commit_sha=git_sha,
+                candidate_id=evidence.canary_culprit if item == "IG-6" else None,
+            ),
+        )
+
+
 async def _recompute_and_record(
     connect: Connector, *, ig123: Mapping[str, tuple[bool, str]], git_sha: str, scan_roots: Sequence[Path]
 ) -> IsolationResult:
@@ -183,9 +209,6 @@ async def _recompute_and_record(
     files = read_scan_files(scan_roots)
     scan = combined_corpus_scan_evidence(hidden.corpora, files)
     seal_ok = await verify_hidden_seal(connect)
-    chain_ok = await verify_chain(connect)
-    corpus_seal_ok = await verify_all_corpus_seals(connect)
-    commitments = await fetch_commitment_results(connect)
     output_texts = await fetch_assistant_output_texts(connect)
     canary = ig6_evidence(count_canary_hits(hidden.canaries, output_texts))
 
@@ -195,33 +218,39 @@ async def _recompute_and_record(
             "IG-2": ig123["IG-2"],
             "IG-3": ig123["IG-3"],
             "IG-4": ig4_evidence(seal_verifies=seal_ok, scan=scan),
-            "IG-5": ig5_evidence(chain_verifies=chain_ok, corpus_seal_verifies=corpus_seal_ok, commitments=commitments),
+            "IG-5": await _ig5(connect),
             "IG-6": (canary.passed, canary.evidence_hash),
         },
         canary_culprit=canary.culprit,
     )
-    # Known gap (not fixed this round, Codex finding #2): each item below commits in its own transaction
-    # (`db.record_isolation_check`), not all six atomically. If a write fails partway through, the NEXT
-    # read of `arena.isolation_checks` ("latest row per check_name") would fold this run's successful
-    # writes together with an EARLIER run's result for whichever item never got rewritten -- a result that
-    # was never actually produced by any single run. This needs either one transaction across all six
-    # inserts or a batch write keyed by a shared run id. A write failure here does propagate as an error
-    # to the caller (`routes.reveal._run` surfaces any un-mapped `psycopg.Error`, never swallows it), so
-    # this is a correctness gap in what the NEXT read sees, not a silently-swallowed exception -- but it
-    # is still a real gap: the failed call's own caller sees an error, while a LATER, unrelated reveal call
-    # could read the mixed-vintage result as if it were a clean, complete run.
-    for item, (passed, evidence_hash) in evidence.items.items():
-        await db.record_isolation_check(
-            connect,
-            db.IsolationCheckRow(
-                check_name=db.CHECK_NAMES[item],
-                passed=passed,
-                evidence_hash=evidence_hash,
-                commit_sha=git_sha,
-                candidate_id=evidence.canary_culprit if item == "IG-6" else None,
-            ),
-        )
+    await _record(connect, evidence, git_sha)
     return evidence.result()
+
+
+async def fetch_family_canaries(connect: Connector) -> frozenset[str]:
+    """Every ingested family's canaries, dev and hidden (a dev tournament's own private packets carry the dev
+    families' canaries; a hidden canary in any output is a leak too)."""
+    async with connect() as conn:
+        cur = await conn.execute("select fi.source from sealed.family_ingests fi")
+        rows = await cur.fetchall()
+    canaries: set[str] = set()
+    for (source,) in rows:
+        canaries |= family_canaries(json.loads(source))
+    return frozenset(canaries)
+
+
+async def fetch_fresh_dev_isolation_result(connect: Connector, git_sha: str) -> IsolationResult:
+    """A dev tournament's reveal gate (`DEV_IG_ITEMS`): IG-5 and IG-6 recomputed live over current data and
+    recorded, exactly as the hidden gate does; it never reads the hidden seal or a hidden corpus (IG-4) and
+    needs no suite reports (IG-1..3), since a dev open records none (S1 L9 gates the hidden split)."""
+    output_texts = await fetch_assistant_output_texts(connect)
+    canary = ig6_evidence(count_canary_hits(await fetch_family_canaries(connect), output_texts))
+    evidence = IsolationEvidence(
+        items={"IG-5": await _ig5(connect), "IG-6": (canary.passed, canary.evidence_hash)},
+        canary_culprit=canary.culprit,
+    )
+    await _record(connect, evidence, git_sha)
+    return isolation_result(evidence.items, DEV_IG_ITEMS)
 
 
 async def run_isolation_gate(connect: Connector, request: IsolationGateRequest) -> IsolationResult:

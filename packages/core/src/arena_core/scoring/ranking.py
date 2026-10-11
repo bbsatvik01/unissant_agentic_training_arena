@@ -18,6 +18,10 @@ from arena_core.scoring.exact import B, ci_indices
 from arena_core.scoring.stats import Eligibility, RankSensitivity, eligibility, rank_sensitivity
 
 IG_ITEMS = ("IG-1", "IG-2", "IG-3", "IG-4", "IG-5", "IG-6")
+# A dev tournament (S1 L9 names the hidden split): no hidden seal or hidden corpus exists to verify (IG-4), and
+# its open takes no suite reports (IG-1..3); the checks over its own data -- commitments and chain (IG-5) and
+# the canary audit (IG-6) -- still apply and still gate its ranking.
+DEV_IG_ITEMS = ("IG-5", "IG-6")
 NOT_RANKED = "not ranked: isolation gate failed"
 QQ_COVERAGE_MIN = Fraction(9, 10)
 
@@ -29,11 +33,12 @@ class IsolationResult:
     evidence_hash: str
 
 
-def isolation_result(items: Mapping[str, tuple[bool, str]]) -> IsolationResult:
-    """Passes only when every IG item is present and passes (S3 9); the overall hash binds every item's status and
-    evidence hash."""
-    text = "".join(f"{k}|{int(items[k][0])}|{items[k][1]}\n" for k in IG_ITEMS if k in items)
-    passed = all(k in items and items[k][0] for k in IG_ITEMS)
+def isolation_result(items: Mapping[str, tuple[bool, str]], required: Sequence[str] = IG_ITEMS) -> IsolationResult:
+    """Passes only when every `required` IG item is present and passes (S3 9; `DEV_IG_ITEMS` for a dev
+    tournament); the overall hash binds the required set and every item's status and evidence hash."""
+    text = "required|" + ",".join(required) + "\n"
+    text += "".join(f"{k}|{int(items[k][0])}|{items[k][1]}\n" for k in IG_ITEMS if k in items)
+    passed = all(k in items and items[k][0] for k in required)
     return IsolationResult(passed, dict(items), hashlib.sha256(text.encode("utf-8")).hexdigest())
 
 

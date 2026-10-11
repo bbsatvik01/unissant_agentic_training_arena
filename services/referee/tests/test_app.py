@@ -9,8 +9,10 @@ identity, status codes and body shapes.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
-from collections.abc import Awaitable, Mapping
+import json
+from collections.abc import AsyncIterator, Awaitable, Mapping
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -29,6 +31,7 @@ from arena_referee import db
 from arena_referee.app import create_app
 from arena_referee.debrief import SessionNotEndedError
 from arena_referee.isolation import IsolationGateRequest
+from arena_referee.reveal import PublishContext
 from arena_referee.routes import admin as admin_route
 from arena_referee.routes import debrief as debrief_route
 from arena_referee.routes import reveal as reveal_route
@@ -476,6 +479,10 @@ PASSING_ISOLATION = isolation_result({item: (True, f"{item}-hash") for item in I
 REVEAL_RESULT = db.RevealResult(manifest_id=str(uuid4()), manifest_sha256="a" * 64, manifest_version=1)
 
 
+async def _hidden_split(_connect: object, _tournament_id: str) -> str:
+    return "hidden"
+
+
 class _Blocked(psycopg.Error):
     """A stand-in for the AR020/AR021 SQL exception `ledger.reveal` raises; psycopg's own `Error.sqlstate`
     is a plain class attribute, so overriding it here needs no real connection or `ErrorInfo`."""
@@ -506,6 +513,7 @@ def test_reveal_route_publishes_and_returns_the_manifest(tmp_path: Path, monkeyp
         return REVEAL_RESULT
 
     monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
     monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
     me = run(_get(app, "/api/me"))
     csrf = me.json()["csrf_token"]
@@ -536,6 +544,7 @@ def test_reveal_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeyp
         raise _Blocked(msg)
 
     monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
     monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
     me = run(_get(app, "/api/me"))
     csrf = me.json()["csrf_token"]
@@ -561,6 +570,7 @@ def test_correction_route_publishes_a_corrected_board(tmp_path: Path, monkeypatc
         return corrected
 
     monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
     monkeypatch.setattr(reveal_route, "seal_correction_and_publish", fake_correction)
     me = run(_get(app, "/api/me"))
     csrf = me.json()["csrf_token"]
@@ -574,6 +584,73 @@ def test_correction_route_publishes_a_corrected_board(tmp_path: Path, monkeypatc
     )
     assert resp.status_code == httpx.codes.OK
     assert resp.json()["manifest_version"] == corrected.manifest_version
+
+
+class _SqlConn:
+    """A fake connection answering by SQL substring (first match wins), recording every statement."""
+
+    def __init__(self, answers: list[tuple[str, list[tuple[Any, ...]]]]) -> None:
+        self.answers = answers
+        self.executed: list[str] = []
+
+    async def execute(self, query: str, _params: tuple[Any, ...] = ()) -> _SqlCursor:
+        self.executed.append(query)
+        return _SqlCursor(next((rows for key, rows in self.answers if key in query), []))
+
+    def transaction(self) -> contextlib.AbstractAsyncContextManager[None]:
+        return contextlib.nullcontext()
+
+
+class _SqlCursor:
+    def __init__(self, rows: list[tuple[Any, ...]]) -> None:
+        self.rows = rows
+
+    async def fetchone(self) -> tuple[Any, ...] | None:
+        return self.rows[0] if self.rows else None
+
+    async def fetchall(self) -> list[tuple[Any, ...]]:
+        return list(self.rows)
+
+
+def test_a_dev_tournament_opens_and_reveals_with_no_hidden_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Codex r3 #2: a dev open records no gate results and there is no hidden seal; reveal must still pass the
+    # dev gate (IG-5, IG-6 live) and never read the hidden seal or a hidden corpus.
+    dev_family = {"family_id": "F01", "variants": {"truthful": {"private_packet": {"canary": "CANARY-F01"}}}}
+    conn = _SqlConn(
+        [
+            ("from arena.tournaments", [("dev",)]),
+            ("from sealed.family_ingests", [(json.dumps(dev_family),)]),
+            ("ledger.verify_chain", [(None,)]),
+            ("ledger.corpus_seals", [(True,)]),
+        ]
+    )
+
+    @contextlib.asynccontextmanager
+    async def connect() -> AsyncIterator[_SqlConn]:
+        yield conn
+
+    seen: list[PublishContext] = []
+
+    async def fake_reveal_and_publish(_connect: object, _tournament_id: str, ctx: PublishContext) -> db.RevealResult:
+        seen.append(ctx)
+        return REVEAL_RESULT
+
+    app = make_app(tmp_path)
+    app.state.connect = connect
+    monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
+    csrf = run(_get(app, "/api/me")).json()["csrf_token"]
+    tournament = uuid4()
+    post = {"headers": _browser_post_headers(csrf), "cookies": {"arena_csrf": csrf}}
+    opened = run(_post(app, f"/admin/tournaments/{tournament}/open", **post))
+    assert opened.json() == {"opened": True, "gated": False}
+    resp = run(_post(app, f"/admin/tournaments/{tournament}/reveal", **post))
+    assert resp.status_code == httpx.codes.OK, resp.text
+    assert seen[0].isolation.passed
+    assert sorted(seen[0].isolation.items) == ["IG-5", "IG-6"]
+    assert not any("hidden_seal" in q or "hidden_split_seals" in q for q in conn.executed)
+    assert sum("insert into arena.isolation_checks" in q for q in conn.executed) == len(["IG-5", "IG-6"])
 
 
 def test_leaderboard_route_needs_a_console_identity(tmp_path: Path) -> None:
