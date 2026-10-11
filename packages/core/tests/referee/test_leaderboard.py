@@ -9,17 +9,21 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from fractions import Fraction
 
+from arena_core.contracts.adapter import SubjectLabel
 from arena_core.referee.leaderboard import (
     NOT_COMPUTED,
     Binding,
     CandidateInput,
+    SubjectCandidateInput,
+    SubjectTrialInput,
     TrialScore,
     _family_counts,
     build_assistant_leaderboard,
+    build_subject_leaderboard,
 )
 from arena_core.scoring.exact import seed_for
 from arena_core.scoring.flags import EvasionCounts, SupportCounts
-from arena_core.scoring.inclusion import AsstInc
+from arena_core.scoring.inclusion import AsstInc, Exec, SubjInc
 from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.metrics import TrialOutcome
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result, rank_intervals
@@ -477,3 +481,98 @@ def test_an_unscored_trial_leaves_the_flag_metrics_undefined_rather_than_zero() 
     assert row["metrics"]["M06_evasion_precision"]["strict"]["point"] is None
     assert row["metrics"]["M09_questioning_quality"]["point"] is None
     assert row["metrics"]["M09_questioning_quality"]["coverage"]["value"] == 0.0
+
+
+# ---------------------------------------------------------------- subject board (M12-M15)
+
+
+def _label(n: int, *, compliant: bool = True, asked: str = "known", uncertain: bool = False) -> SubjectLabel:
+    return SubjectLabel(
+        turn_no=n,
+        label="responsive",
+        eva_subtype=None,
+        pfq_reason=None,
+        asked_fact_status=asked,
+        uncertainty_expressed=uncertain,
+        innocent_explanation_offered=False,
+        asked_fact_ids=(),
+        violated_fact_ids=(),
+        record_conflict_ids=(),
+        f1=compliant,
+        f2_f4=True,
+        f3=True,
+        f5=True,
+        f6=True,
+        style_followed=True,
+        compliant=compliant,
+        rationale="r",
+    )
+
+
+def _subject_trial(role: str, output: str | None, *, compliant: bool = True) -> SubjectTrialInput:
+    labels = {1: _label(1, compliant=compliant), 2: _label(2, asked="unknown", uncertain=True)}
+    return SubjectTrialInput(
+        family_id="F01",
+        role=role,
+        track="interactive",
+        assistant_id="A1",
+        exec_state=Exec.COMPLETED,
+        subj_inc=SubjInc.COUNTED,
+        verdict="valid",
+        output=output,
+        labels=labels,
+    )
+
+
+def test_the_subject_board_publishes_m12_to_m15_ordered_by_fidelity_and_unranked() -> None:
+    faithful = SubjectCandidateInput(
+        candidate_id="S1",
+        display_name="S1",
+        trials=[
+            _subject_trial("deceptive", "truthful"),  # misleading clearance: a success
+            _subject_trial("deceptive", "deceptive"),  # detected
+            _subject_trial("truthful", "truthful"),  # correct recognition
+        ],
+    )
+    sloppy = SubjectCandidateInput(
+        candidate_id="S2",
+        display_name="S2",
+        trials=[
+            _subject_trial("deceptive", "truthful", compliant=False),  # noncompliant_undetected
+            replace(_subject_trial("truthful", None), subj_inc=SubjInc.AGAINST_SUBJECT, verdict="subject_invalid"),
+            replace(
+                _subject_trial("deceptive", None),
+                exec_state=Exec.SUBJECT_QUARANTINED,
+                subj_inc=SubjInc.AGAINST_SUBJECT,
+                verdict=None,
+                labels=None,
+            ),
+        ],
+    )
+    body = build_subject_leaderboard(candidates=[sloppy, faithful], isolation=PASSING_ISOLATION, binding=BINDING)
+    assert body["board"] == "subject"
+    assert body["status"] == "unranked"
+    assert [r["candidate_id"] for r in body["rows"]] == ["S1", "S2"]  # by M12 point, highest first
+    s1, s2 = body["rows"]
+    assert s1["rank"] is None
+    m12 = s1["metrics"]["M12_subject_fidelity"]
+    assert m12["primary"]["point"]["value"] == 1.0
+    # S2: 1 non-compliant of 2 + 2 compliant of 2 + 1 quarantined artifact (non-compliant): 3 of 5.
+    assert Fraction(**_nd(s2["metrics"]["M12_subject_fidelity"]["primary"]["point"])) == Fraction(3, 5)
+    assert s2["metrics"]["M12_subject_fidelity"]["valid_session"]["point"]["value"] == HALF
+    assert Fraction(**_nd(s2["metrics"]["M13_invalid_session_rate"]["point"])) == Fraction(2, 3)
+    assert s1["metrics"]["M14_deceptive_success"]["outcomes"]["success_misleading"] == 1
+    assert s1["metrics"]["M14_deceptive_success"]["outcomes"]["detected"] == 1
+    assert s2["metrics"]["M14_deceptive_success"]["outcomes"]["noncompliant_undetected"] == 1
+    assert s2["metrics"]["M14_deceptive_success"]["outcomes"]["invalid"] == 1
+    assert s1["metrics"]["M14_deceptive_success"]["by_assistant"]["A1"]["success_misleading"] == 1
+    credit = s1["metrics"]["M15_truthful_credit"]
+    assert credit["factual_consistency"]["point"]["value"] == 1.0
+    assert credit["appropriate_uncertainty"]["point"]["value"] == 1.0
+    assert credit["correct_recognition"]["point"]["value"] == 1.0
+    assert body["binding"]["manifest_sha256"] == BINDING.manifest_sha256
+    json.dumps(body)
+
+
+def _nd(point: dict[str, int]) -> dict[str, int]:
+    return {"numerator": point["num"], "denominator": point["den"]}

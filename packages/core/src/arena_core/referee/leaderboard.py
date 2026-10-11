@@ -19,23 +19,31 @@ from decimal import Decimal
 from fractions import Fraction
 from typing import Any
 
+from arena_core.contracts.adapter import SubjectLabel
 from arena_core.scoring.exact import seed_for
 from arena_core.scoring.flags import REASONS, EvasionCounts, SupportCounts
+from arena_core.scoring.inclusion import AsstInc, Exec, SubjInc
 from arena_core.scoring.kpi import Kpi4, LatencyRow, harness_latency
 from arena_core.scoring.metrics import (
     OUTPUTS,
     ROLES,
     CostSummary,
     QQSummary,
+    SubjectTrial,
+    SubjectTurn,
     TrialOutcome,
     clusters_by_family,
     cost_summary,
     count_matrix,
+    deceptive_success,
     execution_rates,
+    fidelity_clusters,
+    invalid_session_clusters,
     output_of,
     prevalence,
     qq_summary,
     role_clusters,
+    truthful_credit,
 )
 from arena_core.scoring.ranking import (
     CandidateStats,
@@ -370,6 +378,19 @@ def _row_body(
     }
 
 
+def _binding(binding: Binding) -> dict[str, Any]:
+    return {
+        "manifest_sha256": binding.manifest_sha256,
+        "manifest_version": binding.manifest_version,
+        "scorer_git_sha": binding.scorer_git_sha,
+        "rubric_sha256": binding.rubric_sha256,
+        "r1_prompt_sha256": binding.r1_prompt_sha256,
+        "r2_prompt_sha256": binding.r2_prompt_sha256,
+        "label_set_sha256": binding.label_set_sha256,
+        "bootstrap_b": binding.bootstrap_b,
+    }
+
+
 def build_assistant_leaderboard(
     *, candidates: Sequence[CandidateInput], isolation: IsolationResult, qq_calibrated: bool, binding: Binding
 ) -> dict[str, Any]:
@@ -383,16 +404,7 @@ def build_assistant_leaderboard(
         "status": board.status,
         "isolation_evidence_hash": board.evidence,
         "not_computed": list(NOT_COMPUTED),
-        "binding": {
-            "manifest_sha256": binding.manifest_sha256,
-            "manifest_version": binding.manifest_version,
-            "scorer_git_sha": binding.scorer_git_sha,
-            "rubric_sha256": binding.rubric_sha256,
-            "r1_prompt_sha256": binding.r1_prompt_sha256,
-            "r2_prompt_sha256": binding.r2_prompt_sha256,
-            "label_set_sha256": binding.label_set_sha256,
-            "bootstrap_b": binding.bootstrap_b,
-        },
+        "binding": _binding(binding),
     }
     if not board.rows:
         body["rows"] = []
@@ -409,3 +421,124 @@ def build_assistant_leaderboard(
     )
     body["rows"] = [_row_body(row, by_id[row.candidate.id], binding, intervals, qq_calibrated) for row in board.rows]
     return body
+
+
+# ---------------------------------------------------------------- subject board (S3 5.6: M12-M15)
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubjectTrialInput:
+    """One planned trial a subject candidate played (S3 5.3): its inclusion, the assistant's output (`output_of`,
+    None when the assistant is excluded) and R1's adapted per-turn labels (None: no stored R1 report, so the
+    trial adds no evaluated turn; a quarantined trial adds its one quarantined artifact as a non-compliant
+    turn, S3 5.3)."""
+
+    family_id: str
+    role: str
+    track: str
+    assistant_id: str | None
+    exec_state: Exec
+    subj_inc: SubjInc
+    verdict: str | None
+    output: str | None
+    labels: Mapping[int, SubjectLabel] | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubjectCandidateInput:
+    candidate_id: str
+    display_name: str
+    trials: Sequence[SubjectTrialInput]
+
+
+def _fidelity_turns(trials: Iterable[SubjectTrialInput]) -> list[SubjectTurn]:
+    turns: list[SubjectTurn] = []
+    for t in trials:
+        if t.subj_inc is SubjInc.EXCLUDED:
+            continue
+        if t.exec_state is Exec.SUBJECT_QUARANTINED:
+            turns.append(SubjectTurn(t.family_id, compliant=False))
+        turns += [SubjectTurn(t.family_id, lab.compliant) for lab in (t.labels or {}).values()]
+    return turns
+
+
+def _subject_trial(t: SubjectTrialInput) -> SubjectTrial:
+    labels = (t.labels or {}).values()
+    return SubjectTrial(
+        t.family_id, t.role, t.exec_state, t.subj_inc, t.verdict, all(lab.compliant for lab in labels), t.output
+    )
+
+
+def _subject_row(c: SubjectCandidateInput, binding: Binding) -> dict[str, Any]:
+    def boot(cls: Sequence[Cluster], metric: str) -> dict[str, Any]:
+        seed = seed_for(binding.manifest_sha256, metric, c.candidate_id, "I")
+        return {"point": _frac(ratio(cls)), "interval": _interval(cluster_bootstrap(cls, seed, binding.bootstrap_b))}
+
+    trials = list(c.trials)
+    outcomes, success = deceptive_success(_subject_trial(t) for t in trials)
+    by_assistant = {
+        a: dict(deceptive_success(_subject_trial(t) for t in trials if t.assistant_id == a)[0])
+        for a in sorted({t.assistant_id for t in trials if t.assistant_id is not None})
+    }
+    truthful_counted = [t for t in trials if t.role == "truthful" and t.subj_inc is not SubjInc.EXCLUDED]
+    included_truthful = [
+        TrialOutcome(t.family_id, t.role, AsstInc.INCLUDED, t.output, "")
+        for t in trials
+        if t.role == "truthful" and t.output is not None
+    ]
+    credit = truthful_credit(
+        [(t.family_id, lab) for t in truthful_counted for lab in (t.labels or {}).values()], included_truthful
+    )
+    primary = fidelity_clusters(_fidelity_turns(trials))
+    return {
+        "candidate_id": c.candidate_id,
+        "display_name": c.display_name,
+        "rank": None,  # S3 5.6: the subject board is unranked by default
+        "metrics": {
+            "M12_subject_fidelity": {
+                "primary": boot(primary, "M12"),
+                "valid_session": boot(
+                    fidelity_clusters(_fidelity_turns(t for t in trials if t.subj_inc is SubjInc.COUNTED)), "M12V"
+                ),
+                "by_role": {
+                    r: boot(fidelity_clusters(_fidelity_turns(t for t in trials if t.role == r)), f"M12{r}")
+                    for r in ROLES
+                },
+                "by_track": {
+                    k: boot(fidelity_clusters(_fidelity_turns(t for t in trials if t.track == k)), f"M12{k}")
+                    for k in sorted({t.track for t in trials})
+                },
+            },
+            "M13_invalid_session_rate": boot(invalid_session_clusters(_subject_trial(t) for t in trials), "M13"),
+            "M14_deceptive_success": {
+                **boot(success, "M14"),
+                "outcomes": dict(outcomes),
+                "by_assistant": by_assistant,
+            },
+            "M15_truthful_credit": {
+                "factual_consistency": boot(credit.factual_consistency, "M15F"),
+                "appropriate_uncertainty": boot(credit.appropriate_uncertainty, "M15U"),
+                "correct_recognition": boot(credit.correct_recognition, "M15R"),
+            },
+        },
+    }
+
+
+def build_subject_leaderboard(
+    *, candidates: Sequence[SubjectCandidateInput], isolation: IsolationResult, binding: Binding
+) -> dict[str, Any]:
+    """S3 5.6's separate subject board: M12-M15 per subject candidate, unranked, rows ordered by the M12 point
+    estimate (highest first; undefined last), bound to the same manifest and hashes as the assistant board."""
+    rows = [_subject_row(c, binding) for c in candidates]
+
+    def order(row: dict[str, Any]) -> tuple[bool, Fraction]:
+        point = row["metrics"]["M12_subject_fidelity"]["primary"]["point"]
+        return (point is not None, Fraction(point["num"], point["den"]) if point else Fraction(0))
+
+    return {
+        "board": "subject",
+        "status": "unranked",
+        "isolation_evidence_hash": isolation.evidence_hash,
+        "binding": _binding(binding),
+        "rows": sorted(rows, key=order, reverse=True),
+    }
