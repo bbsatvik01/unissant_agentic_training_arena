@@ -144,9 +144,19 @@ select is(array[(select v from sv09v1) - (select v from sv09v0), (select v from 
   || 'coaching +0, finalize +1');
 
 -- ---------------------------------------------------------------------------- SV-10, SV-11, SV-12
+-- tg_turn_answer_once's guard is one OR: old.answer is not null, OR any other column differs from old. Turn 1
+-- on svt2 is already answered (SV-09's setup), so editing its question there would raise AR010 from the
+-- first disjunct alone, even if question immutability (the second disjunct) were removed entirely. Use a
+-- fresh trial whose one question is still unanswered, isolating the immutability check on its own.
+create temp table svtour10 on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+create temp table svt10 on commit drop as
+  select (tests.as_role('arena_public', format('select arena.start_trial(%L)',
+            (select tests.trial((select tour from svtour10), 3)))) ->> 'trial_id')::uuid as trial;
+select arena.submit_question((select trial from svt10), 0, 'Why did you enter room 4?',
+                             tests.k((select trial from svt10), 1, 'question', 'harness_fixed'), 'harness_fixed');
 select tests.throws(
-  format('update arena.turns set question = %L where trial_id = %L and turn_no = 1', 'edited', (select trial from svt2)),
-  'AR010', 'immutable', 'SV-10 the owner updating a turn''s question is refused (AR010)');
+  format('update arena.turns set question = %L where trial_id = %L and turn_no = 1', 'edited', (select trial from svt10)),
+  'AR010', 'immutable', 'SV-10 the owner updating a turn''s still-unanswered question is refused (AR010)');
 select tests.throws(
   format('update arena.turns set answer = %L where trial_id = %L and turn_no = 1', 'second answer', (select trial from svt2)),
   'AR010', 'written once', 'SV-11 the owner''s second write of an answer is refused (AR010)');
@@ -269,10 +279,15 @@ select is(
      'fallback_failed_test:too_short', (select seq from svcard3))
    ->> 'turn_no'),
   '4', 'SV-18 harness_fallback with fallback_failed_test:<reason> and the rejected card''s seq is stored');
+-- The reused-key comparison is one tuple: (question, origin, relay_outcome, proposal_seq) is distinct from
+-- the call's. Omitting relay_outcome/proposal_seq here (both default null) would mismatch against the
+-- stored turn's 'fallback_failed_test:too_short' / svcard3.seq on its own, masking whether origin is really
+-- part of the comparison. Keep those two identical to the original call so only origin differs.
 select tests.throws(
-  format('select arena.submit_question(%L, %L, %L, %L, %L)', (select trial from svt4),
+  format('select arena.submit_question(%L, %L, %L, %L, %L, %L, %L)', (select trial from svt4),
          (select transcript_version from arena.trials where id = (select trial from svt4)), 'Question 4',
-         tests.k((select trial from svt4), 4, 'question', 'harness_fallback'), 'harness_fixed'),
+         tests.k((select trial from svt4), 4, 'question', 'harness_fallback'), 'harness_fixed',
+         'fallback_failed_test:too_short', (select seq from svcard3)),
   'AR003', 'different question', 'SV-18 the same key with another origin is refused (AR003)');
 select pg_temp.sv_answer((select trial from svt4), 4, 'Answer 4');
 select arena.record_coaching_event((select trial from svt4),

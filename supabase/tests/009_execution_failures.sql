@@ -99,9 +99,18 @@ select tests.throws(
   'AR001', 'infra_failed latest attempt below 3 attempts', 'EF-06 retry_trial after a completed attempt (and, equally, after 3) is refused (AR001)');
 
 -- ---------------------------------------------------------------------------- EF-07
-select is((select state from ledger.planned_execution((select tour from eftour)) where planned_trial_id = (select pt from ef02pt)),
-          (select state from ledger.terminal_records where trial_id = (select trial from ef05a3)),
-  'EF-07 ledger.planned_execution reports the planned trial''s latest-attempt state');
+-- All three attempts of pt end infra_failed, so comparing state alone would pass even if
+-- planned_execution picked attempt 1 or 2 instead of the real latest. Assert the returned
+-- trial_id and attempt number are attempt 3's specifically, alongside the state.
+select is(array[(select trial_id::text from ledger.planned_execution((select tour from eftour))
+                  where planned_trial_id = (select pt from ef02pt)),
+                (select attempt::text from ledger.planned_execution((select tour from eftour))
+                  where planned_trial_id = (select pt from ef02pt)),
+                (select state from ledger.planned_execution((select tour from eftour))
+                  where planned_trial_id = (select pt from ef02pt))],
+          array[(select trial from ef05a3)::text, '3',
+                (select state from ledger.terminal_records where trial_id = (select trial from ef05a3))],
+  'EF-07 ledger.planned_execution reports attempt 3''s trial id, attempt number, and state as the planned trial''s latest');
 
 -- ---------------------------------------------------------------------------- EF-08
 -- Attempt 1, once started, is always 'running' or terminated by the time a later attempt exists (infra_failed

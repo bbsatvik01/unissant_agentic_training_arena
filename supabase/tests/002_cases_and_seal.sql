@@ -422,9 +422,19 @@ select is(array[
 select set_config('arena.actor_id', '', true);   -- harness-style calls below (no actor) need this cleared again
 
 -- ---------------------------------------------------------------------------- CS-19
+-- The ingest guard ORs two independent checks: stored artifact rows vs. the evaluator packet's own
+-- releasable records, and the public requestable list vs. those rows. tests.bundle_of always derives the
+-- submitted "artifacts" array FROM the (possibly already-tampered) evaluator_packet it is given, so tampering
+-- evaluator_packet at the family-file level (pre-bundle_of, as CS19A used to) keeps that derivation
+-- self-consistent and only ever reaches the public-list side of the OR, never the evaluator-packet side.
+-- CS19A instead tampers the already-built BUNDLE's own stored artifact row for rec-02 (scheduled, not
+-- requestable, so it never enters the public-list comparison at all), isolating the evaluator-packet-parity
+-- clause specifically. CS19B and CS19C tamper only public_packet at the family-file level, which bundle_of
+-- passes through unchanged and which the evaluator-packet-derived "artifacts" never reads, so they already
+-- isolate the public-list clause (title, then threshold) without touching the other.
 select is(array[
-    tests.error(format('select sealed.ingest_case_family(tests.bundle_of(jsonb_set(tests.family_file(%L, %L), %L, %L)))',
-                       'CS19A', 'dev', '{variants,truthful,evaluator_packet,evidence_artifacts,0,release,after_exchanges}', '9')),
+    tests.error(format('select sealed.ingest_case_family(jsonb_set(tests.bundle(%L, %L), %L, %L))',
+                       'CS19A', 'dev', '{variants,1,artifacts,1,scheduled_turn}', '9')),
     tests.error(format('select sealed.ingest_case_family(tests.bundle_of(jsonb_set(tests.family_file(%L, %L), %L, %L)))',
                        'CS19B', 'dev', '{variants,truthful,public_packet,requestable_records,0,title}', '"Other title"')),
     tests.error(format('select sealed.ingest_case_family(tests.bundle_of(jsonb_set(tests.family_file(%L, %L), %L, %L)))',
@@ -551,8 +561,15 @@ select is(array[
                        'CS23B', 'dev', '{attestation,codex,cx3}', '"fail"')),
     tests.error(format('select sealed.ingest_case_family(%L::jsonb)',
                        (select tests.bundle_of(tests.family_file('CS23C', 'dev')) - 'attestation'))),
-    tests.error(format('select sealed.ingest_case_family(jsonb_set(tests.bundle(%L, %L), %L, %L::jsonb))',
-                       'CS23D', 'dev', '{source}', to_jsonb((select b from cs23)::text))),
+    -- A source swapped in for CS23ARC's whole bundle object (missing schema_version, revision at the top
+    -- level, etc.) fails the archive-authenticity check (SG1-19's first clause, matching CS23A/B/C) before
+    -- ever reaching the cross-family-binding check this probe claims to isolate. Instead: a genuine,
+    -- self-consistent bundle for CS23DSRC (its own real source text and attestation, all matching) with its
+    -- `variants` swapped for a wholly different family's (CS23DALT's) operational packets -- the archive
+    -- layer is internally valid throughout, so only the "bundle variants must be the file's variants" clause
+    -- can fire.
+    tests.error(format('select sealed.ingest_case_family(%L::jsonb)',
+                       jsonb_set(tests.bundle('CS23DSRC', 'dev'), '{variants}', tests.bundle('CS23DALT', 'dev') -> 'variants'))),
     tests.error(format('select sealed.ingest_case_family(jsonb_set(tests.bundle(%L, %L), %L, %L::jsonb))',
                        'CS23E', 'dev', '{variants,1,public_packet,case_id}', '"C-00000000"')),
     tests.error(format('select sealed.ingest_case_family(%L::jsonb)',
@@ -560,7 +577,7 @@ select is(array[
   array['AR007: the archive must be the attested, passed family file (SG1-19)',
         'AR007: the archive must be the attested, passed family file (SG1-19)',
         'AR007: the archive must be the attested, passed family file (SG1-19)',
-        'AR007: the archive must be the attested, passed family file (SG1-19)',
+        'AR007: bundle variants must be the family file''s variants (SG1-19)',
         'AR007: bundle variants must be the family file''s variants (SG1-19)',
         'AR007: source is the family file text'],
   'CS-23 SG1-08/19: a wrong attested hash, a failed Codex result, a missing attestation, another family''s file as '
@@ -572,10 +589,17 @@ begin
    where family_id = (select id from cs23id);
   alter table sealed.family_ingests enable trigger family_ingests_immutable;
 end $$;
-select isnt(
-  (select i.bundle_sha256 from sealed.family_ingests i where i.family_id = (select id from cs23id)),
-  ledger.hash_jsonb((select b from cs23)),
-  'CS-23 an archive row changed after ingest (trigger disabled) no longer matches its bundle hash');
+-- Comparing the corrupted row's hash to a locally recomputed one would pass even if no system guard ever
+-- looked at bundle_sha256 again -- it is tautological, not a check of the archive-seal protection. CS23ARC
+-- is dev-split, and sealed.verify_hidden_seal() only covers families with split = 'hidden' (already sealed
+-- earlier in this file, so a fresh hidden ingest can't be used here either); the dev-side equivalent is
+-- ingest_case_family's own idempotent-reingest comparison (SG1-08): re-submitting the SAME, unmodified
+-- bundle now reads back a corrupted stored hash and is refused as if the content had changed.
+select tests.throws(
+  format('select sealed.ingest_case_family(%L::jsonb)', (select b from cs23)),
+  'AR003', 'reused with different content',
+  'CS-23 an archive row changed after ingest (trigger disabled): re-ingesting the same, unmodified bundle is '
+  || 'refused because the stored hash no longer matches it');
 do $$
 begin
   alter table sealed.family_ingests disable trigger family_ingests_immutable;

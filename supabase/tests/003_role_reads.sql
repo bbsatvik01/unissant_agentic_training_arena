@@ -2,7 +2,7 @@
 -- Default-deny checks: each row runs `select 1 from <object> limit 1` (or calls the function) as the role.
 begin;
 \ir harness/fixtures.psql
-select plan(17);
+select plan(18);
 
 create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
 select tests.users();
@@ -73,18 +73,25 @@ create temp table rrwi_coach on commit drop as
 create temp table rrwi_answer on commit drop as
   select (arena.open_work_item((select trial from rrt), 'subject_answer', tests.k((select trial from rrt), 1, 'subject_answer', 'ans'))
           ->> 'work_item_id')::uuid as wi;
-select is(array[
-    tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
-                       format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_coach)))),
-    tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
-                       format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_release))))],
-  array['AR003: context needs the open subject_answer work item at the current version',
-        'AR003: context needs the open subject_answer work item at the current version'],
-  'RR-23 subject.turn_context refuses a coaching item and a done (release) item, each AR003');
+-- rrwi_release is a 'release', not a 'subject_answer', item: it would trip the same AR003 via the wrong-kind
+-- branch alone, never exercising the done/closed-item branch this probe is supposed to isolate. Use the
+-- coaching item (also wrong-kind) for this half, and prove the done-item branch separately below, once
+-- rrwi_answer itself has actually been consumed (after RR-24 has used it while still open).
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
+                      format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_coach)))),
+          'AR003: context needs the open subject_answer work item at the current version',
+  'RR-23 subject.turn_context refuses a coaching (wrong-kind) item (AR003)');
 select ok(
   (tests.as_role('arena_subject', format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_answer)))
     ? 'private_packet'),
   'RR-24 subject.turn_context returns private_packet for the open subject_answer item at the current version');
+select arena.record_subject_turn((select trial from rrt), (select wi from rrwi_answer), 'Running late.', null,
+         '{"passed": true}'::jsonb);
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_subject',
+                      format('select subject.turn_context(%L, %L)', (select trial from rrt), (select wi from rrwi_answer)))),
+          'AR003: context needs the open subject_answer work item at the current version',
+  'RR-23 subject.turn_context refuses the same subject_answer item again once it is done, not merely of the '
+  || 'wrong kind (AR003)');
 -- ---------------------------------------------------------------------------- RR-25
 select is_empty($$
   select r || ' ' || o from unnest(array['anon', 'authenticated']) r, unnest(array['arena.trials', 'ops.config']) o
@@ -126,6 +133,13 @@ select is(array[((select ctx from rrhctx) -> 'public_packet') is not null,
   || 'packet and no key of the private or evaluator packet');
 select arena.record_coaching_event((select trial from rrht), (select wi from rrhwi),
          jsonb_build_object('card', 'fixture', 'turn_no', 1));
+-- A second coaching item, opened here and never taken by record_coaching_event, stays 'open' straight
+-- through finalization. Reusing rrhwi (now 'done') for RR-28 would raise the same AR003 purely from the
+-- item-status half of the guard, masking whether the trial-must-be-running half does anything; this one
+-- isolates the finalized-trial restriction, since its own item status never stops being 'open'.
+create temp table rrhwi2 on commit drop as
+  select (arena.open_work_item((select trial from rrht), 'coaching', tests.k((select trial from rrht), 0, 'coaching', 'rr28extra'))
+          ->> 'work_item_id')::uuid as wi;
 select arena.finalize_trial((select trial from rrht),
          (arena.open_work_item((select trial from rrht), 'finalize', tests.k((select trial from rrht), 0, 'finalize', 'rr28'))
            ->> 'work_item_id')::uuid,
@@ -134,9 +148,10 @@ select arena.finalize_trial((select trial from rrht),
                             'cited_records', '[]'::jsonb, 'corroboration_needed', '[]'::jsonb));
 select tests.throws(
   format('select tests.as_role(%L, %L)', 'arena_public',
-         format('select arena.trial_context(%L, %L)', (select trial from rrht), (select wi from rrhwi))),
+         format('select arena.trial_context(%L, %L)', (select trial from rrht), (select wi from rrhwi2))),
   'AR003', 'open coaching, finalize or release work item on a running trial',
-  'RR-28 arena.trial_context on the same trial after finalization is refused (the item is done and the trial is not running)');
+  'RR-28 arena.trial_context on the same trial after finalization is refused (a still-open coaching item, '
+  || 'so only the trial-not-running half of the guard can be firing)');
 
 -- ---------------------------------------------------------------------------- RR-29
 select is_empty($$

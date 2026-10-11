@@ -56,9 +56,14 @@ select is(array[
   'ST-02, ST-03 a coaching item, a release item, and a random uuid are each refused as a forged subject turn (AR003)');
 
 -- ---------------------------------------------------------------------------- ST-04, ST-05
+-- The stored request hash covers utterance, tag proposal and guard_result together. ST-01's call used a
+-- non-null tag proposal; passing null here would change the hash on that alone, masking whether utterance
+-- is actually part of it. Keep the tag proposal identical to ST-01's so only the utterance differs.
 select tests.throws(
-  format('select arena.record_subject_turn(%L, %L, %L, null, %L)', (select trial from stt), (select wi from stwi1),
-         'A different answer.', '{"passed": true}'::jsonb),
+  format('select arena.record_subject_turn(%L, %L, %L, %L, %L)', (select trial from stt), (select wi from stwi1),
+         'A different answer.',
+         jsonb_build_object('disclosed', jsonb_build_array('F1'), 'gates_opened', '[]'::jsonb),
+         '{"passed": true}'::jsonb),
   'AR003', 'reused with different input', 'ST-04 the done item of turn 1 presented with a different utterance is refused (AR003)');
 select is(
   arena.record_subject_turn((select trial from stt), (select wi from stwi1), 'A busy shift.',
@@ -101,12 +106,6 @@ do $$
 begin
   update arena.trials set transcript_version = transcript_version - 1 where id = (select trial from stb);
 end $$;
--- ST-08: a second, never-used subject_answer item (stale) opened beside the one actually used for turn 2; once
--- turn 2 is answered (through the other item) and turn 3 is open, the stale item's bound turn (2) is no longer
--- the latest, so using it now is refused (AR004), not merely a repeat of a done item (AR003).
-create temp table stb2wi_stale on commit drop as
-  select (arena.open_work_item((select trial from stb), 'subject_answer', tests.k((select trial from stb), 2, 'subject_answer', 'stale'))
-          ->> 'work_item_id')::uuid as wi;
 create temp table stb2wi_old on commit drop as
   select (arena.open_work_item((select trial from stb), 'subject_answer',
             tests.k((select trial from stb), 2, 'subject_answer', 'subject.answer2')) ->> 'work_item_id')::uuid as wi;
@@ -116,21 +115,32 @@ select arena.record_coaching_event((select trial from stb),
            ->> 'work_item_id')::uuid, jsonb_build_object('card', 'fixture', 'turn_no', 2));
 select arena.submit_question((select trial from stb), (select transcript_version from arena.trials where id = (select trial from stb)),
          'Question C', tests.k((select trial from stb), 3, 'question', 'harness_fixed'), 'harness_fixed');
--- The stale item's own bound version is now behind the trial's (answering and the next question each bumped
--- it), which record_subject_turn would otherwise report as AR002 first; the owner advances the item's bound
--- version to the trial's current one (never possible through the API: the item stays open) so this probe
--- reaches the turn check beneath it, isolating AR004 from AR002.
-do $$
-begin
-  alter table arena.work_items disable trigger work_items_once;
-  update arena.work_items set transcript_version = (select transcript_version from arena.trials where id = (select trial from stb))
-   where id = (select wi from stb2wi_stale);
-  alter table arena.work_items enable trigger work_items_once;
-end $$;
+
+-- ST-08: record_subject_turn's "no open question for this work item" guard ORs two things: this item's bound
+-- turn is not (still) the open/unanswered one, or a later turn already exists. Through the API, the second
+-- can never be true while the first is false (submit_question refuses a new question while the previous is
+-- unanswered, as stb's own flow above shows): any item bound to an older turn on stb is always already
+-- answered by the time a later turn exists, so testing it there would raise AR004 from "not open at this
+-- turn" alone, leaving "a later turn exists" unexercised. A fresh trial with a manufactured (direct insert,
+-- bypassing submit_question) later turn, while the bound turn's own answer column is left untouched, isolates
+-- that second clause on its own.
+create temp table stctour on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+create temp table stc on commit drop as
+  select (tests.as_role('arena_public', format('select arena.start_trial(%L)',
+            (select tests.trial((select tour from stctour), 3)))) ->> 'trial_id')::uuid as trial;
+select arena.submit_question((select trial from stc), 0, 'Question 1',
+         tests.k((select trial from stc), 1, 'question', 'harness_fixed'), 'harness_fixed');
+create temp table stcwi on commit drop as
+  select (arena.open_work_item((select trial from stc), 'subject_answer',
+            tests.k((select trial from stc), 1, 'subject_answer', 'subject.answer')) ->> 'work_item_id')::uuid as wi;
+insert into arena.turns (trial_id, turn_no, question, question_source, channel, question_version, idempotency_key)
+  select (select trial from stc), 2, 'Question 2', 'harness_fixed', 'text',
+         (select transcript_version from arena.trials where id = (select trial from stc)), 'st08-manufactured-turn2';
 select tests.throws(
-  format('select arena.record_subject_turn(%L, %L, %L, null, %L)', (select trial from stb), (select wi from stb2wi_stale),
+  format('select arena.record_subject_turn(%L, %L, %L, null, %L)', (select trial from stc), (select wi from stcwi),
          'Late', '{"passed": true}'::jsonb),
-  'AR004', 'no open question', 'ST-08 an item whose turn is not the latest open turn is refused (AR004)');
+  'AR004', 'no open question',
+  'ST-08 an item bound to an older, still-unanswered turn is refused once a later turn exists (AR004)');
 
 -- ---------------------------------------------------------------------------- ST-09 (turn 3's question already
 -- exists from ST-08's set-up above)

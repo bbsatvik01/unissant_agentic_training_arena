@@ -42,6 +42,10 @@ select is(tests.error(format('select arena.register_candidate(%L, %L, %L, %L)', 
           'AR007: canonical JSON holds integers only (S2 3.1: a manifest has no floats)',
   'CH-05 a manifest holding a fractional number is refused');
 
+-- Zero tournaments would pass this vacuously even if the guard wrongly rejected every draft -- create one
+-- genuinely draft (never frozen) tournament first, so "passes while every tournament is a draft" is actually
+-- exercised against a draft row, not against the absence of any row.
+select arena.create_tournament('ch06-draft', 'dev', 1, 'global');
 select is(tests.error('select arena.candidate_hash_migration_guard()'), '00000',
   'CH-06 the migration guard passes while every tournament is a draft');
 select tests.tournament('dev', array['interactive']);

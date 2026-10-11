@@ -1,7 +1,7 @@
 -- 012_reveal_manifest.sql (sql/TESTS.md section 12; BKO-9, EVL-9, EVL-10, F14, F15; WP-04b). No dblink.
 begin;
 \ir harness/fixtures.psql
-select plan(23);  -- RV-01..RV-22 plus RV-12a
+select plan(24);  -- RV-01..RV-22 plus RV-12a, plus RV-16's split-off before-reveal probe
 select tests.users();
 
 -- ---------------------------------------------------------------------------- shared helpers
@@ -391,11 +391,25 @@ create temp table rv16v1 on commit drop as select id from ledger.inclusion_manif
  where tournament_id = (select tour from rvg2) and version = 1;
 select pg_temp.rv_adj(tests.trial((select tour from rvg2), 3), 'subject_invalid', 'rvg2-adj-3-corr');
 create temp table rv16v2 on commit drop as select (ledger.seal_corrected_manifest((select tour from rvg2)) ->> 'manifest_id')::uuid as id;
-create temp table rv16tour on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+-- tg_bound_to_revealed_manifest ORs "tournament not revealed" with "manifest belongs to another tournament".
+-- Pairing a never-revealed tournament (rv16tour, now removed) with rv16v1 (rvg2's own manifest) made both
+-- disjuncts true together, so the manifest-binding one alone could have produced AR020 even with the
+-- reveal-status check removed. Toggle rvg2 -- whose own v1 manifest is rv16v1 -- back to a pre-reveal status
+-- for just this one check (restored immediately after; nothing later in this file depends on it being
+-- temporarily not 'revealed'), isolating the reveal-status disjunct on its own.
+do $$ begin update arena.tournaments set status = 'scoring' where id = (select tour from rvg2); end $$;
 select is(array[
     tests.sqlstate(format('insert into arena.leaderboards (tournament_id, manifest_id, board, label, body) '
-      || 'values (%L, %L, %L, %L, %L)', (select tour from rv16tour), (select id from rv16v1), 'assistant',
+      || 'values (%L, %L, %L, %L, %L)', (select tour from rvg2), (select id from rv16v1), 'assistant',
       'original', '{}'::jsonb)),
+    tests.sqlstate(format('insert into arena.scores (tournament_id, manifest_id, candidate_id, metric, value) '
+      || 'values (%L, %L, null, %L, %L)', (select tour from rvg2), (select id from rv16v1), 'overall',
+      '{"point": 1}'::jsonb))],
+  array['AR020', 'AR020'],
+  'RV-16 a leaderboard insert and a score insert, each before reveal but otherwise against the tournament''s '
+  || 'own manifest, are refused (AR020)');
+do $$ begin update arena.tournaments set status = 'revealed' where id = (select tour from rvg2); end $$;
+select is(array[
     tests.sqlstate(format('insert into arena.leaderboards (tournament_id, manifest_id, board, label, body) '
       || 'values (%L, %L, %L, %L, %L)', (select tour from rvg), (select id from rv16v1), 'assistant',
       'original', '{}'::jsonb)),
@@ -404,13 +418,10 @@ select is(array[
       'original', '{}'::jsonb)),
     tests.sqlstate(format('insert into arena.leaderboards (tournament_id, manifest_id, board, label, body) '
       || 'values (%L, %L, %L, %L, %L)', (select tour from rvg2), (select id from rv16v1), 'assistant',
-      'corrected', '{}'::jsonb)),
-    tests.sqlstate(format('insert into arena.scores (tournament_id, manifest_id, candidate_id, metric, value) '
-      || 'values (%L, %L, null, %L, %L)', (select tour from rv16tour), (select id from rv16v1), 'overall',
-      '{"point": 1}'::jsonb))],
-  array['AR020', 'AR020', 'AR020', 'AR020', 'AR020'],
-  'RV-16 a leaderboard insert before reveal, with another tournament''s manifest, original on v2, corrected on '
-  || 'v1, and a score insert before reveal are each refused');
+      'corrected', '{}'::jsonb))],
+  array['AR020', 'AR020', 'AR020'],
+  'RV-16 a leaderboard insert with another tournament''s manifest, original on v2, and corrected on v1 are '
+  || 'each refused');
 
 -- ---------------------------------------------------------------------------- RV-17, RV-18
 create temp table rv17v1 on commit drop as select manifest, manifest_sha256 from ledger.inclusion_manifests
