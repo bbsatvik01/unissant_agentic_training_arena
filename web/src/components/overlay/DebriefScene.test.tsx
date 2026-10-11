@@ -5,12 +5,15 @@
  * the provenance line, the subject's role, and the annotated transcript with answers, flags and releases.
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import raw from "../../fixtures/recordings/F01-truthful.json";
 import type { Debrief, ScoredDebrief, TrialSnapshot } from "../../lib/contracts/generated/types";
 import { initialTrialState, trialReducer } from "../../lib/trial/trialReducer";
 import { fixture } from "../../test/wire-fixtures";
+import { cardFor, snapshot } from "../../test/trial-log";
+import { EX4_TEXT } from "../../lib/copy/ex4";
+import { debriefExport, exportName } from "../../lib/world/debrief";
 import { parseRecording } from "../../lib/world/parseRecording";
 import { seek, startCursor } from "../../lib/world/recording";
 import { DebriefScene } from "./DebriefScene";
@@ -103,5 +106,40 @@ describe("DebriefScene", () => {
     expect(firstLine).toBeDefined();
     expect(screen.getByText(firstLine?.text ?? "?")).toBeTruthy();
     expect(screen.queryByText("No questions were asked.")).toBeNull();
+  });
+
+  it("exports the published document with EX-4, named by session", () => {
+    const parsed = JSON.parse(debriefExport(debrief)) as { ex4: string; debrief: unknown };
+    expect(parsed.ex4).toBe(EX4_TEXT);
+    expect(parsed.debrief).toEqual(debrief);
+    expect(exportName(debrief)).toBe(`debrief-${debrief.session_id}.json`);
+  });
+
+  it("prints all four views under the EX-4 header, and only while printing", () => {
+    show();
+    let printed = "";
+    const print = vi.spyOn(window, "print").mockImplementation(() => {
+      printed = document.querySelector(".debrief-print")?.textContent ?? "";
+    });
+    expect(document.querySelector(".debrief-print")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Print" }));
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(printed.startsWith(EX4_TEXT)).toBe(true);
+    for (const heading of ["Scores", "Questions", "Detection", "Learning"]) expect(printed).toContain(heading);
+    expect(printed).toContain("1 of 2 labeled events");
+    expect(document.querySelector(".debrief-print")).toBeNull();
+    print.mockRestore();
+  });
+
+  it("shows an assessment's withheld coaching once the trial has ended (FE-DEB-4)", () => {
+    const turn = { turn_no: 1, question: "What brought you to B-12?", source: "investigator", answer: "A humidity alarm.", partial: false, committed_at: "2026-10-24T14:00:00Z", answer_version: 1, question_seq: 1 } as const;
+    const card = { turn_no: 1, card: cardFor(1, 1), event_seq: 3 };
+    const ended = snapshot({ mode: "assessment", status: "completed", turns: [turn], cards: [card] });
+    const view = trialReducer(initialTrialState(), { type: "snapshot", snapshot: ended }).view;
+    expect(view?.cards).toHaveLength(1);
+    render(<DebriefScene debrief={debrief} view={view} documents={[]} reducedMotion onClose={() => undefined} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Questions" }));
+    expect(screen.getByText("Coach suggested next")).toBeTruthy();
+    expect(screen.getByText(card.card.follow_up.question)).toBeTruthy();
   });
 });

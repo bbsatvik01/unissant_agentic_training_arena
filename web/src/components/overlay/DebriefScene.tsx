@@ -9,6 +9,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import type { CoachCard, Debrief } from "../../lib/contracts/generated/types";
 import { EX4_EVASION_SENTENCE, EX4_TEXT } from "../../lib/copy/ex4";
@@ -16,7 +17,7 @@ import { contentText } from "../../lib/contracts/quote";
 import { LABELS } from "../../lib/copy/finding";
 import { anchorFor, checkName, RUBRIC } from "../../lib/copy/rubric";
 import type { TrialView } from "../../lib/trial/trialReducer";
-import { detectionOf, ofText, questionReview } from "../../lib/world/debrief";
+import { debriefExport, detectionOf, exportName, ofText, questionReview } from "../../lib/world/debrief";
 import type { CaseDocument } from "../../lib/world/recording";
 import { Flag, recordMap } from "./CoachPanel";
 import { Tabs } from "./Tabs";
@@ -261,6 +262,7 @@ function Learning({ debrief }: { debrief: Debrief }) {
 export function DebriefScene({ debrief, view, documents, reducedMotion, onClose }: { debrief: Debrief; view: TrialView | null; documents: readonly CaseDocument[]; reducedMotion: boolean; onClose: () => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("scores");
+  const [printing, setPrinting] = useState(false);
   useGSAP(
     () => {
       root.current?.querySelectorAll<HTMLElement>("[data-count]").forEach((el, i) => {
@@ -290,9 +292,39 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
     <div className="debrief debrief-scene" ref={root} role="dialog" aria-labelledby="debrief-title">
       <header className="panel-head">
         <h2 id="debrief-title">Debrief</h2>
-        <button type="button" className="btn-secondary-sm" onClick={onClose}>
-          Close
-        </button>
+        <div className="debrief-actions">
+          <button
+            type="button"
+            className="btn-secondary-sm"
+            onClick={() => {
+              const url = URL.createObjectURL(new Blob([debriefExport(debrief)], { type: "application/json" }));
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = exportName(debrief);
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download JSON
+          </button>
+          <button
+            type="button"
+            className="btn-secondary-sm"
+            onClick={() => {
+              // The print view holds all four views under the EX-4 header; it exists only while printing.
+              flushSync(() => {
+                setPrinting(true);
+              });
+              window.print();
+              setPrinting(false);
+            }}
+          >
+            Print
+          </button>
+          <button type="button" className="btn-secondary-sm" onClick={onClose}>
+            Close
+          </button>
+        </div>
       </header>
       <div className="debrief-intro">
         <p className="fine">{EX4_TEXT}</p>
@@ -312,6 +344,24 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
           { id: "learning", label: "Learning", content: <Learning debrief={debrief} /> },
         ]}
       />
+      {printing ? (
+        <div className="debrief-print" data-print="true">
+          <p>{EX4_TEXT}</p>
+          <h1>Debrief</h1>
+          <p>
+            The subject&apos;s role: {debrief.outcome.role}. Case outcome: {word(debrief.outcome.correct_finding)}. Your finding: {word(debrief.outcome.committed_label)}.
+          </p>
+          <p>{debrief.outcome.resolution}</p>
+          <h2>Scores</h2>
+          <Scores debrief={debrief} />
+          <h2>{debrief.scored ? "Questions" : "Exchanges"}</h2>
+          <Questions view={view} documents={documents} />
+          <h2>Detection</h2>
+          <Detection debrief={debrief} />
+          <h2>Learning</h2>
+          <Learning debrief={debrief} />
+        </div>
+      ) : null}
     </div>
   );
 }

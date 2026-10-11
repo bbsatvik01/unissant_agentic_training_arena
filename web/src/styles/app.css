@@ -1711,3 +1711,40 @@ td {
 .verify-form button {
   justify-self: start;
 }
+
+.debrief-actions {
+  display: flex;
+  gap: var(--arena-space-2);
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .debrief-print,
+  .debrief-print * {
+    visibility: visible;
+  }
+  .debrief-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 24px;
+    background: #fff;
+    color: #000;
+  }
+  .debrief-print h1,
+  .debrief-print h2 {
+    break-after: avoid;
+  }
+  html,
+  body,
+  #root,
+  .app,
+  .debrief-scene {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    transform: none !important;
+  }
+}
