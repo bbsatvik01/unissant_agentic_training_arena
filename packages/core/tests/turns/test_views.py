@@ -10,7 +10,15 @@ from uuid import UUID, uuid4
 import pytest
 
 from arena_core.db.arena import EventRow
-from arena_core.events.load import RECORDING_FORMAT, LoadedTrial, load_trial, recording_of, snapshot_of, stored_events
+from arena_core.events.load import (
+    RECORDING_FORMAT,
+    LoadedTrial,
+    TrialMeta,
+    load_trial,
+    recording_of,
+    snapshot_of,
+    stored_events,
+)
 from arena_core.events.projections import (
     MAX_DELTA_BYTES,
     StoredEvent,
@@ -86,7 +94,7 @@ def test_hint_frames_carry_no_sse_id_and_persisted_frames_carry_their_seq() -> N
 def test_assessment_receives_no_coaching_frames_until_the_trial_ends() -> None:
     rig = _played(3, mode="assessment", finish=False)
     running = run(rig.db.trial_events(rig.db.trial_id, 0))
-    events = stored_events(rig.db.trial_id, running, PACKET, [], None)
+    events = stored_events(TrialMeta(rig.db.trial_id, "training", None), running, PACKET, [])
     kinds = {f["type"] for row in events for f in _frames(live_deltas([row], Viewer(False, "assessment")))}
     assert not kinds & {"coach.card", "coach.working", "coach.update"}
     snap = snapshot_of(_loaded(rig.db))

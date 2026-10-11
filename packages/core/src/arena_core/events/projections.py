@@ -65,15 +65,26 @@ class StoredEvent:
 @dataclass(frozen=True)
 class Viewer:
     """The trial's owner, as the stream sees them: whether the trial has ended (debrief rows open then), and the
-    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known)."""
+    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known).
+
+    `internal_visible` is never set by a browser-facing surface (every `internal` row stays hidden from any
+    investigator or judge, S5 6.1): it exists only for the D-021 recording export of a tournament trial
+    (`arena_tournament`, WP-17), whose turn and coaching events are *all* `internal` visibility (S4 `_emit`),
+    and which the database's own `arena.trial_visible` already gated before any row reached this module (a
+    dev-split trial, or a hidden one after reveal) -- this flag reads that same database decision, not a new
+    one."""
 
     trial_ended: bool
-    mode: Literal["practice", "assessment"] = "assessment"
+    mode: Literal["practice", "assessment", "harness"] = "assessment"
+    internal_visible: bool = False
 
 
 def _visible(row: StoredEvent, viewer: Viewer) -> bool:
-    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never."""
-    return row.visibility == "live" or (row.visibility == "debrief" and viewer.trial_ended)
+    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never -- except
+    for the D-021 export viewer, which the database has already restricted to a dev or revealed tournament."""
+    if row.visibility == "internal":
+        return viewer.internal_visible
+    return row.visibility == "live" or viewer.trial_ended  # the remaining case is "debrief"
 
 
 def _question(row: StoredEvent) -> list[tuple[str, dict[str, Any], int | None]]:
@@ -279,12 +290,18 @@ def notice_message(trial_id: str, ts: str, version: int, kind: Literal["paused",
 
 
 def recording_events(
-    rows: list[StoredEvent], mode: Literal["practice", "assessment"], start_ms: float
+    rows: list[StoredEvent],
+    mode: Literal["practice", "assessment", "harness"],
+    start_ms: float,
+    *,
+    internal_visible: bool = False,
 ) -> list[dict[str, Any]]:
     """D-021: the frames the session's owner saw live, in order, each with `at_ms` from the session start. Each
     row is projected as it arrived (no lookahead), so the hint frames are where the live stream put them, and
-    debrief-only rows (assessment coaching) stay out, as they did during the session."""
-    live = Viewer(trial_ended=False, mode=mode)
+    debrief-only rows (assessment coaching) stay out, as they did during the session. `internal_visible` is
+    the tournament export's own case (`harness` mode): every row of such a trial is `internal`, so without it
+    nothing would ever be visible (`Viewer`'s own docstring)."""
+    live = Viewer(trial_ended=False, mode=mode, internal_visible=internal_visible)
     out: list[dict[str, Any]] = []
     for row in rows:
         for _, frame in _projected([row], live):
@@ -304,7 +321,7 @@ class TrialState:
     trial_id: str
     status: str
     reason_code: str | None
-    mode: Literal["practice", "assessment"]
+    mode: Literal["practice", "assessment", "harness"]
     exchanges_cap: int
     public_packet: Mapping[str, Any]
 

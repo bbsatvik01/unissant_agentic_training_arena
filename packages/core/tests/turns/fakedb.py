@@ -19,7 +19,7 @@ from uuid import UUID, uuid4
 from psycopg import AsyncConnection
 
 from arena_core.agents.manifests import committed_manifest
-from arena_core.db.arena import ArenaDb, ArenaError, EventRow, SessionStart
+from arena_core.db.arena import ArenaDb, ArenaError, EventRow, QuestionOrigin, SessionStart
 from arena_core.turns.orchestrator import SubjectOutcome
 
 REPO = Path(__file__).resolve().parents[4]
@@ -121,9 +121,12 @@ class FakeArenaDb(ArenaDb):
         assert start.key
         return {"session_id": str(self.session_id), "trial_id": str(self.trial_id), "phase": "practice"}
 
-    async def submit_question(self, trial: UUID, expected_version: int, text: str, key: str) -> dict[str, Any]:
+    async def submit_question(
+        self, trial: UUID, expected_version: int, text: str, key: str, origin: QuestionOrigin | None = None
+    ) -> dict[str, Any]:
         self._check("submit_question")
         assert trial == self.trial_id
+        source = (origin or QuestionOrigin()).source or "investigator"
         for n, turn in self.turns.items():
             if turn["key"] == key:
                 if turn["question"] != text:
@@ -137,9 +140,7 @@ class FakeArenaDb(ArenaDb):
         n = self.exchanges + 1
         self.version += 1
         self.turns[n] = {"question": text, "answer": None, "key": key, "version": self.version}
-        self._emit(
-            "question_recorded", {"turn_no": n, "question": text, "source": "investigator", "channel": "text"}, n
-        )
+        self._emit("question_recorded", {"turn_no": n, "question": text, "source": source, "channel": "text"}, n)
         return {"turn_no": n, "transcript_version": self.version}
 
     async def open_work_item(
@@ -253,7 +254,10 @@ class FakeArenaDb(ArenaDb):
             self.coaching_pending = False
         return self._done(item, {"seq": seq})
 
-    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any]) -> dict[str, Any]:
+    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any] | None) -> dict[str, Any]:
+        """`finding` is null for a corpus transcript (S2 8.6; S4 6.2 item 3; mirrors
+        `arena.finalize_trial`'s own `p_final_finding is null` branch, which skips the citation check and
+        the finding-storage insert, and never emits `finding_committed` -- only `trial_ended`)."""
         self._check("finalize_trial")
         assert trial == self.trial_id
         item = self._item(work_item)
@@ -262,6 +266,11 @@ class FakeArenaDb(ArenaDb):
         self._running()
         if self.coaching_pending:
             raise ArenaError("AR004", "turn in progress")
+        if finding is None:
+            self.finding = None
+            self._end("completed")
+            self._emit("trial_ended", {"reason": "completed", "commitment_sha256": COMMITMENT})
+            return self._done(item, {"commitment_sha256": COMMITMENT, "payload_sha256": "d" * 64})
         answered = {n for n, t in self.turns.items() if t["answer"] is not None}
         docs = {d["doc_id"] for d in PACKET["initial_documents"]} | {r["record_id"] for r in self.releases}
         if not set(finding["cited_turns"]) <= answered or not set(finding["cited_records"]) <= docs:
@@ -353,6 +362,12 @@ class FakeArenaDb(ArenaDb):
             "started_at": T0,
             "assistant_candidate_id": self.coach_id,
         }
+
+    async def tournament_trial(self, _trial: UUID) -> dict[str, Any] | None:
+        """This fake represents only training-style trials (`self.trial_id`); a harness-driven trial is
+        always a miss here, same as `trial()`'s own non-matching case, and just as cheaply -- no test built
+        on this fake has a tournament trial configured yet (`Orchestrator._manifest`'s fallback, WP-17)."""
+        return None
 
     async def open_question(self, trial: UUID) -> bool:
         assert trial == self.trial_id
