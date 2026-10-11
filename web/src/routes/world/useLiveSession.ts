@@ -38,6 +38,10 @@ export interface LiveControls {
   /** Tell the companion the investigator is typing (S6 6.3 `listening`). */
   readonly typing: () => void;
   readonly stop: () => void;
+  /** The connection's trouble in words (the snapshot could not be read, the stream gave up), or null. */
+  readonly connectionError: string | null;
+  /** Retry after `connectionError`, keeping the session. */
+  readonly reconnect: () => void;
 }
 
 interface Options {
@@ -60,6 +64,14 @@ export function describeError(error: unknown): string {
   return "The request could not be completed.";
 }
 
+/** The controller's unrecoverable-by-itself states in the room's words. */
+export function describeConnection(connection: ConnectionState): string | null {
+  if (connection === "failed") return "The interview could not be loaded.";
+  if (connection === "gave_up") return "The connection to the interview was lost.";
+  if (connection === "end_failed") return "The end of the interview could not be read.";
+  return null;
+}
+
 const TYPING_MS = 1600;
 
 export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused }: Options): LiveControls {
@@ -80,12 +92,19 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const lastTyped = useRef(-Infinity);
   const worldKey = useRef("");
   const debriefAsked = useRef(false);
+  const generation = useRef(0);
   const options = useRef({ subjectName, reducedMotion, paused });
   useEffect(() => {
     options.current = { subjectName, reducedMotion, paused };
   });
 
+  const dropController = () => {
+    controller.current?.dispose();
+    controller.current = null;
+  };
+
   const stop = useCallback(() => {
+    generation.current += 1;
     controller.current?.dispose();
     controller.current = null;
     tracker.current = EMPTY_TRACKER;
@@ -105,37 +124,67 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   // A different case ends the session in hand.
   useEffect(() => stop, [caseId, stop]);
 
+  // Attach a controller to a started session; `run` is the start's generation, so a stop (or a new case) while
+  // the POST or the snapshot is pending leaves the room as it is and the late answer is dropped.
+  const attach = useCallback(
+    async (started: StartedSession, run: number) => {
+      const c = createSessionController({ trialId: started.trial_id, sessionId: started.session_id, api });
+      controller.current = c;
+      t0.current = performance.now();
+      c.subscribe(() => {
+        if (generation.current !== run) return;
+        const s = c.getState();
+        const now = performance.now() - t0.current;
+        tracker.current = trackArrivals(tracker.current, s.trial, now);
+        trialRef.current = s.trial;
+        setTrial(s.trial);
+        setConnection(s.connection);
+        setDebrief(s.debrief);
+      });
+      setSession(started);
+      setPhase("running");
+      await c.start();
+    },
+    [api],
+  );
+
   const start = useCallback(
     async (mode: "practice" | "assessment") => {
       if (caseId === null || controller.current !== null) return;
+      const run = generation.current;
       setPhase("starting");
       setError(null);
       try {
         const started = await api.startSession({ case_id: caseId, mode, voice: false, idem_key: crypto.randomUUID() });
-        const c = createSessionController({ trialId: started.trial_id, sessionId: started.session_id, api });
-        controller.current = c;
-        t0.current = performance.now();
-        c.subscribe(() => {
-          const s = c.getState();
-          const now = performance.now() - t0.current;
-          tracker.current = trackArrivals(tracker.current, s.trial, now);
-          trialRef.current = s.trial;
-          setTrial(s.trial);
-          setConnection(s.connection);
-          setDebrief(s.debrief);
-        });
-        setSession(started);
-        setPhase("running");
-        await c.start();
+        if (generation.current !== run) return;
+        await attach(started, run);
       } catch (e) {
-        controller.current?.dispose();
-        controller.current = null;
+        if (generation.current !== run) return;
+        dropController();
         setError(describeError(e));
         setPhase("error");
       }
     },
-    [api, caseId],
+    [api, attach, caseId],
   );
+
+  // Reconnect after the stream gave up or the end could not be read (the controller's own retry), or reload the
+  // session from its snapshot when the first snapshot read failed (the controller cannot recover that one).
+  const reconnect = useCallback(() => {
+    const c = controller.current;
+    if (c === null || session === null) return;
+    if (c.getState().connection !== "failed") {
+      c.reconnect();
+      return;
+    }
+    c.dispose();
+    controller.current = null;
+    tracker.current = EMPTY_TRACKER;
+    const run = generation.current;
+    attach(session, run).catch(() => {
+      if (generation.current === run) setConnection("failed");
+    });
+  }, [attach, session]);
 
   // The world, derived every frame from the view and the session clock, published when it changes.
   useEffect(() => {
@@ -240,5 +289,6 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     [],
   );
 
-  return { phase, session, connection, trial, world, debrief, clock, error, start, ask, request, commit, retryDebrief, debriefFailed, typing, stop };
+  const connectionError = phase === "running" ? describeConnection(connection) : null;
+  return { phase, session, connection, trial, world, debrief, clock, error, start, ask, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
 }

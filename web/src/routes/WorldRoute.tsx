@@ -322,6 +322,7 @@ export function WorldRoute() {
 
   const caption = (() => {
     if (liveFeed && session.error !== null) return session.error;
+    if (liveFeed && session.connectionError !== null) return session.connectionError;
     if (liveFeed && session.phase === "starting") return "Opening the interview room.";
     if (liveFeed && session.connection === "scoring") return "Scoring the session.";
     if (mode === "playback" && load.state === "loading") return "Loading the recorded run.";
@@ -518,6 +519,13 @@ export function WorldRoute() {
                 <div className="start-row">
                   <button type="button" className="btn-secondary-sm start-alt" onClick={session.retryDebrief}>
                     Score the debrief again
+                  </button>
+                </div>
+              ) : null}
+              {liveFeed && session.connectionError !== null ? (
+                <div className="start-row">
+                  <button type="button" className="btn-secondary-sm start-alt" onClick={session.reconnect}>
+                    Reconnect
                   </button>
                 </div>
               ) : null}

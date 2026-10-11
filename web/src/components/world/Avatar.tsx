@@ -36,6 +36,7 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
+import { speechSync } from "../../lib/voice/speechSync";
 import { seeded, seedOf, type Persona } from "../../lib/world/cast";
 import type { Vec3 } from "../../lib/world/layout";
 import { beatTimes, VISEMES, visemeTrack, visemeWeightsAt, type VisemeKey, type VisemeSpan } from "../../lib/world/visemes";
@@ -254,7 +255,8 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   let mouthOpen = 0;
   const weights: Partial<Record<VisemeKey, number>> = {};
   if (pose === "speaking" && speech !== null) {
-    const elapsed = clock.current - speech.startedAt;
+    // The mouth follows the voice when one is speaking the line, else the text cadence (speechSync).
+    const elapsed = speechSync.elapsedFor(speech, clock.current);
     if (still) mouthOpen = 0.5;
     else {
       Object.assign(weights, visemeWeightsAt(track, elapsed));
