@@ -129,3 +129,14 @@
 - **Escalation:** if a role's worst case still exceeds its limit, WP-05 reports the role, figure and driving field; limits are not raised silently.
 - **Files:** `providers/structured.py`, `contracts/rendered.py`, WP-05 port and parity test.
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-020 The UI is the centerpiece: an interactive 3D world, built now
+- **Decision:** owner directive ("make the ui the best part ... state of the art, use three js if needed, fully interactive, 3d world, interrogation rooms, interactions, animations ... use gsap as well"). The web app is a 3D world (Three.js through react-three-fiber + drei; GSAP for choreographed camera and signature sequences; Motion stays for 2D UI) with a precinct hub, interview rooms, an observation room where the coach agents visibly work, an evidence wall, avatars and the companion pet. Interaction happens in a 2D overlay styled by DESIGN.md (D-018); the 3D scene reflects session state from the same reducer.
+- **Supersedes:** 03-ui-direction 0.5/0.7/1.2 (GSAP only after a spike; rail before office; vector portraits) and "presentational work after the slice gate". Kept: no demeanor/stress states on any avatar (PRB-4), the single visibility rule (2a), no AI-slop styling, EX-4 disclosure, reduced-motion fallback.
+- **Scope rule:** procedural/stylized geometry, no heavy asset pipeline; lazy-loaded 3D chunk; WP-19's functional flows are built by the same UI lead inside the world.
+- **Reversibility:** moderate.
+
+## 2026-10-11 · D-021 Every local run is recorded and replayable without spend
+- **Decision:** owner directive ("all the runs we do locally need to be recorded ... played back ... so that no spend is wasted"). The persisted event log plus stored model outputs is the recording. Each trial exports to a self-contained recording file (`recordings/<trial>.json`, `make export-run`); the UI has a Playback mode that replays a recording through the same reducer into the same 3D world with original timing (speed control, scrub), with no API or model call. Recordings double as the demo fallback in front of judges.
+- **Files:** WP-13 (export route/command), UI lead (player).
+- **Reversibility:** cheap.
