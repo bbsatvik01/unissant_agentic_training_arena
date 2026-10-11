@@ -6,7 +6,7 @@
  * have no arrival, exactly like history before a recording's first event.
  */
 import type { TrialFrame } from "../contracts/generated/types";
-import type { TrialState } from "../trial/trialReducer";
+import type { TrialState, TrialView } from "../trial/trialReducer";
 import { noteArrival, SNAPSHOT_ARRIVAL } from "./recording";
 
 /** What has been seen so far: persisted seqs, hint keys, and the arrivals noted for them. */
@@ -53,4 +53,12 @@ export function trackArrivals(tracker: ArrivalTracker, state: TrialState, nowMs:
  * question typed (or taken from a card) while the earlier request was in flight is kept. */
 export function draftAfterSend(current: string, sent: string): string {
   return current === sent ? "" : current;
+}
+
+/** Whether the turn a question opened is closed on the record: the room awaits the next question and a turn after
+ * `turnsBefore` carries the question with its answer. The session controller resumes an open turn on a resend and
+ * starts a new one for a closed turn, so a closed turn needs no resend. */
+export function turnClosed(view: TrialView | null, question: string, turnsBefore: number): boolean {
+  if (view === null || (view.status !== "awaiting_question" && view.status !== "cap_reached")) return false;
+  return view.turns.some((t) => t.turn_no > turnsBefore && t.question === question && t.answer !== null);
 }

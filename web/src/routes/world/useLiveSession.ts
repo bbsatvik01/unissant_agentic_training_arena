@@ -12,7 +12,7 @@ import { ApiError } from "../../lib/api/client";
 import type { DebriefRead, EvidenceResult, InvestigatorFinding } from "../../lib/contracts/generated/types";
 import { createSessionController, type ConnectionState, type SessionController } from "../../lib/trial/sessionController";
 import { initialTrialState, type TrialState } from "../../lib/trial/trialReducer";
-import { EMPTY_TRACKER, trackArrivals, type ArrivalTracker } from "../../lib/world/live";
+import { EMPTY_TRACKER, trackArrivals, turnClosed, type ArrivalTracker } from "../../lib/world/live";
 import { recallSession, rememberSession } from "../../lib/world/sessionMemory";
 import { speechSync } from "../../lib/voice/speechSync";
 import { deriveWorld, type WorldState } from "../../lib/world/worldState";
@@ -94,7 +94,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const [error, setError] = useState<string | null>(null);
   const [debriefFailed, setDebriefFailed] = useState(false);
   const [debriefAttempt, setDebriefAttempt] = useState(0);
-  const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{ question: string; turnsBefore: number } | null>(null);
   const controller = useRef<SessionController | null>(null);
   const tracker = useRef<ArrivalTracker>(EMPTY_TRACKER);
   const trialRef = useRef<TrialState>(initialTrialState());
@@ -130,7 +130,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     setWorld(null);
     setDebrief(null);
     setError(null);
-    setFailedQuestion(null);
+    setFailed(null);
   }, []);
 
   // A different case ends the session in hand.
@@ -273,20 +273,24 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     const c = controller.current;
     if (c === null) return false;
     setError(null);
+    const turnsBefore = Math.max(0, ...(c.getState().trial.view?.turns.map((t) => t.turn_no) ?? []));
     try {
       await c.submitTurn(question);
-      setFailedQuestion(null);
+      setFailed(null);
       return true;
     } catch (e) {
       setError(describeError(e));
       // A refusal (4xx) ends the question; a server-side failure may leave the turn half done, and only sending the
-      // same request again resumes it (the controller keeps its key).
+      // same request again resumes it (the controller keeps its key while the turn is open).
       const serverSide = !(e instanceof ApiError) || e.status >= 500;
-      setFailedQuestion(serverSide ? question : null);
+      setFailed((prev) => (serverSide ? { question, turnsBefore: prev?.question === question ? prev.turnsBefore : turnsBefore } : null));
       return false;
     }
   }, []);
 
+  // The resend is offered only while the turn is open: once the record shows it answered and closed, the turn is
+  // done and resending would ask it again as a new turn.
+  const failedQuestion = failed !== null && !turnClosed(trial.view, failed.question, failed.turnsBefore) ? failed.question : null;
   const retryAsk = useCallback(() => (failedQuestion === null ? Promise.resolve(false) : ask(failedQuestion)), [ask, failedQuestion]);
 
   const request = useCallback(async (recordId: string) => {
