@@ -22,12 +22,13 @@ from tools.tests.conftest import REPO_ROOT
 HARNESS = REPO_ROOT / "supabase" / "tests" / "harness"
 SUPABASE_IMAGE = re.search(r'^SUPABASE_IMAGE="([^"]+)"$', (HARNESS / "db_test.sh").read_text(), re.MULTILINE)
 
-STEPS = 6  # plain path, Supabase path, cost parity, capability fixture, subject suite, spend-guard suite
+STEPS = 7  # plain path, Supabase path, cost parity, capability fixture, subject/tournament/spend-guard suites
 SERVERS = 2  # the plain and the Supabase container
-STEPS_ON_SUPABASE = 5  # the Supabase path and the four steps that read its database
+STEPS_ON_SUPABASE = 6  # the Supabase path and the five steps that read its database
 
 # FAKE_FAIL entries: daemon, build, run-plain, run-supabase, pgtap-plain, pgtap-supabase, uv (the cost-parity run),
-# it-subject (the subject suite's pytest run), it-spend (the spend-guard suite's pytest run), fixture.
+# it-subject (the subject suite's pytest run), it-tournament (the tournament job suite's pytest run), it-spend
+# (the spend-guard suite's pytest run), fixture.
 STUB = """
 import os, pathlib, sys
 tool = sys.argv[1]
@@ -57,10 +58,14 @@ if tool == "docker":
 if tool == "uv":
     parity = "tools.check_cost_parity" in args
     subject_it = any("it_answer.py" in a for a in args)
+    tournament_it = any("it_tournament.py" in a for a in args)
     spend_it = any("it_spend_guard.py" in a for a in args)
     sys.exit(
         1
-        if ("uv" in fail and parity) or ("it-subject" in fail and subject_it) or ("it-spend" in fail and spend_it)
+        if ("uv" in fail and parity)
+        or ("it-subject" in fail and subject_it)
+        or ("it-tournament" in fail and tournament_it)
+        or ("it-spend" in fail and spend_it)
         else 0
     )
 # psql
@@ -199,6 +204,7 @@ def test_an_existing_plain_image_is_reused(repo: Path, monkeypatch: pytest.Monke
         ("uv", "cost parity"),
         ("fixture", "capability fixture"),
         ("it-subject", "subject integration suite"),
+        ("it-tournament", "tournament job integration suite"),
         ("it-spend", "spend-guard integration suite"),
     ],
 )
