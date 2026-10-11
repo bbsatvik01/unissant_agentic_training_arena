@@ -8,6 +8,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { ArenaView } from "../components/overlay/ArenaView";
+import { Onboarding } from "../components/overlay/Onboarding";
+import { ProgressView } from "../components/overlay/ProgressView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
 import { DebriefScene } from "../components/overlay/DebriefScene";
@@ -18,19 +20,23 @@ import { Transcript } from "../components/overlay/Transcript";
 import type { ScoreCard, WallDocument } from "../components/world/moments";
 import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
-import { parseBoard, type Board } from "../lib/arena/leaderboard";
+import { boardsFailure, parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
-import { createApiClient } from "../lib/api/client";
+import { ApiError, createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
 import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
 import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
 import { draftAfterSend } from "../lib/world/live";
+import type { RecordingResult } from "../lib/world/parseRecording";
 import type { CaseDocument, Recording } from "../lib/world/recording";
 import type { WorldState } from "../lib/world/worldState";
-import { useLiveSession } from "./world/useLiveSession";
+import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
+import { useMe } from "./world/useMe";
+import { useProgress } from "./world/useProgress";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
 import { usePlayback } from "./world/usePlayback";
@@ -84,34 +90,51 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; example: boolean } | null>(null);
-  const [showArena, setShowArena] = useState(false);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
+  // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
+  const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
   // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
   // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
+  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`, and
+  // `&label=original` for a corrected board's original). Before reveal it shows the sealed state, never numbers
+  // (FE-LB-5); the bundled example appears only when no tournament is selected, labeled as such.
   const openArena = () => {
     setShowArena(true);
-    if (arena !== null) return;
-    const tournamentId = new URLSearchParams(window.location.search).get("tournament");
-    const published =
-      live && tournamentId !== null
-        ? Promise.all([api.leaderboard(tournamentId, "assistant"), api.leaderboard(tournamentId, "subject")]).then(
-            ([a, s]) => ({ assistant: parseBoard(a), subject: parseBoard(s) }),
-            () => null,
-          )
-        : Promise.resolve(null);
+    setShowProgress(false);
+  };
+  // The arena's data, read once it is first shown.
+  const arenaLoaded = arena !== null;
+  useEffect(() => {
+    if (!showArena || arenaLoaded) return;
+    const params = new URLSearchParams(window.location.search);
+    const tournamentId = params.get("tournament");
+    const label = params.get("label") === "original" ? "original" : null;
+    type Boards = { assistant: Board | null; subject: Board | null; state: BoardsState };
+    const published: Promise<Boards | null> =
+      tournamentId === null
+        ? Promise.resolve(null)
+        : Promise.all([api.leaderboard(tournamentId, "assistant", label ?? undefined), api.leaderboard(tournamentId, "subject", label ?? undefined)]).then(
+            ([a, s]): Boards => {
+              const assistant = parseBoard(a);
+              return assistant === null ? { assistant: null, subject: null, state: { kind: "error" } } : { assistant, subject: parseBoard(s), state: { kind: "published", tournamentId, label } };
+            },
+            (e: unknown): Boards => ({ assistant: null, subject: null, state: e instanceof ApiError ? boardsFailure(e.status, e.code) : { kind: "error" } }),
+          );
     void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
       const poll: unknown = tour.default.poll;
-      const real = boards !== null && boards.assistant !== null;
       setArena({
-        name: real ? "Tournament leaderboards" : lb.default.tournament.name,
-        assistant: real ? boards.assistant : parseBoard(lb.default.assistant),
-        subject: real ? boards.subject : parseBoard(lb.default.subject),
-        tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
-        example: !real,
+        name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
+        assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
+        subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
+        // The example matrix only without a selected tournament; a selected one has no trials to show until the
+        // tournament route is live (WP-17), never the example's.
+        tournament: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        boards: boards === null ? { kind: "example" } : boards.state,
       });
     });
-  };
+  }, [showArena, arenaLoaded, api]);
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -130,20 +153,33 @@ export function WorldRoute() {
     });
   };
 
-  // The live arena, when its server answers: the cases offered to this user.
+  const live = liveCases !== null;
+  const meCtl = useMe(api, live);
+  const study = meCtl.me?.study ?? null;
+  // The live arena, when its server answers: the cases offered to this user. A study participant's offer changes
+  // with the step (the server lists only the next test set, S6 3.2), so the list is read again whenever the study
+  // status changes; a focused card no longer offered is let go.
+  const studyKey = study === null ? "" : `${study.next_phase}:${String(study.ended.pre)}:${String(study.ended.practice)}:${String(study.ended.post)}`;
   useEffect(() => {
     let cancelled = false;
     api.listCases().then(
       (cases) => {
-        if (!cancelled) setLiveCases(cases);
+        if (cancelled) return;
+        setLiveCases(cases);
+        setFocused((f) => (f !== null && cases.some((c) => c.case_id === f) ? f : null));
       },
       () => undefined,
     );
     return () => {
       cancelled = true;
     };
-  }, [api]);
-  const live = liveCases !== null;
+  }, [api, studyKey]);
+  const canStartLive = live && meCtl.me !== null && meCtl.me.ex4_acknowledged !== null;
+  const mustAcknowledge = live && meCtl.me !== null && meCtl.me.ex4_acknowledged === null;
+  const modes = allowedModes(study);
+  const refreshMe = meCtl.refresh;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const progress = useProgress(api, showProgress);
   const cases = liveCases ?? CASES;
 
   const recording = load.state === "ready" ? load.recording : null;
@@ -206,7 +242,9 @@ export function WorldRoute() {
 
   const openCase = useCallback(
     (caseId: string) => {
-      const card = cases.find((c) => c.case_id === caseId) ?? (active?.case_id === caseId ? active : null);
+      // With the server, only a case it offers now can open (a study step changes the offer); offline, the case
+      // of a recording already in hand can open again.
+      const card = cases.find((c) => c.case_id === caseId) ?? (!live && active?.case_id === caseId ? active : null);
       if (card === null) return;
       setActive(card);
       // With the server, the room offers a live interview (and the recorded run for F01); without it, the recorded
@@ -232,52 +270,77 @@ export function WorldRoute() {
   };
 
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
-  const openRecordingFile = useCallback((file: File) => {
-    void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
-      ([text, { parseRecording }]) => {
-        let raw: unknown;
-        try {
-          raw = JSON.parse(text);
-        } catch {
-          setFileError("That file is not JSON.");
-          return;
-        }
-        const result = parseRecording(raw);
-        if (!result.ok) {
-          setFileError(`The recording was refused: ${result.errors.slice(0, 3).join("; ")}`);
-          return;
-        }
-        const c = result.recording.case;
-        setFileError(null);
-        setActive({
-          case_id: c.case_id,
-          title: c.title,
-          objective: c.objective,
-          domain: c.domain,
-          difficulty_level: c.difficulty_level,
-          subject: c.subject,
-          facility: c.setting,
-          initial_documents: c.initial_documents.length,
-          requestable_records: result.recording.snapshot.requestable.length,
-        });
-        setLoad({ state: "ready", recording: result.recording });
-        setMode("playback");
-        setArrived(false);
-        setDebriefClosed(false);
-        setCite(null);
-        setPlace("room");
-      },
-      () => {
-        setFileError("The file could not be read.");
-      },
-    );
+  // A checked recording plays in the room the same way whether it came from a file or the server.
+  const playRecording = useCallback((raw: unknown, parse: (v: unknown) => RecordingResult) => {
+    const result = parse(raw);
+    if (!result.ok) {
+      setFileError(`The recording was refused: ${result.errors.slice(0, 3).join("; ")}`);
+      return;
+    }
+    const c = result.recording.case;
+    setFileError(null);
+    setActive({
+      case_id: c.case_id,
+      title: c.title,
+      objective: c.objective,
+      domain: c.domain,
+      difficulty_level: c.difficulty_level,
+      subject: c.subject,
+      facility: c.setting,
+      initial_documents: c.initial_documents.length,
+      requestable_records: result.recording.snapshot.requestable.length,
+    });
+    setLoad({ state: "ready", recording: result.recording });
+    setMode("playback");
+    setArrived(false);
+    setDebriefClosed(false);
+    setCite(null);
+    setPlace("room");
   }, []);
+
+  const openRecordingFile = useCallback(
+    (file: File) => {
+      void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
+        ([text, { parseRecording }]) => {
+          let raw: unknown;
+          try {
+            raw = JSON.parse(text);
+          } catch {
+            setFileError("That file is not JSON.");
+            return;
+          }
+          playRecording(raw, parseRecording);
+        },
+        () => {
+          setFileError("The file could not be read.");
+        },
+      );
+    },
+    [playRecording],
+  );
+
+  // One of the participant's own runs, from the server (`GET /api/trials/{id}/recording`), replayed in the room.
+  const replayTrial = useCallback(
+    (trialId: string) => {
+      setShowProgress(false);
+      void Promise.all([api.recording(trialId), import("../lib/world/parseRecording")]).then(
+        ([raw, { parseRecording }]) => {
+          playRecording(raw, parseRecording);
+        },
+        () => {
+          setFileError("That run could not be loaded.");
+        },
+      );
+    },
+    [api, playRecording],
+  );
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
+    refreshMe();
     setPlace("hub");
     setArrived(false);
-  }, [playback, session]);
+  }, [playback, session, refreshMe]);
   const onArrive = useCallback(() => {
     setArrived(true);
   }, []);
@@ -306,7 +369,8 @@ export function WorldRoute() {
   }, [flag, cite]);
 
   const freshId = world?.wall.find((p) => p.fresh)?.record_id ?? null;
-  const focusCard = cases.find((c) => c.case_id === focused) ?? active ?? cases[0] ?? null;
+  const activeOffered = active !== null && (!live || cases.some((c) => c.case_id === active.case_id));
+  const focusCard = cases.find((c) => c.case_id === focused) ?? (activeOffered ? active : null) ?? cases[0] ?? null;
   const liveDebrief = session.debrief !== null && "schema_version" in session.debrief ? session.debrief : null;
   const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
   const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;
@@ -331,9 +395,16 @@ export function WorldRoute() {
     active: sound && place === "room" && !paused && (liveFeed || (mode === "playback" && playback.playing && playback.speed === 1)),
     scope: liveFeed ? (session.session?.session_id ?? "live") : (recording?.trial_id ?? "none"),
   });
+  // The study step may have moved once a session ends: read /api/me again (S6 3.2).
+  const trialEnded = liveFeed && view?.status === "ended";
+  useEffect(() => {
+    if (trialEnded) refreshMe();
+  }, [trialEnded, refreshMe]);
   const canAct = liveFeed && view !== null && (view.status === "awaiting_question" || view.status === "cap_reached");
 
   const caption = (() => {
+    // A study participant's refused start is the study's order (S6 3.2): the server states only a code.
+    if (liveFeed && session.error === REFUSED_TEXT && study !== null && session.phase === "error") return `This is not the next step of the study. ${stepLabel(study)}: ${nextStepText(study)}`;
     if (liveFeed && session.error !== null) return session.error;
     if (liveFeed && session.connectionError !== null) return session.connectionError;
     if (liveFeed && session.phase === "starting") return "Opening the interview room.";
@@ -355,7 +426,7 @@ export function WorldRoute() {
         <div className="topbar-meta">
           {place === "room" && view !== null ? (
             <>
-              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment"}</span>
+              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment: coaching is saved for your debrief"}</span>
               <span className="badge mono">
                 {view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>
@@ -379,6 +450,21 @@ export function WorldRoute() {
           {place === "room" ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
               {sound ? "Mute voices" : "Unmute voices"}
+            </button>
+          ) : null}
+          {live && meCtl.me !== null ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showOnboarding || mustAcknowledge} onClick={() => {
+                setShowOnboarding((v) => !v);
+              }}>
+              Ground rule
+            </button>
+          ) : null}
+          {place === "hub" && live && meCtl.me !== null ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
+                setShowProgress((v) => !v);
+                setShowArena(false);
+              }}>
+              Progress
             </button>
           ) : null}
           {place === "hub" ? (
@@ -557,28 +643,36 @@ export function WorldRoute() {
               ) : null}
               {mode === "choose" ? (
                 <div className="start-row" role="group" aria-label="Start">
+                  {live && study !== null ? (
+                    <div className="study-step">
+                      <span className="eyebrow">Study</span> <strong>{stepLabel(study)}</strong>
+                      <p className="fine">{nextStepText(study)}</p>
+                    </div>
+                  ) : null}
+                  {live && !canStartLive ? <p className="fine">{meCtl.failed ? "Your profile could not be read; reload the page." : "Read the ground rule before you start."}</p> : null}
                   {live && session.resumable !== null ? (
-                    <button type="button" className="btn-primary" onClick={() => {
+                    <button type="button" className="btn-primary" disabled={!canStartLive} onClick={() => {
                         setMode("live");
                         void session.resume();
                       }}>
                       Return to your {session.resumable.mode === "practice" ? "practice interview" : "assessment"}
                     </button>
                   ) : null}
-                  {live ? (
-                    <>
-                      <button type="button" className={session.resumable === null ? "btn-primary" : "btn-secondary-sm start-alt"} onClick={() => {
-                          startLive("practice");
-                        }}>
-                        Start practice interview
-                      </button>
-                      <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
-                          startLive("assessment");
-                        }}>
-                        Assessment
-                      </button>
-                    </>
-                  ) : null}
+                  {live
+                    ? modes.map((m, i) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className={session.resumable === null && i === 0 ? "btn-primary" : "btn-secondary-sm start-alt"}
+                          disabled={!canStartLive}
+                          onClick={() => {
+                            startLive(m);
+                          }}
+                        >
+                          {m === "practice" ? "Start practice interview" : study !== null && study.next_phase !== "done" ? `Start ${stepLabel(study).toLowerCase()}` : "Assessment"}
+                        </button>
+                      ))
+                    : null}
                   {active?.case_id === RECORDED_CASE_ID ? (
                     <button type="button" className="btn-secondary-sm start-alt" onClick={watchRecording}>
                       Watch the recorded run
@@ -732,10 +826,30 @@ export function WorldRoute() {
         </aside>
       </main>
 
+      {mustAcknowledge || showOnboarding ? (
+        <Onboarding
+          acknowledged={meCtl.me?.ex4_acknowledged ?? null}
+          onAcknowledge={meCtl.acknowledge}
+          onClose={mustAcknowledge ? null : () => {
+            setShowOnboarding(false);
+          }}
+        />
+      ) : null}
+      {place === "hub" && showProgress && !mustAcknowledge ? (
+        <ProgressView
+          load={progress.load}
+          scores={progress.scores}
+          study={study}
+          onReplay={replayTrial}
+          onClose={() => {
+            setShowProgress(false);
+          }}
+        />
+      ) : null}
       {place === "hub" && showArena && arena !== null ? (
         <ArenaView
           name={arena.name}
-          example={arena.example}
+          boards={arena.boards}
           assistant={arena.assistant}
           subject={arena.subject}
           tournament={arena.tournament}

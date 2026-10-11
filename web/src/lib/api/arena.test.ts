@@ -201,5 +201,18 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     const { client, calls } = fakeClient(() => ({ board: "subject", status: "unranked", rows: [] }));
     await expect(createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "subject")).resolves.toMatchObject({ board: "subject" });
     expect(calls[0]).toEqual({ method: "GET", path: "/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=subject" });
+    await createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "assistant", "original");
+    expect(calls[1]?.path).toBe("/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=assistant&label=original");
+  });
+
+  it("reads progress, a trial's recording, and stores the EX-4 acknowledgement", async () => {
+    const { client, calls } = fakeClient((call) => (call.method === "POST" ? { ex4_acknowledged: "2026-10-24T14:00:00Z" } : { sessions: [] }));
+    const api = createArenaApi(client);
+    await api.progress();
+    await api.recording("22222222-2222-4222-8222-222222222222");
+    await expect(api.ackEx4()).resolves.toBe("2026-10-24T14:00:00Z");
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(["GET /api/progress", "GET /api/trials/22222222-2222-4222-8222-222222222222/recording", "POST /api/me/ack-ex4"]);
+    const { client: bad } = fakeClient(() => ({}));
+    await expect(createArenaApi(bad).ackEx4()).rejects.toBeInstanceOf(ContractError);
   });
 });

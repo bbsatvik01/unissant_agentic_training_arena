@@ -9,7 +9,7 @@ import { useState } from "react";
 
 import { EX4_TEXT } from "../../lib/copy/ex4";
 import { assistantDetails, countMatrix, subjectDetails, type DetailLine } from "../../lib/arena/details";
-import { differenceText, fprGate, metricText, rankBar, rankStatus, type Board, type BoardRow } from "../../lib/arena/leaderboard";
+import { differenceText, fprGate, metricText, otherLabelHref, rankBar, rankStatus, type Board, type BoardRow, type BoardsState } from "../../lib/arena/leaderboard";
 import { cellState, matrix, tracks, type Track, type TournamentState } from "../../lib/arena/tournament";
 import { Tabs } from "./Tabs";
 
@@ -313,7 +313,7 @@ function TrackMatrix({ tournament, track }: { tournament: TournamentState; track
 
 export function ArenaView(props: {
   readonly name: string;
-  readonly example: boolean;
+  readonly boards: BoardsState;
   readonly assistant: Board | null;
   readonly subject: Board | null;
   readonly tournament: TournamentState;
@@ -322,6 +322,8 @@ export function ArenaView(props: {
 }) {
   const [tab, setTab] = useState("leaderboard");
   const [track, setTrack] = useState<Track | null>(null);
+  const b = props.boards;
+  const corrected = b.kind === "published" ? otherLabelHref(b.tournamentId, b.label, props.assistant?.manifestVersion ?? null) : null;
   return (
     <div className="arena-view" role="dialog" aria-labelledby="arena-title">
       <header className="panel-head">
@@ -334,8 +336,13 @@ export function ArenaView(props: {
         <p className="fine">
           {EX4_TEXT} {NOT_CERTIFICATION}
         </p>
-        {props.example ? <p className="fine">Example data until a tournament&apos;s leaderboards are published. Not a result.</p> : null}
-        <p className="fine">The tournament matrix shows example data until the tournament route is live.</p>
+        {props.boards.kind === "example" ? <p className="fine">Example data: no tournament is selected. Not a result.</p> : null}
+        {corrected === null ? null : (
+          <p className="fine corrected">
+            <strong>{corrected.heading}</strong>. <a href={corrected.href}>{corrected.text}</a>
+          </p>
+        )}
+        <p className="fine">{props.boards.kind === "example" ? "The tournament matrix shows example data too." : "This tournament's trials will appear here once the tournament route is live."}</p>
       </div>
       <Tabs
         label="Arena views"
@@ -347,8 +354,15 @@ export function ArenaView(props: {
             label: "Leaderboards",
             content: (
               <>
-                {props.assistant === null ? <p className="empty">No assistant board published yet.</p> : <AssistantBoard board={props.assistant} motionOff={props.motionOff} />}
-                {props.subject === null ? null : <SubjectBoard board={props.subject} />}
+                {b.kind === "sealed" ? <p className="empty sealed">Results are sealed until reveal.</p> : null}
+                {b.kind === "missing" ? <p className="empty">No leaderboard has been published for this tournament.</p> : null}
+                {b.kind === "error" ? <p className="empty">The leaderboards could not be read. Try again later.</p> : null}
+                {b.kind === "example" || b.kind === "published" ? (
+                  <>
+                    {props.assistant === null ? <p className="empty">No assistant board published yet.</p> : <AssistantBoard board={props.assistant} motionOff={props.motionOff} />}
+                    {props.subject === null ? null : <SubjectBoard board={props.subject} />}
+                  </>
+                ) : null}
               </>
             ),
           },

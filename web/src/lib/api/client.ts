@@ -39,12 +39,24 @@ export class ContractError extends Error {
   }
 }
 
-/** The fields of `GET /api/me` (S5 5.5) this layer relies on; the rest arrive with their screens. */
+/** The KPI-1 study status in `GET /api/me` (S6 3.2): ended sessions per phase and the next allowed phase. */
+export interface Study {
+  readonly counterbalance: string;
+  readonly ended: { readonly pre: number; readonly practice: number; readonly post: number };
+  readonly next_phase: "pre" | "practice" | "post" | "done";
+}
+
+/** The fields of `GET /api/me` (S5 5.5) this layer relies on. The referee origin's console `/api/me` carries no
+ * acknowledgement or study, which read as null there. */
 export interface Me {
   readonly user_id: string;
   readonly display_name: string;
   readonly roles: readonly string[];
   readonly ex4_acknowledged: string | null;
+  readonly study: Study | null;
+  /** True on the referee origin, whose console `/api/me` carries no `ex4_acknowledged` key (S5 5.5). The
+   * trainer and admin consoles act only here (FE-REV-4, FE-ADM-1). */
+  readonly console: boolean;
   readonly csrf_token: string;
 }
 
@@ -94,14 +106,37 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseMe(value: unknown): Me | null {
+const PHASES = ["pre", "practice", "post", "done"] as const;
+
+function count(v: unknown): number | null {
+  return typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null;
+}
+
+/** The study status, or undefined when present but malformed (the whole answer is then refused). */
+export function parseStudy(value: unknown): Study | null | undefined {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value) || !isRecord(value["ended"])) return undefined;
+  const { counterbalance, next_phase: next } = value;
+  const ended = value["ended"];
+  const pre = count(ended["pre"]);
+  const practice = count(ended["practice"]);
+  const post = count(ended["post"]);
+  const phase = PHASES.find((p) => p === next);
+  if ((typeof counterbalance !== "string" && typeof counterbalance !== "number") || pre === null || practice === null || post === null || phase === undefined) return undefined;
+  return { counterbalance: String(counterbalance), ended: { pre, practice, post }, next_phase: phase };
+}
+
+export function parseMe(value: unknown): Me | null {
   if (!isRecord(value)) return null;
-  const { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, csrf_token: token } = value;
+  const { user_id: userId, display_name: name, roles, csrf_token: token } = value;
+  const ack = value["ex4_acknowledged"] ?? null;
   if (typeof userId !== "string" || userId === "" || typeof name !== "string") return null;
   if (!Array.isArray(roles) || !roles.every((role) => typeof role === "string")) return null;
   if (ack !== null && typeof ack !== "string") return null;
   if (typeof token !== "string" || token === "") return null;
-  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, csrf_token: token };
+  const study = parseStudy(value["study"]);
+  if (study === undefined) return null;
+  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, study, console: !("ex4_acknowledged" in value), csrf_token: token };
 }
 
 /** The server's reason in an error body: `{code}`, `{detail: "<code>"}` or `{detail: {code}}`. */

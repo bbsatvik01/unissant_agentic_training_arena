@@ -24,7 +24,7 @@ import type {
 } from "../contracts/generated/types";
 import type { CaseCard } from "../world/cases";
 import type { CaseDocument } from "../world/recording";
-import { ContractError, type ApiClient } from "./client";
+import { ContractError, type ApiClient, type Me } from "./client";
 
 /** `POST /api/sessions` answers (S5 5.5): the new session and its trial. */
 export interface StartedSession {
@@ -139,8 +139,16 @@ export interface ArenaApi {
   caseBrief(caseId: string): Promise<CaseBrief>;
   /** `POST /api/sessions` (the body is checked against its wire schema first). */
   startSession(body: SessionCreate): Promise<StartedSession>;
+  /** `GET /api/progress`: the participant's own sessions (read with `parseProgress`). */
+  progress: () => Promise<unknown>;
+  /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
+  recording: (trialId: string) => Promise<unknown>;
+  /** `GET /api/me`: identity, the EX-4 acknowledgement and the KPI-1 study status. */
+  me: () => Promise<Me>;
+  /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
+  ackEx4: () => Promise<string>;
   /** `GET /api/leaderboards/{tournament_id}?board=`: the published board body verbatim (WP-16), read with `parseBoard`. */
-  leaderboard(tournamentId: string, board: "assistant" | "subject"): Promise<unknown>;
+  leaderboard(tournamentId: string, board: "assistant" | "subject", label?: "original" | "corrected"): Promise<unknown>;
 }
 
 const id = encodeURIComponent;
@@ -212,8 +220,17 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       if (brief === null) throw new ContractError(path, "the case brief");
       return brief;
     },
-    async leaderboard(tournamentId, board) {
-      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}`);
+    me: () => client.me(),
+    progress: () => client.get("/api/progress"),
+    recording: (trialId) => client.get(`/api/trials/${id(trialId)}/recording`),
+    async ackEx4() {
+      const path = "/api/me/ack-ex4";
+      const answer = await client.post(path);
+      if (!isRecord(answer) || !isText(answer["ex4_acknowledged"])) throw new ContractError(path, "the acknowledgement");
+      return answer["ex4_acknowledged"];
+    },
+    async leaderboard(tournamentId, board, label) {
+      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}${label === undefined ? "" : `&label=${label}`}`);
     },
     async startSession(body) {
       const path = "/api/sessions";

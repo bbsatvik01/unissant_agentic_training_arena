@@ -204,3 +204,27 @@ export function differenceText(m: MetricView | null): string {
   };
   return m.interval === null ? `${pts(m.point)} points, interval unavailable` : `${pts(m.point)} points, interval ${pts(m.interval.lo)} to ${pts(m.interval.hi)} points`;
 }
+
+/** What the arena shows for its boards: a published tournament's, its sealed state before reveal (no numbers,
+ * FE-LB-5), none published, a failed read, or the labeled example when no tournament is selected. */
+export type BoardsState =
+  | { readonly kind: "example" }
+  | { readonly kind: "published"; readonly tournamentId: string; readonly label: "original" | "corrected" | null }
+  | { readonly kind: "sealed" }
+  | { readonly kind: "missing" }
+  | { readonly kind: "error" };
+
+/** A failed board read in the arena's terms: 409 `not_revealed` is the sealed state, 404 none published. */
+export function boardsFailure(status: number | null, code: string | null): BoardsState {
+  if (status === 409 && code === "not_revealed") return { kind: "sealed" };
+  if (status === 404) return { kind: "missing" };
+  return { kind: "error" };
+}
+
+/** The other label's address for a published tournament: a corrected board links to its original and back. */
+export function otherLabelHref(tournamentId: string, label: "original" | "corrected" | null, manifestVersion: number | null): { text: string; href: string; heading: string } | null {
+  const base = `?tournament=${encodeURIComponent(tournamentId)}`;
+  if (label === "original") return { heading: "Original leaderboard", text: "See the corrected leaderboard", href: base };
+  if (manifestVersion !== null && manifestVersion > 1) return { heading: "Corrected leaderboard", text: "See the original leaderboard", href: `${base}&label=original` };
+  return null;
+}

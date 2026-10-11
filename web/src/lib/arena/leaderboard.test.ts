@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import example from "../../fixtures/leaderboard.example.json";
-import { fprGate, metricText, metricView, parseBoard, rankBar } from "./leaderboard";
+import { boardsFailure, fprGate, metricText, metricView, otherLabelHref, parseBoard, rankBar } from "./leaderboard";
 
 describe("leaderboard bodies (WP-16 shape)", () => {
   it("reads both boards in the server's order with ranks, eligibility and intervals as published", () => {
@@ -54,5 +54,15 @@ describe("leaderboard bodies (WP-16 shape)", () => {
     expect(metricText(undefined)).toBe("not computed");
     expect(metricView("x")).toBe(null);
     expect(rankBar({ lo: 1, hi: 2 }, 3)).toEqual({ left: 0, width: 2 / 3 });
+  });
+
+  it("reads 409 not_revealed as sealed and 404 as none published; links between a corrected board and its original", () => {
+    expect(boardsFailure(409, "not_revealed")).toEqual({ kind: "sealed" });
+    expect(boardsFailure(404, null)).toEqual({ kind: "missing" });
+    expect(boardsFailure(409, "other")).toEqual({ kind: "error" });
+    expect(boardsFailure(null, null)).toEqual({ kind: "error" });
+    expect(otherLabelHref("t 1", null, 1)).toBe(null);
+    expect(otherLabelHref("t 1", null, 2)).toEqual({ heading: "Corrected leaderboard", text: "See the original leaderboard", href: "?tournament=t%201&label=original" });
+    expect(otherLabelHref("t 1", "original", 1)).toEqual({ heading: "Original leaderboard", text: "See the corrected leaderboard", href: "?tournament=t%201" });
   });
 });
