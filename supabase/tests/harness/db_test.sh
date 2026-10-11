@@ -11,11 +11,12 @@
 #      then, on that migrated database:
 #   3. cost parity: the migrated seeds equal cost_model.py (WI-S4-08)        tools/check_cost_parity.py --dsn
 #   4. the committed capability fixture equals the one regenerated from it (S4 section 10)
-#   5. the subject integration suite (S2 6.10, 6.2, 6.7; S5 5.1, 5.2; WP-12): subject.turn_context and
+#   5. the api and subject integration suites (WP-13: arena-api's interview path through the real functions, S5 5.2,
+#      5.4, 6.2, 6.3; WP-12, S2 6.10, 6.2, 6.7; S5 5.1, 5.2: subject.turn_context and
 #      arena.record_subject_turn against the real migrated functions, seeded through the tests.* fixtures the
 #      pgTAP suite itself uses (supabase/tests/harness/fixtures.psql); runs before the spend-guard suite since it
 #      touches no budget state and nothing it does depends on a ceiling being applied.
-#                                                    pytest services/subject/tests/it_answer.py
+#                                     pytest services/api/tests/it_api.py services/subject/tests/it_answer.py
 #   6. the spend-guard integration suite (S5 4.10, 3.6; WP-05): the agent port and the guard client against the real
 #      migrated functions, then the budget-plan apply and check (D-012). It runs last because it applies ceilings,
 #      reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
@@ -152,7 +153,7 @@ subject_integration() {
   supabase_up || return 1
   local dsn="$ADMIN/postgres"
   (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
-    -p no:cacheprovider -W error services/subject/tests/it_answer.py)
+    -p no:cacheprovider -W error services/api/tests/it_api.py services/subject/tests/it_answer.py)
 }
 
 spend_guard_integration() {
@@ -166,7 +167,8 @@ step "migrations and pgTAP on plain PostgreSQL 17 with pgTAP, throwaway database
 step "migrations and pgTAP on the Supabase Postgres 17 container's database (Supabase path)" supabase_path
 step "cost parity of the migrated seeds with cost_model.py (WI-S4-08)" cost_parity
 step "capability fixture equals the one regenerated from the migrated database" regenerate_capability_fixture
-step "subject integration suite on the migrated database (turn_context, record_subject_turn)" subject_integration
+step "api and subject integration suites on the migrated database (the interview path, turn_context, record_subject_turn)" \
+  subject_integration
 step "spend-guard integration suite on the migrated database (agent port, guard client, budget plan)" \
   spend_guard_integration
 cleanup

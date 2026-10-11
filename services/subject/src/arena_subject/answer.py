@@ -181,15 +181,25 @@ async def _finish(record: TurnRecorder, req: RecordSubjectTurn) -> AnswerOutcome
     return AnswerOutcome(outcome=stored.outcome, turn_no=stored.turn_no, transcript_version=stored.transcript_version)
 
 
+@dataclass(frozen=True)
+class AnswerStep:
+    """The step `answer()` runs: the trial, its open `subject_answer` work item, and the investigator whose session
+    it is (D-024: the per-user daily cap applies to that actor; None for a tournament trial)."""
+
+    trial_id: UUID
+    work_item_id: UUID
+    actor: UUID | None = None
+
+
 async def answer(
-    trial_id: UUID,
-    work_item_id: UUID,
+    step: AnswerStep,
     *,
     get_context: ContextReader,
     record: TurnRecorder,
     port: AgentPort,
 ) -> AnswerOutcome:
     """S5 5.2 step 4: `subject.turn_context` -> one structured call -> the guard -> `record_subject_turn`."""
+    trial_id, work_item_id = step.trial_id, step.work_item_id
     ctx = await get_context(trial_id, work_item_id)
     try:
         manifest = CandidateManifest.model_validate(ctx.subject_manifest)
@@ -215,6 +225,7 @@ async def answer(
             step_key=str(work_item_id),
             work_item_id=work_item_id,
             trial_id=trial_id,
+            actor_user_id=step.actor,
             turn_no=state.n,
             split=packet.split,
             data_class="subject_private",

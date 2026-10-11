@@ -70,7 +70,7 @@ from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.scenario.relay import ReleasedRecord, ReplayExchange, plan_replay
 from arena_core.spend.guard import DbSpendGuard, SpendGuard
 from arena_core.spend.memory import RunBudget
-from arena_subject.answer import AnswerError, ContextReader, answer
+from arena_subject.answer import AnswerError, AnswerStep, ContextReader, answer
 from arena_subject.app import FAKE_SUBJECT_REPLY
 
 REPO = Path(__file__).resolve().parents[1]
@@ -228,7 +228,7 @@ async def _run_conversation(
         ctx = _build_context(turn_no=row.exchange, question=row.question, state=state)
         rec = _Recorder()
         try:
-            outcome = await answer(state.trial_id, uuid4(), get_context=_reader(ctx), record=rec, port=port)
+            outcome = await answer(AnswerStep(state.trial_id, uuid4()), get_context=_reader(ctx), record=rec, port=port)
             req = rec.calls[0] if rec.calls else None
             turns.append(
                 PilotTurn(

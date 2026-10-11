@@ -1,10 +1,12 @@
 [project]
 name = "arena-api"
 version = "0.1.0"
-description = "ARENA_ROLE=api: investigator REST, SSE and the voice relay edge. Routes land in WP-13."
+description = "ARENA_ROLE=api: investigator REST, SSE and the voice relay edge. "
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "arena-core",
+  "fastapi==0.141.1",
+  "uvicorn==0.54.0",
 ]
 
 [build-system]
