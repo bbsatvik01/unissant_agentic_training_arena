@@ -139,6 +139,10 @@ export interface ArenaApi {
   caseBrief(caseId: string): Promise<CaseBrief>;
   /** `POST /api/sessions` (the body is checked against its wire schema first). */
   startSession(body: SessionCreate): Promise<StartedSession>;
+  /** `GET /api/progress`: the participant's own sessions (read with `parseProgress`). */
+  progress: () => Promise<unknown>;
+  /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
+  recording: (trialId: string) => Promise<unknown>;
   /** `GET /api/me`: identity, the EX-4 acknowledgement and the KPI-1 study status. */
   me: () => Promise<Me>;
   /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
@@ -217,6 +221,8 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       return brief;
     },
     me: () => client.me(),
+    progress: () => client.get("/api/progress"),
+    recording: (trialId) => client.get(`/api/trials/${id(trialId)}/recording`),
     async ackEx4() {
       const path = "/api/me/ack-ex4";
       const answer = await client.post(path);

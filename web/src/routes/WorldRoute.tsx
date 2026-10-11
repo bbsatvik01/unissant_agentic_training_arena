@@ -9,6 +9,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 
 import { ArenaView } from "../components/overlay/ArenaView";
 import { Onboarding } from "../components/overlay/Onboarding";
+import { ProgressView } from "../components/overlay/ProgressView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
 import { DebriefScene } from "../components/overlay/DebriefScene";
@@ -30,10 +31,12 @@ import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
 import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
 import { draftAfterSend } from "../lib/world/live";
+import type { RecordingResult } from "../lib/world/parseRecording";
 import type { CaseDocument, Recording } from "../lib/world/recording";
 import type { WorldState } from "../lib/world/worldState";
 import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
+import { useProgress } from "./world/useProgress";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
 import { usePlayback } from "./world/usePlayback";
@@ -94,6 +97,7 @@ export function WorldRoute() {
   // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
   const openArena = () => {
     setShowArena(true);
+    setShowProgress(false);
     if (arena !== null) return;
     const tournamentId = new URLSearchParams(window.location.search).get("tournament");
     const published =
@@ -154,6 +158,8 @@ export function WorldRoute() {
   const modes = allowedModes(study);
   const refreshMe = meCtl.refresh;
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const progress = useProgress(api, showProgress);
   const cases = liveCases ?? CASES;
 
   const recording = load.state === "ready" ? load.recording : null;
@@ -242,46 +248,70 @@ export function WorldRoute() {
   };
 
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
-  const openRecordingFile = useCallback((file: File) => {
-    void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
-      ([text, { parseRecording }]) => {
-        let raw: unknown;
-        try {
-          raw = JSON.parse(text);
-        } catch {
-          setFileError("That file is not JSON.");
-          return;
-        }
-        const result = parseRecording(raw);
-        if (!result.ok) {
-          setFileError(`The recording was refused: ${result.errors.slice(0, 3).join("; ")}`);
-          return;
-        }
-        const c = result.recording.case;
-        setFileError(null);
-        setActive({
-          case_id: c.case_id,
-          title: c.title,
-          objective: c.objective,
-          domain: c.domain,
-          difficulty_level: c.difficulty_level,
-          subject: c.subject,
-          facility: c.setting,
-          initial_documents: c.initial_documents.length,
-          requestable_records: result.recording.snapshot.requestable.length,
-        });
-        setLoad({ state: "ready", recording: result.recording });
-        setMode("playback");
-        setArrived(false);
-        setDebriefClosed(false);
-        setCite(null);
-        setPlace("room");
-      },
-      () => {
-        setFileError("The file could not be read.");
-      },
-    );
+  // A checked recording plays in the room the same way whether it came from a file or the server.
+  const playRecording = useCallback((raw: unknown, parse: (v: unknown) => RecordingResult) => {
+    const result = parse(raw);
+    if (!result.ok) {
+      setFileError(`The recording was refused: ${result.errors.slice(0, 3).join("; ")}`);
+      return;
+    }
+    const c = result.recording.case;
+    setFileError(null);
+    setActive({
+      case_id: c.case_id,
+      title: c.title,
+      objective: c.objective,
+      domain: c.domain,
+      difficulty_level: c.difficulty_level,
+      subject: c.subject,
+      facility: c.setting,
+      initial_documents: c.initial_documents.length,
+      requestable_records: result.recording.snapshot.requestable.length,
+    });
+    setLoad({ state: "ready", recording: result.recording });
+    setMode("playback");
+    setArrived(false);
+    setDebriefClosed(false);
+    setCite(null);
+    setPlace("room");
   }, []);
+
+  const openRecordingFile = useCallback(
+    (file: File) => {
+      void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
+        ([text, { parseRecording }]) => {
+          let raw: unknown;
+          try {
+            raw = JSON.parse(text);
+          } catch {
+            setFileError("That file is not JSON.");
+            return;
+          }
+          playRecording(raw, parseRecording);
+        },
+        () => {
+          setFileError("The file could not be read.");
+        },
+      );
+    },
+    [playRecording],
+  );
+
+  // One of the participant's own runs, from the server (`GET /api/trials/{id}/recording`), replayed in the room.
+  const replayTrial = useCallback(
+    (trialId: string) => {
+      setShowProgress(false);
+      void Promise.all([api.recording(trialId), import("../lib/world/parseRecording")]).then(
+        ([raw, { parseRecording }]) => {
+          playRecording(raw, parseRecording);
+        },
+        () => {
+          setFileError("That run could not be loaded.");
+        },
+      );
+    },
+    [api, playRecording],
+  );
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
@@ -404,6 +434,14 @@ export function WorldRoute() {
                 setShowOnboarding((v) => !v);
               }}>
               Ground rule
+            </button>
+          ) : null}
+          {place === "hub" && live && meCtl.me !== null ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
+                setShowProgress((v) => !v);
+                setShowArena(false);
+              }}>
+              Progress
             </button>
           ) : null}
           {place === "hub" ? (
@@ -771,6 +809,17 @@ export function WorldRoute() {
           onAcknowledge={meCtl.acknowledge}
           onClose={mustAcknowledge ? null : () => {
             setShowOnboarding(false);
+          }}
+        />
+      ) : null}
+      {place === "hub" && showProgress && !mustAcknowledge ? (
+        <ProgressView
+          load={progress.load}
+          scores={progress.scores}
+          study={study}
+          onReplay={replayTrial}
+          onClose={() => {
+            setShowProgress(false);
           }}
         />
       ) : null}

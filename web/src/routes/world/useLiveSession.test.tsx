@@ -37,6 +37,8 @@ function api(overrides: Partial<ArenaApi>): ArenaApi {
     leaderboard: refuse,
     me: refuse,
     ackEx4: refuse,
+    progress: refuse,
+    recording: refuse,
     ...overrides,
   };
 }

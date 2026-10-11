@@ -8,6 +8,8 @@
  */
 import type { Study } from "../api/client";
 
+export type { Study };
+
 export const PRE_TESTS = 2;
 export const PRACTICE_SESSIONS = 3;
 export const POST_TESTS = 2;
