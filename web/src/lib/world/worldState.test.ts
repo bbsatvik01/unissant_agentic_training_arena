@@ -111,7 +111,7 @@ describe("deriveWorld", () => {
   it("pins a released record as fresh for its flight, cutting to the wall, then keeps it on the wall", () => {
     const release = when("evidence.released", (f) => f.type === "evidence.released" && f.data.record_id === "rec-03");
     const w = at(release + 100);
-    expect(w.wall.find((p) => p.record_id === "rec-03")).toMatchObject({ fresh: true, trigger: "requested", releasedAtTurn: 3 });
+    expect(w.wall.find((p) => p.record_id === "rec-03")).toMatchObject({ fresh: true, trigger: "requested", releasedAtTurn: 3, releasedAt: release });
     expect(w.shot).toBe("wall");
     expect(w.caption).toContain("Record released:");
     const later = at(release + EVIDENCE_MS + 10);
@@ -145,7 +145,7 @@ describe("deriveWorld", () => {
   it("stamps the seal when the trial is finalized, then ends with the companion asleep and the debrief ready", () => {
     const finalized = when("trial.finalized");
     const sealing = at(finalized + 100);
-    expect(sealing.seal?.fresh).toBe(true);
+    expect(sealing.seal).toMatchObject({ fresh: true, at: finalized });
     expect(sealing.shot).toBe("table");
     expect(sealing.caption).toBe("Session ended. Finding committed and sealed.");
     const end = at(finalized + SEAL_MS + 10);
@@ -201,8 +201,11 @@ describe("the rules the world carries", () => {
     const capped = new LogBuilder("practice");
     for (let i = 0; i < 12; i += 1) capped.ask();
     expect(fromLog(capped, "practice", 999_999)?.caption).toBe("This interview has reached its length limit; commit your finding.");
-    const ended = new LogBuilder("practice").ask().end("infra_failed");
-    expect(fromLog(ended, "practice", 999_999)?.caption).toBe("Session ended.");
+    expect(fromLog(new LogBuilder("practice").ask().end("infra_failed"), "practice", 999_999)?.caption).toBe("The session stopped because of a technical fault.");
+    expect(fromLog(new LogBuilder("practice").ask().end("budget_truncated"), "practice", 999_999)?.caption).toBe("The session stopped because the spend limit was reached.");
+    const quarantined = fromLog(new LogBuilder("practice").ask().end("subject_quarantined"), "practice", 999_999)?.caption ?? "";
+    expect(quarantined).toBe("The session was stopped for a platform check. It is not counted.");
+    expect(quarantined).not.toMatch(/attack|injection|deceptive|lying/i);
     const thinking = new LogBuilder("practice");
     thinking.frames.push(...new LogBuilder("practice").ask({ coach: "none" }).frames.slice(0, 2));
     expect(fromLog(thinking, "practice", 2500)?.subject.pose).toBe("thinking");

@@ -5,6 +5,7 @@
  * Everything here is drawn from the world state; nothing reads session data directly (FE-SSE-7).
  */
 import { useGSAP } from "@gsap/react";
+import { useFrame } from "@react-three/fiber";
 import gsap from "gsap";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { QuadraticBezierCurve3, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
@@ -35,7 +36,8 @@ export interface WallDocument {
   readonly id: string;
   readonly title: string;
   readonly note: string;
-  readonly fresh: boolean;
+  /** When it was released on the session clock; null for a document on file from the start. */
+  readonly releasedAt: number | null;
 }
 
 interface RoomProps {
@@ -118,56 +120,82 @@ function Table() {
   );
 }
 
-function Paper({ slot, doc, reducedMotion, highlighted }: { slot: Vec3; doc: WallDocument; reducedMotion: boolean; highlighted: boolean }) {
-  const group = useRef<Group>(null);
+/**
+ * Drive a paused GSAP timeline from the session clock, so playback pause, speed and scrub move the moment with
+ * everything else; with motion off it shows its end state.
+ */
+function useClockTimeline(timeline: RefObject<gsap.core.Timeline | null>, clock: RefObject<number>, at: number | null, motionOff: boolean) {
+  useFrame(() => {
+    const tl = timeline.current;
+    if (tl === null || at === null) return;
+    const elapsed = motionOff ? tl.duration() : (clock.current - at) / 1000;
+    tl.time(Math.max(0, Math.min(tl.duration(), elapsed)));
+  });
+}
+
+function Paper({ slot, doc, clock, motionOff, highlighted }: { slot: Vec3; doc: WallDocument; clock: RefObject<number>; motionOff: boolean; highlighted: boolean }) {
+  const flight = useRef<Group>(null);
+  const lift = useRef<Group>(null);
   const pin = useRef<Mesh>(null);
+  const timeline = useRef<gsap.core.Timeline | null>(null);
   const texture = useMemo(() => paperTexture(doc.id, doc.title, doc.note), [doc.id, doc.title, doc.note]);
   useEffect(() => () => {
     texture.dispose();
   }, [texture]);
-  // Evidence released (signature moment): the record flies from the table to its slot and is pinned. Runs once,
-  // when the paper first appears fresh; history and reduced motion place it directly.
-  useGSAP(() => {
-    const g = group.current;
-    const p = pin.current;
-    if (g === null || p === null || !doc.fresh || reducedMotion) return;
-    const tl = gsap.timeline();
-    tl.from(g.position, { x: TABLE.center[0] - 0.3, y: 1.05, z: TABLE.center[2] - 0.2, duration: 1.15, ease: "power3.out" })
-      .from(g.rotation, { x: -1.35, y: 0.5, z: 0.5, duration: 1.15, ease: "power3.out" }, 0)
-      .from(g.scale, { x: 0.55, y: 0.55, z: 0.55, duration: 0.7, ease: "power2.out" }, 0)
-      .fromTo(p.position, { z: 0.3 }, { z: 0.012, duration: 0.22, ease: "power4.in" }, 1.05)
-      .to(g.rotation, { z: 0.035, duration: 0.12, yoyo: true, repeat: 1, ease: "sine.inOut" }, 1.27);
-  });
+  // Evidence released (signature moment): the record flies from the table to its slot and is pinned, on the
+  // session clock from its release. A document on file from the start is simply there.
   useGSAP(
     () => {
-      const g = group.current;
-      if (g === null || reducedMotion) return;
-      gsap.to(g.scale, { x: highlighted ? 1.12 : 1, y: highlighted ? 1.12 : 1, duration: 0.35, ease: "power2.out" });
+      const g = flight.current;
+      const p = pin.current;
+      if (g === null || p === null || doc.releasedAt === null) return;
+      const tl = gsap.timeline({ paused: true });
+      tl.from(g.position, { x: TABLE.center[0] - 0.3, y: 1.05, z: TABLE.center[2] - 0.2, duration: 1.15, ease: "power3.out" })
+        .from(g.rotation, { x: -1.35, y: 0.5, z: 0.5, duration: 1.15, ease: "power3.out" }, 0)
+        .from(g.scale, { x: 0.55, y: 0.55, z: 0.55, duration: 0.7, ease: "power2.out" }, 0)
+        .fromTo(p.position, { z: 0.3 }, { z: 0.012, duration: 0.22, ease: "power4.in" }, 1.05)
+        .to(g.rotation, { z: 0.035, duration: 0.12, yoyo: true, repeat: 1, ease: "sine.inOut" }, 1.27);
+      timeline.current = tl;
+      return () => {
+        timeline.current = null;
+      };
     },
-    { dependencies: [highlighted, reducedMotion] },
+    { dependencies: [doc.releasedAt] },
   );
-  const scale = reducedMotion && highlighted ? 1.12 : 1;
+  useClockTimeline(timeline, clock, doc.releasedAt, motionOff);
+  useGSAP(
+    () => {
+      const g = lift.current;
+      if (g === null) return;
+      const s = highlighted ? 1.12 : 1;
+      if (motionOff) g.scale.set(s, s, 1);
+      else gsap.to(g.scale, { x: s, y: s, duration: 0.35, ease: "power2.out" });
+    },
+    { dependencies: [highlighted, motionOff] },
+  );
   return (
-    <group ref={group} position={slot} scale={scale}>
-      <mesh>
-        <planeGeometry args={[0.36, 0.48]} />
-        <meshLambertMaterial map={texture} />
-      </mesh>
-      {highlighted ? (
-        <mesh position={[0, 0, -0.002]}>
-          <planeGeometry args={[0.4, 0.52]} />
-          <meshBasicMaterial color={PALETTE.link} />
+    <group ref={flight} position={slot}>
+      <group ref={lift}>
+        <mesh>
+          <planeGeometry args={[0.36, 0.48]} />
+          <meshLambertMaterial map={texture} />
         </mesh>
-      ) : null}
-      <mesh ref={pin} position={[0, 0.2, 0.012]}>
-        <sphereGeometry args={[0.014, 10, 8]} />
-        <meshLambertMaterial color={PALETTE.ink} />
-      </mesh>
+        {highlighted ? (
+          <mesh position={[0, 0, -0.002]}>
+            <planeGeometry args={[0.4, 0.52]} />
+            <meshBasicMaterial color={PALETTE.link} />
+          </mesh>
+        ) : null}
+        <mesh ref={pin} position={[0, 0.2, 0.012]}>
+          <sphereGeometry args={[0.014, 10, 8]} />
+          <meshLambertMaterial color={PALETTE.ink} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
-function EvidenceWall({ documents, reducedMotion, highlight }: { documents: readonly WallDocument[]; reducedMotion: boolean; highlight: string | null }) {
+function EvidenceWall({ documents, clock, motionOff, highlight }: { documents: readonly WallDocument[]; clock: RefObject<number>; motionOff: boolean; highlight: string | null }) {
   const [cx, cy, cz] = EVIDENCE_WALL.center;
   return (
     <group>
@@ -177,7 +205,7 @@ function EvidenceWall({ documents, reducedMotion, highlight }: { documents: read
         <Hairline size={[EVIDENCE_WALL.width + 0.25, EVIDENCE_WALL.height + 0.25]} />
       </mesh>
       {documents.map((doc, i) => (
-        <Paper key={doc.id} slot={evidenceSlot(i)} doc={doc} reducedMotion={reducedMotion} highlighted={doc.id === highlight} />
+        <Paper key={doc.id} slot={evidenceSlot(i)} doc={doc} clock={clock} motionOff={motionOff} highlighted={doc.id === highlight} />
       ))}
     </group>
   );
@@ -278,25 +306,34 @@ function Thread({ from, reducedMotion }: { from: Vec3; reducedMotion: boolean })
   );
 }
 
-/** Finding committed (signature moment): the seal is stamped on the case folder. */
-function Seal({ fresh, reducedMotion }: { fresh: boolean; reducedMotion: boolean }) {
+/** Finding committed (signature moment): the seal is stamped on the case folder, on the session clock. */
+function Seal({ at, clock, motionOff }: { at: number | null; clock: RefObject<number>; motionOff: boolean }) {
   const stamp = useRef<Group>(null);
   const mark = useRef<Mesh>(null);
-  useGSAP(() => {
-    const s = stamp.current;
-    const m = mark.current;
-    if (s === null || m === null) return;
-    if (!fresh || reducedMotion) {
-      s.visible = false;
-      return;
-    }
-    const tl = gsap.timeline();
-    tl.fromTo(s.position, { y: 0.7 }, { y: 0.05, duration: 0.55, ease: "power4.in" })
-      .fromTo(m.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.18, ease: "back.out(3)" }, 0.55)
-      .to(s.scale, { y: 0.85, duration: 0.08, yoyo: true, repeat: 1 }, 0.55)
-      .to(s.position, { y: 0.8, duration: 0.6, ease: "power2.out" }, 0.9)
-      .set(s, { visible: false });
-  });
+  const timeline = useRef<gsap.core.Timeline | null>(null);
+  useGSAP(
+    () => {
+      const s = stamp.current;
+      const m = mark.current;
+      if (s === null || m === null) return;
+      if (at === null) {
+        s.visible = false;
+        return;
+      }
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo(s.position, { y: 0.7 }, { y: 0.05, duration: 0.55, ease: "power4.in" })
+        .fromTo(m.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.18, ease: "back.out(3)" }, 0.55)
+        .to(s.scale, { y: 0.85, duration: 0.08, yoyo: true, repeat: 1 }, 0.55)
+        .to(s.position, { y: 0.8, duration: 0.6, ease: "power2.out" }, 0.9)
+        .set(s, { visible: false });
+      timeline.current = tl;
+      return () => {
+        timeline.current = null;
+      };
+    },
+    { dependencies: [at] },
+  );
+  useClockTimeline(timeline, clock, at, motionOff);
   const [x, y, z] = FOLDER_SPOT;
   return (
     <group position={[x, y, z]}>
@@ -329,7 +366,7 @@ export function Room({ world, documents, clock, still, reducedMotion }: RoomProp
     <group position={ROOM}>
       <Shell />
       <Table />
-      <EvidenceWall documents={documents} reducedMotion={reducedMotion} highlight={highlightIndex < 0 ? null : (flag?.conflictRecord ?? null)} />
+      <EvidenceWall documents={documents} clock={clock} motionOff={reducedMotion} highlight={highlightIndex < 0 ? null : (flag?.conflictRecord ?? null)} />
       <Mirror />
       <ObservationRoom world={world} clock={clock} still={still} />
       <Figure position={SUBJECT_SEAT} look={SUBJECT_LOOK} pose={world?.subject.pose ?? "idle"} speech={world?.subject.speech ?? null} clock={clock} still={still} />
@@ -339,7 +376,7 @@ export function Room({ world, documents, clock, still, reducedMotion }: RoomProp
         <meshLambertMaterial color={PALETTE.canvasSoft2} />
         <Hairline size={[0.3, 0.008, 0.22]} />
       </mesh>
-      {world?.seal == null ? null : <Seal key={world.seal.hash} fresh={world.seal.fresh} reducedMotion={reducedMotion} />}
+      {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
       {world === null ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} />}
       <pointLight position={[0.2, 2.7, 0.4]} intensity={0.6} distance={8} decay={1.5} />

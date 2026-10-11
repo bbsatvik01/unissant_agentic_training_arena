@@ -20,6 +20,18 @@ function isText(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+/** S1's Content: a non-empty body and, when present, a table whose every row has one text cell per column. */
+function contentOk(value: unknown): boolean {
+  if (!isObject(value) || !isText(value["body"])) return false;
+  const table = value["table"];
+  if (table === undefined || table === null) return true;
+  if (!isObject(table)) return false;
+  const columns = table["columns"];
+  const rows = table["rows"];
+  if (!Array.isArray(columns) || !columns.every((c) => typeof c === "string") || !Array.isArray(rows)) return false;
+  return rows.every((row) => Array.isArray(row) && row.length === columns.length && row.every((cell) => typeof cell === "string"));
+}
+
 /** Keys a recording's case block may carry; anything else (a role, a style) refuses the recording. */
 const CASE_KEYS = new Set(["case_id", "title", "objective", "domain", "difficulty_level", "subject", "setting", "initial_documents"]);
 
@@ -39,8 +51,8 @@ function caseErrors(value: unknown): string[] {
   if (!Array.isArray(docs)) errors.push("case: initial_documents must be a list");
   else {
     docs.forEach((doc: unknown, i) => {
-      const ok = isObject(doc) && isText(doc["doc_id"]) && isText(doc["kind"]) && isText(doc["title"]) && isObject(doc["content"]) && isText(doc["content"]["body"]);
-      if (!ok) errors.push(`case: initial_documents[${String(i)}] needs doc_id, kind, title and content.body`);
+      const ok = isObject(doc) && isText(doc["doc_id"]) && isText(doc["kind"]) && isText(doc["title"]) && contentOk(doc["content"]);
+      if (!ok) errors.push(`case: initial_documents[${String(i)}] needs doc_id, kind, title and whole content (body, table rows as wide as its columns)`);
     });
   }
   return errors;
@@ -74,7 +86,16 @@ export function parseRecording(raw: unknown): RecordingResult {
     });
   }
   const debrief = raw["debrief"] ?? null;
-  if (debrief !== null && !isWire("debrief.v1", debrief)) errors.push("debrief: fails the debrief.v1 wire schema");
+  if (debrief !== null) {
+    if (!isWire("debrief.v1", debrief)) errors.push("debrief: fails the debrief.v1 wire schema");
+    else {
+      // The debrief belongs to this run: the session its readiness frame names.
+      const ready = Array.isArray(events)
+        ? events.map((e: unknown) => (isObject(e) && isObject(e["frame"]) && e["frame"]["type"] === "debrief.ready" && isObject(e["frame"]["data"]) ? e["frame"]["data"]["session_id"] : undefined)).find((id) => id !== undefined)
+        : undefined;
+      if (ready !== debrief.session_id) errors.push("debrief: its session is not the one this run's debrief.ready names");
+    }
+  }
   if (errors.length > 0) return { ok: false, errors };
   const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief"> & { readonly debrief?: Debrief | null };
   const durationMs = checked.events.at(-1)?.at_ms ?? 0;

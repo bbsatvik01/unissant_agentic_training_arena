@@ -65,6 +65,15 @@ describe("parseRecording refuses a broken recording whole", () => {
     ["events out of time order", (r: Record<string, unknown>) => (((r["events"] as unknown[])[3] as Record<string, unknown>)["at_ms"] = -1)],
     ["a frame failing the schema", (r: Record<string, unknown>) => ((((r["events"] as unknown[])[0] as Record<string, unknown>)["frame"] as Record<string, unknown>)["type"] = "subject.mood")],
     ["a frame of another trial", (r: Record<string, unknown>) => ((((r["events"] as unknown[])[0] as Record<string, unknown>)["frame"] as Record<string, unknown>)["scope_id"] = "other-trial")],
+    ["a document table with a short row", (r: Record<string, unknown>) => {
+      const docs = (r["case"] as Record<string, unknown>)["initial_documents"] as Record<string, unknown>[];
+      docs[0] = { ...docs[0], content: { body: "b", table: { columns: ["a", "b"], rows: [["only one"]] } } };
+    }],
+    ["a document table whose rows are text", (r: Record<string, unknown>) => {
+      const docs = (r["case"] as Record<string, unknown>)["initial_documents"] as Record<string, unknown>[];
+      docs[0] = { ...docs[0], content: { body: "b", table: { columns: ["a"], rows: "x" } } };
+    }],
+    ["a debrief of another session", (r: Record<string, unknown>) => ((r["debrief"] as Record<string, unknown>)["session_id"] = "00000000-0000-4000-8000-000000000000")],
     ["a debrief failing the schema", (r: Record<string, unknown>) => ((r["debrief"] as Record<string, unknown>)["scored"] = "yes")],
   ])("%s", (_name, change) => {
     expect(broken(change).length).toBeGreaterThan(0);

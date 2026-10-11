@@ -1,6 +1,6 @@
 /**
  * Tabs for the room's right column (WAI-ARIA tabs pattern): a tablist of buttons with roving focus (arrow keys,
- * Home, End) and one visible tabpanel.
+ * Home, End) and one visible tabpanel. Hidden panels stay mounted, so a draft in one survives a look at another.
  */
 import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 
@@ -53,7 +53,7 @@ export function Tabs({ tabs, value, onChange, label }: { tabs: readonly TabSpec[
       </div>
       {tabs.map((t) => (
         <div key={t.id} role="tabpanel" id={`${base}-panel-${t.id}`} aria-labelledby={`${base}-tab-${t.id}`} hidden={value !== t.id} className="panel-body" tabIndex={0}>
-          {value === t.id ? t.content : null}
+          {t.content}
         </div>
       ))}
     </div>

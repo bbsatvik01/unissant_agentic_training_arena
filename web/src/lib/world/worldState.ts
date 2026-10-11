@@ -34,8 +34,11 @@ export interface WallPaper {
   readonly title: string;
   readonly releasedAtTurn: number;
   readonly trigger: "scheduled" | "requested";
-  /** Released within EVIDENCE_MS: the scene flies it in and pins it (signature moment). */
+  /** Released within EVIDENCE_MS: the camera turns to the wall (signature moment). */
   readonly fresh: boolean;
+  /** When it arrived on the session clock, or null for a record already on file at the snapshot; the scene's
+   * flight onto the wall is a function of the clock since then, so pause, speed and scrub drive it. */
+  readonly releasedAt: number | null;
 }
 
 /** An accepted practice card's conflict flag, while it is being pointed out (contradiction noticed). */
@@ -56,7 +59,7 @@ export interface WorldState {
   readonly flag: FlagMoment | null;
   readonly pet: PetPose;
   /** The commitment hash once the trial is finalized; `fresh` while the seal is being stamped. */
-  readonly seal: { readonly hash: string; readonly fresh: boolean } | null;
+  readonly seal: { readonly hash: string; readonly fresh: boolean; readonly at: number | null } | null;
   readonly debriefReady: boolean;
   /** The shot the room camera holds now. */
   readonly shot: ShotName;
@@ -84,6 +87,14 @@ export const HAND_MS = 1_400;
 export const FLAG_MS = 6_000;
 /** How long the seal is stamped. */
 export const SEAL_MS = 2_400;
+
+/** The neutral words for a session that ended other than by a committed finding (S6 4.3). */
+const ENDED: Readonly<Partial<Record<TrialView["serverStatus"], string>>> = {
+  subject_quarantined: "The session was stopped for a platform check. It is not counted.",
+  infra_failed: "The session stopped because of a technical fault.",
+  budget_skipped: "The session stopped because the spend limit was reached.",
+  budget_truncated: "The session stopped because the spend limit was reached.",
+};
 
 const DESKS: readonly CoachDesk[] = ["question", "flags", "follow_up"];
 /** While the coach works, each desk does its part: the flags desk reads, the others write. */
@@ -168,7 +179,10 @@ function coachPoses(view: TrialView, input: WorldInput, flag: FlagMoment | null)
 
 function caption(view: TrialView, input: WorldInput, wall: readonly WallPaper[], subjectPose: FigurePose): string {
   const fresh = wall.find((p) => p.fresh);
-  if (view.status === "ended") return view.commitmentHash === null ? "Session ended." : "Session ended. Finding committed and sealed.";
+  if (view.status === "ended") {
+    if (view.commitmentHash !== null) return "Session ended. Finding committed and sealed.";
+    return ENDED[view.serverStatus] ?? "Session ended.";
+  }
   if (view.status === "finalizing") return "Saving the finding.";
   if (fresh !== undefined) return `Record released: ${fresh.title}.`;
   const answering = subjectPose === "speaking" ? `${input.subjectName} is answering. ` : "";
@@ -207,9 +221,10 @@ export function deriveWorld(input: WorldInput): WorldState | null {
     releasedAtTurn: r.released_at_turn,
     trigger: r.trigger,
     fresh: within(input.arrivals, `evidence.released:${r.record_id}`, input.nowMs, EVIDENCE_MS),
+    releasedAt: input.arrivals.get(`evidence.released:${r.record_id}`) ?? null,
   }));
   const flag = flagMoment(view, input);
-  const seal = view.commitmentHash === null ? null : { hash: view.commitmentHash, fresh: within(input.arrivals, "trial.finalized", input.nowMs, SEAL_MS) };
+  const seal = view.commitmentHash === null ? null : { hash: view.commitmentHash, fresh: within(input.arrivals, "trial.finalized", input.nowMs, SEAL_MS), at: input.arrivals.get("trial.finalized") ?? null };
   const latest = Math.max(0, ...[...input.arrivals.values()].filter((at) => at <= input.nowMs));
   const pet = petStateFor({
     mode: view.mode,

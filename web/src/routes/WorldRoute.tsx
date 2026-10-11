@@ -49,16 +49,17 @@ export function WorldRoute() {
   const [cite, setCite] = useState<{ turn: number; quote: string; nonce: number } | null>(null);
   const [debriefClosed, setDebriefClosed] = useState(false);
   const [tab, setTab] = useState("coach");
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const recording = load.state === "ready" ? load.recording : null;
   const subjectName = recording?.case.subject.display_name ?? active?.subject.display_name ?? "Subject";
   const playback = usePlayback(recording, { subjectName, reducedMotion, paused });
-  const { play } = playback;
+  const { play, seekTo } = playback;
   const view = playback.trial.view;
   const world = playback.world;
 
   useEffect(() => {
-    if (active?.case_id !== RECORDED_CASE_ID) return;
+    if (active?.case_id !== RECORDED_CASE_ID || load.state !== "loading") return;
     let cancelled = false;
     void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
       ([mod, { parseRecording }]) => {
@@ -73,23 +74,65 @@ export function WorldRoute() {
     return () => {
       cancelled = true;
     };
-  }, [active]);
+  }, [active, load.state]);
 
-  // Once the camera has landed in the room and the recording is ready, the run plays.
+  // Once the camera has landed in the room and the recording is ready, the run plays (never in the precinct).
   useEffect(() => {
-    if (arrived && recording !== null) play();
-  }, [arrived, recording, play]);
+    if (arrived && place === "room" && recording !== null) play();
+  }, [arrived, place, recording, play]);
 
   const openCase = useCallback((caseId: string) => {
     const card = CASES.find((c) => c.case_id === caseId) ?? null;
     if (card === null) return;
     setActive(card);
-    setLoad(card.case_id === RECORDED_CASE_ID ? { state: "loading" } : { state: "none" });
+    // A recording already loaded is kept (reopening the case replays it from the start).
+    setLoad((l) => (card.case_id !== RECORDED_CASE_ID ? { state: "none" } : l.state === "ready" && l.recording.case.case_id === card.case_id ? l : { state: "loading" }));
     setArrived(false);
     setDebriefClosed(false);
     setCite(null);
     setDraft("");
     setPlace("room");
+    seekTo(0);
+  }, [seekTo]);
+  // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
+  const openRecordingFile = useCallback((file: File) => {
+    void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
+      ([text, { parseRecording }]) => {
+        let raw: unknown;
+        try {
+          raw = JSON.parse(text);
+        } catch {
+          setFileError("That file is not JSON.");
+          return;
+        }
+        const result = parseRecording(raw);
+        if (!result.ok) {
+          setFileError(`The recording was refused: ${result.errors.slice(0, 3).join("; ")}`);
+          return;
+        }
+        const c = result.recording.case;
+        setFileError(null);
+        setActive({
+          case_id: c.case_id,
+          title: c.title,
+          objective: c.objective,
+          domain: c.domain,
+          difficulty_level: c.difficulty_level,
+          subject: c.subject,
+          facility: c.setting,
+          initial_documents: c.initial_documents.length,
+          requestable_records: result.recording.snapshot.requestable.length,
+        });
+        setLoad({ state: "ready", recording: result.recording });
+        setArrived(false);
+        setDebriefClosed(false);
+        setCite(null);
+        setPlace("room");
+      },
+      () => {
+        setFileError("The file could not be read.");
+      },
+    );
   }, []);
   const backToHub = useCallback(() => {
     playback.pause();
@@ -105,8 +148,8 @@ export function WorldRoute() {
 
   const documents: readonly CaseDocument[] = useMemo(() => recording?.case.initial_documents ?? [], [recording]);
   const wallDocs: readonly WallDocument[] = useMemo(() => {
-    const initial = documents.map((d) => ({ id: d.doc_id, title: d.title, note: "Initial document", fresh: false }));
-    const released = (world?.wall ?? []).map((p) => ({ id: p.record_id, title: p.title, note: `Released at T${String(p.releasedAtTurn)}`, fresh: p.fresh }));
+    const initial = documents.map((d) => ({ id: d.doc_id, title: d.title, note: "Initial document", releasedAt: null }));
+    const released = (world?.wall ?? []).map((p) => ({ id: p.record_id, title: p.title, note: `Released at T${String(p.releasedAtTurn)}`, releasedAt: p.releasedAt }));
     return [...initial, ...released];
   }, [documents, world?.wall]);
 
@@ -124,7 +167,8 @@ export function WorldRoute() {
   const freshId = world?.wall.find((p) => p.fresh)?.record_id ?? null;
   const focusCard = CASES.find((c) => c.case_id === focused) ?? active ?? CASES[0] ?? null;
   const debrief = recording?.debrief ?? null;
-  const showDebrief = world?.debriefReady === true && debrief !== null && !debriefClosed;
+  const showDebrief = place === "room" && world?.debriefReady === true && debrief !== null && !debriefClosed;
+  // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
 
   return (
@@ -193,6 +237,24 @@ export function WorldRoute() {
                     </li>
                   ))}
                 </ul>
+                <label className="btn-secondary-sm file-pick">
+                  Play a recording file
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file !== undefined) openRecordingFile(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {fileError === null ? null : (
+                  <p className="fine" role="alert">
+                    {fileError}
+                  </p>
+                )}
               </div>
             </section>
           ) : (
@@ -219,7 +281,7 @@ export function WorldRoute() {
                 documents={wallDocs}
                 clock={playback.clock}
                 still={still}
-                reducedMotion={reducedMotion}
+                reducedMotion={still}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
                 onArrive={onArrive}
@@ -228,7 +290,7 @@ export function WorldRoute() {
             {showDebrief ? (
               <DebriefScore
                 debrief={debrief}
-                reducedMotion={reducedMotion}
+                reducedMotion={still}
                 onClose={() => {
                   setDebriefClosed(true);
                 }}

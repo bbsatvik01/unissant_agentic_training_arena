@@ -849,3 +849,13 @@ td {
 .app[data-paused="true"] .loading::after {
   animation: none;
 }
+
+.file-pick {
+  align-self: flex-start;
+  margin-top: var(--arena-space-3);
+}
+
+.file-pick:focus-within {
+  outline: 2px solid var(--arena-focus-ring);
+  outline-offset: 2px;
+}

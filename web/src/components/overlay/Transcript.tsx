@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef } from "react";
 
+import { quoteOk } from "../../lib/contracts/quote";
 import type { SnapshotRelease } from "../../lib/contracts/generated/types";
 import type { TurnView } from "../../lib/trial/trialReducer";
 
@@ -20,8 +21,10 @@ interface TranscriptProps {
   readonly focusTurn: { readonly turn: number; readonly nonce: number } | null;
 }
 
+/** Marks the quoted span only when the shared predicate accepts the quote and it appears verbatim; a quote that
+ * matches only after normalization leaves the whole turn highlighted, unmarked. */
 function Answer({ text, quote }: { text: string; quote: string | null }) {
-  const at = quote === null ? -1 : text.indexOf(quote);
+  const at = quote === null || !quoteOk(quote, text) ? -1 : text.indexOf(quote);
   if (quote === null || at < 0) return <>{text}</>;
   return (
     <>

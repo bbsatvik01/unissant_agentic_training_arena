@@ -4,7 +4,7 @@
  * shared quote predicate, and an unverifiable quote is shown as such. In assessment the region holds only its
  * placeholder (S6 4.3, FE-ROOM-3).
  */
-import type { CoachCard, SnapshotRelease, StoredFlag } from "../../lib/contracts/generated/types";
+import type { CoachCard, SnapshotRelease, StoredFinding, StoredFlag } from "../../lib/contracts/generated/types";
 import { contentText, quoteOk } from "../../lib/contracts/quote";
 import { EX4_EVASION_SENTENCE, EX4_TEXT } from "../../lib/copy/ex4";
 import { flagPhrase, renderFinding } from "../../lib/copy/finding";
@@ -54,10 +54,11 @@ function Chip({ turn, quote, ok, onCite }: { turn: number; quote: string; ok: bo
   );
 }
 
-function Flag({ flag, view, records, onCite }: { flag: StoredFlag; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: CoachPanelProps["onCite"] }) {
+function Flag({ flag, card, view, records, onCite }: { flag: StoredFlag; card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: CoachPanelProps["onCite"] }) {
   const turn = turnOf(flag.turn_id);
   const answer = view.turns.find((t) => t.turn_no === turn)?.answer ?? "";
-  const ok = quoteOk(flag.quote, answer);
+  // Verified only when both the shared predicate here and the server's own check agree (S6 4.5).
+  const ok = quoteOk(flag.quote, answer) && card.validation.flags[flag.flag_ref]?.citation_ok !== false;
   const record = flag.conflict_record_id === null ? undefined : records.get(flag.conflict_record_id);
   const conflictTurn = flag.conflict_turn_id === null ? null : turnOf(flag.conflict_turn_id);
   const conflictAnswer = conflictTurn === null ? "" : (view.turns.find((t) => t.turn_no === conflictTurn)?.answer ?? "");
@@ -84,9 +85,9 @@ function Flag({ flag, view, records, onCite }: { flag: StoredFlag; view: TrialVi
   );
 }
 
-function Card({ card, view, records, onCite, onUseQuestion }: { card: CoachCard; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }> } & Pick<CoachPanelProps, "onCite" | "onUseQuestion">) {
+function Card({ card, view, records, onCite, onUseQuestion, finding }: { card: CoachCard; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; finding: StoredFinding } & Pick<CoachPanelProps, "onCite" | "onUseQuestion">) {
   const c = card.card;
-  const [first, second] = renderFinding(c.finding);
+  const [first, second] = renderFinding(finding);
   const suggested = c.follow_up.record_request === null ? undefined : records.get(c.follow_up.record_request);
   return (
     <div className="card-body">
@@ -110,7 +111,7 @@ function Card({ card, view, records, onCite, onUseQuestion }: { card: CoachCard;
         <>
           <ul className="flags">
             {c.flags.map((f) => (
-              <Flag key={f.flag_ref} flag={f} view={view} records={records} onCite={onCite} />
+              <Flag key={f.flag_ref} flag={f} card={c} view={view} records={records} onCite={onCite} />
             ))}
           </ul>
           <p className="fine">{EX4_EVASION_SENTENCE}.</p>
@@ -134,7 +135,7 @@ function Card({ card, view, records, onCite, onUseQuestion }: { card: CoachCard;
           Use this question
         </button>
       </div>
-      <div className="finding-text" data-finding={c.finding.label}>
+      <div className="finding-text" data-finding={finding.label}>
         <span className="eyebrow">Running finding</span>
         <p>{first}</p>
         <p>{second}</p>
@@ -153,6 +154,7 @@ export function CoachPanel({ view, released, documents, onCite, onUseQuestion }:
   const newest = view.cards.at(-1);
   const earlier = view.cards.slice(0, -1).reverse();
   const failed = view.coachFailures.at(-1);
+  const update = view.updates.at(-1);
   return (
     <div className="coach">
       {view.coachReading === null ? null : (
@@ -168,7 +170,20 @@ export function CoachPanel({ view, released, documents, onCite, onUseQuestion }:
           <h3 id="card-title" className="card-title">
             Card for T{newest.turn_no}
           </h3>
-          <Card card={newest} view={view} records={records} onCite={onCite} onUseQuestion={onUseQuestion} />
+          {/* The newest card shows the reducer's running finding: a later deep update supersedes the card's (S6 4.5). */}
+          <Card card={newest} view={view} records={records} onCite={onCite} onUseQuestion={onUseQuestion} finding={view.runningFinding ?? newest.card.finding} />
+          {update === undefined || update.update.evidence_coverage.length === 0 ? null : (
+            <div className="follow-up">
+              <span className="eyebrow">Evidence coverage, as of T{update.turn_no}</span>
+              <ul>
+                {update.update.evidence_coverage.map((e) => (
+                  <li key={e.record_id}>
+                    <span className="mono">{e.record_id}</span> {words(e.status)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </article>
       )}
       {earlier.length === 0 ? null : (
@@ -180,7 +195,7 @@ export function CoachPanel({ view, released, documents, onCite, onUseQuestion }:
                 T{card.turn_no}: {CATEGORY[card.card.answer_category] ?? card.card.answer_category}
                 {card.card.flags.length === 0 ? "" : `, ${String(card.card.flags.length)} flag${card.card.flags.length === 1 ? "" : "s"}`}
               </summary>
-              <Card card={card} view={view} records={records} onCite={onCite} onUseQuestion={onUseQuestion} />
+              <Card card={card} view={view} records={records} onCite={onCite} onUseQuestion={onUseQuestion} finding={card.card.finding} />
             </details>
           ))}
         </div>
