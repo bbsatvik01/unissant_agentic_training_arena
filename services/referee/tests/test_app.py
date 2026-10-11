@@ -25,6 +25,7 @@ from arena_core.referee.pipeline import ValidityDecision
 from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_referee import db
 from arena_referee.app import create_app
+from arena_referee.debrief import SessionNotEndedError
 from arena_referee.routes import debrief as debrief_route
 from arena_referee.routes import score as score_route
 from arena_referee.scoring import ScoreResult
@@ -426,6 +427,20 @@ def test_debrief_route_maps_a_lookup_error_to_404(tmp_path: Path, monkeypatch: p
     monkeypatch.setattr(debrief_route, "publish_session_debrief", fake_publish)
     resp = run(_post(app, f"/internal/sessions/{uuid4()}/debrief", headers=_caller_headers()))
     assert resp.status_code == NOT_FOUND
+
+
+CONFLICT = 409
+
+
+def test_debrief_route_maps_a_session_not_ended_error_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_publish(_deps: object, _ctx: object, session_id: str) -> dict[str, Any]:
+        msg = f"session {session_id}'s trial has status 'running', not yet ended"
+        raise SessionNotEndedError(msg)
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(debrief_route, "publish_session_debrief", fake_publish)
+    resp = run(_post(app, f"/internal/sessions/{uuid4()}/debrief", headers=_caller_headers()))
+    assert resp.status_code == CONFLICT
 
 
 def _fake_subject_report() -> RefereeSubjectReport:
