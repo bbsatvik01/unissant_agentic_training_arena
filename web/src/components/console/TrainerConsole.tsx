@@ -129,7 +129,7 @@ function CaseFileView({ file }: { file: CaseFile }) {
       </p>
       <p className="fine">{file.investigation_objective}</p>
       <p className="fine">
-        {c.subject.name}, {c.subject.position}, {c.subject.unit}. {c.setting}. {c.purpose_statement}
+        {c.subject.name}, {c.subject.position}, {c.subject.unit}. {/[.!?]$/.test(c.setting) ? c.setting : `${c.setting}.`} {c.purpose_statement}
       </p>
       <ul className="timeline">
         {file.known_timeline.map((e, i) => (
@@ -358,6 +358,7 @@ function LabForm({ item, draft, onEdit }: { item: LabelItem; draft: Extract<Revi
           ))}
         </ul>
         <p className="fine">Permitted behaviors: {item.permitted_behaviors.length === 0 ? "none" : item.permitted_behaviors.join(", ")}</p>
+        <h3 className="eyebrow">Canonical facts</h3>
         <ul>
           {item.canonical_facts.map((f) => (
             <li key={f.id}>
