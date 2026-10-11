@@ -18,9 +18,13 @@
 #      touches no budget state and nothing it does depends on a ceiling being applied.
 #                                     pytest services/api/tests/it_api.py services/subject/tests/it_answer.py
 #   6. the spend-guard integration suite (S5 4.10, 3.6; WP-05): the agent port and the guard client against the real
-#      migrated functions, then the budget-plan apply and check (D-012). It runs last because it applies ceilings,
-#      reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
+#      migrated functions, then the budget-plan apply and check (D-012). It runs last on this server because it
+#      applies ceilings, reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
 #                                                    pytest packages/core/tests/db/it_spend_guard.py
+#   7. tournament path (WP-17): a third, fresh Supabase Postgres 17 container, migrated the same way as path 2, then
+#      the tournament job suite on it. Its own server because the suite commits a ceiling and spend rows that the
+#      spend-guard suite (which expects the migrated $0 ceiling) must never see.
+#                                 run_pgtap.sh --in-place <db-uri>; pytest services/tournament/tests/it_tournament.py
 # Every step runs; the script exits 1 if any failed. Needs docker, psql, python3 and uv.
 set -euo pipefail
 # The URIs below fully name each disposable server: no libpq environment variable may redirect them (PGHOSTADDR
@@ -49,7 +53,7 @@ docker version --format '{{.Server.Version}}' >/dev/null 2>&1 \
 PLAIN_IMAGE="arena-postgres-pgtap:$("$PYTHON" -I -c \
   'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:16])' "$PLAIN_DOCKERFILE")"
 RUN_ID="$$-$("$PYTHON" -I -c 'import secrets; print(secrets.token_hex(4))')"
-NAMES=("arena-db-test-plain-$RUN_ID" "arena-db-test-supabase-$RUN_ID")
+NAMES=("arena-db-test-plain-$RUN_ID" "arena-db-test-supabase-$RUN_ID" "arena-db-test-tournament-$RUN_ID")
 PGPASSWORD="$("$PYTHON" -I -c 'import secrets; print(secrets.token_hex(24))')"   # throwaway, these containers only
 export PGPASSWORD
 remove() { docker rm -f -v "$1" >/dev/null 2>&1 || true; }
@@ -156,11 +160,17 @@ subject_integration() {
     -p no:cacheprovider -W error services/api/tests/it_api.py services/subject/tests/it_answer.py)
 }
 
-tournament_integration() {
-  supabase_up || return 1
-  local dsn="$ADMIN/postgres"
-  (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
-    -p no:cacheprovider -W error services/tournament/tests/it_tournament.py)
+# Runs last: `start` replaces ADMIN, which the steps on the Supabase path's server read.
+tournament_path() {
+  local rc=0
+  start "${NAMES[2]}" "$SUPABASE_IMAGE" || rc=1
+  if [[ $rc -eq 0 ]]; then "$HERE/run_pgtap.sh" --in-place "$ADMIN/postgres" || rc=1; fi
+  if [[ $rc -eq 0 ]]; then
+    (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$ADMIN/postgres" uv run --locked pytest -c pyproject.toml --rootdir . \
+      -p no:cacheprovider -W error services/tournament/tests/it_tournament.py) || rc=1
+  fi
+  remove "${NAMES[2]}"
+  return $rc
 }
 
 spend_guard_integration() {
@@ -176,10 +186,10 @@ step "cost parity of the migrated seeds with cost_model.py (WI-S4-08)" cost_pari
 step "capability fixture equals the one regenerated from the migrated database" regenerate_capability_fixture
 step "api and subject integration suites on the migrated database (the interview path, turn_context, record_subject_turn)" \
   subject_integration
-step "tournament job integration suite on the migrated database (roster through close, a real arena-referee subprocess, WP-17)" \
-  tournament_integration
 step "spend-guard integration suite on the migrated database (agent port, guard client, budget plan)" \
   spend_guard_integration
+step "tournament job integration suite on its own freshly migrated Supabase container (roster through close, a real arena-referee subprocess, WP-17)" \
+  tournament_path
 cleanup
 
 if [[ $fail -ne 0 ]]; then
