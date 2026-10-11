@@ -17,7 +17,7 @@
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
-| Supabase 0600-1100 | background MCP apply declined by permission prompt at 0600 (nothing applied; stored format = file minus trailing newline). Asked owner for .env.owner (session-pooler DSN) to apply with psql -1 -v ON_ERROR_STOP=1 | apply, record in schema_migrations, set global ceiling $74 (D-022), roles, advisors |
+| Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role LOGIN/passwords blocked by the secret-write classifier: owner runs scratchpad roles.py or grants permission | role logins + .env.local.{public,subject,referee}; advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
 - Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).
 
