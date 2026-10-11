@@ -7,6 +7,9 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ArenaApi, StartedSession } from "../../lib/api/arena";
+import { ApiError } from "../../lib/api/client";
+import type { TurnSubmit } from "../../lib/contracts/generated/types";
+import { snapshot } from "../../test/trial-log";
 import { useLiveSession } from "./useLiveSession";
 
 afterEach(() => {
@@ -101,5 +104,60 @@ describe("useLiveSession", () => {
     expect(trialSnapshot.mock.calls.length).toBeGreaterThan(reads);
     expect(trialSnapshot.mock.calls.at(-1)?.[0]).toBe(STARTED.trial_id);
     expect(result.current.session).toEqual(STARTED);
+  });
+
+  it("offers to send a question again after a server-side failure, with the same request so the turn resumes", async () => {
+    const bodies: TurnSubmit[] = [];
+    let fail = true;
+    const submitTurn = vi.fn((_trial: string, body: TurnSubmit) => {
+      bodies.push(body);
+      return fail ? Promise.reject(new ApiError(503, "subject_unavailable", "/api/trials/x/turns")) : Promise.resolve({ accepted: true } as never);
+    });
+    const deps = api({
+      startSession: () => Promise.resolve(STARTED),
+      trialSnapshot: () => Promise.resolve(snapshot({ mode: "practice" })),
+      // No stream in this test: the ticket never comes.
+      mintStreamTicket: () => new Promise<string>(() => undefined),
+      submitTurn,
+    });
+    const { result } = renderHook(() => useLiveSession({ api: deps, ...OPTIONS }));
+    await act(async () => {
+      await result.current.start("practice");
+    });
+    await waitFor(() => {
+      expect(result.current.trial.view).not.toBeNull();
+    });
+    await act(async () => {
+      expect(await result.current.ask("Where were you at two?")).toBe(false);
+    });
+    expect(result.current.failedQuestion).toBe("Where were you at two?");
+    fail = false;
+    await act(async () => {
+      await result.current.retryAsk();
+    });
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(result.current.failedQuestion).toBeNull();
+  });
+
+  it("does not offer to resend a refused question", async () => {
+    const deps = api({
+      startSession: () => Promise.resolve(STARTED),
+      trialSnapshot: () => Promise.resolve(snapshot({ mode: "practice" })),
+      mintStreamTicket: () => new Promise<string>(() => undefined),
+      submitTurn: () => Promise.reject(new ApiError(422, "invalid", "/api/trials/x/turns")),
+    });
+    const { result } = renderHook(() => useLiveSession({ api: deps, ...OPTIONS }));
+    await act(async () => {
+      await result.current.start("practice");
+    });
+    await waitFor(() => {
+      expect(result.current.trial.view).not.toBeNull();
+    });
+    await act(async () => {
+      await result.current.ask("Where were you?");
+    });
+    expect(result.current.failedQuestion).toBeNull();
+    expect(result.current.error).toBe("The request was refused as invalid.");
   });
 });

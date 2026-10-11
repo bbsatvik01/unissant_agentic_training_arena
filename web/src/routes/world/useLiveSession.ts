@@ -35,6 +35,10 @@ export interface LiveControls {
   /** Attach to `resumable` again: its snapshot, then the stream or its published debrief. */
   readonly resume: () => Promise<void>;
   readonly ask: (question: string) => Promise<boolean>;
+  /** The question whose request failed on the server's side (5xx, network): the turn may be half done. */
+  readonly failedQuestion: string | null;
+  /** Send `failedQuestion` again (same request and key, so the server resumes the turn). */
+  readonly retryAsk: () => Promise<boolean>;
   readonly request: (recordId: string) => Promise<EvidenceResult | null>;
   readonly commit: (finding: InvestigatorFinding) => Promise<boolean>;
   /** Ask the referee for the debrief again after a failure. */
@@ -90,6 +94,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const [error, setError] = useState<string | null>(null);
   const [debriefFailed, setDebriefFailed] = useState(false);
   const [debriefAttempt, setDebriefAttempt] = useState(0);
+  const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
   const controller = useRef<SessionController | null>(null);
   const tracker = useRef<ArrivalTracker>(EMPTY_TRACKER);
   const trialRef = useRef<TrialState>(initialTrialState());
@@ -125,6 +130,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     setWorld(null);
     setDebrief(null);
     setError(null);
+    setFailedQuestion(null);
   }, []);
 
   // A different case ends the session in hand.
@@ -269,12 +275,19 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     setError(null);
     try {
       await c.submitTurn(question);
+      setFailedQuestion(null);
       return true;
     } catch (e) {
       setError(describeError(e));
+      // A refusal (4xx) ends the question; a server-side failure may leave the turn half done, and only sending the
+      // same request again resumes it (the controller keeps its key).
+      const serverSide = !(e instanceof ApiError) || e.status >= 500;
+      setFailedQuestion(serverSide ? question : null);
       return false;
     }
   }, []);
+
+  const retryAsk = useCallback(() => (failedQuestion === null ? Promise.resolve(false) : ask(failedQuestion)), [ask, failedQuestion]);
 
   const request = useCallback(async (recordId: string) => {
     const c = controller.current;
@@ -315,5 +328,5 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   );
 
   const connectionError = phase === "running" ? describeConnection(connection) : null;
-  return { phase, session, connection, trial, world, debrief, clock, error, start, resumable, resume, ask, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
+  return { phase, session, connection, trial, world, debrief, clock, error, start, resumable, resume, ask, failedQuestion, retryAsk, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
 }

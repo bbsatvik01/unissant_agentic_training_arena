@@ -524,6 +524,15 @@ export function WorldRoute() {
                   </button>
                 </div>
               ) : null}
+              {liveFeed && session.failedQuestion !== null ? (
+                <div className="start-row">
+                  <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
+                      void session.retryAsk();
+                    }}>
+                    Send the question again
+                  </button>
+                </div>
+              ) : null}
               {liveFeed && session.connectionError !== null ? (
                 <div className="start-row">
                   <button type="button" className="btn-secondary-sm start-alt" onClick={session.reconnect}>
