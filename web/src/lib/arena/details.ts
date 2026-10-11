@@ -35,6 +35,20 @@ function counts(v: unknown, suffix = ""): string {
   return parts.length === 0 ? "none" : parts.join(", ");
 }
 
+/** A metric on the rubric's 0-4 scale (M10 is the mean D5): "3.0 of 4, interval 2.0-4.0". */
+function score(v: unknown): string {
+  const m = metricView(v);
+  if (m === null) return "not computed";
+  if (m.point === null) return "undefined";
+  const base = `${m.point.toFixed(1)} of 4`;
+  return m.interval === null ? `${base}, interval unavailable` : `${base}, interval ${m.interval.lo.toFixed(1)}-${m.interval.hi.toFixed(1)}`;
+}
+
+/** A published `[lo, hi]` pair as an interval, or undefined. */
+function pair(v: unknown): { lo: unknown; hi: unknown } | undefined {
+  return Array.isArray(v) && v.length === 2 ? { lo: v[0] as unknown, hi: v[1] as unknown } : undefined;
+}
+
 function seconds(v: unknown): string {
   if (typeof v === "number") return `${v.toFixed(2)} s`;
   if (v === "miss") return "missed the window";
@@ -69,14 +83,16 @@ export function assistantDetails(metrics: Json): readonly DetailLine[] {
     { label: "Evasion precision, strict and broad (M06)", value: `${metric(sub("M06_evasion_precision", "strict"))}; ${metric(sub("M06_evasion_precision", "broad"))}` },
     { label: "Evasion recall, strict and broad (M07)", value: `${metric(sub("M07_evasion_recall", "strict"))}; ${metric(sub("M07_evasion_recall", "broad"))}` },
     { label: "Unsupported flags (M08)", value: `${metric(m["M08_unsupported_flag_rate"])}; by reason: ${counts(sub("M08_unsupported_flag_rate", "reasons"))}` },
-    { label: "Closure support (M10)", value: metric(m["M10_closure_support"]) },
+    { label: "Closure support, mean D5 of 4 (M10)", value: score(m["M10_closure_support"]) },
   ];
   const qq = m["M09_questioning_quality"];
   if (isRecord(qq)) lines.push({ label: "Questioning quality coverage (M09)", value: `${metric({ point: qq["coverage"] })}${qq["calibrated"] === false ? ", not calibrated" : ""}${qq["provisional"] === true ? ", provisional" : ""}` });
   const lat = m["M16_coaching_latency"];
   if (isRecord(lat)) {
-    const iv = Array.isArray(lat["interval_p95"]) && lat["interval_p95"].length === 2 ? `, interval ${seconds(lat["interval_p95"][0])}-${seconds(lat["interval_p95"][1])}` : ", interval unavailable";
-    lines.push({ label: "Coaching latency p95 (M16)", value: `${seconds(lat["p95_s"])}${iv}; within 3 s: ${metric({ point: lat["share_within_3s"] })}; measured ${String(lat["measured"])}, unmeasured ${String(lat["unmeasured"])}` });
+    const p95 = pair(lat["interval_p95"]);
+    const iv = p95 === undefined ? ", interval unavailable" : `, interval ${seconds(p95.lo)}-${seconds(p95.hi)}`;
+    const share = metric({ point: lat["share_within_3s"], interval: pair(lat["interval_share"]) });
+    lines.push({ label: "Coaching latency p95 (M16)", value: `${seconds(lat["p95_s"])}${iv}; within 3 s: ${share}; measured ${String(lat["measured"])}, unmeasured ${String(lat["unmeasured"])}` });
   }
   const cost = m["M22_cost"];
   if (isRecord(cost)) lines.push({ label: "Cost per trial (M22)", value: `${money(cost["mean_per_included"])} per included, ${money(cost["mean_per_planned"])} per planned; total ${money(cost["total"])}` });

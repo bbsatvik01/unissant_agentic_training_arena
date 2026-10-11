@@ -4,8 +4,9 @@
  * avatars' visemes follow the same line on the session clock. A line is spoken only when it starts live (within
  * half a second of its start on the clock), so scrubbing into the middle of an answer stays silent; a rewind (Replay,
  * a seek back) forgets what was spoken, so the lines are voiced again. The voice reports its start, word boundaries
- * and end to `speechSync`, which the avatars' mouths follow, and its rate is fitted to the line's speaking time
- * (`fitRate`). Sound stops when muted, when playback is paused or runs faster than 1x, and on leaving the room.
+ * and end to `speechSync`, which the avatars' mouths and the world's speaking windows follow, and its rate is fitted
+ * to the line's speaking time (`fitRate`). A new line supersedes the dialogue being spoken but waits for the coach's
+ * suggestion to finish (its mouth closed until its voice starts). Sound stops when muted, when playback is paused or runs faster than 1x, and on leaving the room.
  * Gemini TTS or Live can replace the synthesis behind the same calls (WP-22).
  */
 import { useEffect, useRef } from "react";
@@ -36,7 +37,16 @@ function synth(): SpeechSynthesis | null {
   return typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
 }
 
-function speak(persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
+/** What has been voiced: line keys, coach cards, the clock at the last look, and the utterance speaking now. */
+interface Memory {
+  spoken: Set<string>;
+  cards: Set<number>;
+  lastClock: number;
+  speaking: { readonly utterance: SpeechSynthesisUtterance; readonly kind: "dialogue" | "coach" } | null;
+}
+
+/** Speak `text`; a dialogue line reports its voice to `speechSync` (queued until it starts, so its mouth waits). */
+function speak(memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
   const s = synth();
   if (s === null) return;
   const u = new SpeechSynthesisUtterance(text);
@@ -46,35 +56,35 @@ function speak(persona: Persona, text: string, volume: number, line: SpokenLine 
   u.pitch = pitch;
   u.rate = line === null ? rate : fitRate(text, rate);
   u.volume = volume;
-  if (line !== null) {
-    u.onstart = () => {
-      speechSync.at(line, 0, clock.current);
-    };
-    u.onboundary = (e) => {
-      speechSync.at(line, e.charIndex, clock.current);
-    };
-    u.onend = () => {
-      speechSync.end(line, clock.current);
-    };
-    u.onerror = () => {
-      speechSync.end(line, clock.current);
-    };
-  }
+  const epoch = speechSync.epoch();
+  const done = () => {
+    if (memory.speaking?.utterance === u) memory.speaking = null;
+    if (line !== null) speechSync.end(line, epoch);
+  };
+  u.onstart = () => {
+    memory.speaking = { utterance: u, kind };
+    if (line !== null) speechSync.at(line, 0, clock.current, epoch);
+  };
+  u.onboundary = (e) => {
+    if (line !== null) speechSync.at(line, e.charIndex, clock.current, epoch);
+  };
+  u.onend = done;
+  u.onerror = done;
+  if (line !== null) speechSync.queue(line, clock.current, epoch);
   s.speak(u);
 }
 
-/** What has been voiced: line keys, coach cards, and the clock at the last look. */
-interface Memory {
-  spoken: Set<string>;
-  cards: Set<number>;
-  lastClock: number;
+/** Stop every voice; lines go back to their text cadence. */
+function silence(memory: Memory): void {
+  memory.speaking = null;
+  speechSync.clear();
+  synth()?.cancel();
 }
 
 function forget(memory: Memory): void {
   memory.spoken = new Set();
   memory.cards = new Set();
-  speechSync.clear();
-  synth()?.cancel();
+  silence(memory);
 }
 
 /** Forget what was voiced when the clock has gone back since the last look (Replay, a seek back). */
@@ -84,22 +94,22 @@ function noteClock(memory: Memory, now: number): void {
 }
 
 export function useVoice({ world, view, subjectName, clock, active, scope }: Options): void {
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0 });
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null });
   useEffect(() => {
     forget(memory.current);
     memory.current.lastClock = 0;
   }, [scope]);
 
   useEffect(() => {
-    if (!active) synth()?.cancel();
+    if (!active) silence(memory.current);
   }, [active]);
 
-  useEffect(
-    () => () => {
-      synth()?.cancel();
-    },
-    [],
-  );
+  useEffect(() => {
+    const m = memory.current;
+    return () => {
+      silence(m);
+    };
+  }, []);
 
   const subject = world?.subject.speech ?? null;
   const question = world?.investigator.speech ?? null;
@@ -116,8 +126,9 @@ export function useVoice({ world, view, subjectName, clock, active, scope }: Opt
       if (m.spoken.has(key)) continue;
       m.spoken.add(key);
       if (clock.current - line.startedAt > START_WINDOW_MS) continue;
-      synth()?.cancel();
-      speak(who === "s" ? subjectPersona(subjectName) : INVESTIGATOR, line.text, 1, line, clock);
+      // A newer line supersedes the dialogue being spoken; the coach's suggestion is never cut, the line waits.
+      if (m.speaking?.kind !== "coach") synth()?.cancel();
+      speak(m, "dialogue", who === "s" ? subjectPersona(subjectName) : INVESTIGATOR, line.text, 1, line, clock);
     }
   }, [active, subject, question, subjectName, clock]);
 
@@ -129,6 +140,6 @@ export function useVoice({ world, view, subjectName, clock, active, scope }: Opt
     noteClock(m, clock.current);
     if (!active || !handing || newest === null || m.cards.has(newest.turn_no)) return;
     m.cards.add(newest.turn_no);
-    speak(COACH, `Suggested follow-up: ${newest.card.follow_up.question}`, 0.8, null, clock);
+    speak(m, "coach", COACH, `Suggested follow-up: ${newest.card.follow_up.question}`, 0.8, null, clock);
   }, [newest, handing, active, clock]);
 }

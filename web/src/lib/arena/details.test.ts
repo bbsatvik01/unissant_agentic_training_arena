@@ -30,7 +30,13 @@ describe("leaderboard detail (S6 4.10 item 5, subject board)", () => {
     expect(value(lines, "Cost per trial (M22)")).toMatch(/^\$[\d.]+ per included, \$[\d.]+ per planned; total \$[\d.]+$/);
     expect(value(lines, "Execution states, truthful role (M23)")).toBe("completed 9");
     expect(value(lines, "Unresolved, deceptive role (M04)")).toBe("0%, interval 0%-20%");
-    expect(value(assistantDetails({}), "Closure support (M10)")).toBe("not computed");
+    expect(value(assistantDetails({}), "Closure support, mean D5 of 4 (M10)")).toBe("not computed");
+    // M10 is the mean D5 on the rubric's 0-4 scale, never a percentage.
+    expect(value(assistantDetails({ M10_closure_support: { point: { num: 3, den: 1, value: 3 }, interval: { lo: 2, hi: 4, status: "ok" } } }), "Closure support, mean D5 of 4 (M10)")).toBe("3.0 of 4, interval 2.0-4.0");
+    expect(value(assistantDetails({ M10_closure_support: { point: null, interval: { lo: null, hi: null } } }), "Closure support, mean D5 of 4 (M10)")).toBe("undefined");
+    // The share within 3 s carries its own published interval.
+    const latency = { M16_coaching_latency: { share_within_3s: { num: 9, den: 10, value: 0.9 }, p95_s: 2, interval_share: [0.8, 0.97], interval_p95: null, measured: 10, unmeasured: 0 } };
+    expect(value(assistantDetails(latency), "Coaching latency p95 (M16)")).toBe("2.00 s, interval unavailable; within 3 s: 90%, interval 80%-97%; measured 10, unmeasured 0");
     expect(value(assistantDetails({ M22_cost: { total: null, mean_per_included: null, mean_per_planned: null } }), "Cost per trial (M22)")).toBe("undefined per included, undefined per planned; total undefined");
   });
 

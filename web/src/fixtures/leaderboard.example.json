@@ -243,13 +243,13 @@
      },
      "M10_closure_support": {
       "point": {
-       "num": 7,
+       "num": 31,
        "den": 9,
-       "value": 0.7777777777777778
+       "value": 3.4444444444444446
       },
       "interval": {
-       "lo": 0.5,
-       "hi": 1.0,
+       "lo": 2.9,
+       "hi": 3.9,
        "status": "ok",
        "pool": "families"
       }
@@ -515,13 +515,13 @@
      },
      "M10_closure_support": {
       "point": {
-       "num": 7,
+       "num": 31,
        "den": 9,
-       "value": 0.7777777777777778
+       "value": 3.4444444444444446
       },
       "interval": {
-       "lo": 0.5,
-       "hi": 1.0,
+       "lo": 2.9,
+       "hi": 3.9,
        "status": "ok",
        "pool": "families"
       }
@@ -785,13 +785,13 @@
      },
      "M10_closure_support": {
       "point": {
-       "num": 7,
+       "num": 31,
        "den": 9,
-       "value": 0.7777777777777778
+       "value": 3.4444444444444446
       },
       "interval": {
-       "lo": 0.5,
-       "hi": 1.0,
+       "lo": 2.9,
+       "hi": 3.9,
        "status": "ok",
        "pool": "families"
       }

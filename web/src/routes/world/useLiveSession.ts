@@ -14,6 +14,7 @@ import { createSessionController, type ConnectionState, type SessionController }
 import { initialTrialState, type TrialState } from "../../lib/trial/trialReducer";
 import { EMPTY_TRACKER, trackArrivals, type ArrivalTracker } from "../../lib/world/live";
 import { recallSession, rememberSession } from "../../lib/world/sessionMemory";
+import { speechSync } from "../../lib/voice/speechSync";
 import { deriveWorld, type WorldState } from "../../lib/world/worldState";
 
 export type LivePhase = "idle" | "starting" | "running" | "error";
@@ -225,6 +226,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
         investigatorActive: now - lastTyped.current < TYPING_MS,
         reducedMotion: o.reducedMotion,
         paused: o.paused,
+        voice: speechSync.activeFor,
       });
       const key = JSON.stringify(w);
       if (key !== worldKey.current) {

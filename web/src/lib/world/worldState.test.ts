@@ -104,6 +104,19 @@ describe("deriveWorld", () => {
     expect(at(a + speechDurationMs(text) + 10).subject.speech).toBe(null);
   });
 
+  it("keeps a voiced answer on stage while its voice speaks, ends it with its voice, and leaves an unvoiced one to the cadence", () => {
+    const a = when("subject.answer", turn(2));
+    const text = at(a + 100).subject.speech?.text ?? "";
+    const past = a + speechDurationMs(text) + 10;
+    // Still before the next turn starts (a newer turn ends the line whatever the voice does).
+    expect(when("question.accepted", turn(3))).toBeGreaterThan(past);
+    expect(at(past, { voice: () => true }).subject.speech).toMatchObject({ turn: 2, startedAt: a });
+    expect(at(past, { voice: () => true }).subject.pose).toBe("speaking");
+    expect(at(a + 100, { voice: () => false }).subject.speech).toBe(null);
+    expect(at(past, { voice: () => null }).subject.speech).toBe(null);
+    expect(at(a + 100, { voice: () => null }).subject.speech?.turn).toBe(2);
+  });
+
   it("puts the observation room to work between the answer and the card, then hands the card over", () => {
     const working = when("coach.working", turn(3));
     const card = when("coach.card", turn(3));
