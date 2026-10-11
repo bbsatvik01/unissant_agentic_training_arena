@@ -11,7 +11,8 @@
 | WP-11 guard | MERGED (066e044); py-check green on main | done |
 | WP-05 port | MERGED (8ab36a8) | done |
 | WP-12 subject | MERGED | pilot via WP-13 (D-024) |
-| WP-14 referee (a82783ff6d2a01d89, Sonnet, wt-wp14-referee, based on feat/wp05-port) | building, fake model | review, merge |
+| WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
+| WP-13 orchestrator (ad05fb8f3c14649dc, Opus, wt-wp13-orch) | building: routes, SSE, D-021 export-run, D-024 actor, local launcher | review, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |

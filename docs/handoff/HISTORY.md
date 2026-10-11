@@ -63,3 +63,4 @@
 - 8ab36a8 merge WP-05 agent port + spend-guard client (WP-10 helpers, D-019 wire bytes, typed DB errors; cold Codex major fixed e7cc6b6)
 - d9fb1f1 merge WP-07 observability (4 self Codex rounds; gates green on merged tree)
 - fdf66e7 merge WP-12 subject service (6 self Codex rounds; py-check green on merged tree)
+- 4e3aefa merge WP-14 referee + debrief + review queue (Codex CORRECT r3; py-check green)
