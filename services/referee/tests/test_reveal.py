@@ -100,6 +100,39 @@ def trial_fact_row() -> tuple[Any, ...]:
     )
 
 
+@pytest.fixture
+def scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every trial has stored judgments (scoring finished), each scoring a plain `TrialScore`."""
+
+    async def fake_fetch(_connect: object, _trial_id: str) -> object:
+        return object()
+
+    def fake_score(family_id: str, _stored: object) -> TrialScore:
+        return TrialScore(family_id=family_id)
+
+    monkeypatch.setattr(db, "fetch_stored_trial_judgments", fake_fetch)
+    monkeypatch.setattr(reveal, "trial_score", fake_score)
+
+
+def test_reveal_waits_for_scoring_and_never_seals_with_an_unscored_trial() -> None:
+    # Codex r5 #2: a board published before R2 finished could never be repaired once the manifest is sealed.
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.seal_corrected_manifest": [
+                ({"manifest_id": MANIFEST_2, "manifest_sha256": "b" * 64, "version": 2},)
+            ],
+            "ledger.planned_execution": [trial_fact_row()],
+        }
+    )
+    with pytest.raises(reveal.ScoringIncompleteError):
+        run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    with pytest.raises(reveal.ScoringIncompleteError):
+        run(reveal.seal_correction_and_publish(connector(conn), TOURNAMENT, ctx()))
+    assert not any("ledger.reveal" in q or "seal_corrected_manifest" in q for q, _ in conn.executed)
+
+
+@pytest.mark.usefixtures("scored")
 def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> None:
     conn = FakeConn(
         {
@@ -116,6 +149,7 @@ def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> N
     assert insert[4].obj["binding"]["manifest_version"] == 1
 
 
+@pytest.mark.usefixtures("scored")
 def test_seal_correction_and_publish_skips_the_board_on_rv18s_unchanged_no_op() -> None:
     # No trial line changed: `ledger.seal_corrected_manifest` returns v1 itself (RV-18), never a new row.
     # Publishing a "corrected" board bound to v1 would trip `arena.tg_leaderboard_label` (AR020) -- the fix
@@ -133,6 +167,7 @@ def test_seal_correction_and_publish_skips_the_board_on_rv18s_unchanged_no_op() 
     assert not any("arena.leaderboards" in q for q, _ in conn.executed)
 
 
+@pytest.mark.usefixtures("scored")
 def test_seal_correction_and_publish_writes_a_corrected_leaderboard_on_the_new_version() -> None:
     conn = FakeConn(
         {

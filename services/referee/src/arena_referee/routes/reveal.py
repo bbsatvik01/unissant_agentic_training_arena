@@ -24,7 +24,13 @@ from arena_referee.isolation import (
     fetch_fresh_isolation_result,
     open_hidden_tournament,
 )
-from arena_referee.reveal import PublishConfig, PublishContext, reveal_and_publish, seal_correction_and_publish
+from arena_referee.reveal import (
+    PublishConfig,
+    PublishContext,
+    ScoringIncompleteError,
+    reveal_and_publish,
+    seal_correction_and_publish,
+)
 from arena_referee.routes.admin import isolation_gate_request
 
 router = APIRouter(prefix="/admin/tournaments")
@@ -73,6 +79,8 @@ def _as_json(result: db.RevealResult) -> dict[str, object]:
 async def _run(coro: Coroutine[Any, Any, db.RevealResult], action: str) -> dict[str, object]:
     try:
         result = await coro
+    except ScoringIncompleteError as exc:
+        raise HTTPException(status_code=409, detail=f"{action} blocked: {exc}") from exc
     except psycopg.Error as exc:
         if exc.sqlstate in _BLOCKED_SQLSTATES:
             raise HTTPException(status_code=409, detail=f"{action} blocked: {exc}") from exc
