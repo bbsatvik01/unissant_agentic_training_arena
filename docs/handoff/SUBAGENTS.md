@@ -43,3 +43,5 @@
 - ac2a4c78d321feac9 UI lead stage 1 (Opus): 3D world + overlay + playback (D-020, D-021). wt-ui-world feat/ui-world. Gate: pnpm check, screenshots, one Codex round.
 - ad9db92b288b7a8c1 Supabase migrations 0600-1100 via MCP (Sonnet), byte-exact check, advisors. No repo edits.
 - a80b942018d564e81 WP-18b follow-up (2 rare-path fixes), fix/wp18b-followup. adb48fe0d3cc9a911 WP-11 rubric lexicon hash fix.
+- a810ab185aeaef4e8 WP-12 subject service (Sonnet), wt-wp12-subject feat/wp12-subject (base feat/wp05-port). Fake model; pilot script left for owner.
+- a82783ff6d2a01d89 WP-14 referee + debrief + review queue (Sonnet), wt-wp14-referee feat/wp14-referee (base feat/wp05-port).
