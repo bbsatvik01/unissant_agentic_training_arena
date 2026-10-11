@@ -1,16 +1,19 @@
 """The referee's real database IO (S4 4.1-4.4, 4.2 grants already in place: `arena_referee` reads every
-table of `arena`, `subject`, `sealed`, `training` and `ops`, and holds the two write functions WP-14 adds).
-One short-lived connection per operation (`Connector`, S5 6.4); the pooled connector lands with WP-13.
+table of `arena`, `subject`, `sealed`, `training` and `ops`, and holds the write functions WP-14 and WP-16
+add -- `ledger.reveal`, `ledger.seal_corrected_manifest`, the `arena.isolation_checks` insert and the
+`arena.leaderboards` insert). One short-lived connection per operation (`Connector`, S5 6.4); the pooled
+connector lands with WP-13.
 
-This is the one module that touches `psycopg`; everything above it (`mapping`, `scoring`, `debrief`) is pure
-and takes plain rows. Deliberately thin: each function is close to its SQL, so a reviewer can check it
-against the schema directly.
+This is the one module that touches `psycopg`; everything above it (`mapping`, `scoring`, `debrief`,
+`isolation`, `leaderboard`) is pure and takes plain rows. Deliberately thin: each function is close to its
+SQL, so a reviewer can check it against the schema directly.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -21,6 +24,9 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
+from arena_core.scoring.inclusion import Exec, RevealBlockedError
+from arena_core.scoring.kpi import LatencyRow
+from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
 from arena_referee.mapping import TrialData
@@ -122,6 +128,13 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         cards = [r[0] for r in await cur.fetchall()]
 
     async with connect() as conn:
+        cur = await conn.execute(
+            "select turn_no from arena.trial_events where trial_id = %s and kind = 'coach_unavailable' order by seq",
+            (trial_uuid,),
+        )
+        unavailable_turns = [r[0] for r in await cur.fetchall()]
+
+    async with connect() as conn:
         cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (trial_uuid,))
         finding_row = await cur.fetchone()
     final_finding = finding_row[0] if finding_row else None
@@ -136,6 +149,7 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         transcript=transcript,
         cards=cards,
         final_finding=final_finding,
+        unavailable_turns=unavailable_turns,
     )
 
 
@@ -415,3 +429,287 @@ async def submit_review_item(
         msg = "submit_review_item returned no row"
         raise LookupError(msg)
     return cast("Mapping[str, Any]", row[0])
+
+
+# ---------------------------------------------------------------- reveal and corrections (S3 4.4, S4 7.5, WP-16)
+
+
+@dataclass(frozen=True)
+class RevealResult:
+    manifest_id: str
+    manifest_sha256: str
+    manifest_version: int
+
+
+async def reveal_tournament(connect: Connector, tournament_id: str) -> RevealResult:
+    """`ledger.reveal` (S4 6): manifest version 1, published nonces, status `revealed`. A second call is the
+    spec's own no-op (RV-15): the same manifest id and hash come back, never a new row."""
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute("select ledger.reveal(%s)", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    result = cast("Mapping[str, Any]", row[0] if row else {})
+    return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), 1)
+
+
+async def seal_corrected_manifest(connect: Connector, tournament_id: str) -> RevealResult:
+    """`ledger.seal_corrected_manifest` (S4 6): version n + 1 with `supersedes_id`; v1 never changes. No
+    trial line changed (RV-18) returns the latest version with no new row -- the caller never republishes a
+    "corrected" board for a manifest id a board already exists for (the table's own `unique(manifest_id,
+    board)`, S4 4.2)."""
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute("select ledger.seal_corrected_manifest(%s)", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    result = cast("Mapping[str, Any]", row[0] if row else {})
+    return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), int(result["version"]))
+
+
+# ---------------------------------------------------------------- isolation gate (S3 9, WP-16)
+
+CHECK_NAMES: Mapping[str, str] = {
+    "IG-1": "ig1_privilege_tests",
+    "IG-2": "ig2_route_tests",
+    "IG-3": "ig3_assistant_context",
+    "IG-4": "ig4_hidden_text_scan",
+    "IG-5": "ig5_commitment_verification",
+    "IG-6": "ig6_canary_audit",
+}
+_IG_ITEM_BY_CHECK_NAME = {v: k for k, v in CHECK_NAMES.items()}
+
+
+@dataclass(frozen=True, kw_only=True)
+class IsolationCheckRow:
+    check_name: str
+    passed: bool
+    evidence_hash: str
+    commit_sha: str
+    candidate_id: str | None
+    report: str | None = None  # IG-4's sanitized scan report (paths, counts, hidden field paths; never text)
+
+
+async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> None:
+    """`arena.isolation_checks` (S4 4.1, S3 9): append-only, one row per item per run. `candidate_id` is set
+    only for IG-6's canary attribution (FX-I02); every other item's row carries none."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values (%s, %s, %s, %s)",
+            (
+                UUID(row.candidate_id) if row.candidate_id else None,
+                row.check_name,
+                row.passed,
+                Jsonb(
+                    {"hash": row.evidence_hash, "commit_sha": row.commit_sha}
+                    | ({"report": row.report} if row.report is not None else {})
+                ),
+            ),
+        )
+
+
+async def fetch_isolation_result(connect: Connector, commit_sha: str) -> IsolationResult:
+    """The latest row per check name for this commit (S3 9's preamble: `isolation_pass` is scoped to the
+    running code version and migration version), folded through WP-15's `isolation_result`."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select distinct on (check_name) check_name, passed, evidence ->> 'hash'"
+            " from arena.isolation_checks where evidence ->> 'commit_sha' = %s"
+            " order by check_name, created_at desc",
+            (commit_sha,),
+        )
+        rows = await cur.fetchall()
+    items: dict[str, tuple[bool, str]] = {}
+    for check_name, passed, evidence_hash in rows:
+        item = _IG_ITEM_BY_CHECK_NAME.get(check_name)
+        if item in IG_ITEMS:
+            items[item] = (bool(passed), evidence_hash or "")
+    return isolation_result(items)
+
+
+# ---------------------------------------------------------------- leaderboard trial facts (S3 5.3-5.6, WP-16)
+
+
+@dataclass(frozen=True, kw_only=True)
+class StoredTrialJudgments:
+    """One assistant trial's stored scoring inputs: its data and R1's and R2's stored judgment payloads
+    (`sealed.judgments`, keys `<trial>:referee_subject` and `<trial>:referee_assistant:...`)."""
+
+    data: TrialData
+    r1: Mapping[str, Any]
+    r2: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class TrialFacts:
+    """One planned trial's raw facts for the leaderboard (S4 `ledger.build_manifest`'s own inputs, read
+    again rather than reparsed from the sealed manifest text, so the classification label -- which the
+    manifest never carries -- joins in the same query). A replay row's `verdict` is its source corpus
+    transcript's (D2); a replay_corpus row has no `assistant_id` and is excluded from every assistant's
+    leaderboard (subject-only track). `subject_id`: the opposing candidate (M05's own per-subject count
+    matrix breakdown, S3 5.2)."""
+
+    planned_trial_id: str
+    track: str
+    assistant_id: str | None
+    subject_id: str | None
+    family_id: str
+    role: str
+    block_id: str | None
+    exec_state: Exec
+    verdict: str | None
+    classification: str | None
+    settled_cost: Decimal
+    trial_id: str | None = None  # the latest attempt (`ledger.planned_execution`); None before any attempt
+    cell: str = ""  # the planned cell two assistants share (a replay row's corpus transcript), S3 5.5's pairs
+
+
+_COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
+
+
+async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -> list[TrialFacts]:
+    """`ledger.planned_execution` (already a read-only function reveal and the trust center use, S4) gives
+    the latest attempt's state and trial id per planned trial; the adjudication lookup mirrors
+    `ledger.build_manifest`'s own (a replay row reads its source transcript's). `settled_cost` sums every
+    attempt's own coach calls' `ops.model_calls.cost_usd` receipts (S3 5.3: the only cost source, never a
+    reservation's settlement; S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) for this planned
+    trial -- not only the latest attempt's `trial_id`: an earlier `infra_failed` attempt the candidate was
+    still billed for (coach calls made before the retry) is this planned trial's own cost too (M22), never
+    dropped just because a later attempt superseded it."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select p.id, p.track, p.assistant_candidate_id, p.subject_candidate_id, f.family_code, ep.role,"
+            "       p.block_id, e.state, adj.verdict, ff.classification,"
+            "       coalesce((select sum(c.cost_usd) from ops.model_calls c"
+            "                  join ops.budget_reservations r on r.id = c.reservation_id"
+            "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
+            "                    and r.purpose = any(%s)), 0), e.trial_id,"
+            "       coalesce(p.source_planned_trial_id::text,"
+            "                p.variant_id::text || ':' || coalesce(p.subject_candidate_id::text, '')"
+            "                || ':' || p.repeat)"
+            "  from arena.planned_trials p"
+            "  join arena.case_variants v on v.id = p.variant_id"
+            "  join arena.case_families f on f.id = v.family_id"
+            "  join sealed.evaluator_packets ep on ep.variant_id = p.variant_id"
+            "  join ledger.planned_execution(%s) e on e.planned_trial_id = p.id"
+            "  left join lateral ("
+            "    select a.verdict from ledger.validity_adjudications a"
+            "     where a.trial_id = coalesce("
+            "             (select src.trial_id from ledger.planned_execution(%s) src"
+            "               where src.planned_trial_id = p.source_planned_trial_id),"
+            "             e.trial_id)"
+            "     order by a.adj_seq desc limit 1"
+            "  ) adj on true"
+            "  left join arena.final_findings ff on ff.trial_id = e.trial_id"
+            " where p.tournament_id = %s",
+            (list(_COACH_PURPOSES), UUID(tournament_id), UUID(tournament_id), UUID(tournament_id)),
+        )
+        rows = await cur.fetchall()
+    unfinished = [str(r[0]) for r in rows if r[7] is None]
+    if unfinished:
+        # S4 6: reveal follows every planned trial's execution record; never a 500 on an unfinished roster.
+        msg = f"{len(unfinished)} planned trial(s) have no execution record yet, e.g. {sorted(unfinished)[:3]}"
+        raise RevealBlockedError(msg)
+    return [
+        TrialFacts(
+            planned_trial_id=str(r[0]),
+            track=r[1],
+            assistant_id=str(r[2]) if r[2] else None,
+            subject_id=str(r[3]) if r[3] else None,
+            family_id=r[4],
+            role=r[5],
+            block_id=str(r[6]) if r[6] else None,
+            exec_state=Exec(r[7]),
+            verdict=r[8],
+            classification=r[9],
+            settled_cost=Decimal(r[10]),
+            trial_id=str(r[11]) if r[11] else None,
+            cell=str(r[12]),
+        )
+        for r in rows
+    ]
+
+
+async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> StoredTrialJudgments | None:
+    """One trial's stored R1 and R2 judgments (`arena_referee.scoring`'s stage keys) and its data, or None when
+    the trial was never scored. A replay trial's R1 is its source corpus transcript's."""
+    async with connect() as conn:
+        cur = await conn.execute("select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
+        row = await cur.fetchone()
+    # A replay trial runs R2 only; its R1 is the source corpus transcript's (S3 1.3.2, D2), on the same turns.
+    r1_trial = str(row[0]) if row is not None and row[0] is not None else trial_id
+    r2 = await get_judgment(connect, f"{trial_id}:referee_assistant:flag_support")
+    r1 = await get_judgment(connect, f"{r1_trial}:referee_subject")
+    if r1 is None or r2 is None:
+        return None
+    return StoredTrialJudgments(data=await fetch_trial_data(connect, trial_id), r1=r1, r2=r2)
+
+
+async def fetch_latency_rows(connect: Connector, trial_ids: list[str]) -> list[LatencyRow]:
+    """`ops.v_latency_report` (S4, C-28) for these trials: the projection S3 6.4 and M16 read."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select trial_id::text, turn_no, population, report_outcome, subject_commit_at, client_ack_at,"
+            "       card_validated_server_at, instance_cold"
+            "  from ops.v_latency_report where trial_id = any(%s)",
+            ([UUID(t) for t in trial_ids],),
+        )
+        rows = await cur.fetchall()
+    return [LatencyRow(r[0], r[1], r[2], r[3], r[4], r[5], r[6], bool(r[7])) for r in rows]
+
+
+@dataclass(frozen=True, kw_only=True)
+class LeaderboardRow:
+    tournament_id: str
+    manifest_id: str
+    board: str
+    label: str
+    body: Mapping[str, Any]
+
+
+async def write_leaderboard(connect: Connector, row: LeaderboardRow) -> None:
+    """`arena.leaderboards` (S4 4.1-4.2): `original` only on manifest v1, `corrected` only on later versions
+    (`arena.tg_leaderboard_label`); append-only, and idempotent on `unique(manifest_id, board)` (RV-18's
+    no-op correction never republishes a second row for a manifest id that already has one)."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "insert into arena.leaderboards (tournament_id, manifest_id, board, label, body)"
+            " values (%s, %s, %s, %s, %s) on conflict (manifest_id, board) do nothing",
+            (UUID(row.tournament_id), UUID(row.manifest_id), row.board, row.label, Jsonb(dict(row.body))),
+        )
+
+
+async def fetch_leaderboard(
+    connect: Connector, tournament_id: str, *, board: str = "assistant", label: str = "original"
+) -> Mapping[str, Any] | None:
+    """The published body verbatim (D-020: the read side adds nothing the spec lacks), or `None` before that
+    label exists for this tournament (not yet revealed, or not yet corrected). `label='corrected'` can have
+    one row per corrected version over the tournament's life (each correction mints a new manifest id,
+    `unique(manifest_id, board)` does not collapse them): the highest manifest version wins, never whichever
+    row the server happens to return first."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select l.body from arena.leaderboards l join ledger.inclusion_manifests m on m.id = l.manifest_id"
+            " where l.tournament_id = %s and l.board = %s and l.label = %s"
+            " order by m.version desc limit 1",
+            (UUID(tournament_id), board, label),
+        )
+        row = await cur.fetchone()
+    return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def open_tournament(connect: Connector, tournament_id: str) -> None:
+    """`arena.open_tournament` (S4): `frozen` -> `running`. For a hidden-split tournament, called only
+    after the isolation gate passes (`arena_referee.isolation.open_hidden_tournament`, S1 L9); a dev-split
+    tournament has no hidden seal to gate on and opens directly (`routes.reveal.open_route`)."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute("select arena.open_tournament(%s)", (UUID(tournament_id),))
+
+
+async def fetch_tournament_split(connect: Connector, tournament_id: str) -> str:
+    """`arena.tournaments.split` ('dev' or 'hidden'): read first by the open route -- S1 L9's isolation
+    gate (including the hidden-text scan) is specifically a hidden-tournament precondition; `dev` never
+    has a hidden seal to verify, so gating it the same way would refuse every dev open forever."""
+    async with connect() as conn:
+        cur = await conn.execute("select split from arena.tournaments where id = %s", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"no tournament {tournament_id}"
+        raise LookupError(msg)
+    return str(row[0])

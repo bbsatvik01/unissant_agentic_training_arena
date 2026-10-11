@@ -24,3 +24,13 @@ def require_rater(request: Request) -> DevIdentity:
     if identity is None or "trainer" not in identity.roles:
         raise HTTPException(status_code=403, detail="trainer role required")
     return identity
+
+
+def require_admin_role(request: Request) -> DevIdentity:
+    """The admin console's own operator surface (S4 reveal and its corrections, the isolation-gate runner,
+    WP-16): an `admin` identity specifically -- a `trainer` alone never reveals a tournament or runs the
+    isolation gate."""
+    identity: DevIdentity | None = getattr(request.app.state, "identity", None)
+    if identity is None or "admin" not in identity.roles:
+        raise HTTPException(status_code=403, detail="admin role required")
+    return identity

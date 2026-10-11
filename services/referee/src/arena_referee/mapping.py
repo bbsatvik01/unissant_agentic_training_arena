@@ -49,6 +49,9 @@ class TrialData:
     transcript: Sequence[Mapping[str, Any]]  # turn_no, question, answer, question_source
     cards: Sequence[Mapping[str, Any]]  # raw coach_card event payloads, in turn order
     final_finding: Mapping[str, Any] | None
+    # turns whose card never came (`coach_unavailable`): each is a proposal that fails every per-question test
+    # (S3 2.9), so R2's triggers and the QQ scorer both count it (one proposal population)
+    unavailable_turns: Sequence[int] = ()
 
 
 def material_fact_ids(data: TrialData) -> frozenset[str]:
@@ -148,12 +151,17 @@ def build_triggers(data: TrialData, report: RefereeSubjectReport, mode: Mode) ->
     available = available_after(data)
     questions: dict[int, Timing]
     if mode == "assistant":
-        questions = assistant_questions(sc.turn_no for sc in _stored_cards(data))
+        questions = assistant_questions(proposal_turns(data))
     else:
         questions = investigator_questions(
             t["turn_no"] for t in data.transcript if t["question_source"] == "investigator"
         )
     return derive_triggers(report, available, questions)
+
+
+def proposal_turns(data: TrialData) -> list[int]:
+    """Every assistant proposal turn (S3 2.9): each stored card's, plus each turn whose card never came."""
+    return sorted({sc.turn_no for sc in _stored_cards(data)} | set(data.unavailable_turns))
 
 
 def trial_rows(data: TrialData) -> TrialRows:

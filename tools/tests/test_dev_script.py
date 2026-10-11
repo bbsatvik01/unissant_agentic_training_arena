@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shlex
 import shutil
 import stat
@@ -68,7 +69,15 @@ def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     python.chmod(python.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("PATH", f"{bindir}:/usr/bin:/bin")
     monkeypatch.delenv("ENV_DIR", raising=False)
+    git = ("git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@example.invalid")
+    proc.run(git[0], [*git[1:], "init", "-q"])
+    proc.run(git[0], [*git[1:], "add", "-A"])
+    proc.run(git[0], [*git[1:], "commit", "-q", "-m", "fixture"])
     return root
+
+
+def head_sha(root: Path) -> str:
+    return proc.run("git", ["-C", str(root), "rev-parse", "HEAD"]).stdout.strip()
 
 
 def children(root: Path) -> list[dict[str, object]]:
@@ -194,6 +203,10 @@ def test_each_child_gets_the_selected_settings_and_only_its_own_credential(
         assert sorted(k for k in env if k.endswith("_DSN")) == [own[role]]
         assert env[own[role]].startswith(f"postgresql://{tag}-")
     assert sorted(seen) == ["api", "referee", "subject"]
+    # The referee refuses to boot without the checkout's commit (its gate evidence binds to it, S3 9).
+    sha = head_sha(repo)
+    assert re.fullmatch(r"[0-9a-f]{40}", sha)
+    assert seen["referee"]["ARENA_GIT_SHA"] == sha
 
 
 def test_export_run_reads_the_selected_settings(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
