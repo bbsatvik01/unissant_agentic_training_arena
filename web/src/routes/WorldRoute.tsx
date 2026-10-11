@@ -26,6 +26,7 @@ import type { CaseDocument, Recording } from "../lib/world/recording";
 import type { WorldState } from "../lib/world/worldState";
 import { useLiveSession } from "./world/useLiveSession";
 import { useMotionPrefs } from "./world/useMotionPrefs";
+import { useVoice } from "./world/useVoice";
 import { usePlayback } from "./world/usePlayback";
 
 const WorldCanvas = lazy(() => import("../components/world/WorldCanvas"));
@@ -77,6 +78,23 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [sound, setSound] = useState(() => {
+    try {
+      return window.localStorage.getItem("arena.sound") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleSound = () => {
+    setSound((on) => {
+      try {
+        window.localStorage.setItem("arena.sound", on ? "0" : "1");
+      } catch {
+        // Storage unavailable: the toggle still works for this page.
+      }
+      return !on;
+    });
+  };
 
   // The live arena, when its server answers: the cases offered to this user.
   useEffect(() => {
@@ -262,6 +280,15 @@ export function WorldRoute() {
   // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
   const reason = composerReason(view, mode, live);
+  // Voices speak only in the room, unmuted, live or during playback at normal speed.
+  useVoice({
+    world,
+    view,
+    subjectName,
+    clock,
+    active: sound && place === "room" && !paused && (liveFeed || (mode === "playback" && playback.playing && playback.speed === 1)),
+    scope: liveFeed ? (session.session?.session_id ?? "live") : (recording?.trial_id ?? "none"),
+  });
   const canAct = liveFeed && view !== null && (view.status === "awaiting_question" || view.status === "cap_reached");
 
   const caption = (() => {
@@ -304,6 +331,11 @@ export function WorldRoute() {
               }}
             >
               {showPet ? "Hide companion" : "Show companion"}
+            </button>
+          ) : null}
+          {place === "room" ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
+              {sound ? "Mute voices" : "Unmute voices"}
             </button>
           ) : null}
           <button type="button" className="btn-secondary-sm" aria-pressed={paused} onClick={togglePaused}>
