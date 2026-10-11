@@ -160,10 +160,27 @@ def test_release_between_turns_opens_and_releases_in_one_transaction() -> None:
     assert script.transactions == 1
 
 
-def test_release_between_turns_returns_a_finished_items_result() -> None:
-    arena, script = db([("arena.open_work_item", j({"status": "done", "result": {"released": []}}))])
+def test_release_between_turns_sends_a_finished_item_through_s4_for_its_input_check() -> None:
+    """A repeated key goes through `release_evidence` too: S4 answers the stored result for the same ids and
+    refuses different ones (AR003), never this client."""
+    done = j({"status": "done", "work_item_id": "w", "result": {"released": []}})
+
+    class Reused(psycopg.Error):
+        sqlstate = "AR003"
+
+    arena, script = db(
+        [
+            ("arena.open_work_item", done),
+            ("arena.release_evidence", j({"released": []})),
+            ("arena.open_work_item", done),
+            ("arena.release_evidence", Reused("work item reused with different input")),
+        ]
+    )
     assert run(arena.release_between_turns(TRIAL, "k" * 64, ["rec-01"])) == {"released": []}
-    assert len([q for q, _ in script.executed if "release_evidence" in q]) == 0
+    assert [p for q, p in script.executed if "release_evidence" in q] == [(TRIAL, "w", ["rec-01"])]
+    with pytest.raises(ArenaError) as exc_info:
+        run(arena.release_between_turns(TRIAL, "k" * 64, ["rec-02"]))
+    assert exc_info.value.code == "AR003"
 
 
 def test_release_between_turns_maps_errors() -> None:

@@ -280,8 +280,10 @@ class Orchestrator:
                 return None
             raise
         version = int(item["transcript_version"])
-        if item["status"] == "done":
-            return version
+        if item["status"] == "done":  # a retry: answer as the first run did (a coach_unavailable step bound nothing)
+            seq = int(item["result"]["seq"])
+            stored = await self.db.trial_events(trial, seq - 1, 1)
+            return version if stored and stored[0].kind != "coach_unavailable" else None
         work_item = UUID(item["work_item_id"])
         try:
             payload, kind = await self._model(_Step(call, trial, n, work_item, version, key))

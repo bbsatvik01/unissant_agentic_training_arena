@@ -425,3 +425,17 @@ def test_a_turn_past_its_deadline_is_504_and_its_retry_resumes() -> None:
     assert (exc_info.value.status, exc_info.value.code) == (HTTPStatus.GATEWAY_TIMEOUT, "turn_deadline")
     assert run(rig.orch.run_turn(rig.db.trial_id, "Why?", [], 0, key))["outcome"] == "recorded"
     assert rig.kinds().count("question_recorded") == 1
+
+
+def test_a_retry_after_coach_unavailable_repeats_nothing() -> None:
+    rig = Rig(script=["{}", "{}"])
+    rig.turn()
+    rig.turn()
+    rig.adapter.script.extend(["{}", "{}"])
+    key = str(uuid4())
+    rig.turn(key=key)  # turn 3: the card fails its repair, so no deep update is bound to it
+    events, requests = list(rig.kinds()), len(rig.adapter.requests)
+    run(rig.orch.run_turn(rig.db.trial_id, "What did you do in B-12?", [], 0, key))
+    assert rig.kinds() == events
+    assert len(rig.adapter.requests) == requests
+    assert "coach_deep" not in events
