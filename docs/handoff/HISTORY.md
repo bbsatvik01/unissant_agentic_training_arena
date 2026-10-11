@@ -74,3 +74,4 @@
 - f4cc538 merge fixture fix: S1-complete public packets in fixtures.psql (db-test green)
 - f7f2a37 merge UI stage 2 (live sessions, voices, debrief scene, cat, leaderboard view)
 - 86b4ea6 merge api leaderboards pass-through
+- 6588996 merge UI stage 3 (WP-20a: onboarding, KPI-1 flow, progress, consoles, replay)

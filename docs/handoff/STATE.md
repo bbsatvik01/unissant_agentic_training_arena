@@ -22,8 +22,9 @@
 | UI stage 1 | MERGED (38792cd); reads as a gray prototype vs owner bar | stage 1b running |
 | UI stage 1b | MERGED (5035094) | done |
 | UI stage 2 | MERGED (f7f2a37) | done |
-| UI stage 3 = WP-20a (ac2a4c78d321feac9, feat/ui-stage3) | onboarding + KPI-1 flow (Oct 24), progress, trainer + admin consoles, replay | review, merge |
-| api leaderboards pass-through (ad05fb8f3c14649dc) | fix/api-leaderboards | merge |
+| UI stage 3 (WP-20a) | MERGED (6588996) | done |
+| UI stage 4 (ac2a4c78d321feac9, feat/ui-stage4) | trust center, methodology, debrief export, judge demo mode | review, merge |
+| api UI routes (ad05fb8f3c14649dc, feat/api-ui-routes) | /api/progress+kpi1, EX-4 server check, /api/admin/* per S5, referee serves bundle | merge |
 | Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role logins enabled (owner-authorized, random passwords) and .env.local.{public,subject,referee} written (0600, git-ignored); each role connects | next: advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
 - Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).
