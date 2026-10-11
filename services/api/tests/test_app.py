@@ -10,6 +10,7 @@ from collections.abc import Coroutine
 from dataclasses import dataclass, field
 from decimal import Decimal
 from http import HTTPStatus
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -29,6 +30,7 @@ from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.orchestrator import SubjectOutcome, SubjectUnavailableError
 from packages.core.tests.turns.fakedb import PACKET, FakeArenaDb
 
+REPO = Path(__file__).resolve().parents[3]
 BASE = "http://127.0.0.1:8080"
 TURNS = 3  # A1's deep update falls on the third exchange
 EMAIL = "a@example.test"
@@ -415,3 +417,59 @@ def test_an_open_stream_hears_the_kill_switch() -> None:
     frames = [json.loads(line[6:]) for line in body.splitlines() if line.startswith("data: ")]
     assert frames[-1]["type"] == "notice"
     assert frames[-1]["data"]["kind"] == "paused"
+
+
+# ------------------------------------------------------------------ leaderboards (S5 5.5, S6 4.10)
+
+WP16_BOARDS = json.loads((REPO / "web" / "src" / "fixtures" / "leaderboard.wp16.json").read_text(encoding="utf-8"))
+
+
+def _published(h: Harness, status: str = "revealed") -> UUID:
+    tournament = uuid4()
+    h.db.tournaments[tournament] = status
+    for board in ("assistant", "subject"):
+        body = WP16_BOARDS[board]
+        h.db.boards.append(
+            {"tournament": tournament, "board": board, "label": "original", "manifest_version": 1, "body": body}
+        )
+    return tournament
+
+
+def test_a_revealed_board_is_passed_through_unchanged() -> None:
+    h = Harness()
+    tournament = _published(h)
+    for board in ("assistant", "subject"):
+        r = h.get(f"/api/leaderboards/{tournament}", params={"board": board})
+        assert r.status_code == HTTPStatus.OK
+        assert r.json() == WP16_BOARDS[board]
+        assert r.headers["x-arena-board-label"] == "original"
+
+
+def test_the_corrected_board_supersedes_the_original_which_stays_readable() -> None:
+    h = Harness()
+    tournament = _published(h)
+    original_binding = WP16_BOARDS["assistant"]["binding"]
+    corrected = {**WP16_BOARDS["assistant"], "binding": {**original_binding, "manifest_version": 2}}
+    h.db.boards.append(
+        {"tournament": tournament, "board": "assistant", "label": "corrected", "manifest_version": 2, "body": corrected}
+    )
+    latest = h.get(f"/api/leaderboards/{tournament}", params={"board": "assistant"})
+    assert latest.json() == corrected
+    assert latest.headers["x-arena-manifest-version"] == "2"
+    original = h.get(f"/api/leaderboards/{tournament}", params={"board": "assistant", "label": "original"})
+    assert original.json() == WP16_BOARDS["assistant"]
+
+
+def test_no_board_before_reveal_and_unknown_or_unpublished_is_404() -> None:
+    h = Harness()
+    sealed = _published(h, status="sealed")
+    early = h.get(f"/api/leaderboards/{sealed}", params={"board": "assistant"})
+    assert early.status_code == HTTPStatus.CONFLICT
+    assert early.json() == {"code": "not_revealed", "status": "sealed"}
+    assert h.get(f"/api/leaderboards/{uuid4()}", params={"board": "assistant"}).status_code == HTTPStatus.NOT_FOUND
+    empty = uuid4()
+    h.db.tournaments[empty] = "revealed"
+    assert h.get(f"/api/leaderboards/{empty}", params={"board": "subject"}).status_code == HTTPStatus.NOT_FOUND
+    tournament = _published(h)
+    bad = h.get(f"/api/leaderboards/{tournament}", params={"board": "investigator"})
+    assert bad.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

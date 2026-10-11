@@ -259,3 +259,21 @@ def test_projection_reads() -> None:
 
 def test_iso_is_utc_with_milliseconds() -> None:
     assert iso(NOW) == "2026-10-11T14:00:00.123Z"
+
+
+def test_tournament_status_and_leaderboard_reads() -> None:
+    tournament = uuid4()
+    arena, script = db(
+        [
+            ("arena.v_tournaments", [("revealed",)]),
+            ("arena.v_tournaments", []),
+            ("arena.v_leaderboards", [(json.dumps({"board": "assistant"}), "corrected", 2)]),
+            ("arena.v_leaderboards", []),
+        ]
+    )
+    assert run(arena.tournament_status(tournament)) == "revealed"
+    assert run(arena.tournament_status(tournament)) is None
+    found = run(arena.leaderboard(tournament, "assistant", None))
+    assert found == {"body": {"board": "assistant"}, "label": "corrected", "manifest_version": 2}
+    assert run(arena.leaderboard(tournament, "subject", "original")) is None
+    assert script.executed[-1][1] == (tournament, "subject", "original", "original")

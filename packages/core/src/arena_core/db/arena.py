@@ -294,6 +294,24 @@ class ArenaDb:
         rows = await self.fetch("select payload::text from training.v_my_debrief where session_id = %s", (session,))
         return json.loads(rows[0][0]) if rows else None
 
+    async def tournament_status(self, tournament: UUID) -> str | None:
+        """`arena.v_tournaments`: the tournament's status, None when there is no such tournament."""
+        rows = await self.fetch("select status from arena.v_tournaments where id = %s", (tournament,))
+        return str(rows[0][0]) if rows else None
+
+    async def leaderboard(self, tournament: UUID, board: str, label: str | None) -> dict[str, Any] | None:
+        """`arena.v_leaderboards`: the published body of one board (S5 5.5), the given label or else the one bound
+        to the latest manifest (a corrected board supersedes the original, S6 4.10). None when none is published."""
+        rows = await self.fetch(
+            "select body::text, label, manifest_version from arena.v_leaderboards"
+            " where tournament_id = %s and board = %s and (%s::text is null or label = %s::text)"
+            " order by manifest_version desc limit 1",
+            (tournament, board, label, label),
+        )
+        if not rows:
+            return None
+        return {"body": json.loads(rows[0][0]), "label": str(rows[0][1]), "manifest_version": int(rows[0][2])}
+
     async def public_config(self) -> dict[str, Any]:
         rows = await self.fetch(
             "select paused, text_sessions_per_user_day, voice_sessions_per_user_day from ops.v_public_config"
