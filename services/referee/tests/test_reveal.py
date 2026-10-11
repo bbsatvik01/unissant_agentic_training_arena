@@ -6,11 +6,15 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
+from fractions import Fraction
 from typing import Any, cast
 
+import pytest
+
 from arena_core.db.pool import Connector
+from arena_core.referee.leaderboard import TrialScore
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result
-from arena_referee import reveal
+from arena_referee import db, reveal
 
 TOURNAMENT = "00000000-0000-0000-0000-0000000000a1"
 MANIFEST_1 = "00000000-0000-0000-0000-0000000000b1"
@@ -92,6 +96,7 @@ def trial_fact_row() -> tuple[Any, ...]:
         "valid",
         "truthful",
         "0.01",
+        "00000000-0000-0000-0000-0000000000e1",
     )
 
 
@@ -140,3 +145,32 @@ def test_seal_correction_and_publish_writes_a_corrected_leaderboard_on_the_new_v
     [insert] = [p for q, p in conn.executed if "arena.leaderboards" in q]
     assert insert[3] == "corrected"
     assert insert[4].obj["binding"]["manifest_version"] == CORRECTED_VERSION
+
+
+def test_reveal_publishes_qq_from_each_trial_s_stored_judgments(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Codex r3 #3: the published board's M09 comes from the stored R1/R2 judgments, never a constant None.
+    sentinel = object()
+    seen: list[tuple[str, object]] = []
+
+    async def fake_fetch(_connect: object, trial_id: str) -> object:
+        assert trial_id == "00000000-0000-0000-0000-0000000000e1"
+        return sentinel
+
+    def fake_score(family_id: str, stored: object) -> TrialScore:
+        seen.append((family_id, stored))
+        return TrialScore(family_id=family_id, qq=Fraction(3, 4))
+
+    monkeypatch.setattr(db, "fetch_stored_trial_judgments", fake_fetch)
+    monkeypatch.setattr(reveal, "trial_score", fake_score)
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.planned_execution": [trial_fact_row()],
+        }
+    )
+    run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    assert seen == [("F01", sentinel)]
+    [insert] = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    [row] = insert[4].obj["rows"]
+    m09 = row["metrics"]["M09_questioning_quality"]
+    assert Fraction(m09["point"]["num"], m09["point"]["den"]) == Fraction(3, 4)

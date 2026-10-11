@@ -612,6 +612,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
                     "valid",
                     "truthful",
                     "0.05",
+                    "00000000-0000-0000-0000-0000000000b3",
                 )
             ]
         }
@@ -623,6 +624,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
     assert fact.exec_state == Exec.COMPLETED
     assert fact.classification == "truthful"
     assert fact.settled_cost == Decimal("0.05")
+    assert fact.trial_id == "00000000-0000-0000-0000-0000000000b3"
 
 
 def test_write_leaderboard_inserts_with_on_conflict_do_nothing() -> None:

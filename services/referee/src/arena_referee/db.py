@@ -11,7 +11,7 @@ SQL, so a reviewer can check it against the schema directly.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Literal, cast
@@ -25,6 +25,7 @@ from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.inclusion import Exec
+from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
@@ -513,6 +514,18 @@ async def fetch_isolation_result(connect: Connector, commit_sha: str) -> Isolati
 # ---------------------------------------------------------------- leaderboard trial facts (S3 5.3-5.6, WP-16)
 
 
+@dataclass(frozen=True, kw_only=True)
+class StoredTrialJudgments:
+    """One assistant trial's stored scoring inputs: its data, the turns whose card never came
+    (`coach_unavailable`, each a proposal that fails every per-question test, S3 2.9), and R1's and R2's stored
+    judgment payloads (`sealed.judgments`, keys `<trial>:referee_subject` and `<trial>:referee_assistant:...`)."""
+
+    data: TrialData
+    unavailable_turns: Collection[int]
+    r1: Mapping[str, Any]
+    r2: Mapping[str, Any]
+
+
 @dataclass(frozen=True)
 class TrialFacts:
     """One planned trial's raw facts for the leaderboard (S4 `ledger.build_manifest`'s own inputs, read
@@ -533,6 +546,7 @@ class TrialFacts:
     verdict: str | None
     classification: str | None
     settled_cost: Decimal
+    trial_id: str | None = None  # the latest attempt (`ledger.planned_execution`); None before any attempt
 
 
 _COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
@@ -552,7 +566,7 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             "       p.block_id, e.state, adj.verdict, ff.classification,"
             "       coalesce((select sum(r.settled_usd) from ops.budget_reservations r"
             "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
-            "                    and r.purpose = any(%s)), 0)"
+            "                    and r.purpose = any(%s)), 0), e.trial_id"
             "  from arena.planned_trials p"
             "  join arena.case_variants v on v.id = p.variant_id"
             "  join arena.case_families f on f.id = v.family_id"
@@ -584,9 +598,40 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             verdict=r[8],
             classification=r[9],
             settled_cost=Decimal(r[10]),
+            trial_id=str(r[11]) if r[11] else None,
         )
         for r in rows
     ]
+
+
+async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> StoredTrialJudgments | None:
+    """One trial's stored R1 and R2 judgments (`arena_referee.scoring`'s stage keys) and its data, or None when
+    the trial was never scored (no R2 row: a replay trial, or scoring not yet run)."""
+    r2 = await get_judgment(connect, f"{trial_id}:referee_assistant:flag_support")
+    r1 = await get_judgment(connect, f"{trial_id}:referee_subject")
+    if r1 is None or r2 is None:
+        return None
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select turn_no from arena.trial_events where trial_id = %s and kind = 'coach_unavailable'",
+            (UUID(trial_id),),
+        )
+        unavailable = [r[0] for r in await cur.fetchall()]
+    data = await fetch_trial_data(connect, trial_id)
+    return StoredTrialJudgments(data=data, unavailable_turns=unavailable, r1=r1, r2=r2)
+
+
+async def fetch_latency_rows(connect: Connector, trial_ids: list[str]) -> list[LatencyRow]:
+    """`ops.v_latency_report` (S4, C-28) for these trials: the projection S3 6.4 and M16 read."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select trial_id::text, turn_no, population, report_outcome, subject_commit_at, client_ack_at,"
+            "       card_validated_server_at, instance_cold"
+            "  from ops.v_latency_report where trial_id = any(%s)",
+            ([UUID(t) for t in trial_ids],),
+        )
+        rows = await cur.fetchall()
+    return [LatencyRow(r[0], r[1], r[2], r[3], r[4], r[5], r[6], bool(r[7])) for r in rows]
 
 
 @dataclass(frozen=True, kw_only=True)

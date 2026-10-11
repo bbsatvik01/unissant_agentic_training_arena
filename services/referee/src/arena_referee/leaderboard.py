@@ -6,13 +6,70 @@ agrees with the sealed manifest by construction, never by a second, possibly dri
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
 
-from arena_core.referee.leaderboard import CandidateInput
+from arena_core.contracts.adapter import adapt_subject_report, contradiction_triggers, verdicts_by_key
+from arena_core.contracts.findings import StoredFinding
+from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.referee.leaderboard import CandidateInput, TrialScore
+from arena_core.scoring.flags import BROAD, STRICT, evasion_counts, support_counts
 from arena_core.scoring.inclusion import AsstInc, Exec, block_invalid, inclusion
+from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.metrics import TrialOutcome
-from arena_referee.db import TrialFacts
+from arena_core.scoring.rubric import Closure, assistant_questions, closure_score, score_rubric, triggers_from
+from arena_referee.db import StoredTrialJudgments, TrialFacts
+from arena_referee.debrief import demeanor_hit
+from arena_referee.mapping import (
+    adapted_cards,
+    available_after,
+    question_sources,
+    record_released_after,
+    trial_rows,
+)
+
+
+def trial_score(family_id: str, stored: StoredTrialJudgments) -> TrialScore:
+    """WP-15's scorer functions on one trial's stored judgments (S3 2.9, 5.3): QQ from `score_rubric` over every
+    proposal (relayed or not), D5 closure support when a finding was committed (M10), and the strict and broad
+    evasion counts and flag support (M06-M08) against R1's labels and R2's flag verdicts."""
+    data = stored.data
+    subject = RefereeSubjectReport.model_validate(stored.r1["report"])
+    assistant = RefereeAssistantReport.model_validate(stored.r2)
+    labels = adapt_subject_report(subject, frozenset(stored.r1.get("quote_invalid", ())))
+    cards = adapted_cards(data)
+    proposal_text = {c.turn_no: c.follow_up.question for c in cards}
+    card_turns = set(proposal_text) | set(stored.unavailable_turns)
+    questions = assistant_questions(
+        card_turns,
+        frozenset(c.turn_no for c in cards if c.valid),
+        question_sources(data),
+        assistant.followups,
+        frozenset(k for k, text in proposal_text.items() if demeanor_hit(text)),
+    )
+    triggers = triggers_from(
+        labels, record_released_after(data), contradiction_triggers(subject, available_after(data))
+    )
+    rows = trial_rows(data)
+    finding = StoredFinding.model_validate(data.final_finding) if data.final_finding is not None else None
+    closure = Closure(
+        finding=finding,
+        turns=rows.turns,
+        records=rows.records,
+        as_of=len(data.transcript),
+        demeanor_in_rationale=finding is not None and demeanor_hit(finding.rationale),
+        citations=tuple(assistant.citations),
+    )
+    verdicts = verdicts_by_key(cards, assistant)
+    turn_labels = {n: lab.label for n, lab in labels.items()}
+    return TrialScore(
+        family_id=family_id,
+        qq=score_rubric(questions, triggers, assistant.subchecks, closure).qq,
+        closure=closure_score(closure, assistant.subchecks) if finding is not None else None,
+        strict=evasion_counts(cards, turn_labels, rows, verdicts, kinds=STRICT),
+        broad=evasion_counts(cards, turn_labels, rows, verdicts, kinds=BROAD),
+        support=support_counts(cards, rows, verdicts),
+    )
 
 
 def _block_invalid_map(facts: Sequence[TrialFacts]) -> dict[str, bool]:
@@ -23,8 +80,14 @@ def _block_invalid_map(facts: Sequence[TrialFacts]) -> dict[str, bool]:
     return {block: block_invalid(states) for block, states in by_block.items()}
 
 
-def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
+def candidate_inputs(
+    facts: Sequence[TrialFacts],
+    scores: Mapping[str, TrialScore] | None = None,
+    latency: Sequence[LatencyRow] = (),
+) -> list[CandidateInput]:
     """Groups by `assistant_id` (a `replay_corpus` row has none and is never an assistant's own trial).
+    `scores`: `trial_score` by trial id; an included trial with none (never scored) still counts against QQ
+    coverage and leaves its flag metrics out, never a zero. `latency`: samples by trial id (M16).
 
     Known gaps (not fixed this round):
     1. Groups an assistant's `interactive` and `replay` track rows into one `CandidateInput` -- S3 5.2's
@@ -46,16 +109,21 @@ def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
             by_candidate.setdefault(f.assistant_id, []).append(f)
     out: list[CandidateInput] = []
     for candidate_id, rows in by_candidate.items():
+        own_trials = {f.trial_id for f in rows if f.trial_id is not None}
         trials: list[TrialOutcome] = []
         excluded_truthful_by_family: dict[str, int] = {}
         excluded_deceptive_by_family: dict[str, int] = {}
         reasons: list[tuple[str, str]] = []
         cost_rows: list[tuple[Decimal, bool]] = []
+        scored: list[TrialScore] = []
         for f in rows:
             block_bad = f.block_id is not None and invalid_blocks.get(f.block_id, False)
             asst, _subj, reason = inclusion(f.exec_state, f.verdict, block_bad)
             reasons.append((f.role, reason))
             cost_rows.append((f.settled_cost, asst in (AsstInc.INCLUDED, AsstInc.INCLUDED_AS_INSUFFICIENT)))
+            if asst in (AsstInc.INCLUDED, AsstInc.INCLUDED_AS_INSUFFICIENT):
+                score = (scores or {}).get(f.trial_id) if f.trial_id is not None else None
+                scored.append(score or TrialScore(family_id=f.family_id))
             if asst is AsstInc.INCLUDED:
                 label = f.classification if f.classification in ("truthful", "deceptive") else "insufficient_evidence"
                 trials.append(TrialOutcome(f.family_id, f.role, asst, label, f.subject_id or ""))
@@ -79,6 +147,8 @@ def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
                 reasons=reasons,
                 own_cost_rows=cost_rows,
                 own_planned=len(rows),
+                scored=scored,
+                latency=[r for r in latency if r.trial_id in own_trials],
             )
         )
     return out

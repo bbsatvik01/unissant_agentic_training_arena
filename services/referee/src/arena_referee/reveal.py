@@ -21,10 +21,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arena_core.db.pool import Connector
-from arena_core.referee.leaderboard import Binding, build_assistant_leaderboard
+from arena_core.referee.leaderboard import Binding, TrialScore, build_assistant_leaderboard
 from arena_core.scoring.ranking import IsolationResult
 from arena_referee import db
-from arena_referee.leaderboard import candidate_inputs
+from arena_referee.leaderboard import candidate_inputs, trial_score
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -79,6 +79,14 @@ async def _publish(
     connect: Connector, tournament_id: str, result: db.RevealResult, label: str, ctx: PublishContext
 ) -> None:
     facts = await db.fetch_tournament_trial_facts(connect, tournament_id)
+    trial_ids = sorted({f.trial_id for f in facts if f.assistant_id is not None and f.trial_id is not None})
+    scores: dict[str, TrialScore] = {}
+    family_of = {f.trial_id: f.family_id for f in facts if f.trial_id is not None}
+    for trial_id in trial_ids:
+        stored = await db.fetch_stored_trial_judgments(connect, trial_id)
+        if stored is not None:
+            scores[trial_id] = trial_score(family_of[trial_id], stored)
+    latency = await db.fetch_latency_rows(connect, trial_ids)
     binding = Binding(
         manifest_sha256=result.manifest_sha256,
         manifest_version=result.manifest_version,
@@ -90,7 +98,10 @@ async def _publish(
         bootstrap_b=ctx.bootstrap_b,
     )
     body = build_assistant_leaderboard(
-        candidates=candidate_inputs(facts), isolation=ctx.isolation, qq_calibrated=ctx.qq_calibrated, binding=binding
+        candidates=candidate_inputs(facts, scores, latency),
+        isolation=ctx.isolation,
+        qq_calibrated=ctx.qq_calibrated,
+        binding=binding,
     )
     await db.write_leaderboard(
         connect,
