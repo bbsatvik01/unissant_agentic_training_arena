@@ -245,7 +245,11 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
       )}
       {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
-      {world === null || !showPet ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
+      {world === null || !showPet ? null : (
+        <Suspense fallback={null}>
+          <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />
+        </Suspense>
+      )}
       {/* key light from the main ceiling panel, soft-shadowed; warm fills from the corner panels */}
       <primitive object={keyTarget} />
       <spotLight

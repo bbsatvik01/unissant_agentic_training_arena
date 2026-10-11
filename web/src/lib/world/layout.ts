@@ -32,7 +32,7 @@ export const MIRROR = { center: [1.65, 1.6, -3] as Vec3, width: 2.5, height: 1.3
 export const TABLE = { center: [0, 0.75, 0] as Vec3, width: 1.6, depth: 0.9 } as const;
 export const SUBJECT_SEAT: Vec3 = [0, 0, -0.78];
 export const INVESTIGATOR_SEAT: Vec3 = [0, 0, 0.85];
-export const PET_SPOT: Vec3 = [0.62, 0.775, 0.3];
+export const PET_SPOT: Vec3 = [-0.6, 0.775, -0.2];
 export const FOLDER_SPOT: Vec3 = [-0.42, 0.808, 0.18];
 /** The point the subject looks at when looking at the investigator (eye height over the empty chair). */
 export const INVESTIGATOR_EYES: Vec3 = [0, 1.22, 0.95];
