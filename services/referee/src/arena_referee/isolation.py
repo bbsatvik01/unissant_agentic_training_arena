@@ -112,30 +112,32 @@ async def fetch_commitment_results(connect: Connector) -> dict[str, bool]:
 _COACH_EVENT_KINDS = ("coach_card", "coach_deep")  # coach_unavailable carries no assistant-authored text
 
 
+UNATTRIBUTED = "unattributed"  # a mirrored span on no assistant trial: its hit fails the gate, naming no candidate
+
+
 async def fetch_assistant_output_texts(connect: Connector) -> dict[str, list[str]]:
-    """IG-6's own scan surface (S3 9, "assistant outputs"): every candidate's own coach-card AND coach-deep
-    events (both are persisted assistant-authored payloads, `arena.trial_events.kind`; a canary surfacing
-    only in a deep response must fail the audit too, not just a card) plus committed findings, as text,
-    system-wide. Phoenix spans and logs are a separate surface this does not reach (WP-07's observability
-    pipeline); disclosed, not silently skipped."""
+    """IG-6's scan surface (S3 9: "assistant outputs, prompts, spans and logs"), as text by assistant candidate,
+    system-wide: every coach-card and coach-deep event (persisted assistant-authored payloads), committed
+    findings, and every mirrored span's OTLP body (`ops.trace_mirror.otlp`, stored already sanitized, so a canary
+    there in clear is a real leak), keyed by its trial's assistant or `UNATTRIBUTED`. Process logs are the local
+    processes' stdout, never persisted, so there is nothing stored to scan locally."""
     texts: dict[str, list[str]] = {}
-    async with connect() as conn:
-        cur = await conn.execute(
-            "select t.assistant_candidate_id::text, e.payload::text"
-            "  from arena.trial_events e join arena.trials t on t.id = e.trial_id"
-            " where e.kind = any(%s) and t.assistant_candidate_id is not null",
-            (list(_COACH_EVENT_KINDS),),
-        )
-        for candidate_id, payload_text in await cur.fetchall():
-            texts.setdefault(candidate_id, []).append(payload_text)
-    async with connect() as conn:
-        cur = await conn.execute(
-            "select t.assistant_candidate_id::text, f.finding::text"
-            "  from arena.final_findings f join arena.trials t on t.id = f.trial_id"
-            " where t.assistant_candidate_id is not null"
-        )
-        for candidate_id, finding_text in await cur.fetchall():
-            texts.setdefault(candidate_id, []).append(finding_text)
+    queries = (
+        "select t.assistant_candidate_id::text, e.payload::text"
+        "  from arena.trial_events e join arena.trials t on t.id = e.trial_id"
+        " where e.kind = any(%s) and t.assistant_candidate_id is not null",
+        "select t.assistant_candidate_id::text, f.finding::text"
+        "  from arena.final_findings f join arena.trials t on t.id = f.trial_id"
+        " where t.assistant_candidate_id is not null",
+        "select coalesce(t.assistant_candidate_id::text, %s), m.otlp::text"
+        "  from ops.trace_mirror m left join arena.trials t on t.id = m.trial_id",
+    )
+    params: tuple[tuple[object, ...], ...] = ((list(_COACH_EVENT_KINDS),), (), (UNATTRIBUTED,))
+    for query, args in zip(queries, params, strict=True):
+        async with connect() as conn:
+            cur = await conn.execute(query, args)
+            for candidate_id, text in await cur.fetchall():
+                texts.setdefault(candidate_id, []).append(text)
     return texts
 
 
@@ -192,7 +194,9 @@ async def _record(connect: Connector, evidence: IsolationEvidence, git_sha: str)
                 passed=passed,
                 evidence_hash=evidence_hash,
                 commit_sha=git_sha,
-                candidate_id=evidence.canary_culprit if item == "IG-6" else None,
+                candidate_id=evidence.canary_culprit
+                if item == "IG-6" and evidence.canary_culprit != UNATTRIBUTED
+                else None,
             ),
         )
 

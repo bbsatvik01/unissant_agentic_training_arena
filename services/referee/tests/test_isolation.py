@@ -342,3 +342,24 @@ def test_the_dev_gate_fails_on_a_dev_canary_in_an_assistant_output_and_never_rea
     ig6_rows = [p for q, p in conn.executed if "insert into arena.isolation_checks" in q and "ig6" in str(p)]
     assert len(ig6_rows) == 1
     assert str(ig6_rows[0][0]) == cand  # the culprit is attributed (FX-I02)
+
+
+@pytest.mark.parametrize(
+    ("owner", "culprit"),
+    [("00000000-0000-0000-0000-0000000000c2", "00000000-0000-0000-0000-0000000000c2"), ("unattributed", None)],
+)
+def test_a_canary_only_in_a_mirrored_span_fails_ig6(owner: str, culprit: str | None) -> None:
+    # Codex r3 #5: spans are an IG-6 surface (S3 9); the leak is present nowhere else.
+    conn = FakeConn(
+        {
+            "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "m.otlp": [(owner, '{"attributes": {"output": "CANARY-FDEV2"}}')],
+            "e.payload": [("00000000-0000-0000-0000-0000000000c1", '{"text": "clean"}')],
+            "ledger.verify_chain": [(None,)],
+            "ledger.corpus_seals": [(True,)],
+        }
+    )
+    result = run(isolation.fetch_fresh_dev_isolation_result(connector(conn), "a" * 40))
+    assert result.items["IG-6"][0] is False
+    [ig6] = [p for q, p in conn.executed if "insert into arena.isolation_checks" in q and "ig6" in str(p)]
+    assert (str(ig6[0]) if ig6[0] else None) == culprit
