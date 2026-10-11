@@ -152,16 +152,23 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
 
 
 async def fetch_block_trial_ids(connect: Connector, tournament_id: str, block_no: int) -> list[str]:
-    """Every interactive trial of one block (its latest attempt only, S4 `ledger.planned_execution`'s own
-    rule): the id the block-boundary score call scores (C-42). `block_no` is the roster's own 1-based
-    number (`arena.blocks.block_no`), not that row's internal id -- `arena_public` has no grant to read the
-    latter (S4 9.3), so the job names the block this way instead."""
+    """Every interactive trial of one block ready for review (its latest attempt only, S4
+    `ledger.planned_execution`'s own rule), restricted to `ledger.terminal_records.state in ('completed',
+    'assistant_failed')` -- `ledger.adjudicate_validity`'s own precondition ("only completed or
+    assistant_failed interviews need subject review", AR001): a block that also has a `budget_skipped`,
+    `budget_truncated`, `infra_failed` or `subject_quarantined` trial (a planned trial the runner gave up
+    on, not every trial reaching a review-eligible state) would otherwise fail R1 for that one trial and
+    abort the whole block's score call, scoring none of its siblings either. `block_no` is the roster's own
+    1-based number (`arena.blocks.block_no`), not that row's internal id -- `arena_public` has no grant to
+    read the latter (S4 9.3), so the job names the block this way instead."""
     async with connect() as conn:
         cur = await conn.execute(
             "select t.id from arena.planned_trials p join arena.blocks b on b.id = p.block_id"
             " join arena.trials t on t.planned_trial_id = p.id"
+            " join ledger.terminal_records r on r.trial_id = t.id"
             " where b.tournament_id = %s and b.block_no = %s and p.track = 'interactive'"
-            " and t.attempt = (select max(t2.attempt) from arena.trials t2 where t2.planned_trial_id = p.id)",
+            " and t.attempt = (select max(t2.attempt) from arena.trials t2 where t2.planned_trial_id = p.id)"
+            " and r.state in ('completed', 'assistant_failed')",
             (UUID(tournament_id), block_no),
         )
         return [str(row[0]) for row in await cur.fetchall()]

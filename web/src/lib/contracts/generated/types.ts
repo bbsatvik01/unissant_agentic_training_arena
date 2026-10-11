@@ -634,7 +634,7 @@ export interface TableContent {
 export interface TextTrialSnapshot {
   readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated";
   readonly reason_code: string | null;
-  readonly mode: "practice" | "assessment";
+  readonly mode: "practice" | "assessment" | "harness";
   readonly split: "dev" | "hidden";
   readonly exchanges_used: number;
   readonly exchanges_cap: number;
@@ -861,7 +861,7 @@ export interface VoiceLine {
 export interface VoiceTrialSnapshot {
   readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated";
   readonly reason_code: string | null;
-  readonly mode: "practice" | "assessment";
+  readonly mode: "practice" | "assessment" | "harness";
   readonly split: "dev" | "hidden";
   readonly exchanges_used: number;
   readonly exchanges_cap: number;

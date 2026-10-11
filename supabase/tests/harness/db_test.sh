@@ -156,6 +156,13 @@ subject_integration() {
     -p no:cacheprovider -W error services/api/tests/it_api.py services/subject/tests/it_answer.py)
 }
 
+tournament_integration() {
+  supabase_up || return 1
+  local dsn="$ADMIN/postgres"
+  (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
+    -p no:cacheprovider -W error services/tournament/tests/it_tournament.py)
+}
+
 spend_guard_integration() {
   supabase_up || return 1
   local dsn="$ADMIN/postgres"
@@ -169,6 +176,8 @@ step "cost parity of the migrated seeds with cost_model.py (WI-S4-08)" cost_pari
 step "capability fixture equals the one regenerated from the migrated database" regenerate_capability_fixture
 step "api and subject integration suites on the migrated database (the interview path, turn_context, record_subject_turn)" \
   subject_integration
+step "tournament job integration suite on the migrated database (roster through close, a real arena-referee subprocess, WP-17)" \
+  tournament_integration
 step "spend-guard integration suite on the migrated database (agent port, guard client, budget plan)" \
   spend_guard_integration
 cleanup

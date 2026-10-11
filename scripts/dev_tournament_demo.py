@@ -22,7 +22,7 @@ import sys
 from collections.abc import Sequence
 from uuid import UUID
 
-from arena_core.agents.manifests import committed_manifest
+from arena_core.agents.manifests import check_roster, committed_manifest
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import dsn_connector
 from arena_tournament import lifecycle
@@ -71,6 +71,10 @@ async def _candidate_ids(db: ArenaDb, kind: str, names: Sequence[str]) -> tuple[
 
 async def set_up_tournament(referee_dsn: str, public_dsn: str, families: Sequence[str], seed: int) -> UUID:
     referee_connect = dsn_connector(referee_dsn)
+    # S2 3.3; S5 3.3 (a real gap, Codex round 1): refuses to freeze an unequal-budget, unofficial or
+    # exhibition-transport roster -- the one check WP-20a's future admin route will also need, but today
+    # this CLI is the only caller of freeze_tournament at all, so this is where it belongs.
+    check_roster([committed_manifest(name) for name in (*OFFICIAL_ASSISTANTS, *OFFICIAL_SUBJECTS)])
     for name in (*OFFICIAL_ASSISTANTS, *OFFICIAL_SUBJECTS):
         await lifecycle.register_candidate(referee_connect, committed_manifest(name))
     db = ArenaDb(dsn_connector(public_dsn), actor=None)

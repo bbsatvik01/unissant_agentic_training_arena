@@ -4,6 +4,7 @@ fold, the recording, the status table (C-45), and what each mode withholds."""
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -30,7 +31,7 @@ from arena_core.events.projections import (
 )
 from arena_core.turns.orchestrator import Orchestrator, TrialSignals
 
-from .fakedb import PACKET, FakeArenaDb
+from .fakedb import PACKET, T0, FakeArenaDb
 from .test_orchestrator import FINDING, Rig, run
 
 TURNS_PAST_REC_05 = 6  # rec-05 is scheduled after 5 exchanges: the sixth question releases it
@@ -197,6 +198,21 @@ def test_load_tournament_trial_has_no_session_and_mode_harness() -> None:
     assert (loaded.session_id, loaded.mode) == (None, "harness")
 
 
+def test_a_harness_trials_recording_and_snapshot_validate_against_the_real_contracts() -> None:
+    """D-021: `make export-run` must actually produce a valid `arena.recording.v1` for a tournament trial,
+    not raise -- the snapshot contract's own `mode` field has to accept "harness", not just training's
+    "practice"/"assessment" (the real bug this proves: `recording_of`/`snapshot_of` call `snapshot()`,
+    which validates `state.mode` against that Literal)."""
+    rig = Rig()
+    rig.db.kind = "interactive"
+    rig.turn()
+    loaded = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert loaded is not None
+    assert snapshot_of(loaded)["mode"] == "harness"
+    recording = recording_of(loaded, None)
+    assert recording["snapshot"]["mode"] == "harness"
+
+
 def test_load_tournament_trial_is_none_for_an_unknown_trial() -> None:
     db = FakeArenaDb(kind="interactive")
     assert run(load_tournament_trial(db, uuid4())) is None
@@ -208,6 +224,20 @@ def test_load_tournament_trial_is_none_for_a_training_kind() -> None:
     rig = Rig()
     rig.turn()
     assert run(load_tournament_trial(rig.db, rig.db.trial_id)) is None
+
+
+def test_load_tournament_trial_anchors_a_never_started_attempts_playback_to_its_own_event() -> None:
+    """S4 EF-05..EF-11: a `budget_skipped` or `source_unavailable` attempt never reaches `start_trial`, so
+    it has no `started_at` -- anchoring its recording to Unix epoch instead of its own `trial_ended` row's
+    time (a real bug, Codex round 1) put every offset about 56 years into the future."""
+    rig = Rig()
+    rig.db.kind = "interactive"
+    rig.db.started_at = None
+    run(rig.orch.stop(rig.db.trial_id, "budget_skipped", "ops.admit_unit: not enough budget free"))
+    loaded = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert loaded is not None
+    assert len(rig.db.events) == 1  # just the trial_ended row this stop() wrote, seq 1 -> T0 + 1s
+    assert loaded.started_ms == (T0 + timedelta(seconds=1)).timestamp() * 1000
 
 
 @pytest.mark.parametrize(

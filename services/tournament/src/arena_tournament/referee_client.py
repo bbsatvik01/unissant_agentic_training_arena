@@ -16,7 +16,13 @@ from uuid import UUID
 import httpx
 
 REFEREE_URL = "http://127.0.0.1:8082"
-SCORE_TIMEOUT_S = 90.0  # R1 and R2, each with the port's own attempts and repair (S2 2)
+SCORE_TIMEOUT_S = 90.0  # one trial's R1 and R2, each with the port's own attempts and repair (S2 2)
+# The block-boundary route runs R1 and R2 for every trial of the block sequentially, in one HTTP
+# request/response cycle; the official lineup's block is at most 18 trials (S3: "nine pairings, two
+# variants"), so the single-trial budget alone (a real bug, Codex round 1) would time out a real, non-fake
+# block well before the referee finishes -- sized for the worst case, not the common one.
+MAX_BLOCK_TRIALS = 18
+BLOCK_SCORE_TIMEOUT_S = SCORE_TIMEOUT_S * MAX_BLOCK_TRIALS
 LIFECYCLE_TIMEOUT_S = 10.0  # a database-only operation at the referee, no model call
 
 
@@ -68,7 +74,7 @@ class RefereeClient:
         `arena.v_planned_trials.block_no`, S4 9.3), and this composite key is just as unique. A WP-17
         simplification over the literal S5 5.5 path; noted in the build report for WP-20a's admin console."""
         return await self._post(
-            f"/internal/tournaments/{tournament}/blocks/{block_no}/score", timeout_s=SCORE_TIMEOUT_S
+            f"/internal/tournaments/{tournament}/blocks/{block_no}/score", timeout_s=BLOCK_SCORE_TIMEOUT_S
         )
 
     async def corpus_seal(self, tournament: UUID) -> dict[str, Any]:

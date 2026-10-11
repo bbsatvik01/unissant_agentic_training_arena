@@ -53,6 +53,7 @@ class FakeArenaDb(ArenaDb):
         self.mode = mode
         self.kind = kind  # arena.v_trials' own kind (training/interactive/replay/replay_corpus), WP-17
         self.status = "running"
+        self.started_at: datetime | None = T0  # None for a never-started attempt (budget_skipped, WP-17)
         self.execution_state: str | None = None
         self.version = 0
         self.exchanges = 0
@@ -362,7 +363,7 @@ class FakeArenaDb(ArenaDb):
             "variant_id": self.variant_id,
             "session_id": self.session_id,
             "voice": False,
-            "started_at": T0,
+            "started_at": self.started_at,
             "assistant_candidate_id": self.coach_id,
         }
 
@@ -388,7 +389,7 @@ class FakeArenaDb(ArenaDb):
             "assistant_candidate_id": self.coach_id,
             "subject_candidate_id": self.subject_id,
             "planned_trial_id": self.planned_trial_id,
-            "started_at": T0,
+            "started_at": self.started_at,
         }
 
     async def open_question(self, trial: UUID) -> bool:

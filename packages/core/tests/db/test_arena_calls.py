@@ -306,6 +306,12 @@ def test_tournament_trial_found_and_missing() -> None:
     assert run(arena.tournament_trial(TRIAL)) is None
 
 
+def test_tournament_split_found_and_missing() -> None:
+    arena, _ = db([("from arena.v_tournaments", [("hidden",)]), ("from arena.v_tournaments", [])])
+    assert run(arena.tournament_split(TRIAL)) == "hidden"
+    assert run(arena.tournament_split(TRIAL)) is None
+
+
 def test_released_with_titles_maps_every_row() -> None:
     arena, _ = db([("arena.v_released_evidence", [("rec-01", "Work orders", 2), ("rec-02", "Radio log", 3)])])
     assert run(arena.released_with_titles(TRIAL)) == [

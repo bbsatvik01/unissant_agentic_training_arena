@@ -14,6 +14,7 @@ and `recording_of` then hand everything to `events.projections`, the only code t
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -158,6 +159,15 @@ async def load_tournament_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     ended = [e for e in events if e.kind == "trial_ended"]
     reason = ended[-1].payload.get("reason") if ended and status not in ("running", "completed") else None
     started_at = meta["started_at"]
+    if started_at is not None:
+        started_ms = started_at.timestamp() * 1000
+    elif rows:
+        # A never-started attempt (budget_skipped, source_unavailable: S4 EF-05..EF-11) has no started_at,
+        # but its own stop still writes a trial_ended row; anchoring playback to Unix epoch instead of that
+        # row's own time (a real bug, Codex round 1) put every offset ~56 years into the future.
+        started_ms = min(r.created_at for r in rows).timestamp() * 1000
+    else:
+        started_ms = datetime.now(UTC).timestamp() * 1000
     return LoadedTrial(
         trial_id=trial,
         session_id=None,
@@ -166,7 +176,7 @@ async def load_tournament_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
         reason_code=None if reason is None else str(reason),
         exchanges_cap=int(meta["max_exchanges"]),
         transcript_version=int(meta["transcript_version"]),
-        started_ms=started_at.timestamp() * 1000 if started_at is not None else 0.0,
+        started_ms=started_ms,
         packet=packet,
         events=events,
         internal_visible=True,

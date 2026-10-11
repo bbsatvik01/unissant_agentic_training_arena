@@ -41,6 +41,16 @@ from arena_tournament.referee_client import RefereeClient
 
 log = logging.getLogger("arena_tournament")
 
+
+class HiddenTournamentError(Exception):
+    """The runner's own defense-in-depth refusal (WP-17): `lifecycle.open_tournament` already refuses a
+    hidden split, but that is this operator tool's own convenience check, not a database invariant
+    `arena.open_tournament` enforces -- no WP-16 hidden-text scan exists yet, so a hidden tournament opened
+    by any other path (a future admin route, a direct SQL call) must still never reach this harness: its
+    own packet read (`arena.v_dev_cases` only) and coaching read (`v_trial_events`) are not the isolated,
+    unrevealed-content-safe reads a hidden split would need."""
+
+
 MAX_ATTEMPTS = 3  # S4 arena.retry_trial: at most 3 attempts total (2 retries after infra_failed)
 BUCKET = "global"  # D-013: one global spend bucket
 Attempt = dict[str, Any]
@@ -185,19 +195,25 @@ class TournamentRunner:
         self, tournament: UUID, planned: Sequence[Row], attempts_by_planned: dict[UUID, list[Attempt]]
     ) -> None:
         for block_no, rows in group_interactive_by_block(planned):
-            pairings = sorted({(r["assistant_candidate_id"], r["subject_candidate_id"]) for r in rows})
-            block_calls = admission.block_calls([(self.manifests[a], self.manifests[s]) for a, s in pairings])
             for row in rows:
                 attempts = attempts_by_planned[row["planned_trial_id"]]
                 public_packet = await self.db.public_packet(row["variant_id"])
                 if public_packet is None:
                     msg = f"variant {row['variant_id']} has no public packet"
                     raise RuntimeError(msg)
+                # This one pairing's own calls (S4 8.5's "the unit" admitted is one trial, never the whole
+                # block): checking the block's full ~18-trial cost before each trial -- a real bug, Codex
+                # round 1 -- made a later pairing come back budget_skipped even with plenty left for it
+                # alone, since the same, un-shrinking block-wide figure was re-asked of the ceiling trial
+                # after trial.
+                trial_calls = admission.interactive_trial_calls(
+                    self.manifests[row["assistant_candidate_id"]], self.manifests[row["subject_candidate_id"]]
+                )
 
                 async def step(trial_id: UUID, packet: Mapping[str, Any] = public_packet) -> Execution:
                     return await _run_interactive_trial(trial_id, self.orchestrator, packet["opening_question"])
 
-                await self._run_until_terminal(row["planned_trial_id"], attempts, block_calls, step)
+                await self._run_until_terminal(row["planned_trial_id"], attempts, trial_calls, step)
             await self.referee.score_block(tournament, block_no)
 
     # ------------------------------------------------------------------ the whole run
@@ -208,7 +224,12 @@ class TournamentRunner:
         its own -- interactive trials refuse to start before it (S4 `arena.start_trial`) -- and because
         resuming a killed job after this phase finished is exactly "run the rest" (`run` itself calls this
         first, so a fresh `run` after a crash here just repeats the now-idempotent replay phase and moves
-        on)."""
+        on). Both entry points (here and `run`) refuse a hidden tournament first (`HiddenTournamentError`,
+        WP-17's own defense in depth)."""
+        split = await self.db.tournament_split(tournament)
+        if split == "hidden":
+            msg = f"tournament {tournament} is split=hidden; this job never runs one (no WP-16 scan yet)"
+            raise HiddenTournamentError(msg)
         planned = await self.db.planned_trials(tournament)
         corpus = [r for r in planned if r["track"] == "replay_corpus"]
         replay = [r for r in planned if r["track"] == "replay"]

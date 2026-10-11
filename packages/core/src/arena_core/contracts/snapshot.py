@@ -94,7 +94,7 @@ class VoiceExchange(Contract):
 class _SnapshotFields(Contract):
     status: TrialStatus
     reason_code: Annotated[str, StringConstraints(min_length=1, max_length=80)] | None
-    mode: Literal["practice", "assessment"]
+    mode: Literal["practice", "assessment", "harness"]  # WP-17: a tournament/harness-driven trial's own mode
     split: Literal["dev", "hidden"]
     exchanges_used: Exchanges
     exchanges_cap: TurnNo

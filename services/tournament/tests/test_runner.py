@@ -11,11 +11,13 @@ from collections.abc import Awaitable
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import pytest
+
 from arena_core.db.arena import ArenaDb
 from arena_core.turns.harness import Execution
 from arena_core.turns.orchestrator import Orchestrator
 from arena_tournament.referee_client import RefereeClient
-from arena_tournament.runner import MAX_ATTEMPTS, Attempt, TournamentRunner
+from arena_tournament.runner import MAX_ATTEMPTS, Attempt, HiddenTournamentError, TournamentRunner
 
 
 def run[T](aw: Awaitable[T]) -> T:
@@ -26,11 +28,14 @@ def run[T](aw: Awaitable[T]) -> T:
 
 
 class _FakeDb:
-    """Only the three calls `_run_until_terminal` itself ever makes directly."""
+    """Only the three calls `_run_until_terminal` itself ever makes directly, plus the three reads
+    `run_replay_track_prerequisite` makes before it (split, then an empty roster so its own corpus/replay
+    loops do nothing)."""
 
-    def __init__(self, *, admit: bool = True, start_state: str | None = None) -> None:
+    def __init__(self, *, admit: bool = True, start_state: str | None = None, split: str = "dev") -> None:
         self.admit = admit
         self.start_state = start_state
+        self.split = split
         self.retry_calls: list[UUID] = []
         self.started: list[UUID] = []
 
@@ -44,6 +49,15 @@ class _FakeDb:
     async def retry_trial(self, planned_trial: UUID) -> UUID:
         self.retry_calls.append(planned_trial)
         return uuid4()
+
+    async def tournament_split(self, _tournament: UUID) -> str:
+        return self.split
+
+    async def planned_trials(self, _tournament: UUID) -> list[dict[str, Any]]:
+        return []
+
+    async def planned_trial_attempts(self, _tournament: UUID) -> dict[UUID, list[dict[str, Any]]]:
+        return {}
 
 
 class _FakeOrchestrator:
@@ -173,3 +187,20 @@ def test_count_keys_an_execution_value_by_its_string_and_accumulates() -> None:
     runner._count(Execution.COMPLETED)
     runner._count("budget_skipped")
     assert runner.outcomes == {"completed": 2, "budget_skipped": 1}
+
+
+def test_run_replay_track_prerequisite_refuses_a_hidden_tournament_before_any_read() -> None:
+    """A real gap (Codex round 1): `lifecycle.open_tournament` refuses split="hidden" at open time, but
+    that is this operator tool's own convenience, not a database invariant `arena.open_tournament` itself
+    enforces -- a hidden tournament opened by any other path must still never reach the job's own harness
+    (no WP-16 hidden-text scan exists yet)."""
+    db = _FakeDb(split="hidden")
+    runner = _runner_with(db, _FakeOrchestrator())
+    with pytest.raises(HiddenTournamentError):
+        run(runner.run_replay_track_prerequisite(uuid4()))
+
+
+def test_run_replay_track_prerequisite_proceeds_for_a_dev_tournament() -> None:
+    db = _FakeDb(split="dev")
+    runner = _runner_with(db, _FakeOrchestrator())
+    run(runner.run_replay_track_prerequisite(uuid4()))  # an empty roster: nothing else to do

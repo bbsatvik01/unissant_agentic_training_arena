@@ -12,7 +12,13 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from arena_tournament.referee_client import RefereeClient, RefereeError
+from arena_tournament.referee_client import (
+    BLOCK_SCORE_TIMEOUT_S,
+    MAX_BLOCK_TRIALS,
+    SCORE_TIMEOUT_S,
+    RefereeClient,
+    RefereeError,
+)
 
 CALLER = "it-referee-client-caller"  # fixture value only, never a real credential
 RETRY_ATTEMPTS = 2  # the one retry _retry_once makes (SG3-24): the first call plus its one retry
@@ -102,3 +108,29 @@ def test_close_propagates_the_retrys_own_failure_when_it_also_fails() -> None:
         run(client.close(uuid4()))
     assert exc_info.value.status == HTTPStatus.CONFLICT
     assert json.loads(exc_info.value.detail)["detail"] == "AR001: still running"
+
+
+def test_score_block_budgets_enough_time_for_the_whole_blocks_trials_not_just_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A real bug (Codex round 1): the block route runs R1 and R2 for every trial of the block sequentially
+    in one HTTP cycle; a single trial's own timeout would abort a real (non-fake) block long before the
+    referee finishes scoring it."""
+    assert BLOCK_SCORE_TIMEOUT_S == SCORE_TIMEOUT_S * MAX_BLOCK_TRIALS
+    assert BLOCK_SCORE_TIMEOUT_S > SCORE_TIMEOUT_S
+
+    seen_timeouts: list[float] = []
+
+    def handler(_r: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"scored": []})
+
+    client = RefereeClient(CALLER, transport=transport(handler))
+    real_post = client._post
+
+    async def spying_post(path: str, *, timeout_s: float) -> dict[str, object]:
+        seen_timeouts.append(timeout_s)
+        return await real_post(path, timeout_s=timeout_s)
+
+    monkeypatch.setattr(client, "_post", spying_post)
+    run(client.score_block(uuid4(), 1))
+    assert seen_timeouts == [BLOCK_SCORE_TIMEOUT_S]

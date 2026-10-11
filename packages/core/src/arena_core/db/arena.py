@@ -402,6 +402,15 @@ class ArenaDb:
         )
         return [{"record_id": r[0], "title": r[1], "released_after_exchanges": int(r[2])} for r in rows]
 
+    async def tournament_split(self, tournament: UUID) -> str | None:
+        """`arena.v_tournaments.split` ("dev" or "hidden"), or None for an unknown id: the job's own
+        defense-in-depth check (WP-17) that it never runs a hidden tournament -- `lifecycle.open_tournament`
+        already refuses to open one this way, but that refusal is this operator tool's own convenience, not
+        a database invariant `arena.open_tournament` itself enforces (no WP-16 hidden-text scan exists
+        yet), so a tournament opened by some other path must still never reach this job's harness."""
+        rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
+        return None if not rows else str(rows[0][0])
+
     async def planned_trials(self, tournament: UUID) -> list[dict[str, Any]]:
         """`arena.v_planned_trials`: the frozen roster, position order (S5 5.3's "recorded seeded order")."""
         rows = await self.fetch(

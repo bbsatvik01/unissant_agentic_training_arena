@@ -52,13 +52,18 @@ async def _ask(
     orchestrator: Orchestrator, trial: UUID, n: int, question: HarnessQuestion, record_requests: Sequence[str]
 ) -> None:
     """Shared by both tracks' `.ask`: records the question and its answer, then raises the matching
-    `StopError` for a quarantine or a budget refusal (ST-3, ST-4, already recorded by `_answer` itself) or an
-    infra-level subject refusal (ST-5, recorded here -- unlike the other stop paths, nothing else writes it,
-    S2 8.5)."""
+    `StopError` for a quarantine or a budget refusal (ST-3, ST-4, already recorded by `_answer` itself), the
+    subject's own kill switch (ST-4 groups it with a budget refusal, "the per-call spend guard refused a
+    reservation, or the kill switch is on" -- `_answer` maps it to `TurnRefusedError(503, "paused")`, with
+    nothing else recording a terminal state for it), or a genuine infra-level subject refusal (ST-5,
+    recorded here -- unlike the other stop paths, nothing else writes it, S2 8.5)."""
     origin = QuestionOrigin(question.source.value, question.relay_outcome, question.proposal_seq)
     try:
         outcome = await orchestrator.harness_turn(trial, n, question.text, record_requests, origin)
     except TurnRefusedError as exc:
+        if exc.code == "paused":
+            await orchestrator.stop(trial, "budget_truncated", str(exc))
+            raise BudgetStopError(dispatched=True) from exc
         await orchestrator.stop(trial, "infra_failed", str(exc))
         raise TransientStopError(str(exc)) from exc
     if outcome.outcome == "quarantined":

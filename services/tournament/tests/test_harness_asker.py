@@ -53,6 +53,17 @@ def test_ask_raises_transientstoperror_and_stops_the_trial_on_an_infra_failure()
     assert rig.db.execution_state == "infra_failed"
 
 
+def test_ask_raises_budgetstoperror_when_the_subjects_kill_switch_is_on() -> None:
+    """ST-4 groups the kill switch with a budget refusal ("the per-call spend guard refused a reservation,
+    or the kill switch is on"): a real bug (Codex round 1) had this fall through to the generic
+    TurnRefusedError handler instead, recording infra_failed (ST-5, retriable) rather than budget_truncated."""
+    rig = Rig()
+    rig.subject_error = SubjectUnavailableError("kill_switch_on")
+    with pytest.raises(BudgetStopError):
+        HarnessAsker(rig.db.trial_id, rig.orch).ask(1, QUESTION, [])
+    assert rig.db.execution_state == "budget_truncated"
+
+
 def test_card_raises_budgetstoperror_once_the_trial_is_already_budget_truncated() -> None:
     rig = Rig()
     HarnessAsker(rig.db.trial_id, rig.orch).ask(1, QUESTION, [])

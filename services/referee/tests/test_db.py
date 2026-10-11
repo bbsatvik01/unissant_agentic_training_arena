@@ -238,6 +238,18 @@ def test_fetch_block_trial_ids_found_and_empty() -> None:
     assert run(db.fetch_block_trial_ids(connector(empty), TRIAL, 1)) == []
 
 
+def test_fetch_block_trial_ids_restricts_to_review_eligible_states() -> None:
+    """`ledger.adjudicate_validity`'s own precondition (AR001: "only completed or assistant_failed
+    interviews need subject review"): a block with a budget_skipped or infra_failed sibling must not send
+    that trial to R1/R2, or the real function call aborts the whole block's score (verified real bug,
+    Codex round 1)."""
+    conn = FakeConn({"join arena.blocks b": [(uuid4(),)]})
+    run(db.fetch_block_trial_ids(connector(conn), TRIAL, 1))
+    query = conn.executed[-1][0]
+    assert "ledger.terminal_records" in query
+    assert "'completed', 'assistant_failed'" in query
+
+
 def test_fetch_tournament_status_found_and_missing() -> None:
     found = FakeConn({"select status from arena.tournaments": [("running",)]})
     assert run(db.fetch_tournament_status(connector(found), TRIAL)) == "running"

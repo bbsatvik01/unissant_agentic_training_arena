@@ -4648,7 +4648,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "mode": {
             "enum": [
               "practice",
-              "assessment"
+              "assessment",
+              "harness"
             ],
             "type": "string"
           },
@@ -4984,7 +4985,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "mode": {
             "enum": [
               "practice",
-              "assessment"
+              "assessment",
+              "harness"
             ],
             "type": "string"
           },

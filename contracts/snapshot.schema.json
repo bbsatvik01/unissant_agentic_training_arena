@@ -1168,7 +1168,8 @@
         "mode": {
           "enum": [
             "practice",
-            "assessment"
+            "assessment",
+            "harness"
           ],
           "type": "string"
         },
@@ -1504,7 +1505,8 @@
         "mode": {
           "enum": [
             "practice",
-            "assessment"
+            "assessment",
+            "harness"
           ],
           "type": "string"
         },
