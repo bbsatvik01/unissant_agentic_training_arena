@@ -4,8 +4,8 @@
 - V4b: `role_word`, `ledger_id`, `other_case_id`, `real_agency` over public-tier text: the public packet plus
   every record's title, description and content (records become public on release).
 - V4c: `G3`, `G4`, `G5` (S2 guard rules) over the public packet (ground rules excluded: platform text never
-  rendered to the subject), persona, matter, ledger text, uncertainty text, gate conditions and every
-  record's title, description and content.
+  rendered to the subject), persona, matter, ledger text, uncertainty text, gate conditions, unknown-fact views,
+  forbidden-assertion text and every record's title, description and content.
 
 Every lexical scan here reads each text as authored and as the runtime renders it (`guardscan.scan_forms`).
 
@@ -61,6 +61,8 @@ def subject_renderable_text(
         if "range_text" in u:
             out.append(str(u["range_text"]))
     out.extend(str(g["condition"]) for g in private["gates"])
+    out.extend(str(u["subject_view"]) for u in private["unknown_facts"])
+    out.extend(str(x["text"]) for x in private["forbidden_assertions"])
     out.extend(_record_text(evaluator))
     return out
 

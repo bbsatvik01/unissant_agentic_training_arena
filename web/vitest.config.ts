@@ -5,7 +5,8 @@ import viteConfig from "./vite.config.ts";
 /**
  * Coverage gate (S6 12): 90% on `src/lib/**`, the pure modules (reducers, machines, SSE client). Lines
  * and branches are the spec's floor; functions and statements are held at the same level, as in the
- * TechnoMile gate this one is lifted from. Test files are not source and are not counted.
+ * TechnoMile gate this one is lifted from. Test files are not source and are not counted; nor is the one
+ * machine-written validator module (see the exclude below).
  */
 export default mergeConfig(
   viteConfig,
@@ -16,7 +17,10 @@ export default mergeConfig(
       coverage: {
         provider: "v8",
         include: ["src/lib/**"],
-        exclude: ["src/**/*.test.{ts,tsx}"],
+        // Test files are not source. The build-time compiled validators (compiled/validators.js, about 1.7 MB of
+        // ajv output) are machine-written: drift-checked against a fresh generation (tools/validators-codegen.test.ts)
+        // and exercised by every valid and invalid wire fixture (validate.test.ts); their generator is covered.
+        exclude: ["src/**/*.test.{ts,tsx}", "src/lib/contracts/compiled/validators.js"],
         reporter: ["text", "json-summary"],
         thresholds: {
           lines: 90,

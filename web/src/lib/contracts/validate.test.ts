@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseTrialFrame } from "../sse/trial-stream";
 import { NEUTRALITY_ISSUES, QUESTION_TYPES } from "./card";
 import { WIRE_SCHEMAS } from "./generated/schemas";
-import { invariantErrors, isWire, wireBytes, wireErrors, wireSchemaNames, type WireSchemaName } from "./validate";
+import { invariantErrors, isWire, wireErrors, wireSchemaNames, type WireSchemaName } from "./validate";
 
 interface WireCase {
   readonly id: string;
@@ -79,26 +79,5 @@ describe("the hand-kept card constants match the exported card schema", () => {
   it("lists every question type and neutrality issue in schema order", () => {
     expect([...QUESTION_TYPES]).toEqual(question.question_type.enum);
     expect([...NEUTRALITY_ISSUES]).toEqual(question.neutrality_issues.items.enum);
-  });
-});
-
-describe("maxBytes counts wire bytes, as the server does (D-019)", () => {
-  // The same table as packages/core/tests/contracts/test_common.py::test_wire_bytes_count_the_json_escapes.
-  const cases: readonly (readonly [string, number])[] = [
-    ["a", 1],
-    ['"', 2],
-    ["\\", 2],
-    ["\n", 2],
-    ["\t", 2],
-    ["\u0001", 6],
-    ["\u007f", 6],
-    ["\u00e9", 6],
-    ["\u20ac", 6],
-    ["\u{1f600}", 12],
-    ['ab\u20ac"', 10],
-  ];
-
-  it.each(cases)("%j is %i wire bytes", (text, bytes) => {
-    expect(wireBytes(text)).toBe(bytes);
   });
 });

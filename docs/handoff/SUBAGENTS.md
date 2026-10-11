@@ -35,3 +35,13 @@
 - **Agents:** fix:S1 (S1, schemas, seeds; kit copy s1v23), fix:S2-S3, fix:S4-SQL-S5 (PG17 container on 127.0.0.1:55497, smokes in s4v23), then fix:S6-S8 (reads the final backend). Each returns per-finding dispositions (real or false positive with evidence, rule, change).
 - **Inputs:** Codex findings scratchpad `codex/spec1/g1..g4.json`; shared decisions D1-D11 in the script.
 - **After:** dispositions into `docs/spec/review-codex-r1.md`; Codex spec round 2.
+
+## 2026-10-11 active
+- ac1b3a38666e87dcf WP-05 port (resumed): merge main, WP-10 helpers + parity test, D-019. wt-wp05-port. Gate: self Codex, then cold Codex.
+- aef227ff5a791ab22 WP-04 pgTAP suite (Sonnet). wt-wp04-pgtap feat/wp04-pgtap. Gate: db-test green, self + cold Codex.
+- a928b8a9c3a763c65 WP-07 observability (Sonnet). wt-wp07-obs feat/wp07-obs. Gate: S5 8.9, self + cold Codex.
+- ac2a4c78d321feac9 UI lead stage 1 (Opus): 3D world + overlay + playback (D-020, D-021). wt-ui-world feat/ui-world. Gate: pnpm check, screenshots, one Codex round.
+- ad9db92b288b7a8c1 Supabase migrations 0600-1100 via MCP (Sonnet), byte-exact check, advisors. No repo edits.
+- a80b942018d564e81 WP-18b follow-up (2 rare-path fixes), fix/wp18b-followup. adb48fe0d3cc9a911 WP-11 rubric lexicon hash fix.
+- a810ab185aeaef4e8 WP-12 subject service (Sonnet), wt-wp12-subject feat/wp12-subject (base feat/wp05-port). Fake model; pilot script left for owner.
+- a82783ff6d2a01d89 WP-14 referee + debrief + review queue (Sonnet), wt-wp14-referee feat/wp14-referee (base feat/wp05-port).

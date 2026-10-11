@@ -1,0 +1,10 @@
+{
+  "fixture": "FX-COOP",
+  "spec": "S2 11.1, 11.2 EV-COACH-2",
+  "note": "Three development transcripts (F07, F08, F09) in which a truthful subject answers every question responsively under S2 11.1. Each sentence carries {kind: fact or perception, ledger: the ledger entries behind it, records: verbatim quotes of released records that state its fact}. Code (tests/safety/coop_check.py) checks only that cited ledger IDs exist and cited quotes are verbatim from records released in the interview; everything else is the recorded independent review (transcript_review.json), bound to the text, support and case hashes.",
+  "transcripts": [
+    "TX-F07-C",
+    "TX-F08-C",
+    "TX-F09-C"
+  ]
+}

@@ -122,3 +122,31 @@
 - **Boundaries:** it is a design language only. No Vercel name, logo, wordmark or marketing copy appears in the product. Fonts are open-licensed substitutes the file names. The motion, character and pet rules of `03-ui-direction.md` v2.1 and S6 still apply; DESIGN.md supplies the tokens they bind to.
 - **Timing:** presentational work starts after the 2026-10-18 slice gate (S6), now unblocked by this file.
 - **Reversibility:** cheap (tokens).
+
+## 2026-10-11 · D-019 Byte limits stay; every byte figure is wire bytes
+- **Decision:** coordinator. `cost_model.LIMITS` stay (subject 80,000; card/deep/final 128,000; referee 160,000 bytes), so the $74 ceiling math is unchanged. Every byte figure, limits and input caps alike, is measured as transmitted (JSON-escaped) wire bytes. Caps on fields that feed a request (question 600 chars / 2,400 bytes, model-written fields carried forward) are enforced in those same wire bytes, so S2's adversarial maximum fits LIMITS by construction.
+- **Reason:** JSON `\u` escaping makes non-ASCII text 2-3x its UTF-8 size; the S2 card worst case (117,219 UTF-8) exceeded 128,000 wire bytes. Capping inputs in the unit that is billed is the simplest fix; raising limits 2-3x would inflate every reservation.
+- **Escalation:** if a role's worst case still exceeds its limit, WP-05 reports the role, figure and driving field; limits are not raised silently.
+- **Files:** `providers/structured.py`, `contracts/rendered.py`, WP-05 port and parity test.
+- **Reversibility:** cheap.
+
+## 2026-10-11 · D-020 The UI is the centerpiece: an interactive 3D world, built now
+- **Decision:** owner directive ("make the ui the best part ... state of the art, use three js if needed, fully interactive, 3d world, interrogation rooms, interactions, animations ... use gsap as well"). The web app is a 3D world (Three.js through react-three-fiber + drei; GSAP for choreographed camera and signature sequences; Motion stays for 2D UI) with a precinct hub, interview rooms, an observation room where the coach agents visibly work, an evidence wall, avatars and the companion pet. Interaction happens in a 2D overlay styled by DESIGN.md (D-018); the 3D scene reflects session state from the same reducer.
+- **Supersedes:** 03-ui-direction 0.5/0.7/1.2 (GSAP only after a spike; rail before office; vector portraits) and "presentational work after the slice gate". Kept: no demeanor/stress states on any avatar (PRB-4), the single visibility rule (2a), no AI-slop styling, EX-4 disclosure, reduced-motion fallback.
+- **Scope rule:** procedural/stylized geometry, no heavy asset pipeline; lazy-loaded 3D chunk; WP-19's functional flows are built by the same UI lead inside the world.
+- **Reversibility:** moderate.
+
+## 2026-10-11 · D-021 Every local run is recorded and replayable without spend
+- **Decision:** owner directive ("all the runs we do locally need to be recorded ... played back ... so that no spend is wasted"). The persisted event log plus stored model outputs is the recording. Each trial exports to a self-contained recording file (`recordings/<trial>.json`, `make export-run`); the UI has a Playback mode that replays a recording through the same reducer into the same 3D world with original timing (speed control, scrub), with no API or model call. Recordings double as the demo fallback in front of judges.
+- **Files:** WP-13 (export route/command), UI lead (player).
+- **Reversibility:** cheap.
+
+## 2026-10-11 · D-022 Codex rounds and budget posture
+- **Decision:** owner directive. Each agent may run up to 7 Codex rounds. Real bugs found by Codex are fixed; hardening for rare edge cases is recorded in one line and skipped. The $74 global budget plan is approved for application to the database (after migration 0600 lands); the owner asked not to be overly strict about budget, so tuning stays loose (no extra per-phase limits).
+- **Reversibility:** cheap.
+
+## 2026-10-11 · D-023 r3_investigator overflow handled at authoring
+- **Decision:** coordinator. After D-019, r3_investigator is the only role that could exceed its limit (about 162,000 vs 160,000 wire bytes) if a family's releasable records were near S1's 12,288-byte allowance. Accept the existing guard: V1d.context refuses such a family at authoring (over_limit), so no admitted family overflows. No tighter per-role cap.
+- **Also accepted:** WP-10's repair turn may name the offending pattern-constrained ID (e.g. "f:999 is not a fact ID"); free text and invented keys still never appear.
+- **Spec wording follow-up:** S2/S5 "UTF-8 bytes" -> "wire bytes"; S5 4.4 script invocation form.
+- **Reversibility:** cheap.
