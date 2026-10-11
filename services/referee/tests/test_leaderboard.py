@@ -312,7 +312,9 @@ def test_subject_inputs_group_by_subject_skip_replay_rows_and_read_r1_labels() -
         dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1"),
         dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2", verdict="subject_invalid"),
         dataclasses.replace(BASE, planned_trial_id="p3", trial_id="t3", track="replay"),  # re-reads a corpus row
-        dataclasses.replace(BASE, planned_trial_id="p4", trial_id="t4", subject_id="S2", assistant_id=None),
+        dataclasses.replace(
+            BASE, planned_trial_id="p4", trial_id="t4", subject_id="S2", assistant_id=None, track="replay_corpus"
+        ),
     ]
     by_id = {c.candidate_id: c for c in subject_inputs(facts, {"t1": r1})}
     assert set(by_id) == {"S1", "S2"}
@@ -321,3 +323,5 @@ def test_subject_inputs_group_by_subject_skip_replay_rows_and_read_r1_labels() -
     assert first.labels is not None
     assert [lab.compliant for lab in first.labels.values()] == [True, False]
     assert (second.output, second.labels, second.subj_inc) == (None, None, SubjInc.AGAINST_SUBJECT)
+    [corpus] = by_id["S2"].trials
+    assert corpus.output is None  # no assistant on a corpus row: never an invented outcome

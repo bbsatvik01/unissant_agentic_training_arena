@@ -193,7 +193,7 @@ def subject_inputs(facts: Sequence[TrialFacts], r1: Mapping[str, Mapping[str, An
                 exec_state=f.exec_state,
                 subj_inc=subj,
                 verdict=f.verdict,
-                output=_output(asst, f.classification),
+                output=_output(asst, f.classification) if f.assistant_id is not None else None,
                 labels=labels,
             )
         )

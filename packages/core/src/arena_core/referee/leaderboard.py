@@ -481,15 +481,17 @@ def _subject_row(c: SubjectCandidateInput, binding: Binding) -> dict[str, Any]:
         return {"point": _frac(ratio(cls)), "interval": _interval(cluster_bootstrap(cls, seed, binding.bootstrap_b))}
 
     trials = list(c.trials)
-    outcomes, success = deceptive_success(_subject_trial(t) for t in trials)
+    # M14 and M15 are interaction outcomes (S3 5.2, track I); corpus trials count only toward M12 and M13.
+    interactive = [t for t in trials if t.track == "interactive"]
+    outcomes, success = deceptive_success(_subject_trial(t) for t in interactive)
     by_assistant = {
-        a: dict(deceptive_success(_subject_trial(t) for t in trials if t.assistant_id == a)[0])
-        for a in sorted({t.assistant_id for t in trials if t.assistant_id is not None})
+        a: dict(deceptive_success(_subject_trial(t) for t in interactive if t.assistant_id == a)[0])
+        for a in sorted({t.assistant_id for t in interactive if t.assistant_id is not None})
     }
-    truthful_counted = [t for t in trials if t.role == "truthful" and t.subj_inc is not SubjInc.EXCLUDED]
+    truthful_counted = [t for t in interactive if t.role == "truthful" and t.subj_inc is not SubjInc.EXCLUDED]
     included_truthful = [
         TrialOutcome(t.family_id, t.role, AsstInc.INCLUDED, t.output, "")
-        for t in trials
+        for t in interactive
         if t.role == "truthful" and t.output is not None
     ]
     credit = truthful_credit(

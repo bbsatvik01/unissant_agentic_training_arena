@@ -586,5 +586,20 @@ def test_the_subject_board_publishes_m12_to_m15_ordered_by_fidelity_and_unranked
     json.dumps(body)
 
 
+def test_corpus_trials_count_toward_fidelity_but_never_toward_m14_or_m15() -> None:
+    # Codex r5 #3: a corpus transcript has no assistant outcome; M14/M15 are interactive (track I) only.
+    corpus = replace(_subject_trial("deceptive", None), track="replay_corpus", assistant_id=None)
+    body = build_subject_leaderboard(
+        candidates=[SubjectCandidateInput(candidate_id="S1", display_name="S1", trials=[corpus])],
+        isolation=PASSING_ISOLATION,
+        binding=BINDING,
+    )
+    m = body["rows"][0]["metrics"]
+    assert m["M12_subject_fidelity"]["by_track"]["replay_corpus"]["point"]["value"] == 1.0
+    assert sum(m["M14_deceptive_success"]["outcomes"].values()) == 0
+    assert m["M14_deceptive_success"]["point"] is None
+    assert m["M15_truthful_credit"]["correct_recognition"]["point"] is None
+
+
 def _nd(point: dict[str, int]) -> dict[str, int]:
     return {"numerator": point["num"], "denominator": point["den"]}
