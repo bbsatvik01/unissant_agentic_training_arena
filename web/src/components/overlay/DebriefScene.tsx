@@ -10,12 +10,15 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useRef, useState } from "react";
 
-import type { Debrief } from "../../lib/contracts/generated/types";
+import type { CoachCard, Debrief } from "../../lib/contracts/generated/types";
 import { EX4_EVASION_SENTENCE, EX4_TEXT } from "../../lib/copy/ex4";
-import { flagPhrase, LABELS } from "../../lib/copy/finding";
+import { contentText } from "../../lib/contracts/quote";
+import { LABELS } from "../../lib/copy/finding";
 import { anchorFor, checkName, RUBRIC } from "../../lib/copy/rubric";
 import type { TrialView } from "../../lib/trial/trialReducer";
 import { detectionOf, ofText, questionReview } from "../../lib/world/debrief";
+import type { CaseDocument } from "../../lib/world/recording";
+import { Flag, recordMap } from "./CoachPanel";
 import { Tabs } from "./Tabs";
 
 gsap.registerPlugin(useGSAP);
@@ -66,16 +69,39 @@ function Scores({ debrief }: { debrief: Debrief }) {
           </li>
         ))}
       </ul>
+      <p className="fine provenance">
+        Scored with rubric <span className="mono">{debrief.provenance.rubric_sha256.slice(0, 12)}</span>, prompts{" "}
+        <span className="mono">{debrief.provenance.r3_prompt_sha256.map((h) => h.slice(0, 12)).join(", ")}</span>, referee models{" "}
+        <span className="mono">{debrief.provenance.referee_model_ids.join(", ")}</span>, scorer <span className="mono">{debrief.provenance.scorer_git_sha.slice(0, 12)}</span>.
+      </p>
     </div>
   );
 }
 
-function Questions({ view }: { view: TrialView | null }) {
+function FlagList({ card, view, records, onCite }: { card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: (turn: number) => void }) {
+  return (
+    <>
+      <ul className="flags">
+        {card.flags.map((f) => (
+          <Flag key={f.flag_ref} flag={f} card={card} view={view} records={records} onCite={onCite} />
+        ))}
+      </ul>
+      <p className="fine">{EX4_EVASION_SENTENCE}.</p>
+    </>
+  );
+}
+
+function Questions({ view, documents }: { view: TrialView | null; documents: readonly CaseDocument[] }) {
   if (view === null || view.turns.length === 0) return <p className="empty">No questions were asked.</p>;
+  const records = recordMap(documents, view.released);
+  // A citation chip brings its turn into view.
+  const onCite = (turn: number) => {
+    document.getElementById(`review-T${String(turn)}`)?.scrollIntoView({ block: "center" });
+  };
   return (
     <ol className="review">
       {questionReview(view).map((r) => (
-        <li key={r.turn} className="review-item">
+        <li key={r.turn} id={`review-T${String(r.turn)}`} className="review-item">
           <span className="mono">T{r.turn}</span>
           <p className="line">
             <span className="speaker">Asked</span>
@@ -87,12 +113,23 @@ function Questions({ view }: { view: TrialView | null }) {
               {r.neutralityIssues.length === 0 ? "" : `; ${r.neutralityIssues.map(words).join(", ")}`}. {r.assessment}
             </p>
           )}
-          {r.answerCategory === null ? null : <p className="fine">Answer: {words(r.answerCategory)}</p>}
-          {r.flags.length === 0 ? null : (
-            <p className="fine">
-              {r.flags.map((f) => `${words(flagPhrase(f.kind as never))}: "${f.quote}"`).join("; ")}. {EX4_EVASION_SENTENCE}.
+          {r.neutralityIssues.includes("demeanor_reference") ? <p className="callout">This question relied on how the subject seems rather than on what they said or the records.</p> : null}
+          {r.answer === null ? null : (
+            <p className="line">
+              <span className="speaker">Answered</span>
+              {r.answer}
             </p>
           )}
+          {r.answerCategory === null ? null : <p className="fine">Answer: {words(r.answerCategory)}</p>}
+          {r.card === null || r.card.flags.length === 0 ? null : <FlagList card={r.card} view={view} records={records} onCite={onCite} />}
+          {r.released.map((rel) => (
+            <details key={rel.record_id} className="release-marker">
+              <summary>
+                Released after this turn: <span className="mono">{rel.record_id}</span> {rel.title}
+              </summary>
+              <p className="fine">{contentText(rel.content)}</p>
+            </details>
+          ))}
           {r.suggested === null ? null : (
             <p className="line">
               <span className="speaker">Coach suggested next</span>
@@ -123,11 +160,15 @@ function Detection({ debrief }: { debrief: Debrief }) {
       </div>
       <div>
         <dt>Evasion the coach found (strict)</dt>
-        <dd>{ofText(d.evasion_strict.tp, d.evasion_strict.events)} labeled events</dd>
+        <dd>
+          {ofText(d.evasion_strict.tp, d.evasion_strict.events)} labeled events; {ofText(d.evasion_strict.tp, d.evasion_strict.flags)} of its flags matched
+        </dd>
       </div>
       <div>
         <dt>Evasion the coach found (broad)</dt>
-        <dd>{ofText(d.evasion_broad.tp, d.evasion_broad.events)} labeled events</dd>
+        <dd>
+          {ofText(d.evasion_broad.tp, d.evasion_broad.events)} labeled events; {ofText(d.evasion_broad.tp, d.evasion_broad.flags)} of its flags matched
+        </dd>
       </div>
       <div>
         <dt>Coach flags</dt>
@@ -165,11 +206,17 @@ function Learning({ debrief }: { debrief: Debrief }) {
         <dt>Subject realism</dt>
         <dd>{ofText(realism.compliant, realism.turns)} turns within its role</dd>
       </div>
+      <div>
+        <dt>Subject realism failures by check</dt>
+        <dd>
+          F1 canonical consistency {realism.failures.F1}, F2/F4 disclosure policy {realism.failures.F2_F4}, F3 knowledge bounds {realism.failures.F3}, F5 platform integrity {realism.failures.F5}, F6 in character {realism.failures.F6}
+        </dd>
+      </div>
     </dl>
   );
 }
 
-export function DebriefScene({ debrief, view, reducedMotion, onClose }: { debrief: Debrief; view: TrialView | null; reducedMotion: boolean; onClose: () => void }) {
+export function DebriefScene({ debrief, view, documents, reducedMotion, onClose }: { debrief: Debrief; view: TrialView | null; documents: readonly CaseDocument[]; reducedMotion: boolean; onClose: () => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("scores");
   useGSAP(
@@ -208,7 +255,7 @@ export function DebriefScene({ debrief, view, reducedMotion, onClose }: { debrie
       <div className="debrief-intro">
         <p className="fine">{EX4_TEXT}</p>
         <p>
-          Case outcome: <strong>{word(debrief.outcome.correct_finding)}</strong>. Your finding: <strong>{word(debrief.outcome.committed_label)}</strong>.
+          The subject's role: <strong>{debrief.outcome.role}</strong>. Case outcome: <strong>{word(debrief.outcome.correct_finding)}</strong>. Your finding: <strong>{word(debrief.outcome.committed_label)}</strong>.
         </p>
         <p className="fine">{debrief.outcome.resolution}</p>
       </div>
@@ -218,7 +265,7 @@ export function DebriefScene({ debrief, view, reducedMotion, onClose }: { debrie
         onChange={setTab}
         tabs={[
           { id: "scores", label: "Scores", content: <Scores debrief={debrief} /> },
-          { id: "questions", label: "Questions", content: <Questions view={view} /> },
+          { id: "questions", label: "Questions", content: <Questions view={view} documents={documents} /> },
           { id: "detection", label: "Detection", content: <Detection debrief={debrief} /> },
           { id: "learning", label: "Learning", content: <Learning debrief={debrief} /> },
         ]}

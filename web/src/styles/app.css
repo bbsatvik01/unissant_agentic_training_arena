@@ -1342,3 +1342,15 @@ td {
   background: var(--arena-surface-2);
   color: var(--arena-ink-2);
 }
+
+.debrief-scene .release-marker {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.debrief-scene .release-marker summary {
+  cursor: pointer;
+}
+.debrief-scene .provenance {
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}

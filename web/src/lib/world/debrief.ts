@@ -4,7 +4,7 @@
  * is scored here: every number comes from the document, and the review only lines up what was asked, what was
  * answered, how the coach read it and what the coach suggested next against the question actually asked next.
  */
-import type { Debrief, ScoredDebrief } from "../contracts/generated/types";
+import type { CoachCard, Debrief, ScoredDebrief, SnapshotRelease } from "../contracts/generated/types";
 import type { TrialView } from "../trial/trialReducer";
 
 export interface QuestionReview {
@@ -16,7 +16,10 @@ export interface QuestionReview {
   readonly neutralityIssues: readonly string[];
   readonly assessment: string | null;
   readonly answerCategory: string | null;
-  readonly flags: readonly { readonly kind: string; readonly quote: string }[];
+  /** The card the coach gave on this turn (its flags, with the server's citation checks), when there was one. */
+  readonly card: CoachCard["card"] | null;
+  /** Records released after this turn, in order. */
+  readonly released: readonly SnapshotRelease[];
   /** The coach's suggested follow-up, and the question the investigator asked next. */
   readonly suggested: string | null;
   readonly askedNext: string | null;
@@ -36,7 +39,8 @@ export function questionReview(view: TrialView): readonly QuestionReview[] {
       neutralityIssues: card?.question.neutrality_issues ?? [],
       assessment: card?.question.assessment ?? null,
       answerCategory: card?.answer_category ?? null,
-      flags: card?.flags.map((f) => ({ kind: f.kind, quote: f.quote })) ?? [],
+      card: card ?? null,
+      released: view.released.filter((r) => r.released_at_turn === t.turn_no),
       suggested: card?.follow_up.question ?? null,
       askedNext: turns[i + 1]?.question ?? null,
     };

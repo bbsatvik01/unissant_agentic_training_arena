@@ -16,10 +16,13 @@ describe("debrief data", () => {
     const review = questionReview(view);
     expect(review.map((r) => r.turn)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(review[0]).toMatchObject({ questionType: "open", answerCategory: "responsive", suggested: review[1]?.question, askedNext: review[1]?.question });
-    expect(review[0]?.flags).toEqual([{ kind: "gap", quote: "I left once it was running again." }]);
+    expect(review[0]?.card?.flags.map((f) => [f.kind, f.quote])).toEqual([["gap", "I left once it was running again."]]);
     expect(review.at(-1)?.askedNext).toBe(null);
     const noCards = questionReview({ ...view, cards: [] });
-    expect(noCards[0]).toMatchObject({ questionType: null, suggested: null, flags: [], neutralityIssues: [] });
+    // Each release sits under the turn it followed.
+    expect(review.flatMap((r) => r.released.map((x) => [r.turn, x.record_id]))).toEqual(view.released.map((x) => [x.released_at_turn, x.record_id]));
+    expect(view.released.length).toBeGreaterThan(0);
+    expect(noCards[0]).toMatchObject({ questionType: null, suggested: null, card: null, neutralityIssues: [] });
   });
 
   it("reads the detection scorecard as the document's own figures", () => {

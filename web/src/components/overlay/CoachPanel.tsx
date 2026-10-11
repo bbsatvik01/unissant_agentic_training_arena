@@ -55,7 +55,8 @@ function Chip({ turn, quote, ok, onCite }: { turn: number; quote: string; ok: bo
   );
 }
 
-function Flag({ flag, card, view, records, onCite }: { flag: StoredFlag; card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: CoachPanelProps["onCite"] }) {
+/** A flag with its citation chips; shared with the debrief's annotated transcript (S6 4.7 region 5). */
+export function Flag({ flag, card, view, records, onCite }: { flag: StoredFlag; card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: CoachPanelProps["onCite"] }) {
   const turn = turnOf(flag.turn_id);
   const answer = view.turns.find((t) => t.turn_no === turn)?.answer ?? "";
   // Verified only when both the shared predicate here and the server's own check agree (S6 4.5).
@@ -147,12 +148,17 @@ function Card({ card, view, records, onCite, onUseQuestion, finding }: { card: C
   );
 }
 
-export function CoachPanel({ view, released, documents, onCite, onUseQuestion }: CoachPanelProps) {
-  if (view.mode === "assessment") return <p className="empty">Coaching is saved for your debrief.</p>;
-  const records = new Map<string, { title: string; text: string }>([
+/** The case documents and released records by id, as title and plain text, for quote checks. */
+export function recordMap(documents: readonly CaseDocument[], released: readonly SnapshotRelease[]): ReadonlyMap<string, { title: string; text: string }> {
+  return new Map<string, { title: string; text: string }>([
     ...documents.map((d) => [d.doc_id, { title: d.title, text: contentText(d.content) }] as const),
     ...released.map((r) => [r.record_id, { title: r.title, text: contentText(r.content) }] as const),
   ]);
+}
+
+export function CoachPanel({ view, released, documents, onCite, onUseQuestion }: CoachPanelProps) {
+  if (view.mode === "assessment") return <p className="empty">Coaching is saved for your debrief.</p>;
+  const records = recordMap(documents, released);
   const newest = view.cards.at(-1);
   const earlier = view.cards.slice(0, -1).reverse();
   const failed = view.coachFailures.at(-1);

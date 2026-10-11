@@ -504,6 +504,7 @@ export function WorldRoute() {
             <DebriefScene
               debrief={debrief}
               view={view}
+              documents={documents}
               reducedMotion={still}
               onClose={() => {
                 setDebriefClosed(true);
