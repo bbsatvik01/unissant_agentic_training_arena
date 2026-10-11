@@ -158,6 +158,16 @@ class AgentPort:
         self._opts = options or PortOptions()
 
     async def run[T: BaseModel](self, call: AgentCall[T]) -> AgentResult[T]:
+        """S5 3.1: every failure ends in a typed ProviderError. A database or guard-protocol error (psycopg errors,
+        GuardProtocolError) surfaces as ProviderFailedError once the call's own cleanup has run; whatever the call
+        could not settle stays held at its full amount. A cancellation propagates unchanged."""
+        try:
+            return await self._run(call)
+        except GUARD_ERRORS as exc:
+            msg = f"spend guard failed: {type(exc).__name__}"
+            raise ProviderFailedError(msg) from exc
+
+    async def _run[T: BaseModel](self, call: AgentCall[T]) -> AgentResult[T]:
         limits = check_call_policy(call, self._opts.roster_manifest_shas)
         if not STEP_KEY_MIN <= len(call.context.step_key) <= STEP_KEY_MAX:
             msg = f"step key must be {STEP_KEY_MIN}..{STEP_KEY_MAX} characters"

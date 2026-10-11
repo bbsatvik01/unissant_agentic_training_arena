@@ -15,6 +15,7 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import psycopg
 import pytest
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -978,8 +979,10 @@ def test_a_cancellation_after_dispatch_committed_settles_usage_unknown_and_stays
 def test_a_dispatch_that_never_committed_releases_the_hold_and_keeps_its_error() -> None:
     adapter = FakeAdapter(script=[VALID])
     budget = LostBeforeDispatch(CEILING)
-    with pytest.raises(GuardProtocolError, match="connection lost"):
+    with pytest.raises(ProviderFailedError, match="spend guard failed: GuardProtocolError") as failed:
         run(AgentPort(adapter, budget, PortOptions(sleep=no_sleep)).run(card()))
+    assert isinstance(failed.value.__cause__, GuardProtocolError)  # typed at the boundary (S5 3.1), cause kept
+    assert "connection lost" in str(failed.value.__cause__)
     [held] = budget.reservations.values()
     assert (held.state, held.settled_usd) == ("released", Decimal(0))
 
@@ -1241,3 +1244,64 @@ def test_a_reply_without_an_object_fails_as_invalid_json() -> None:
     agent, _ = port(adapter)
     assert run(agent.run(card())).attempts == TWO
     assert "not valid JSON" in adapter.requests[1].messages[-1].text
+
+
+# ---------------------------------------------------------------- typed errors at the public boundary (S5 3.1)
+
+
+class DatabaseDown(RunBudget):
+    """A guard whose named operation fails with a database error (a lost connection)."""
+
+    fail_at: str = ""
+
+    def _maybe_fail(self, op: str) -> None:
+        if op == self.fail_at:
+            msg = f"server closed the connection during {op}"
+            raise psycopg.OperationalError(msg)
+
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        self._maybe_fail("reserve")
+        return await super().reserve(req)
+
+    async def dispatch(self, reservation_id: UUID) -> None:
+        self._maybe_fail("dispatch")
+        await super().dispatch(reservation_id)
+
+    async def record(self, report: UsageReport) -> UsageResult:
+        self._maybe_fail("record")
+        return await super().record(report)
+
+    async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
+        self._maybe_fail("settle")
+        return await super().settle(reservation_id, outcome)
+
+
+@pytest.mark.parametrize("stage", ["reserve", "dispatch", "record", "settle"])
+def test_a_database_error_at_any_lifecycle_stage_is_a_typed_provider_failure(stage: str) -> None:
+    budget = DatabaseDown(CEILING)
+    budget.fail_at = stage
+    agent = AgentPort(FakeAdapter(script=[VALID], usage=USAGE), budget, PortOptions(sleep=no_sleep))
+    with pytest.raises(ProviderFailedError, match="spend guard failed: OperationalError") as failed:
+        run(agent.run(card()))
+    assert isinstance(failed.value.__cause__, psycopg.OperationalError)
+    for held in budget.reservations.values():
+        # never released after a send; a hold the call could not settle stays charged at its full amount
+        assert held.state in {"reserved", "usage_unknown", "released"}
+        if held.dispatched:
+            assert held.state != "released"
+            assert budget.liability() >= held.reserved_usd
+
+
+def test_a_cancellation_still_propagates_unchanged() -> None:
+    adapter = Hanging()
+    agent = AgentPort(adapter, RunBudget(CEILING), PortOptions(sleep=no_sleep))
+
+    async def cancel() -> None:
+        adapter.entered = asyncio.Event()
+        task = asyncio.create_task(agent.run(card()))
+        await adapter.entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(cancel())
