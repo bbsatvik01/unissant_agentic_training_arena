@@ -8,63 +8,125 @@
 import { useState } from "react";
 
 import { EX4_TEXT } from "../../lib/copy/ex4";
-import { metricText, rankBar, type Board } from "../../lib/arena/leaderboard";
-import { cellState, matrix, type TournamentState } from "../../lib/arena/tournament";
+import { fprGate, metricText, rankBar, type Board } from "../../lib/arena/leaderboard";
+import { cellState, matrix, tracks, type Track, type TournamentState } from "../../lib/arena/tournament";
 import { Tabs } from "./Tabs";
 
 export const NOT_CERTIFICATION = "A tournament rank is not certification for real investigations.";
 
-function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean }) {
-  // The scale runs to the last rank any interval reaches (an interval can be wider than the ranked count).
-  const ranked = Math.max(board.rows.filter((r) => r.rank !== null).length, ...board.rows.map((r) => r.rankInterval?.hi ?? 0));
+function Binding({ board }: { board: Board }) {
+  return board.manifestHash === null ? (
+    <p className="fine">Inclusion manifest not published.</p>
+  ) : (
+    <p className="fine binding">
+      Bound to inclusion manifest{board.manifestVersion === null ? "" : ` version ${String(board.manifestVersion)}`}: <code className="mono hash">{board.manifestHash}</code>
+    </p>
+  );
+}
+
+function GatePanel({ board }: { board: Board }) {
   return (
-    <table className="board">
-      <caption className="fine">
-        Assistant board, {board.status}. Ranked by deceptive-role recall, then questioning quality, among eligible candidates; the bar is the rank interval.
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">Rank</th>
-          <th scope="col">Coach</th>
-          <th scope="col">Eligibility</th>
-          <th scope="col">Rank interval</th>
-          <th scope="col">Recall (M01)</th>
-          <th scope="col">False positives (M02)</th>
-          <th scope="col">Precision (M03)</th>
-          <th scope="col">Questioning (M09)</th>
-        </tr>
-      </thead>
-      <tbody>
+    <section className="gates" aria-labelledby="gates-title">
+      <h3 id="gates-title" className="eyebrow">
+        Eligibility gates, before any rank
+      </h3>
+      <p className="fine">
+        Isolation gate: {board.notRanked ? "failed" : "passed"}
+        {board.isolationHash === null ? "" : ", evidence "}
+        {board.isolationHash === null ? null : <code className="mono">{board.isolationHash.slice(0, 12)}</code>}. <a href="/trust/isolation">How isolation is checked</a>
+      </p>
+      <ul className="gate-list">
         {board.rows.map((r) => {
-          const bar = r.rankInterval === null ? null : rankBar(r.rankInterval, Math.max(1, ranked));
+          const g = fprGate(r);
           return (
-            <tr key={r.candidate_id}>
-              <td className="mono">{r.rank === null ? "not ranked" : r.rank}</td>
-              <td>
+            <li key={r.candidate_id} data-gate={g.result.split(" ")[0]}>
+              <span>
                 {r.display_name} <span className="mono fine">{r.candidate_id}</span>
-              </td>
-              <td>
-                {r.eligible === null ? "not computed" : r.eligible ? "eligible" : `ineligible${r.reason === null ? "" : ` (${r.reason.replaceAll("_", " ")})`}`}
-                {r.provisional ? ", provisional" : ""}
-              </td>
-              <td>
-                {bar === null || r.rankInterval === null ? (
-                  "none"
-                ) : (
-                  <span className="rank-interval" role="img" aria-label={`Ranks ${String(r.rankInterval.lo)} to ${String(r.rankInterval.hi)}`}>
-                    <span className="rank-bar" data-animate={motionOff ? "false" : "true"} style={{ left: `${String(bar.left * 100)}%`, width: `${String(bar.width * 100)}%` }} />
-                  </span>
-                )}
-              </td>
-              <td>{metricText(r.metrics["M01_deceptive_recall"])}</td>
-              <td>{metricText(r.metrics["M02_false_positive_rate"])}</td>
-              <td>{metricText(r.metrics["M03_ppv"])}</td>
-              <td>{metricText(r.metrics["M09_questioning_quality"])}</td>
-            </tr>
+              </span>
+              <span>
+                False-positive rate {g.fpr}; sponsor gate at or below 5%: {g.result}
+                {g.bound === null ? "" : `. ${g.bound}`}
+              </span>
+            </li>
           );
         })}
-      </tbody>
-    </table>
+      </ul>
+    </section>
+  );
+}
+
+function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean }) {
+  if (board.notRanked) {
+    return (
+      <>
+        <Binding board={board} />
+        <p className="empty">Not ranked: the isolation gate failed.</p>
+      </>
+    );
+  }
+  const ranked = board.rows.filter((r) => r.rank !== null);
+  const unranked = board.rows.filter((r) => r.rank === null);
+  // The scale runs to the last rank any interval reaches (an interval can be wider than the ranked count).
+  const scale = Math.max(1, ranked.length, ...ranked.map((r) => r.rankInterval?.hi ?? 0));
+  return (
+    <>
+      <Binding board={board} />
+      <GatePanel board={board} />
+      <table className="board">
+        <caption className="fine">
+          Assistant board, {board.status}. Ranked by deceptive-role recall, then questioning quality, among eligible candidates; the bar is the rank interval, and overlapping bars mean the order is uncertain.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Coach</th>
+            <th scope="col">Rank interval</th>
+            <th scope="col">Recall (M01)</th>
+            <th scope="col">Questioning (M09)</th>
+            <th scope="col">Precision (M03)</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ranked.map((r) => {
+            const bar = r.rankInterval === null ? null : rankBar(r.rankInterval, scale);
+            return (
+              <tr key={r.candidate_id}>
+                <td className="mono">{r.rank}</td>
+                <td>
+                  {r.display_name} <span className="mono fine">{r.candidate_id}</span>
+                </td>
+                <td>
+                  {bar === null || r.rankInterval === null ? (
+                    "interval unavailable"
+                  ) : (
+                    <span className="rank-interval" role="img" aria-label={`Ranks ${String(r.rankInterval.lo)} to ${String(r.rankInterval.hi)}`}>
+                      <span className="rank-bar" data-animate={motionOff ? "false" : "true"} style={{ left: `${String(bar.left * 100)}%`, width: `${String(bar.width * 100)}%` }} />
+                    </span>
+                  )}
+                </td>
+                <td>{metricText(r.metrics["M01_deceptive_recall"])}</td>
+                <td>{metricText(r.metrics["M09_questioning_quality"])}</td>
+                <td>{metricText(r.metrics["M03_ppv"])}</td>
+                <td>{r.provisional ? "provisional (attrition sensitivity)" : "definitive"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {unranked.length === 0 ? null : (
+        <>
+          <h3 className="eyebrow">Ineligible, not ranked</h3>
+          <ul className="ineligible">
+            {unranked.map((r) => (
+              <li key={r.candidate_id}>
+                {r.display_name} <span className="mono fine">{r.candidate_id}</span>: {r.reason ?? r.eligibilityStatus ?? "not eligible"}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
   );
 }
 
@@ -96,7 +158,7 @@ function SubjectBoard({ board }: { board: Board }) {
   );
 }
 
-function Matrix({ tournament }: { tournament: TournamentState }) {
+function Matrix({ tournament, track, onTrack }: { tournament: TournamentState; track: Track | null; onTrack: (t: Track) => void }) {
   if (tournament.visibility === "counts") {
     return (
       <table className="board">
@@ -126,9 +188,19 @@ function Matrix({ tournament }: { tournament: TournamentState }) {
       </table>
     );
   }
+  const present = tracks(tournament);
+  if (present.length === 0) return <p className="empty">No trials yet.</p>;
+  return <Tabs label="Tracks" value={track ?? present[0] ?? "interactive"} onChange={(t) => {
+    onTrack(t as Track);
+  }} tabs={present.map((t) => ({ id: t, label: TRACK_NAME[t], content: <TrackMatrix tournament={tournament} track={t} /> }))} />;
+}
+
+const TRACK_NAME: Readonly<Record<Track, string>> = { replay: "Replay track", interactive: "Interactive track", replay_corpus: "Replay corpus" };
+
+function TrackMatrix({ tournament, track }: { tournament: TournamentState; track: Track }) {
   return (
-    <div className="matrix" role="table" aria-label="Tournament trials by pairing">
-      {matrix(tournament).map((row) => (
+    <div className="matrix" role="table" aria-label={`${TRACK_NAME[track]}: trials by pairing`}>
+      {matrix(tournament, track).map((row) => (
         <div key={row.pairing} className="matrix-row" role="row">
           <span className="mono matrix-pairing" role="rowheader">
             {row.pairing}
@@ -157,6 +229,7 @@ export function ArenaView(props: {
   readonly onClose: () => void;
 }) {
   const [tab, setTab] = useState("leaderboard");
+  const [track, setTrack] = useState<Track | null>(null);
   return (
     <div className="arena-view" role="dialog" aria-labelledby="arena-title">
       <header className="panel-head">
@@ -186,7 +259,7 @@ export function ArenaView(props: {
               </>
             ),
           },
-          { id: "tournament", label: "Tournament", content: <Matrix tournament={props.tournament} /> },
+          { id: "tournament", label: "Tournament", content: <Matrix tournament={props.tournament} track={track} onTrack={setTrack} /> },
         ]}
       />
     </div>

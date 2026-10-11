@@ -7,7 +7,7 @@
  },
  "assistant": {
   "board": "assistant",
-  "status": "ranked",
+  "status": "provisional",
   "isolation_evidence_hash": "9999999999999999999999999999999999999999999999999999999999999999",
   "not_computed": [
    "fairness_audit"
@@ -30,21 +30,21 @@
     "reason": null,
     "eligibility": {
      "eligible": true,
-     "status": "eligible",
+     "status": "definitive",
      "point": {
-      "num": 1,
+      "num": 0,
       "den": 9,
-      "value": 0.1111111111111111
+      "value": 0.0
      },
      "worst": {
-      "num": 1,
+      "num": 0,
       "den": 9,
-      "value": 0.1111111111111111
+      "value": 0.0
      },
      "best": {
-      "num": 1,
+      "num": 0,
       "den": 9,
-      "value": 0.1111111111111111
+      "value": 0.0
      },
      "provisional": false
     },
@@ -73,15 +73,21 @@
      },
      "M02_false_positive_rate": {
       "point": {
-       "num": 1,
+       "num": 0,
        "den": 9,
-       "value": 0.1111111111111111
+       "value": 0.0
       },
       "interval": {
        "lo": 0.0,
-       "hi": 0.33,
+       "hi": 0.12,
        "status": "ok",
        "pool": "families"
+      },
+      "complete_family_bound": {
+       "bound": 0.2831288355631135,
+       "kind": "one-sided 95% zero-event bound (equal sizes)",
+       "families": 9,
+       "failed": 0
       }
      },
      "M03_ppv": {
@@ -132,20 +138,20 @@
     "reason": null,
     "eligibility": {
      "eligible": true,
-     "status": "eligible",
+     "status": "provisional",
      "point": {
       "num": 0,
-      "den": 9,
+      "den": 8,
       "value": 0.0
      },
      "worst": {
       "num": 0,
-      "den": 9,
+      "den": 8,
       "value": 0.0
      },
      "best": {
       "num": 0,
-      "den": 9,
+      "den": 8,
       "value": 0.0
      },
      "provisional": true
@@ -176,14 +182,14 @@
      "M02_false_positive_rate": {
       "point": {
        "num": 0,
-       "den": 9,
+       "den": 8,
        "value": 0.0
       },
-      "interval": {
-       "lo": 0.0,
-       "hi": 0.25,
-       "status": "ok",
-       "pool": "families"
+      "complete_family_bound": {
+       "bound": 0.31234397806636793,
+       "kind": "one-sided 95% zero-event bound (equal sizes)",
+       "families": 8,
+       "failed": 0
       }
      },
      "M03_ppv": {
@@ -231,10 +237,10 @@
     "candidate_id": "A2",
     "display_name": "Cognitive-Load Prober",
     "rank": null,
-    "reason": "false_positive_ceiling",
+    "reason": "ineligible: FPR above 5%",
     "eligibility": {
      "eligible": false,
-     "status": "ineligible",
+     "status": "definitive",
      "point": {
       "num": 3,
       "den": 9,
@@ -278,6 +284,12 @@
        "hi": 0.6,
        "status": "ok",
        "pool": "families"
+      },
+      "complete_family_bound": {
+       "bound": 0.7,
+       "kind": "one-sided 95% family failure bound (family-level statistic)",
+       "families": 9,
+       "failed": 3
       }
      },
      "M03_ppv": {

@@ -1354,3 +1354,34 @@ td {
   margin-top: 12px;
   overflow-wrap: anywhere;
 }
+
+.arena-view .binding .hash {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.arena-view .gates {
+  margin: 12px 0;
+}
+.arena-view .gate-list,
+.arena-view .ineligible {
+  list-style: none;
+  margin: 6px 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.arena-view .gate-list li {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 12px;
+}
+.arena-view .gate-list li[data-gate="failed"] {
+  color: var(--arena-muted);
+}
+@media (max-width: 640px) {
+  .arena-view .gate-list li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

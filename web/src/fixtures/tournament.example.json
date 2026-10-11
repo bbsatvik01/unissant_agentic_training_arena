@@ -2,7 +2,7 @@
  "note": "Example poll response for a development tournament, shaped like GET /api/tournaments/{id}/events (S6 4.9). Not a result.",
  "poll": {
   "visibility": "events",
-  "last": 81,
+  "last": 108,
   "frames": [
    {
     "v": 1,
@@ -1049,8 +1049,359 @@
     "seq": 81,
     "scope": "tournament",
     "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:01.000Z",
+    "data": {
+     "trial_ref": 28,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-00000000001c",
+     "pairing": "A1 x S1",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 82,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:02.000Z",
+    "data": {
+     "trial_ref": 28,
+     "commitment_hash": "0000000000000000000000000000000000000000000000000000000000036224"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 83,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:03.000Z",
+    "data": {
+     "trial_ref": 28,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 84,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:04.000Z",
+    "data": {
+     "trial_ref": 29,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-00000000001d",
+     "pairing": "A1 x S2",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 85,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:05.000Z",
+    "data": {
+     "trial_ref": 29,
+     "commitment_hash": "0000000000000000000000000000000000000000000000000000000000038113"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 86,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:06.000Z",
+    "data": {
+     "trial_ref": 29,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 87,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:07.000Z",
+    "data": {
+     "trial_ref": 30,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-00000000001e",
+     "pairing": "A1 x S3",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 88,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:08.000Z",
+    "data": {
+     "trial_ref": 30,
+     "commitment_hash": "000000000000000000000000000000000000000000000000000000000003a002"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 89,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:09.000Z",
+    "data": {
+     "trial_ref": 30,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 90,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:10.000Z",
+    "data": {
+     "trial_ref": 31,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-00000000001f",
+     "pairing": "A2 x S1",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 91,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:11.000Z",
+    "data": {
+     "trial_ref": 31,
+     "commitment_hash": "000000000000000000000000000000000000000000000000000000000003bef1"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 92,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:12.000Z",
+    "data": {
+     "trial_ref": 31,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 93,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:13.000Z",
+    "data": {
+     "trial_ref": 32,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-000000000020",
+     "pairing": "A2 x S2",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 94,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:14.000Z",
+    "data": {
+     "trial_ref": 32,
+     "commitment_hash": "000000000000000000000000000000000000000000000000000000000003dde0"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 95,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:15.000Z",
+    "data": {
+     "trial_ref": 32,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 96,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:16.000Z",
+    "data": {
+     "trial_ref": 33,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-000000000021",
+     "pairing": "A2 x S3",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 97,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:17.000Z",
+    "data": {
+     "trial_ref": 33,
+     "commitment_hash": "000000000000000000000000000000000000000000000000000000000003fccf"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 98,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:18.000Z",
+    "data": {
+     "trial_ref": 33,
+     "state": "source_unavailable"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 99,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:19.000Z",
+    "data": {
+     "trial_ref": 34,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-000000000022",
+     "pairing": "A3 x S1",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 100,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:20.000Z",
+    "data": {
+     "trial_ref": 34,
+     "commitment_hash": "0000000000000000000000000000000000000000000000000000000000041bbe"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 101,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:21.000Z",
+    "data": {
+     "trial_ref": 34,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 102,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:22.000Z",
+    "data": {
+     "trial_ref": 35,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-000000000023",
+     "pairing": "A3 x S2",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 103,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:23.000Z",
+    "data": {
+     "trial_ref": 35,
+     "commitment_hash": "0000000000000000000000000000000000000000000000000000000000043aad"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 104,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:24.000Z",
+    "data": {
+     "trial_ref": 35,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 105,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.started",
+    "ts": "2026-10-11T12:02:25.000Z",
+    "data": {
+     "trial_ref": 36,
+     "trial_id": "3f2b8c1e-5a4d-4e8f-9b2a-000000000024",
+     "pairing": "A3 x S3",
+     "track": "replay",
+     "block": null
+    }
+   },
+   {
+    "v": 1,
+    "seq": 106,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.finalized",
+    "ts": "2026-10-11T12:02:26.000Z",
+    "data": {
+     "trial_ref": 36,
+     "commitment_hash": "000000000000000000000000000000000000000000000000000000000004599c"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 107,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+    "type": "trial.execution",
+    "ts": "2026-10-11T12:02:27.000Z",
+    "data": {
+     "trial_ref": 36,
+     "state": "completed"
+    }
+   },
+   {
+    "v": 1,
+    "seq": 108,
+    "scope": "tournament",
+    "scope_id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
     "type": "tournament.status",
-    "ts": "2026-10-11T12:01:21.000Z",
+    "ts": "2026-10-11T12:03:00.000Z",
     "data": {
      "state": "revealed"
     }

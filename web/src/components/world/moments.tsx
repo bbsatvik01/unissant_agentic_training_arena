@@ -216,13 +216,20 @@ function ScorePin({ card, at, index, motionOff }: { card: ScoreCard; at: Vec3; i
   useEffect(() => () => {
     texture.dispose();
   }, [texture]);
-  useGSAP(() => {
+  // Flies once. Turning motion off mid-flight reverts the tweens, which leaves the card at its place on the wall;
+  // turning motion on again does not fly it a second time.
+  const flown = useRef(false);
+  useGSAP(
+    () => {
     const g = group.current;
-    if (g === null || motionOff) return;
+    if (g === null || motionOff || flown.current) return;
+    flown.current = true;
     gsap.from(g.position, { y: TABLE.center[1] + 0.3, z: TABLE.center[2], x: TABLE.center[0], duration: 1.0, delay: 0.35 + index * 0.22, ease: "power3.out" });
     gsap.from(g.rotation, { x: -1.2, z: 0.4, duration: 1.0, delay: 0.35 + index * 0.22, ease: "power3.out" });
     gsap.from(g.scale, { x: 0.4, y: 0.4, z: 0.4, duration: 0.6, delay: 0.35 + index * 0.22, ease: "power2.out" });
-  });
+    },
+    { dependencies: [motionOff], revertOnUpdate: true },
+  );
   return (
     <group ref={group} position={at}>
       <mesh castShadow>

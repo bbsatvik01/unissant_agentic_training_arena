@@ -65,10 +65,21 @@ export function foldPoll(state: TournamentState, poll: TournamentPoll): Tourname
   return { visibility: "events", state: tournamentState, last: Math.max(base.last, poll.last), trials, progress: [] };
 }
 
-/** The matrix: pairings as rows, each with its trials in `trial_ref` order. */
-export function matrix(state: TournamentState): readonly { readonly pairing: string; readonly cells: readonly TrialCell[] }[] {
+export type Track = TrialCell["track"];
+
+/** The tracks in the sponsor's order (S6 4.9: the replay track, then the interactive track; the replay corpus last). */
+const TRACK_ORDER: readonly Track[] = ["replay", "interactive", "replay_corpus"];
+
+/** The tracks the tournament has trials on, in the sponsor's order. */
+export function tracks(state: TournamentState): readonly Track[] {
+  const present = new Set([...state.trials.values()].map((c) => c.track));
+  return TRACK_ORDER.filter((t) => present.has(t));
+}
+
+/** One track's matrix: its pairings as rows, each with that track's trials in `trial_ref` order. */
+export function matrix(state: TournamentState, track: Track): readonly { readonly pairing: string; readonly cells: readonly TrialCell[] }[] {
   const rows = new Map<string, TrialCell[]>();
-  for (const cell of [...state.trials.values()].sort((a, b) => a.trial_ref - b.trial_ref)) {
+  for (const cell of [...state.trials.values()].filter((c) => c.track === track).sort((a, b) => a.trial_ref - b.trial_ref)) {
     const list = rows.get(cell.pairing) ?? [];
     list.push(cell);
     rows.set(cell.pairing, list);

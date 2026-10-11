@@ -14,13 +14,26 @@ export interface MetricView {
   readonly interval: { readonly lo: number; readonly hi: number } | null;
 }
 
+/** A published family-level bound (`complete_family_bound`): the bound, its own label, and the family counts. */
+export interface FamilyBoundView {
+  readonly bound: number | null;
+  readonly kind: string;
+  readonly families: number;
+  readonly failed: number;
+}
+
 export interface BoardRow {
   readonly candidate_id: string;
   readonly display_name: string;
   readonly rank: number | null;
   readonly eligible: boolean | null;
+  /** The eligibility status as published (definitive, provisional, "insufficient: ..."). */
+  readonly eligibilityStatus: string | null;
   readonly provisional: boolean;
   readonly reason: string | null;
+  /** The FPR gate's figures: the candidate's own FPR point with M02's interval, and the complete-family bound. */
+  readonly fpr: MetricView | null;
+  readonly fprBound: FamilyBoundView | null;
   readonly rankInterval: { readonly lo: number; readonly hi: number } | null;
   readonly metrics: Readonly<Record<string, MetricView>>;
 }
@@ -28,6 +41,12 @@ export interface BoardRow {
 export interface Board {
   readonly board: "assistant" | "subject";
   readonly status: string;
+  /** The server's "not ranked: isolation gate failed": no ranks and no rows. */
+  readonly notRanked: boolean;
+  /** The inclusion manifest the board is bound to (`binding.manifest_sha256`), in full. */
+  readonly manifestHash: string | null;
+  readonly manifestVersion: number | null;
+  readonly isolationHash: string | null;
   readonly rows: readonly BoardRow[];
 }
 
@@ -57,6 +76,14 @@ export function metricView(v: unknown): MetricView | null {
 const NESTED: ReadonlySet<string> = new Set(["M12_subject_fidelity"]);
 const SHOWN: readonly string[] = ["M01_deceptive_recall", "M02_false_positive_rate", "M03_ppv", "M09_questioning_quality", "M12_subject_fidelity", "M13_invalid_session_rate", "M14_deceptive_success"];
 
+function familyBound(v: unknown): FamilyBoundView | null {
+  if (!isRecord(v) || typeof v["kind"] !== "string") return null;
+  const families = num(v["families"]);
+  const failed = num(v["failed"]);
+  if (families === null || failed === null) return null;
+  return { bound: num(v["bound"]), kind: v["kind"], families, failed };
+}
+
 function parseRow(v: unknown): BoardRow | null {
   if (!isRecord(v) || typeof v["candidate_id"] !== "string" || typeof v["display_name"] !== "string") return null;
   const rank = v["rank"] === null ? null : num(v["rank"]);
@@ -73,11 +100,16 @@ function parseRow(v: unknown): BoardRow | null {
   }
   const lo = ri === null ? null : num(ri["lo"]);
   const hi = ri === null ? null : num(ri["hi"]);
+  const m02 = isRecord(metricsIn["M02_false_positive_rate"]) ? metricsIn["M02_false_positive_rate"] : null;
+  const fpr = elig === null ? null : metricView({ point: elig["point"], interval: m02?.["interval"] });
   return {
     candidate_id: v["candidate_id"],
     display_name: v["display_name"],
     rank,
     eligible: elig === null || typeof elig["eligible"] !== "boolean" ? null : elig["eligible"],
+    eligibilityStatus: elig !== null && typeof elig["status"] === "string" ? elig["status"] : null,
+    fpr,
+    fprBound: familyBound(m02?.["complete_family_bound"]),
     provisional: elig !== null && elig["provisional"] === true,
     reason: typeof v["reason"] === "string" ? v["reason"] : null,
     rankInterval: lo === null || hi === null ? null : { lo, hi },
@@ -90,15 +122,39 @@ export function parseBoard(v: unknown): Board | null {
   if (!isRecord(v) || (v["board"] !== "assistant" && v["board"] !== "subject") || typeof v["status"] !== "string" || !Array.isArray(v["rows"])) return null;
   const rows = (v["rows"] as unknown[]).map(parseRow);
   if (rows.some((r) => r === null)) return null;
-  return { board: v["board"], status: v["status"], rows: rows as BoardRow[] };
+  const binding = isRecord(v["binding"]) ? v["binding"] : null;
+  return {
+    board: v["board"],
+    status: v["status"],
+    notRanked: v["status"].startsWith("not ranked"),
+    manifestHash: binding !== null && typeof binding["manifest_sha256"] === "string" ? binding["manifest_sha256"] : null,
+    manifestVersion: binding === null ? null : num(binding["manifest_version"]),
+    isolationHash: typeof v["isolation_evidence_hash"] === "string" ? v["isolation_evidence_hash"] : null,
+    rows: rows as BoardRow[],
+  };
 }
 
-/** A metric's point as a percentage with its interval, as words: "89% (62-100%)", or "not computed". */
+function pct(x: number): string {
+  return `${String(Math.round(x * 100))}%`;
+}
+
+/** A published metric as words (FE-LB-2): "89%, interval 62%-100%"; "interval unavailable" when the server
+ * published no interval; "undefined" when it published the metric without a point (a zero denominator); "not
+ * computed" when the metric is absent. The published fractions are reduced, so they are not shown as counts. */
 export function metricText(m: MetricView | undefined): string {
-  if (m === undefined || m.point === null) return "not computed";
-  const pct = (x: number) => `${String(Math.round(x * 100))}%`;
-  const base = m.ratio === null ? pct(m.point) : `${pct(m.point)} (${String(m.ratio.num)}/${String(m.ratio.den)})`;
-  return m.interval === null ? base : `${base}, interval ${pct(m.interval.lo)}-${pct(m.interval.hi)}`;
+  if (m === undefined) return "not computed";
+  if (m.point === null) return "undefined";
+  return m.interval === null ? `${pct(m.point)}, interval unavailable` : `${pct(m.point)}, interval ${pct(m.interval.lo)}-${pct(m.interval.hi)}`;
+}
+
+/** The FPR gate for one candidate (S6 4.10 item 2; EVL-6): the sponsor gate's result as the server decided it,
+ * the FPR with its interval, and for zero false positives the complete-family bound as published. */
+export function fprGate(row: BoardRow): { result: string; fpr: string; bound: string | null } {
+  const insufficient = row.eligibilityStatus?.startsWith("insufficient") === true;
+  const result = insufficient ? "insufficient (no included truthful trials)" : row.eligible === true ? "passed" : "failed";
+  const b = row.fprBound;
+  const bound = row.fpr?.point === 0 && b !== null && b.bound !== null ? `0 of ${String(b.families)} truthful families; ${b.kind} ${(b.bound * 100).toFixed(1)}%` : null;
+  return { result, fpr: insufficient ? "undefined" : metricText(row.fpr ?? undefined), bound };
 }
 
 /** Where a rank interval sits on a scale of `n` ranks, as left offset and width fractions for its bar. */
