@@ -8,9 +8,11 @@ role proves the same S5 1.3 refusals against its own entry point; they still exi
 
 from __future__ import annotations
 
+import os
 import selectors
 import signal
 import time
+from collections.abc import Iterator
 from http import HTTPStatus
 from typing import IO, Any
 from uuid import uuid4
@@ -32,16 +34,40 @@ STARTUP_TIMEOUT_S = 10.0
 SHUTDOWN_TIMEOUT_S = 10.0
 
 
-def _readline_before(stream: IO[str], deadline: float) -> str | None:
-    """One line from `stream`, or `None` if nothing arrived before the monotonic `deadline` - so a hung
-    child can never block this test forever the way a bare `readline()` would."""
+def _lines_before(stream: IO[str], deadline: float) -> Iterator[str]:
+    """Every complete line the child writes before the monotonic `deadline`, so a hung child can never
+    block this test forever.
+
+    Reads raw bytes off `stream`'s own file descriptor with `os.read`, never through
+    `TextIOWrapper.readline()`: a selector only knows whether the OS-level fd has *new* bytes, but
+    `readline()` can pull more than one line into the `TextIOWrapper`'s own internal buffer in a single
+    underlying read - a second, already-complete line can then sit there, invisible to the next
+    `select()` call, which reports not-ready and the deadline expires even though a line was available
+    the whole time (reproduced with this test's real 10s timeout, not only a contrived short one: a
+    later `select()` can genuinely time out while a prior `readline()`-style call already has a full
+    line buffered). Keeping an explicit byte buffer here and never touching `stream`'s own read methods
+    avoids that race entirely; `stream.read()` is still safe to call afterwards (nothing has drained its
+    internal buffer, since nothing has called into it)."""
+    fd = stream.fileno()
     sel = selectors.DefaultSelector()
-    sel.register(stream, selectors.EVENT_READ)
+    sel.register(fd, selectors.EVENT_READ)
+    buf = b""
     try:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0 or not sel.select(timeout=remaining):
-            return None
-        return stream.readline()
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not sel.select(timeout=remaining):
+                if buf:
+                    yield buf.decode("utf-8", errors="replace")
+                return
+            chunk = os.read(fd, 65536)
+            if not chunk:  # EOF: the process exited (or closed the pipe) before the deadline
+                if buf:
+                    yield buf.decode("utf-8", errors="replace")
+                return
+            buf += chunk
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                yield line.decode("utf-8", errors="replace") + "\n"
     finally:
         sel.close()
 
@@ -60,10 +86,7 @@ def test_boots_clean_and_serves_until_signalled_then_shuts_down_gracefully() -> 
         deadline = time.monotonic() + STARTUP_TIMEOUT_S
         lines: list[str] = []
         ready = False
-        while time.monotonic() < deadline:
-            line = _readline_before(proc.stdout, deadline)
-            if not line:  # None (deadline) or "" (EOF: the process exited before becoming ready)
-                break
+        for line in _lines_before(proc.stdout, deadline):
             lines.append(line)
             if "Uvicorn running on" in line:
                 ready = True
