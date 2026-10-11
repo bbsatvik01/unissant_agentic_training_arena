@@ -169,11 +169,16 @@ create temp table tt06res2 on commit drop as select tests.as_role('arena_subject
 create temp table tt06open2 on commit drop as select tests.as_role('arena_subject', format(
   'select to_jsonb(training.open_voice_session(%L, %L))', (select ticket from tt06ticket2), (select (r ->> 'id')::uuid from tt06res2)))
   #>> '{}' as session;
-create temp table tt06quota on commit drop as select tests.error(format('select training.issue_access_ticket(%L, %L)',
-  'voice', (select trial from tt06trial))) as v;
+-- close session 2 BEFORE the quota check below, so the next ticket attempt is refused by the quota alone
+-- (voice_sessions_per_user_day = 2, already opened twice today), not masked by an open-session refusal too.
 select tests.as_role('arena_subject', format('select to_jsonb(training.close_voice_session(%L, %L)::text)',
   (select session from tt06open2), 'tt06-done-2'));
 select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', (select (r ->> 'id')::uuid from tt06res2), 'released'));
+create temp table tt06quota on commit drop as select tests.error(format('select training.issue_access_ticket(%L, %L)',
+  'voice', (select trial from tt06trial))) as v;
+-- a fresh actor (A, untouched by C's exhausted voice quota above) for the no-voice-flag check, so a missing
+-- voice flag on the trial is the only thing that can produce this refusal.
+select pg_temp.tt_act('A');
 select tests.family('TT06TXT', 'dev');
 create temp table tt06txt on commit drop as select (training.start_session(tests.variant('TT06TXT', 'truthful'), 'practice',
   tests.candidate('assistant', 'A1'), tests.candidate('subject', 'S1'), false, 'tt06-txt-01') ->> 'trial_id')::uuid as trial;
@@ -304,19 +309,38 @@ select is(array[(select c from tt11before), (select c from tt11after)], array['0
   'TT-11 v_my_scores hides a session''s rubric score until the trial ends');
 
 -- ---------------------------------------------------------------------------- TT-12
+-- a real debrief, published on C's own finalized session (tt10session, from TT-10), so v_my_debrief's
+-- actor-scoping is actually exercised (an empty table would trivially satisfy a bare count = 0 for D too,
+-- without ever proving the view excludes another actor's row). publish_debrief does not check
+-- arena.actor_id() itself (it is arena_referee's own call, ownership-agnostic by design; the running
+-- investigator is never the caller), so it runs here exactly as TT-19 calls it later, with no actor bracket.
+create temp table tt12debriefpub on commit drop as select training.publish_debrief((select id from tt10session),
+  jsonb_build_object('schema_version', 'debrief.v1', 'session_id', (select id from tt10session)::text,
+    'scored', true, 'outcome', jsonb_build_object('role', 'truthful', 'correct_finding', true,
+      'committed_label', 'insufficient_evidence', 'resolution', 'tt12'),
+    'rubric', '{}'::jsonb, 'scorecards', '{}'::jsonb, 'provenance', '{}'::jsonb)) as r;
 select pg_temp.tt_act('D');
 create temp table tt12sessions on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_sessions')::text as c;
-create temp table tt12debrief on commit drop as select tests.as_role('arena_public',
+create temp table tt12sessionsreal on commit drop as select count(*)::text as c from training.sessions
+  where user_id = tests.uid('D');
+create temp table tt12debriefmine on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_debrief')::text as c;
 create temp table tt12study on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_study')::text as c;
+select pg_temp.tt_act('C');
+create temp table tt12debriefother on commit drop as select tests.as_role('arena_public',
+  'select count(*) from training.v_my_debrief')::text as c;
 select pg_temp.tt_act('');
 create temp table tt12none on commit drop as select tests.as_role('arena_public',
   'select count(*) from training.v_my_sessions')::text as c;
-select is(array[((select c from tt12sessions)::integer > 0)::text, (select c from tt12debrief), (select c from tt12none)],
-  array['true', '0', '0'],
-  'TT-12 v_my_sessions, v_my_debrief and v_my_study return only the actor''s own rows; with no actor set, none');
+select is(array[((select c from tt12sessions) = (select c from tt12sessionsreal))::text,
+                (select c from tt12debriefmine), (select c from tt12debriefother),
+                (select c from tt12study), (select c from tt12none)],
+  array['true', '0', '1', '0', '0'],
+  'TT-12 v_my_sessions matches D''s own session count exactly (not just a positive number); a debrief '
+  || 'published on C''s session is invisible to D''s v_my_debrief and visible (one row) to C''s own; '
+  || 'v_my_study is empty for D (not yet a KPI-1 participant); with no actor set, v_my_sessions returns none');
 
 -- ---------------------------------------------------------------------------- TT-13
 select tests.family('TT13DEV', 'dev');
@@ -477,9 +501,16 @@ select arena.finalize_trial((select trial from tt15voice), (select wi from tt15v
 create temp table tt15study0 on commit drop as select tests.as_role('arena_public',
   'select practice_ended from training.v_my_study')::integer as n;
 -- the pre-tests and the five excluded sessions above (free x3, terminated, voice) already used all of D's
--- text_sessions_per_user_day = 5 quota for today; backdate them so the three real practice sessions and
--- the two post-tests below can still be created today (the quota check counts only today's rows).
+-- text_sessions_per_user_day = 5 quota for today; backdate them BEFORE the repeat check below, so that
+-- check's refusal is the admission guard's own AR007, not the unrelated daily quota (AR040) masking it.
 select pg_temp.tt_backdate('D');
+-- repeat the post-test refusal NOW, after the five excluded sessions above actually exist (tt15postearly,
+-- captured before any of them existed, only proved the refusal with zero practice sessions at all): this is
+-- the check the comment above claims, and the only one that would catch session_counts excluding the wrong
+-- thing (mode, status or voice) for one of those five.
+create temp table tt15postearly2 on commit drop as select tests.error(format(
+  'select training.start_session(%L, %L, %L, %L, false, %L)', tests.variant('TT15SETB', 'truthful'), 'assessment',
+  tests.candidate('assistant', 'A1'), tests.candidate('subject', 'S1'), 'tt15-post-early-2')) as v;
 
 -- three finalized text Practice sessions, then the post-tests.
 select tests.family('TT15PRAC1', 'dev');
@@ -500,11 +531,12 @@ create temp table tt15study1 on commit drop as select tests.as_role('arena_publi
 select pg_temp.tt_act('');
 select is(array[(select v from tt15practice0), (select v from tt15post0), (select v from tt15predup),
                 (select phase from tt15pre1phase), (select phase from tt15pre2phase), (select v from tt15postearly),
-                (select n::text from tt15study0), (select phase from tt15postv), (select phase from tt15postd),
-                (select n::text from tt15study1)],
+                (select v from tt15postearly2), (select n::text from tt15study0), (select phase from tt15postv),
+                (select phase from tt15postd), (select n::text from tt15study1)],
   array['AR007: a participant practises after both pre-tests',
         'AR007: the post-test follows both pre-tests and three practice sessions',
         'AR007: each test case runs once', 'pre', 'pre',
+        'AR007: the post-test follows both pre-tests and three practice sessions',
         'AR007: the post-test follows both pre-tests and three practice sessions', '0', 'post', 'post', '3'],
   'TT-15 SG4-10, SG3-31 protocol for an AB participant: practice before the pre-tests, a post-test before '
   || 'the pre-tests, and a second session on the same pre-test variant are each AR007; both pre-tests end in '

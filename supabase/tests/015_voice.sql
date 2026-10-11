@@ -378,9 +378,11 @@ create temp table vb16finwi0 on commit drop as select (arena.open_work_item((sel
   tests.k((select trial from vb16trial), 0, 'finalize', 'vb16-0')) ->> 'work_item_id')::uuid as wi;
 create temp table vb16fin0 on commit drop as select tests.error(format('select arena.finalize_trial(%L, %L, null)',
   (select trial from vb16trial), (select wi from vb16finwi0))) as v;
-create temp table vb16sq on commit drop as select tests.error(format('select arena.submit_question(%L, 0, %L, %L, %L)',
-  (select trial from vb16trial), 'text question', tests.k((select trial from vb16trial), 1, 'question', 'vb16'),
-  'harness_fixed')) as v;
+-- a training trial's own investigator question carries no p_source (tests.exchange's own convention); a
+-- non-null source here would trip the EARLIER, unrelated origin check first (AR007 "investigator questions
+-- carry no origin"), never reaching the voice-specific refusal this assertion exists to prove.
+create temp table vb16sq on commit drop as select tests.error(format('select arena.submit_question(%L, 0, %L, %L, null)',
+  (select trial from vb16trial), 'text question', tests.k((select trial from vb16trial), 1, 'question', 'vb16'))) as v;
 create temp table vb16lines1 on commit drop as select jsonb_build_array(
   jsonb_build_object('role', 'subject', 'text', '...late tail of the previous answer', 'partial', false),
   jsonb_build_object('role', 'investigator', 'text', 'Next question', 'partial', false)) as lines;
@@ -412,7 +414,7 @@ select is(array[(select v from vb16fin0), (select v from vb16sq),
                 (select turns::text from vb16checks), (select other_wi::text from vb16checks),
                 (select state from ledger.terminal_records where trial_id = (select trial from vb16trial))],
   array['AR001: nothing to finalize: the transcript is empty',
-        'AR007: investigator questions carry no origin; harness questions name theirs',
+        'AR007: a voice session is spoken; commit the finding in text',
         'true', 'exists', 'AR003: exchange number reused with different content', 'true', '0', '0', 'completed'],
   'VB-16 D-016, SG3-27: a spoken exchange writes no arena.turns row and no subject_answer or release work '
   || 'item; submit_question on the trial is refused (AR007); record_voice_exchange returns a scheduled record '

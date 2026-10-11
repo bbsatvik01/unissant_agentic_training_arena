@@ -109,9 +109,12 @@ select ops.mirror_spans('arena-api', jsonb_build_array(
   pg_temp.span((select t from tm11trace), pg_temp.hex(16), '{}'::jsonb)));
 create temp table tm11spans on commit drop as select span_id, export_state from ops.trace_mirror
   where trace_id = (select t from tm11trace) order by created_at;
+-- the pending sibling, not the held span: TM-12's own point is that the PENDING row is still excluded
+-- because its trace holds a held one; 'held' sorts before 'pending' alphabetically, so a plain order by
+-- export_state would silently pick the held row instead and leave the real sibling-export check untested.
 create temp table tm12 on commit drop as select ops.set_export_state(
   jsonb_build_array(jsonb_build_object('trace_id', (select t from tm11trace), 'span_id',
-    (select span_id from tm11spans order by export_state limit 1))), 'exported') as n;
+    (select span_id from tm11spans where export_state = 'pending' limit 1))), 'exported') as n;
 select is(array[
     (select export_state from tm11spans where export_state = 'held' limit 1),
     (select export_state from tm11spans where export_state <> 'held' limit 1),
