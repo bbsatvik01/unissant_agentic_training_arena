@@ -571,6 +571,10 @@ def _terminal(failure: _Failure | None, sends: int) -> Exception:
     detail = f"after {sends} attempt(s): {failure.detail if failure else 'no attempt'}"
     if failure is None or failure.kind == ErrorKind.TRANSIENT:
         return ProviderFailedError(detail)
+    # _encodable: the same safety the repair echo uses (S2 10, SG2-25) - a reply with an unpaired surrogate
+    # must still be a well-formed string for whatever the caller does with it (S2 6.10: a subject quarantine
+    # stores it).
+    reply_text = _encodable(failure.reply)
     if failure.kind == ErrorKind.BLOCKED:
-        return ProviderBlockedError(detail)
-    return StructuredOutputError(detail)
+        return ProviderBlockedError(detail, reply_text=reply_text)
+    return StructuredOutputError(detail, reply_text=reply_text)
