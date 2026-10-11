@@ -20,9 +20,9 @@ import { Transcript } from "../components/overlay/Transcript";
 import type { ScoreCard, WallDocument } from "../components/world/moments";
 import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
-import { parseBoard, type Board } from "../lib/arena/leaderboard";
+import { boardsFailure, parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
-import { createApiClient } from "../lib/api/client";
+import { ApiError, createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
 import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
@@ -90,32 +90,40 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; example: boolean } | null>(null);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
   const [showArena, setShowArena] = useState(false);
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
   // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
   // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
+  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`, and
+  // `&label=original` for a corrected board's original). Before reveal it shows the sealed state, never numbers
+  // (FE-LB-5); the bundled example appears only when no tournament is selected, labeled as such.
   const openArena = () => {
     setShowArena(true);
     setShowProgress(false);
     if (arena !== null) return;
-    const tournamentId = new URLSearchParams(window.location.search).get("tournament");
-    const published =
-      live && tournamentId !== null
-        ? Promise.all([api.leaderboard(tournamentId, "assistant"), api.leaderboard(tournamentId, "subject")]).then(
-            ([a, s]) => ({ assistant: parseBoard(a), subject: parseBoard(s) }),
-            () => null,
-          )
-        : Promise.resolve(null);
+    const params = new URLSearchParams(window.location.search);
+    const tournamentId = params.get("tournament");
+    const label = params.get("label") === "original" ? "original" : null;
+    type Boards = { assistant: Board | null; subject: Board | null; state: BoardsState };
+    const published: Promise<Boards | null> =
+      tournamentId === null
+        ? Promise.resolve(null)
+        : Promise.all([api.leaderboard(tournamentId, "assistant", label ?? undefined), api.leaderboard(tournamentId, "subject", label ?? undefined)]).then(
+            ([a, s]): Boards => {
+              const assistant = parseBoard(a);
+              return assistant === null ? { assistant: null, subject: null, state: { kind: "error" } } : { assistant, subject: parseBoard(s), state: { kind: "published", tournamentId, label } };
+            },
+            (e: unknown): Boards => ({ assistant: null, subject: null, state: e instanceof ApiError ? boardsFailure(e.status, e.code) : { kind: "error" } }),
+          );
     void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
       const poll: unknown = tour.default.poll;
-      const real = boards !== null && boards.assistant !== null;
       setArena({
-        name: real ? "Tournament leaderboards" : lb.default.tournament.name,
-        assistant: real ? boards.assistant : parseBoard(lb.default.assistant),
-        subject: real ? boards.subject : parseBoard(lb.default.subject),
+        name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
+        assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
+        subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
         tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
-        example: !real,
+        boards: boards === null ? { kind: "example" } : boards.state,
       });
     });
   };
@@ -826,7 +834,7 @@ export function WorldRoute() {
       {place === "hub" && showArena && arena !== null ? (
         <ArenaView
           name={arena.name}
-          example={arena.example}
+          boards={arena.boards}
           assistant={arena.assistant}
           subject={arena.subject}
           tournament={arena.tournament}

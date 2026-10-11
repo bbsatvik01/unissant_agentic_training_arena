@@ -23,7 +23,7 @@ function show() {
   render(
     <ArenaView
       name="Arena"
-      example
+      boards={{ kind: "example" }}
       assistant={parseBoard(boards.assistant)}
       subject={parseBoard(boards.subject)}
       tournament={foldPoll(EMPTY_TOURNAMENT, tournamentExample.poll as TournamentPoll)}
@@ -64,5 +64,20 @@ describe("ArenaView", () => {
     expect(screen.getByRole("table", { name: "Replay track: trials by pairing" }).querySelectorAll('[role="cell"]')).toHaveLength(9);
     fireEvent.click(screen.getByRole("tab", { name: "Interactive track" }));
     expect(screen.getByRole("table", { name: "Interactive track: trials by pairing" }).querySelectorAll('[role="cell"]')).toHaveLength(27);
+  });
+
+  it("shows the sealed state with no numbers before reveal (FE-LB-5), never the example", () => {
+    render(<ArenaView name="Arena" boards={{ kind: "sealed" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} motionOff onClose={() => undefined} />);
+    expect(screen.getByText("Results are sealed until reveal.")).toBeTruthy();
+    expect(document.querySelector("table.board")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/\d+%|Example data/);
+  });
+
+  it("labels a corrected board and links to its original", () => {
+    const corrected = parseBoard({ ...boards.assistant, binding: { ...boards.assistant.binding, manifest_version: 2 } });
+    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={corrected} subject={null} tournament={EMPTY_TOURNAMENT} motionOff onClose={() => undefined} />);
+    expect(screen.getByText("Corrected leaderboard")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See the original leaderboard" }).getAttribute("href")).toBe("?tournament=t-1&label=original");
+    expect(document.body.textContent).not.toMatch(/Example data/);
   });
 });

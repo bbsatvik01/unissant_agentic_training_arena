@@ -148,7 +148,7 @@ export interface ArenaApi {
   /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
   ackEx4: () => Promise<string>;
   /** `GET /api/leaderboards/{tournament_id}?board=`: the published board body verbatim (WP-16), read with `parseBoard`. */
-  leaderboard(tournamentId: string, board: "assistant" | "subject"): Promise<unknown>;
+  leaderboard(tournamentId: string, board: "assistant" | "subject", label?: "original" | "corrected"): Promise<unknown>;
 }
 
 const id = encodeURIComponent;
@@ -229,8 +229,8 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       if (!isRecord(answer) || !isText(answer["ex4_acknowledged"])) throw new ContractError(path, "the acknowledgement");
       return answer["ex4_acknowledged"];
     },
-    async leaderboard(tournamentId, board) {
-      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}`);
+    async leaderboard(tournamentId, board, label) {
+      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}${label === undefined ? "" : `&label=${label}`}`);
     },
     async startSession(body) {
       const path = "/api/sessions";

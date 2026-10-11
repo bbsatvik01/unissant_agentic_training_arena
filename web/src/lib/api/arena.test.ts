@@ -201,6 +201,8 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     const { client, calls } = fakeClient(() => ({ board: "subject", status: "unranked", rows: [] }));
     await expect(createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "subject")).resolves.toMatchObject({ board: "subject" });
     expect(calls[0]).toEqual({ method: "GET", path: "/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=subject" });
+    await createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "assistant", "original");
+    expect(calls[1]?.path).toBe("/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=assistant&label=original");
   });
 
   it("reads progress, a trial's recording, and stores the EX-4 acknowledgement", async () => {
