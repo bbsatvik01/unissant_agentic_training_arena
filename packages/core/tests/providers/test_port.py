@@ -1221,3 +1221,23 @@ def test_the_port_reserves_exactly_the_bytes_the_budget_measures_for_the_same_re
     )
     assert measured == request_bytes(sent)
     assert budget.reservations[result.reservation_id].input_bytes == measured + REPAIR_BYTES
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [f"```json\n{VALID}\n```", f"Here is the card: {VALID} Done.", f"  {VALID}\n"],
+    ids=["fenced", "prose-wrapped", "padded"],
+)
+def test_a_valid_object_inside_a_fence_or_prose_is_accepted_in_one_send(reply: str) -> None:
+    """S5 T5: the parser takes the reply's JSON object (agents.repair.json_text), it never repairs one."""
+    adapter = FakeAdapter(script=[reply])
+    agent, _ = port(adapter)
+    result = run(agent.run(card()))
+    assert (result.value, result.attempts) == (Reply(verdict="ok", note="fine"), 1)
+
+
+def test_a_reply_without_an_object_fails_as_invalid_json() -> None:
+    adapter = FakeAdapter(script=["no object here", VALID])
+    agent, _ = port(adapter)
+    assert run(agent.run(card())).attempts == TWO
+    assert "not valid JSON" in adapter.requests[1].messages[-1].text
