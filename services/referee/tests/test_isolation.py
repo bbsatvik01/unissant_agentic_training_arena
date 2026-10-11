@@ -18,6 +18,11 @@ from arena_core.db.pool import Connector
 from arena_referee import db, isolation
 
 TOURNAMENT = "00000000-0000-0000-0000-0000000000a1"
+RECORDED_IG123: list[tuple[Any, ...]] = [
+    ("ig1_privilege_tests", True, "h1"),
+    ("ig2_route_tests", True, "h2"),
+    ("ig3_assistant_context", True, "h3"),
+]
 
 
 def run[T](aw: Awaitable[T]) -> T:
@@ -330,6 +335,7 @@ def test_the_dev_gate_fails_on_a_dev_canary_in_an_assistant_output_and_never_rea
     conn = FakeConn(
         {
             "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "distinct on (check_name)": RECORDED_IG123,
             "e.payload": [(cand, '{"text": "ask about CANARY-FDEV1"}')],
             "ledger.verify_chain": [(None,)],
             "ledger.corpus_seals": [(True,)],
@@ -354,6 +360,7 @@ def test_a_canary_only_in_a_mirrored_span_fails_ig6(owner: str, culprit: str | N
     conn = FakeConn(
         {
             "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "distinct on (check_name)": RECORDED_IG123,
             "m.otlp": [(owner, '{"attributes": {"output": "CANARY-FDEV2"}}')],
             "e.payload": [("00000000-0000-0000-0000-0000000000c1", '{"text": "clean"}')],
             "ledger.verify_chain": [(None,)],
@@ -399,6 +406,7 @@ def test_the_dev_gate_fails_on_a_canary_only_in_a_prompt_file(tmp_path: Path) ->
     conn = FakeConn(
         {
             "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "distinct on (check_name)": RECORDED_IG123,
             "ledger.verify_chain": [(None,)],
             "ledger.corpus_seals": [(True,)],
         }
@@ -408,3 +416,19 @@ def test_the_dev_gate_fails_on_a_canary_only_in_a_prompt_file(tmp_path: Path) ->
     (tmp_path / "coach.md").write_text("All cases are synthetic.")
     clean = run(isolation.fetch_fresh_dev_isolation_result(connector(FakeConn(conn.answers)), "a" * 40, (tmp_path,)))
     assert clean.passed
+
+
+def test_the_dev_gate_needs_ig1_to_ig3_recorded_and_passing() -> None:
+    # Codex r5 #1: IG-1..3 apply to every tournament; only IG-4 is hidden-specific.
+    base: dict[str, list[tuple[Any, ...]]] = {
+        "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+        "ledger.verify_chain": [(None,)],
+        "ledger.corpus_seals": [(True,)],
+    }
+    with pytest.raises(isolation.GateNotRunError):
+        run(isolation.fetch_fresh_dev_isolation_result(connector(FakeConn(base)), "a" * 40))
+    failing = [("ig2_route_tests", False, "h2") if r[0] == "ig2_route_tests" else r for r in RECORDED_IG123]
+    conn = FakeConn({**base, "distinct on (check_name)": failing})
+    result = run(isolation.fetch_fresh_dev_isolation_result(connector(conn), "a" * 40))
+    assert result.passed is False
+    assert sorted(result.items) == ["IG-1", "IG-2", "IG-3", "IG-5", "IG-6"]

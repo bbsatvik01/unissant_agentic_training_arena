@@ -13,12 +13,13 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from arena_core.identity import DevIdentity
 from arena_referee import db
 from arena_referee.identity_dep import require_admin_role, require_console_role
 from arena_referee.isolation import (
+    GateNotRunError,
     fetch_fresh_dev_isolation_result,
     fetch_fresh_isolation_result,
     open_hidden_tournament,
@@ -50,10 +51,13 @@ async def _publish_context(request: Request, tournament_id: UUID) -> PublishCont
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     # A dev tournament has no hidden seal and records no suite reports at open; it runs only its own checks.
-    if split == "dev":
-        isolation = await fetch_fresh_dev_isolation_result(connect, git_sha)
-    else:
-        isolation = await fetch_fresh_isolation_result(connect, git_sha)
+    try:
+        if split == "dev":
+            isolation = await fetch_fresh_dev_isolation_result(connect, git_sha)
+        else:
+            isolation = await fetch_fresh_isolation_result(connect, git_sha)
+    except GateNotRunError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     qq_calibrated: bool = getattr(request.app.state, "qq_calibrated", False)
     return PublishContext(isolation=isolation, qq_calibrated=qq_calibrated, config=config)
 
@@ -111,9 +115,9 @@ async def leaderboard_route(
 @router.post("/{tournament_id}/open")
 async def open_route(
     tournament_id: UUID,
-    body: dict[str, Any],
     request: Request,
     _identity: Annotated[DevIdentity, Depends(require_admin_role)],
+    body: Annotated[dict[str, Any] | None, Body()] = None,
 ) -> dict[str, object]:
     """S1 L9, S3 9: the isolation gate (including the hidden-text scan) runs fresh, and `frozen` -> `running`
     only on a pass -- but ONLY for a hidden-split tournament. S1 L9 names the hidden split specifically, and
@@ -138,7 +142,7 @@ async def open_route(
         msg = "the referee app was not configured with ARENA_GIT_SHA"
         raise RuntimeError(msg)
     try:
-        gate_request = isolation_gate_request(body, git_sha)
+        gate_request = isolation_gate_request(body or {}, git_sha)
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:

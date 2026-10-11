@@ -174,6 +174,20 @@ class IsolationGateRequest:
 _IG123 = ("IG-1", "IG-2", "IG-3")
 
 
+class GateNotRunError(RuntimeError):
+    """IG-1..3 (the suite reports) were never recorded for this commit: `/admin/isolation-gate/run` first."""
+
+
+async def _recorded_ig123(connect: Connector, git_sha: str) -> dict[str, tuple[bool, str]]:
+    """IG-1..3 are code-version-scoped (suite reports), so a reveal reuses the latest recorded for this commit."""
+    stale = await db.fetch_isolation_result(connect, git_sha)
+    missing = [item for item in _IG123 if item not in stale.items]
+    if missing:
+        msg = f"isolation gate has never recorded {missing} for commit {git_sha}; run it once first"
+        raise GateNotRunError(msg)
+    return {item: stale.items[item] for item in _IG123}
+
+
 async def _ig5(connect: Connector) -> tuple[bool, str]:
     chain_ok = await verify_chain(connect)
     corpus_seal_ok = await verify_all_corpus_seals(connect)
@@ -253,16 +267,17 @@ _PROMPT_ROOTS = (Path("prompts"),)
 async def fetch_fresh_dev_isolation_result(
     connect: Connector, git_sha: str, prompt_roots: Sequence[Path] = _PROMPT_ROOTS
 ) -> IsolationResult:
-    """A dev tournament's reveal gate (`DEV_IG_ITEMS`): IG-5 and IG-6 recomputed live over current data and
-    recorded, exactly as the hidden gate does; it never reads the hidden seal or a hidden corpus (IG-4) and
-    needs no suite reports (IG-1..3), since a dev open records none (S1 L9 gates the hidden split). Its IG-6 also
-    scans the prompt files, which the hidden gate covers through IG-4."""
+    """A dev tournament's reveal gate (`DEV_IG_ITEMS`): IG-1..3 reused from the latest recorded run for this
+    commit (as the hidden gate does; `/admin/isolation-gate/run` records them), IG-5 and IG-6 recomputed live and
+    recorded. It never reads the hidden seal or a hidden corpus (IG-4, S1 L9 gates the hidden split). Its IG-6
+    also scans the prompt files, which the hidden gate covers through IG-4."""
+    ig123 = await _recorded_ig123(connect, git_sha)
     output_texts = await fetch_assistant_output_texts(connect)
     # Prompts are an IG-6 surface too (S3 9); the hidden gate reaches them through IG-4's scan, the dev gate here.
     output_texts.setdefault(UNATTRIBUTED, []).extend(read_scan_files(prompt_roots).values())
     canary = ig6_evidence(count_canary_hits(await fetch_family_canaries(connect), output_texts))
     evidence = IsolationEvidence(
-        items={"IG-5": await _ig5(connect), "IG-6": (canary.passed, canary.evidence_hash)},
+        items={**ig123, "IG-5": await _ig5(connect), "IG-6": (canary.passed, canary.evidence_hash)},
         canary_culprit=canary.culprit,
     )
     await _record(connect, evidence, git_sha)
@@ -288,12 +303,7 @@ async def fetch_fresh_isolation_result(connect: Connector, git_sha: str) -> Isol
     operator remembered to rerun the gate by hand. IG-1/2/3 reuse the latest already-recorded result for
     this git_sha (code-version-scoped, not tournament-data-scoped); IG-4, IG-5 and IG-6 are recomputed
     fresh and rewritten every call, exactly as `run_isolation_gate` does, never read back stale."""
-    stale = await db.fetch_isolation_result(connect, git_sha)
-    missing = [item for item in _IG123 if item not in stale.items]
-    if missing:
-        msg = f"isolation gate has never recorded {missing} for commit {git_sha}; run it once first"
-        raise RuntimeError(msg)
-    ig123 = {item: stale.items[item] for item in _IG123}
+    ig123 = await _recorded_ig123(connect, git_sha)
     return await _recompute_and_record(connect, ig123=ig123, git_sha=git_sha, scan_roots=DEFAULT_SCAN_ROOTS)
 
 

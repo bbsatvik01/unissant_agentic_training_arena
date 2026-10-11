@@ -18,10 +18,10 @@ from arena_core.scoring.exact import B, ci_indices
 from arena_core.scoring.stats import Eligibility, RankSensitivity, eligibility, rank_sensitivity
 
 IG_ITEMS = ("IG-1", "IG-2", "IG-3", "IG-4", "IG-5", "IG-6")
-# A dev tournament (S1 L9 names the hidden split): no hidden seal or hidden corpus exists to verify (IG-4), and
-# its open takes no suite reports (IG-1..3); the checks over its own data -- commitments and chain (IG-5) and
-# the canary audit (IG-6) -- still apply and still gate its ranking.
-DEV_IG_ITEMS = ("IG-5", "IG-6")
+# A dev tournament (S1 L9 names the hidden split): no hidden seal or hidden corpus exists to verify, so IG-4 is
+# the one item it does not require; the privilege, route and assistant-context suites (IG-1..3), commitments and
+# chain (IG-5) and the canary audit (IG-6) all still gate its ranking.
+DEV_IG_ITEMS = ("IG-1", "IG-2", "IG-3", "IG-5", "IG-6")
 NOT_RANKED = "not ranked: isolation gate failed"
 QQ_COVERAGE_MIN = Fraction(9, 10)
 

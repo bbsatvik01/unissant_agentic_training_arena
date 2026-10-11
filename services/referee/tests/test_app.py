@@ -112,6 +112,14 @@ async def _post(
         return await client.post(path, json=json or {}, headers=request_headers)
 
 
+IG123_NAMES = ((1, "privilege_tests"), (2, "route_tests"), (3, "assistant_context"))
+
+
+async def _post_no_body(app: FastAPI, path: str, *, headers: dict[str, str], cookies: dict[str, str]) -> httpx.Response:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN, cookies=cookies) as client:
+        return await client.post(path, headers={"host": HOST_HEADER, **headers})
+
+
 def _browser_post_headers(csrf: str) -> dict[str, str]:
     return {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-csrf": csrf}
 
@@ -621,6 +629,7 @@ def test_a_dev_tournament_opens_and_reveals_with_no_hidden_data(
     conn = _SqlConn(
         [
             ("from arena.tournaments", [("dev",)]),
+            ("distinct on (check_name)", [(f"ig{k}_{n}", True, f"h{k}") for k, n in IG123_NAMES]),
             ("from sealed.family_ingests", [(json.dumps(dev_family),)]),
             ("ledger.verify_chain", [(None,)]),
             ("ledger.corpus_seals", [(True,)]),
@@ -643,14 +652,17 @@ def test_a_dev_tournament_opens_and_reveals_with_no_hidden_data(
     csrf = run(_get(app, "/api/me")).json()["csrf_token"]
     tournament = uuid4()
     post = {"headers": _browser_post_headers(csrf), "cookies": {"arena_csrf": csrf}}
-    opened = run(_post(app, f"/admin/tournaments/{tournament}/open", **post))
+    opened = run(_post_no_body(app, f"/admin/tournaments/{tournament}/open", **post))
     assert opened.json() == {"opened": True, "gated": False}
     resp = run(_post(app, f"/admin/tournaments/{tournament}/reveal", **post))
     assert resp.status_code == httpx.codes.OK, resp.text
     assert seen[0].isolation.passed
-    assert sorted(seen[0].isolation.items) == ["IG-5", "IG-6"]
+    assert sorted(seen[0].isolation.items) == ["IG-1", "IG-2", "IG-3", "IG-5", "IG-6"]
     assert not any("hidden_seal" in q or "hidden_split_seals" in q for q in conn.executed)
-    assert sum("insert into arena.isolation_checks" in q for q in conn.executed) == len(["IG-5", "IG-6"])
+    assert sum("insert into arena.isolation_checks" in q for q in conn.executed) == len(seen[0].isolation.items)
+    # Before IG-1..3 were ever recorded for this commit, reveal is blocked with a clear 409, never a 500.
+    conn.answers = [a for a in conn.answers if a[0] != "distinct on (check_name)"]
+    assert run(_post(app, f"/admin/tournaments/{tournament}/reveal", **post)).status_code == CONFLICT
 
 
 def test_leaderboard_route_needs_a_console_identity(tmp_path: Path) -> None:
