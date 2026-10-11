@@ -94,8 +94,9 @@ def test_text_limits_are_characters_and_twice_that_in_bytes() -> None:
     Finding.model_validate(finding(rationale="x" * 600))
     with pytest.raises(ValidationError, match="at most 600 characters"):
         Finding.model_validate(finding(rationale="x" * 601))
-    with pytest.raises(ValidationError, match="1200 UTF-8 bytes"):
-        Finding.model_validate(finding(rationale="\u20ac" * 401))  # 401 characters, 1,203 bytes
+    Finding.model_validate(finding(rationale="\u20ac" * 200))  # 200 characters, 1,200 wire bytes (D-019): the cap
+    with pytest.raises(ValidationError, match="1200 bytes as sent"):
+        Finding.model_validate(finding(rationale="\u20ac" * 201))  # 201 characters, 1,206 wire bytes
     with pytest.raises(ValidationError):
         Finding.model_validate(finding(rationale=""))
 

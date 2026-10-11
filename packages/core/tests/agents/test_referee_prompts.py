@@ -399,20 +399,21 @@ def test_a_trial_without_a_committed_finding_still_reaches_r2() -> None:
 
 def test_rubric_text_is_bounded_in_rendered_bytes() -> None:
     raw = PLACEHOLDER_RUBRIC.model_dump()
-    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 100  # 100 characters, 400 bytes: the cap
-    raw["dimensions"][0]["name"] = "\U00020000" * 20
+    # D-019: wire bytes; a character outside the BMP is a 12-byte surrogate-pair escape.
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 33 + "abcd"  # 400 wire bytes: the cap
+    raw["dimensions"][0]["name"] = "\U00020000" * 6 + "abcdefgh"  # 80 wire bytes: the cap
     Rubric.model_validate(raw)
-    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 101
-    with pytest.raises(ValueError, match="longer than 400 UTF-8 bytes"):
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\U00020000" * 33 + "abcde"
+    with pytest.raises(ValueError, match="longer than 400 bytes as sent"):
         Rubric.model_validate(raw)
-    raw["dimensions"][0]["subchecks"][1]["text"] = "\\" * 300  # 300 bytes typed, 600 once escaped in a request
-    with pytest.raises(ValueError, match=r"subchecks\.1\.text: longer than 400 bytes as rendered"):
+    raw["dimensions"][0]["subchecks"][1]["text"] = "\\" * 201  # 201 characters typed, 402 once escaped in a request
+    with pytest.raises(ValueError, match=r"subchecks\.1\.text\n.*longer than 400 bytes as sent"):
         Rubric.model_validate(raw)
 
 
 def test_rubric_text_renders_as_measured() -> None:
     raw = PLACEHOLDER_RUBRIC.model_dump()
-    raw["dimensions"][0]["subchecks"][1]["text"] = "T" + "\u0001" * 380 + "  wide   gaps"
+    raw["dimensions"][0]["subchecks"][1]["text"] = "T" + "\u0001" * 60 + "  wide   gaps"  # 374 wire bytes
     raw["dimensions"][0]["name"] = "clarity\u0001\u0001 and neutrality"
     rubric = Rubric.model_validate(raw)
     system = build_referee_assistant_prompt(assistant_input(), REFEREE, salt=fx.SALT, dev_rubric=rubric)

@@ -9,6 +9,7 @@ the Vertex decoder, which ignores those keywords (S2 1, Structured output).
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -91,10 +92,18 @@ def _exact(kind: type) -> BeforeValidator:
     return BeforeValidator(check)
 
 
+def wire_bytes(text: str) -> int:
+    """The bytes `text` occupies on the wire inside a request body (D-019): the JSON string google-genai sends
+    (`json.dumps`, `ensure_ascii=True`) without its two quotes. ASCII counts 1, `"` and `\\` 2, a control character
+    its escape (2 or 6), every other character 6 (12 outside the Basic Multilingual Plane). Every byte cap that
+    feeds a request is stated and enforced in this unit, so S2's adversarial maximum fits the input limits."""
+    return len(json.dumps(text)) - 2
+
+
 class ByteLimit:
-    """Annotated marker: at most `limit` UTF-8 bytes (S2 1: twice the character limit). Exported as the arena
-    keyword `maxBytes`, which the browser's ajv (`web/src/lib/contracts/validate.ts`) and
-    `export.json_validator` enforce; Vertex drops it like every keyword outside its set."""
+    """Annotated marker: at most `limit` wire bytes (`wire_bytes`; S2 1: twice the character limit, D-019). Exported
+    as the arena keyword `maxBytes`, which the browser's ajv (`web/src/lib/contracts/validate.ts`) and
+    `export.json_validator` enforce with the same measure; Vertex drops it like every keyword outside its set."""
 
     def __init__(self, limit: int) -> None:
         self.limit = limit
@@ -103,8 +112,8 @@ class ByteLimit:
         limit = self.limit
 
         def check(value: str) -> str:
-            if len(value.encode("utf-8")) > limit:
-                msg = f"longer than {limit} UTF-8 bytes"
+            if wire_bytes(value) > limit:
+                msg = f"longer than {limit} bytes as sent"
                 raise ValueError(msg)
             return value
 

@@ -13,6 +13,7 @@ reservation, the echo of the previous reply cut to the byte budget, transient re
 
 from __future__ import annotations
 
+import re
 import typing
 import unicodedata
 from functools import cache
@@ -99,7 +100,7 @@ def output_errors[T: BaseModel](
     """The validated output, or None and the repair items (S2 10, first row). A reply that carries the request's
     salt is refused like a schema failure: the salt is never written to any output (S2 1)."""
     try:
-        value = model.model_validate_json(reply, context=context)
+        value = model.model_validate_json(json_text(reply), context=context)
     except ValidationError as exc:
         return None, error_items(exc, field_names(model))
     # Checked on the decoded values in every readable form too: JSON escapes, invisible characters, NFKC variants
@@ -110,6 +111,20 @@ def output_errors[T: BaseModel](
     if rendered:
         return None, [_cut(i) for i in rendered[:MAX_ERRORS]]
     return value, []
+
+
+_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
+
+
+def json_text(reply: str) -> str:
+    """The JSON object a reply carries (TechnoMile T5 `extract_json_text`): the whole reply, a fenced block, or the
+    outermost `{...}` span. Never repairs JSON; a reply without an object is returned as is and fails validation."""
+    stripped = reply.strip()
+    fenced = _FENCE.match(stripped)
+    if fenced:
+        return fenced.group(1)
+    start, end = stripped.find("{"), stripped.rfind("}")
+    return stripped[start : end + 1] if 0 <= start < end else stripped
 
 
 def _carries(value: BaseModel, salt: str) -> bool:

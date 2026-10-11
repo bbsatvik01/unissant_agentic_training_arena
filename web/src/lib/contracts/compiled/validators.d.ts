@@ -2,6 +2,8 @@
 // Do not edit: re-export the contracts, then regenerate; a test fails on any drift.
 import type { ValidateFunction } from "ajv/dist/2020";
 
+/** Wire bytes of a string (D-019), as the server's `contracts.common.wire_bytes` counts them. */
+export declare function wireBytes(text: string): number;
 export declare const card_ack: ValidateFunction;
 export declare const debrief_read: ValidateFunction;
 export declare const debrief_v1: ValidateFunction;
