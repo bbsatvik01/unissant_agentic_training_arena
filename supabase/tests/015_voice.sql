@@ -456,10 +456,16 @@ create temp table vb18rel on commit drop as select arena.release_evidence((selec
 select set_config('arena.actor_id', '', true);
 create temp table vb18ctx on commit drop as select tests.as_role('arena_subject', format(
   'select subject.voice_context(%L)', (select session from vb18open))) as r;
-select is(array[(select r -> 'released' from vb18rel)::text, (select (r::text ~ 'rec-01') from vb18ctx)::text],
+-- rec-01 as a REQUESTABLE record already names itself in the public packet (part of voice_context's own
+-- public_packet key) regardless of whether release_evidence ever ran, so a bare substring search for
+-- 'rec-01' over the whole context would pass even with a broken release; check the released_evidence array
+-- specifically.
+select is(array[(select r -> 'released' from vb18rel)::text,
+                (select exists(select 1 from jsonb_array_elements(r -> 'released_evidence') e
+                                where e ->> 'record_id' = 'rec-01') from vb18ctx)::text],
   array['[{"kind": "record", "doc_kind": "work_order", "record_id": "rec-01"}]', 'true'],
   'VB-18 SG3-07, SG3-37: in a voice session, arena_public releases a requested record through release_evidence '
-  || 'at any time (no turn exists to block it); subject.voice_context then lists it');
+  || 'at any time (no turn exists to block it); subject.voice_context''s released_evidence then lists it');
 select tests.as_role('arena_subject', format('select to_jsonb(training.close_voice_session(%L, %L)::text)', (select session from vb18open), 'vb18-done'));
 select tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', (select (r ->> 'id')::uuid from vb18res), 'released'));
 

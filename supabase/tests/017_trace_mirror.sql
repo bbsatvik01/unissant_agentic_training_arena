@@ -214,9 +214,14 @@ select ops.mirror_spans('arena-api', jsonb_build_array(pg_temp.span((select t fr
 select ops.mirror_spans('arena-api', jsonb_build_array(pg_temp.span((select t from tm09pending), (select s from tm09pending))));
 select ops.set_export_state(jsonb_build_array(jsonb_build_object('trace_id', (select t from tm09old), 'span_id', (select s from tm09old))), 'exported');
 select ops.set_export_state(jsonb_build_array(jsonb_build_object('trace_id', (select t from tm09old), 'span_id', (select s from tm09old))), 'verified');
+select ops.set_export_state(jsonb_build_array(jsonb_build_object('trace_id', (select t from tm09pending), 'span_id', (select s from tm09pending))), 'exported');
 -- the hidden span can never pass through v_exportable_spans (its tournament_id is null, held forever), so
 -- disable the guard to force it to verified for this fixture, matching an already-verified hidden span found
--- in the wild (it is still never pruned: split = 'hidden').
+-- in the wild (it is still never pruned: split = 'hidden'). tm09pending is backdated to the same age as
+-- tm09old but left 'exported' (never verified): prune_trace_mirror's own query is `export_state = 'verified'
+-- and verified_at < cutoff`, and a fresh, never-backdated pending/exported row would survive prune(7) either
+-- way (its age condition is already false on its own) -- only an OLD, non-verified row actually isolates
+-- the state check from the age check.
 do $$
 begin
   alter table ops.trace_mirror disable trigger trace_mirror_guard;
@@ -225,6 +230,8 @@ begin
    where trace_id = (select t from pg_temp.tm09hid);
   update ops.trace_mirror set verified_at = now() - interval '10 days', created_at = now() - interval '10 days'
    where trace_id = (select t from pg_temp.tm09old);
+  update ops.trace_mirror set verified_at = now() - interval '10 days', created_at = now() - interval '10 days'
+   where trace_id = (select t from pg_temp.tm09pending);
   alter table ops.trace_mirror enable trigger trace_mirror_guard;
 end $$;
 create temp table tm09 on commit drop as select
