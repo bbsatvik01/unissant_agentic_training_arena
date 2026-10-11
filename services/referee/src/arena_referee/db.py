@@ -1,16 +1,19 @@
 """The referee's real database IO (S4 4.1-4.4, 4.2 grants already in place: `arena_referee` reads every
-table of `arena`, `subject`, `sealed`, `training` and `ops`, and holds the two write functions WP-14 adds).
-One short-lived connection per operation (`Connector`, S5 6.4); the pooled connector lands with WP-13.
+table of `arena`, `subject`, `sealed`, `training` and `ops`, and holds the write functions WP-14 and WP-16
+add -- `ledger.reveal`, `ledger.seal_corrected_manifest`, the `arena.isolation_checks` insert and the
+`arena.leaderboards` insert). One short-lived connection per operation (`Connector`, S5 6.4); the pooled
+connector lands with WP-13.
 
-This is the one module that touches `psycopg`; everything above it (`mapping`, `scoring`, `debrief`) is pure
-and takes plain rows. Deliberately thin: each function is close to its SQL, so a reviewer can check it
-against the schema directly.
+This is the one module that touches `psycopg`; everything above it (`mapping`, `scoring`, `debrief`,
+`isolation`, `leaderboard`) is pure and takes plain rows. Deliberately thin: each function is close to its
+SQL, so a reviewer can check it against the schema directly.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -21,6 +24,8 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
+from arena_core.scoring.inclusion import Exec
+from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
 from arena_referee.mapping import TrialData
@@ -415,3 +420,199 @@ async def submit_review_item(
         msg = "submit_review_item returned no row"
         raise LookupError(msg)
     return cast("Mapping[str, Any]", row[0])
+
+
+# ---------------------------------------------------------------- reveal and corrections (S3 4.4, S4 7.5, WP-16)
+
+
+@dataclass(frozen=True)
+class RevealResult:
+    manifest_id: str
+    manifest_sha256: str
+    manifest_version: int
+
+
+async def reveal_tournament(connect: Connector, tournament_id: str) -> RevealResult:
+    """`ledger.reveal` (S4 6): manifest version 1, published nonces, status `revealed`. A second call is the
+    spec's own no-op (RV-15): the same manifest id and hash come back, never a new row."""
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute("select ledger.reveal(%s)", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    result = cast("Mapping[str, Any]", row[0] if row else {})
+    return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), 1)
+
+
+async def seal_corrected_manifest(connect: Connector, tournament_id: str) -> RevealResult:
+    """`ledger.seal_corrected_manifest` (S4 6): version n + 1 with `supersedes_id`; v1 never changes. No
+    trial line changed (RV-18) returns the latest version with no new row -- the caller never republishes a
+    "corrected" board for a manifest id a board already exists for (the table's own `unique(manifest_id,
+    board)`, S4 4.2)."""
+    async with connect() as conn, conn.transaction():
+        cur = await conn.execute("select ledger.seal_corrected_manifest(%s)", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    result = cast("Mapping[str, Any]", row[0] if row else {})
+    return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), int(result["version"]))
+
+
+# ---------------------------------------------------------------- isolation gate (S3 9, WP-16)
+
+CHECK_NAMES: Mapping[str, str] = {
+    "IG-1": "ig1_privilege_tests",
+    "IG-2": "ig2_route_tests",
+    "IG-3": "ig3_assistant_context",
+    "IG-4": "ig4_hidden_text_scan",
+    "IG-5": "ig5_commitment_verification",
+    "IG-6": "ig6_canary_audit",
+}
+_IG_ITEM_BY_CHECK_NAME = {v: k for k, v in CHECK_NAMES.items()}
+
+
+@dataclass(frozen=True, kw_only=True)
+class IsolationCheckRow:
+    check_name: str
+    passed: bool
+    evidence_hash: str
+    commit_sha: str
+    candidate_id: str | None
+
+
+async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> None:
+    """`arena.isolation_checks` (S4 4.1, S3 9): append-only, one row per item per run. `candidate_id` is set
+    only for IG-6's canary attribution (FX-I02); every other item's row carries none."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values (%s, %s, %s, %s)",
+            (
+                UUID(row.candidate_id) if row.candidate_id else None,
+                row.check_name,
+                row.passed,
+                Jsonb({"hash": row.evidence_hash, "commit_sha": row.commit_sha}),
+            ),
+        )
+
+
+async def fetch_isolation_result(connect: Connector, commit_sha: str) -> IsolationResult:
+    """The latest row per check name for this commit (S3 9's preamble: `isolation_pass` is scoped to the
+    running code version and migration version), folded through WP-15's `isolation_result`."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select distinct on (check_name) check_name, passed, evidence ->> 'hash'"
+            " from arena.isolation_checks where evidence ->> 'commit_sha' = %s"
+            " order by check_name, created_at desc",
+            (commit_sha,),
+        )
+        rows = await cur.fetchall()
+    items: dict[str, tuple[bool, str]] = {}
+    for check_name, passed, evidence_hash in rows:
+        item = _IG_ITEM_BY_CHECK_NAME.get(check_name)
+        if item in IG_ITEMS:
+            items[item] = (bool(passed), evidence_hash or "")
+    return isolation_result(items)
+
+
+# ---------------------------------------------------------------- leaderboard trial facts (S3 5.3-5.6, WP-16)
+
+
+@dataclass(frozen=True)
+class TrialFacts:
+    """One planned trial's raw facts for the leaderboard (S4 `ledger.build_manifest`'s own inputs, read
+    again rather than reparsed from the sealed manifest text, so the classification label -- which the
+    manifest never carries -- joins in the same query). A replay row's `verdict` is its source corpus
+    transcript's (D2); a replay_corpus row has no `assistant_id` and is excluded from every assistant's
+    leaderboard (subject-only track)."""
+
+    planned_trial_id: str
+    track: str
+    assistant_id: str | None
+    family_id: str
+    role: str
+    block_id: str | None
+    exec_state: Exec
+    verdict: str | None
+    classification: str | None
+    settled_cost: Decimal
+
+
+_COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
+
+
+async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -> list[TrialFacts]:
+    """`ledger.planned_execution` (already a read-only function reveal and the trust center use, S4) gives
+    the latest attempt's state and trial id per planned trial; the adjudication lookup mirrors
+    `ledger.build_manifest`'s own (a replay row reads its source transcript's). `settled_cost` sums this
+    trial's own coach calls (S5 3.3's `coach.card`/`coach.deep`/`coach.final` purposes) -- the candidate's
+    own calls only (M22)."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select p.id, p.track, p.assistant_candidate_id, f.family_code, ep.role, p.block_id,"
+            "       e.state, adj.verdict, ff.classification,"
+            "       coalesce((select sum(r.settled_usd) from ops.budget_reservations r"
+            "                  where r.trial_id = e.trial_id and r.purpose = any(%s)), 0)"
+            "  from arena.planned_trials p"
+            "  join arena.case_variants v on v.id = p.variant_id"
+            "  join arena.case_families f on f.id = v.family_id"
+            "  join sealed.evaluator_packets ep on ep.variant_id = p.variant_id"
+            "  join ledger.planned_execution(%s) e on e.planned_trial_id = p.id"
+            "  left join lateral ("
+            "    select a.verdict from ledger.validity_adjudications a"
+            "     where a.trial_id = coalesce("
+            "             (select src.trial_id from ledger.planned_execution(%s) src"
+            "               where src.planned_trial_id = p.source_planned_trial_id),"
+            "             e.trial_id)"
+            "     order by a.adj_seq desc limit 1"
+            "  ) adj on true"
+            "  left join arena.final_findings ff on ff.trial_id = e.trial_id"
+            " where p.tournament_id = %s",
+            (list(_COACH_PURPOSES), UUID(tournament_id), UUID(tournament_id), UUID(tournament_id)),
+        )
+        rows = await cur.fetchall()
+    return [
+        TrialFacts(
+            planned_trial_id=str(r[0]),
+            track=r[1],
+            assistant_id=str(r[2]) if r[2] else None,
+            family_id=r[3],
+            role=r[4],
+            block_id=str(r[5]) if r[5] else None,
+            exec_state=Exec(r[6]),
+            verdict=r[7],
+            classification=r[8],
+            settled_cost=Decimal(r[9]),
+        )
+        for r in rows
+    ]
+
+
+@dataclass(frozen=True, kw_only=True)
+class LeaderboardRow:
+    tournament_id: str
+    manifest_id: str
+    board: str
+    label: str
+    body: Mapping[str, Any]
+
+
+async def write_leaderboard(connect: Connector, row: LeaderboardRow) -> None:
+    """`arena.leaderboards` (S4 4.1-4.2): `original` only on manifest v1, `corrected` only on later versions
+    (`arena.tg_leaderboard_label`); append-only, and idempotent on `unique(manifest_id, board)` (RV-18's
+    no-op correction never republishes a second row for a manifest id that already has one)."""
+    async with connect() as conn, conn.transaction():
+        await conn.execute(
+            "insert into arena.leaderboards (tournament_id, manifest_id, board, label, body)"
+            " values (%s, %s, %s, %s, %s) on conflict (manifest_id, board) do nothing",
+            (UUID(row.tournament_id), UUID(row.manifest_id), row.board, row.label, Jsonb(dict(row.body))),
+        )
+
+
+async def fetch_leaderboard(
+    connect: Connector, tournament_id: str, *, board: str = "assistant", label: str = "original"
+) -> Mapping[str, Any] | None:
+    """The published body verbatim (D-020: the read side adds nothing the spec lacks), or `None` before that
+    label exists for this tournament (not yet revealed, or not yet corrected)."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select l.body from arena.leaderboards l where l.tournament_id = %s and l.board = %s and l.label = %s",
+            (UUID(tournament_id), board, label),
+        )
+        row = await cur.fetchone()
+    return cast("Mapping[str, Any] | None", row[0] if row else None)

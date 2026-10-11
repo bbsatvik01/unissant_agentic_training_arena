@@ -3,6 +3,8 @@ test_guard_client.py` uses for the same reason): every statement it sends and ev
 with no real connection. `packages/core/tests/db/it_spend_guard.py`'s sibling pattern -- a real-database
 integration pass -- is out of this WP's committed scope (see the report); this file is what the coverage
 gate measures, and it exercises every function and error branch in the module directly.
+
+WP-16 adds reveal, isolation-gate and leaderboard functions below the WP-14 ones, same pattern.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, AgentResult, CallContext, Message, Usage
+from arena_core.scoring.inclusion import Exec
 from arena_core.scoring.rubric import CheckResult, RubricResult
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
 from arena_referee import db
@@ -513,3 +516,137 @@ def test_submit_review_item_raises_when_no_row_returned() -> None:
     conn = FakeConn({"training.submit_review_item": []})
     with pytest.raises(LookupError, match="submit_review_item returned no row"):
         run(db.submit_review_item(connector(conn), item_id=uuid4(), rater_user_id=RATER, submission={}))
+
+
+# ---------------------------------------------------------------- reveal, isolation gate, leaderboard (WP-16)
+
+TOURNAMENT = UUID("00000000-0000-0000-0000-0000000000a1")
+MANIFEST = UUID("00000000-0000-0000-0000-0000000000a2")
+CANDIDATE = UUID("00000000-0000-0000-0000-0000000000a3")
+
+
+def test_reveal_tournament_returns_manifest_version_one() -> None:
+    conn = FakeConn({"ledger.reveal": [({"manifest_id": str(MANIFEST), "manifest_sha256": "a" * 64},)]})
+    result = run(db.reveal_tournament(connector(conn), str(TOURNAMENT)))
+    assert result == db.RevealResult(str(MANIFEST), "a" * 64, 1)
+    (query, params) = conn.executed[0]
+    assert "ledger.reveal" in query
+    assert params == (TOURNAMENT,)
+
+
+def test_seal_corrected_manifest_returns_the_new_version() -> None:
+    conn = FakeConn(
+        {
+            "ledger.seal_corrected_manifest": [
+                ({"manifest_id": str(MANIFEST), "manifest_sha256": "b" * 64, "version": 2},)
+            ]
+        }
+    )
+    result = run(db.seal_corrected_manifest(connector(conn), str(TOURNAMENT)))
+    assert result == db.RevealResult(str(MANIFEST), "b" * 64, 2)
+
+
+def test_record_isolation_check_inserts_candidate_only_when_given() -> None:
+    conn = FakeConn({})
+    row = db.IsolationCheckRow(
+        check_name="ig6_canary_audit",
+        passed=False,
+        evidence_hash="deadbeef",
+        commit_sha="0" * 40,
+        candidate_id=str(CANDIDATE),
+    )
+    run(db.record_isolation_check(connector(conn), row))
+    (query, params) = conn.executed[0]
+    assert "arena.isolation_checks" in query
+    assert params[0] == CANDIDATE
+    assert params[1] == "ig6_canary_audit"
+    assert params[2] is False
+    assert params[3].obj == {"hash": "deadbeef", "commit_sha": "0" * 40}
+
+    conn2 = FakeConn({})
+    no_candidate = db.IsolationCheckRow(
+        check_name="ig5_commitment_verification", passed=True, evidence_hash="x", commit_sha="0" * 40, candidate_id=None
+    )
+    run(db.record_isolation_check(connector(conn2), no_candidate))
+    assert conn2.executed[0][1][0] is None
+
+
+def test_fetch_isolation_result_maps_check_names_back_to_ig_items() -> None:
+    conn = FakeConn(
+        {
+            "distinct on (check_name)": [
+                ("ig1_privilege_tests", True, "h1"),
+                ("ig2_route_tests", False, "h2"),
+                ("ig3_assistant_context", True, "h3"),
+                ("ig4_hidden_text_scan", True, "h4"),
+                ("ig5_commitment_verification", True, "h5"),
+                ("ig6_canary_audit", True, "h6"),
+            ]
+        }
+    )
+    result = run(db.fetch_isolation_result(connector(conn), "0" * 40))
+    assert result.passed is False  # IG-2 failed
+    assert result.items["IG-2"] == (False, "h2")
+
+
+def test_fetch_isolation_result_with_no_rows_fails_closed() -> None:
+    conn = FakeConn({"distinct on (check_name)": []})
+    result = run(db.fetch_isolation_result(connector(conn), "0" * 40))
+    assert result.passed is False
+
+
+def test_fetch_tournament_trial_facts_maps_every_column() -> None:
+    conn = FakeConn(
+        {
+            "ledger.planned_execution": [
+                (
+                    "00000000-0000-0000-0000-0000000000b1",
+                    "interactive",
+                    str(CANDIDATE),
+                    "F01",
+                    "truthful",
+                    "00000000-0000-0000-0000-0000000000b2",
+                    "completed",
+                    "valid",
+                    "truthful",
+                    "0.05",
+                )
+            ]
+        }
+    )
+    [fact] = run(db.fetch_tournament_trial_facts(connector(conn), str(TOURNAMENT)))
+    assert fact.assistant_id == str(CANDIDATE)
+    assert fact.family_id == "F01"
+    assert fact.exec_state == Exec.COMPLETED
+    assert fact.classification == "truthful"
+    assert fact.settled_cost == Decimal("0.05")
+
+
+def test_write_leaderboard_inserts_with_on_conflict_do_nothing() -> None:
+    conn = FakeConn({})
+    row = db.LeaderboardRow(
+        tournament_id=str(TOURNAMENT),
+        manifest_id=str(MANIFEST),
+        board="assistant",
+        label="original",
+        body={"status": "definitive"},
+    )
+    run(db.write_leaderboard(connector(conn), row))
+    (query, params) = conn.executed[0]
+    assert "on conflict (manifest_id, board) do nothing" in query
+    assert params[0] == TOURNAMENT
+    assert params[1] == MANIFEST
+    assert params[2] == "assistant"
+    assert params[3] == "original"
+    assert params[4].obj == {"status": "definitive"}
+
+
+def test_fetch_leaderboard_returns_the_body_or_none() -> None:
+    found = FakeConn({"arena.leaderboards": [({"status": "definitive"},)]})
+    assert run(db.fetch_leaderboard(connector(found), str(TOURNAMENT))) == {"status": "definitive"}
+    (_query, params) = found.executed[0]
+    assert params == (TOURNAMENT, "assistant", "original")
+
+    missing = FakeConn({"arena.leaderboards": []})
+    assert run(db.fetch_leaderboard(connector(missing), str(TOURNAMENT), label="corrected")) is None
+    assert missing.executed[0][1] == (TOURNAMENT, "assistant", "corrected")

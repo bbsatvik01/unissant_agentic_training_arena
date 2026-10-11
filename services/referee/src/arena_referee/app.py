@@ -7,8 +7,10 @@ switch). The hosted variant's IAP identity mapping (S5 9.3) is WP-33's.
 
 from __future__ import annotations
 
+import hashlib
 import os
 from collections.abc import Awaitable, Callable
+from typing import get_args
 
 from fastapi import FastAPI, Response
 from starlette.requests import Request
@@ -16,6 +18,7 @@ from starlette.responses import JSONResponse
 
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
 from arena_core.config import ArenaRole, Settings, boot
+from arena_core.contracts.common import EvasionLabel
 from arena_core.db.pool import dsn_connector
 from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, evaluate_request
 from arena_core.identity import DevIdentity, resolve_dev_user
@@ -25,8 +28,18 @@ from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_core.spend.guard import DbSpendGuard
 from arena_referee import db
 from arena_referee.debrief import DebriefProvenance
+from arena_referee.reveal import PublishConfig
 from arena_referee.routes import router as api_router
 from arena_referee.scoring import PromptContext, default_dev_rubric
+
+
+def _label_set_sha256() -> str:
+    """S3 5.6's label-set hash: the EVL-8 label set (`EvasionLabel`) a leaderboard binds itself to, sorted
+    and hashed -- a label added or removed shows up in every leaderboard published after it, same spirit as
+    the rubric and prompt hashes next to it."""
+    labels = ",".join(sorted(get_args(EvasionLabel)))
+    return hashlib.sha256(labels.encode("utf-8")).hexdigest()
+
 
 REFEREE_PORT = 8082  # S5 10.1
 _BROWSER_ORIGINS_VAR = "ARENA_BROWSER_ORIGINS"
@@ -111,6 +124,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     debrief_deps = db.make_debrief_deps(connect, scoring_deps, provenance)
 
     identity: DevIdentity | None = resolve_dev_user(resolved_env) if settings.is_local else None
+    git_sha = resolved_env.get("ARENA_GIT_SHA", "0" * 40)
 
     app = FastAPI(title="arena-referee")
     app.state.connect = connect
@@ -118,6 +132,17 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     app.state.debrief_deps = debrief_deps
     app.state.prompt_context = PromptContext(prompts=prompts, rubric=rubric)
     app.state.identity = identity
+    app.state.git_sha = git_sha
+    # QQ (M09) is not computed by this process (arena_core.referee.leaderboard's `not_computed` list says
+    # so on every published board); qq_calibrated stays False until a later WP wires QQ and its freeze.
+    app.state.qq_calibrated = False
+    app.state.publish_config = PublishConfig(
+        scorer_git_sha=git_sha,
+        rubric_sha256=lineage_checked_sha256(),
+        r1_prompt_sha256=prompt_sha256,
+        r2_prompt_sha256=prompt_sha256,
+        label_set_sha256=_label_set_sha256(),
+    )
     _install_d10_guard(app, _guard_config(resolved_env))
     app.include_router(api_router)
 
