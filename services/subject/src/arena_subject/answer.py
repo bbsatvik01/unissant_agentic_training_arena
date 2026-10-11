@@ -231,15 +231,20 @@ async def answer(
 
     try:
         result = await port.run(call)
-    # silent-ok: S2 6.10's G0_schema carries no detail beyond its rule tag; the quarantine itself is the record.
-    except StructuredOutputError:
+    # S2 6.10: a G0 quarantine stores "the response text, or '' when the response had none" - the port
+    # carries the last attempt's raw text on these two exceptions for exactly this (reply_text defaults to
+    # "" when there was none, D-021: the quarantine is what a later replay reads instead of calling a model).
+    except StructuredOutputError as exc:
         g0 = schema_failure().as_record()
-        req = RecordSubjectTurn(trial_id=trial_id, work_item_id=work_item_id, utterance="", tag=None, guard_result=g0)
+        req = RecordSubjectTurn(
+            trial_id=trial_id, work_item_id=work_item_id, utterance=exc.reply_text, tag=None, guard_result=g0
+        )
         return await _finish(record, req)
-    # silent-ok: same as above (S2 6.10's G0_blocked carries no further detail either).
-    except ProviderBlockedError:
+    except ProviderBlockedError as exc:
         g0 = provider_blocked().as_record()
-        req = RecordSubjectTurn(trial_id=trial_id, work_item_id=work_item_id, utterance="", tag=None, guard_result=g0)
+        req = RecordSubjectTurn(
+            trial_id=trial_id, work_item_id=work_item_id, utterance=exc.reply_text, tag=None, guard_result=g0
+        )
         return await _finish(record, req)
     except (BudgetRefusedError, KillSwitchOnError, PolicyRefusedError, InputTooLargeError, ProviderFailedError) as exc:
         raise _infra_error(exc) from exc

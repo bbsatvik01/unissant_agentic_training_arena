@@ -170,17 +170,39 @@ def test_guard_hit_quarantines_with_the_full_artifact_g5() -> None:
     assert req.guard_result["rule"] == "G5"
 
 
-def test_schema_failure_after_the_one_repair_quarantines_as_g0_schema() -> None:
+def test_schema_failure_after_the_one_repair_quarantines_as_g0_schema_with_the_raw_reply() -> None:
+    """S2 6.10: a G0 quarantine stores "the response text, ... when the response had" one (D-021: so a
+    later replay has what the model actually said, with no model call needed)."""
     ctx = context()
     rec = Recorder(RecordResult(outcome="quarantined", turn_no=1, transcript_version=None))
     script = ["not json", "still not json"]
     outcome = run(answer(ctx.trial_id, uuid4(), get_context=reader(ctx), record=rec, port=port(script)))
     assert outcome.outcome == "quarantined"
     [req] = rec.calls
-    assert (req.utterance, req.tag, req.guard_result) == ("", None, {"passed": False, "rule": "G0_schema"})
+    assert (req.utterance, req.tag, req.guard_result) == (
+        "still not json",
+        None,
+        {"passed": False, "rule": "G0_schema"},
+    )
 
 
-def test_provider_block_after_the_one_repair_quarantines_as_g0_blocked() -> None:
+def test_provider_block_after_the_one_repair_quarantines_as_g0_blocked_with_the_raw_reply() -> None:
+    ctx = context()
+    rec = Recorder(RecordResult(outcome="quarantined", turn_no=1, transcript_version=None))
+    blocked = ProviderCallError(ErrorKind.BLOCKED, "safety block")
+    blocked2 = ProviderCallError(ErrorKind.BLOCKED, "safety block again")
+    blocked2.reply_text = "I was about to say"  # the visible text a safety stop cut off mid-reply
+    outcome = run(answer(ctx.trial_id, uuid4(), get_context=reader(ctx), record=rec, port=port([blocked, blocked2])))
+    assert outcome.outcome == "quarantined"
+    [req] = rec.calls
+    assert (req.utterance, req.tag, req.guard_result) == (
+        "I was about to say",
+        None,
+        {"passed": False, "rule": "G0_blocked"},
+    )
+
+
+def test_provider_block_with_no_visible_text_quarantines_with_an_empty_utterance() -> None:
     ctx = context()
     rec = Recorder(RecordResult(outcome="quarantined", turn_no=1, transcript_version=None))
     blocked = ProviderCallError(ErrorKind.BLOCKED, "safety block")

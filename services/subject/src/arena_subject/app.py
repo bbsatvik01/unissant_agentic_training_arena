@@ -10,7 +10,7 @@ applies to the browser-facing services (WP-13).
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request
@@ -37,11 +37,19 @@ FAKE_SUBJECT_REPLY = (
 
 @dataclass(frozen=True)
 class AppState:
-    """Everything a request handler needs: built once at process start, or once per test with doubles."""
+    """Everything a request handler needs: built once at process start, or once per test with doubles.
+    `in_progress` is this process's own record of which (trial, work_item) pairs are mid-request (S5 5.1:
+    "a step is never executed by two live requests"); it is this route's whole claim to that rule until
+    WP-13's orchestrator holds its own per-trial lock in front of this call. Plain `set` membership is
+    enough only because nothing ever awaits between a check and its matching add or discard below (one
+    asyncio event loop, D-016's one arena-subject process); it would need a real lock across more than
+    one worker process."""
 
     connect: Connector
     port: AgentPort
     allowed_callers: frozenset[str]
+    bind_host: str = "127.0.0.1"
+    in_progress: set[tuple[UUID, UUID]] = field(default_factory=set)
 
 
 def state_from_env(env: Mapping[str, str]) -> AppState:
@@ -51,7 +59,12 @@ def state_from_env(env: Mapping[str, str]) -> AppState:
     connect = dsn_connector(settings.dsn)
     adapter = model_adapter(env, canned={"SubjectTurn": FAKE_SUBJECT_REPLY})
     port = AgentPort(adapter, DbSpendGuard(connect), PortOptions())
-    return AppState(connect=connect, port=port, allowed_callers=parse_callers(env.get(CALLERS_VAR, "")))
+    return AppState(
+        connect=connect,
+        port=port,
+        allowed_callers=parse_callers(env.get(CALLERS_VAR, "")),
+        bind_host=settings.bind_host,
+    )
 
 
 class AnswerRequest(BaseModel):
@@ -92,12 +105,22 @@ def create_app(state: AppState) -> FastAPI:
             verify_internal_caller(request.headers, state.allowed_callers)
         except InternalCallerRefusedError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.reason) from exc
+        key = (body.trial, body.work_item)
+        if key in state.in_progress:
+            # A live request for this exact work item is already running: recover=True inside answer()
+            # would otherwise settle ITS reservation as usage_unknown out from under it (S5 4.10 recovery
+            # is for a dead attempt, never a concurrent live one). The caller's own retry (after a timeout
+            # or a crash) is exactly what recover is for, once this one has actually finished.
+            raise HTTPException(status_code=409, detail="step_in_progress")
+        state.in_progress.add(key)
         try:
             outcome = await answer(
                 body.trial, body.work_item, get_context=_get_context, record=_record, port=state.port
             )
         except AnswerError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
+        finally:
+            state.in_progress.discard(key)
         return _response(outcome)
 
     return app

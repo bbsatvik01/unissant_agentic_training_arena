@@ -192,6 +192,37 @@ def test_a_non_g0_port_failure_maps_to_503_with_its_code() -> None:
     assert resp.json()["detail"] == "budget_refused"
 
 
+def test_two_concurrent_requests_for_the_same_work_item_the_second_is_refused_409() -> None:
+    """S5 5.1 ("a step is never executed by two live requests") and S5 4.10 recovery (recover=True is only
+    safe once a live duplicate is excluded): the first request's own reservation must never be settled
+    usage_unknown out from under it by a second, concurrent call for the same work item."""
+    trial_id = uuid4()
+    work_item_id = uuid4()
+    outcome = {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}
+    connect = _connector(_ctx_json(trial_id), json.dumps(outcome))
+    # two entries: the first request consumes one, the refused second never reaches the adapter, the third
+    # (after the lock releases) consumes the other.
+    port = AgentPort(FakeAdapter(script=[VALID_REPLY, VALID_REPLY], delay_s=0.2), RunBudget(Decimal(10)), PortOptions())
+    state = AppState(connect=connect, port=port, allowed_callers=ALLOWED)
+    app = create_app(state)
+    body = {"trial": str(trial_id), "work_item": str(work_item_id)}
+
+    async def both() -> tuple[httpx.Response, httpx.Response]:
+        first = asyncio.create_task(_request(app, "POST", "/internal/answer", json_body=body, headers=AUTH))
+        await asyncio.sleep(0.05)  # let the first request pass the lock check before the second one tries
+        second = await _request(app, "POST", "/internal/answer", json_body=body, headers=AUTH)
+        return await first, second
+
+    first_resp, second_resp = run(both())
+    assert second_resp.status_code == HTTPStatus.CONFLICT
+    assert second_resp.json()["detail"] == "step_in_progress"
+    assert first_resp.status_code == HTTPStatus.OK
+    assert first_resp.json() == {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}
+    # the lock is released once the first request finishes: a later, non-overlapping call succeeds
+    third = run(_request(app, "POST", "/internal/answer", json_body=body, headers=AUTH))
+    assert third.status_code == HTTPStatus.OK
+
+
 def test_an_unknown_field_in_the_body_is_refused_422() -> None:
     trial_id = uuid4()
     app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])

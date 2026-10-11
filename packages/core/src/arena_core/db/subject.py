@@ -61,6 +61,30 @@ class RecordSubjectTurn:
     guard_result: dict[str, Any]
 
 
+_NUL = "\x00"
+_NUL_ESCAPE = "\\u0000"
+
+
+def _pg_text(value: str) -> str:
+    """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL byte. G1 already rejects a NUL as a hidden
+    character (S2 6.9) in the normal case, but a G1-G7 quarantine still stores the model's utterance and
+    tag verbatim, and a G0 quarantine now stores the last raw reply (S2 6.10) - either can contain one from
+    an adversarial or malformed model output. Escaped losslessly (a literal six-character marker) rather
+    than dropped, so the stored artifact still shows exactly what the model sent."""
+    return value.replace(_NUL, _NUL_ESCAPE) if _NUL in value else value
+
+
+def _pg_safe(value: object) -> object:
+    """`_pg_text` applied through an arbitrary JSON-shaped tree (a tag or guard-result object)."""
+    if isinstance(value, str):
+        return _pg_text(value)
+    if isinstance(value, dict):
+        return {k: _pg_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_pg_safe(v) for v in value]
+    return value
+
+
 def _obj(raw: object, fn: str) -> dict[str, Any]:
     if not isinstance(raw, str):
         msg = f"{fn} returned {type(raw).__name__}, expected jsonb"
@@ -132,9 +156,9 @@ async def record_subject_turn(conn: Conn, req: RecordSubjectTurn) -> RecordResul
             (
                 req.trial_id,
                 req.work_item_id,
-                req.utterance,
-                None if req.tag is None else Jsonb(req.tag),
-                Jsonb(req.guard_result),
+                _pg_text(req.utterance),
+                None if req.tag is None else Jsonb(_pg_safe(req.tag)),
+                Jsonb(_pg_safe(req.guard_result)),
             ),
         )
         row = await cur.fetchone()

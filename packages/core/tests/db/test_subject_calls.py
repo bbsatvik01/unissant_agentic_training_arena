@@ -13,6 +13,7 @@ from typing import Any, Literal, cast
 from uuid import uuid4
 
 import pytest
+from psycopg.types.json import Jsonb
 
 from arena_core.db import subject as db_subject
 from arena_core.db.calls import Conn, GuardProtocolError
@@ -168,6 +169,33 @@ def test_record_subject_turn_a_g0_quarantine_sends_null_tag_and_parses_no_versio
     _, params = fake.executed[0]
     assert params[2] == ""
     assert params[3] is None
+
+
+def test_record_subject_turn_escapes_an_embedded_nul_byte_losslessly() -> None:
+    """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL; a schema-valid reply (G1-G7 and G0 both
+    store the model's raw text, S2 6.10) can still contain one, so it is escaped before the SQL call, never
+    dropped (the escaped marker round-trips to exactly the original byte)."""
+    answer = {"outcome": "quarantined", "turn_no": 1}
+    c, fake = conn(**{"arena.record_subject_turn": answer})
+    tag_with_nul = {
+        "disclosed": [],
+        "withheld": [],
+        "uncertainty_used": [],
+        "behavior": "responsive\x00",
+        "gates_opened": [],
+    }
+    guard_with_nul = {"passed": False, "rule": "G1", "span": "a\x00b"}
+    req = record_req(utterance="I arrived at nine.\x00", tag=tag_with_nul, guard_result=guard_with_nul)
+    run(db_subject.record_subject_turn(c, req))
+    _, params = fake.executed[0]
+    utterance, tag_param, guard_param = params[2], params[3], params[4]
+    assert isinstance(utterance, str)
+    assert isinstance(tag_param, Jsonb)
+    assert isinstance(guard_param, Jsonb)
+    assert "\x00" not in utterance
+    assert utterance == "I arrived at nine.\\u0000"
+    assert tag_param.obj["behavior"] == "responsive\\u0000"
+    assert guard_param.obj["span"] == "a\\u0000b"
 
 
 def test_record_subject_turn_no_row_is_a_protocol_error() -> None:
