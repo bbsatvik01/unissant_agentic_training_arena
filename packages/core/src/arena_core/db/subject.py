@@ -61,25 +61,34 @@ class RecordSubjectTurn:
     guard_result: dict[str, Any]
 
 
+_BACKSLASH = "\\"
 _NUL = "\x00"
-_NUL_ESCAPE = "\\u0000"
 
 
 def _pg_text(value: str) -> str:
     """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL byte. G1 already rejects a NUL as a hidden
     character (S2 6.9) in the normal case, but a G1-G7 quarantine still stores the model's utterance and
     tag verbatim, and a G0 quarantine now stores the last raw reply (S2 6.10) - either can contain one from
-    an adversarial or malformed model output. Escaped losslessly (a literal six-character marker) rather
-    than dropped, so the stored artifact still shows exactly what the model sent."""
-    return value.replace(_NUL, _NUL_ESCAPE) if _NUL in value else value
+    an adversarial or malformed model output.
+
+    Standard C-style escaping, not a bare substitution: every existing backslash is doubled *first*, so a
+    NUL becomes the four characters `\\x00` that can only ever have come from an actual NUL byte here - the
+    model writing the literal six characters `\\u0000`, or the four characters `\\x00`, has its own
+    backslash doubled to `\\\\u0000` / `\\\\x00` by this same first step, so the two cases can never collide
+    (verified by a round-trip test over both)."""
+    if _BACKSLASH not in value and _NUL not in value:
+        return value
+    return value.replace(_BACKSLASH, _BACKSLASH * 2).replace(_NUL, _BACKSLASH + "x00")
 
 
 def _pg_safe(value: object) -> object:
-    """`_pg_text` applied through an arbitrary JSON-shaped tree (a tag or guard-result object)."""
+    """`_pg_text` applied through an arbitrary JSON-shaped tree (a tag or guard-result object), keys
+    included (a malformed reply's content can end up in a dict key too, through nothing this module
+    controls)."""
     if isinstance(value, str):
         return _pg_text(value)
     if isinstance(value, dict):
-        return {k: _pg_safe(v) for k, v in value.items()}
+        return {(_pg_text(k) if isinstance(k, str) else k): _pg_safe(v) for k, v in value.items()}
     if isinstance(value, list):
         return [_pg_safe(v) for v in value]
     return value

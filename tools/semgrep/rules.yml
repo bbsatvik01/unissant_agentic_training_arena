@@ -22,21 +22,13 @@ rules:
         # IAM-private (hosted) routes with per-route caller authorization.
         - "/services/api/src/arena_api/subject_client.py"
         - "/services/api/src/arena_api/referee_client.py"
-        # arena-subject's own app test: httpx.ASGITransport drives the FastAPI app in process (no socket,
-        # no network, the same technique FastAPI's own docs recommend over starlette.testclient, which this
-        # repo avoids because its newer releases deprecate plain httpx, S8 WP-12); never a live HTTP call.
-        - "/services/subject/tests/test_app.py"
     pattern-either:
-      - pattern: import httpx
-      - pattern: import httpx2
       - pattern: import requests
       - pattern: import urllib.request
       - pattern: import urllib3
       - pattern: import http.client
       - pattern: import aiohttp
       - pattern: import pycurl
-      - pattern: from httpx import $X
-      - pattern: from httpx2 import $X
       - pattern: from requests import $X
       - pattern: from urllib.request import $X
       - pattern: from urllib3 import $X
@@ -45,3 +37,34 @@ rules:
       - pattern: from urllib import request
       - pattern: from http import client
       - pattern: urllib.request.urlopen(...)
+
+  # httpx split out of arena-no-raw-http (S8 WP-12): two WP-12 test files have their own narrow, genuine
+  # need for it (never requests/urllib/aiohttp/pycurl, which the rule above still forbids there), so the
+  # exclusion names exactly the capability each file actually uses instead of exempting the whole file from
+  # every client this rule bans.
+  - id: arena-no-raw-http-httpx
+    languages: [python]
+    severity: ERROR
+    message: >-
+      httpx outside the agent port, the api's subject/referee clients, and the two WP-12 test files that
+      drive arena-subject's own app directly (in-process ASGI transport, or a real request to the
+      subprocess that same test starts and owns). Use the port for model calls and the role clients for
+      internal routes.
+    paths:
+      exclude:
+        - "/packages/core/src/arena_core/providers/"
+        - "/packages/core/src/arena_core/observability/phoenix.py"
+        - "/services/api/src/arena_api/subject_client.py"
+        - "/services/api/src/arena_api/referee_client.py"
+        # httpx.ASGITransport drives the FastAPI app in process (no socket, no network, the same technique
+        # FastAPI's own docs recommend over starlette.testclient, which this repo avoids because its newer
+        # releases deprecate plain httpx).
+        - "/services/subject/tests/test_app.py"
+        # One httpx.post to the real subprocess this same test starts, bound to loopback, to prove the
+        # route it just started is real (not a raw client reaching some other service).
+        - "/services/subject/tests/test_main.py"
+    pattern-either:
+      - pattern: import httpx
+      - pattern: import httpx2
+      - pattern: from httpx import $X
+      - pattern: from httpx2 import $X

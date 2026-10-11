@@ -14,9 +14,7 @@ import sys
 
 import uvicorn
 
-from arena_subject.app import create_app, state_from_env
-
-PORT = 8081
+from arena_subject.app import PORT, create_app, state_from_env
 
 
 def main() -> int:

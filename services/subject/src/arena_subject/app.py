@@ -9,11 +9,12 @@ applies to the browser-facing services (WP-13).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict
 
 from arena_core.config import ArenaRole, boot
@@ -23,7 +24,19 @@ from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
 from arena_subject.answer import AnswerError, AnswerOutcome, answer
-from arena_subject.internal_auth import CALLERS_VAR, InternalCallerRefusedError, parse_callers, verify_internal_caller
+from arena_subject.internal_auth import (
+    CALLERS_VAR,
+    InternalCallerRefusedError,
+    parse_callers,
+    verify_host,
+    verify_internal_caller,
+)
+
+# S5 10.1: arena-subject binds 127.0.0.1:8081. S5 10.3 step 1 applies the Host check "to every request"
+# before dispatching on the path - independent of who the caller is, so it runs as middleware ahead of the
+# one route this app has today and any internal route S5 5.5 adds later (/internal/voice/ws, WP-22).
+PORT = 8081
+_ALLOWED_HOSTS = frozenset({f"127.0.0.1:{PORT}", f"localhost:{PORT}"})
 
 # S2 6.8's SubjectTurn schema has no canned reply pre-registered anywhere; a local fake-mode run needs one so
 # `make dev` works without a per-session script (S5 10.4). It is schema-valid for every packet: an empty tag
@@ -90,6 +103,14 @@ def _response(outcome: AnswerOutcome) -> AnswerResponse:
 
 def create_app(state: AppState) -> FastAPI:
     app = FastAPI(title="arena-subject", docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.middleware("http")
+    async def _host_guard(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        try:
+            verify_host(request.headers, _ALLOWED_HOSTS)
+        except InternalCallerRefusedError as exc:
+            return JSONResponse({"detail": exc.reason}, status_code=exc.status_code)
+        return await call_next(request)
 
     async def _get_context(trial_id: UUID, work_item_id: UUID) -> db_subject.TurnContext:
         async with state.connect() as conn:

@@ -174,7 +174,8 @@ def test_record_subject_turn_a_g0_quarantine_sends_null_tag_and_parses_no_versio
 def test_record_subject_turn_escapes_an_embedded_nul_byte_losslessly() -> None:
     """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL; a schema-valid reply (G1-G7 and G0 both
     store the model's raw text, S2 6.10) can still contain one, so it is escaped before the SQL call, never
-    dropped (the escaped marker round-trips to exactly the original byte)."""
+    dropped: a pre-existing backslash is doubled first, so the escape marker can only ever have come from a
+    real NUL byte here (never from the model's own literal backslash-x-0-0 text, proved below)."""
     answer = {"outcome": "quarantined", "turn_no": 1}
     c, fake = conn(**{"arena.record_subject_turn": answer})
     tag_with_nul = {
@@ -193,9 +194,33 @@ def test_record_subject_turn_escapes_an_embedded_nul_byte_losslessly() -> None:
     assert isinstance(tag_param, Jsonb)
     assert isinstance(guard_param, Jsonb)
     assert "\x00" not in utterance
-    assert utterance == "I arrived at nine.\\u0000"
-    assert tag_param.obj["behavior"] == "responsive\\u0000"
-    assert guard_param.obj["span"] == "a\\u0000b"
+    assert utterance == "I arrived at nine.\\x00"
+    assert tag_param.obj["behavior"] == "responsive\\x00"
+    assert guard_param.obj["span"] == "a\\x00b"
+
+
+def test_record_subject_turn_never_confuses_a_real_nul_with_the_models_own_escape_text() -> None:
+    """A real NUL byte and the model literally writing the four characters backslash-x-0-0 must encode to
+    two different strings, or a later reader could not tell a rejected artifact's two very different causes
+    apart (S2 6.10's whole reason to keep the raw text at all)."""
+    real_nul = "a\x00b"
+    literal_escape_text = "a\\x00b"  # the model's own four characters: backslash, x, 0, 0
+    assert real_nul != literal_escape_text
+
+    async def stored_utterance(utterance: str) -> str:
+        c, fake = conn(**{"arena.record_subject_turn": {"outcome": "quarantined", "turn_no": 1}})
+        req = record_req(utterance=utterance, tag=None, guard_result={"passed": False, "rule": "G0_schema"})
+        await db_subject.record_subject_turn(c, req)
+        _, params = fake.executed[0]
+        sent = params[2]
+        assert isinstance(sent, str)
+        return sent
+
+    encoded_real_nul = run(stored_utterance(real_nul))
+    encoded_literal_text = run(stored_utterance(literal_escape_text))
+    assert encoded_real_nul != encoded_literal_text
+    assert encoded_real_nul == "a\\x00b"
+    assert encoded_literal_text == "a\\\\x00b"
 
 
 def test_record_subject_turn_no_row_is_a_protocol_error() -> None:

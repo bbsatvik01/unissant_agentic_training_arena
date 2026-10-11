@@ -26,7 +26,7 @@ from arena_core.db.pool import Connector
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.memory import RunBudget
-from arena_subject.app import AppState, create_app, state_from_env
+from arena_subject.app import PORT, AppState, create_app, state_from_env
 from arena_subject.internal_auth import token_sha256
 from tools.tests.subprocess_support import good_env
 
@@ -34,6 +34,9 @@ REPO = Path(__file__).resolve().parents[3]
 FIXTURE_BEARER = "caller-token"
 ALLOWED = frozenset({token_sha256(FIXTURE_BEARER)})
 AUTH = {"Authorization": f"Bearer {FIXTURE_BEARER}"}
+# S5 10.1, 10.3: the Host header a real request to this service carries (127.0.0.1:8081); the ASGI
+# transport needs it spelled out explicitly, since there is no real socket to derive it from.
+OWN_HOST = f"127.0.0.1:{PORT}"
 
 VALID_REPLY = (
     '{"utterance": "I kept to my usual rounds that afternoon.", '
@@ -54,8 +57,9 @@ async def _request(
     headers: dict[str, str] | None = None,
 ) -> httpx.Response:
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-        return await client.request(method, path, json=json_body, headers=headers)
+    sent_headers = {"Host": OWN_HOST, **(headers or {})}
+    async with httpx.AsyncClient(transport=transport, base_url=f"http://{OWN_HOST}") as client:
+        return await client.request(method, path, json=json_body, headers=sent_headers)
 
 
 @cache
@@ -157,6 +161,25 @@ def test_a_browser_request_is_refused_403_even_with_the_right_token() -> None:
     headers = {**AUTH, "Origin": "https://evil.example"}
     resp = run(_request(app, "POST", "/internal/answer", json_body=body, headers=headers))
     assert resp.status_code == HTTPStatus.FORBIDDEN
+
+
+@pytest.mark.parametrize("bad_host", ["evil.example", "127.0.0.1:9999", "localhost", f"127.0.0.1:{PORT}evil"])
+def test_a_foreign_or_wrong_port_host_is_refused_421_before_any_other_check(bad_host: str) -> None:
+    """S5 10.3 step 1: the Host check runs before routing, for every request, token or not (DNS rebinding
+    protection has nothing to do with who the caller claims to be)."""
+    trial_id = uuid4()
+    app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
+    body = {"trial": str(trial_id), "work_item": str(uuid4())}
+    resp = run(_request(app, "POST", "/internal/answer", json_body=body, headers={**AUTH, "Host": bad_host}))
+    assert resp.status_code == HTTPStatus.MISDIRECTED_REQUEST
+
+
+def test_the_right_host_with_no_token_still_falls_through_to_the_401_check() -> None:
+    trial_id = uuid4()
+    app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
+    body = {"trial": str(trial_id), "work_item": str(uuid4())}
+    resp = run(_request(app, "POST", "/internal/answer", json_body=body, headers={"Host": OWN_HOST}))
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
 
 
 def test_happy_path_returns_the_recorded_outcome() -> None:
