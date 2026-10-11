@@ -247,11 +247,19 @@ async def fetch_family_canaries(connect: Connector) -> frozenset[str]:
     return frozenset(canaries)
 
 
-async def fetch_fresh_dev_isolation_result(connect: Connector, git_sha: str) -> IsolationResult:
+_PROMPT_ROOTS = (Path("prompts"),)
+
+
+async def fetch_fresh_dev_isolation_result(
+    connect: Connector, git_sha: str, prompt_roots: Sequence[Path] = _PROMPT_ROOTS
+) -> IsolationResult:
     """A dev tournament's reveal gate (`DEV_IG_ITEMS`): IG-5 and IG-6 recomputed live over current data and
     recorded, exactly as the hidden gate does; it never reads the hidden seal or a hidden corpus (IG-4) and
-    needs no suite reports (IG-1..3), since a dev open records none (S1 L9 gates the hidden split)."""
+    needs no suite reports (IG-1..3), since a dev open records none (S1 L9 gates the hidden split). Its IG-6 also
+    scans the prompt files, which the hidden gate covers through IG-4."""
     output_texts = await fetch_assistant_output_texts(connect)
+    # Prompts are an IG-6 surface too (S3 9); the hidden gate reaches them through IG-4's scan, the dev gate here.
+    output_texts.setdefault(UNATTRIBUTED, []).extend(read_scan_files(prompt_roots).values())
     canary = ig6_evidence(count_canary_hits(await fetch_family_canaries(connect), output_texts))
     evidence = IsolationEvidence(
         items={"IG-5": await _ig5(connect), "IG-6": (canary.passed, canary.evidence_hash)},

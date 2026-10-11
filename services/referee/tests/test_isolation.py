@@ -391,3 +391,20 @@ def test_the_ig4_row_keeps_its_sanitized_scan_report_next_to_the_hash(tmp_path: 
     assert "CANARY-FHID3" not in report
     assert "C-FHIDD" not in report
     assert "report" not in evidence["ig5_commitment_verification"]
+
+
+def test_the_dev_gate_fails_on_a_canary_only_in_a_prompt_file(tmp_path: Path) -> None:
+    # Codex r4 #4: prompts are an IG-6 surface (S3 9); the dev gate has no IG-4 scan to reach them.
+    (tmp_path / "coach.md").write_text("Ask about CANARY-FDEV4 first.")
+    conn = FakeConn(
+        {
+            "fi.source from sealed.family_ingests": [(hidden_family_json("FDEV", "Alex Doe"),)],
+            "ledger.verify_chain": [(None,)],
+            "ledger.corpus_seals": [(True,)],
+        }
+    )
+    result = run(isolation.fetch_fresh_dev_isolation_result(connector(conn), "a" * 40, (tmp_path,)))
+    assert result.items["IG-6"][0] is False
+    (tmp_path / "coach.md").write_text("All cases are synthetic.")
+    clean = run(isolation.fetch_fresh_dev_isolation_result(connector(FakeConn(conn.answers)), "a" * 40, (tmp_path,)))
+    assert clean.passed
