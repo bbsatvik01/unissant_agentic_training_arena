@@ -18,7 +18,8 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "build": "vite build",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run coverage && pnpm run build"
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run coverage && pnpm run build",
+    "gen:validators": "node tools/generate-validators.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

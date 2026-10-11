@@ -1,21 +1,32 @@
 # State
 
-- **Date:** 2026-10-08, ~22:25 EDT
+- **Date:** 2026-10-11
 - **Branch:** `main` (local only, no remote yet)
-- **Phase:** 1, build started (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+- **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
+
+## RESUMED 2026-10-11 (owner: continue working)
+| Item | State | Next |
+| --- | --- | --- |
+| WP-11 guard (feat/wp11-guard 6d15ad7) | cold Codex gate running (bg bcpr0tmfm, scratchpad cold/) | merge on CORRECT |
+| WP-18 part 2 (feat/wp18b-web 007d133) | cold Codex gate running (same bg) | merge on CORRECT |
+| WP-05 port (ac1b3a38666e87dcf, wt-wp05-port) | resumed: merge main (conflict in providers/structured.py), use WP-10 helpers + parity test, D-019 wire bytes | cold gate, merge |
+| WP-04 pgTAP suite (aef227ff5a791ab22, wt-wp04-pgtap, Sonnet) | dispatched | cold gate, merge |
+| WP-07 observability (a928b8a9c3a763c65, wt-wp07-obs, Sonnet) | dispatched | cold gate, merge |
+- Queue: WP-12 subject + WP-14 referee after WP-05 and WP-11 merge; WP-13 after WP-12; WP-19 after WP-18b (fake port); WP-16, WP-17 after WP-14; WP-24 integration.
+- Owner asks: Supabase MCP now needs re-auth (/mcp), or .env.owner; then migrations 0600-1100 + roles. Budget plan application (D-012) before first paid call.
 
 ## HOLD 2 (owner directive 2026-10-09 ~01:50 EDT)
 - No new agents or workflows. Do not stop anything running; let it finish. Usage refreshes ~07:00 EDT.
 - Workflow agents cannot be messaged mid-run, and usage percentage is not readable from this session. If the limit stops them, their committed work and cached agent results survive; resume each with `Workflow({scriptPath, resumeFromRunId})` after 07:00 (runs: cases wf_0246738e-32c, wave 2 wf_9aced0c9-52d, web wf_20ff7f42-fb5).
 - Durable checkpoint 2: `~/arena-checkpoint/2026-10-09-0150/` (worktrees, branch commit lists, dirty-file lists, scratchpad). At checkpoint: wt-wp01 6 commits, wt-wp03 4, wt-wp08 3 (each with a few uncommitted files); wt-cases and wt-web uncommitted in progress.
 
-## HOLD 3 (owner directive, 2026-10-09 night): pause for some days
+## HOLD 3 (owner directive, 2026-10-09 night; lifted 2026-10-11)
 - Do not stop running agents; send nothing new. Resume when the owner returns.
-- Running (normal agents, addressable with SendMessage):
+- All three agents finished on their side; nothing running. Running (normal agents, addressable with SendMessage):
   | Agent id | Work | Worktree / branch | Next step when it reports |
   | --- | --- | --- | --- |
   | ac1b3a38666e87dcf | WP-05 DONE on its side (1e7d458, self Codex CORRECT): wire-exact byte measure (json \\u escapes), S5 4.10 cap replay (13,614 calls, matches simulate_d009), per-role lifecycle | /private/tmp/wt-wp05-port feat/wp05-port | on resume: cold Codex gate, merge; then switch port to WP-10 sent_schema/budget.request_bytes/repair helpers + parity test |
-  | adb48fe0d3cc9a911 | WP-11 guard: finish FX-COOP checks under option A (S2 11.1 a355544) | /private/tmp/wt-wp11-guard feat/wp11-guard | cold Codex gate, merge |
+  | adb48fe0d3cc9a911 | WP-11 DONE on its side (6d15ad7, one scoped Codex round CORRECT): FX-COOP checker cut to IDs + verbatim released quotes + review binding (S2 11.1 07c756b); G2 uses the fence marker set | /private/tmp/wt-wp11-guard feat/wp11-guard | on resume: cold Codex gate (scoped to current spec), merge |
   | a80b942018d564e81 | WP-18 part 2 DONE on its side (007d133, self Codex CORRECT): 5 findings fixed; snapshot contract gained question_seq/event_seq/SnapshotCard; ajv validators now compiled at build time (CSP blocker fixed); retryable ending state | /private/tmp/wt-wp18b-web feat/wp18b-web | on resume: cold Codex gate, merge; confirm the exact-path lint/coverage exclusion of generated web/src/lib/contracts/compiled/validators.js (1.7 MB, ~160 KB gz); update S5/S6 snapshot fields |
 - OPEN DECISION (cost_model, mine): escaped wire bytes make non-ASCII cost 2-3x UTF-8, so S2's adversarial maximum exceeds input limits (card 117,219 -> well over 128,000). Options: cap questions/model fields in transmitted bytes (simplest), or raise LIMITS 2-3x. Decide on resume with WP-10's renderer numbers. db-test now ~27 min (cap replay).
 - Supabase blocked at migration 0600 of 10 (0100-0500 applied byte-exact); owner action: .env.owner with the session-pooler DSN, or restart the Claude Code session so the MCP allow rules load; then apply 0600-1000 and roles.

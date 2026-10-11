@@ -520,6 +520,12 @@ export interface ScoredQuestion {
   readonly source: "investigator" | "harness_fixed" | "harness_fallback" | "assistant_relay" | "assistant_proposal";
 }
 
+export interface SnapshotCard {
+  readonly turn_no: number;
+  readonly card: TrainingWireCard;
+  readonly event_seq: number;
+}
+
 export interface SnapshotRelease {
   readonly record_id: string;
   readonly title: string;
@@ -530,6 +536,7 @@ export interface SnapshotRelease {
   readonly released_at_turn: number;
   readonly trigger: "scheduled" | "requested";
   readonly transcript_version: number;
+  readonly event_seq: number;
 }
 
 export interface SnapshotTurn {
@@ -540,6 +547,7 @@ export interface SnapshotTurn {
   readonly partial: boolean;
   readonly committed_at: string | null;
   readonly answer_version: number | null;
+  readonly question_seq: number;
 }
 
 export interface StoredDeepUpdate {
@@ -638,7 +646,7 @@ export interface TextTrialSnapshot {
   readonly channel: "text";
   readonly turns: readonly (SnapshotTurn)[];
   readonly voice_exchanges: readonly (VoiceExchange)[];
-  readonly cards: readonly (CoachCard)[];
+  readonly cards: readonly (SnapshotCard)[];
   readonly updates: readonly (CoachUpdate)[];
   readonly coach_failures: readonly (CoachFailed)[];
 }
@@ -865,7 +873,7 @@ export interface VoiceTrialSnapshot {
   readonly channel: "voice";
   readonly turns: readonly (SnapshotTurn)[];
   readonly voice_exchanges: readonly (VoiceExchange)[];
-  readonly cards: readonly (CoachCard)[];
+  readonly cards: readonly (SnapshotCard)[];
   readonly updates: readonly (CoachUpdate)[];
   readonly coach_failures: readonly (CoachFailed)[];
 }
