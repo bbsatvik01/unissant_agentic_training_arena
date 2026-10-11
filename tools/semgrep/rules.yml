@@ -63,6 +63,13 @@ rules:
         # One httpx.post to the real subprocess this same test starts, bound to loopback, to prove the
         # route it just started is real (not a raw client reaching some other service).
         - "/services/subject/tests/test_main.py"
+        # arena-referee's own route test: httpx.ASGITransport dispatches directly into the FastAPI app
+        # object in-process (no socket opened, no real network call) -- the same mechanism
+        # `starlette.testclient.TestClient` wraps internally, used here instead because TestClient's own
+        # import raises a `StarletteDeprecationWarning` this repo's `-W error` turns into a failure. A test
+        # file, never a role importing a real HTTP client at runtime; the rule's target (bypassing the
+        # spend guard, the caller-token check or tracing) does not apply to an in-process test transport.
+        - "/services/referee/tests/test_app.py"
     pattern-either:
       - pattern: import httpx
       - pattern: import httpx2

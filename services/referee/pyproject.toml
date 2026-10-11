@@ -5,6 +5,8 @@ description = "ARENA_ROLE=referee: authored-family loading (D-014), independent 
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "arena-core",
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.54.0",
 ]
 
 [build-system]
