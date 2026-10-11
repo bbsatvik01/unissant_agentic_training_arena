@@ -21,6 +21,7 @@ from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, 
 from arena_core.identity import DevIdentity, resolve_dev_user
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort
+from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_core.spend.guard import DbSpendGuard
 from arena_referee import db
 from arena_referee.debrief import DebriefProvenance
@@ -98,7 +99,11 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
 
     scoring_deps = db.make_scoring_deps(connect, port, prompt_sha256)
     provenance = DebriefProvenance(
-        rubric_sha256=prompt_sha256,
+        # The scorer's own hash (lexicon, prompt texts and model ids, S3 2.11) -- distinct from
+        # `prompt_sha256` below, which is the referee *agent* manifest's hash (R1/R2's system prompts).
+        # Conflating the two would make a rubric-only change (lexicon, thresholds, applicability rules)
+        # invisible in a published debrief's provenance.
+        rubric_sha256=lineage_checked_sha256(),
         r3_prompt_sha256=(prompt_sha256, prompt_sha256),
         referee_model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"),
         scorer_git_sha=resolved_env.get("ARENA_GIT_SHA", "0" * 40),

@@ -6,12 +6,20 @@ import asyncio
 from collections.abc import Coroutine, Mapping
 from typing import Any
 
+import pytest
+
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
 from arena_core.agents.rubric import Rubric
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.rubric import CHECKS, MIN_QUESTIONS, RubricResult
-from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo, publish_session_debrief
+from arena_referee.debrief import (
+    DebriefDeps,
+    DebriefProvenance,
+    SessionInfo,
+    SessionNotEndedError,
+    publish_session_debrief,
+)
 from arena_referee.mapping import TrialData
 from arena_referee.scoring import PromptContext, ScoringDeps
 
@@ -165,9 +173,10 @@ def assistant_report(n_questions: int) -> RefereeAssistantReport:
 
 
 class FakeDebriefDeps:
-    def __init__(self, n_questions: int, *, voice: bool = False) -> None:
+    def __init__(self, n_questions: int, *, voice: bool = False, trial_status: str = "finalized") -> None:
         self.n_questions = n_questions
         self.voice = voice
+        self.trial_status = trial_status
         self.calls: list[str] = []
         self.judgments: dict[str, Mapping[str, Any]] = {}
         self.published: dict[str, Mapping[str, Any]] = {}
@@ -212,7 +221,11 @@ class FakeDebriefDeps:
 
     async def fetch_session(self, _session_id: str) -> SessionInfo:
         return SessionInfo(
-            trial_id=TRIAL_ID, voice=self.voice, evaluator_packet=EVALUATOR_PACKET, committed_finding=None
+            trial_id=TRIAL_ID,
+            voice=self.voice,
+            trial_status=self.trial_status,
+            evaluator_packet=EVALUATOR_PACKET,
+            committed_finding=None,
         )
 
     async def get_debrief(self, session_id: str) -> Mapping[str, Any] | None:
@@ -276,3 +289,15 @@ def test_republishing_is_idempotent_and_calls_the_model_zero_times() -> None:
     second = run(publish_session_debrief(fake.deps(), CTX, SESSION_ID))
     assert second == first
     assert len(fake.calls) == calls_after_first
+
+
+def test_publishing_on_a_running_session_is_refused_before_any_r3_work() -> None:
+    """S5 5.4: `training.publish_debrief` itself refuses a running session's trial (AR001), but only after
+    R3's model calls and writes already ran; this must fail first, with zero model calls and zero writes."""
+    fake = FakeDebriefDeps(n_questions=MIN_QUESTIONS, trial_status="running")
+    with pytest.raises(SessionNotEndedError):
+        run(publish_session_debrief(fake.deps(), CTX, SESSION_ID))
+    assert fake.calls == []
+    assert fake.judgments == {}
+    assert fake.rubric_scores == []
+    assert fake.published == {}

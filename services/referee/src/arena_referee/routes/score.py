@@ -10,6 +10,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 
+from arena_referee import db
 from arena_referee.scoring import score_trial
 
 router = APIRouter(prefix="/internal")
@@ -18,6 +19,11 @@ router = APIRouter(prefix="/internal")
 @router.post("/trials/{trial_id}/score")
 async def score_trial_route(trial_id: UUID, request: Request) -> dict[str, object]:
     state = request.app.state
+    kind = await db.fetch_trial_kind(state.connect, str(trial_id))
+    if kind is None:
+        raise HTTPException(status_code=404, detail=f"no trial {trial_id}")
+    if kind != "interactive":
+        raise HTTPException(status_code=422, detail=f"trial {trial_id} has kind {kind!r}; only interactive is scored")
     try:
         result = await score_trial(state.scoring_deps, str(trial_id), state.prompt_context)
     except LookupError as exc:

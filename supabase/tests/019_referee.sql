@@ -4,7 +4,7 @@
 -- (arena_core.referee), which this part does not re-derive in SQL.
 begin;
 \ir harness/fixtures.psql
-select plan(21);
+select plan(24);
 
 select tests.users();
 create temp table tt (tour uuid, trial uuid, trial2 uuid) on commit drop;
@@ -76,12 +76,33 @@ select is((select count(*)::int from sealed.judgments where trial_id = (select t
   'one judgment row for the r1 stage key');
 
 -- ------------------------------------------------------------------ training.review_items
-create temp table ri on commit drop as
-  select (tests.as_role('arena_referee', format(
-    $q$select to_jsonb(training.create_review_item('T-LAB', null, %L, %L, null,
-       '{"task": "T-LAB", "transcript": []}'::jsonb))$q$,
-    tests.uid('A'), (select trial from tt))) #>> '{}')::uuid as item;
+-- The row's id comes from the payload's own `item_id` (never a fresh gen_random_uuid()), so the item
+-- the sampler built with this id is exactly the item a GET returns: generated here first, then threaded
+-- through both the payload and the expected return value.
+create temp table ri (item uuid) on commit drop;
+insert into ri (item) select gen_random_uuid();
 grant select on ri to arena_referee;
+
+set local role arena_referee;
+select tests.throws(
+  format($q$select training.create_review_item('T-LAB', null, %L, %L, null, '{"task": "T-LAB"}'::jsonb)$q$,
+         tests.uid('A'), (select trial from tt)),
+  'AR007', 'item_id is required', 'a payload with no item_id is refused');
+
+select tests.throws(
+  format($q$select training.create_review_item('T-LAB', null, %L, %L, null,
+     '{"task": "T-LAB", "item_id": "not-a-uuid"}'::jsonb)$q$,
+         tests.uid('A'), (select trial from tt)),
+  'AR007', 'item_id must be a uuid', 'a payload with a malformed item_id is refused');
+reset role;
+
+select is(
+  (tests.as_role('arena_referee', format(
+    $q$select to_jsonb(training.create_review_item('T-LAB', null, %L, %L, null,
+       jsonb_build_object('task', 'T-LAB', 'transcript', '[]'::jsonb, 'item_id', %L)))$q$,
+    tests.uid('A'), (select trial from tt), (select item from ri))) #>> '{}')::uuid,
+  (select item from ri),
+  'create_review_item returns the id given in the payload''s item_id, not a fresh one');
 
 select is(
   tests.as_role('arena_referee', format($q$select training.list_review_items(%L)$q$, tests.uid('A'))),
@@ -92,10 +113,11 @@ select is(
   tests.as_role('arena_referee', format($q$select training.list_review_items(%L)$q$, tests.uid('B'))),
   '[]'::jsonb, 'a different rater sees no items (blinded, scoped to the assignee)');
 
-select ok(
-  tests.as_role('arena_referee', format($q$select training.get_review_item(%L, %L)$q$,
-                                        (select item from ri), tests.uid('A'))) is not null,
-  'the assigned rater reads the task payload');
+select is(
+  (tests.as_role('arena_referee', format($q$select training.get_review_item(%L, %L)$q$,
+                                        (select item from ri), tests.uid('A'))) ->> 'item_id')::uuid,
+  (select item from ri),
+  'the assigned rater reads the task payload, whose own item_id matches the id it was fetched by');
 
 select is(
   tests.as_role('arena_referee', format($q$select training.get_review_item(%L, %L)$q$,

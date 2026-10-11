@@ -124,3 +124,88 @@ def test_submit_item_raises_when_not_assigned(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(db, "get_review_item", fake_get)
     with pytest.raises(review.ReviewItemNotFoundError):
         run(review.submit_item(_connector, ITEM, RATER, LAB_SUBMISSION))
+
+
+def test_submit_item_rejects_a_t_lab_submission_missing_the_items_own_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The item has one turn (t01); an empty `turns` list is complete nonsense for it and must be refused,
+    not silently accepted (this is exactly what the item's own RefSubjContext cross-check now catches)."""
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return LAB_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    with pytest.raises(Exception, match="turns"):
+        run(review.submit_item(_connector, ITEM, RATER, {"task": "T-LAB", "turns": []}))
+
+
+FLAG_PAYLOAD = {
+    "task": "T-FLAG",
+    "item_id": str(uuid4()),
+    "initial_documents": [],
+    "released": [],
+    "transcript": [{"turn_no": 1, "question": "Why were you there?", "answer": "A work order.", "partial": False}],
+    "flags": [
+        {
+            "flag_ref": "t01.f1",
+            "kind": "gap",
+            "turn_id": "t01",
+            "quote": "I had a work order.",
+            "missing_fact": "which work order",
+            "conflict_turn_id": None,
+            "conflict_quote": None,
+            "conflict_record_id": None,
+            "conflict_record_quote": None,
+        }
+    ],
+}
+
+FLAG_SUBMISSION = {
+    "task": "T-FLAG",
+    "flags": [
+        {
+            "flag_ref": "t01.f1",
+            "quote_relevant": True,
+            "claim_holds": True,
+            "content_based": True,
+            "no_outside_facts": True,
+        }
+    ],
+}
+
+
+def test_submit_item_accepts_a_t_flag_submission_matching_the_items_own_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return FLAG_PAYLOAD
+
+    async def fake_submit(
+        _connect: object, _item_id: UUID, _rater_user_id: UUID, submission: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {"outcome": "recorded", "submission": submission}
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    monkeypatch.setattr(db, "submit_review_item", fake_submit)
+    result = run(review.submit_item(_connector, ITEM, RATER, FLAG_SUBMISSION))
+    assert result["outcome"] == "recorded"
+
+
+def test_submit_item_rejects_a_t_flag_submission_naming_an_unrelated_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The item names only t01.f1; a submission about a flag the item never mentioned must be refused."""
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return FLAG_PAYLOAD
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    bogus = {
+        "task": "T-FLAG",
+        "flags": [
+            {
+                "flag_ref": "t02.f1",
+                "quote_relevant": True,
+                "claim_holds": True,
+                "content_based": True,
+                "no_outside_facts": True,
+            }
+        ],
+    }
+    with pytest.raises(Exception, match="flags"):
+        run(review.submit_item(_connector, ITEM, RATER, bogus))

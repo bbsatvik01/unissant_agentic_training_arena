@@ -194,19 +194,26 @@ async def run_r1(
     stage_key = f"{data.trial_id}:{purpose}"
     stored = await deps.get_judgment(stage_key)
     if stored is not None:
-        report = RefereeSubjectReport.model_validate(stored)
+        raw = RefereeSubjectReport.model_validate(stored)
     elif not data.transcript:
-        report = empty_subject_report()
-        await deps.store_judgment(data.trial_id, "fidelity_detail", None, report.model_dump(mode="json"), stage_key)
+        raw = empty_subject_report()
     else:
         inp = build_subject_input(data)
         call = subject_agent_call(inp, prompts, data.trial_id, purpose)
         raw = await deps.run_subject_call(call)
-        answers = {turn_id(t["turn_no"]): t["answer"] for t in data.transcript}
-        report, invalid = apply_quote_check(raw, answers)
-        labels = adapt_subject_report(report, invalid)
-        await deps.store_labels(data.trial_id, "model", independent_label_rows(labels), deps.prompt_sha256)
-        await deps.store_judgment(data.trial_id, "fidelity_detail", None, report.model_dump(mode="json"), stage_key)
+    # `apply_quote_check` is idempotent on its own output (an already-blanked quote stays blanked, a valid
+    # one stays valid), so re-deriving it -- and the labels and judgment below -- from a *stored* report on
+    # resume reaches the exact same content the first attempt did. Both stores then run on every call, never
+    # only on the fresh-model-call path: a process that died between `store_labels` and `store_judgment`
+    # (or never reached either) resumes by re-submitting the same content, which the underlying S4 functions
+    # accept as 'exists' rather than refusing with AR003 -- the one-sided version of this (store_labels only
+    # in the fresh-call branch) left a trial permanently wedged if any retry's model output differed even
+    # slightly from the interrupted attempt's.
+    answers = {turn_id(t["turn_no"]): t["answer"] for t in data.transcript}
+    report, invalid = apply_quote_check(raw, answers)
+    labels = adapt_subject_report(report, invalid)
+    await deps.store_labels(data.trial_id, "model", independent_label_rows(labels), deps.prompt_sha256)
+    await deps.store_judgment(data.trial_id, "fidelity_detail", None, report.model_dump(mode="json"), stage_key)
     # The validity decision is recomputed on every call (pure and cheap from the stored report); on resume
     # `adjudicate_valid` reaches the same idempotent S4 function with the same evidence_ref, so a repeat is
     # a no-op (ledger.adjudicate_validity returns the existing adjudication for a reused key).
@@ -231,14 +238,18 @@ async def run_r2(
     flag_key, qq_key = f"{data.trial_id}:{purpose}:flag_support", f"{data.trial_id}:{purpose}:questioning_quality"
     stored = await deps.get_judgment(flag_key)
     if stored is not None:
-        return RefereeAssistantReport.model_validate(stored)
-    triggers = build_triggers(data, subject_report, mode)
-    inp = build_assistant_input(data, mode, triggers)
-    call = assistant_agent_call(inp, ctx.prompts, ctx.rubric, data.trial_id, purpose)
-    report = await deps.run_assistant_call(call)
-    payload = report.model_dump(mode="json")
-    await deps.store_judgment(data.trial_id, "flag_support", None, payload, flag_key)
-    await deps.store_judgment(data.trial_id, "questioning_quality", None, payload, qq_key)
+        report = RefereeAssistantReport.model_validate(stored)
+    else:
+        triggers = build_triggers(data, subject_report, mode)
+        inp = build_assistant_input(data, mode, triggers)
+        call = assistant_agent_call(inp, ctx.prompts, ctx.rubric, data.trial_id, purpose)
+        report = await deps.run_assistant_call(call)
+        await deps.store_judgment(data.trial_id, "flag_support", None, report.model_dump(mode="json"), flag_key)
+    # Stored independently of flag_support (both rows derive from the same report, so re-submitting is a
+    # no-op once it exists): a process that died after flag_support but before questioning_quality resumes
+    # by repairing the missing row here, rather than returning early and leaving it permanently absent.
+    if await deps.get_judgment(qq_key) is None:
+        await deps.store_judgment(data.trial_id, "questioning_quality", None, report.model_dump(mode="json"), qq_key)
     return report
 
 

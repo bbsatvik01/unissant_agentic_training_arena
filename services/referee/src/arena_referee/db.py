@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
@@ -42,6 +42,17 @@ async def _packet_row(connect: Connector, table: str, variant_id: UUID) -> Mappi
         cur = await conn.execute(query, (variant_id,))
         row = await cur.fetchone()
         return cast("Mapping[str, Any] | None", row[0] if row else None)
+
+
+async def fetch_trial_kind(connect: Connector, trial_id: str) -> str | None:
+    """`arena.trials.kind` ('training', 'interactive', 'replay_corpus' or 'replay'), or None if the trial
+    does not exist. A separate, cheap lookup from `fetch_trial_data` (shared by the interactive scoring
+    route and R3's training-session path, so it cannot itself refuse a kind) -- `score.py`'s route uses
+    this to refuse a corpus or replay trial with a clear error instead of mis-scoring it (S5 5.3)."""
+    async with connect() as conn:
+        cur = await conn.execute("select kind from arena.trials where id = %s", (UUID(trial_id),))
+        row = await cur.fetchone()
+        return cast("str | None", row[0] if row else None)
 
 
 async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
@@ -89,8 +100,14 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         ]
 
     async with connect() as conn:
+        # `answer is not null`: a turn can exist with no answer yet (SG2-39's subject_quarantined leaves a
+        # row with a null answer and answered_at, turn_answer_shape); the referee's transcript is committed
+        # exchanges only (S2 6.10's "no answer to label when the first turn was quarantined" is exactly the
+        # zero-row case this filter produces), matching `empty_subject_report()`'s "no transcript" branch
+        # and `TranscriptTurn`'s non-null `answer`.
         cur = await conn.execute(
-            "select turn_no, question, answer, question_source from arena.turns where trial_id = %s order by turn_no",
+            "select turn_no, question, answer, question_source from arena.turns"
+            " where trial_id = %s and answer is not null order by turn_no",
             (trial_uuid,),
         )
         transcript = [
@@ -232,7 +249,7 @@ async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
     session_uuid = UUID(session_id)
     async with connect() as conn:
         cur = await conn.execute(
-            "select s.trial_id, s.voice, t.variant_id from training.sessions s"
+            "select s.trial_id, s.voice, t.variant_id, t.status from training.sessions s"
             " join arena.trials t on t.id = s.trial_id where s.id = %s",
             (session_uuid,),
         )
@@ -240,7 +257,7 @@ async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
     if row is None:
         msg = f"no session {session_id}"
         raise LookupError(msg)
-    trial_id, voice, variant_id = str(row[0]), bool(row[1]), row[2]
+    trial_id, voice, variant_id, trial_status = str(row[0]), bool(row[1]), row[2], cast("str", row[3])
 
     async with connect() as conn:
         cur = await conn.execute("select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,))
@@ -255,7 +272,11 @@ async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
     committed_finding = None if finding_row is None else StoredFinding.model_validate(finding_row[0])
 
     return SessionInfo(
-        trial_id=trial_id, voice=voice, evaluator_packet=evaluator_row[0], committed_finding=committed_finding
+        trial_id=trial_id,
+        voice=voice,
+        trial_status=trial_status,
+        evaluator_packet=evaluator_row[0],
+        committed_finding=committed_finding,
     )
 
 
@@ -329,7 +350,11 @@ def make_debrief_deps(connect: Connector, scoring: ScoringDeps, provenance: Debr
 
 @dataclass(frozen=True, kw_only=True)
 class NewReviewItem:
-    """One task for the sampler or an operator script to assign (S3 7.2-7.3); never exposed to the rater."""
+    """One task for the sampler or an operator script to assign (S3 7.2-7.3); never exposed to the rater.
+
+    `payload` needs no `item_id`: `create_review_item` sets (or overwrites) it to the id it generates, so
+    the stored item's own `item_id` field always matches the row it came from.
+    """
 
     kind: str
     instrument: str | None
@@ -340,6 +365,11 @@ class NewReviewItem:
 
 
 async def create_review_item(connect: Connector, item: NewReviewItem) -> UUID:
+    """Generates the item's id here, never in SQL: the payload (`contracts.review`'s `RubricItem` /
+    `LabelItem` / `FlagItem`) carries its own required `item_id`, and `get_review_item` hands that payload
+    back unchanged, so the row's id and the payload's `item_id` must be set from the same value."""
+    item_id = uuid4()
+    payload = {**dict(item.payload), "item_id": str(item_id)}
     async with connect() as conn, conn.transaction():
         cur = await conn.execute(
             "select training.create_review_item(%s, %s, %s, %s, %s, %s)",
@@ -349,7 +379,7 @@ async def create_review_item(connect: Connector, item: NewReviewItem) -> UUID:
                 item.rater_user_id,
                 item.context_trial_id,
                 item.context_session_id,
-                Jsonb(dict(item.payload)),
+                Jsonb(payload),
             ),
         )
         row = await cur.fetchone()

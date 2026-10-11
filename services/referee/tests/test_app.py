@@ -22,6 +22,7 @@ from fastapi import FastAPI
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.identity import DevIdentity, user_id_for
 from arena_core.referee.pipeline import ValidityDecision
+from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_referee import db
 from arena_referee.app import create_app
 from arena_referee.routes import debrief as debrief_route
@@ -113,6 +114,16 @@ UNPROCESSABLE = 422
 
 
 # ---------------------------------------------------------------- D10: Host, health
+
+
+def test_debrief_provenance_uses_the_rubric_hash_not_the_prompt_manifest_hash(tmp_path: Path) -> None:
+    """`rubric_sha256` (S3 2.11: lexicon, prompt texts and model ids) is a different provenance concern
+    than the referee agent manifest's own hash (R1/R2's system prompts) -- conflating them would make a
+    rubric-only change invisible in a published debrief's provenance."""
+    app = make_app(tmp_path)
+    provenance = app.state.debrief_deps.provenance
+    assert provenance.rubric_sha256 == lineage_checked_sha256()
+    assert provenance.rubric_sha256 != provenance.r3_prompt_sha256[0]
 
 
 def test_health_passes_the_host_check_and_needs_no_identity(tmp_path: Path) -> None:
@@ -342,8 +353,12 @@ def test_score_route_reports_the_verdict(tmp_path: Path, monkeypatch: pytest.Mon
             validity=ValidityDecision(verdict="valid", deciding_turns=(), auto_recordable=True, reason="clean"),
         )
 
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "interactive"
+
     app = make_app(tmp_path)
     monkeypatch.setattr(score_route, "score_trial", fake_score_trial)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
     resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
     assert resp.status_code == httpx.codes.OK
     assert resp.json() == {"verdict": "valid", "auto_recordable": True}
@@ -355,10 +370,37 @@ def test_score_route_maps_a_lookup_error_to_404(tmp_path: Path, monkeypatch: pyt
         msg = f"no trial {trial_id}"
         raise LookupError(msg)
 
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "interactive"
+
     app = make_app(tmp_path)
     monkeypatch.setattr(score_route, "score_trial", fake_score_trial)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
     resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
     assert resp.status_code == NOT_FOUND
+
+
+def test_score_route_rejects_an_unknown_trial_before_scoring(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> None:
+        return None
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == NOT_FOUND
+
+
+def test_score_route_refuses_a_non_interactive_trial(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """S5 5.3: corpus and replay trials have a different call shape and are WP-16/WP-17's to wire; this
+    route refuses them with a clear error rather than silently mis-scoring them."""
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay_corpus"
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == UNPROCESSABLE
 
 
 def test_debrief_route_publishes_and_returns_the_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

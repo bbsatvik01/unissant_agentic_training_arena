@@ -27,6 +27,11 @@ declare
   v_new      jsonb;
 begin
   perform ledger.require_read_committed();
+  -- Serializes concurrent calls for the same (trial, labeler): under READ COMMITTED (S4 2.2), two
+  -- transactions racing the check-then-insert below could both see "no existing rows" and both try to
+  -- insert, one losing to the table's own (trial_id, turn_no, labeler) primary key with a raw unique-
+  -- violation instead of this function's own 'exists'/AR003 outcomes. Released at transaction end.
+  perform pg_advisory_xact_lock(hashtext(p_trial::text), hashtext(p_labeler));
   if p_labeler not in ('model', 'human_consensus') then
     raise exception using errcode = 'AR007', message = 'labeler is model or human_consensus';
   end if;
@@ -70,6 +75,10 @@ declare
   v sealed.judgments;
 begin
   perform ledger.require_read_committed();
+  -- Serializes concurrent calls for the same idempotency key, for the same reason as
+  -- sealed.record_independent_labels above: without it, two racing transactions can both see no existing
+  -- row and both insert, one losing to sealed.judgments' own unique constraint on idempotency_key.
+  perform pg_advisory_xact_lock(hashtext(p_idempotency_key));
   select * into v from sealed.judgments where idempotency_key = p_idempotency_key;
   if found then
     if (v.trial_id, v.kind, v.rater_id, v.payload) is not distinct from (p_trial, p_kind, p_rater_id, p_payload) then
@@ -131,6 +140,13 @@ create trigger review_items_submit_once before update or delete on training.revi
 -- create_review_item (arena_referee): the sampler (WP-25) or an operator script assigns one task to one
 -- rater. p_context_session is null for a T-RUB item rating a tournament trial's replay-track QQ (instrument
 -- C-QQ) rather than a training session's investigator score (instrument C-RUB).
+--
+-- The row's id comes from `p_payload->>'item_id'`, never a fresh `gen_random_uuid()`: every typed item shape
+-- (contracts/review.py RubricItem/LabelItem/FlagItem) carries its own required `item_id`, and
+-- `get_review_item` hands that payload back unchanged, so the row's identity and the payload's `item_id`
+-- must be the same value -- otherwise a rater's GET returns an item whose own `item_id` field does not match
+-- the id it was fetched by. The caller (arena_referee.db.create_review_item) sets `item_id` to the id it
+-- generates before calling here.
 create or replace function training.create_review_item(p_kind text, p_instrument text, p_rater_user_id uuid,
                                                         p_context_trial uuid, p_context_session uuid, p_payload jsonb)
 returns uuid
@@ -145,9 +161,17 @@ begin
   if p_rater_user_id is null or p_context_trial is null or jsonb_typeof(p_payload) is distinct from 'object' then
     raise exception using errcode = 'AR007', message = 'a review item needs a rater, a context trial and an object payload';
   end if;
-  insert into training.review_items (kind, instrument, rater_user_id, context_trial_id, context_session_id, payload)
-    values (p_kind, p_instrument, p_rater_user_id, p_context_trial, p_context_session, p_payload)
-    returning id into v_id;
+  if not (p_payload ? 'item_id') then
+    raise exception using errcode = 'AR007', message = 'payload.item_id is required (the row''s own id)';
+  end if;
+  begin
+    v_id := (p_payload ->> 'item_id')::uuid;
+  exception when invalid_text_representation then
+    raise exception using errcode = 'AR007', message = 'payload.item_id must be a uuid';
+  end;
+  insert into training.review_items (id, kind, instrument, rater_user_id, context_trial_id, context_session_id,
+                                      payload)
+    values (v_id, p_kind, p_instrument, p_rater_user_id, p_context_trial, p_context_session, p_payload);
   return v_id;
 end $$;
 revoke all on function training.create_review_item(text, text, uuid, uuid, uuid, jsonb) from public;

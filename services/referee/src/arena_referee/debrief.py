@@ -103,8 +103,15 @@ class SessionInfo:
 
     trial_id: str
     voice: bool
+    trial_status: str
     evaluator_packet: Mapping[str, Any]
     committed_finding: StoredFinding | None
+
+
+class SessionNotEndedError(RuntimeError):
+    """`training.publish_debrief` itself refuses this (AR001: "a debrief follows the end of the session"),
+    but only after R3's model calls and writes have already run; checked here first so a request on a
+    running session fails fast instead of wasting them."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -121,12 +128,18 @@ def _committed_label(finding: StoredFinding | None) -> Label | None:
     return None if finding is None else finding.label
 
 
+_ENDED_TRIAL_STATUSES = frozenset({"finalized", "terminated"})
+
+
 async def publish_session_debrief(deps: DebriefDeps, ctx: PromptContext, session_id: str) -> Mapping[str, Any]:
     """`POST /api/sessions/{id}/debrief` (S5 5.4): idempotent per session, zero model calls on a repeat."""
     existing = await deps.get_debrief(session_id)
     if existing is not None:
         return existing
     session = await deps.fetch_session(session_id)
+    if session.trial_status not in _ENDED_TRIAL_STATUSES:
+        msg = f"session {session_id}'s trial has status {session.trial_status!r}, not yet ended"
+        raise SessionNotEndedError(msg)
     label = _committed_label(session.committed_finding)
     debrief: Debrief
     if session.voice:

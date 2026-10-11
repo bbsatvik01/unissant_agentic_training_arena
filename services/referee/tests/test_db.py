@@ -196,6 +196,25 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
     assert data.final_finding == {"label": "deceptive"}
 
 
+def test_fetch_trial_data_turns_query_excludes_unanswered_turns() -> None:
+    """A quarantined turn (SG2-39) leaves an `arena.turns` row with a null answer (`turn_answer_shape`); the
+    referee's transcript is committed exchanges only -- `TranscriptTurn.answer` is a non-empty string, and a
+    trial quarantined on its first turn must produce an EMPTY transcript (S2 6.10), not a null one. A fake
+    connector cannot prove the database enforces this filter, so this only proves the query text asks for
+    it; see the report's documented scope cut on live-database coverage for this fix."""
+    conn = _trial_data_conn()
+    run(db.fetch_trial_data(connector(conn), TRIAL))
+    (turns_query, _) = next(call for call in conn.executed if "arena.turns" in call[0])
+    assert "answer is not null" in turns_query
+
+
+def test_fetch_trial_kind_found_and_missing() -> None:
+    found = FakeConn({"from arena.trials where id": [("interactive",)]})
+    assert run(db.fetch_trial_kind(connector(found), TRIAL)) == "interactive"
+    missing = FakeConn({"from arena.trials where id": []})
+    assert run(db.fetch_trial_kind(connector(missing), TRIAL)) is None
+
+
 def test_fetch_trial_data_no_trial_raises() -> None:
     conn = _trial_data_conn({"from arena.trials t": []})
     with pytest.raises(LookupError, match="no trial"):
@@ -303,7 +322,7 @@ def test_fetch_session_happy_path_with_committed_finding() -> None:
     }
     conn = FakeConn(
         {
-            "training.sessions": [(UUID(TRIAL), False, VARIANT)],
+            "training.sessions": [(UUID(TRIAL), False, VARIANT, "finalized")],
             "sealed.evaluator_packets": [({"canonical_facts": []},)],
             "arena.final_findings": [(finding,)],
         }
@@ -311,6 +330,7 @@ def test_fetch_session_happy_path_with_committed_finding() -> None:
     info = run(db.fetch_session(connector(conn), SESSION))
     assert info.trial_id == TRIAL
     assert info.voice is False
+    assert info.trial_status == "finalized"
     assert info.evaluator_packet == {"canonical_facts": []}
     assert info.committed_finding is not None
     assert info.committed_finding.label == "insufficient_evidence"
@@ -319,13 +339,14 @@ def test_fetch_session_happy_path_with_committed_finding() -> None:
 def test_fetch_session_no_committed_finding() -> None:
     conn = FakeConn(
         {
-            "training.sessions": [(UUID(TRIAL), True, VARIANT)],
+            "training.sessions": [(UUID(TRIAL), True, VARIANT, "terminated")],
             "sealed.evaluator_packets": [({"canonical_facts": []},)],
             "arena.final_findings": [],
         }
     )
     info = run(db.fetch_session(connector(conn), SESSION))
     assert info.voice is True
+    assert info.trial_status == "terminated"
     assert info.committed_finding is None
 
 
@@ -336,7 +357,7 @@ def test_fetch_session_no_session_raises() -> None:
 
 
 def test_fetch_session_no_evaluator_packet_raises() -> None:
-    conn = FakeConn({"training.sessions": [(UUID(TRIAL), False, VARIANT)], "sealed.evaluator_packets": []})
+    conn = FakeConn({"training.sessions": [(UUID(TRIAL), False, VARIANT, "finalized")], "sealed.evaluator_packets": []})
     with pytest.raises(LookupError, match="no evaluator packet"):
         run(db.fetch_session(connector(conn), SESSION))
 
@@ -392,7 +413,7 @@ def test_store_rubric_score_is_a_noop_when_unscorable() -> None:
 def test_make_debrief_deps_wires_every_field() -> None:
     conn = FakeConn(
         {
-            "training.sessions": [(UUID(TRIAL), False, VARIANT)],
+            "training.sessions": [(UUID(TRIAL), False, VARIANT, "finalized")],
             "sealed.evaluator_packets": [({"canonical_facts": []},)],
             "arena.final_findings": [],
             "training.debriefs": [],
@@ -448,7 +469,11 @@ def test_create_review_item_returns_the_new_id() -> None:
     (query, params) = conn.executed[0]
     assert "training.create_review_item" in query
     assert params[0] == "T-RUB"
-    assert params[5].obj == {"a": 1}
+    # The payload's own item_id is generated here, never left to the caller, and never a fresh one chosen
+    # independently by SQL: the row's identity and the stored item's own `item_id` field must agree.
+    sent_payload = params[5].obj
+    assert sent_payload["a"] == 1
+    assert isinstance(UUID(sent_payload["item_id"]), UUID)
 
 
 def test_create_review_item_raises_when_no_row_returned() -> None:

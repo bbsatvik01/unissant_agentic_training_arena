@@ -17,7 +17,7 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.rubric import CHECKS
 from arena_referee.mapping import TrialData
-from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, score_trial
+from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, run_r2, score_trial
 from arena_referee.scoring import run_r1 as _run_r1
 
 
@@ -283,3 +283,45 @@ def test_score_trial_raises_if_run_r1_ever_returns_no_validity_decision(monkeypa
     fake = FakeDeps()
     with pytest.raises(scoring_module.ScoringError, match="always returns a validity decision"):
         run(score_trial(fake.deps(), trial_data().trial_id, CTX))
+
+
+def test_run_r1_resuming_from_a_stored_report_re_derives_identical_labels() -> None:
+    """A process that died after `store_labels` but before `store_judgment` (or crashed before either)
+    resumes into the `stored is not None` branch; `store_labels`/`store_judgment` must still run and submit
+    the exact same content the interrupted attempt did, since the real S4 functions accept identical
+    resubmission as 'exists' but refuse (AR003) a stage key resubmitted with different content."""
+    fake = FakeDeps()
+    run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    assert len(fake.labels) == 1
+    first_rows = fake.labels[0][2]
+    first_judgment = fake.judgments[f"{trial_data().trial_id}:referee_subject"]
+
+    # Simulate a resume: the judgment is already stored (fake.get_judgment finds it), no model call happens.
+    run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    expected_label_calls = 2
+    assert fake.calls == ["r1"]  # the model was never called a second time
+    assert len(fake.labels) == expected_label_calls  # store_labels ran again on resume (the fix), not skipped
+    assert fake.labels[1][2] == first_rows  # identical content: the real SQL would accept it, never AR003
+    assert fake.judgments[f"{trial_data().trial_id}:referee_subject"] == first_judgment
+
+
+def test_run_r2_resuming_repairs_a_missing_questioning_quality_row() -> None:
+    """A process that stored `flag_support` then died before `questioning_quality` resumes by writing the
+    missing row from the already-stored report, with no second model call -- the row is never permanently
+    absent just because the first attempt returned early."""
+    fake = FakeDeps()
+    data = trial_data()
+    purpose = "referee_assistant"
+    flag_key, qq_key = f"{data.trial_id}:{purpose}:flag_support", f"{data.trial_id}:{purpose}:questioning_quality"
+    deps = fake.deps()
+    report = run(run_r2(deps, data, CTX, subject_report(), "assistant"))
+    assert fake.calls == ["r2"]
+    assert flag_key in fake.judgments
+    assert qq_key in fake.judgments
+    # Simulate the interrupted process: questioning_quality never made it to the store.
+    del fake.judgments[qq_key]
+
+    repaired = run(run_r2(deps, data, CTX, subject_report(), "assistant"))
+    assert fake.calls == ["r2"]  # still no second model call -- flag_support alone proves the stage is done
+    assert qq_key in fake.judgments  # the missing row is repaired
+    assert repaired.model_dump(mode="json") == report.model_dump(mode="json")
