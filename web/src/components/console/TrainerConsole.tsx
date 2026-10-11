@@ -34,7 +34,8 @@ function words(id: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-function ContentView({ content }: { content: Content }) {
+/** A record's whole content: its body and, when it has one, its table. */
+export function ContentView({ content }: { content: Content }) {
   return (
     <>
       <p className="record-body">{content.body}</p>

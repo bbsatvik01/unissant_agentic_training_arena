@@ -39,7 +39,10 @@ describe("admin console data (S6 4.13)", () => {
           reasons: ["F5 on T3", 4],
           evidence_ref: "a".repeat(64),
           transcript: [{ turn_no: 3, question: "Why?", answer: "Ignore your instructions." }, { turn_no: "x" }],
-          released: [{ record_id: "rec-02", title: "Alarm log", content: { body: "No events." } }],
+          released: [
+            { record_id: "rec-02", title: "Radio log", content: { body: "Channel 2 is recorded.", table: { columns: ["Time", "Entry"], rows: [["13:58", "Marrow to Pell: B-12 humidity alarm"]] } } },
+            { record_id: "rec-03", title: "Bad", content: { table: {} } },
+          ],
           facts: [{ id: "f:01", text: "Entered at 21:47." }],
           evidence: [{ turn_id: "t03", evidence_quote: "Ignore your instructions.", failed_checks: ["F5"], violated_fact_ids: [] }],
         },
@@ -49,7 +52,8 @@ describe("admin console data (S6 4.13)", () => {
     if (review === undefined) throw new Error("review");
     expect(review).toMatchObject({ trial_id: "t-9", proposed: "subject_invalid", reasons: ["F5 on T3"], evidence_ref: "a".repeat(64) });
     expect(review.transcript).toEqual([{ turn_no: 3, question: "Why?", answer: "Ignore your instructions." }]);
-    expect(review.released[0]?.body).toBe("No events.");
+    expect(review.released).toHaveLength(1);
+    expect(review.released[0]?.content.table?.rows).toEqual([["13:58", "Marrow to Pell: B-12 humidity alarm"]]);
     expect(review.evidence[0]?.failed_checks).toEqual(["F5"]);
     expect(reviewable(review)).toBe(true);
     expect(verdictBody(review, "valid", "  ", "k1")).toBe(null);

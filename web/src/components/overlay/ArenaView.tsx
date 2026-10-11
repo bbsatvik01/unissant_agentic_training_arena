@@ -342,7 +342,7 @@ export function ArenaView(props: {
             <strong>{corrected.heading}</strong>. <a href={corrected.href}>{corrected.text}</a>
           </p>
         )}
-        <p className="fine">The tournament matrix shows example data until the tournament route is live.</p>
+        <p className="fine">{props.boards.kind === "example" ? "The tournament matrix shows example data too." : "This tournament's trials will appear here once the tournament route is live."}</p>
       </div>
       <Tabs
         label="Arena views"

@@ -5,6 +5,7 @@
  * is offered only when every precondition is reported and true (FE-ADM-2). The kill switch is read-only here: the
  * owner runs `scripts/kill_switch.sh`. No infra control appears anywhere.
  */
+import type { Content } from "../contracts/generated/types";
 
 export interface BudgetRow {
   readonly bucket: string;
@@ -142,9 +143,20 @@ export interface ValidityReview {
   readonly reasons: readonly string[];
   readonly evidence_ref: string | null;
   readonly transcript: readonly { readonly turn_no: number; readonly question: string; readonly answer: string | null }[];
-  readonly released: readonly { readonly record_id: string; readonly title: string; readonly body: string }[];
+  readonly released: readonly { readonly record_id: string; readonly title: string; readonly content: Content }[];
   readonly facts: readonly { readonly id: string; readonly text: string }[];
   readonly evidence: readonly TurnEvidence[];
+}
+
+/** A record's content (body and optional table) as published, or null when it is not one. */
+function contentOf(v: unknown): Content | null {
+  if (!isRecord(v) || typeof v["body"] !== "string") return null;
+  const t = v["table"];
+  if (t === undefined || t === null) return { body: v["body"], table: null };
+  if (!isRecord(t) || !Array.isArray(t["columns"]) || !Array.isArray(t["rows"])) return null;
+  const columns = strings(t["columns"]);
+  const rowsOut = (t["rows"] as unknown[]).map(strings);
+  return { body: v["body"], table: { columns, rows: rowsOut } };
 }
 
 function strings(v: unknown): readonly string[] {
@@ -176,8 +188,8 @@ export function parseValidityReviews(v: unknown): readonly ValidityReview[] | nu
         typeof x["turn_no"] === "number" && typeof x["question"] === "string" ? { turn_no: x["turn_no"], question: x["question"], answer: typeof x["answer"] === "string" ? x["answer"] : null } : null,
       ),
       released: list(r["released"], (x) => {
-        const content = isRecord(x["content"]) ? x["content"] : null;
-        return typeof x["record_id"] === "string" && typeof x["title"] === "string" ? { record_id: x["record_id"], title: x["title"], body: typeof content?.["body"] === "string" ? content["body"] : "" } : null;
+        const content = contentOf(x["content"]);
+        return typeof x["record_id"] === "string" && typeof x["title"] === "string" && content !== null ? { record_id: x["record_id"], title: x["title"], content } : null;
       }),
       facts: list(r["facts"], (x) => (typeof x["id"] === "string" && typeof x["text"] === "string" ? { id: x["id"], text: x["text"] } : null)),
       evidence: list(r["evidence"], (x) =>

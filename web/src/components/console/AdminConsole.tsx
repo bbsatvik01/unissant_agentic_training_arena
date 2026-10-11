@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import type { AdminAction, AdminTournament, BudgetRow, Precondition, ValidityReview } from "../../lib/console/admin";
 import { killSwitchOf, nextAction, revealAllowed, reviewable } from "../../lib/console/admin";
+import { ContentView } from "./TrainerConsole";
 
 export type Section<T> = { readonly state: "loading" } | { readonly state: "missing" } | { readonly state: "error" } | { readonly state: "ready"; readonly value: T };
 
@@ -60,9 +61,12 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
           ))}
         </ol>
         {review.released.map((r) => (
-          <p key={r.record_id} className="fine">
-            <span className="mono">{r.record_id}</span> {r.title}: {r.body}
-          </p>
+          <div key={r.record_id}>
+            <p className="fine">
+              <span className="mono">{r.record_id}</span> {r.title}
+            </p>
+            <ContentView content={r.content} />
+          </div>
         ))}
         {review.facts.length === 0 ? null : (
           <ul>

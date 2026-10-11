@@ -91,7 +91,9 @@ export function WorldRoute() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
-  const [showArena, setShowArena] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
+  const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
   // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
   // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
@@ -101,7 +103,11 @@ export function WorldRoute() {
   const openArena = () => {
     setShowArena(true);
     setShowProgress(false);
-    if (arena !== null) return;
+  };
+  // The arena's data, read once it is first shown.
+  const arenaLoaded = arena !== null;
+  useEffect(() => {
+    if (!showArena || arenaLoaded) return;
     const params = new URLSearchParams(window.location.search);
     const tournamentId = params.get("tournament");
     const label = params.get("label") === "original" ? "original" : null;
@@ -122,11 +128,13 @@ export function WorldRoute() {
         name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
         assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
         subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
-        tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        // The example matrix only without a selected tournament; a selected one has no trials to show until the
+        // tournament route is live (WP-17), never the example's.
+        tournament: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
         boards: boards === null ? { kind: "example" } : boards.state,
       });
     });
-  };
+  }, [showArena, arenaLoaded, api]);
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -171,7 +179,6 @@ export function WorldRoute() {
   const modes = allowedModes(study);
   const refreshMe = meCtl.refresh;
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showProgress, setShowProgress] = useState(false);
   const progress = useProgress(api, showProgress);
   const cases = liveCases ?? CASES;
 
