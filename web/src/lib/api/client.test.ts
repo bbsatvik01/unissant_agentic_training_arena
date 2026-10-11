@@ -103,6 +103,15 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
     expect(t.sent.filter((s) => s.url === "/api/me")).toHaveLength(1);
   });
 
+  it("reads the study status and a console /api/me without acknowledgement or study", async () => {
+    const study = { counterbalance: "B", ended: { pre: 2, practice: 1, post: 0 }, next_phase: "practice" };
+    const t = transport({ "GET /api/me": [() => json(200, { ...ME, study })] });
+    await expect(createApiClient({ fetch: t.fetch }).me()).resolves.toMatchObject({ study });
+    const consoleMe = { user_id: "u2", display_name: "Rater", roles: ["trainer"], csrf_token: "tok-2" };
+    const c = transport({ "GET /api/me": [() => json(200, consoleMe)] });
+    await expect(createApiClient({ fetch: c.fetch }).me()).resolves.toMatchObject({ roles: ["trainer"], ex4_acknowledged: null, study: null });
+  });
+
   it("returns the validated profile from me() and keeps its token", async () => {
     const t = transport({ "GET /api/me": [() => json(200, ME)], "POST /api/x": [() => json(200, {})] });
     const api = createApiClient({ fetch: t.fetch });
@@ -111,6 +120,7 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
       display_name: "Dana",
       roles: ["investigator"],
       ex4_acknowledged: null,
+      study: null,
       csrf_token: "tok-1",
     });
     await api.post("/api/x");
@@ -123,6 +133,8 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
     ["no user id", { ...ME, user_id: 3 }],
     ["no display name", { ...ME, display_name: null }],
     ["ex4 not a time", { ...ME, ex4_acknowledged: 5 }],
+    ["a malformed study", { ...ME, study: { counterbalance: "A", ended: { pre: -1, practice: 0, post: 0 }, next_phase: "pre" } }],
+    ["an unknown study phase", { ...ME, study: { counterbalance: "A", ended: { pre: 0, practice: 0, post: 0 }, next_phase: "later" } }],
   ])("refuses a /api/me body with %s", async (_why, body) => {
     const t = transport({ "GET /api/me": [() => json(200, body)] });
     await expect(createApiClient({ fetch: t.fetch }).me()).rejects.toBeInstanceOf(ContractError);

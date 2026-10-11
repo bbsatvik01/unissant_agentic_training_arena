@@ -1402,3 +1402,53 @@ td {
   outline: 2px solid var(--arena-ink, currentColor);
   outline-offset: 4px;
 }
+
+.onboarding {
+  position: fixed;
+  z-index: 6;
+  top: 72px;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--arena-radius-lg);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+  overflow: hidden;
+}
+.onboarding-body {
+  overflow-y: auto;
+  padding: 4px 24px 16px;
+  display: grid;
+  gap: 16px;
+  line-height: 1.5;
+}
+.onboarding-body ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.onboarding .ex4-statement {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 6px 0 0;
+}
+.onboarding-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px 16px;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
+}
+.study-step {
+  flex-basis: 100%;
+  margin-bottom: 4px;
+}
+.study-step p {
+  margin: 2px 0 0;
+}

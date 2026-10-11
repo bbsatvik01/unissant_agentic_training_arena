@@ -8,6 +8,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { ArenaView } from "../components/overlay/ArenaView";
+import { Onboarding } from "../components/overlay/Onboarding";
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
 import { DebriefScene } from "../components/overlay/DebriefScene";
@@ -27,10 +28,12 @@ import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
 import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
 import { draftAfterSend } from "../lib/world/live";
 import type { CaseDocument, Recording } from "../lib/world/recording";
 import type { WorldState } from "../lib/world/worldState";
-import { useLiveSession } from "./world/useLiveSession";
+import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
+import { useMe } from "./world/useMe";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
 import { usePlayback } from "./world/usePlayback";
@@ -144,6 +147,13 @@ export function WorldRoute() {
     };
   }, [api]);
   const live = liveCases !== null;
+  const meCtl = useMe(api, live);
+  const study = meCtl.me?.study ?? null;
+  const canStartLive = live && meCtl.me !== null && meCtl.me.ex4_acknowledged !== null;
+  const mustAcknowledge = live && meCtl.me !== null && meCtl.me.ex4_acknowledged === null;
+  const modes = allowedModes(study);
+  const refreshMe = meCtl.refresh;
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const cases = liveCases ?? CASES;
 
   const recording = load.state === "ready" ? load.recording : null;
@@ -275,9 +285,10 @@ export function WorldRoute() {
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
+    refreshMe();
     setPlace("hub");
     setArrived(false);
-  }, [playback, session]);
+  }, [playback, session, refreshMe]);
   const onArrive = useCallback(() => {
     setArrived(true);
   }, []);
@@ -331,9 +342,16 @@ export function WorldRoute() {
     active: sound && place === "room" && !paused && (liveFeed || (mode === "playback" && playback.playing && playback.speed === 1)),
     scope: liveFeed ? (session.session?.session_id ?? "live") : (recording?.trial_id ?? "none"),
   });
+  // The study step may have moved once a session ends: read /api/me again (S6 3.2).
+  const trialEnded = liveFeed && view?.status === "ended";
+  useEffect(() => {
+    if (trialEnded) refreshMe();
+  }, [trialEnded, refreshMe]);
   const canAct = liveFeed && view !== null && (view.status === "awaiting_question" || view.status === "cap_reached");
 
   const caption = (() => {
+    // A study participant's refused start is the study's order (S6 3.2): the server states only a code.
+    if (liveFeed && session.error === REFUSED_TEXT && study !== null && session.phase === "error") return `This is not the next step of the study. ${stepLabel(study)}: ${nextStepText(study)}`;
     if (liveFeed && session.error !== null) return session.error;
     if (liveFeed && session.connectionError !== null) return session.connectionError;
     if (liveFeed && session.phase === "starting") return "Opening the interview room.";
@@ -379,6 +397,13 @@ export function WorldRoute() {
           {place === "room" ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
               {sound ? "Mute voices" : "Unmute voices"}
+            </button>
+          ) : null}
+          {live && meCtl.me !== null ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showOnboarding || mustAcknowledge} onClick={() => {
+                setShowOnboarding((v) => !v);
+              }}>
+              Ground rule
             </button>
           ) : null}
           {place === "hub" ? (
@@ -557,28 +582,36 @@ export function WorldRoute() {
               ) : null}
               {mode === "choose" ? (
                 <div className="start-row" role="group" aria-label="Start">
+                  {live && study !== null ? (
+                    <div className="study-step">
+                      <span className="eyebrow">Study</span> <strong>{stepLabel(study)}</strong>
+                      <p className="fine">{nextStepText(study)}</p>
+                    </div>
+                  ) : null}
+                  {live && !canStartLive ? <p className="fine">{meCtl.failed ? "Your profile could not be read; reload the page." : "Read the ground rule before you start."}</p> : null}
                   {live && session.resumable !== null ? (
-                    <button type="button" className="btn-primary" onClick={() => {
+                    <button type="button" className="btn-primary" disabled={!canStartLive} onClick={() => {
                         setMode("live");
                         void session.resume();
                       }}>
                       Return to your {session.resumable.mode === "practice" ? "practice interview" : "assessment"}
                     </button>
                   ) : null}
-                  {live ? (
-                    <>
-                      <button type="button" className={session.resumable === null ? "btn-primary" : "btn-secondary-sm start-alt"} onClick={() => {
-                          startLive("practice");
-                        }}>
-                        Start practice interview
-                      </button>
-                      <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
-                          startLive("assessment");
-                        }}>
-                        Assessment
-                      </button>
-                    </>
-                  ) : null}
+                  {live
+                    ? modes.map((m, i) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className={session.resumable === null && i === 0 ? "btn-primary" : "btn-secondary-sm start-alt"}
+                          disabled={!canStartLive}
+                          onClick={() => {
+                            startLive(m);
+                          }}
+                        >
+                          {m === "practice" ? "Start practice interview" : study !== null && study.next_phase !== "done" ? `Start ${stepLabel(study).toLowerCase()}` : "Assessment"}
+                        </button>
+                      ))
+                    : null}
                   {active?.case_id === RECORDED_CASE_ID ? (
                     <button type="button" className="btn-secondary-sm start-alt" onClick={watchRecording}>
                       Watch the recorded run
@@ -732,6 +765,15 @@ export function WorldRoute() {
         </aside>
       </main>
 
+      {mustAcknowledge || showOnboarding ? (
+        <Onboarding
+          acknowledged={meCtl.me?.ex4_acknowledged ?? null}
+          onAcknowledge={meCtl.acknowledge}
+          onClose={mustAcknowledge ? null : () => {
+            setShowOnboarding(false);
+          }}
+        />
+      ) : null}
       {place === "hub" && showArena && arena !== null ? (
         <ArenaView
           name={arena.name}

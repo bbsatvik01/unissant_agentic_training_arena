@@ -62,13 +62,15 @@ interface Options {
   readonly paused: boolean;
 }
 
+export const REFUSED_TEXT = "The request was refused as invalid.";
+
 /** The server's refusals in the room's words (S6 4.3, 4.4, 4.6). */
 export function describeError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 429) return "The daily session limit has been reached.";
     if (error.status === 409) return "One moment: the previous turn is still being saved.";
     if (error.status === 404) return "This case is not available.";
-    if (error.status === 422) return "The request was refused as invalid.";
+    if (error.status === 422) return REFUSED_TEXT;
     if (error.status >= 500) return "The server could not complete the request. Try again.";
   }
   return "The request could not be completed.";
