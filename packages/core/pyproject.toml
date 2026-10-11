@@ -5,9 +5,13 @@ description = "Shared core: boot checks, config, the deterministic scenario engi
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "google-genai==2.24.0",
+  "httpx==0.28.1",
   "jsonschema==4.26.0",
   "numpy==2.5.3",
-  "opentelemetry-api==1.42.1",
+  "openinference-instrumentation-google-genai==1.4.10",
+  "opentelemetry-api==1.45.0",
+  "opentelemetry-exporter-otlp-proto-http==1.45.0",
+  "opentelemetry-sdk==1.45.0",
   "psycopg[binary]==3.3.6",
   "pydantic==2.13.5",
   "referencing==0.37.0",
