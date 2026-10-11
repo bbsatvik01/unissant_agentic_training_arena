@@ -228,6 +228,20 @@ def test_registered_secret_value_in_a_name_is_hashed_even_if_registered() -> Non
     assert span.name != name  # credential-shaped even though registered: hashed, not shown
 
 
+def test_registered_secret_with_an_email_shaped_tail_still_fully_masked() -> None:
+    """Regression (Codex self-gate round 3, major): a registered secret (e.g. a DSN password) whose tail
+    happens to look like an email ("...@host") used to have the PII pass corrupt its exact text BEFORE the
+    credential pass could find-and-mask it whole -- leaving the password itself exposed in clear next to
+    "[email]". The exact-registered-secret match now runs before anything else can mutate the text. (Not a
+    real connection string shape -- a bare password-plus-host-shaped value is enough to reproduce the bug
+    without also pattern-matching a credential scanner's own DSN detector on this synthetic fixture.)"""
+    registered_value = "SecretPassword!tail@db.example.invalid"
+    sanitizer = _sanitizer(secrets=(registered_value,))
+    out = sanitizer.text(f"connecting with {registered_value} now")
+    assert "SecretPassword" not in out
+    assert registered_value not in out
+
+
 def test_is_structural_key_accepts_known_words_and_indices() -> None:
     assert ep.is_structural_key("llm.input_messages.0.message.role") is True
     assert ep.is_structural_key("totally.unknown.path") is False
@@ -341,6 +355,32 @@ def test_public_structural_attribute_with_a_numeric_sequence_passes_through() ->
     _sanitizer().span(span, sensitive=False, tainted=False)
     assert span.attributes is not None
     assert span.attributes["input_tokens"] == [1, 2, 3]
+
+
+def test_a_huge_numeric_sequence_is_cut_to_the_element_cap() -> None:
+    """Regression (Codex self-gate round 3, major): a JSONB array's per-element storage overhead means many
+    small elements can need far more than their JSON-text byte length once actually stored (measured
+    against a real PostgreSQL 17: a 9,000-element array of zero is 27 KB as JSON text but 108 KB of
+    pg_column_size(), over the mirror row's 32 KB cap) -- the mirror's own aggregate byte-budget heuristic
+    is too coarse a proxy to catch this on its own. Bounding element count at the source closes it for
+    every attribute, allowlisted or not, since hashing (the path an unregistered key takes) never reduces
+    element count either."""
+    huge = list(range(9_000))
+    span = _span(attributes={"input_tokens": huge})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    out = attrs["input_tokens"]
+    assert isinstance(out, list)
+    assert len(out) == ep.MAX_SEQUENCE_ELEMENTS
+
+
+def test_a_huge_sequence_under_an_unregistered_key_is_still_cut() -> None:
+    span = _span(attributes={"totally.unknown.key": list(range(9_000))})
+    _sanitizer().span(span, sensitive=False, tainted=False)
+    attrs: Mapping[str, ep.AttributeValue] = span.attributes or {}
+    out = next(iter(attrs.values()))
+    assert isinstance(out, list)
+    assert len(out) == ep.MAX_SEQUENCE_ELEMENTS
 
 
 def test_cost_usd_decimal_string_stays_in_clear_as_the_plain_attribute_8_2_requires() -> None:

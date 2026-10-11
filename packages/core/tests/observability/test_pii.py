@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from arena_core.observability import pii
 
 
@@ -37,6 +39,19 @@ def test_redact_text_masks_a_parenthesised_area_code_with_no_trailing_separator(
         assert out is not None
         assert "415" not in out
         assert "[phone]" in out
+
+
+def test_redact_text_stays_fast_on_a_long_run_with_no_at_sign() -> None:
+    """Regression (Codex self-gate round 3, major): the email regex's unbounded local-part quantifier made
+    a dotted run with no "@" quadratic -- a 32,768-char attribute value took ~3.4s through this one regex
+    alone, synchronously, on the thread ending the span. A generous 2s budget for a run nearly twice that
+    size leaves a wide margin over the fixed (~0.02s) behavior while still catching a regression back to
+    quadratic (which would take tens of seconds at this size)."""
+    time_budget_s = 2.0
+    text = "a." * 30_000
+    start = time.perf_counter()
+    pii.redact_text(text)
+    assert time.perf_counter() - start < time_budget_s
 
 
 def test_redact_text_none_stays_none() -> None:

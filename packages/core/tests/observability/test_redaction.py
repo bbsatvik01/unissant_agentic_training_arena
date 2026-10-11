@@ -74,6 +74,16 @@ def test_registered_secret_value_masked_verbatim() -> None:
     assert "my-literal-secret-value" not in out
 
 
+def test_mask_registered_is_idempotent_when_called_before_text() -> None:
+    """``mask_registered`` is exposed so a caller (``export_policy.Sanitizer.text()``) can run it before a
+    PII pass that might otherwise mutate the secret's exact text; calling it again inside ``.text()`` on
+    already-masked text must be a harmless no-op."""
+    r = Redaction(["my-literal-secret-value"])
+    once = r.mask_registered("prose with my-literal-secret-value inside")
+    assert "my-literal-secret-value" not in once
+    assert r.mask_registered(once) == once
+
+
 def test_truncated_tail_credential_prefix_masked() -> None:
     r = Redaction()
     token = "sk-ant-" + "x" * 40

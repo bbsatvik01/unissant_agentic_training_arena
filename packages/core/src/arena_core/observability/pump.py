@@ -44,15 +44,15 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_LIMIT = 500  # matches ops.mirror_spans's own batch cap
 DEFAULT_READBACK_TIMEOUT_S = 5.0
 _STATUS_CODES = {"UNSET": StatusCode.UNSET, "OK": StatusCode.OK, "ERROR": StatusCode.ERROR}
-# Stranded-row retry is a read-only query, not a write subject to ops.mirror_spans's 500-row cap, and it
-# must clear the WHOLE current backlog in one pass regardless of how small options.batch_limit is tuned for
-# the pending-row page size (Codex self-gate round 2, major: drain() only loops on the pending-row count, so
-# capping this to batch_limit too left a multi-row stranded backlog only partly retried per drain() call,
-# and oldest-first ordering means a row that is never confirmable would otherwise occupy the one slot a
-# small batch_limit allows, forever starving every row behind it). Sized generously above S4 8.4's whole-
-# project sizing estimate (about 37,000 spans over its entire lifetime): a backlog beyond this would mean
-# Phoenix has been losing already-acknowledged spans on a sustained, pathological scale, not the occasional
-# blip this retry exists for -- out of scope here.
+# Stranded-row retry is a read-only query, not a write subject to ops.mirror_spans's 500-row cap, and it is
+# paged independently of options.batch_limit (Codex self-gate round 2, major: drain() only looped on the
+# pending-row count, so capping this to batch_limit too left a multi-row stranded backlog only partly
+# retried per drain() call). A page this size is already generous against S4 8.4's whole-project sizing
+# estimate (about 37,000 spans over its entire lifetime); drain() (below) still loops across MULTIPLE pages
+# of it when the backlog is somehow larger still (Codex self-gate round 3, major: a fixed one-page retry
+# left exactly one page undrained whenever the backlog exceeded it, oldest-first ordering meaning an
+# unconfirmable row could starve every row behind it) -- bounded only by MAX_DRAIN_PASSES, the same fail-
+# safe that already bounds the pending-row loop.
 STRANDED_RETRY_LIMIT = 5_000
 
 
@@ -68,6 +68,7 @@ class PumpResult:
     exported: int
     verified: int
     export_failed: bool
+    stranded: int = 0  # previously-exported-but-unverified rows this pass retried (drain() pages on this too)
 
 
 @dataclass(frozen=True)
@@ -189,7 +190,7 @@ def pump_once(
             continue
         verify_keys.extend((trace_id, span_id) for span_id in span_ids & confirmed)
     verified = set_export_state(conn, verify_keys, "verified")
-    return PumpResult(read=len(rows), exported=exported, verified=verified, export_failed=False)
+    return PumpResult(read=len(rows), exported=exported, verified=verified, export_failed=False, stranded=len(stranded))
 
 
 MAX_DRAIN_PASSES = 1_000  # fail-safe bound against an unbounded loop
@@ -198,9 +199,14 @@ MAX_DRAIN_PASSES = 1_000  # fail-safe bound against an unbounded loop
 def drain(
     conn: SqlConnection, exporter: SpanExporter, reader: SpanReader, *, options: PumpOptions = DEFAULT_PUMP_OPTIONS
 ) -> PumpResult:
-    """Run ``pump_once`` until a pass reads fewer than ``options.batch_limit`` rows (the backlog is drained)
-    or a pass fails to export, bounded to ``MAX_DRAIN_PASSES`` (fail-safe against an unbounded loop)."""
-    totals = PumpResult(read=0, exported=0, verified=0, export_failed=False)
+    """Run ``pump_once`` until BOTH a pass reads fewer than ``options.batch_limit`` NEW rows and retries
+    fewer than ``STRANDED_RETRY_LIMIT`` stranded ones (either backlog is drained), or a pass fails to
+    export. A full stranded page keeps the loop going the same way a full pending page does (Codex self-gate
+    round 3, major: a fixed one-page stranded retry left exactly one page's worth undrained whenever the
+    backlog was larger, every single ``drain()`` call -- oldest-first ordering meaning an unconfirmable row
+    could starve every row behind it indefinitely). Bounded to ``MAX_DRAIN_PASSES`` (fail-safe against an
+    unbounded loop) either way."""
+    totals = PumpResult(read=0, exported=0, verified=0, export_failed=False, stranded=0)
     for _ in range(MAX_DRAIN_PASSES):
         result = pump_once(conn, exporter, reader, options=options)
         totals = PumpResult(
@@ -208,8 +214,10 @@ def drain(
             exported=totals.exported + result.exported,
             verified=totals.verified + result.verified,
             export_failed=totals.export_failed or result.export_failed,
+            stranded=totals.stranded + result.stranded,
         )
-        if result.export_failed or result.read < options.batch_limit:
+        backlog_remains = result.read >= options.batch_limit or result.stranded >= STRANDED_RETRY_LIMIT
+        if result.export_failed or not backlog_remains:
             return totals
     return totals
 

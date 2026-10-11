@@ -6,6 +6,7 @@ for WP-24 (the vertical-slice integration gate), per the WP-07 scope note in doc
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -51,12 +52,21 @@ def test_redaction_strips_canary_bearer_email_and_phone_and_the_mirror_matches(i
         assert secret not in exported_text
 
     assert len(sink.rows) == 1
-    mirrored_text = str(sink.rows[0].otlp["attributes"])
+    mirrored_attrs = sink.rows[0].otlp["attributes"]
+    mirrored_text = str(mirrored_attrs)
     for secret in (canary, "sk-ant-", "investigator@example.com", "415-555-0199"):
         assert secret not in mirrored_text
-    # the same sanitized content, not independently re-redacted to something else
+    # The same sanitized content, not independently re-redacted to something else. Compared as JSON (every
+    # value forced through the same str() OTLP export itself would use to serialize a non-JSON-native type,
+    # e.g. a StrEnum like Kind.AGENT), not Python repr: repr() of a StrEnum shows its enum form
+    # ("<Kind.AGENT: 'AGENT'>"), which would make an identical VALUE look different only because the mirror
+    # path (unlike this in-memory test exporter) must already serialize to plain JSON-safe types for
+    # Postgres.
     assert exported[0].attributes is not None
-    assert mirrored_text == str(dict(exported[0].attributes.items()))
+    exported_attrs = dict(exported[0].attributes.items())
+    assert json.dumps(mirrored_attrs, default=str, sort_keys=True) == json.dumps(
+        exported_attrs, default=str, sort_keys=True
+    )
 
 
 # ============================================================================================ bullet 2
@@ -340,6 +350,22 @@ def test_a_hidden_child_also_protects_its_still_open_root_and_later_sibling(inst
             pass
         with spans.referee_task("other"):  # a later sibling of the hidden span, same open root
             pass
+    installed.flush()
+    assert exporter.get_finished_spans() == ()
+    assert all(row.split == "hidden" for row in sink.rows)
+
+
+def test_a_sibling_already_open_before_a_hidden_span_starts_is_hidden_too(install_tracing: InstallTracing) -> None:
+    """Regression (Codex self-gate round 3, blocker): the round-2 fix escalated still-open ANCESTORS when a
+    descendant turned out hidden, but not an already-registered SIBLING that started earlier and is still
+    open (not yet ended) at that moment -- it ends only after the hidden span already started (and, here,
+    already ended), still unaware its trace turned out hidden. Proven end to end: a public sibling opened
+    before the hidden one, closed after it."""
+    installed, exporter, sink = install_tracing()
+    # agent_coach opens before "eval" and (nesting closes innermost-first) ends only after "eval" already
+    # started and ended hidden -- still open at the moment its trace turned out hidden.
+    with spans.request(), spans.agent_coach(), spans.referee_task("eval", split="hidden"):
+        pass
     installed.flush()
     assert exporter.get_finished_spans() == ()
     assert all(row.split == "hidden" for row in sink.rows)

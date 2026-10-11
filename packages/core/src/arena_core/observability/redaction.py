@@ -320,9 +320,18 @@ class Redaction:
     def __init__(self, secrets: Iterable[str] = ()) -> None:
         self._secrets = tuple(sorted({s for s in secrets if len(s) >= _MIN_SECRET_LEN}, key=len, reverse=True))
 
-    def text(self, text: str, *, truncated: bool = False) -> str:
+    def mask_registered(self, text: str) -> str:
+        """Exact replacement of every registered secret VALUE (``secret_values_from_env``) found verbatim in
+        ``text`` -- the highest-confidence pass here, an exact match against a known secret, not a pattern.
+        Exposed separately so a caller can run it before any OTHER pass that might mutate the text first and
+        make the exact match impossible to find afterward (``export_policy.Sanitizer.text()`` does this
+        ahead of the PII pass)."""
         for secret in self._secrets:
             text = text.replace(secret, REDACTED)
+        return text
+
+    def text(self, text: str, *, truncated: bool = False) -> str:
+        text = self.mask_registered(text)
         text = _mask_structured(text)
         text = _AUTH_SCHEME.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}", text)
         text = _mask_credential_fields(text)

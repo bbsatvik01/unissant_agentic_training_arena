@@ -39,6 +39,7 @@ orchestrator's (WP-13), not this module's.
 
 import json
 import logging
+import math
 import threading
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -124,6 +125,11 @@ class Lineage:
     def __init__(self, max_spans: int = MAX_LINEAGE_SPANS) -> None:
         self._lock = threading.Lock()
         self._traces: dict[int, dict[int, _Node]] = {}
+        self._hidden_traces: set[int] = set()  # S5 8.5: once ANY span of a trace is hidden, the WHOLE trace
+        # is -- consulted by classify() directly rather than by walking each node's ancestors, so an
+        # already-registered sibling (open or not) started before the hidden span is covered too, not only
+        # still-open ancestors (Codex self-gate round 3, blocker: ancestor-only escalation left a sibling
+        # that started earlier under the same, now-hidden parent still classifying as its own old split).
         self._size = 0
         self._max_spans = max_spans
 
@@ -143,16 +149,27 @@ class Lineage:
             same_trace = parent.is_valid and parent.trace_id == ctx.trace_id
             parent_id = parent.span_id if same_trace else None
             parent_node = nodes.get(parent_id) if parent_id is not None else None
+            # A LOCAL parent exists (same trace, same process) but its own record is gone: forgotten under
+            # the bound (_evict()), not a genuine root. Fail closed instead of defaulting to public/none
+            # (Codex self-gate round 3, blocker): this span's real ancestry, sensitivity and hidden-ness are
+            # simply unknown now. Excludes a REMOTE parent (``parent.is_remote``, S5 8.1's cross-process
+            # agent_subject via W3C traceparent, ``spans.extract_context``): its record was never going to
+            # be in THIS process's registry at all, by design -- a cross-process child's classification is
+            # set explicitly by its own caller, never inherited through this process-local registry, so this
+            # is not "forgotten," it is simply out of this Lineage's scope.
+            ancestry_forgotten = same_trace and parent_node is None and not parent.is_remote
             # Sensitivity INHERITS downward (S5 8.1: llm.<call_type>'s data class is literally "inherits"):
             # a span with no data_class of its own takes its parent's, not a bare False default -- otherwise
             # an llm_call() nested under a subject_private agent_subject() would export public by default.
-            if DATA_CLASS_ATTR in attrs:
+            if ancestry_forgotten:
+                sensitive = True
+            elif DATA_CLASS_ATTR in attrs:
                 sensitive = own_data_class in SENSITIVE_CLASSES
             else:
                 sensitive = parent_node.sensitive if parent_node is not None else False
             # split is monotonic (S4 11: "the database never lowers it"; S5 8.5): hidden wins over any own
             # or inherited value, never downgraded by a child naming a different split explicitly.
-            parent_split = parent_node.split if parent_node is not None else "none"
+            parent_split = HIDDEN if ancestry_forgotten else (parent_node.split if parent_node is not None else "none")
             if HIDDEN in (own_split, parent_split):
                 split = HIDDEN
             elif own_split in SPLITS:
@@ -173,17 +190,8 @@ class Lineage:
             nodes[ctx.span_id] = node
             if node.sensitive:
                 self._taint(nodes, parent_id)
-            if node.split == HIDDEN:
-                # Hidden escalates upward too, not just downward (Codex round-2 finding 1): a request's
-                # hidden-ness is supposed to be known at its root before any child starts (S5 8.5), but a
-                # span helper lets ANY caller pass split="hidden" deep in the tree. If one ever does, every
-                # still-open ancestor -- which would otherwise export its own content directly, unaware a
-                # descendant just turned out to be hidden -- is marked hidden right now, and a sibling
-                # created after this point inherits hidden normally through ordinary downward inheritance.
-                # This cannot protect a sibling that already ended (and, in API mode, already exported
-                # synchronously) before this span started: nothing can recall an export already sent, which
-                # is exactly why the real design puts hidden-ness on the root before any span begins.
-                self._taint_hidden(nodes, parent_id)
+            if split == HIDDEN:
+                self._hidden_traces.add(ctx.trace_id)
             self._evict()
 
     def classify(self, ctx: trace.SpanContext | None) -> Classification:
@@ -195,9 +203,8 @@ class Lineage:
             node = nodes.get(ctx.span_id) if nodes is not None else None
             if nodes is None or node is None:
                 return FAIL_CLOSED
-            return Classification(
-                node.sensitive, node.tainted, node.split, node.trial_id, node.tournament_id, node.block_id
-            )
+            split = HIDDEN if ctx.trace_id in self._hidden_traces else node.split
+            return Classification(node.sensitive, node.tainted, split, node.trial_id, node.tournament_id, node.block_id)
 
     def _touch(self, trace_id: int) -> dict[int, _Node]:
         nodes = self._traces.pop(trace_id, None)
@@ -212,19 +219,11 @@ class Lineage:
             node.tainted = True
             span_id = node.parent
 
-    def _taint_hidden(self, nodes: dict[int, _Node], span_id: int | None) -> None:
-        """Hidden walks upward independently of ``tainted`` (a different axis: reveal timing, not data
-        sensitivity). Stops at an already-hidden ancestor -- everything above it was escalated when IT was."""
-        for _ in range(_MAX_ANCESTRY):
-            node = nodes.get(span_id) if span_id is not None else None
-            if node is None or node.split == HIDDEN:
-                return
-            node.split = HIDDEN
-            span_id = node.parent
-
     def _evict(self) -> None:
         while self._size > self._max_spans and self._traces:
-            self._size -= len(self._traces.pop(next(iter(self._traces))))
+            trace_id = next(iter(self._traces))
+            self._size -= len(self._traces.pop(trace_id))
+            self._hidden_traces.discard(trace_id)
 
 
 class LineagePropagator(SpanProcessor):
@@ -306,10 +305,28 @@ def _ts(ns: int | None) -> datetime:
     return datetime.fromtimestamp((ns or 0) / 1e9, tz=UTC)
 
 
+def _otlp_scalar(value: object) -> str | bool | int | float:
+    """One value, made safe for the mirror's JSONB column (regression, Codex self-gate round 3, major):
+    NaN/Infinity have no JSON token -- ``json.dumps`` writes the literal ``NaN``/``Infinity``, which
+    PostgreSQL's own jsonb parser rejects outright ("Token \"NaN\" is invalid"), failing the whole insert
+    batch -- so they are kept visible as their string form instead; an embedded NUL byte is stripped from a
+    string (PostgreSQL rejects ANY text-based value containing one: "invalid byte sequence for encoding
+    \"UTF8\": 0x00", same whole-batch failure). Both verified against a real PostgreSQL 17."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    if isinstance(value, str | int | float):
+        return value
+    return str(value)
+
+
 def _otlp_value(value: AttributeValue) -> AttributeValue:
     if isinstance(value, list | tuple):
-        return [v if isinstance(v, str | int | float | bool) else str(v) for v in value]
-    return value
+        return [_otlp_scalar(v) for v in value]
+    return _otlp_scalar(value)
 
 
 # S4's ops.trace_mirror.otlp column: "jsonb_typeof(otlp) = 'object' and pg_column_size(otlp) <= 32768"

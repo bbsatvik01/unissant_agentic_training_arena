@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Mapping, Sequence
 from typing import cast
@@ -150,6 +151,64 @@ def test_lineage_a_sibling_started_after_a_hidden_child_inherits_hidden_from_the
     later_sibling = _start("later-sibling", parent=_ctx_of(root))
     lineage.started(later_sibling, root.get_span_context())
     assert lineage.classify(later_sibling.get_span_context()).split == "hidden"
+
+
+def test_lineage_a_sibling_already_open_when_a_hidden_child_starts_is_hidden_too() -> None:
+    """Regression (Codex self-gate round 3, blocker): a sibling that started EARLIER but is still open
+    (not yet ended) when another child turns out hidden must also classify hidden once it does end -- the
+    round-2 fix only escalated still-open ANCESTORS; it never updated an already-registered node that is
+    not on the hidden span's own ancestor chain. The whole trace is hidden now, consulted directly by
+    ``classify()`` for every node still in the registry, not only ones reached by walking upward from the
+    hidden span."""
+    lineage = proc.Lineage()
+    root = _start("root")
+    lineage.started(root, _no_parent())
+    open_sibling = _start("open-sibling", parent=_ctx_of(root))
+    lineage.started(open_sibling, root.get_span_context())  # starts, still open
+    hidden_child = _start("hidden-child", parent=_ctx_of(root), attributes={ep.SPLIT_ATTR: "hidden"})
+    lineage.started(hidden_child, root.get_span_context())  # a different child of root turns out hidden
+    # open_sibling ends only now, after the hidden sibling already started (and, here, already ended)
+    assert lineage.classify(open_sibling.get_span_context()).split == "hidden"
+    assert lineage.classify(root.get_span_context()).split == "hidden"
+
+
+def test_lineage_a_child_started_after_its_parent_record_was_evicted_fails_closed() -> None:
+    """Regression (Codex self-gate round 3, blocker): a child whose parent context IS the same trace, but
+    whose parent's OWN record was forgotten under the eviction bound, used to default to public/untainted/
+    unsplit -- silently losing whatever sensitivity or hidden-ness the (now-forgotten) parent carried.
+    Ancestry that cannot be proven safe must fail closed, the same way an entirely unrecorded span does."""
+    bound = 1
+    lineage = proc.Lineage(max_spans=bound)
+    parent = _start("root", attributes={ep.DATA_CLASS_ATTR: ep.SUBJECT_PRIVATE, ep.SPLIT_ATTR: "hidden"})
+    lineage.started(parent, _no_parent())
+    # A different trace's span evicts the parent's trace (bound=1): its record is now gone, but `child`
+    # below still carries a real, same-trace parent SpanContext.
+    other_trace_root = _start("other-trace-root")
+    lineage.started(other_trace_root, _no_parent())
+    child = _start("child", parent=_ctx_of(parent))  # no data_class/split of its own
+    lineage.started(child, parent.get_span_context())
+    verdict = lineage.classify(child.get_span_context())
+    assert verdict.sensitive is True
+    assert verdict.split == "hidden"
+
+
+def test_lineage_a_remote_parent_is_never_treated_as_forgotten_ancestry() -> None:
+    """A child parented via a REMOTE SpanContext (S5 8.1's cross-process agent_subject, W3C traceparent,
+    ``spans.extract_context``) has no local record of its remote parent by design -- that is not the same
+    thing as a local record having been evicted, and must NOT fail closed: the remote parent's own process
+    sanitizes and binds its own spans; a cross-process child's classification is set explicitly by its own
+    caller. (Regression guard for the eviction fix above: without the ``not parent.is_remote`` exclusion,
+    this cross-process case would also fail closed, breaking S5 8.9's cross-service trace acceptance.)"""
+    lineage = proc.Lineage()
+    marker = _start("marker-for-trace-id")  # never registered with Lineage; only mints a real trace id
+    remote_parent = SpanContext(
+        marker.get_span_context().trace_id, 0x1, is_remote=True, trace_flags=TraceFlags(TraceFlags.SAMPLED)
+    )
+    child = _start("arena.agent.subject", parent=_ctx_of(marker))  # same trace id as remote_parent
+    lineage.started(child, remote_parent)
+    verdict = lineage.classify(child.get_span_context())
+    assert verdict.sensitive is False
+    assert verdict.split == "none"
 
 
 def test_lineage_classify_fails_closed_for_an_unrecorded_span() -> None:
@@ -570,6 +629,47 @@ def test_span_mirror_otlp_keeps_a_list_attribute_as_a_list() -> None:
     attrs = sink.rows[0].otlp["attributes"]
     assert isinstance(attrs, dict)
     assert attrs["tags"] == ["a", "b"]
+
+
+def test_otlp_scalar_replaces_nan_and_infinity_with_their_string_form() -> None:
+    """Regression (Codex self-gate round 3, major): json.dumps writes the literal NaN/Infinity, which
+    PostgreSQL's jsonb parser rejects outright ("Token \"NaN\" is invalid"), failing the whole insert batch
+    -- verified against a real PostgreSQL 17."""
+    finite_value = 1.5
+    assert proc._otlp_scalar(float("nan")) == "nan"
+    assert proc._otlp_scalar(float("inf")) == "inf"
+    assert proc._otlp_scalar(float("-inf")) == "-inf"
+    assert proc._otlp_scalar(finite_value) == finite_value
+    assert proc._otlp_scalar(True) is True
+
+
+def test_otlp_scalar_strips_an_embedded_nul_byte() -> None:
+    """Regression (Codex self-gate round 3, major): PostgreSQL rejects any text-based value containing a
+    NUL byte ("invalid byte sequence for encoding \"UTF8\": 0x00"), failing the whole insert batch --
+    verified against a real PostgreSQL 17."""
+    assert proc._otlp_scalar("hello\x00world") == "helloworld"
+
+
+def test_otlp_scalar_stringifies_anything_else_as_a_fail_safe() -> None:
+    """Defensive only: the real attribute-value type system never hands this function anything but
+    str/bool/int/float (``AttributeValue``'s own scalar union; a sequence is unwrapped by ``_otlp_value``
+    first), but a value that gets here some other way is stringified rather than passed through unknown."""
+    assert proc._otlp_scalar(None) == "None"
+
+
+def test_span_mirror_otlp_sanitizes_nan_and_nul_bytes_in_a_real_span() -> None:
+    lineage = proc.Lineage()
+    sink = proc.InMemoryMirrorSink()
+    mirror = proc.SpanMirror(sink, lineage)
+    span = _start("root", attributes={"arena.latency_ms": float("nan"), "input.value": "hello\x00world"})
+    lineage.started(span, _no_parent())
+    span.end()
+    mirror.on_end(span)
+    mirror.flush()
+    attrs = sink.rows[0].otlp["attributes"]
+    assert isinstance(attrs, dict)
+    assert "\x00" not in json.dumps(attrs)
+    assert "NaN" not in json.dumps(attrs)
 
 
 def test_span_mirror_flush_while_already_writing_raises_and_keeps_the_rows() -> None:

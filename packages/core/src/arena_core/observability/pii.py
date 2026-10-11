@@ -40,7 +40,15 @@ _HEADER_DENYLIST: frozenset[str] = frozenset(
 # Order of substitution matters: bearer-token replacement runs before the generic email/phone passes so that
 # "Bearer foo@bar" tokens are redacted whole rather than partially via the email regex.
 _BEARER_RE = re.compile(r"(Bearer\s+)[A-Za-z0-9._\-]+", re.IGNORECASE)
-_EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
+# Local part and each domain label are bounded (RFC 5321-ish: local part <= 64, a label <= 63), not left
+# unbounded (regression, Codex self-gate round 3, major): an unbounded `[\w.+-]+` before the literal "@"
+# makes the regex engine scan to the end of a long run with no "@" and then backtrack one character at a
+# time looking for one, O(length) per starting position and O(length) starting positions -- quadratic
+# overall (measured: a 32,768-char dotted run with no "@" took ~3.4s through this one regex, synchronously,
+# on the thread ending the span). Bounding both sides caps the backtrack per position to a constant, making
+# an input with no "@" linear instead (measured: the same length now takes ~0.01s) without changing which
+# realistic email-shaped strings match.
+_EMAIL_RE = re.compile(r"\b[\w.+-]{1,64}@[\w-]{1,63}\.[\w.-]{1,63}\b")
 # Tighter phone regex: requires at least one separator character (space, dash, dot, or parenthesis) within the
 # digit sequence to distinguish phone numbers from pure digit runs such as UUID segments, long ids, and ISO
 # timestamps. It reads as an optional leading country code with its own trailing separator, then one or two

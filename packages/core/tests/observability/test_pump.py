@@ -363,6 +363,24 @@ def test_drain_clears_a_multi_row_stranded_backlog_in_one_call_despite_a_tiny_ba
     assert all(row.export_state == "verified" for row in conn.rows)
 
 
+def test_drain_pages_across_multiple_passes_when_the_stranded_backlog_exceeds_one_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression (Codex self-gate round 3, major): a fixed one-page stranded retry left exactly one page's
+    worth undrained whenever the backlog was larger than STRANDED_RETRY_LIMIT, every single drain() call.
+    drain() must keep looping while a stranded page came back full, the same way it already does for a full
+    pending page."""
+    page = 2
+    monkeypatch.setattr(pump, "STRANDED_RETRY_LIMIT", page)
+    backlog = page + 1  # one more row than a single page can retry
+    rows = [_Row(TRACE_ID, f"{i:016x}", export_state="exported") for i in range(backlog)]
+    conn = _FakeMirror(rows=rows)
+    confirmed = {TRACE_ID: {row.span_id for row in rows}}
+    result = pump.drain(conn, _RecordingExporter(), _FakeReader(confirmed))
+    assert result.verified == backlog
+    assert all(row.export_state == "verified" for row in conn.rows)
+
+
 def test_drain_stops_as_soon_as_a_pass_fails_to_export() -> None:
     rows = [_Row(TRACE_ID, f"{i:016x}") for i in range(DRAIN_ROW_COUNT)]
     conn = _FakeMirror(rows=rows)

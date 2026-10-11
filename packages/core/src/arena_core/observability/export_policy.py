@@ -137,6 +137,14 @@ _KINDS = frozenset(
 )
 _MIME = frozenset({"text/plain", "application/json"})
 _GENAI_OPERATIONS = frozenset({"chat", "generate_content", "text_completion", "embeddings"})
+# S5 8.4: "larger attribute values are cut by the Redactor first" -- applies to a sequence's ELEMENT COUNT
+# too, not only a string's character length: a JSONB array's per-element storage overhead means many small
+# elements can need far more than their JSON-text byte length once actually stored (measured against a real
+# PostgreSQL 17: a 9,000-element array of zero is 27 KB as JSON text but 108 KB of `pg_column_size()`), so
+# the mirror's aggregate byte-budget heuristic (a cheap JSON-text proxy, `processors._bounded_otlp`) cannot
+# be trusted alone for a value shaped like this. Bounding the element count at the source, here, closes it
+# regardless of how the DB's JSONB encodes whatever survives.
+MAX_SEQUENCE_ELEMENTS = 256
 # Structural key words (OpenInference core conventions, the GenAI semantic convention and this repo's own
 # "arena.*" names). On a PUBLIC, untainted span a key made only of these words, "arena" and indices exports its
 # (PII- and credential-redacted) text; any other key is hashed on every span.
@@ -426,6 +434,16 @@ METADATA: Mapping[str, Validator] = {
 }
 
 
+def _bounded_sequence(value: AttributeValue) -> AttributeValue:
+    """Cuts a sequence value to ``MAX_SEQUENCE_ELEMENTS`` elements (never a string, itself a ``Sequence`` of
+    characters but handled by its own, separate character-length cut in ``Sanitizer.text()``). Run before
+    anything else in ``_value()``: none of the paths after it (``hashed()`` included -- it maps each element
+    to its own hash, never fewer of them) touch element count at all."""
+    if isinstance(value, Sequence) and not isinstance(value, str) and len(value) > MAX_SEQUENCE_ELEMENTS:
+        return list(value[:MAX_SEQUENCE_ELEMENTS])
+    return value
+
+
 def hashed(value: AttributeValue) -> AttributeValue:
     if isinstance(value, str):
         return hash_payload(value)
@@ -502,9 +520,14 @@ class Sanitizer:
         span._resource = self._resource
 
     def text(self, value: str) -> str:
-        """PII-redacted (``pii.redact_text``, C1), then credential-redacted (T16) -- both before the length
-        cut, so a secret or an email cannot survive by sitting across the truncation boundary from its pattern
-        and only its tail gets cut."""
+        """A registered secret's exact text is masked FIRST, before anything else can mutate it (regression,
+        Codex self-gate round 3, major: a secret with an email- or phone-shaped tail, e.g. a DSN password
+        immediately followed by "@host", had its exact string broken by the PII pass before the credential
+        pass ever got to match it, leaving the password itself exposed in clear next to a redacted "[email]").
+        Then PII-redacted (``pii.redact_text``, C1), then the REST of credential redaction (T16) -- both
+        before the length cut, so a secret or an email cannot survive by sitting across the truncation
+        boundary from its pattern and only its tail gets cut."""
+        value = self._redaction.mask_registered(value)
         value = pii.redact_text(value) or ""
         out = self._redaction.text(value, truncated=len(value) >= self._max)
         if len(out) > self._max:
@@ -556,6 +579,7 @@ class Sanitizer:
         return "arena.hashed_key." + hash_payload(key)[7:23]
 
     def _value(self, key: str, value: AttributeValue, *, sensitive: bool, tainted: bool, count: bool) -> AttributeValue:
+        value = _bounded_sequence(value)
         if is_credential_name(key):
             return REDACTED  # a credential-named field is masked whatever its value looks like
         numeric = isinstance(value, int | float) and not isinstance(value, bool)
