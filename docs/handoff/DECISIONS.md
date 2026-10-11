@@ -144,3 +144,9 @@
 ## 2026-10-11 · D-022 Codex rounds and budget posture
 - **Decision:** owner directive. Each agent may run up to 7 Codex rounds. Real bugs found by Codex are fixed; hardening for rare edge cases is recorded in one line and skipped. The $74 global budget plan is approved for application to the database (after migration 0600 lands); the owner asked not to be overly strict about budget, so tuning stays loose (no extra per-phase limits).
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-023 r3_investigator overflow handled at authoring
+- **Decision:** coordinator. After D-019, r3_investigator is the only role that could exceed its limit (about 162,000 vs 160,000 wire bytes) if a family's releasable records were near S1's 12,288-byte allowance. Accept the existing guard: V1d.context refuses such a family at authoring (over_limit), so no admitted family overflows. No tighter per-role cap.
+- **Also accepted:** WP-10's repair turn may name the offending pattern-constrained ID (e.g. "f:999 is not a fact ID"); free text and invented keys still never appear.
+- **Spec wording follow-up:** S2/S5 "UTF-8 bytes" -> "wire bytes"; S5 4.4 script invocation form.
+- **Reversibility:** cheap.
