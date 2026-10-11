@@ -70,6 +70,12 @@ _TERMS = re.compile(
 )
 
 
+def lexicon_text(terms: tuple[str, ...] = DEMEANOR_LEXICON) -> str:
+    """The canonical text of `demeanor_lexicon.v1` that the rubric hash binds (S3 2.11): the version, then one term
+    per line in S2 4.4's order. Any added, removed, reordered or reworded term changes it."""
+    return "\n".join([DEMEANOR_LEXICON_VERSION, *terms]) + "\n"
+
+
 def demeanor_terms(text: str) -> list[str]:
     """The lexicon terms in `text`, lowercased, in order of first appearance, each once."""
     found: dict[str, None] = {}
