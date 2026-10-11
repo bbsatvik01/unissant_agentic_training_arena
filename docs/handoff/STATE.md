@@ -15,7 +15,7 @@
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
 | Hosted seed + real smoke (a79b6bd60d05a4e17, Sonnet, wt-hosted-seed) | real ingest bundles (cx.json format), make seed-hosted, real-model env, make real-smoke; no hosted/real calls by the agent | coordinator runs against hosted Supabase + Vertex |
-| WP-17 tournament (a0989bb31b07d2da1, Sonnet, wt-wp17-tourney) | building + demo-tournament CLI | review, merge |
+| WP-17 tournament (a5040005c90e1d761, Opus, wt-wp17-tourney 98447a0) | built, real-SQL integration green; fixing: event-loop bridge blocker (real Vertex), db-test contamination, replay assistant_failed scoring, kill-switch consistency, export terminal replay, demo roster version, compiled validators, single fake referee | merge |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
