@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import TypeAdapter
@@ -28,9 +29,11 @@ from pydantic import TypeAdapter
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
 from arena_core.contracts.events import TrialFrame
+from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
 _FRAMES: TypeAdapter[TrialFrame] = TypeAdapter(TrialFrame)
+_SNAPSHOT: TypeAdapter[TrialSnapshot] = TypeAdapter(TrialSnapshot)
 
 
 @dataclass(frozen=True)
@@ -61,9 +64,11 @@ class StoredEvent:
 
 @dataclass(frozen=True)
 class Viewer:
-    """The trial's owner, as the stream sees them: whether the trial has ended (debrief rows open then)."""
+    """The trial's owner, as the stream sees them: whether the trial has ended (debrief rows open then), and the
+    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known)."""
 
     trial_ended: bool
+    mode: Literal["practice", "assessment"] = "assessment"
 
 
 def _visible(row: StoredEvent, viewer: Viewer) -> bool:
@@ -160,8 +165,8 @@ _MAPPING: dict[str, Callable[[StoredEvent], list[tuple[str, dict[str, Any], int 
 }
 
 
-def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> bytes:
-    frame = _FRAMES.validate_python(
+def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> TrialFrame:
+    return _FRAMES.validate_python(
         {
             "v": 1,
             "seq": seq,
@@ -173,7 +178,10 @@ def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | 
             "data": data,
         }
     )
-    body = _FRAMES.dump_json(frame)
+
+
+def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> bytes:
+    body = _FRAMES.dump_json(_frame(row, wire_type, data, seq))
     if len(body) > MAX_DELTA_BYTES:
         msg = f"event {row.seq}: a delta of {len(body)} bytes exceeds {MAX_DELTA_BYTES} (S5 6.2)"
         raise ValueError(msg)
@@ -198,3 +206,189 @@ def wire_deltas(rows: Iterable[object], viewer: Viewer) -> list[bytes]:
             raise ValueError(msg)
         out.extend(_message(row, wire_type, data, seq) for wire_type, data, seq in mapping(row))
     return out
+
+
+# ---------------------------------------------------------------- live stream, snapshot and recording (WP-13)
+
+_COACHING = frozenset({"coach_card", "coach_unavailable"})
+
+
+def _hints(row: StoredEvent, later: list[StoredEvent], viewer: Viewer) -> list[tuple[str, dict[str, Any], None]]:
+    """S5 6.2 synthesized frames, sent without an SSE `id`: `subject.thinking` after a question whose answer has
+    not arrived, and (practice only) `coach.working` after an answer whose card has not arrived. "Not arrived"
+    reads the rows delivered with it, so a catch-up batch that already holds the answer sends no hint."""
+    turn = row.payload.get("turn_no")
+    if row.kind == "question_recorded":
+        answered = any(
+            r.kind in ("subject_turn", "trial_ended") and r.payload.get("turn_no", turn) == turn for r in later
+        )
+        return [] if answered else [("subject.thinking", {"turn_no": turn}, None)]
+    if row.kind == "subject_turn" and viewer.mode == "practice":
+        coached = any(r.kind in _COACHING or r.kind == "trial_ended" for r in later if r.turn_no in (turn, None))
+        return [] if coached else [("coach.working", {"turn_no": turn}, None)]
+    return []
+
+
+def _projected(rows: list[StoredEvent], viewer: Viewer) -> list[tuple[StoredEvent, TrialFrame]]:
+    visible = [row for row in rows if _visible(row, viewer)]
+    out: list[tuple[StoredEvent, TrialFrame]] = []
+    for i, row in enumerate(visible):
+        mapping = _MAPPING.get(row.kind)
+        if mapping is None:
+            msg = f"event {row.seq}: unknown event kind {row.kind!r}"
+            raise ValueError(msg)
+        out.extend((row, _frame(row, t, d, s)) for t, d, s in mapping(row))
+        out.extend((row, _frame(row, t, d, s)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
+    return out
+
+
+def live_deltas(rows: Iterable[object], viewer: Viewer) -> list[bytes]:
+    """The trial stream's SSE messages: `wire_deltas` plus the synthesized hint frames (S5 6.2)."""
+    events: list[StoredEvent] = []
+    for row in rows:
+        if not isinstance(row, StoredEvent):
+            msg = f"live_deltas projects stored events, not {type(row).__name__}"
+            raise TypeError(msg)
+        events.append(row)
+    out: list[bytes] = []
+    for row, frame in _projected(events, viewer):
+        body = _FRAMES.dump_json(frame)
+        if len(body) > MAX_DELTA_BYTES:
+            msg = f"event {row.seq}: a delta of {len(body)} bytes exceeds {MAX_DELTA_BYTES} (S5 6.2)"
+            raise ValueError(msg)
+        head = b"" if frame.seq is None else f"id: {frame.seq}\n".encode()
+        out.append(head + b"data: " + body + b"\n\n")
+    return out
+
+
+def notice_message(trial_id: str, ts: str, version: int, kind: Literal["paused", "quota"], text: str) -> bytes:
+    """`notice` (S5 6.2): the kill switch turned on while the stream is open, or the quota is spent."""
+    frame = _FRAMES.validate_python(
+        {
+            "v": 1,
+            "seq": None,
+            "scope": "trial",
+            "scope_id": trial_id,
+            "type": "notice",
+            "ts": ts,
+            "transcript_version": version,
+            "data": {"kind": kind, "text": text},
+        }
+    )
+    return b"data: " + _FRAMES.dump_json(frame) + b"\n\n"
+
+
+def recording_events(
+    rows: list[StoredEvent], mode: Literal["practice", "assessment"], start_ms: float
+) -> list[dict[str, Any]]:
+    """D-021: the frames the session's owner saw live, in order, each with `at_ms` from the session start. Each
+    row is projected as it arrived (no lookahead), so the hint frames are where the live stream put them, and
+    debrief-only rows (assessment coaching) stay out, as they did during the session."""
+    live = Viewer(trial_ended=False, mode=mode)
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        for _, frame in _projected([row], live):
+            at = max(0, round(_epoch_ms(row.created_at) - start_ms))
+            out.append({"at_ms": at, "frame": _FRAMES.dump_python(frame, mode="json")})
+    return out
+
+
+def _epoch_ms(ts: str) -> float:
+    return datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1000
+
+
+@dataclass(frozen=True)
+class TrialState:
+    """What the snapshot needs beyond the event rows: the trial's S6 status (C-45), mode, cap and packet."""
+
+    trial_id: str
+    status: str
+    reason_code: str | None
+    mode: Literal["practice", "assessment"]
+    exchanges_cap: int
+    public_packet: Mapping[str, Any]
+
+
+def s6_status(status: str, execution_state: str | None) -> str:
+    """C-45: S4 trial status plus the terminal record to S6's status."""
+    if status in ("running", "planned"):
+        return "running"
+    if execution_state is None:
+        msg = f"a {status} trial has no terminal record"
+        raise ValueError(msg)
+    return execution_state
+
+
+def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict[str, Any]:
+    """`GET /api/trials/{id}/snapshot` (S5 6.2, D9): the absolute state folded from the same projected frames the
+    stream carries, validated against the snapshot contract. REST, so no 16 KB limit."""
+    turns: dict[int, dict[str, Any]] = {}
+    released: list[dict[str, Any]] = []
+    cards: list[dict[str, Any]] = []
+    updates: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    finding: dict[str, Any] | None = None
+    commitment: str | None = None
+    last_seq = 0
+    for row, frame in _projected(rows, viewer):
+        data = _FRAMES.dump_python(frame, mode="json")["data"]
+        last_seq = max(last_seq, row.seq) if _visible(row, viewer) else last_seq
+        if frame.type == "question.accepted":
+            turns[data["turn_no"]] = {
+                "turn_no": data["turn_no"],
+                "question": data["text"],
+                "source": data["source"],
+                "answer": None,
+                "partial": False,
+                "committed_at": None,
+                "answer_version": None,
+                "question_seq": row.seq,
+            }
+        elif frame.type == "subject.answer":
+            turn = turns[data["turn_no"]]
+            turn.update(answer=data["text"], partial=data["partial"], committed_at=data["committed_at"])
+            turn["answer_version"] = row.transcript_version
+        elif frame.type == "evidence.released":
+            released.append({**data, "transcript_version": row.transcript_version, "event_seq": row.seq})
+        elif frame.type == "coach.card":
+            cards.append({**data, "event_seq": row.seq})
+        elif frame.type == "coach.update":
+            updates.append(data)
+        elif frame.type == "coach.failed":
+            failures.append(data)
+        elif frame.type == "finding.committed":
+            finding = data["finding"]
+        elif frame.type == "trial.finalized":
+            commitment = data["commitment_hash"]
+    released_ids = {r["record_id"] for r in released}
+    requestable = [
+        {
+            k: r[k]
+            for k in ("record_id", "kind", "title", "description", "requestable_after_exchanges", "date")
+            if k in r
+        }
+        for r in state.public_packet.get("requestable_records", [])
+        if r["record_id"] not in released_ids
+    ]
+    ordered = [turns[n] for n in sorted(turns)]
+    body = {
+        "channel": "text",
+        "status": state.status,
+        "reason_code": state.reason_code,
+        "mode": state.mode,
+        "split": "dev",
+        "exchanges_used": sum(t["answer"] is not None for t in ordered),
+        "exchanges_cap": state.exchanges_cap,
+        "turns": ordered,
+        "voice_exchanges": [],
+        "released": released,
+        "requestable": requestable,
+        "cards": cards,
+        "updates": updates,
+        "coach_failures": failures,
+        "finding": finding,
+        "commitment_hash": commitment,
+        "last_seq": last_seq,
+    }
+    dumped: dict[str, Any] = _SNAPSHOT.dump_python(_SNAPSHOT.validate_python(body), mode="json")
+    return dumped

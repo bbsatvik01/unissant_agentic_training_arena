@@ -23,7 +23,7 @@ from arena_core.db.pool import Connector, dsn_connector
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
-from arena_subject.answer import AnswerError, AnswerOutcome, answer
+from arena_subject.answer import AnswerError, AnswerOutcome, AnswerStep, answer
 from arena_subject.internal_auth import (
     CALLERS_VAR,
     InternalCallerRefusedError,
@@ -85,6 +85,9 @@ class AnswerRequest(BaseModel):
 
     trial: UUID
     work_item: UUID
+    # D-024: the investigator whose session this is, so the per-user daily cap (D-017) applies to the subject
+    # call; None for a tournament trial (no investigator).
+    actor: UUID | None = None
 
 
 class AnswerResponse(BaseModel):
@@ -139,7 +142,10 @@ def create_app(state: AppState) -> FastAPI:
         state.in_progress.add(key)
         try:
             outcome = await answer(
-                body.trial, body.work_item, get_context=_get_context, record=_record, port=state.port
+                AnswerStep(body.trial, body.work_item, body.actor),
+                get_context=_get_context,
+                record=_record,
+                port=state.port,
             )
         except AnswerError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
