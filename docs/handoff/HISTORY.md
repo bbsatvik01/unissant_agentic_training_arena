@@ -69,3 +69,4 @@
 - 38792cd merge UI stage 1 3D world (7 self Codex rounds; web-check green)
 - bcacc28 merge WP-13 orchestrator/API/SSE/recordings/launcher
 - 2026-10-11 first local end-to-end fake interview through real processes (api/subject/referee + local Supabase PG17): session, 3 turns, 3 coach cards, evidence release, recording export OK; finding/debrief await fake referee (WP-14 follow-up)
+- 5035094 merge UI stage 1b realistic world (Rocketbox MIT avatars, text-driven lip sync, cinematic shots, PBR)
