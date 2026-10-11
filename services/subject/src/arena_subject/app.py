@@ -105,9 +105,16 @@ def create_app(state: AppState) -> FastAPI:
     app = FastAPI(title="arena-subject", docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.middleware("http")
-    async def _host_guard(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def _internal_policy(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        # S5 10.3's whole internal policy - Host, then the caller's bearer token - runs ahead of routing and
+        # body parsing, not just the Host half of it: inside the route handler, a malformed body already
+        # returns 422 (FastAPI's own Pydantic validation, which runs before the handler body executes) and an
+        # unmatched /internal/* path already returns 404, both *before* an unauthenticated caller was ever
+        # refused. Checking both here, in order, means every response an unauthenticated caller can observe
+        # is 421 or 401/403, never a hint about what a request's body or path would otherwise have done.
         try:
             verify_host(request.headers, _ALLOWED_HOSTS)
+            verify_internal_caller(request.headers, state.allowed_callers)
         except InternalCallerRefusedError as exc:
             return JSONResponse({"detail": exc.reason}, status_code=exc.status_code)
         return await call_next(request)
@@ -121,11 +128,7 @@ def create_app(state: AppState) -> FastAPI:
             return await db_subject.record_subject_turn(conn, req)
 
     @app.post("/internal/answer", response_model=AnswerResponse)
-    async def internal_answer(body: AnswerRequest, request: Request) -> AnswerResponse:
-        try:
-            verify_internal_caller(request.headers, state.allowed_callers)
-        except InternalCallerRefusedError as exc:
-            raise HTTPException(status_code=exc.status_code, detail=exc.reason) from exc
+    async def internal_answer(body: AnswerRequest) -> AnswerResponse:
         key = (body.trial, body.work_item)
         if key in state.in_progress:
             # A live request for this exact work item is already running: recover=True inside answer()

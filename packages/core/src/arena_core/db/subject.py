@@ -66,18 +66,19 @@ _NUL = "\x00"
 
 
 def _pg_text(value: str) -> str:
-    """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL byte. G1 already rejects a NUL as a hidden
-    character (S2 6.9) in the normal case, but a G1-G7 quarantine still stores the model's utterance and
-    tag verbatim, and a G0 quarantine now stores the last raw reply (S2 6.10) - either can contain one from
-    an adversarial or malformed model output.
+    """PostgreSQL `text` and `jsonb` cannot hold an embedded NUL byte. A G1-G7 quarantine still stores the
+    model's utterance and tag verbatim, and a G0 quarantine stores the last raw reply (S2 6.10) - either can
+    contain one from an adversarial or malformed model output, so a quarantined artifact is always run
+    through this before the SQL call (see `_quarantine_safe` below - an accepted answer never is, and so
+    always round-trips byte-for-byte unchanged: see that function's docstring for why).
 
     Standard C-style escaping, not a bare substitution: every existing backslash is doubled *first*, so a
     NUL becomes the four characters `\\x00` that can only ever have come from an actual NUL byte here - the
     model writing the literal six characters `\\u0000`, or the four characters `\\x00`, has its own
     backslash doubled to `\\\\u0000` / `\\\\x00` by this same first step, so the two cases can never collide
-    (verified by a round-trip test over both)."""
-    if _BACKSLASH not in value and _NUL not in value:
-        return value
+    (verified by a round-trip test over both). Applied unconditionally within its quarantine-only scope, not
+    gated on whether this particular value happens to contain a NUL - the same text, in the same quarantined
+    row, must decode consistently regardless of which other field tripped the NUL check."""
     return value.replace(_BACKSLASH, _BACKSLASH * 2).replace(_NUL, _BACKSLASH + "x00")
 
 
@@ -92,6 +93,25 @@ def _pg_safe(value: object) -> object:
     if isinstance(value, list):
         return [_pg_safe(v) for v in value]
     return value
+
+
+def _quarantine_safe(req: RecordSubjectTurn) -> RecordSubjectTurn:
+    """A guard-PASSING answer is stored exactly as the subject produced it: G1 already rejects any embedded
+    NUL before an utterance can pass (S2 6.9), so an accepted answer never needs - and must never receive -
+    the NUL-escaping transform. Applying it unconditionally doubled every accepted answer's own backslashes
+    (silently corrupting ordinary text like `C:\\Temp`, and able to push a boundary-length answer past a
+    database CHECK constraint on length) for no safety benefit, since there is nothing to escape. Only a
+    quarantined artifact (G1-G7 or G0, `guard_result["passed"] is False`) - which stores the model's raw,
+    possibly-adversarial text verbatim - is run through `_pg_text`/`_pg_safe` at all."""
+    if req.guard_result.get("passed", True):
+        return req
+    return RecordSubjectTurn(
+        trial_id=req.trial_id,
+        work_item_id=req.work_item_id,
+        utterance=_pg_text(req.utterance),
+        tag=None if req.tag is None else cast("dict[str, Any]", _pg_safe(req.tag)),
+        guard_result=cast("dict[str, Any]", _pg_safe(req.guard_result)),
+    )
 
 
 def _obj(raw: object, fn: str) -> dict[str, Any]:
@@ -159,15 +179,16 @@ async def turn_context(conn: Conn, trial_id: UUID, work_item_id: UUID) -> TurnCo
 async def record_subject_turn(conn: Conn, req: RecordSubjectTurn) -> RecordResult:
     """`arena.record_subject_turn(trial, work_item, utterance, tag_proposal, guard_result)` (S2 6.10)."""
     fn = "arena.record_subject_turn"
+    safe = _quarantine_safe(req)
     async with conn.transaction():
         cur = await conn.execute(
             "select arena.record_subject_turn(%s, %s, %s, %s, %s)::text",
             (
-                req.trial_id,
-                req.work_item_id,
-                _pg_text(req.utterance),
-                None if req.tag is None else Jsonb(_pg_safe(req.tag)),
-                Jsonb(_pg_safe(req.guard_result)),
+                safe.trial_id,
+                safe.work_item_id,
+                safe.utterance,
+                None if safe.tag is None else Jsonb(safe.tag),
+                Jsonb(safe.guard_result),
             ),
         )
         row = await cur.fetchone()

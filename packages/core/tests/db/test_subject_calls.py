@@ -160,6 +160,47 @@ def test_record_subject_turn_sends_the_tag_and_guard_result_as_jsonb_and_parses_
     assert params[0:3] == (TRIAL, WORK_ITEM, "I left at nine.")
 
 
+def test_record_subject_turn_an_accepted_answer_is_stored_byte_for_byte_unchanged() -> None:
+    """A guard-PASSING answer is never run through the quarantine-only NUL escape (G1 already rejects any
+    embedded NUL before an utterance can pass at all, S2 6.9), so an ordinary backslash - e.g. a path like
+    `C:\\Temp` - must reach the SQL call exactly as the subject wrote it, not doubled."""
+    answer = {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}
+    c, fake = conn(**{"arena.record_subject_turn": answer})
+    tag_with_backslash = {**_tag(), "behavior": "pointed at C:\\Temp"}
+    req = record_req(
+        utterance="The file is at C:\\Temp\\notes.txt.",
+        tag=tag_with_backslash,
+        guard_result={"passed": True},
+    )
+    run(db_subject.record_subject_turn(c, req))
+    _, params = fake.executed[0]
+    utterance, tag_param = params[2], params[3]
+    assert utterance == "The file is at C:\\Temp\\notes.txt."
+    assert isinstance(tag_param, Jsonb)
+    assert tag_param.obj["behavior"] == "pointed at C:\\Temp"
+
+
+_LEDGER_ANSWER_MAX_CHARS = 900  # S2 V1 and G7: supabase/migrations/20261008000300_tournament_ledger.sql:253
+
+
+def test_record_subject_turn_an_accepted_answer_at_the_900_character_boundary_keeps_its_length() -> None:
+    """The ledger's `answer` column caps at 900 characters (S2 V1 and G7). Doubling a legitimate backslash
+    on the accepted path would silently push a boundary-length answer over that database CHECK constraint;
+    confirm a 900-character answer containing one backslash reaches the SQL call at exactly 900 characters."""
+    prefix = "C:\\Temp "
+    boundary_answer = prefix * 112 + "x" * (_LEDGER_ANSWER_MAX_CHARS - len(prefix) * 112)
+    assert len(boundary_answer) == _LEDGER_ANSWER_MAX_CHARS
+    answer = {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}
+    c, fake = conn(**{"arena.record_subject_turn": answer})
+    req = record_req(utterance=boundary_answer, guard_result={"passed": True})
+    run(db_subject.record_subject_turn(c, req))
+    _, params = fake.executed[0]
+    sent = params[2]
+    assert isinstance(sent, str)
+    assert sent == boundary_answer
+    assert len(sent) == _LEDGER_ANSWER_MAX_CHARS
+
+
 def test_record_subject_turn_a_g0_quarantine_sends_null_tag_and_parses_no_version() -> None:
     answer = {"outcome": "quarantined", "turn_no": 1}
     c, fake = conn(**{"arena.record_subject_turn": answer})

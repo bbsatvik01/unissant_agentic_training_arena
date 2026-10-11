@@ -246,6 +246,32 @@ def test_two_concurrent_requests_for_the_same_work_item_the_second_is_refused_40
     assert third.status_code == HTTPStatus.OK
 
 
+def test_a_malformed_body_with_no_token_is_refused_401_not_422() -> None:
+    """S5 10.3's internal policy runs ahead of routing and body parsing, not just the Host half of it: an
+    unauthenticated caller must never learn anything about the body's own shape (422 would reveal that the
+    path and method matched and FastAPI started validating)."""
+    trial_id = uuid4()
+    app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
+    resp = run(_request(app, "POST", "/internal/answer", json_body={"not": "a valid body at all"}))
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_an_unmatched_internal_path_with_no_token_is_refused_401_not_404() -> None:
+    """Same policy: an unauthenticated caller must never learn whether a given internal path exists."""
+    trial_id = uuid4()
+    app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
+    resp = run(_request(app, "POST", "/internal/does-not-exist"))
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_a_wrong_method_on_a_real_path_with_no_token_is_refused_401_not_405() -> None:
+    """Same policy: an unauthenticated caller must never learn which methods a given internal path accepts."""
+    trial_id = uuid4()
+    app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
+    resp = run(_request(app, "GET", "/internal/answer"))
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+
+
 def test_an_unknown_field_in_the_body_is_refused_422() -> None:
     trial_id = uuid4()
     app = _app(trial_id, {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
