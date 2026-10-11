@@ -28,7 +28,7 @@ import {
 import type { CoachPose, WorldState } from "../../lib/world/worldState";
 import { Avatar } from "./Avatar";
 import { acousticFabric, brushedSteel, oakLaminate, oneWayGlass, paint, plaster, vinylFloor } from "./materials";
-import { EvidenceWall, Seal, Thread, type WallDocument } from "./moments";
+import { DebriefBoard, EvidenceWall, Seal, Thread, type ScoreCard, type WallDocument } from "./moments";
 import { Pet } from "./Pet";
 import { Block, CeilingPanel, Chair, Cup, Desk, Door, FolderStack, Keyboard, Monitor, Recorder, SecurityCamera, WallClock } from "./props";
 
@@ -45,6 +45,8 @@ interface RoomProps {
   readonly shadowMap: number;
   /** People are drawn only while the camera is in the room (they are behind walls from the hub). */
   readonly present: boolean;
+  /** The debrief scene's score cards, when the debrief is shown. */
+  readonly scoreCards: readonly ScoreCard[] | null;
 }
 
 const W = ROOM_SIZE.width;
@@ -187,7 +189,7 @@ function ObservationRoom({ world, clock, still, shadows }: { world: WorldState |
   );
 }
 
-export function Room({ world, documents, subjectName, clock, still, reducedMotion, showPet, shadowMap, present }: RoomProps) {
+export function Room({ world, documents, subjectName, clock, still, reducedMotion, showPet, shadowMap, present, scoreCards }: RoomProps) {
   const flag = world?.flag ?? null;
   const highlightIndex = flag?.conflictRecord == null ? -1 : documents.findIndex((d) => d.id === flag.conflictRecord);
   const shadows = shadowMap > 0;
@@ -205,6 +207,7 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
       <Chair position={INVESTIGATOR_SEAT} rotation={Math.PI} />
       <EvidenceWall documents={documents} clock={clock} motionOff={reducedMotion} highlight={highlightIndex < 0 ? null : (flag?.conflictRecord ?? null)} />
       <Mirror />
+      {scoreCards === null ? null : <DebriefBoard cards={scoreCards} motionOff={reducedMotion} />}
       <ObservationRoom world={present ? world : null} clock={clock} still={still} shadows={shadows} />
       {world === null || !present ? null : (
         <Suspense fallback={null}>
@@ -242,7 +245,11 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
       )}
       {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
-      {world === null || !showPet ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
+      {world === null || !showPet ? null : (
+        <Suspense fallback={null}>
+          <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />
+        </Suspense>
+      )}
       {/* key light from the main ceiling panel, soft-shadowed; warm fills from the corner panels */}
       <primitive object={keyTarget} />
       <spotLight

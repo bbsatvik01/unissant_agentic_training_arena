@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ApiClient } from "./client";
 import { ContractError } from "./client";
-import { createArenaApi } from "./arena";
+import { createArenaApi, parseBrief, parseCaseCard } from "./arena";
 import { fixture } from "../../test/wire-fixtures";
 
 const TRIAL = "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41";
@@ -144,5 +144,62 @@ describe("typed arena routes (S5 5.5; S6 5.2: every REST payload validated)", ()
         keepalive: true,
       },
     ]);
+  });
+});
+
+describe("case and session routes (S6 4.2; S5 5.5)", () => {
+  const card = {
+    case_id: "C-7Q2MXK4D",
+    title: "Records vault entry during a busy shift",
+    objective: "Establish why.",
+    domain: "facility_access",
+    difficulty_level: 2,
+    subject: { display_name: "Jordan Pell", position: "Facilities Technician II" },
+    facility: "Halvern Street Annex",
+    initial_documents: 1,
+    requestable_records: 4,
+  };
+  const doc = { doc_id: "doc-01", kind: "access_exception_report", title: "Report", content: { body: "b", table: { columns: ["a", "b"], rows: [["1", "2"]] } } };
+
+  it("lists the offered cases and refuses a card carrying a role, style, family or variant (FE-LIB-1)", async () => {
+    const { client, calls } = fakeClient(() => ({ cases: [card] }));
+    await expect(createArenaApi(client).listCases()).resolves.toEqual([card]);
+    expect(calls[0]).toEqual({ method: "GET", path: "/api/cases" });
+    for (const extra of ["role", "style", "family_id", "variant"]) {
+      const { client: c } = fakeClient(() => ({ cases: [{ ...card, [extra]: "x" }] }));
+      await expect(createArenaApi(c).listCases()).rejects.toBeInstanceOf(ContractError);
+    }
+    const { client: none } = fakeClient(() => ({ cases: "no" }));
+    await expect(createArenaApi(none).listCases()).rejects.toBeInstanceOf(ContractError);
+    expect(parseCaseCard({ ...card, subject: null })).toBe(null);
+    expect(parseCaseCard("x")).toBe(null);
+  });
+
+  it("reads the brief's initial documents whole and refuses a short table row", async () => {
+    const { client, calls } = fakeClient(() => ({ case: card, brief: { initial_documents: [doc] } }));
+    await expect(createArenaApi(client).caseBrief("C-7Q2MXK4D")).resolves.toEqual({ case: card, initialDocuments: [doc] });
+    expect(calls[0]?.path).toBe("/api/cases/C-7Q2MXK4D");
+    const short = { ...doc, content: { body: "b", table: { columns: ["a", "b"], rows: [["1"]] } } };
+    expect(parseBrief({ case: card, brief: { initial_documents: [short] } })).toBe(null);
+    expect(parseBrief({ case: card, brief: { initial_documents: [{ ...doc, content: { body: "only" } }] } })?.initialDocuments).toHaveLength(1);
+    expect(parseBrief({ case: card })).toBe(null);
+    const { client: bad } = fakeClient(() => ({ case: card, brief: {} }));
+    await expect(createArenaApi(bad).caseBrief("x")).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it("starts a session with a checked body and reads the started ids", async () => {
+    const started = { session_id: "s1", trial_id: "t1", phase: "practice", mode: "practice", case_id: "C-7Q2MXK4D" };
+    const { client, calls } = fakeClient(() => started);
+    const body = { case_id: "C-7Q2MXK4D", mode: "practice" as const, voice: false, idem_key: "6f9619ff-8b86-4011-b42d-00c04fc964ff" };
+    await expect(createArenaApi(client).startSession(body)).resolves.toEqual({ session_id: "s1", trial_id: "t1", mode: "practice", case_id: "C-7Q2MXK4D" });
+    expect(calls[0]).toEqual({ method: "POST", path: "/api/sessions", body, keepalive: false });
+    const { client: bad } = fakeClient(() => ({ ...started, mode: "free" }));
+    await expect(createArenaApi(bad).startSession(body)).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it("reads a tournament's published board by its id and board name", async () => {
+    const { client, calls } = fakeClient(() => ({ board: "subject", status: "unranked", rows: [] }));
+    await expect(createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "subject")).resolves.toMatchObject({ board: "subject" });
+    expect(calls[0]).toEqual({ method: "GET", path: "/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=subject" });
   });
 });

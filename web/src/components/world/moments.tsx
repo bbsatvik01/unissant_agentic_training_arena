@@ -12,7 +12,7 @@ import { QuadraticBezierCurve3, Vector3, type Group, type Mesh, type MeshBasicMa
 import { EVIDENCE_WALL, evidenceSlot, FOLDER_SPOT, SUBJECT_SEAT, TABLE, type Vec3 } from "../../lib/world/layout";
 import { PALETTE } from "../../lib/world/palette";
 import { brushedSteel } from "./materials";
-import { paperTexture } from "./textures";
+import { paperTexture, scoreCardTexture } from "./textures";
 
 gsap.registerPlugin(useGSAP);
 
@@ -203,3 +203,57 @@ export function Seal({ at, clock, motionOff }: { at: number | null; clock: RefOb
   );
 }
 
+
+export interface ScoreCard {
+  readonly label: string;
+  readonly title: string;
+  readonly score: string;
+}
+
+function ScorePin({ card, at, index, motionOff }: { card: ScoreCard; at: Vec3; index: number; motionOff: boolean }) {
+  const group = useRef<Group>(null);
+  const texture = useMemo(() => scoreCardTexture(card.label, card.title, card.score), [card.label, card.title, card.score]);
+  useEffect(() => () => {
+    texture.dispose();
+  }, [texture]);
+  // Flies once. Turning motion off mid-flight reverts the tweens, which leaves the card at its place on the wall;
+  // turning motion on again does not fly it a second time.
+  const flown = useRef(false);
+  useGSAP(
+    () => {
+    const g = group.current;
+    if (g === null || motionOff || flown.current) return;
+    flown.current = true;
+    gsap.from(g.position, { y: TABLE.center[1] + 0.3, z: TABLE.center[2], x: TABLE.center[0], duration: 1.0, delay: 0.35 + index * 0.22, ease: "power3.out" });
+    gsap.from(g.rotation, { x: -1.2, z: 0.4, duration: 1.0, delay: 0.35 + index * 0.22, ease: "power3.out" });
+    gsap.from(g.scale, { x: 0.4, y: 0.4, z: 0.4, duration: 0.6, delay: 0.35 + index * 0.22, ease: "power2.out" });
+    },
+    { dependencies: [motionOff], revertOnUpdate: true },
+  );
+  return (
+    <group ref={group} position={at}>
+      <mesh castShadow>
+        <boxGeometry args={[0.6, 0.4, 0.006]} />
+        <meshStandardMaterial map={texture} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.17, 0.006]}>
+        <sphereGeometry args={[0.016, 10, 8]} />
+        <meshStandardMaterial color={PALETTE.ink} roughness={0.45} />
+      </mesh>
+    </group>
+  );
+}
+
+/** The debrief scene's board: the total and the five dimension scores pin themselves over the evidence wall. */
+export function DebriefBoard({ cards, motionOff }: { cards: readonly ScoreCard[]; motionOff: boolean }) {
+  const [cx, cy, cz] = EVIDENCE_WALL.center;
+  return (
+    <group>
+      {cards.map((card, i) => {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        return <ScorePin key={card.label} card={card} index={i} motionOff={motionOff} at={[cx - 0.7 + col * 0.7, cy + 0.3 - row * 0.5, cz + 0.06]} />;
+      })}
+    </group>
+  );
+}

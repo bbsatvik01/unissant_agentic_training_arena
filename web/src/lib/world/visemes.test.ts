@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { speechDurationMs } from "./cadence";
-import { BLEND_MS, beatTimes, VISEMES, visemeTrack, visemeUnits, visemeWeightsAt } from "./visemes";
+import { BLEND_MS, beatTimes, timeAtChar, VISEMES, visemeTrack, visemeUnits, visemeWeightsAt } from "./visemes";
 
 describe("visemes from the text stream", () => {
   it("maps letters and digraphs to the Oculus visemes", () => {
@@ -37,5 +37,19 @@ describe("visemes from the text stream", () => {
     expect(beats).toHaveLength(4);
     expect([...beats].sort((a, b) => a - b)).toEqual(beats);
     expect(beatTimes("No. I am ok.")).toEqual([]);
+  });
+});
+
+describe("timeAtChar", () => {
+  it("maps a character position onto the line's timeline, start to end", () => {
+    const text = "I left at nine. Then home.";
+    expect(timeAtChar(text, 0)).toBe(0);
+    expect(timeAtChar(text, text.length)).toBeCloseTo(speechDurationMs(text), 6);
+    expect(timeAtChar(text, 99)).toBeCloseTo(speechDurationMs(text), 6);
+    const second = text.indexOf("Then");
+    // The second sentence starts where the track's span for its first letter starts.
+    const span = visemeTrack(text).find((s) => s.start >= timeAtChar(text, second) - 1e-6);
+    expect(span?.start).toBeCloseTo(timeAtChar(text, second), 6);
+    expect(timeAtChar(text, second)).toBeGreaterThan(timeAtChar(text, 5));
   });
 });

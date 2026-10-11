@@ -1,24 +1,38 @@
 /**
- * The arena's world (D-020): the precinct hub, then the interview room of the chosen case, with the 2D overlay
- * (DESIGN.md components) around the 3D view. Opening the recorded case (F01) loads its recording and plays it
- * through the same reducer the live room will use (D-021); the other cases open their room and brief and wait for
- * live sessions (stage 2, after WP-13).
+ * The arena's world (D-020, D-021, stage 2): the precinct hub, then the interview room of the chosen case, with the
+ * 2D overlay (DESIGN.md components) floating on the 3D stage. A room runs one of two feeds into the same reducer and
+ * world: a live session (`POST /api/sessions`, then the session controller's SSE stream) when the arena API answers,
+ * or a recorded run (the bundled F01 recording or an exported file). Without the API the hub falls back to the
+ * bundled case list and recordings only.
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
+import { ArenaView } from "../components/overlay/ArenaView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
 import { Composer, PlaybackBar } from "../components/overlay/Controls";
-import { DebriefScore } from "../components/overlay/DebriefScore";
+import { DebriefScene } from "../components/overlay/DebriefScene";
 import { EvidencePanel } from "../components/overlay/EvidencePanel";
 import { FindingPanel } from "../components/overlay/FindingPanel";
 import { Tabs } from "../components/overlay/Tabs";
 import { Transcript } from "../components/overlay/Transcript";
-import type { WallDocument } from "../components/world/moments";
+import type { ScoreCard, WallDocument } from "../components/world/moments";
+import { RUBRIC } from "../lib/copy/rubric";
+import { createArenaApi } from "../lib/api/arena";
+import { parseBoard, type Board } from "../lib/arena/leaderboard";
+import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
+import { createApiClient } from "../lib/api/client";
+import type { Debrief } from "../lib/contracts/generated/types";
+import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
-import type { RoomStatus } from "../lib/trial/trialReducer";
+import { draftToFinding } from "../lib/copy/finding";
+import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { draftAfterSend } from "../lib/world/live";
 import type { CaseDocument, Recording } from "../lib/world/recording";
+import type { WorldState } from "../lib/world/worldState";
+import { useLiveSession } from "./world/useLiveSession";
 import { useMotionPrefs } from "./world/useMotionPrefs";
+import { useVoice } from "./world/useVoice";
 import { usePlayback } from "./world/usePlayback";
 
 const WorldCanvas = lazy(() => import("../components/world/WorldCanvas"));
@@ -34,16 +48,33 @@ const STATUS_WORD: Readonly<Record<RoomStatus, string>> = {
 };
 
 const PLAYBACK_REASON = "Playback: the questions come from the recording.";
-const LIVE_REASON = "Live sessions connect when the session API lands. Case F01 has a recorded run.";
+const OFFLINE_REASON = "The arena server is not running; recorded runs only.";
 
 type Load = { readonly state: "none" } | { readonly state: "loading" } | { readonly state: "ready"; readonly recording: Recording } | { readonly state: "error"; readonly message: string };
+/** What the room is showing: choosing how to start, a live session, or a recorded run. */
+type RoomMode = "choose" | "live" | "playback";
+
+/** Why the composer cannot send right now, or null when it can. */
+function composerReason(view: TrialView | null, mode: RoomMode, live: boolean): string | null {
+  if (mode === "playback") return PLAYBACK_REASON;
+  if (!live) return OFFLINE_REASON;
+  if (mode === "choose" || view === null) return "Start the interview to ask a question.";
+  if (view.status === "awaiting_question") return null;
+  if (view.status === "cap_reached") return "This interview has reached its length limit; commit your finding.";
+  if (view.status === "ended" || view.status === "finalizing") return "The interview is over.";
+  return "One moment: the previous turn is still being answered.";
+}
 
 export function WorldRoute() {
   const { reducedMotion, paused, togglePaused } = useMotionPrefs();
+  const api = useMemo(() => createArenaApi(createApiClient()), []);
+  const [liveCases, setLiveCases] = useState<readonly CaseCard[] | null>(null);
   const [place, setPlace] = useState<"hub" | "room">("hub");
   const [active, setActive] = useState<CaseCard | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [load, setLoad] = useState<Load>({ state: "none" });
+  const [mode, setMode] = useState<RoomMode>("choose");
+  const [liveDocs, setLiveDocs] = useState<readonly CaseDocument[]>([]);
   const [arrived, setArrived] = useState(false);
   const [draft, setDraft] = useState("");
   const [cite, setCite] = useState<{ turn: number; quote: string; nonce: number } | null>(null);
@@ -53,16 +84,80 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; example: boolean } | null>(null);
+  const [showArena, setShowArena] = useState(false);
+  // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
+  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
+  // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
+  const openArena = () => {
+    setShowArena(true);
+    if (arena !== null) return;
+    const tournamentId = new URLSearchParams(window.location.search).get("tournament");
+    const published =
+      live && tournamentId !== null
+        ? Promise.all([api.leaderboard(tournamentId, "assistant"), api.leaderboard(tournamentId, "subject")]).then(
+            ([a, s]) => ({ assistant: parseBoard(a), subject: parseBoard(s) }),
+            () => null,
+          )
+        : Promise.resolve(null);
+    void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
+      const poll: unknown = tour.default.poll;
+      const real = boards !== null && boards.assistant !== null;
+      setArena({
+        name: real ? "Tournament leaderboards" : lb.default.tournament.name,
+        assistant: real ? boards.assistant : parseBoard(lb.default.assistant),
+        subject: real ? boards.subject : parseBoard(lb.default.subject),
+        tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        example: !real,
+      });
+    });
+  };
+  const [sound, setSound] = useState(() => {
+    try {
+      return window.localStorage.getItem("arena.sound") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleSound = () => {
+    setSound((on) => {
+      try {
+        window.localStorage.setItem("arena.sound", on ? "0" : "1");
+      } catch {
+        // Storage unavailable: the toggle still works for this page.
+      }
+      return !on;
+    });
+  };
+
+  // The live arena, when its server answers: the cases offered to this user.
+  useEffect(() => {
+    let cancelled = false;
+    api.listCases().then(
+      (cases) => {
+        if (!cancelled) setLiveCases(cases);
+      },
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+  const live = liveCases !== null;
+  const cases = liveCases ?? CASES;
 
   const recording = load.state === "ready" ? load.recording : null;
   const subjectName = recording?.case.subject.display_name ?? active?.subject.display_name ?? "Subject";
-  const playback = usePlayback(recording, { subjectName, reducedMotion, paused });
+  const playback = usePlayback(mode === "playback" ? recording : null, { subjectName, reducedMotion, paused });
+  const session = useLiveSession({ api, caseId: mode === "playback" ? null : (active?.case_id ?? null), subjectName, reducedMotion, paused });
   const { play, seekTo } = playback;
-  const view = playback.trial.view;
-  const world = playback.world;
+  const liveFeed = mode === "live";
+  const view: TrialView | null = liveFeed ? session.trial.view : mode === "playback" ? playback.trial.view : null;
+  const world: WorldState | null = liveFeed ? session.world : mode === "playback" ? playback.world : null;
+  const clock = liveFeed ? session.clock : playback.clock;
 
   useEffect(() => {
-    if (active?.case_id !== RECORDED_CASE_ID || load.state !== "loading") return;
+    if (load.state !== "loading") return;
     let cancelled = false;
     void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
       ([mod, { parseRecording }]) => {
@@ -77,32 +172,65 @@ export function WorldRoute() {
     return () => {
       cancelled = true;
     };
-  }, [active, load.state]);
+  }, [load.state]);
 
-  // Once the camera has landed in the room and the recording is ready, the run plays (never in the precinct).
+  // Once the camera has landed in the room and the recording is ready, a recorded run plays (never in the precinct).
   useEffect(() => {
-    if (arrived && place === "room" && recording !== null) play();
-  }, [arrived, place, recording, play]);
+    if (arrived && place === "room" && mode === "playback" && recording !== null) play();
+  }, [arrived, place, mode, recording, play]);
+
+  // The live brief: the case's initial documents for the wall and the evidence list.
+  useEffect(() => {
+    if (!live || active === null || mode === "playback") return;
+    let cancelled = false;
+    api.caseBrief(active.case_id).then(
+      (brief) => {
+        if (!cancelled) setLiveDocs(brief.initialDocuments);
+      },
+      () => {
+        if (!cancelled) setLiveDocs([]);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [api, live, active, mode]);
+
+  const resetRoom = () => {
+    setArrived(false);
+    setDebriefClosed(false);
+    setCite(null);
+    setDraft("");
+    setLiveDocs([]);
+  };
 
   const openCase = useCallback(
     (caseId: string) => {
-      // A case from the board, or the case of a recording file opened earlier (kept with its recording).
-      const card = CASES.find((c) => c.case_id === caseId) ?? (active?.case_id === caseId ? active : null);
+      const card = cases.find((c) => c.case_id === caseId) ?? (active?.case_id === caseId ? active : null);
       if (card === null) return;
       setActive(card);
-      // A recording already loaded for this case is kept (reopening replays it from the start).
-      setLoad((l) =>
-        l.state === "ready" && l.recording.case.case_id === card.case_id ? l : card.case_id === RECORDED_CASE_ID ? { state: "loading" } : { state: "none" },
-      );
-      setArrived(false);
-      setDebriefClosed(false);
-      setCite(null);
-      setDraft("");
+      // With the server, the room offers a live interview (and the recorded run for F01); without it, the recorded
+      // run plays straight away where there is one.
+      const recorded = card.case_id === RECORDED_CASE_ID;
+      setMode(live || !recorded ? "choose" : "playback");
+      setLoad((l) => (l.state === "ready" && l.recording.case.case_id === card.case_id ? l : recorded ? { state: "loading" } : { state: "none" }));
+      resetRoom();
       setPlace("room");
       seekTo(0);
     },
-    [seekTo, active],
+    [seekTo, active, cases, live],
   );
+
+  // The recorded run plays once it is loaded and the camera has landed (the effect above).
+  const watchRecording = () => {
+    setMode("playback");
+  };
+
+  const startLive = (m: "practice" | "assessment") => {
+    setMode("live");
+    void session.start(m);
+  };
+
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   const openRecordingFile = useCallback((file: File) => {
     void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
@@ -133,6 +261,7 @@ export function WorldRoute() {
           requestable_records: result.recording.snapshot.requestable.length,
         });
         setLoad({ state: "ready", recording: result.recording });
+        setMode("playback");
         setArrived(false);
         setDebriefClosed(false);
         setCite(null);
@@ -145,9 +274,10 @@ export function WorldRoute() {
   }, []);
   const backToHub = useCallback(() => {
     playback.pause();
+    session.stop();
     setPlace("hub");
     setArrived(false);
-  }, [playback]);
+  }, [playback, session]);
   const onArrive = useCallback(() => {
     setArrived(true);
   }, []);
@@ -157,7 +287,7 @@ export function WorldRoute() {
     setCite((c) => ({ turn, quote, nonce: (c?.nonce ?? 0) + 1 }));
   }, []);
 
-  const documents: readonly CaseDocument[] = useMemo(() => recording?.case.initial_documents ?? [], [recording]);
+  const documents: readonly CaseDocument[] = useMemo(() => (mode === "playback" ? (recording?.case.initial_documents ?? []) : liveDocs), [mode, recording, liveDocs]);
   const wallDocs: readonly WallDocument[] = useMemo(() => {
     const initial = documents.map((d) => ({ id: d.doc_id, title: d.title, note: "Initial document", releasedAt: null }));
     const released = (world?.wall ?? []).map((p) => ({ id: p.record_id, title: p.title, note: `Released at T${String(p.releasedAtTurn)}`, releasedAt: p.releasedAt }));
@@ -176,11 +306,44 @@ export function WorldRoute() {
   }, [flag, cite]);
 
   const freshId = world?.wall.find((p) => p.fresh)?.record_id ?? null;
-  const focusCard = CASES.find((c) => c.case_id === focused) ?? active ?? CASES[0] ?? null;
-  const debrief = recording?.debrief ?? null;
-  const showDebrief = place === "room" && world?.debriefReady === true && debrief !== null && !debriefClosed;
+  const focusCard = cases.find((c) => c.case_id === focused) ?? active ?? cases[0] ?? null;
+  const liveDebrief = session.debrief !== null && "schema_version" in session.debrief ? session.debrief : null;
+  const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
+  const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;
+  const showDebrief = place === "room" && debriefReady && !debriefClosed;
+  // The debrief scene's score cards on the wall: the document's total and five dimension scores, as they are.
+  const scoreCards: readonly ScoreCard[] | null = useMemo(() => {
+    if (!showDebrief || debrief === null || !debrief.scored || debrief.rubric.total === null) return null;
+    return [
+      { label: "Total", title: "Rubric total", score: `${String(debrief.rubric.total)}/100` },
+      ...debrief.rubric.dimensions.map((d) => ({ label: d.dim_id, title: RUBRIC[d.dim_id].name, score: `${String(d.score)}/4` })),
+    ];
+  }, [showDebrief, debrief]);
   // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
+  const reason = composerReason(view, mode, live);
+  // Voices speak only in the room, unmuted, live or during playback at normal speed.
+  useVoice({
+    world,
+    view,
+    subjectName,
+    clock,
+    active: sound && place === "room" && !paused && (liveFeed || (mode === "playback" && playback.playing && playback.speed === 1)),
+    scope: liveFeed ? (session.session?.session_id ?? "live") : (recording?.trial_id ?? "none"),
+  });
+  const canAct = liveFeed && view !== null && (view.status === "awaiting_question" || view.status === "cap_reached");
+
+  const caption = (() => {
+    if (liveFeed && session.error !== null) return session.error;
+    if (liveFeed && session.connectionError !== null) return session.connectionError;
+    if (liveFeed && session.phase === "starting") return "Opening the interview room.";
+    if (liveFeed && session.connection === "scoring") return "Scoring the session.";
+    if (mode === "playback" && load.state === "loading") return "Loading the recorded run.";
+    if (mode === "playback" && load.state === "error") return `The recording was refused: ${load.message}`;
+    if (world !== null) return world.caption;
+    if (active === null) return "";
+    return `${active.subject.display_name}, ${active.subject.position}.${live ? "" : ` ${OFFLINE_REASON}`}`;
+  })();
 
   return (
     <div className="app" data-place={place} data-paused={paused ? "true" : "false"}>
@@ -213,6 +376,16 @@ export function WorldRoute() {
               {showPet ? "Hide companion" : "Show companion"}
             </button>
           ) : null}
+          {place === "room" ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
+              {sound ? "Mute voices" : "Unmute voices"}
+            </button>
+          ) : null}
+          {place === "hub" ? (
+            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? () => { setShowArena(false); } : openArena}>
+              Arena
+            </button>
+          ) : null}
           <button type="button" className="btn-secondary-sm" aria-pressed={paused} onClick={togglePaused}>
             {paused ? "Resume motion" : "Pause motion"}
           </button>
@@ -225,16 +398,17 @@ export function WorldRoute() {
       </header>
 
       <main className="stage">
-        <aside className="side left" data-open={leftOpen ? "true" : "false"}>
+        <aside className="side left" data-open={leftOpen && !showDebrief ? "true" : "false"}>
           <button
             type="button"
             className="panel-toggle"
-            aria-expanded={leftOpen}
+            aria-expanded={leftOpen && !showDebrief}
+            disabled={showDebrief}
             onClick={() => {
               setLeftOpen((v) => !v);
             }}
           >
-            {leftOpen ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
+            {leftOpen && !showDebrief ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
           </button>
           {place === "hub" ? (
             <section className="panel" aria-labelledby="cases-title">
@@ -242,9 +416,11 @@ export function WorldRoute() {
                 <h1 id="cases-title">Pick a case file.</h1>
               </header>
               <div className="panel-body">
-                <p className="lead">Five practice cases from the development split. Open one to step into its interview room.</p>
+                <p className="lead">
+                  {live ? "Practice cases from the development split. Open one to step into its interview room." : `${OFFLINE_REASON} Open a case to watch its recorded run.`}
+                </p>
                 <ul className="case-list">
-                  {CASES.map((c) => (
+                  {cases.map((c) => (
                     <li key={c.case_id}>
                       <button
                         type="button"
@@ -310,22 +486,23 @@ export function WorldRoute() {
               <WorldCanvas
                 place={place}
                 world={world}
-                cases={CASES}
+                cases={cases}
                 recordedCaseId={RECORDED_CASE_ID}
                 subjectName={subjectName}
                 focusedCase={focused}
                 documents={wallDocs}
-                clock={playback.clock}
+                clock={clock}
                 still={still}
                 reducedMotion={still}
                 showPet={showPet}
+                scoreCards={scoreCards}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
                 onArrive={onArrive}
               />
             </Suspense>
           </div>
-          {place === "room" && world?.debriefReady === true && debrief !== null && debriefClosed ? (
+          {place === "room" && debriefReady && debriefClosed ? (
             <button
               type="button"
               className="btn-secondary-sm debrief-open"
@@ -336,9 +513,11 @@ export function WorldRoute() {
               Open debrief
             </button>
           ) : null}
-          {showDebrief ? (
-            <DebriefScore
+          {showDebrief && debrief !== null ? (
+            <DebriefScene
               debrief={debrief}
+              view={view}
+              documents={documents}
               reducedMotion={still}
               onClose={() => {
                 setDebriefClosed(true);
@@ -348,13 +527,66 @@ export function WorldRoute() {
           {place === "room" ? (
             <div className="room-controls">
               <p className="caption" role="status">
-                {load.state === "loading"
-                  ? "Loading the recorded run."
-                  : load.state === "error"
-                    ? `The recording was refused: ${load.message}`
-                    : (world?.caption ?? (active === null ? "" : `${active.subject.display_name}, ${active.subject.position}. ${LIVE_REASON}`))}
+                {caption}
               </p>
-              {recording === null ? null : (
+              {liveFeed && session.debriefFailed ? (
+                <div className="start-row">
+                  <button type="button" className="btn-secondary-sm start-alt" onClick={session.retryDebrief}>
+                    Score the debrief again
+                  </button>
+                </div>
+              ) : null}
+              {liveFeed && session.failedQuestion !== null ? (
+                <div className="start-row">
+                  <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
+                      const sent = session.failedQuestion;
+                      void session.retryAsk().then((ok) => {
+                        if (ok && sent !== null) setDraft((current) => draftAfterSend(current, sent));
+                      });
+                    }}>
+                    Send the question again
+                  </button>
+                </div>
+              ) : null}
+              {liveFeed && session.connectionError !== null ? (
+                <div className="start-row">
+                  <button type="button" className="btn-secondary-sm start-alt" onClick={session.reconnect}>
+                    Reconnect
+                  </button>
+                </div>
+              ) : null}
+              {mode === "choose" ? (
+                <div className="start-row" role="group" aria-label="Start">
+                  {live && session.resumable !== null ? (
+                    <button type="button" className="btn-primary" onClick={() => {
+                        setMode("live");
+                        void session.resume();
+                      }}>
+                      Return to your {session.resumable.mode === "practice" ? "practice interview" : "assessment"}
+                    </button>
+                  ) : null}
+                  {live ? (
+                    <>
+                      <button type="button" className={session.resumable === null ? "btn-primary" : "btn-secondary-sm start-alt"} onClick={() => {
+                          startLive("practice");
+                        }}>
+                        Start practice interview
+                      </button>
+                      <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
+                          startLive("assessment");
+                        }}>
+                        Assessment
+                      </button>
+                    </>
+                  ) : null}
+                  {active?.case_id === RECORDED_CASE_ID ? (
+                    <button type="button" className="btn-secondary-sm start-alt" onClick={watchRecording}>
+                      Watch the recorded run
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {mode === "playback" && recording !== null ? (
                 <PlaybackBar
                   playing={playback.playing}
                   speed={playback.speed}
@@ -365,8 +597,24 @@ export function WorldRoute() {
                   onSpeed={playback.setSpeed}
                   onSeek={playback.seekTo}
                 />
-              )}
-              <Composer draft={draft} onDraft={setDraft} onSend={null} reason={recording === null ? LIVE_REASON : PLAYBACK_REASON} />
+              ) : null}
+              <Composer
+                draft={draft}
+                onDraft={(text) => {
+                  setDraft(text);
+                  session.typing();
+                }}
+                onSend={
+                  reason === null
+                    ? (text) => {
+                        void session.ask(text).then((ok) => {
+                          if (ok) setDraft((current) => draftAfterSend(current, text));
+                        });
+                      }
+                    : null
+                }
+                reason={reason ?? ""}
+              />
             </div>
           ) : (
             <p className="caption">Point at a file on the board, or use the list, to open a case.</p>
@@ -435,42 +683,48 @@ export function WorldRoute() {
                 {
                   id: "coach",
                   label: "Coach",
-                  content: (<>
-                {view === null ? (
-                  <p className="empty">{recording === null && load.state !== "loading" ? LIVE_REASON : "Opening the session."}</p>
-                ) : (
-                  <CoachPanel view={view} released={view.released} documents={documents} onCite={onCite} onUseQuestion={null} />
-                )}
-              </>),
+                  content:
+                    view === null ? (
+                      <p className="empty">{mode === "choose" ? "Start the interview; the coach reviews each answer and suggests a follow-up." : "Opening the session."}</p>
+                    ) : (
+                      <CoachPanel view={view} released={view.released} documents={documents} onCite={onCite} onUseQuestion={liveFeed ? setDraft : null} />
+                    ),
                 },
                 {
                   id: "evidence",
                   label: freshId === null ? "Evidence" : "Evidence (new)",
-                  content: (<>
-                <EvidencePanel
-                  documents={documents}
-                  released={view?.released ?? []}
-                  requestable={view?.requestable ?? []}
-                  exchangesUsed={view?.exchangesUsed ?? 0}
-                  freshId={freshId}
-                  onRequest={null}
-                />
-              </>),
+                  content: (
+                    <EvidencePanel
+                      documents={documents}
+                      released={view?.released ?? []}
+                      requestable={view?.requestable ?? []}
+                      exchangesUsed={view?.exchangesUsed ?? 0}
+                      freshId={freshId}
+                      onRequest={canAct ? (id) => void session.request(id) : null}
+                    />
+                  ),
                 },
                 {
                   id: "finding",
                   label: "Finding",
-                  content: (<>
-                <FindingPanel
-                  key={active?.case_id ?? "none"}
-                  committed={view?.committedFinding ?? null}
-                  hash={view?.commitmentHash ?? null}
-                  turns={view?.turns ?? []}
-                  records={[...documents.map((d) => ({ id: d.doc_id, title: d.title })), ...(view?.released ?? []).map((r) => ({ id: r.record_id, title: r.title }))]}
-                  onConfirm={null}
-                  disabledReason={recording === null ? LIVE_REASON : PLAYBACK_REASON}
-                />
-              </>),
+                  content: (
+                    <FindingPanel
+                      key={`${active?.case_id ?? "none"}-${mode}`}
+                      committed={view?.committedFinding ?? null}
+                      hash={view?.commitmentHash ?? null}
+                      turns={view?.turns ?? []}
+                      records={[...documents.map((d) => ({ id: d.doc_id, title: d.title })), ...(view?.released ?? []).map((r) => ({ id: r.record_id, title: r.title }))]}
+                      onConfirm={
+                        canAct
+                          ? (d) => {
+                              const finding = draftToFinding(d);
+                              if (finding !== null) void session.commit(finding);
+                            }
+                          : null
+                      }
+                      disabledReason={reason ?? "Ask at least one question first."}
+                    />
+                  ),
                 },
               ]}
             />
@@ -478,6 +732,19 @@ export function WorldRoute() {
         </aside>
       </main>
 
+      {place === "hub" && showArena && arena !== null ? (
+        <ArenaView
+          name={arena.name}
+          example={arena.example}
+          assistant={arena.assistant}
+          subject={arena.subject}
+          tournament={arena.tournament}
+          motionOff={still}
+          onClose={() => {
+            setShowArena(false);
+          }}
+        />
+      ) : null}
       <footer className="ex4">{EX4_TEXT}</footer>
     </div>
   );
