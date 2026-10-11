@@ -13,6 +13,7 @@ subject metrics (M12-M15) are the separate subject board (`build_subject_leaderb
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
@@ -246,15 +247,20 @@ def _evasion(scored: Sequence[TrialScore], kind: str, recall: bool) -> list[Clus
     return clusters_by_family((f, e.tp, e.events if recall else e.flags) for f, e in counts)
 
 
-def _latency(k: Kpi4) -> dict[str, Any]:
-    def seconds(x: Fraction | float | None) -> float | None:
-        return None if x is None else float(x)
+def _seconds(x: Fraction | float | None) -> float | str | None:
+    """Latency in seconds; a miss is infinitely late (S3 6.4) and published as "miss", since strict JSON (and
+    JSONB) has no infinity."""
+    if x is None:
+        return None
+    return float(x) if math.isfinite(x) else "miss"
 
+
+def _latency(k: Kpi4) -> dict[str, Any]:
     return {
         "share_within_3s": _frac(k.share_within_3s),
-        "p95_s": seconds(k.p95_s),
+        "p95_s": _seconds(k.p95_s),
         "interval_share": list(k.ci_share) if k.ci_share else None,
-        "interval_p95": list(k.ci_p95) if k.ci_p95 else None,
+        "interval_p95": [_seconds(x) for x in k.ci_p95] if k.ci_p95 else None,
         "measured": k.measured,
         "unmeasured": k.unmeasured,
         "in_flight": k.in_flight,

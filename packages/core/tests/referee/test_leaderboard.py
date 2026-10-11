@@ -473,6 +473,18 @@ def test_m06_m07_m08_m10_and_m16_are_computed_from_the_trial_scores_and_latency(
     assert not {"M06", "M07", "M08", "M09", "M10", "M16"} & {k[:3] for k in NOT_COMPUTED}
 
 
+def test_m16_with_coaching_misses_serializes_as_strict_json() -> None:
+    # Codex r4 #1: a miss is infinitely late; JSONB rejects Infinity, so the board must encode it explicitly.
+    commit = datetime(2026, 10, 1, tzinfo=UTC)
+    latency = [LatencyRow(f"t{k}", 1, "harness", "timeout", commit, None, None) for k in range(3)]
+    c = replace(good_candidate("A1"), latency=latency)
+    body = build_assistant_leaderboard(candidates=[c], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING)
+    json.dumps(body, allow_nan=False)
+    m16 = body["rows"][0]["metrics"]["M16_coaching_latency"]
+    assert m16["p95_s"] == "miss"
+    assert m16["share_within_3s"]["value"] == 0.0
+
+
 def test_an_unscored_trial_leaves_the_flag_metrics_undefined_rather_than_zero() -> None:
     c = replace(good_candidate("A1"), scored=[TrialScore(family_id=t.family_id) for t in good_candidate("A1").trials])
     [row] = build_assistant_leaderboard(
