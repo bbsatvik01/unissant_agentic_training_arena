@@ -29,6 +29,7 @@ export interface WorldCanvasProps {
   readonly still: boolean;
   /** Reduced motion: camera moves become cuts and signature moments show their end state. */
   readonly reducedMotion: boolean;
+  readonly showPet: boolean;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
   readonly onArrive?: () => void;
@@ -84,7 +85,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         onOpenCase={props.onOpenCase}
         onFocusCase={props.onFocusCase}
       />
-      <Room world={props.world} documents={props.documents} clock={props.clock} still={props.still} reducedMotion={props.reducedMotion} />
+      <Room world={props.world} documents={props.documents} clock={props.clock} still={props.still} reducedMotion={props.reducedMotion} showPet={props.showPet} />
       <CameraRig place={props.place} shot={shot} reducedMotion={props.reducedMotion} {...(props.onArrive === undefined ? {} : { onArrive: props.onArrive })} />
       {MEASURE ? <FpsProbe /> : null}
     </Canvas>

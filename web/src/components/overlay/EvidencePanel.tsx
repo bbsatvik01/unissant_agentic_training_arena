@@ -70,7 +70,7 @@ export function EvidencePanel({ documents, released, requestable, exchangesUsed,
           <summary>
             <span className="mono">{r.record_id}</span> {r.title}
             <span className="record-meta">
-              Released at T{r.released_at_turn}, {r.trigger}
+              {r.doc_kind === null ? "" : `${r.doc_kind.replaceAll("_", " ")}, `}Released at T{r.released_at_turn}, {r.trigger}
               {r.date === null ? "" : `, ${r.date}`}
             </span>
           </summary>

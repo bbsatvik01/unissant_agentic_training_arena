@@ -50,6 +50,7 @@ export function WorldRoute() {
   const [debriefClosed, setDebriefClosed] = useState(false);
   const [tab, setTab] = useState("coach");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [showPet, setShowPet] = useState(true);
 
   const recording = load.state === "ready" ? load.recording : null;
   const subjectName = recording?.case.subject.display_name ?? active?.subject.display_name ?? "Subject";
@@ -190,6 +191,18 @@ export function WorldRoute() {
               </span>
             </>
           ) : null}
+          {place === "room" ? (
+            <button
+              type="button"
+              className="btn-secondary-sm"
+              aria-pressed={!showPet}
+              onClick={() => {
+                setShowPet((v) => !v);
+              }}
+            >
+              {showPet ? "Hide companion" : "Show companion"}
+            </button>
+          ) : null}
           <button type="button" className="btn-secondary-sm" aria-pressed={paused} onClick={togglePaused}>
             {paused ? "Resume motion" : "Pause motion"}
           </button>
@@ -283,6 +296,7 @@ export function WorldRoute() {
                 clock={playback.clock}
                 still={still}
                 reducedMotion={still}
+                showPet={showPet}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
                 onArrive={onArrive}

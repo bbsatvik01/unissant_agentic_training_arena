@@ -46,6 +46,8 @@ interface RoomProps {
   readonly clock: RefObject<number>;
   readonly still: boolean;
   readonly reducedMotion: boolean;
+  /** The viewer can hide the companion (S6 6.3). */
+  readonly showPet: boolean;
 }
 
 const COACH_LOOKS = [
@@ -359,7 +361,7 @@ function Seal({ at, clock, motionOff }: { at: number | null; clock: RefObject<nu
   );
 }
 
-export function Room({ world, documents, clock, still, reducedMotion }: RoomProps) {
+export function Room({ world, documents, clock, still, reducedMotion, showPet }: RoomProps) {
   const flag = world?.flag ?? null;
   const highlightIndex = flag?.conflictRecord == null ? -1 : documents.findIndex((d) => d.id === flag.conflictRecord);
   return (
@@ -378,7 +380,7 @@ export function Room({ world, documents, clock, still, reducedMotion }: RoomProp
       </mesh>
       {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
-      {world === null ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
+      {world === null || !showPet ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
       <pointLight position={[0.2, 2.7, 0.4]} intensity={0.6} distance={8} decay={1.5} />
     </group>
   );
