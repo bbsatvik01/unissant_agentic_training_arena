@@ -45,3 +45,4 @@
 - a80b942018d564e81 WP-18b follow-up (2 rare-path fixes), fix/wp18b-followup. adb48fe0d3cc9a911 WP-11 rubric lexicon hash fix.
 - a810ab185aeaef4e8 WP-12 subject service (Sonnet), wt-wp12-subject feat/wp12-subject (base feat/wp05-port). Fake model; pilot script left for owner.
 - a82783ff6d2a01d89 WP-14 referee + debrief + review queue (Sonnet), wt-wp14-referee feat/wp14-referee (base feat/wp05-port).
+- a0b00bfa4c3d5b0bc WP-16 reveal/leaderboards/isolation gates/calibration stats (Sonnet), wt-wp16-reveal. - ad05fb8f3c14649dc WP-13 orchestrator+API+SSE+export-run+launcher (Opus), wt-wp13-orch.
