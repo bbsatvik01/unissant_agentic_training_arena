@@ -433,9 +433,40 @@ def test_a_retry_after_coach_unavailable_repeats_nothing() -> None:
     rig.turn()
     rig.adapter.script.extend(["{}", "{}"])
     key = str(uuid4())
-    rig.turn(key=key)  # turn 3: the card fails its repair, so no deep update is bound to it
+    rig.turn(key=key)  # turn 3: the card fails its repair; the deep update still runs, bound to that step
     events, requests = list(rig.kinds()), len(rig.adapter.requests)
     run(rig.orch.run_turn(rig.db.trial_id, "What did you do in B-12?", [], 0, key))
     assert rig.kinds() == events
     assert len(rig.adapter.requests) == requests
-    assert "coach_deep" not in events
+    assert events[-2:] == ["coach_unavailable", "coach_deep"]
+
+
+class LosesTheCardReply(FakeArenaDb):
+    """The connection drops after turn 3's card committed, before the reply reached the api."""
+
+    async def record_coaching_event(
+        self, trial: UUID, work_item: UUID, payload: dict[str, Any], kind: str
+    ) -> dict[str, Any]:
+        result = await super().record_coaching_event(trial, work_item, payload, kind)
+        if kind == "coach_card" and payload["turn_no"] == TURNS_BEFORE_DEEP and not getattr(self, "dropped", False):
+            self.dropped = True
+            raise ArenaError("XX000", "connection lost after commit")
+        return result
+
+
+TURNS_BEFORE_DEEP = 3
+
+
+@pytest.mark.parametrize("mode", ["practice", "assessment"])
+def test_a_turn_interrupted_after_its_card_resumes_the_deep_update_once(mode: str) -> None:
+    rig = Rig(mode=mode)
+    rig.db = LosesTheCardReply(ACTOR, mode=mode)
+    rig.orch = Orchestrator(db=rig.db, port=rig.port, subject=rig.subject, signals=TrialSignals())
+    rig.turn()
+    rig.turn()
+    key = str(uuid4())
+    with pytest.raises(TurnRefusedError):
+        rig.turn(key=key)
+    run(rig.orch.run_turn(rig.db.trial_id, "What did you do in B-12?", [], rig.db.version - 2, key))
+    assert rig.kinds().count("coach_card") == TURNS_BEFORE_DEEP
+    assert rig.kinds().count("coach_deep") == 1

@@ -269,8 +269,9 @@ class Orchestrator:
         return store_deep(deep.value, inputs).model_dump(mode="json"), "coach_deep"
 
     async def _coach(self, trial: UUID, n: int, call: CoachCall, expected_version: int | None) -> int | None:
-        """The card (or deep update) of turn n. Returns the version the step was bound to once its event is
-        stored, None when it was not (a failure event, a discarded stale update, or a terminal failure)."""
+        """The card (or deep update) of turn n. Returns the version the step was bound to once its event is stored
+        (a card or, for the card step, `coach_unavailable`), None when nothing was stored for it (a discarded stale
+        output, a failed deep update, or a terminal failure)."""
         key = request_key(trial, n, "coaching", f"coach.{call}")
         try:
             item = await self._open(trial, "coaching", key, expected_version)
@@ -280,25 +281,14 @@ class Orchestrator:
                 return None
             raise
         version = int(item["transcript_version"])
-        if item["status"] == "done":  # a retry: answer as the first run did (a coach_unavailable step bound nothing)
-            seq = int(item["result"]["seq"])
-            stored = await self.db.trial_events(trial, seq - 1, 1)
-            return version if stored and stored[0].kind != "coach_unavailable" else None
+        if item["status"] == "done":  # a retry: the step is finished, card or coach_unavailable alike
+            return version
         work_item = UUID(item["work_item_id"])
+        step = _Step(call, trial, n, work_item, version, key)
         try:
-            payload, kind = await self._model(_Step(call, trial, n, work_item, version, key))
-        except BudgetRefusedError as exc:
-            log.warning("coach %s for turn %s refused by the spend guard: %s", call, n, exc)
-            await self._fail(trial, "budget_truncated", f"the coach {call} call was refused by the spend guard")
-            return None
+            payload, kind = await self._model(step)
         except ProviderError as exc:
-            log.warning("coach %s for turn %s failed: %s: %s", call, n, type(exc).__name__, exc)
-            if call == "card":  # S5 5.2: a KPI-4 miss; the practice trial continues
-                reason = "repair_failed" if isinstance(exc, StructuredOutputError) else "timeout"
-                failed = {"turn_no": n, "reason": reason}
-                await self.db.record_coaching_event(trial, work_item, failed, "coach_unavailable")
-                self.signals.notify(trial)
-            return None
+            return await self._model_failed(step, exc)
         try:
             await self.db.record_coaching_event(trial, work_item, payload, kind)
         except ArenaError as exc:
@@ -308,6 +298,25 @@ class Orchestrator:
             raise
         self.signals.notify(trial)
         return version
+
+    async def _model_failed(self, step: _Step, exc: ProviderError) -> int | None:
+        """A coach call that produced no output. A budget refusal ends the trial (S5 5.2). A failed card is
+        recorded as `coach_unavailable` (a KPI-4 miss; the trial continues) and still finishes the turn's coaching
+        step, so the deep update binds to it on the first run and on any retry alike (a retry cannot tell the two
+        outcomes apart without reading assessment coaching). A failed deep update is dropped."""
+        log.warning("coach %s for turn %s failed: %s: %s", step.call, step.n, type(exc).__name__, exc)
+        if isinstance(exc, BudgetRefusedError):
+            await self._fail(
+                step.trial, "budget_truncated", f"the coach {step.call} call was refused by the spend guard"
+            )
+            return None
+        if step.call != "card":
+            return None
+        reason = "repair_failed" if isinstance(exc, StructuredOutputError) else "timeout"
+        failed = {"turn_no": step.n, "reason": reason}
+        await self.db.record_coaching_event(step.trial, step.work_item, failed, "coach_unavailable")
+        self.signals.notify(step.trial)
+        return step.version
 
     async def _deep(self, trial: UUID, n: int, card_version: int) -> None:
         """A1's deep update: every third exchange, and on each release, i.e. when a record first became visible to
