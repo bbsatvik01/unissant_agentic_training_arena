@@ -42,13 +42,16 @@ def _no_connection() -> AbstractAsyncContextManager[AsyncConnection[Any]]:
 
 
 class FakeArenaDb(ArenaDb):
-    def __init__(self, actor: UUID | None = None, *, mode: str = "practice") -> None:
+    def __init__(self, actor: UUID | None = None, *, mode: str = "practice", kind: str = "training") -> None:
         super().__init__(connect=_no_connection, actor=actor)
         self.trial_id = uuid4()
         self.session_id = uuid4()
         self.coach_id = uuid4()
+        self.subject_id: UUID | None = None
+        self.planned_trial_id: UUID | None = None
         self.variant_id = uuid4()
         self.mode = mode
+        self.kind = kind  # arena.v_trials' own kind (training/interactive/replay/replay_corpus), WP-17
         self.status = "running"
         self.execution_state: str | None = None
         self.version = 0
@@ -363,11 +366,30 @@ class FakeArenaDb(ArenaDb):
             "assistant_candidate_id": self.coach_id,
         }
 
-    async def tournament_trial(self, _trial: UUID) -> dict[str, Any] | None:
-        """This fake represents only training-style trials (`self.trial_id`); a harness-driven trial is
-        always a miss here, same as `trial()`'s own non-matching case, and just as cheaply -- no test built
-        on this fake has a tournament trial configured yet (`Orchestrator._manifest`'s fallback, WP-17)."""
-        return None
+    async def tournament_trial(self, trial: UUID) -> dict[str, Any] | None:
+        """The real `arena.v_trials` read resolves either way regardless of `actor` (S5 1.2 item 2's own
+        grants, not a python-level filter), with the one shape every tournament job call shares (`kind`,
+        `subject_candidate_id`, `planned_trial_id` -- none of which `trial()`'s own training-only dict
+        carries): this lets a harness-style test (`HarnessAsker`/`CorpusAsker`, WP-17) drive this fake
+        exactly as a `db.actor is None` job would, and gives `Orchestrator._manifest`'s fallback and
+        `load_tournament_trial` something real to find when `trial()`'s own query misses."""
+        if trial != self.trial_id:
+            return None
+        return {
+            "trial_id": self.trial_id,
+            "kind": self.kind,
+            "status": self.status,
+            "transcript_version": self.version,
+            "exchanges": self.exchanges,
+            "max_exchanges": 12,
+            "coaching_pending": self.coaching_pending,
+            "execution_state": self.execution_state,
+            "variant_id": self.variant_id,
+            "assistant_candidate_id": self.coach_id,
+            "subject_candidate_id": self.subject_id,
+            "planned_trial_id": self.planned_trial_id,
+            "started_at": T0,
+        }
 
     async def open_question(self, trial: UUID) -> bool:
         assert trial == self.trial_id
@@ -377,6 +399,15 @@ class FakeArenaDb(ArenaDb):
         assert trial == self.trial_id
         return [
             {"record_id": r["record_id"], "released_after_exchanges": r["after_exchanges"], "content": r["content"]}
+            for r in self.releases
+        ]
+
+    async def released_with_titles(self, trial: UUID) -> list[dict[str, Any]]:
+        """`arena.v_released_evidence`'s shape (S2 8.6; C-23): title alongside every released record, used
+        by the replay-corpus harness ports (WP-17, `CorpusAsker.release`)."""
+        assert trial == self.trial_id
+        return [
+            {"record_id": r["record_id"], "title": r["title"], "released_after_exchanges": r["after_exchanges"]}
             for r in self.releases
         ]
 

@@ -1,0 +1,175 @@
+"""`TournamentRunner`'s own resumable state machine (`_run_until_terminal`, S4 EF-05..EF-11; D3), against
+light fakes for `db`/`orchestrator`/`referee` -- the admission refusal, `source_unavailable`, the
+infra-retry-then-succeed and infra-retry-exhausted paths it_tournament.py's happy path and its one
+mid-block-restart scenario never reach. `_count`/`_current_attempt` directly; the track methods lean on
+`roster.py`'s own fixtures and are covered end to end in it_tournament.py (make db-test)."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Awaitable
+from typing import Any, cast
+from uuid import UUID, uuid4
+
+from arena_core.db.arena import ArenaDb
+from arena_core.turns.harness import Execution
+from arena_core.turns.orchestrator import Orchestrator
+from arena_tournament.referee_client import RefereeClient
+from arena_tournament.runner import MAX_ATTEMPTS, Attempt, TournamentRunner
+
+
+def run[T](aw: Awaitable[T]) -> T:
+    async def _runner() -> T:
+        return await aw
+
+    return asyncio.run(_runner())
+
+
+class _FakeDb:
+    """Only the three calls `_run_until_terminal` itself ever makes directly."""
+
+    def __init__(self, *, admit: bool = True, start_state: str | None = None) -> None:
+        self.admit = admit
+        self.start_state = start_state
+        self.retry_calls: list[UUID] = []
+        self.started: list[UUID] = []
+
+    async def admit_unit(self, _bucket: str, _cost: object) -> dict[str, Any]:
+        return {"decision": "admit" if self.admit else "refuse", "free_usd": 0.0}
+
+    async def start_trial(self, trial: UUID) -> dict[str, Any]:
+        self.started.append(trial)
+        return {} if self.start_state is None else {"state": self.start_state}
+
+    async def retry_trial(self, planned_trial: UUID) -> UUID:
+        self.retry_calls.append(planned_trial)
+        return uuid4()
+
+
+class _FakeOrchestrator:
+    def __init__(self) -> None:
+        self.stopped: list[tuple[UUID, str, str]] = []
+
+    async def stop(self, trial: UUID, state: str, reason: str) -> None:
+        self.stopped.append((trial, state, reason))
+
+
+def _runner_with(db: _FakeDb, orchestrator: _FakeOrchestrator) -> TournamentRunner:
+    return TournamentRunner(
+        db=cast("ArenaDb", db),
+        orchestrator=cast("Orchestrator", orchestrator),
+        referee=cast("RefereeClient", object()),
+        manifests={},
+    )
+
+
+def _attempts(execution_state: str | None, *, attempt: int = 1) -> list[Attempt]:
+    return [{"trial_id": uuid4(), "attempt": attempt, "status": "planned", "execution_state": execution_state}]
+
+
+def test_current_attempt_is_the_latest_when_retriable_and_none_once_terminal() -> None:
+    runner = _runner_with(_FakeDb(), _FakeOrchestrator())
+    retriable = _attempts(None)
+    assert runner._current_attempt(retriable) == retriable[-1]
+    infra = _attempts("infra_failed")
+    assert runner._current_attempt(infra) == infra[-1]
+    done = _attempts("completed")
+    assert runner._current_attempt(done) is None
+
+
+def test_run_until_terminal_stops_with_budget_skipped_when_admission_refuses() -> None:
+    db = _FakeDb(admit=False)
+    orch = _FakeOrchestrator()
+    runner = _runner_with(db, orch)
+    attempts = _attempts(None)
+    planned_trial_id = uuid4()
+
+    async def step(_trial: UUID) -> Execution:
+        msg = "never reached: admission refused before any step runs"
+        raise AssertionError(msg)
+
+    run(runner._run_until_terminal(planned_trial_id, attempts, [], step))
+    assert runner.outcomes == {"budget_skipped": 1}
+    assert orch.stopped == [(attempts[0]["trial_id"], "budget_skipped", "ops.admit_unit: not enough budget free")]
+    assert db.started == []
+
+
+def test_run_until_terminal_counts_source_unavailable_and_never_calls_step() -> None:
+    db = _FakeDb(start_state="source_unavailable")
+    runner = _runner_with(db, _FakeOrchestrator())
+    attempts = _attempts(None)
+
+    async def step(_trial: UUID) -> Execution:
+        msg = "never reached: start_trial already derived source_unavailable"
+        raise AssertionError(msg)
+
+    run(runner._run_until_terminal(uuid4(), attempts, [], step))
+    assert runner.outcomes == {"source_unavailable": 1}
+
+
+def test_run_until_terminal_counts_the_steps_outcome_on_the_happy_path() -> None:
+    db = _FakeDb()
+    runner = _runner_with(db, _FakeOrchestrator())
+    attempts = _attempts(None)
+
+    async def step(_trial: UUID) -> Execution:
+        return Execution.COMPLETED
+
+    run(runner._run_until_terminal(uuid4(), attempts, [], step))
+    assert runner.outcomes == {"completed": 1}
+    assert db.started == [attempts[0]["trial_id"]]
+
+
+def test_run_until_terminal_maps_an_unexpected_step_exception_to_infra_failed_and_stops_it() -> None:
+    db = _FakeDb()
+    orch = _FakeOrchestrator()
+    runner = _runner_with(db, orch)
+    attempts = _attempts(None, attempt=MAX_ATTEMPTS)  # already at the cap: one infra_failed attempt, no retry
+
+    async def step(_trial: UUID) -> Execution:
+        msg = "a provider blew up"
+        raise RuntimeError(msg)
+
+    run(runner._run_until_terminal(uuid4(), attempts, [], step))
+    assert runner.outcomes == {"infra_failed": 1}
+    assert orch.stopped[0][1] == "infra_failed"
+    assert "a provider blew up" in orch.stopped[0][2]
+
+
+def test_run_until_terminal_retries_after_infra_failed_then_succeeds() -> None:
+    db = _FakeDb()
+    runner = _runner_with(db, _FakeOrchestrator())
+    attempts = _attempts("infra_failed", attempt=1)  # below MAX_ATTEMPTS: one retry is still available
+    planned_trial_id = uuid4()
+    calls = {"n": 0}
+
+    async def step(_trial: UUID) -> Execution:
+        calls["n"] += 1
+        return Execution.COMPLETED
+
+    run(runner._run_until_terminal(planned_trial_id, attempts, [], step))
+    assert db.retry_calls == [planned_trial_id]
+    assert calls["n"] == 1
+    assert runner.outcomes == {"completed": 1}
+
+
+def test_run_until_terminal_gives_up_once_the_attempt_cap_is_spent() -> None:
+    db = _FakeDb()
+    runner = _runner_with(db, _FakeOrchestrator())
+    attempts = _attempts("infra_failed", attempt=MAX_ATTEMPTS)
+
+    async def step(_trial: UUID) -> Execution:
+        msg = "never reached: the cap is already spent"
+        raise AssertionError(msg)
+
+    run(runner._run_until_terminal(uuid4(), attempts, [], step))
+    assert runner.outcomes == {}
+    assert db.retry_calls == []
+
+
+def test_count_keys_an_execution_value_by_its_string_and_accumulates() -> None:
+    runner = _runner_with(_FakeDb(), _FakeOrchestrator())
+    runner._count(Execution.COMPLETED)
+    runner._count(Execution.COMPLETED)
+    runner._count("budget_skipped")
+    assert runner.outcomes == {"completed": 2, "budget_skipped": 1}

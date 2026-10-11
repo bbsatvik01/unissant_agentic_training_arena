@@ -14,6 +14,7 @@ from arena_core.events.load import (
     RECORDING_FORMAT,
     LoadedTrial,
     TrialMeta,
+    load_tournament_trial,
     load_trial,
     recording_of,
     snapshot_of,
@@ -184,6 +185,29 @@ def test_a_terminated_trial_shows_its_execution_state() -> None:
 def test_another_users_trial_is_none() -> None:
     db = FakeArenaDb()
     assert run(load_trial(db, uuid4())) is None
+
+
+def test_load_tournament_trial_has_no_session_and_mode_harness() -> None:
+    """D-021: a harness trial's own recording export (`arena_tournament`'s job holds no session)."""
+    rig = Rig()
+    rig.db.kind = "interactive"
+    rig.turn()
+    loaded = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert loaded is not None
+    assert (loaded.session_id, loaded.mode) == (None, "harness")
+
+
+def test_load_tournament_trial_is_none_for_an_unknown_trial() -> None:
+    db = FakeArenaDb(kind="interactive")
+    assert run(load_tournament_trial(db, uuid4())) is None
+
+
+def test_load_tournament_trial_is_none_for_a_training_kind() -> None:
+    """`load_trial` owns training trials; this is the fallback `export_run.py` leans on, never a second
+    answer for the same trial."""
+    rig = Rig()
+    rig.turn()
+    assert run(load_tournament_trial(rig.db, rig.db.trial_id)) is None
 
 
 @pytest.mark.parametrize(
