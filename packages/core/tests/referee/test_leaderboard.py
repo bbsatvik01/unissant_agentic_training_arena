@@ -4,6 +4,8 @@ ineligible candidate, and the binding fields every row carries."""
 from __future__ import annotations
 
 import json
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from fractions import Fraction
 
@@ -11,11 +13,14 @@ from arena_core.referee.leaderboard import (
     NOT_COMPUTED,
     Binding,
     CandidateInput,
+    TrialScore,
     _family_counts,
     build_assistant_leaderboard,
 )
 from arena_core.scoring.exact import seed_for
+from arena_core.scoring.flags import EvasionCounts, SupportCounts
 from arena_core.scoring.inclusion import AsstInc
+from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.metrics import TrialOutcome
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result, rank_intervals
 
@@ -23,6 +28,8 @@ BOOTSTRAP_B = 10_000
 DETECTED = 8
 MIXED_CANDIDATE_INCLUDED = 9
 TWO_S1_TRUTHFUL = 2
+HALF = 0.5
+CLOSURE_D5 = 3
 
 PASSING_ISOLATION = isolation_result({item: (True, f"{item}-hash") for item in IG_ITEMS})
 FAILING_ISOLATION = isolation_result({item: (item != "IG-2", f"{item}-hash") for item in IG_ITEMS})
@@ -380,3 +387,93 @@ def test_the_body_is_json_serializable() -> None:
         binding=BINDING,
     )
     json.dumps(body)  # raises on anything non-serializable (Fraction, Decimal left unconverted, etc.)
+
+
+def _scored(c: CandidateInput, qq: Fraction | None, *, closure: int | None = None) -> CandidateInput:
+    """`c` with every included trial scored at the same QQ, one supported strict flag per deceptive trial that
+    matched an evasion event, and closure `closure` on each trial."""
+    scored = [
+        TrialScore(
+            family_id=t.family_id,
+            qq=qq,
+            closure=closure,
+            strict=EvasionCounts(tp=1, flags=1, events=1) if t.role == "deceptive" else EvasionCounts(0, 0, 0),
+            broad=EvasionCounts(tp=1, flags=2, events=1) if t.role == "deceptive" else EvasionCounts(0, 0, 0),
+            support=SupportCounts(
+                unique=2, unsupported={"citation": 1, "demeanor": 0, "claim": 0}, emitted=2, demeanor_based=0
+            ),
+        )
+        for t in c.trials
+    ]
+    return replace(c, scored=scored)
+
+
+def test_equal_recall_candidates_are_ordered_by_their_real_questioning_quality() -> None:
+    # Codex r3 #3: QQ was always None, so equal recall always tied. Same recall (8/10), different QQ.
+    low, high = _scored(good_candidate("A1"), Fraction(1, 2)), _scored(good_candidate("A2"), Fraction(3, 4))
+    body = build_assistant_leaderboard(
+        candidates=[low, high], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )
+    by_id = {row["candidate_id"]: row for row in body["rows"]}
+    assert (by_id["A2"]["rank"], by_id["A1"]["rank"]) == (1, 2)
+    m09 = by_id["A2"]["metrics"]["M09_questioning_quality"]
+    assert Fraction(m09["point"]["num"], m09["point"]["den"]) == Fraction(3, 4)
+    assert m09["coverage"]["value"] == 1.0
+    assert m09["calibrated"] is True
+    assert m09["provisional"] is False
+    assert body["status"] == "definitive"
+    # The bootstrap carries QQ too: A2 ranks first in every resample (recall is identical by construction).
+    assert by_id["A2"]["rank_interval"]["share_first"] == {"num": 1, "den": 1}
+    assert by_id["A1"]["rank_interval"]["share_first"]["num"] == 0
+    assert by_id["A1"]["rank_interval"]["lo"] == by_id["A1"]["rank_interval"]["hi"] == by_id["A1"]["rank"]
+    # Uncalibrated QQ deciding a rank keeps the board provisional (S3 5.5).
+    uncalibrated = build_assistant_leaderboard(
+        candidates=[low, high], isolation=PASSING_ISOLATION, qq_calibrated=False, binding=BINDING
+    )
+    assert uncalibrated["status"] == "provisional"
+
+
+def test_low_qq_coverage_is_published_and_makes_a_qq_decided_board_provisional() -> None:
+    half = _scored(good_candidate("A1"), Fraction(1, 2))
+    half = replace(half, scored=[replace(s, qq=None) if i % 2 else s for i, s in enumerate(half.scored)])
+    other = _scored(good_candidate("A2"), Fraction(3, 4))
+    body = build_assistant_leaderboard(
+        candidates=[half, other], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )
+    row = next(r for r in body["rows"] if r["candidate_id"] == "A1")
+    assert row["metrics"]["M09_questioning_quality"]["coverage"]["value"] == HALF
+    assert row["metrics"]["M09_questioning_quality"]["provisional"] is True
+    assert body["status"] == "provisional"
+
+
+def test_m06_m07_m08_m10_and_m16_are_computed_from_the_trial_scores_and_latency() -> None:
+    commit = datetime(2026, 10, 1, tzinfo=UTC)
+    latency = [
+        LatencyRow("t1", 1, "harness", "delivered", commit, None, commit + timedelta(seconds=1)),
+        LatencyRow("t1", 2, "harness", "timeout", commit, None, None),
+        LatencyRow("t2", 1, "practice_client", "delivered", commit, commit, commit),  # not a harness turn
+    ]
+    c = replace(_scored(good_candidate("A1"), Fraction(1, 2), closure=CLOSURE_D5), latency=latency)
+    [row] = build_assistant_leaderboard(
+        candidates=[c], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )["rows"]
+    m = row["metrics"]
+    assert m["M06_evasion_precision"]["strict"]["point"]["value"] == 1.0
+    assert m["M06_evasion_precision"]["broad"]["point"]["value"] == HALF
+    assert m["M07_evasion_recall"]["strict"]["point"]["value"] == 1.0
+    assert m["M08_unsupported_flag_rate"]["point"]["value"] == HALF
+    assert m["M08_unsupported_flag_rate"]["reasons"] == {"citation": 20, "demeanor": 0, "claim": 0}
+    assert m["M10_closure_support"]["point"]["value"] == CLOSURE_D5
+    assert m["M16_coaching_latency"]["share_within_3s"]["value"] == HALF
+    assert m["M16_coaching_latency"]["measured"] == len(latency) - 1
+    assert not {"M06", "M07", "M08", "M09", "M10", "M16"} & {k[:3] for k in NOT_COMPUTED}
+
+
+def test_an_unscored_trial_leaves_the_flag_metrics_undefined_rather_than_zero() -> None:
+    c = replace(good_candidate("A1"), scored=[TrialScore(family_id=t.family_id) for t in good_candidate("A1").trials])
+    [row] = build_assistant_leaderboard(
+        candidates=[c], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )["rows"]
+    assert row["metrics"]["M06_evasion_precision"]["strict"]["point"] is None
+    assert row["metrics"]["M09_questioning_quality"]["point"] is None
+    assert row["metrics"]["M09_questioning_quality"]["coverage"]["value"] == 0.0

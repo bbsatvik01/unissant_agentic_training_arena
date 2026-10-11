@@ -3,35 +3,38 @@ WP-15's pure ranking and metric functions into the exact JSON `arena.leaderboard
 bound to its manifest and the scorer's own hashes. Everything here is pure; `arena_referee.leaderboard`
 fetches the rows this needs from the database and writes the result.
 
-Scope (D-016: no over-engineering ahead of the data that would make a metric real). The body publishes
-every metric computable from `arena.planned_trials`, execution records, adjudications and `ops.model_calls`
-alone: M01 recall, M02 FPR (with the family-level bound), M03 PPV, M04 unresolved, M05 the count matrix, M21
-the zero-event bound, M22 cost, M23 execution and exclusion rates, M25 role prevalence, eligibility, rank and
-rank interval, and the binding fields (5.6's last bullet). The evasion, flag, questioning-quality, closure
-and subject metrics (M06-M17) and the fairness audit (M24) need coaching-card and R2/R3 judgment data the
-tournament job (WP-17) assembles; rather than publish a fabricated zero for a metric with no real inputs,
-the body's `not_computed` list names them.
+Each row publishes S3 5.6's assistant metrics: M01-M05, M21-M23 and M25 from the planned trials, execution
+records, adjudications and costs; M06-M10 from each included trial's `TrialScore` (the stored R1/R2 judgments
+through WP-15's scorer functions, computed by `arena_referee.leaderboard`); M16 from the candidate's harness
+latency samples; eligibility, rank (recall, then real QQ) and rank interval, and the binding fields. The
+subject metrics (M12-M15) are the separate subject board (`build_subject_leaderboard`). The fairness audit
+(M24) is not built yet; rather than publish a fabricated zero, the body's `not_computed` list names it.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
 from typing import Any
 
 from arena_core.scoring.exact import seed_for
+from arena_core.scoring.flags import REASONS, EvasionCounts, SupportCounts
+from arena_core.scoring.kpi import Kpi4, LatencyRow, harness_latency
 from arena_core.scoring.metrics import (
     OUTPUTS,
     ROLES,
     CostSummary,
+    QQSummary,
     TrialOutcome,
+    clusters_by_family,
     cost_summary,
     count_matrix,
     execution_rates,
     output_of,
     prevalence,
+    qq_summary,
     role_clusters,
 )
 from arena_core.scoring.ranking import (
@@ -54,21 +57,22 @@ from arena_core.scoring.stats import (
     ratio,
 )
 
-NOT_COMPUTED = (
-    "M06_evasion_precision",
-    "M07_evasion_recall",
-    "M08_unsupported_flag_rate",
-    "M09_questioning_quality",
-    "M10_closure_support",
-    "M11_investigator_scores",
-    "M12_subject_fidelity",
-    "M13_invalid_session_rate",
-    "M14_deceptive_success",
-    "M15_truthful_credit",
-    "M16_coaching_latency",
-    "M17_investigator_score_and_coverage",
-    "M24_fairness_audit",
-)
+NOT_COMPUTED = ("M24_fairness_audit",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class TrialScore:
+    """One included trial's scorer outputs (S3 2.9, 5.3). `qq`: (D1+D2+D3+D4)/16, None when the proposal
+    sequence is unscorable or the trial was never scored (both count against QQ coverage); `closure`: D5 when
+    a finding was committed (M10); the flag counts are None when the trial has no stored R2 judgment, so an
+    unscored trial never reads as a zero."""
+
+    family_id: str
+    qq: Fraction | None = None
+    closure: int | None = None
+    strict: EvasionCounts | None = None
+    broad: EvasionCounts | None = None
+    support: SupportCounts | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -91,6 +95,8 @@ class CandidateInput:
     reasons: Sequence[tuple[str, str]]
     own_cost_rows: Sequence[tuple[Decimal, bool]]
     own_planned: int
+    scored: Sequence[TrialScore] = ()  # one per included trial (M06-M10)
+    latency: Sequence[LatencyRow] = ()  # this candidate's own latency samples (M16 reads the harness rows)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -107,16 +113,24 @@ class Binding:
     bootstrap_b: int
 
 
-def _family_counts(trials: Sequence[TrialOutcome]) -> dict[str, FamilyCounts]:
+def _family_counts(trials: Sequence[TrialOutcome], scored: Sequence[TrialScore] = ()) -> dict[str, FamilyCounts]:
     by_fam: dict[str, list[TrialOutcome]] = {}
     for t in trials:
         by_fam.setdefault(t.family_id, []).append(t)
+    qq = {cl.family_id: cl for cl in _qq(scored).clusters}
     out: dict[str, FamilyCounts] = {}
     for fam, rows in by_fam.items():
         deceptive = [t for t in rows if t.role == "deceptive"]
         det = sum(1 for t in deceptive if output_of(t) == "deceptive")
-        out[fam] = FamilyCounts(det=det, inc_d=len(deceptive), qq_sum=Fraction(0), qq_n=0)
+        q = qq.get(fam)
+        out[fam] = FamilyCounts(
+            det=det, inc_d=len(deceptive), qq_sum=Fraction(q.num) if q else Fraction(0), qq_n=q.den if q else 0
+        )
     return out
+
+
+def _qq(scored: Sequence[TrialScore]) -> QQSummary:
+    return qq_summary((s.family_id, s.qq) for s in scored)
 
 
 def _candidate_stats(c: CandidateInput) -> CandidateStats:
@@ -135,8 +149,8 @@ def _candidate_stats(c: CandidateInput) -> CandidateStats:
         det=det,
         inc_d=inc_d,
         exc_d=exc_d,
-        qq=None,
-        qq_coverage=Fraction(0),
+        qq=_qq(c.scored).point,
+        qq_coverage=_qq(c.scored).coverage or Fraction(0),
     )
 
 
@@ -213,7 +227,76 @@ def _rank_interval(ri: RankInterval | None) -> dict[str, Any] | None:
     }
 
 
-def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[str, RankInterval]) -> dict[str, Any]:
+def _point_interval(
+    clusters: Sequence[Cluster], boot: Callable[[Sequence[Cluster], str], Interval], metric: str
+) -> dict[str, Any]:
+    return {"point": _frac(ratio(clusters)), "interval": _interval(boot(clusters, metric))}
+
+
+def _evasion(scored: Sequence[TrialScore], kind: str, recall: bool) -> list[Cluster]:
+    counts = [(s.family_id, getattr(s, kind)) for s in scored if getattr(s, kind) is not None]
+    return clusters_by_family((f, e.tp, e.events if recall else e.flags) for f, e in counts)
+
+
+def _latency(k: Kpi4) -> dict[str, Any]:
+    def seconds(x: Fraction | float | None) -> float | None:
+        return None if x is None else float(x)
+
+    return {
+        "share_within_3s": _frac(k.share_within_3s),
+        "p95_s": seconds(k.p95_s),
+        "interval_share": list(k.ci_share) if k.ci_share else None,
+        "interval_p95": list(k.ci_p95) if k.ci_p95 else None,
+        "measured": k.measured,
+        "unmeasured": k.unmeasured,
+        "in_flight": k.in_flight,
+        "provisional": k.provisional,
+    }
+
+
+def _scored_metrics(
+    c: CandidateInput,
+    qq_calibrated: bool,
+    boot: Callable[[Sequence[Cluster], str], Interval],
+    seed_metric: Callable[[str], int],
+    b: int,
+) -> dict[str, Any]:
+    """M06-M10 from the included trials' `TrialScore`s and M16 from the harness latency samples (S3 5.2-5.3)."""
+    qq = _qq(c.scored)
+    support = [(s.family_id, s.support) for s in c.scored if s.support is not None]
+    reasons = {r: sum(sup.unsupported.get(r, 0) for _, sup in support) for r in REASONS}
+    return {
+        "M06_evasion_precision": {
+            kind: _point_interval(_evasion(c.scored, kind, recall=False), boot, f"M06{kind}")
+            for kind in ("strict", "broad")
+        },
+        "M07_evasion_recall": {
+            kind: _point_interval(_evasion(c.scored, kind, recall=True), boot, f"M07{kind}")
+            for kind in ("strict", "broad")
+        },
+        "M08_unsupported_flag_rate": {
+            **_point_interval(
+                clusters_by_family((f, sup.unsupported_total, sup.unique) for f, sup in support), boot, "M08"
+            ),
+            "reasons": reasons,
+        },
+        "M09_questioning_quality": {
+            "point": _frac(qq.point),
+            "interval": _interval(boot(qq.clusters, "M09")),
+            "coverage": _frac(qq.coverage),
+            "provisional": qq.provisional,
+            "calibrated": qq_calibrated,
+        },
+        "M10_closure_support": _point_interval(
+            clusters_by_family((s.family_id, s.closure, 1) for s in c.scored if s.closure is not None), boot, "M10"
+        ),
+        "M16_coaching_latency": _latency(harness_latency(c.latency, seed_metric("M16"), b)),
+    }
+
+
+def _row_body(
+    row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[str, RankInterval], qq_calibrated: bool
+) -> dict[str, Any]:
     def seed_metric(metric: str) -> int:
         return seed_for(binding.manifest_sha256, metric, c.candidate_id, "I")
 
@@ -277,6 +360,7 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
                     if subject  # "" is a trial with no subject_id on record, never a real subject's own bucket
                 }
             },
+            **_scored_metrics(c, qq_calibrated, boot, seed_metric, binding.bootstrap_b),
             "M21_zero_event_bound": _bound(recall_bound),
             "M22_cost": _cost(cost_summary(c.own_cost_rows, c.own_planned)),
             "M23_execution_rates": _execution_rates_by_role(c.reasons),
@@ -319,9 +403,9 @@ def build_assistant_leaderboard(
     # should be resampled against.
     ranked_ids = {row.candidate.id for row in board.rows if row.rank is not None}
     intervals = rank_intervals(
-        {c.candidate_id: _family_counts(c.trials) for c in candidates if c.candidate_id in ranked_ids},
+        {c.candidate_id: _family_counts(c.trials, c.scored) for c in candidates if c.candidate_id in ranked_ids},
         seed=seed_for(binding.manifest_sha256, "rank_interval", "all", "I"),
         b=binding.bootstrap_b,
     )
-    body["rows"] = [_row_body(row, by_id[row.candidate.id], binding, intervals) for row in board.rows]
+    body["rows"] = [_row_body(row, by_id[row.candidate.id], binding, intervals, qq_calibrated) for row in board.rows]
     return body
