@@ -2,11 +2,11 @@
  * The avatar's frame step holds a stable pose: the procedural layers are applied on top of the clips each frame and
  * never accumulate, whether the clips are running or paused (reduced motion, the pause control).
  */
-import { AnimationMixer, Bone, Group } from "three";
+import { AnimationClip, AnimationMixer, Bone, Group, Quaternion, QuaternionKeyframeTrack, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 
 import { subjectPersona } from "../../lib/world/cast";
-import { stepAvatar, type IdleState, type Rig } from "./Avatar";
+import { choosePose, stepAvatar, type IdleState, type Rig } from "./Avatar";
 
 function rig(): { root: Group; rig: Rig } {
   const root = new Group();
@@ -56,5 +56,39 @@ describe("stepAvatar", () => {
     const settled = r.head?.quaternion.clone();
     for (let i = 0; i < 120; i += 1) stepAvatar(ctx, s, (i + 300) / 60, 1 / 60);
     expect(r.head?.quaternion.angleTo(settled ?? r.head.quaternion)).toBeLessThan(0.02);
+  });
+});
+
+describe("choosePose", () => {
+  function setup() {
+    const { root, rig: r } = rig();
+    const arm = new Bone();
+    arm.name = "arm";
+    r.spine?.add(arm);
+    const pose = (angle: number, name: string) =>
+      new AnimationClip(name, 1, [new QuaternionKeyframeTrack("arm.quaternion", [0, 1], [...new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), angle).toArray(), ...new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), angle).toArray()])]);
+    const mixer = new AnimationMixer(root);
+    const actions = [mixer.clipAction(pose(0.8, "idle")), mixer.clipAction(pose(0.2, "look")), mixer.clipAction(pose(-0.6, "think"))];
+    return { root, rig: { ...r, rUpper: arm }, arm, mixer, actions };
+  }
+
+  function run(still: boolean, thinking: boolean) {
+    const { root, rig: r, arm, mixer, actions } = setup();
+    actions[0]?.play();
+    choosePose(actions, thinking, still);
+    const ctx = { rig: r, mixer, scene: root, track: [], beats: [], actions, thinking, still, pose: "listening" as const, speech: null, persona: subjectPersona("Jordan Pell"), gaze: [0, 1.4, 2] as const, clock: { current: 0 }, random: () => 0.5 };
+    const s = state();
+    for (let i = 0; i < 90; i += 1) stepAvatar(ctx, s, i / 60, 1 / 60);
+    return arm.quaternion;
+  }
+
+  it.each([
+    [true, false, 0.8],
+    [true, true, -0.6],
+    [false, false, 0.8],
+    [false, true, -0.6],
+  ])("holds the chosen clip at full weight (still %s, thinking %s), never the bind pose", (still, thinking, angle) => {
+    const expected = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), angle);
+    expect(run(still, thinking).angleTo(expected)).toBeLessThan(0.02);
   });
 });

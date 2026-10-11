@@ -157,6 +157,26 @@ function drivenBones(rig: Rig): Bone[] {
   return [rig.spine, rig.neck, rig.head, rig.rUpper, rig.rFore, rig.lFore, rig.rHand].filter((b): b is Bone => b !== null);
 }
 
+/**
+ * Rest on the breathing idle, or on the thoughtful clip while thinking. With motion the clips cross-fade; with
+ * motion off (reduced motion, the pause control) the chosen clip takes full weight at once, because a paused mixer
+ * never advances a fade and the figure would hold its bind pose.
+ */
+export function choosePose(actions: readonly AnimationAction[], thinking: boolean, still: boolean): void {
+  const [base, , thoughtful] = actions;
+  if (base === undefined || thoughtful === undefined) return;
+  const [on, off] = thinking ? [thoughtful, base] : [base, thoughtful];
+  if (still) {
+    on.stopFading().play();
+    on.setEffectiveWeight(1);
+    off.stopFading();
+    off.setEffectiveWeight(0);
+    return;
+  }
+  on.reset().setEffectiveWeight(1).fadeIn(0.6).play();
+  off.fadeOut(0.6);
+}
+
 /** One frame of the avatar's layers (clips, posture, work poses, gaze, speech, eyes). Mutates the rig in place. */
 export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: number): void {
   const { rig, mixer, scene, track, beats, actions: acts, thinking, still, pose, speech, persona, gaze, clock, random } = ctx;
@@ -321,6 +341,20 @@ export function Avatar({ persona, name, position, facing, pose, speech = null, g
     return root;
   }, [gltf, textures, persona.avatar, shadows]);
 
+  // The clone's materials and skeletons belong to this avatar (the loader's geometry and textures are shared).
+  useEffect(
+    () => () => {
+      scene.traverse((o: Object3D) => {
+        if (o instanceof SkinnedMesh) {
+          const mesh = o as SkinnedMesh;
+          mesh.skeleton.dispose();
+          for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) m.dispose();
+        }
+      });
+    },
+    [scene],
+  );
+
   const clips = useMemo(() => clipJson.map((json) => AnimationClip.parse(JSON.parse(String(json)) as never)), [clipJson]);
   const mixer = useMemo(() => new AnimationMixer(scene), [scene]);
   const actions = useRef<AnimationAction[]>([]);
@@ -360,16 +394,8 @@ export function Avatar({ persona, name, position, facing, pose, speech = null, g
   // Thinking poses use the thoughtful clip; everything else rests on the breathing idle.
   const thinking = pose === "thinking";
   useEffect(() => {
-    const [base, , thoughtful] = actions.current;
-    if (base === undefined || thoughtful === undefined) return;
-    if (thinking) {
-      thoughtful.reset().setEffectiveWeight(1).fadeIn(0.6).play();
-      base.fadeOut(0.6);
-    } else {
-      base.reset().setEffectiveWeight(1).fadeIn(0.6).play();
-      thoughtful.fadeOut(0.6);
-    }
-  }, [thinking]);
+    choosePose(actions.current, thinking, still);
+  }, [thinking, still, clips]);
 
   const random = useMemo(() => seeded(seedOf(name)), [name]);
   const state = useRef<IdleState>({ nextSaccade: 0, eyeX: 0, eyeY: 0, nextBlink: 1.5, blinkAt: -10, nextLook: 14, lookEnds: 0, headYaw: 0, headPitch: 0, handing: 0, pointing: 0, base: new Map() });

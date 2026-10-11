@@ -167,6 +167,8 @@ export function WallClock(props: Placed & { still: boolean }) {
   const minute = useRef<Mesh>(null);
   const hour = useRef<Mesh>(null);
   useFrame(() => {
+    // Under reduced motion or the pause control the hands hold where they are.
+    if (props.still && minute.current !== null && minute.current.rotation.z !== 0) return;
     const d = new Date();
     const m = d.getMinutes() + d.getSeconds() / 60;
     if (minute.current !== null) minute.current.rotation.z = -(m / 60) * Math.PI * 2;

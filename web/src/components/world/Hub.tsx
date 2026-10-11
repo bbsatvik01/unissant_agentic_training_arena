@@ -179,7 +179,7 @@ function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, 
         <meshStandardMaterial map={mesh} roughness={0.4} />
       </mesh>
       <Block size={[0.04, 1.4, 2.5]} at={[W / 2 - 0.03, 1.8, -1.5]} material={paint("frame")} />
-      <WallClock position={[W / 2 - 0.02, 2.75, 2.2]} rotation={-Math.PI / 2} still={false} />
+      <WallClock position={[W / 2 - 0.02, 2.75, 2.2]} rotation={-Math.PI / 2} still={still} />
       {/* the case board: cork in a steel frame, files pinned on it */}
       <mesh position={[bx, by, bz - 0.01]} material={cork()} receiveShadow>
         <boxGeometry args={[CASE_BOARD.width + 0.3, CASE_BOARD.height + 0.3, 0.03]} />

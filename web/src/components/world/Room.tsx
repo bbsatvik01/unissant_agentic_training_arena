@@ -52,7 +52,7 @@ const D = ROOM_SIZE.depth;
 const H = ROOM_SIZE.height;
 const BACK = -D / 2;
 
-function Shell() {
+function Shell({ clockStill }: { clockStill: boolean }) {
   const mL = MIRROR.center[0] - MIRROR.width / 2;
   const mR = MIRROR.center[0] + MIRROR.width / 2;
   const mB = MIRROR.center[1] - MIRROR.height / 2;
@@ -95,7 +95,7 @@ function Shell() {
       <CeilingPanel position={[1.9, H - 0.02, 1.6]} size={[0.6, 0.6]} />
       <Block size={[0.5, 0.02, 0.3]} at={[1.6, H - 0.012, -0.6]} material={paint("white")} />
       <SecurityCamera position={[W / 2 - 0.25, H, D / 2 - 0.25]} rotation={-2.4} />
-      <WallClock position={[W / 2 - 0.02, 2.3, -1.6]} rotation={-Math.PI / 2} still={false} />
+      <WallClock position={[W / 2 - 0.02, 2.3, -1.6]} rotation={-Math.PI / 2} still={clockStill} />
     </group>
   );
 }
@@ -199,7 +199,7 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
   }, []);
   return (
     <group position={ROOM}>
-      <Shell />
+      <Shell clockStill={still} />
       <Table />
       <Chair position={SUBJECT_SEAT} />
       <Chair position={INVESTIGATOR_SEAT} rotation={Math.PI} />

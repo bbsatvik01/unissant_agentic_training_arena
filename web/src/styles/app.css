@@ -1028,14 +1028,40 @@ td {
   text-align: center;
 }
 
+/* The debrief floats above the panels (outside the 3D view's stacking context). */
 .debrief,
 .debrief-open {
+  position: fixed;
+  z-index: 4;
   right: calc(min(390px, 50vw - 24px) + 28px);
   bottom: 200px;
 }
 
+.playback {
+  flex-wrap: wrap;
+}
+
 .viewport-loading {
   color: var(--arena-canvas);
+}
+
+@media (max-width: 1199px) and (min-width: 1024px) {
+  /* Mid widths: slimmer panels, and the controls take exactly the space between them. */
+  .side,
+  .side.right {
+    width: 300px;
+  }
+
+  .room-controls,
+  .center > .caption {
+    width: calc(100vw - 2 * 312px - 24px);
+    min-width: 0;
+  }
+
+  .debrief,
+  .debrief-open {
+    right: 324px;
+  }
 }
 
 @media (max-width: 1023px) {
@@ -1055,6 +1081,14 @@ td {
 
   .side.right {
     top: calc(50% + 6px);
+    bottom: 200px;
+  }
+
+  .debrief,
+  .debrief-open {
+    left: 12px;
+    right: 12px;
+    width: auto;
     bottom: 200px;
   }
 

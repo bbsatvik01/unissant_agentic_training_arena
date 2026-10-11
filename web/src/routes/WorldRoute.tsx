@@ -324,27 +324,27 @@ export function WorldRoute() {
                 onArrive={onArrive}
               />
             </Suspense>
-            {place === "room" && world?.debriefReady === true && debrief !== null && debriefClosed ? (
-              <button
-                type="button"
-                className="btn-secondary-sm debrief-open"
-                onClick={() => {
-                  setDebriefClosed(false);
-                }}
-              >
-                Open debrief
-              </button>
-            ) : null}
-            {showDebrief ? (
-              <DebriefScore
-                debrief={debrief}
-                reducedMotion={still}
-                onClose={() => {
-                  setDebriefClosed(true);
-                }}
-              />
-            ) : null}
           </div>
+          {place === "room" && world?.debriefReady === true && debrief !== null && debriefClosed ? (
+            <button
+              type="button"
+              className="btn-secondary-sm debrief-open"
+              onClick={() => {
+                setDebriefClosed(false);
+              }}
+            >
+              Open debrief
+            </button>
+          ) : null}
+          {showDebrief ? (
+            <DebriefScore
+              debrief={debrief}
+              reducedMotion={still}
+              onClose={() => {
+                setDebriefClosed(true);
+              }}
+            />
+          ) : null}
           {place === "room" ? (
             <div className="room-controls">
               <p className="caption" role="status">
