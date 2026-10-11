@@ -1147,3 +1147,17 @@ td {
     max-height: calc(100vh - 84px);
   }
 }
+
+.start-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--arena-space-2);
+  flex-wrap: wrap;
+}
+
+.start-alt {
+  height: 40px;
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+}
