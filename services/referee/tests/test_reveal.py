@@ -215,3 +215,14 @@ def test_reveal_publishes_qq_from_each_trial_s_stored_judgments(monkeypatch: pyt
     [row] = insert[4].obj["rows"]
     m09 = row["metrics"]["M09_questioning_quality"]
     assert Fraction(m09["point"]["num"], m09["point"]["den"]) == Fraction(3, 4)
+
+
+def test_an_unscored_replay_trial_never_blocks_reveal() -> None:
+    row = (*trial_fact_row()[:1], "replay", *trial_fact_row()[2:])
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.planned_execution": [row],
+        }
+    )
+    assert run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx())).manifest_version == 1
