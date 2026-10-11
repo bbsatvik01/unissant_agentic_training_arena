@@ -73,3 +73,4 @@
 - 682f750 merge WP-16 reveal + leaderboards + isolation gates
 - f4cc538 merge fixture fix: S1-complete public packets in fixtures.psql (db-test green)
 - f7f2a37 merge UI stage 2 (live sessions, voices, debrief scene, cat, leaderboard view)
+- 86b4ea6 merge api leaderboards pass-through
