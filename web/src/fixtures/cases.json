@@ -1,0 +1,75 @@
+{
+ "note": "Public case-card fields of the five practice families (F01-F05), one variant each, as GET /api/cases would list them. No role, style or family id.",
+ "cases": [
+  {
+   "case_id": "C-7Q2MXK4D",
+   "title": "Records vault entry during a busy shift",
+   "objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+   "domain": "facility_access",
+   "difficulty_level": 2,
+   "subject": {
+    "display_name": "Jordan Pell",
+    "position": "Facilities Technician II"
+   },
+   "facility": "Halvern Street Annex",
+   "initial_documents": 3,
+   "requestable_records": 4
+  },
+  {
+   "case_id": "C-K9TB2ZQF",
+   "title": "After-hours entry with a double count",
+   "objective": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+   "domain": "facility_access",
+   "difficulty_level": 1,
+   "subject": {
+    "display_name": "Mara Quell",
+    "position": "Records Clerk"
+   },
+   "facility": "Halvern Street Annex",
+   "initial_documents": 3,
+   "requestable_records": 4
+  },
+  {
+   "case_id": "C-R6DJ3NWC",
+   "title": "Network room entry on card A-2291",
+   "objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+   "domain": "facility_access",
+   "difficulty_level": 3,
+   "subject": {
+    "display_name": "Avery Lindqvist",
+    "position": "IT Support Specialist"
+   },
+   "facility": "Halvern Street Annex",
+   "initial_documents": 3,
+   "requestable_records": 4
+  },
+  {
+   "case_id": "C-2TCMFNRH",
+   "title": "Mail room dock door alarm on a meter service morning",
+   "objective": "Establish how the Kessling Office Systems technician entered the Corliss Records Center on the morning of 17 February 2026, whether anyone came in with Dana Okafor when her badge opened the mail room dock door at 07:41, and why the dock door then stayed open for 107 seconds.",
+   "domain": "facility_access",
+   "difficulty_level": 1,
+   "subject": {
+    "display_name": "Dana Okafor",
+    "position": "Mailroom Clerk"
+   },
+   "facility": "Corliss Records Center",
+   "initial_documents": 3,
+   "requestable_records": 4
+  },
+  {
+   "case_id": "C-4EW6R8JK",
+   "title": "Evening tape vault entry with a spare card",
+   "objective": "Establish who presented the two credentials that opened Tape Vault TV-1 at 21:14 on 24 March 2026, who was inside the vault from 21:14 to 21:51, and whether the entry followed the two-person rule.",
+   "domain": "facility_access",
+   "difficulty_level": 3,
+   "subject": {
+    "display_name": "Rafael Strand",
+    "position": "Data Center Operator"
+   },
+   "facility": "Westbrook Data Hall",
+   "initial_documents": 4,
+   "requestable_records": 5
+  }
+ ]
+}
