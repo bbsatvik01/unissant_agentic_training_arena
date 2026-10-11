@@ -172,11 +172,29 @@ language sql as $$
                                                      else 'gemini-3.5-flash-lite' end))
 $$;
 
+-- The seed families F01-F03 (docs/spec/seed-families), read by psql on the client from the runner's working
+-- directory (supabase/tests), ingested through the same loader rule.
+\set seed_f01 `cat ../../docs/spec/seed-families/F01.json`
+\set seed_f02 `cat ../../docs/spec/seed-families/F02.json`
+\set seed_f03 `cat ../../docs/spec/seed-families/F03.json`
+create table if not exists tests.seed_files (code text primary key, file jsonb not null);
+insert into tests.seed_files values ('F01', :'seed_f01'), ('F02', :'seed_f02'), ('F03', :'seed_f03')
+  on conflict (code) do nothing;
+
+-- A public packet that satisfies S1's public-packet schema (every required key: title, objective, interview context,
+-- initial documents, ...), so a fixture family reaches every arena_public reader as a real one does: F01's
+-- truthful packet with the fixture's own case id, title and requestable list.
+create or replace function tests.public_packet(p_case_id text, p_title text, p_requestable jsonb) returns jsonb
+language sql stable as $$
+  select (select file #> '{variants,truthful,public_packet}' from tests.seed_files where code = 'F01')
+         || jsonb_build_object('case_id', p_case_id, 'title', p_title, 'requestable_records', p_requestable)
+$$;
+
 -- A matched family file (S1 family file, schema 1.2.0; SCN-11): one truthful and one deceptive variant with opaque
 -- case ids. The truthful variant has rec-01 (work order, on request after 1 exchange) and rec-02 (badge log,
 -- scheduled after 2 exchanges); the deceptive variant has rec-01. Tests mutate it with jsonb_set for negative cases.
 create or replace function tests.family_file(p_code text, p_split text) returns jsonb
-language sql immutable as $$
+language sql stable as $$
   select jsonb_build_object(
     'schema_version', '1.2.0', 'family_id', p_code, 'revision', 1, 'split', p_split, 'domain', 'facility_access',
     'taxonomy', jsonb_build_object('violation_type', 'sealed_material_access',
@@ -185,7 +203,7 @@ language sql immutable as $$
     'variants', jsonb_build_object(
       'truthful', jsonb_build_object(
         'case_id', tests.vcode(p_code, 'truthful'),
-        'public_packet', jsonb_build_object('case_id', tests.vcode(p_code, 'truthful'), 'requestable_records',
+        'public_packet', tests.public_packet(tests.vcode(p_code, 'truthful'), 'Fixture family ' || p_code,
           jsonb_build_array(jsonb_build_object('record_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
                                                'requestable_after_exchanges', 1))),
         'private_packet', jsonb_build_object('role', 'truthful', 'concealed', '[]'::jsonb),
@@ -199,7 +217,7 @@ language sql immutable as $$
                                'release', jsonb_build_object('type', 'scheduled', 'after_exchanges', 2))))),
       'deceptive', jsonb_build_object(
         'case_id', tests.vcode(p_code, 'deceptive'),
-        'public_packet', jsonb_build_object('case_id', tests.vcode(p_code, 'deceptive'), 'requestable_records',
+        'public_packet', tests.public_packet(tests.vcode(p_code, 'deceptive'), 'Fixture family ' || p_code,
           jsonb_build_array(jsonb_build_object('record_id', 'rec-01', 'kind', 'work_order', 'title', 'Work order',
                                                'requestable_after_exchanges', 1))),
         'private_packet', jsonb_build_object('role', 'deceptive', 'concealed', jsonb_build_array('F1')),
@@ -248,14 +266,6 @@ language sql immutable as $$
       from jsonb_each(p_file -> 'variants') v))
 $$;
 
--- The seed families F01-F03 (docs/spec/seed-families), read by psql on the client from the runner's working
--- directory (supabase/tests), ingested through the same loader rule.
-\set seed_f01 `cat ../../docs/spec/seed-families/F01.json`
-\set seed_f02 `cat ../../docs/spec/seed-families/F02.json`
-\set seed_f03 `cat ../../docs/spec/seed-families/F03.json`
-create table if not exists tests.seed_files (code text primary key, file jsonb not null);
-insert into tests.seed_files values ('F01', :'seed_f01'), ('F02', :'seed_f02'), ('F03', :'seed_f03')
-  on conflict (code) do nothing;
 
 create or replace function tests.seed_family(p_code text) returns uuid
 language sql as $$
@@ -263,7 +273,7 @@ language sql as $$
 $$;
 
 create or replace function tests.bundle(p_code text, p_split text) returns jsonb
-language sql immutable as $$ select tests.bundle_of(tests.family_file(p_code, p_split)) $$;
+language sql stable as $$ select tests.bundle_of(tests.family_file(p_code, p_split)) $$;
 
 -- ingest tests.bundle(p_code, p_split) (idempotent) and return the family id
 create or replace function tests.family(p_code text, p_split text) returns uuid
