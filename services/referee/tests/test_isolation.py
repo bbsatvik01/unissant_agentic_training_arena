@@ -145,7 +145,7 @@ def test_fetch_commitment_results_maps_trial_id_to_verified_system_wide() -> Non
 def test_fetch_assistant_output_texts_merges_coach_cards_and_findings_per_candidate() -> None:
     conn = FakeConn(
         {
-            "e.kind = 'coach_card'": [("a1111111-1111-4111-8111-111111111111", '{"card": "fixture"}')],
+            "e.kind = any(%s)": [("a1111111-1111-4111-8111-111111111111", '{"card": "fixture"}')],
             "arena.final_findings f": [("a1111111-1111-4111-8111-111111111111", '{"label": "truthful"}')],
         }
     )
@@ -153,13 +153,25 @@ def test_fetch_assistant_output_texts_merges_coach_cards_and_findings_per_candid
     assert texts == {"a1111111-1111-4111-8111-111111111111": ['{"card": "fixture"}', '{"label": "truthful"}']}
 
 
+def test_fetch_assistant_output_texts_queries_both_coach_card_and_coach_deep() -> None:
+    # Codex finding #5: a canary surfacing only in a coach_deep payload must reach IG-6's scan too, not
+    # just coach_card -- proven at the query level, since a FakeConn row is blind to the kind filter.
+    conn = FakeConn({"e.kind = any(%s)": []})
+    run(isolation.fetch_assistant_output_texts(connector(conn)))
+    [params] = [p for q, p in conn.executed if "e.kind = any(%s)" in q]
+    assert set(params[0]) == {"coach_card", "coach_deep"}
+
+
 def test_read_scan_files_reads_every_scannable_file_under_the_given_roots(tmp_path: Path) -> None:
     root = tmp_path / "prompts"
     root.mkdir()
     (root / "coach.md").write_text("All cases are synthetic.")
-    (root / "ignored.py").write_text("# not scanned")
+    # Codex finding #6: a `.py` fixture (e.g. fixtures/injection.py's own docstrings and few-shot text) is
+    # scannable too, never skipped just because of its suffix; a compiled `.pyc` still is not.
+    (root / "few_shot.py").write_text("# scanned too")
+    (root / "ignored.pyc").write_text("not scanned")
     files = isolation.read_scan_files((root,))
-    assert set(files) == {str(root / "coach.md")}
+    assert set(files) == {str(root / "coach.md"), str(root / "few_shot.py")}
 
 
 def test_read_scan_files_fails_closed_on_a_missing_root() -> None:
@@ -231,7 +243,7 @@ def test_run_isolation_gate_fails_when_an_assistant_output_carries_a_canary(tmp_
             "sealed.verify_hidden_seal": [(True,)],
             "ledger.verify_chain": [(None,)],
             "ledger.corpus_digest": [(True,)],
-            "e.kind = 'coach_card'": [("a1111111-1111-4111-8111-111111111111", "leaked CANARY-FHID1 here")],
+            "e.kind = any(%s)": [("a1111111-1111-4111-8111-111111111111", "leaked CANARY-FHID1 here")],
         }
     )
     request = isolation.IsolationGateRequest(
@@ -277,3 +289,36 @@ def test_open_hidden_tournament_refuses_to_open_on_a_failing_gate(tmp_path: Path
     with pytest.raises(RuntimeError, match="isolation gate failed"):
         run(isolation.open_hidden_tournament(connector(conn), TOURNAMENT, request))
     assert not any("arena.open_tournament" in q for q, _ in conn.executed)
+
+
+def test_fetch_fresh_isolation_result_reuses_stored_ig123_but_recomputes_ig456() -> None:
+    # Codex finding #1: a stale IG-6 pass, recorded at open time before this tournament had any assistant
+    # outputs, must never be read back at reveal -- IG-6 (and IG-4, IG-5) are recomputed fresh every call,
+    # while IG-1/2/3 (code-version-scoped, not tournament-data-scoped) reuse the latest recorded result.
+    conn = FakeConn(
+        {
+            "distinct on (check_name)": [
+                ("ig1_privilege_tests", True, "ig1-stale-hash"),
+                ("ig2_route_tests", True, "ig2-stale-hash"),
+                ("ig3_assistant_context", True, "ig3-stale-hash"),
+                ("ig6_canary_audit", True, "stale-pass-before-any-output-existed"),
+            ],
+            "sealed.family_ingests": [("hidden", hidden_family_json("FHID", "Jo Rivers"), False)],
+            "sealed.verify_hidden_seal": [(True,)],
+            "ledger.verify_chain": [(None,)],
+            "ledger.corpus_digest": [(True,)],
+            "e.kind = any(%s)": [("a1111111-1111-4111-8111-111111111111", "leaked CANARY-FHID1 here")],
+        }
+    )
+    result = run(isolation.fetch_fresh_isolation_result(connector(conn), "0" * 40))
+    assert result.items["IG-1"] == (True, "ig1-stale-hash")
+    assert result.items["IG-2"] == (True, "ig2-stale-hash")
+    assert result.items["IG-3"] == (True, "ig3-stale-hash")
+    assert result.items["IG-6"][0] is False  # recomputed fresh: the now-present canary leak fails it
+    assert result.passed is False
+
+
+def test_fetch_fresh_isolation_result_refuses_when_ig123_was_never_recorded() -> None:
+    conn = FakeConn({"distinct on (check_name)": []})
+    with pytest.raises(RuntimeError, match="never recorded"):
+        run(isolation.fetch_fresh_isolation_result(connector(conn), "0" * 40))

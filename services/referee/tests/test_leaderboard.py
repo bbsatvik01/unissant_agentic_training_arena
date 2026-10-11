@@ -18,6 +18,7 @@ BASE = TrialFacts(
     planned_trial_id="p1",
     track="interactive",
     assistant_id="A1",
+    subject_id="S1",
     family_id="F01",
     role="truthful",
     block_id="B1",
@@ -42,6 +43,9 @@ def test_completed_valid_trials_are_included_with_their_committed_label() -> Non
     assert candidate.candidate_id == "A1"
     assert len(candidate.trials) == TWO
     assert candidate.own_planned == TWO
+    # Codex finding #11 (M05's required per-subject count-matrix breakdown): the row's own subject must
+    # survive onto the included TrialOutcome, never collapse to the default empty subject_id.
+    assert {t.subject_id for t in candidate.trials} == {"S1"}
     assert candidate.excluded_truthful_by_family == {}
 
 

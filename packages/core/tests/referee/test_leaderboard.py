@@ -22,6 +22,7 @@ from arena_core.scoring.ranking import IG_ITEMS, isolation_result, rank_interval
 BOOTSTRAP_B = 10_000
 DETECTED = 8
 MIXED_CANDIDATE_INCLUDED = 9
+TWO_S1_TRUTHFUL = 2
 
 PASSING_ISOLATION = isolation_result({item: (True, f"{item}-hash") for item in IG_ITEMS})
 FAILING_ISOLATION = isolation_result({item: (item != "IG-2", f"{item}-hash") for item in IG_ITEMS})
@@ -38,10 +39,10 @@ BINDING = Binding(
 )
 
 
-def trials(*, family: str, role: str, output: str, n: int) -> list[TrialOutcome]:
+def trials(*, family: str, role: str, output: str, n: int, subject: str = "") -> list[TrialOutcome]:
     inc = AsstInc.INCLUDED_AS_INSUFFICIENT if output == "insufficient_evidence" else AsstInc.INCLUDED
     label = None if output == "insufficient_evidence" else output
-    return [TrialOutcome(family, role, inc, label) for _ in range(n)]
+    return [TrialOutcome(family, role, inc, label, subject) for _ in range(n)]
 
 
 def good_candidate(candidate_id: str) -> CandidateInput:
@@ -143,6 +144,42 @@ def mixed_outcomes_candidate(candidate_id: str) -> CandidateInput:
         ),
         own_cost_rows=[(Decimal("0.01"), True)] * 9,
         own_planned=11,
+    )
+
+
+def truthful_only_family_candidate(candidate_id: str) -> CandidateInput:
+    # No deceptive trial anywhere -- M21 must publish "undefined: no complete families", never score this
+    # family as a zero-event success (Codex finding #8: `role_clusters`' own cluster list covers every
+    # family touched by ANY role, so a truthful-only family's (det=0, inc_d=0) cluster must never be read
+    # as "0 misses out of 0" and counted complete).
+    t = trials(family="F01", role="truthful", output="truthful", n=1)
+    return CandidateInput(
+        candidate_id=candidate_id,
+        display_name=candidate_id,
+        trials=t,
+        excluded_truthful_by_family={},
+        excluded_deceptive_by_family={},
+        reasons=[("truthful", "included")],
+        own_cost_rows=[(Decimal("0.01"), True)],
+        own_planned=1,
+    )
+
+
+def two_subjects_candidate(candidate_id: str) -> CandidateInput:
+    # Codex finding #11 (M05's required per-subject breakdown): two distinct subjects' own trials must
+    # never collapse into one bucket.
+    t1 = trials(family="F01", role="truthful", output="truthful", n=2, subject="S1")
+    d1 = trials(family="F01", role="deceptive", output="deceptive", n=1, subject="S1")
+    t2 = trials(family="F01", role="truthful", output="deceptive", n=1, subject="S2")
+    return CandidateInput(
+        candidate_id=candidate_id,
+        display_name=candidate_id,
+        trials=t1 + d1 + t2,
+        excluded_truthful_by_family={},
+        excluded_deceptive_by_family={},
+        reasons=[("truthful", "included")] * 3 + [("deceptive", "included")],
+        own_cost_rows=[(Decimal("0.01"), True)] * 4,
+        own_planned=4,
     )
 
 
@@ -299,7 +336,40 @@ def test_m21_a_family_with_an_excluded_deceptive_trial_is_never_complete() -> No
     bound = row["metrics"]["M21_zero_event_bound"]
     assert bound["families"] == 1
     assert bound["failed"] == 0
+    # Codex finding #9: M01's own required family lower bound is the complement of M21's bound here (S3
+    # 5.1's "symmetric lower bound for an all-detected recall"), not merely absent.
+    m01_lower = row["metrics"]["M01_deceptive_recall"]["family_lower_bound"]
+    assert m01_lower["bound"] == 1 - bound["bound"]
+    assert m01_lower["families"] == 1
     assert bound["kind"] == "one-sided 95% zero-event bound (equal sizes)"
+
+
+def test_m21_a_family_with_no_deceptive_trials_is_never_counted_complete() -> None:
+    # Codex finding #8: a truthful-only family must never read as a complete, zero-miss deceptive family.
+    body = build_assistant_leaderboard(
+        candidates=[truthful_only_family_candidate("A1")],
+        isolation=PASSING_ISOLATION,
+        qq_calibrated=True,
+        binding=BINDING,
+    )
+    [row] = body["rows"]
+    bound = row["metrics"]["M21_zero_event_bound"]
+    assert bound["families"] == 0
+    assert bound["bound"] is None
+    assert bound["kind"] == "undefined: no complete families"
+    assert row["metrics"]["M01_deceptive_recall"]["family_lower_bound"] is None
+
+
+def test_m05_publishes_a_per_subject_count_matrix_breakdown() -> None:
+    # Codex finding #11: M05's required per-subject breakdown (S3 5.2) must keep each subject separate.
+    body = build_assistant_leaderboard(
+        candidates=[two_subjects_candidate("A1")], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )
+    [row] = body["rows"]
+    by_subject = row["metrics"]["M05_count_matrix"]["by_subject"]
+    assert by_subject["S1"]["truthful"]["truthful"] == TWO_S1_TRUTHFUL
+    assert by_subject["S1"]["deceptive"]["deceptive"] == 1
+    assert by_subject["S2"]["truthful"]["deceptive"] == 1
 
 
 def test_the_body_is_json_serializable() -> None:

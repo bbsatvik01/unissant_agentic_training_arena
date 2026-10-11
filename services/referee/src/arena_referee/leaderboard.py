@@ -26,11 +26,18 @@ def _block_invalid_map(facts: Sequence[TrialFacts]) -> dict[str, bool]:
 def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
     """Groups by `assistant_id` (a `replay_corpus` row has none and is never an assistant's own trial).
 
-    Known gap (not fixed this round): groups an assistant's `interactive` and `replay` track rows into one
-    `CandidateInput` -- S3 5.2's metric table defines the I and R columns separately, and the bootstrap seed
-    this candidate's rows feed hardcodes the `"I"` track literal regardless. Only a problem once a tournament
-    actually runs a `replay` track for an assistant (today's dev fixtures are interactive-only); the fix is
-    to key `by_candidate` on `(assistant_id, track)` and publish one row, and one bootstrap seed, per track.
+    Known gaps (not fixed this round):
+    1. Groups an assistant's `interactive` and `replay` track rows into one `CandidateInput` -- S3 5.2's
+       metric table defines the I and R columns separately, and the bootstrap seed this candidate's rows
+       feed hardcodes the `"I"` track literal regardless. Only a problem once a tournament actually runs a
+       `replay` track for an assistant (today's dev fixtures are interactive-only); the fix is to key
+       `by_candidate` on `(assistant_id, track)` and publish one row, and one bootstrap seed, per track.
+    2. `reasons` carries only `inclusion()`'s own `reason` string, which conflates "this row's own
+       exec_state" with "this row was swept into an invalidated BLOCK" -- a completed row inside an
+       infra-failed block and the infra-failed row itself both read `block_invalid_infra` (Codex finding
+       #11). M23's own execution-rate breakdown is accurate for what `reason` means, but a caller wanting
+       the raw per-row `exec_state` counts too (distinct from the exclusion reason) needs a second field
+       threaded through from `TrialFacts.exec_state` -- not built here.
     """
     invalid_blocks = _block_invalid_map(facts)
     by_candidate: dict[str, list[TrialFacts]] = {}
@@ -51,9 +58,9 @@ def candidate_inputs(facts: Sequence[TrialFacts]) -> list[CandidateInput]:
             cost_rows.append((f.settled_cost, asst in (AsstInc.INCLUDED, AsstInc.INCLUDED_AS_INSUFFICIENT)))
             if asst is AsstInc.INCLUDED:
                 label = f.classification if f.classification in ("truthful", "deceptive") else "insufficient_evidence"
-                trials.append(TrialOutcome(f.family_id, f.role, asst, label))
+                trials.append(TrialOutcome(f.family_id, f.role, asst, label, f.subject_id or ""))
             elif asst is AsstInc.INCLUDED_AS_INSUFFICIENT:
-                trials.append(TrialOutcome(f.family_id, f.role, asst, None))
+                trials.append(TrialOutcome(f.family_id, f.role, asst, None, f.subject_id or ""))
             elif f.role == "truthful":
                 excluded_truthful_by_family[f.family_id] = excluded_truthful_by_family.get(f.family_id, 0) + 1
             else:

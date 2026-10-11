@@ -75,9 +75,14 @@ def combined_corpus_scan_evidence(corpora: Sequence[Corpus], files: Mapping[str,
 
 
 def ig4_evidence(*, seal_verifies: bool, scan: CorpusScanEvidence) -> tuple[bool, str]:
-    """IG-4 (S1 10.3, 10.4): the hidden-split seal verifies and the scan finds nothing."""
+    """IG-4 (S1 10.3, 10.4): the hidden-split seal verifies and the scan finds nothing. S3 9's own pass
+    evidence for this row is "scan report, INCLUDING THE FIELD PATH OF ANY HIT" -- `scan.hit_paths` (the
+    hidden family field paths that matched, never the matched text itself, L7) is folded into the hashed
+    report here so an operator diagnosing a failure can tell which hidden field leaked, and two different
+    leaks with the same hit COUNT but different source fields never hash identically."""
     passed = seal_verifies and scan.passed
-    report = f"seal_verifies={seal_verifies}\n{scan.report_text}"
+    hit_path_lines = "\n".join(scan.hit_paths)
+    report = f"seal_verifies={seal_verifies}\n{scan.report_text}\n{hit_path_lines}"
     return passed, _hash(report)
 
 

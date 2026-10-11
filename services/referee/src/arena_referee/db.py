@@ -519,11 +519,13 @@ class TrialFacts:
     again rather than reparsed from the sealed manifest text, so the classification label -- which the
     manifest never carries -- joins in the same query). A replay row's `verdict` is its source corpus
     transcript's (D2); a replay_corpus row has no `assistant_id` and is excluded from every assistant's
-    leaderboard (subject-only track)."""
+    leaderboard (subject-only track). `subject_id`: the opposing candidate (M05's own per-subject count
+    matrix breakdown, S3 5.2)."""
 
     planned_trial_id: str
     track: str
     assistant_id: str | None
+    subject_id: str | None
     family_id: str
     role: str
     block_id: str | None
@@ -546,8 +548,8 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
     dropped just because a later attempt superseded it."""
     async with connect() as conn:
         cur = await conn.execute(
-            "select p.id, p.track, p.assistant_candidate_id, f.family_code, ep.role, p.block_id,"
-            "       e.state, adj.verdict, ff.classification,"
+            "select p.id, p.track, p.assistant_candidate_id, p.subject_candidate_id, f.family_code, ep.role,"
+            "       p.block_id, e.state, adj.verdict, ff.classification,"
             "       coalesce((select sum(r.settled_usd) from ops.budget_reservations r"
             "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
             "                    and r.purpose = any(%s)), 0)"
@@ -574,13 +576,14 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             planned_trial_id=str(r[0]),
             track=r[1],
             assistant_id=str(r[2]) if r[2] else None,
-            family_id=r[3],
-            role=r[4],
-            block_id=str(r[5]) if r[5] else None,
-            exec_state=Exec(r[6]),
-            verdict=r[7],
-            classification=r[8],
-            settled_cost=Decimal(r[9]),
+            subject_id=str(r[3]) if r[3] else None,
+            family_id=r[4],
+            role=r[5],
+            block_id=str(r[6]) if r[6] else None,
+            exec_state=Exec(r[7]),
+            verdict=r[8],
+            classification=r[9],
+            settled_cost=Decimal(r[10]),
         )
         for r in rows
     ]
@@ -627,7 +630,21 @@ async def fetch_leaderboard(
 
 
 async def open_tournament(connect: Connector, tournament_id: str) -> None:
-    """`arena.open_tournament` (S4): `frozen` -> `running`. Called only after the isolation gate passes
-    (`arena_referee.isolation.open_hidden_tournament`, S1 L9) -- never a standalone action."""
+    """`arena.open_tournament` (S4): `frozen` -> `running`. For a hidden-split tournament, called only
+    after the isolation gate passes (`arena_referee.isolation.open_hidden_tournament`, S1 L9); a dev-split
+    tournament has no hidden seal to gate on and opens directly (`routes.reveal.open_route`)."""
     async with connect() as conn, conn.transaction():
         await conn.execute("select arena.open_tournament(%s)", (UUID(tournament_id),))
+
+
+async def fetch_tournament_split(connect: Connector, tournament_id: str) -> str:
+    """`arena.tournaments.split` ('dev' or 'hidden'): read first by the open route -- S1 L9's isolation
+    gate (including the hidden-text scan) is specifically a hidden-tournament precondition; `dev` never
+    has a hidden seal to verify, so gating it the same way would refuse every dev open forever."""
+    async with connect() as conn:
+        cur = await conn.execute("select split from arena.tournaments where id = %s", (UUID(tournament_id),))
+        row = await cur.fetchone()
+    if row is None:
+        msg = f"no tournament {tournament_id}"
+        raise LookupError(msg)
+    return str(row[0])

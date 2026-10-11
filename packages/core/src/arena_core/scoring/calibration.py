@@ -187,10 +187,17 @@ def sample_strata(
     stratum, seeded, with at least `min_noncompliant_fraction` of the sample non-compliant where the pool
     allows it. Reads only `TurnStratum` fields -- AC-S3-7.4.
 
-    Known gap (not fixed this round): a caller wanting BOTH `tag_proposal` and `quality_level`/`role`
-    jointly stratified has to call this once per quality level/role itself and merge the results -- one
-    call here only ever stratifies by one field (`tag_proposal`, or whatever the caller pre-grouped by). No
-    production caller exists yet to say which S3 7.2 actually needs.
+    Known gaps (not fixed this round):
+    1. A caller wanting BOTH `tag_proposal` and `quality_level`/`role` jointly stratified has to call this
+       once per quality level/role itself and merge the results -- one call here only ever stratifies by
+       one field (`tag_proposal`, or whatever the caller pre-grouped by).
+    2. `min_noncompliant_fraction` is enforced PER STRATUM, independently -- it does not reallocate a
+       shortfall in one stratum against a surplus in another (Codex finding #7: with the noncompliant pool
+       concentrated in one stratum, the overall sample can fall well short of the fraction the OVERALL
+       sample was promised, even though every stratum's own local floor is honest about what it drew).
+    Neither is fixed here: no production caller exists yet to say which S3 7.2 actually needs, and the
+    cross-stratum reallocation (2) is a real algorithm change (a global quota allocated across strata by
+    their own capacities, then topped up), not a one-line fix.
     """
     rng = np.random.default_rng(seed)
     by_stratum: dict[str | None, list[TurnStratum]] = {}

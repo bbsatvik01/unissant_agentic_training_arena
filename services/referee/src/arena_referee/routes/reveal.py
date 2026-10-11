@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from arena_core.identity import DevIdentity
 from arena_referee import db
 from arena_referee.identity_dep import require_admin_role, require_console_role
-from arena_referee.isolation import open_hidden_tournament
+from arena_referee.isolation import fetch_fresh_isolation_result, open_hidden_tournament
 from arena_referee.reveal import PublishConfig, PublishContext, reveal_and_publish, seal_correction_and_publish
 from arena_referee.routes.admin import isolation_gate_request
 
@@ -31,15 +31,16 @@ _BLOCKED_SQLSTATES = frozenset({"AR020", "AR021"})
 
 
 async def _publish_context(request: Request) -> PublishContext:
-    """Built fresh for this call: the fixed `PublishConfig` from app startup, plus the isolation result read
-    live for the running commit (a gate run between two reveals must change what the next one publishes,
-    S3 9's own "the tournament's code version" scoping)."""
+    """Built fresh for this call: the fixed `PublishConfig` from app startup, plus the isolation result
+    RECOMPUTED fresh for the running commit against the tournament's now-completed data (Codex finding #1:
+    reading back whatever a prior `/open` call happened to cache would publish a leaderboard bound to
+    stale, pre-execution IG-4/5/6 evidence -- see `arena_referee.isolation.fetch_fresh_isolation_result`)."""
     config: PublishConfig | None = getattr(request.app.state, "publish_config", None)
     git_sha: str | None = getattr(request.app.state, "git_sha", None)
     if config is None or not git_sha:
         msg = "the referee app was not configured with a PublishConfig and ARENA_GIT_SHA"
         raise RuntimeError(msg)
-    isolation = await db.fetch_isolation_result(request.app.state.connect, git_sha)
+    isolation = await fetch_fresh_isolation_result(request.app.state.connect, git_sha)
     qq_calibrated: bool = getattr(request.app.state, "qq_calibrated", False)
     return PublishContext(isolation=isolation, qq_calibrated=qq_calibrated, config=config)
 
@@ -100,8 +101,23 @@ async def open_route(
     _identity: Annotated[DevIdentity, Depends(require_admin_role)],
 ) -> dict[str, object]:
     """S1 L9, S3 9: the isolation gate (including the hidden-text scan) runs fresh, and `frozen` -> `running`
-    only on a pass -- the one path to opening a tournament this process exposes; `body` is IG-1/2/3's
-    report evidence, exactly `/admin/isolation-gate/run`'s shape."""
+    only on a pass -- but ONLY for a hidden-split tournament. S1 L9 names the hidden split specifically, and
+    `sealed.verify_hidden_seal()` is unconditionally false before hidden authoring ever happens, so gating a
+    dev tournament's open the same way would refuse it forever (Codex finding #4). A dev tournament opens
+    directly, no gate, no body. `body` (hidden only) is IG-1/2/3's report evidence, exactly
+    `/admin/isolation-gate/run`'s shape."""
+    connect = request.app.state.connect
+    try:
+        split = await db.fetch_tournament_split(connect, str(tournament_id))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if split == "dev":
+        try:
+            await db.open_tournament(connect, str(tournament_id))
+        except psycopg.Error as exc:
+            # arena.open_tournament's own precondition (AR001: only a frozen tournament can start running).
+            raise HTTPException(status_code=409, detail=f"open blocked: {exc}") from exc
+        return {"opened": True, "gated": False}
     git_sha: str | None = getattr(request.app.state, "git_sha", None)
     if not git_sha:
         msg = "the referee app was not configured with ARENA_GIT_SHA"
@@ -111,10 +127,9 @@ async def open_route(
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:
-        result = await open_hidden_tournament(request.app.state.connect, str(tournament_id), gate_request)
+        result = await open_hidden_tournament(connect, str(tournament_id), gate_request)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except psycopg.Error as exc:
-        # arena.open_tournament's own precondition (AR001: only a frozen tournament can start running).
         raise HTTPException(status_code=409, detail=f"open blocked: {exc}") from exc
-    return {"opened": True, "passed": result.passed, "evidence_hash": result.evidence_hash}
+    return {"opened": True, "gated": True, "passed": result.passed, "evidence_hash": result.evidence_hash}

@@ -523,6 +523,7 @@ def test_submit_review_item_raises_when_no_row_returned() -> None:
 TOURNAMENT = UUID("00000000-0000-0000-0000-0000000000a1")
 MANIFEST = UUID("00000000-0000-0000-0000-0000000000a2")
 CANDIDATE = UUID("00000000-0000-0000-0000-0000000000a3")
+SUBJECT = UUID("00000000-0000-0000-0000-0000000000a4")
 
 
 def test_reveal_tournament_returns_manifest_version_one() -> None:
@@ -603,6 +604,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
                     "00000000-0000-0000-0000-0000000000b1",
                     "interactive",
                     str(CANDIDATE),
+                    str(SUBJECT),
                     "F01",
                     "truthful",
                     "00000000-0000-0000-0000-0000000000b2",
@@ -616,6 +618,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
     )
     [fact] = run(db.fetch_tournament_trial_facts(connector(conn), str(TOURNAMENT)))
     assert fact.assistant_id == str(CANDIDATE)
+    assert fact.subject_id == str(SUBJECT)
     assert fact.family_id == "F01"
     assert fact.exec_state == Exec.COMPLETED
     assert fact.classification == "truthful"

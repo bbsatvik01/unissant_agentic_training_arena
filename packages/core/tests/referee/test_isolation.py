@@ -109,6 +109,19 @@ def test_ig4_passes_only_when_the_seal_verifies_and_nothing_scans_hidden() -> No
     assert passed is False
 
 
+def test_ig4_evidence_distinguishes_different_hit_paths_with_the_same_count() -> None:
+    # Codex finding #12: `hit_paths` must be part of the hashed evidence -- a family_id leak and a persona-
+    # name leak, each with exactly one hit in one file, must never hash identically; an operator diagnosing
+    # a failure needs to tell WHICH field leaked, not just that something did.
+    corpus = build_corpus(hidden_family(), frozenset())
+    family_id_leak = corpus_scan_evidence(corpus, {"prompts/a.md": "FHID"})
+    persona_leak = corpus_scan_evidence(corpus, {"prompts/a.md": "Jo Rivers"})
+    assert family_id_leak.hit_paths != persona_leak.hit_paths
+    _, hash_a = ig4_evidence(seal_verifies=True, scan=family_id_leak)
+    _, hash_b = ig4_evidence(seal_verifies=True, scan=persona_leak)
+    assert hash_a != hash_b
+
+
 def test_ig4_report_never_carries_the_matched_text() -> None:
     corpus = build_corpus(hidden_family(), frozenset())
     scan = corpus_scan_evidence(corpus, {"prompts/leak.md": "Case C-DECEP0002 shows CANARY-ccc333."})

@@ -16,7 +16,7 @@ this process sits inside, S5 11.1); IG-4 (hidden-text scan), IG-5 (commitment/ch
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,7 +37,7 @@ from arena_referee import db
 # The development prompt and fixture surfaces S1 10.4/AC-S1-21 name: template and few-shot text a rostered
 # manifest can reach. Bounded and simple (D-016): three directories, not a repo-wide walk.
 DEFAULT_SCAN_ROOTS = (Path("prompts"), Path("cases/dev"), Path("packages/core/src/arena_core/fixtures"))
-_SCAN_SUFFIXES = (".md", ".json", ".txt")
+_SCAN_SUFFIXES = (".md", ".json", ".txt", ".py")  # fixtures/injection.py, style.py: few-shot text in code too
 
 
 @dataclass(frozen=True)
@@ -109,16 +109,22 @@ async def fetch_commitment_results(connect: Connector) -> dict[str, bool]:
     return {trial_id: bool(ok) for trial_id, ok in rows}
 
 
+_COACH_EVENT_KINDS = ("coach_card", "coach_deep")  # coach_unavailable carries no assistant-authored text
+
+
 async def fetch_assistant_output_texts(connect: Connector) -> dict[str, list[str]]:
-    """IG-6's own scan surface (S3 9, "assistant outputs"): every candidate's own coach-card events and
-    committed findings, as text, system-wide. Phoenix spans and logs are a separate surface this does not
-    reach (WP-07's observability pipeline); disclosed, not silently skipped."""
+    """IG-6's own scan surface (S3 9, "assistant outputs"): every candidate's own coach-card AND coach-deep
+    events (both are persisted assistant-authored payloads, `arena.trial_events.kind`; a canary surfacing
+    only in a deep response must fail the audit too, not just a card) plus committed findings, as text,
+    system-wide. Phoenix spans and logs are a separate surface this does not reach (WP-07's observability
+    pipeline); disclosed, not silently skipped."""
     texts: dict[str, list[str]] = {}
     async with connect() as conn:
         cur = await conn.execute(
             "select t.assistant_candidate_id::text, e.payload::text"
             "  from arena.trial_events e join arena.trials t on t.id = e.trial_id"
-            " where e.kind = 'coach_card' and t.assistant_candidate_id is not null"
+            " where e.kind = any(%s) and t.assistant_candidate_id is not null",
+            (list(_COACH_EVENT_KINDS),),
         )
         for candidate_id, payload_text in await cur.fetchall():
             texts.setdefault(candidate_id, []).append(payload_text)
@@ -162,11 +168,19 @@ class IsolationGateRequest:
     scan_roots: Sequence[Path] = DEFAULT_SCAN_ROOTS
 
 
-async def run_isolation_gate(connect: Connector, request: IsolationGateRequest) -> IsolationResult:
-    """Runs every IG item and writes one `arena.isolation_checks` row each (S3 9), returning the combined
-    `IsolationResult` `rank()` consumes."""
+_IG123 = ("IG-1", "IG-2", "IG-3")
+
+
+async def _recompute_and_record(
+    connect: Connector, *, ig123: Mapping[str, tuple[bool, str]], git_sha: str, scan_roots: Sequence[Path]
+) -> IsolationResult:
+    """Shared by `run_isolation_gate` (IG-1/2/3 freshly hashed from the caller's own report text) and
+    `fetch_fresh_isolation_result` (IG-1/2/3 reused from the latest already-recorded result for this
+    git_sha -- they are code-version-scoped, never tournament-data-scoped, so nothing about them needs
+    recomputing): IG-4, IG-5 and IG-6 are ALWAYS recomputed here, live, against current data, and every
+    item (all six) is written as a fresh `arena.isolation_checks` row."""
     hidden = await fetch_hidden_corpora(connect)
-    files = read_scan_files(request.scan_roots)
+    files = read_scan_files(scan_roots)
     scan = combined_corpus_scan_evidence(hidden.corpora, files)
     seal_ok = await verify_hidden_seal(connect)
     chain_ok = await verify_chain(connect)
@@ -174,19 +188,28 @@ async def run_isolation_gate(connect: Connector, request: IsolationGateRequest) 
     commitments = await fetch_commitment_results(connect)
     output_texts = await fetch_assistant_output_texts(connect)
     canary = ig6_evidence(count_canary_hits(hidden.canaries, output_texts))
-    ig1, ig2, ig3, git_sha = request.ig1, request.ig2, request.ig3, request.git_sha
 
     evidence = IsolationEvidence(
         items={
-            "IG-1": report_evidence(passed=ig1[0], report_text=ig1[1]),
-            "IG-2": report_evidence(passed=ig2[0], report_text=ig2[1]),
-            "IG-3": report_evidence(passed=ig3[0], report_text=ig3[1]),
+            "IG-1": ig123["IG-1"],
+            "IG-2": ig123["IG-2"],
+            "IG-3": ig123["IG-3"],
             "IG-4": ig4_evidence(seal_verifies=seal_ok, scan=scan),
             "IG-5": ig5_evidence(chain_verifies=chain_ok, corpus_seal_verifies=corpus_seal_ok, commitments=commitments),
             "IG-6": (canary.passed, canary.evidence_hash),
         },
         canary_culprit=canary.culprit,
     )
+    # Known gap (not fixed this round, Codex finding #2): each item below commits in its own transaction
+    # (`db.record_isolation_check`), not all six atomically. If a write fails partway through, the NEXT
+    # read of `arena.isolation_checks` ("latest row per check_name") would fold this run's successful
+    # writes together with an EARLIER run's result for whichever item never got rewritten -- a result that
+    # was never actually produced by any single run. This needs either one transaction across all six
+    # inserts or a batch write keyed by a shared run id. A write failure here does propagate as an error
+    # to the caller (`routes.reveal._run` surfaces any un-mapped `psycopg.Error`, never swallows it), so
+    # this is a correctness gap in what the NEXT read sees, not a silently-swallowed exception -- but it
+    # is still a real gap: the failed call's own caller sees an error, while a LATER, unrelated reveal call
+    # could read the mixed-vintage result as if it were a clean, complete run.
     for item, (passed, evidence_hash) in evidence.items.items():
         await db.record_isolation_check(
             connect,
@@ -199,6 +222,34 @@ async def run_isolation_gate(connect: Connector, request: IsolationGateRequest) 
             ),
         )
     return evidence.result()
+
+
+async def run_isolation_gate(connect: Connector, request: IsolationGateRequest) -> IsolationResult:
+    """Runs every IG item and writes one `arena.isolation_checks` row each (S3 9), returning the combined
+    `IsolationResult` `rank()` consumes."""
+    ig123 = {
+        "IG-1": report_evidence(passed=request.ig1[0], report_text=request.ig1[1]),
+        "IG-2": report_evidence(passed=request.ig2[0], report_text=request.ig2[1]),
+        "IG-3": report_evidence(passed=request.ig3[0], report_text=request.ig3[1]),
+    }
+    return await _recompute_and_record(connect, ig123=ig123, git_sha=request.git_sha, scan_roots=request.scan_roots)
+
+
+async def fetch_fresh_isolation_result(connect: Connector, git_sha: str) -> IsolationResult:
+    """Reveal and its corrections need the isolation gate's CURRENT truth, never whatever a prior `/open`
+    call happened to cache (S3 9, FX-I02; Codex finding #1): a tournament with no assistant outputs yet
+    passes IG-6 trivially at open time, and reusing that stale pass at reveal -- after the tournament
+    actually ran -- would let a canary that leaked DURING execution slip through undetected unless an
+    operator remembered to rerun the gate by hand. IG-1/2/3 reuse the latest already-recorded result for
+    this git_sha (code-version-scoped, not tournament-data-scoped); IG-4, IG-5 and IG-6 are recomputed
+    fresh and rewritten every call, exactly as `run_isolation_gate` does, never read back stale."""
+    stale = await db.fetch_isolation_result(connect, git_sha)
+    missing = [item for item in _IG123 if item not in stale.items]
+    if missing:
+        msg = f"isolation gate has never recorded {missing} for commit {git_sha}; run it once first"
+        raise RuntimeError(msg)
+    ig123 = {item: stale.items[item] for item in _IG123}
+    return await _recompute_and_record(connect, ig123=ig123, git_sha=git_sha, scan_roots=DEFAULT_SCAN_ROOTS)
 
 
 async def open_hidden_tournament(

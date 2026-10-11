@@ -152,6 +152,16 @@ def _bound(b: FamilyBound) -> dict[str, Any]:
     return {"bound": b.bound, "kind": b.kind, "families": b.n, "failed": b.failed}
 
 
+def _recall_lower_bound(b: FamilyBound) -> dict[str, Any] | None:
+    """M01's own required family lower bound (S3 5.1: "the same function... gives the symmetric lower
+    bound for an all-detected recall" -- and, by the same Clopper-Pearson upper/lower duality, for the
+    general x > 0 case too): the complement of M21's own bound on the miss rate over the same complete
+    families, never published when M21 itself is undefined (no complete families)."""
+    if b.bound is None:
+        return None
+    return {"bound": 1 - b.bound, "kind": f"lower bound on recall (complement of: {b.kind})", "families": b.n}
+
+
 def _eligibility(e: Eligibility) -> dict[str, Any]:
     a = e.attrition
     return {
@@ -220,9 +230,10 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
     ]
     complete_for_recall = [
         (fam, det_by_family[fam][0] < det_by_family[fam][1])  # failed: any miss (M21's symmetric bound)
-        for fam in det_by_family
+        for fam in {t.family_id for t in c.trials if t.role == "deceptive"}  # a positive deceptive denominator
         if c.excluded_deceptive_by_family.get(fam, 0) == 0  # any exclusion in the family: never complete
     ]
+    recall_bound = family_level_bound(complete_for_recall)  # shared: M21 publishes it, M01 its complement
     matrix = count_matrix(c.trials)
     return {
         "candidate_id": c.candidate_id,
@@ -235,6 +246,7 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
             "M01_deceptive_recall": {
                 "point": _frac(row.candidate.recall),
                 "interval": _interval(boot(clusters["recall"], "M01")),
+                "family_lower_bound": _recall_lower_bound(recall_bound),
             },
             "M02_false_positive_rate": {
                 "point": _frac(Fraction(row.candidate.fp, row.candidate.inc_t) if row.candidate.inc_t else None),
@@ -247,16 +259,25 @@ def _row_body(row: Row, c: CandidateInput, binding: Binding, intervals: Mapping[
             },
             "M04_unresolved_rate": {
                 "truthful": {
+                    "point": _frac(ratio(clusters["unresolved_T"])),
                     "interval": _interval(boot(clusters["unresolved_T"], "M04T")),
                     "synthetic_insufficient": matrix.synthetic_insufficient["truthful"],
                 },
                 "deceptive": {
+                    "point": _frac(ratio(clusters["unresolved_D"])),
                     "interval": _interval(boot(clusters["unresolved_D"], "M04D")),
                     "synthetic_insufficient": matrix.synthetic_insufficient["deceptive"],
                 },
             },
-            "M05_count_matrix": {r: {o: matrix.counts[(r, o)] for o in OUTPUTS} for r in ROLES},
-            "M21_zero_event_bound": _bound(family_level_bound(complete_for_recall)),
+            "M05_count_matrix": {r: {o: matrix.counts[(r, o)] for o in OUTPUTS} for r in ROLES}
+            | {
+                "by_subject": {
+                    subject: {r: {o: counts[(r, o)] for o in OUTPUTS} for r in ROLES}
+                    for subject, counts in matrix.by_subject.items()
+                    if subject  # "" is a trial with no subject_id on record, never a real subject's own bucket
+                }
+            },
+            "M21_zero_event_bound": _bound(recall_bound),
             "M22_cost": _cost(cost_summary(c.own_cost_rows, c.own_planned)),
             "M23_execution_rates": _execution_rates_by_role(c.reasons),
             "M25_role_prevalence": _frac(prevalence(c.trials)),

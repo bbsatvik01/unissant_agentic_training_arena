@@ -124,7 +124,25 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     debrief_deps = db.make_debrief_deps(connect, scoring_deps, provenance)
 
     identity: DevIdentity | None = resolve_dev_user(resolved_env) if settings.is_local else None
-    git_sha = resolved_env.get("ARENA_GIT_SHA", "0" * 40)
+    git_sha = resolved_env.get("ARENA_GIT_SHA")
+    if not git_sha:
+        # Codex finding #3: a silent "0"*40 fallback here would let every misconfigured deployment share
+        # one fake identity, so isolation-gate and leaderboard evidence recorded under it could be reused
+        # across different code versions undetected -- exactly what S3 9's "the tournament's code version"
+        # binding exists to prevent. Routes that read `app.state.git_sha` already refuse a falsy value
+        # (`routes.admin._git_sha`, `routes.reveal._publish_context`/`open_route`); refusing it here, at
+        # boot, means those checks are defense in depth, never the only thing standing between a real gap
+        # and a silently shared evidence identity.
+        msg = "ARENA_GIT_SHA is required (isolation-gate and leaderboard evidence bind to it, S3 9)"
+        raise RuntimeError(msg)
+    # Known gap (not fixed this round): S3 9 binds `isolation_pass` to "the tournament's code version...
+    # AND MIGRATION VERSION", and only the code version (git_sha) is enforced above -- the applied
+    # migration version is neither recorded in `arena.isolation_checks`' evidence nor checked against the
+    # database's own migration state at boot. Two referee processes on the same git_sha but different
+    # schema versions (a rolling deploy mid-migration) could currently share isolation-gate evidence they
+    # should not. Needs a migration-version column alongside `commit_sha` and a read of the applied
+    # migration state (there is no existing single source for "the currently applied migration version" to
+    # read from yet).
 
     app = FastAPI(title="arena-referee")
     app.state.connect = connect
