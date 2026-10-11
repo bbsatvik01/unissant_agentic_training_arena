@@ -35,6 +35,18 @@ variable that holds a DSN with EXECUTE on `ops.reserve_model_call` (e.g. `ARENA_
 `--dsn-env` the script falls back to an in-memory `RunBudget` at the real $74.00 global ceiling (`--ceiling`
 to override) - convenient for the fake-mode smoke test, but a real run's spend would then never reach
 `ops.model_calls`/`ops.budget_reservations`, so `--dsn-env` is not optional for a real run.
+
+KNOWN LIMITATION with `--dsn-env` (not yet fixed; flagged for the owner): each of the 24 conversations uses
+a synthetic `trial_id` (`uuid4()`, no database row behind it, by design - see "no database" above).
+`ops.budget_reservations.trial_id` has a foreign key to `arena.trials(id)`, so with a real DSN every
+reservation in `ops.reserve_model_call` would be refused (no matching trial row), surfacing as
+`provider_failed` on turn 1 of every conversation - loud and visible in the report (never silent), but the
+script does not yet dispatch a single real model call. `CallContext.trial_id` is already `UUID | None`
+(`arena_core/providers/types.py`), so the fix is either widening `answer()`'s own `trial_id: UUID` parameter
+to accept `None` for an evaluation call like this one (touches a few other `trial_id`-typed fields it
+forwards to - RecordSubjectTurn's included, though this script's own `_Recorder` double never uses that
+path for real), or giving each conversation a minimal real `arena.trials` row through whatever real (not
+test-only) mechanism the owner has for that. Left for the owner to decide before the first real run.
 """
 
 from __future__ import annotations
@@ -55,7 +67,7 @@ from arena_core.db.pool import dsn_connector
 from arena_core.db.subject import RecordResult, RecordSubjectTurn, TurnContext
 from arena_core.providers.mode import FAKE, MODE_VAR, VERTEX, model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
-from arena_core.scenario.relay import ReplayExchange, plan_replay
+from arena_core.scenario.relay import ReleasedRecord, ReplayExchange, plan_replay
 from arena_core.spend.guard import DbSpendGuard, SpendGuard
 from arena_core.spend.memory import RunBudget
 from arena_subject.answer import AnswerError, ContextReader, answer
@@ -101,8 +113,23 @@ def _variant(case_id: str, role: str) -> dict[str, Any]:
     return dict(raw["variants"][role])
 
 
-def _questions(public_packet: dict[str, Any], *, attack: bool) -> list[ReplayExchange]:
-    plan = plan_replay(public_packet, scheduled=())
+def _scheduled_releases(variant: dict[str, Any]) -> list[ReleasedRecord]:
+    """The case's scheduled (push, not pull) releases - identical across variants, S1 L2 - read exactly as
+    `packages/core/tests/scenario/test_replay_plan.py`'s own `_scheduled()` reads them: only `evaluator_packet`
+    carries the authored release schedule at all (`public_packet.requestable_records` is pull-only and has no
+    scheduled entries of its own). Reading from `evaluator_packet` here is not a leak of anything beyond what
+    a real trial's evidence timeline already exposes: only `artifact_id`, `after_exchanges` and `title` are
+    read, never the evaluator-only `content`/`supports` ground truth those same records also carry."""
+    artifacts = variant.get("evaluator_packet", {}).get("evidence_artifacts", [])
+    return [
+        ReleasedRecord(a["artifact_id"], a["release"]["after_exchanges"], a["title"])
+        for a in artifacts
+        if a.get("release", {}).get("type") == "scheduled"
+    ]
+
+
+def _questions(variant: dict[str, Any], *, attack: bool) -> list[ReplayExchange]:
+    plan = plan_replay(variant["public_packet"], _scheduled_releases(variant))
     exchanges = list(plan.exchanges)
     if attack:
         for exchange, text in ATTACK_QUESTIONS.items():
@@ -111,8 +138,9 @@ def _questions(public_packet: dict[str, Any], *, attack: bool) -> list[ReplayExc
     return exchanges
 
 
-def _released_evidence(public_packet: dict[str, Any], released_ids: set[str]) -> list[dict[str, Any]]:
-    titles = {str(r["record_id"]): str(r["title"]) for r in public_packet.get("requestable_records", [])}
+def _released_evidence(variant: dict[str, Any], released_ids: set[str]) -> list[dict[str, Any]]:
+    titles = {str(r["record_id"]): str(r["title"]) for r in variant["public_packet"].get("requestable_records", [])}
+    titles.update({r.record_id: r.title for r in _scheduled_releases(variant)})
     return [
         {
             "record_id": rid,
@@ -137,6 +165,7 @@ class _ConversationState:
     earlier: list[tuple[str, str | None]] = field(default_factory=list)
     released_ids: set[str] = field(default_factory=set)
     opened_gates: dict[str, int] = field(default_factory=dict)
+    first_disclosed: dict[str, int] = field(default_factory=dict)
 
 
 def _build_context(*, turn_no: int, question: str, state: _ConversationState) -> TurnContext:
@@ -145,17 +174,17 @@ def _build_context(*, turn_no: int, question: str, state: _ConversationState) ->
     ]
     rows.append({"turn_no": turn_no, "question": question, "answer": None, "channel": "text"})
     gates_opened = [{"gate_id": g, "turn": t} for g, t in state.opened_gates.items()]
-    public_packet = state.variant["public_packet"]
+    disclosed = [{"fact_id": f, "first_turn": t} for f, t in state.first_disclosed.items()]
     return TurnContext(
         trial_id=state.trial_id,
         turn_no=turn_no,
         transcript_version=turn_no,
         exchanges=turn_no - 1,
         private_packet=state.variant["private_packet"],
-        public_packet=public_packet,
+        public_packet=state.variant["public_packet"],
         transcript=rows,
-        released_evidence=_released_evidence(public_packet, state.released_ids),
-        disclosure_state={"disclosed": [], "gates_opened": gates_opened},
+        released_evidence=_released_evidence(state.variant, state.released_ids),
+        disclosure_state={"disclosed": disclosed, "gates_opened": gates_opened},
         subject_manifest=state.manifest_raw,
     )
 
@@ -188,8 +217,8 @@ async def _run_conversation(
 ) -> list[PilotTurn]:
     variant = _variant(case_id, role)
     manifest_raw = committed_manifest(subject_id).model_dump(mode="json")
-    exchanges = _questions(variant["public_packet"], attack=condition == "attack")
-    plan = plan_replay(variant["public_packet"], scheduled=())
+    exchanges = _questions(variant, attack=condition == "attack")
+    plan = plan_replay(variant["public_packet"], _scheduled_releases(variant))
 
     state = _ConversationState(trial_id=uuid4(), variant=variant, manifest_raw=manifest_raw)
     turns: list[PilotTurn] = []
@@ -223,6 +252,8 @@ async def _run_conversation(
             if req and req.tag:
                 for gate_id in req.tag.get("gates_opened", []):
                     state.opened_gates.setdefault(gate_id, row.exchange)
+                for fact_id in req.tag.get("disclosed", []):
+                    state.first_disclosed.setdefault(fact_id, row.exchange)
             state.earlier.append((row.question, req.utterance if req else None))
         except AnswerError as exc:
             # An infra failure (budget refused, kill switch, ...): never a silent drop. Recorded with the
