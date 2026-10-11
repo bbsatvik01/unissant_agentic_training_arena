@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | WP-18 part 2 | MERGED (cc4d45f) + follow-up merged | done |
 | WP-11 guard | MERGED (066e044); py-check green on main | done |
-| WP-05 port (ac1b3a38666e87dcf) | db40e11 done; cold Codex: 1 major (DB errors escape run() untyped); merge into main conflicts in web validate.ts (codegen validators vs runtime maxBytes) -> agent fixing both | merge, then tell WP-12/WP-14 to merge main |
+| WP-05 port | MERGED (8ab36a8) | done |
 | WP-12 subject (a810ab185aeaef4e8, Sonnet, wt-wp12-subject, based on feat/wp05-port) | building, fake model | review, merge |
 | WP-14 referee (a82783ff6d2a01d89, Sonnet, wt-wp14-referee, based on feat/wp05-port) | building, fake model | review, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
