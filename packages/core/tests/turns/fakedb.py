@@ -67,6 +67,8 @@ class FakeArenaDb(ArenaDb):
         self.ticket: str | None = None
         self.overtake_bound_steps = False  # a step bound to an earlier version is refused AR002
         self.manifest_missing = False
+        self.tournaments: dict[UUID, str] = {}
+        self.boards: list[dict[str, Any]] = []  # {tournament, board, label, manifest_version, body}
 
     # ------------------------------------------------------------------ helpers
 
@@ -408,6 +410,20 @@ class FakeArenaDb(ArenaDb):
 
     async def debrief(self, session: UUID) -> dict[str, Any] | None:
         return self.debriefs.get(session)
+
+    async def tournament_status(self, tournament: UUID) -> str | None:
+        return self.tournaments.get(tournament)
+
+    async def leaderboard(self, tournament: UUID, board: str, label: str | None) -> dict[str, Any] | None:
+        rows = [
+            b
+            for b in self.boards
+            if b["tournament"] == tournament and b["board"] == board and label in (None, b["label"])
+        ]
+        if not rows:
+            return None
+        top = max(rows, key=lambda b: b["manifest_version"])
+        return {"body": top["body"], "label": top["label"], "manifest_version": top["manifest_version"]}
 
     async def public_config(self) -> dict[str, Any]:
         return {"paused": self.paused, "text_sessions_per_user_day": 5, "voice_sessions_per_user_day": 1}
