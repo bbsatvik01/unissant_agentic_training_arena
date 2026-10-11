@@ -13,6 +13,7 @@ import pytest
 
 from arena_core.db.pool import Connector
 from arena_core.referee.leaderboard import TrialScore
+from arena_core.scoring.inclusion import RevealBlockedError
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result
 from arena_referee import db, reveal
 
@@ -227,3 +228,17 @@ def test_an_unscored_replay_trial_never_blocks_reveal() -> None:
         }
     )
     assert run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx())).manifest_version == 1
+
+
+def test_an_unfinished_roster_blocks_reveal_before_anything_is_sealed() -> None:
+    # Codex r6 #2: a planned trial with no execution record is a blocked precondition, never a ValueError/500.
+    row = (*trial_fact_row()[:7], None, *trial_fact_row()[8:])
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.planned_execution": [row],
+        }
+    )
+    with pytest.raises(RevealBlockedError):
+        run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    assert not any("ledger.reveal(" in q for q, _ in conn.executed)

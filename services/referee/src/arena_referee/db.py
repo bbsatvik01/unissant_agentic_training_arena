@@ -24,7 +24,7 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
-from arena_core.scoring.inclusion import Exec
+from arena_core.scoring.inclusion import Exec, RevealBlockedError
 from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
@@ -601,6 +601,11 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             (list(_COACH_PURPOSES), UUID(tournament_id), UUID(tournament_id), UUID(tournament_id)),
         )
         rows = await cur.fetchall()
+    unfinished = [str(r[0]) for r in rows if r[7] is None]
+    if unfinished:
+        # S4 6: reveal follows every planned trial's execution record; never a 500 on an unfinished roster.
+        msg = f"{len(unfinished)} planned trial(s) have no execution record yet, e.g. {sorted(unfinished)[:3]}"
+        raise RevealBlockedError(msg)
     return [
         TrialFacts(
             planned_trial_id=str(r[0]),

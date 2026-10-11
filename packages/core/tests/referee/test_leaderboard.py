@@ -618,5 +618,18 @@ def test_corpus_trials_count_toward_fidelity_but_never_toward_m14_or_m15() -> No
     assert m["M15_truthful_credit"]["correct_recognition"]["point"] is None
 
 
+def test_m15_correct_recognition_is_published_per_assistant() -> None:
+    # Codex r6 #3: A1 clears the truthful subject, A2 accuses it; pooled 50% hides both pairings.
+    by_a2 = replace(_subject_trial("truthful", "deceptive"), assistant_id="A2")
+    c = SubjectCandidateInput(
+        candidate_id="S1", display_name="S1", trials=[_subject_trial("truthful", "truthful"), by_a2]
+    )
+    body = build_subject_leaderboard(candidates=[c], isolation=PASSING_ISOLATION, binding=BINDING)
+    credit = body["rows"][0]["metrics"]["M15_truthful_credit"]
+    assert credit["correct_recognition"]["point"]["value"] == HALF
+    per = credit["correct_recognition_by_assistant"]
+    assert (per["A1"]["point"]["value"], per["A2"]["point"]["value"]) == (1.0, 0.0)
+
+
 def _nd(point: dict[str, int]) -> dict[str, int]:
     return {"numerator": point["num"], "denominator": point["den"]}

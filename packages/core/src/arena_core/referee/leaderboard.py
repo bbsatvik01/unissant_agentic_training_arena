@@ -519,11 +519,12 @@ def _subject_row(c: SubjectCandidateInput, binding: Binding) -> dict[str, Any]:
         for a in sorted({t.assistant_id for t in interactive if t.assistant_id is not None})
     }
     truthful_counted = [t for t in interactive if t.role == "truthful" and t.subj_inc is not SubjInc.EXCLUDED]
-    included_truthful = [
-        TrialOutcome(t.family_id, t.role, AsstInc.INCLUDED, t.output, "")
+    recognized = [
+        (TrialOutcome(t.family_id, t.role, AsstInc.INCLUDED, t.output, ""), t.assistant_id)
         for t in interactive
         if t.role == "truthful" and t.output is not None
     ]
+    included_truthful = [t for t, _ in recognized]
     credit = truthful_credit(
         [(t.family_id, lab) for t in truthful_counted for lab in (t.labels or {}).values()], included_truthful
     )
@@ -557,6 +558,11 @@ def _subject_row(c: SubjectCandidateInput, binding: Binding) -> dict[str, Any]:
                 "factual_consistency": boot(credit.factual_consistency, "M15F"),
                 "appropriate_uncertainty": boot(credit.appropriate_uncertainty, "M15U"),
                 "correct_recognition": boot(credit.correct_recognition, "M15R"),
+                # Correct recognition is an interaction outcome, so it is also published per assistant (S3 5.2).
+                "correct_recognition_by_assistant": {
+                    a: boot(truthful_credit([], [t for t, ta in recognized if ta == a]).correct_recognition, f"M15R{a}")
+                    for a in sorted({ta for _, ta in recognized if ta is not None})
+                },
             },
         },
     }

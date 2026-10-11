@@ -16,6 +16,7 @@ import psycopg
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from arena_core.identity import DevIdentity
+from arena_core.scoring.inclusion import RevealBlockedError
 from arena_referee import db
 from arena_referee.identity_dep import require_admin_role, require_console_role
 from arena_referee.isolation import (
@@ -79,7 +80,7 @@ def _as_json(result: db.RevealResult) -> dict[str, object]:
 async def _run(coro: Coroutine[Any, Any, db.RevealResult], action: str) -> dict[str, object]:
     try:
         result = await coro
-    except ScoringIncompleteError as exc:
+    except (ScoringIncompleteError, RevealBlockedError) as exc:
         raise HTTPException(status_code=409, detail=f"{action} blocked: {exc}") from exc
     except psycopg.Error as exc:
         if exc.sqlstate in _BLOCKED_SQLSTATES:
