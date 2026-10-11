@@ -1448,6 +1448,13 @@ td {
 .study-step {
   flex-basis: 100%;
   margin-bottom: 4px;
+  padding: 10px 14px;
+  border-radius: var(--arena-radius-lg);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+  max-width: 560px;
+  margin-inline: auto;
 }
 .study-step p {
   margin: 2px 0 0;
