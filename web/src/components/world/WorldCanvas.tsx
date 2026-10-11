@@ -13,7 +13,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, PCFShadowMap, PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-import { COACHES, subjectPersona } from "../../lib/world/cast";
+import { COACHES, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import type { CaseCard } from "../../lib/world/cases";
 import type { ShotName } from "../../lib/world/layout";
 import { nextTier, TIERS, WINDOW, type Tier } from "../../lib/world/quality";
@@ -143,6 +143,8 @@ export default function WorldCanvas(props: WorldCanvasProps) {
   useEffect(() => {
     preloadAvatar(persona);
     for (const coach of COACHES) preloadAvatar(coach);
+    preloadAvatar(INVESTIGATOR);
+    preloadAvatar(HUB_STAFF);
   }, [persona]);
   return (
     <Canvas
@@ -165,6 +167,9 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         focusedCase={props.focusedCase}
         reducedMotion={props.reducedMotion}
         shadows={settings.shadowMap > 0}
+        present={props.place === "hub"}
+        clock={props.clock}
+        still={props.still}
         onOpenCase={props.onOpenCase}
         onFocusCase={props.onFocusCase}
       />
@@ -177,6 +182,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         reducedMotion={props.reducedMotion}
         showPet={props.showPet}
         shadowMap={settings.shadowMap}
+        present={props.place === "room"}
       />
       <CameraRig place={props.place} shot={shot} reducedMotion={props.reducedMotion} {...(props.onArrive === undefined ? {} : { onArrive: props.onArrive })} />
       <PostFX ao={settings.ao} bloom={settings.bloom} />

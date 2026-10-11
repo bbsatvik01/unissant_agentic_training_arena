@@ -90,7 +90,7 @@ export type ShotName =
   | "table";
 
 export const SHOTS: Readonly<Record<ShotName, Shot>> = {
-  hub: { position: [0.8, 2.15, 5.4], target: [-0.4, 1.55, -6], fov: 45 },
+  hub: { position: [6.4, 2.25, 4.9], target: [-1.2, 1.35, -5.2], fov: 46 },
   board: { position: [-1.6, 1.8, -2.2], target: [-1.6, 1.75, -6], fov: 45 },
   hall_door: { position: [HUB_DOOR_X, 1.65, -4.6], target: [HUB_DOOR_X, 1.6, -12], fov: 50 },
   corridor: { position: [HUB_DOOR_X, 1.65, -15.5], target: [HUB_DOOR_X, 1.5, -22], fov: 50 },
@@ -98,7 +98,7 @@ export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   room: { position: inRoom([-0.9, 1.95, 2.55]), target: inRoom([0.45, 1.05, -1.8]), fov: 48 },
   over_shoulder: { position: inRoom([0.42, 1.42, 1.72]), target: inRoom([0, 1.16, -0.8]), fov: 34 },
   subject_close: { position: inRoom([0.22, 1.3, 0.62]), target: inRoom([0, 1.12, -0.8]), fov: 30 },
-  observation: { position: inRoom([1.65, 1.55, -3.35]), target: inRoom([1.65, 1.0, -5.3]), fov: 46 },
+  observation: { position: inRoom([0.15, 1.75, -3.55]), target: inRoom([1.75, 1.0, -5.0]), fov: 46 },
   wall: { position: inRoom([-1.6, 1.55, 0.1]), target: inRoom([-1.75, 1.5, -3]), fov: 40 },
   table: { position: inRoom([0.35, 1.5, 0.78]), target: inRoom([-0.18, 0.78, 0.12]), fov: 38 },
 };

@@ -14,6 +14,8 @@ released under the MIT licence reproduced below. Nothing here is a likeness of a
 | `Business_Female_01` | Professions/Business_Female_01 | Question desk coach |
 | `Business_Male_04` | Professions/Business_Male_04 | Flags desk coach |
 | `Business_Female_02` | Professions/Business_Female_02 | Follow-up desk coach |
+| `Business_Male_02` | Professions/Business_Male_02 | The investigator, seen from behind |
+| `Business_Male_06` | Professions/Business_Male_06 | A detective at work in the precinct |
 
 `clips/` holds six seated motion-capture clips from Assets/Animations/all_animations_max_motextr_static
 (`{m,f}_sit_table_breathe_01`, `{m,f}_sit_table_idle_look_around`, `{m,f}_sit_table_gestic_thoughtful`).

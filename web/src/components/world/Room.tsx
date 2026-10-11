@@ -8,7 +8,7 @@
 import { Suspense, useMemo, type RefObject } from "react";
 import { Object3D } from "three";
 
-import { COACHES, subjectPersona } from "../../lib/world/cast";
+import { COACHES, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import {
   COACH_DESKS,
   evidenceSlot,
@@ -43,6 +43,8 @@ interface RoomProps {
   readonly showPet: boolean;
   /** Shadow map size for the quality tier, 0 for none. */
   readonly shadowMap: number;
+  /** People are drawn only while the camera is in the room (they are behind walls from the hub). */
+  readonly present: boolean;
 }
 
 const W = ROOM_SIZE.width;
@@ -185,7 +187,7 @@ function ObservationRoom({ world, clock, still, shadows }: { world: WorldState |
   );
 }
 
-export function Room({ world, documents, subjectName, clock, still, reducedMotion, showPet, shadowMap }: RoomProps) {
+export function Room({ world, documents, subjectName, clock, still, reducedMotion, showPet, shadowMap, present }: RoomProps) {
   const flag = world?.flag ?? null;
   const highlightIndex = flag?.conflictRecord == null ? -1 : documents.findIndex((d) => d.id === flag.conflictRecord);
   const shadows = shadowMap > 0;
@@ -203,8 +205,25 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
       <Chair position={INVESTIGATOR_SEAT} rotation={Math.PI} />
       <EvidenceWall documents={documents} clock={clock} motionOff={reducedMotion} highlight={highlightIndex < 0 ? null : (flag?.conflictRecord ?? null)} />
       <Mirror />
-      <ObservationRoom world={world} clock={clock} still={still} shadows={shadows} />
-      {world === null ? null : (
+      <ObservationRoom world={present ? world : null} clock={clock} still={still} shadows={shadows} />
+      {world === null || !present ? null : (
+        <Suspense fallback={null}>
+          {/* the investigator's own seat, seen from behind in the over-the-shoulder shot */}
+          <Avatar
+            persona={INVESTIGATOR}
+            name="investigator"
+            position={INVESTIGATOR_SEAT}
+            facing={Math.PI}
+            pose={world.investigator.speech === null ? "listening" : "speaking"}
+            speech={world.investigator.speech}
+            gaze={inRoom([SUBJECT_SEAT[0], 1.2, SUBJECT_SEAT[2]])}
+            clock={clock}
+            still={still}
+            shadows={shadows}
+          />
+        </Suspense>
+      )}
+      {world === null || !present ? null : (
         <Suspense fallback={null}>
           <Avatar
             persona={persona}

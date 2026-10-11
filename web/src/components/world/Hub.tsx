@@ -8,11 +8,13 @@
 import { useGSAP } from "@gsap/react";
 import type { ThreeEvent } from "@react-three/fiber";
 import gsap from "gsap";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Group } from "three";
 
+import { HUB_STAFF } from "../../lib/world/cast";
 import type { CaseCard } from "../../lib/world/cases";
 import { CASE_BOARD, caseSlot, HUB, HUB_DOOR_X, ROOM, ROOM_SIZE } from "../../lib/world/layout";
+import { Avatar } from "./Avatar";
 import { brushedSteel, cork, paint, plaster, woodPlanks } from "./materials";
 import { BlindWindow, Block, Cabinet, CeilingPanel, Desk, Door, Keyboard, Monitor, OfficeChair, Plant, WallClock } from "./props";
 import { caseFileTexture, meshGradientTexture, signTexture } from "./textures";
@@ -25,6 +27,10 @@ interface HubProps {
   readonly focusedCase: string | null;
   readonly reducedMotion: boolean;
   readonly shadows: boolean;
+  /** The background staff are drawn only while the camera is in the precinct. */
+  readonly present: boolean;
+  readonly clock: RefObject<number>;
+  readonly still: boolean;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
 }
@@ -99,13 +105,16 @@ function CaseFile({ card, index, recorded, focused, reducedMotion, onOpen, onFoc
 }
 
 const DESKS: readonly (readonly [number, number, number])[] = [
-  [-4.6, 0.6, 0.2],
-  [-4.6, 2.6, Math.PI - 0.2],
-  [5.3, 0.4, -0.15],
-  [5.3, 2.4, Math.PI + 0.15],
+  [-4.4, 0.4, 0.25],
+  [-4.4, 2.4, Math.PI - 0.25],
+  [1.4, 0.9, 0.12],
+  [1.4, 2.9, Math.PI + 0.12],
 ];
+/** The desk the detective works at (index into DESKS) and where the chair puts them. */
+const STAFF_DESK = DESKS[2] ?? [0, 0, 0];
+const STAFF_SEAT: readonly [number, number, number] = [STAFF_DESK[0] + Math.sin(STAFF_DESK[2]) * 0.62, 0, STAFF_DESK[1] + Math.cos(STAFF_DESK[2]) * 0.62];
 
-function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, onOpenCase, onFocusCase }: HubProps) {
+function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, present, clock, still, onOpenCase, onFocusCase }: HubProps) {
   const mesh = useMemo(() => meshGradientTexture(), []);
   const sign = useMemo(() => signTexture("Interview rooms"), []);
   const boardSign = useMemo(() => signTexture("Open cases"), []);
@@ -210,6 +219,22 @@ function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, 
           <OfficeChair position={[x + Math.sin(r) * 0.7, 0, z + Math.cos(r) * 0.7]} rotation={r + Math.PI} />
         </group>
       ))}
+      {present ? (
+        <Suspense fallback={null}>
+          {/* a detective at work at the far desk */}
+          <Avatar
+            persona={HUB_STAFF}
+            name="hub-staff"
+            position={STAFF_SEAT}
+            facing={STAFF_DESK[2] + Math.PI}
+            pose="typing"
+            gaze={[STAFF_DESK[0], 1.0, STAFF_DESK[1] - 0.2]}
+            clock={clock}
+            still={still}
+            shadows={shadows}
+          />
+        </Suspense>
+      ) : null}
       <Cabinet position={[-7.6, 0, -4.8]} rotation={Math.PI / 2} />
       <Cabinet position={[-7.6, 0, -4.2]} rotation={Math.PI / 2} />
       <Cabinet position={[7.6, 0, -4.8]} rotation={-Math.PI / 2} />

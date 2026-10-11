@@ -269,7 +269,7 @@ export function emissive(key: "ceiling" | "screen" | "screenDim" | "daylight" | 
   return cached(`emissive-${key}`, () => {
     const spec: Readonly<Record<typeof key, readonly [string, number]>> = {
       ceiling: ["#fffaf0", 2.2],
-      screen: ["#dfe9ff", 1.6],
+      screen: ["#c9d8f2", 0.75],
       screenDim: ["#3a4458", 0.6],
       daylight: ["#e9f1ff", 1.8],
       led: ["#ff3b30", 4],

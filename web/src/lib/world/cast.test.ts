@@ -17,7 +17,7 @@ describe("the cast", () => {
   it("seats three distinct coaches, one per desk", () => {
     expect(COACHES.map((c) => c.desk)).toEqual(["question", "flags", "follow_up"]);
     expect(new Set(COACHES.map((c) => c.avatar)).size).toBe(3);
-    expect(AVATARS).toHaveLength(8);
+    expect(AVATARS).toHaveLength(10);
   });
 
   it("carries no role, style or content field in a persona (PRB-4)", () => {

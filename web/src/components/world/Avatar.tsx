@@ -62,6 +62,7 @@ interface AvatarProps {
 const EXTRAS: Readonly<Record<string, readonly ("opacity" | "glasses")[]>> = {
   Male_Adult_12: [],
   Business_Male_04: [],
+  Business_Male_06: [],
   Business_Female_02: ["opacity", "glasses"],
 };
 

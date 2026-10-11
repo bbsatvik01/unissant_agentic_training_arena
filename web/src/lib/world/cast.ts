@@ -49,8 +49,16 @@ export const COACHES: readonly (Persona & { readonly name: string; readonly desk
   { name: "Follow-up desk", desk: "follow_up", avatar: "Business_Female_02", clips: "f", lean: 0.1, headTilt: 0.04, gesture: 0.6, saccadeMs: 1500, blinkMs: 3200, voice: { pitch: 1.12, rate: 1.05, timbre: "light" } },
 ];
 
+/** The investigator's body, seen from behind in the over-the-shoulder shot (the trainee's own seat). */
+export const INVESTIGATOR: Persona = { avatar: "Business_Male_02", clips: "m", lean: 0.1, headTilt: 0, gesture: 0.45, saccadeMs: 2000, blinkMs: 4000, voice: { pitch: 1, rate: 1, timbre: "the trainee's own" } };
+
+/** A detective working at a desk in the precinct (background life in the hub). */
+export const HUB_STAFF: Persona = { avatar: "Business_Male_06", clips: "m", lean: 0.12, headTilt: 0.02, gesture: 0.3, saccadeMs: 2600, blinkMs: 4200, voice: { pitch: 0.95, rate: 1, timbre: "background" } };
+
 /** Every avatar folder the world can load. */
-export const AVATARS: readonly string[] = [...new Set([...Object.values(SUBJECTS).map((p) => p.avatar), ...COACHES.map((c) => c.avatar)])];
+export const AVATARS: readonly string[] = [
+  ...new Set([...Object.values(SUBJECTS).map((p) => p.avatar), ...COACHES.map((c) => c.avatar), INVESTIGATOR.avatar, HUB_STAFF.avatar]),
+];
 
 /** A small deterministic random sequence (mulberry32), so idle motion is lively but reproducible per persona. */
 export function seeded(seed: number): () => number {
