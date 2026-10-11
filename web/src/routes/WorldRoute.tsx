@@ -527,7 +527,10 @@ export function WorldRoute() {
               {liveFeed && session.failedQuestion !== null ? (
                 <div className="start-row">
                   <button type="button" className="btn-secondary-sm start-alt" onClick={() => {
-                      void session.retryAsk();
+                      const sent = session.failedQuestion;
+                      void session.retryAsk().then((ok) => {
+                        if (ok && sent !== null) setDraft((current) => draftAfterSend(current, sent));
+                      });
                     }}>
                     Send the question again
                   </button>
