@@ -217,20 +217,22 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   const headPos = head.getWorldPosition(tmpV);
   const eyes = eyeL !== null && eyeR !== null ? eyeL.clone().add(eyeR).multiplyScalar(0.5) : headPos.clone();
   const forward = eyes.clone().sub(headPos).setY(0).normalize();
-  const right = tmpV2.copy(forward).cross(UP).normalize();
+  // The figure's right: a positive rotation about it pitches the face down and swings a limb backward.
+  const right = tmpV2.crossVectors(UP, forward).normalize();
 
   // Posture: lean from the chest, the persona's habitual head tilt.
-  if (rig.spine !== null) rotateWorld(rig.spine, right, -persona.lean);
+  if (rig.spine !== null) rotateWorld(rig.spine, right, persona.lean);
   rotateWorld(head, forward, persona.headTilt);
 
   // Work poses (coaches): typing hands, handing a card forward, pointing at the glass.
   const time = still ? 0 : t;
   if (pose === "typing") {
-    if (rig.rFore !== null) rotateWorld(rig.rFore, right, Math.sin(time * 11) * 0.06 - 0.25);
-    if (rig.lFore !== null) rotateWorld(rig.lFore, right, Math.sin(time * 11 + 1.9) * 0.06 - 0.25);
+    if (rig.rFore !== null) rotateWorld(rig.rFore, right, Math.sin(time * 11) * 0.05 + 0.12);
+    if (rig.lFore !== null) rotateWorld(rig.lFore, right, Math.sin(time * 11 + 1.9) * 0.05 + 0.12);
   }
-  s.handing += ((pose === "handing" ? 1 : 0) - s.handing) * Math.min(1, delta * 5);
-  s.pointing += ((pose === "pointing" ? 1 : 0) - s.pointing) * Math.min(1, delta * 4);
+  // Gestures ease in and out with motion; with motion off they snap to their still end pose.
+  s.handing += ((pose === "handing" ? 1 : 0) - s.handing) * (still ? 1 : Math.min(1, delta * 5));
+  s.pointing += ((pose === "pointing" ? 1 : 0) - s.pointing) * (still ? 1 : Math.min(1, delta * 4));
   if (rig.rUpper !== null) rotateWorld(rig.rUpper, right, -(s.handing * 0.75 + s.pointing * 1.25));
   if (rig.rFore !== null) rotateWorld(rig.rFore, right, -(s.handing * 0.35 + s.pointing * 0.2));
 

@@ -92,3 +92,36 @@ describe("choosePose", () => {
     expect(run(still, thinking).angleTo(expected)).toBeLessThan(0.02);
   });
 });
+
+describe("gaze and gestures", () => {
+  function frames(pose: "listening" | "handing", gazeY: number, still: boolean, n = 120) {
+    const { root, rig: r } = rig();
+    const arm = new Bone();
+    const hand = new Bone();
+    hand.position.set(0, -0.5, 0);
+    arm.add(hand);
+    arm.position.set(0.2, 0.25, 0);
+    r.spine?.add(arm);
+    const ctx = { rig: { ...r, rUpper: arm }, mixer: new AnimationMixer(root), scene: root, track: [], beats: [], actions: [], thinking: false, still, pose, speech: null, persona: subjectPersona("Jordan Pell"), gaze: [0, gazeY, 3] as const, clock: { current: 0 }, random: () => 0.5 };
+    const s = state();
+    for (let i = 0; i < n; i += 1) stepAvatar(ctx, s, i / 60, 1 / 60);
+    root.updateMatrixWorld(true);
+    const eyes = new Vector3().addVectors(r.lEye?.getWorldPosition(new Vector3()) ?? new Vector3(), r.rEye?.getWorldPosition(new Vector3()) ?? new Vector3()).multiplyScalar(0.5);
+    const facing = eyes.sub(r.head?.getWorldPosition(new Vector3()) ?? new Vector3());
+    return { facing, hand: hand.getWorldPosition(new Vector3()), arm: arm.getWorldPosition(new Vector3()) };
+  }
+
+  it("raises the face toward a target above and lowers it toward one below", () => {
+    const up = frames("listening", 3, false).facing.y;
+    const down = frames("listening", 0, false).facing.y;
+    expect(up).toBeGreaterThan(down);
+  });
+
+  it("reaches forward when handing a card, and snaps to it in one frame with motion off", () => {
+    const resting = frames("listening", 1.4, false);
+    const handing = frames("handing", 1.4, false);
+    expect(handing.hand.z - handing.arm.z).toBeGreaterThan(resting.hand.z - resting.arm.z + 0.1);
+    const snapped = frames("handing", 1.4, true, 1);
+    expect(snapped.hand.z).toBeCloseTo(handing.hand.z, 1);
+  });
+});

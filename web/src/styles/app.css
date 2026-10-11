@@ -1065,23 +1065,71 @@ td {
 }
 
 @media (max-width: 1023px) {
-  /* Narrow screens: the two panels stack (transcript above, coach below), full width, never overlapping. */
+  /* Narrow screens: the 3D view takes the top half and stays put; header, controls, panels and the EX-4 line
+     follow in a scrolling column below it, full width, each panel tall enough to use. */
+  .app {
+    overflow-y: auto;
+  }
+
+  .viewport {
+    top: auto;
+    height: 46vh;
+    position: absolute;
+  }
+
+  .stage {
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: calc(46vh + 12px) 12px 72px;
+    pointer-events: auto;
+  }
+
+  .topbar {
+    position: fixed;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
   .side,
   .side.left,
-  .side.right {
-    left: 12px;
-    right: 12px;
+  .side.right,
+  .room-controls,
+  .center > .caption {
+    position: relative;
+    inset: auto;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
     width: auto;
+    min-width: 0;
   }
 
-  .side.left {
-    top: 72px;
-    bottom: calc(50% + 6px);
+  .side .panel {
+    height: 70vh;
   }
 
-  .side.right {
-    top: calc(50% + 6px);
-    bottom: 200px;
+  .center {
+    order: -1;
+  }
+
+  .center > .caption,
+  .room-controls .caption {
+    color: var(--arena-ink);
+    text-shadow: none;
+  }
+
+  .ex4 {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 0 12px 12px;
   }
 
   .debrief,
@@ -1089,12 +1137,7 @@ td {
     left: 12px;
     right: 12px;
     width: auto;
-    bottom: 200px;
-  }
-
-  .room-controls,
-  .center > .caption {
-    width: calc(100vw - 24px);
-    min-width: 0;
+    top: 72px;
+    bottom: auto;
   }
 }
