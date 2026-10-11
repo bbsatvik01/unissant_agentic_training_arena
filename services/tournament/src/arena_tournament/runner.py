@@ -66,13 +66,13 @@ class RunSummary:
 
 
 async def _run_interactive_trial(trial: UUID, orchestrator: Orchestrator, opening_question: str) -> Execution:
-    ports = HarnessAsker(trial, orchestrator)
+    ports = HarnessAsker(trial, orchestrator, asyncio.get_running_loop())
     outcome = await asyncio.to_thread(run_interactive, ports, opening_question)
     return outcome.execution
 
 
 async def _run_corpus_trial(trial: UUID, orchestrator: Orchestrator, public_packet: Mapping[str, Any]) -> Execution:
-    ports: CorpusPorts = CorpusAsker(trial, orchestrator, public_packet)
+    ports: CorpusPorts = CorpusAsker(trial, orchestrator, public_packet, asyncio.get_running_loop())
     outcome = await asyncio.to_thread(run_corpus, ports, public_packet)
     return outcome.execution
 

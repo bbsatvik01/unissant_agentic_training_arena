@@ -7,11 +7,13 @@ the fallback cycle, the replay script) `harness.py` already owns; these two clas
 database's answer back to it.
 
 `run_interactive` and `run_corpus` are plain synchronous functions (no model call, no database, AT-HAR-6), so
-the runner drives them in a worker thread (`asyncio.to_thread`) and each port method bridges back to the
-async primitives with its own `asyncio.run`. That is safe here because every call is strictly sequential (one
-port method at a time, one trial at a time): `Orchestrator`'s per-trial lock is never contended across the
-bridge, and `asyncio.Lock.acquire()` touches no loop state on its uncontended path (CPython `asyncio/locks.py`),
-so reusing the same `TrialSignals` object across many short-lived event loops is sound.
+the runner drives them in a worker thread (`asyncio.to_thread`) and each port method hands its coroutine back
+to the runner's own event loop (`loop`, captured where the trial starts) with `run_coroutine_threadsafe`,
+then blocks the worker thread on the result. Every coroutine therefore runs on the one long-lived loop that
+owns the job's pooled clients (the database pool, the Vertex and HTTP clients `main.build_runner` builds
+once): a fresh `asyncio.run` per call would bind a pooled connection to a loop it then closes, and the next
+call on that connection fails with "Event loop is closed". The loop is free while the worker thread waits,
+because the runner is suspended in `await asyncio.to_thread(...)`.
 """
 
 from __future__ import annotations
@@ -44,8 +46,9 @@ COACH_EVENT_KINDS = ("coach_card", "coach_unavailable")
 NO_RELEASES: tuple[str, ...] = ()
 
 
-def _run[T](coro: Coroutine[Any, Any, T]) -> T:
-    return asyncio.run(coro)
+def _on_loop[T](loop: asyncio.AbstractEventLoop, coro: Coroutine[Any, Any, T]) -> T:
+    """Runs `coro` on the runner's loop from the harness's worker thread and waits for its result."""
+    return asyncio.run_coroutine_threadsafe(coro, loop).result()
 
 
 async def _ask(
@@ -103,16 +106,20 @@ class HarnessAsker(TrialPorts):
 
     trial: UUID
     orchestrator: Orchestrator
+    loop: asyncio.AbstractEventLoop
+
+    def _run[T](self, coro: Coroutine[Any, Any, T]) -> T:
+        return _on_loop(self.loop, coro)
 
     def ask(self, n: int, question: HarnessQuestion, record_requests: Sequence[str]) -> None:
-        _run(_ask(self.orchestrator, self.trial, n, question, record_requests))
+        self._run(_ask(self.orchestrator, self.trial, n, question, record_requests))
 
     def card(self, n: int) -> Card | None:
         db = self.orchestrator.db
-        _run(self.orchestrator.coach_after_answer(self.trial, n))
-        if _run(_budget_stopped(db, self.trial)):
+        self._run(self.orchestrator.coach_after_answer(self.trial, n))
+        if self._run(_budget_stopped(db, self.trial)):
             raise BudgetStopError(dispatched=True)
-        event = _run(_latest_coach_event(db, self.trial, n))
+        event = self._run(_latest_coach_event(db, self.trial, n))
         if event is None:
             # Discarded as stale (overtaken by a release or the next question, S4 AR002): the harness treats
             # a missing card exactly like a failed one (`fallback_no_card`).
@@ -121,15 +128,17 @@ class HarnessAsker(TrialPorts):
 
     def final(self) -> bool:
         db = self.orchestrator.db
-        meta = _run(db.tournament_trial(self.trial))
+        meta = self._run(db.tournament_trial(self.trial))
         n_completed = 0 if meta is None else int(meta["exchanges"])
         try:
-            completed = _run(self.orchestrator.final_and_finalize(self.trial, n_completed))
+            completed = self._run(self.orchestrator.final_and_finalize(self.trial, n_completed))
         except BudgetRefusedError as exc:
-            _run(self.orchestrator.stop(self.trial, "budget_truncated", str(exc)))
+            self._run(self.orchestrator.stop(self.trial, "budget_truncated", str(exc)))
             raise BudgetStopError(dispatched=True) from exc
         if not completed:
-            _run(self.orchestrator.stop(self.trial, "assistant_failed", "the final call failed after its one repair"))
+            self._run(
+                self.orchestrator.stop(self.trial, "assistant_failed", "the final call failed after its one repair")
+            )
         return completed
 
 
@@ -141,6 +150,10 @@ class CorpusAsker(CorpusPorts):
     trial: UUID
     orchestrator: Orchestrator
     public_packet: Mapping[str, Any]
+    loop: asyncio.AbstractEventLoop
+
+    def _run[T](self, coro: Coroutine[Any, Any, T]) -> T:
+        return _on_loop(self.loop, coro)
 
     def _title(self, record_id: str, titles: Mapping[str, str]) -> str:
         if record_id in titles:
@@ -161,12 +174,12 @@ class CorpusAsker(CorpusPorts):
 
     def release(self, n: int, record_ids: Sequence[str]) -> Sequence[ReleasedRecord]:
         db = self.orchestrator.db
-        result = _run(self.orchestrator.request_evidence(self.trial, list(record_ids), f"corpus:{n}"))
+        result = self._run(self.orchestrator.request_evidence(self.trial, list(record_ids), f"corpus:{n}"))
         released_ids = [row["record_id"] for row in result["released"]]
         if not released_ids:
             return []
-        titles = {row["record_id"]: row["title"] for row in _run(db.released_with_titles(self.trial))}
+        titles = {row["record_id"]: row["title"] for row in self._run(db.released_with_titles(self.trial))}
         return [ReleasedRecord(rid, n - 1, self._title(rid, titles), self._date(rid)) for rid in released_ids]
 
     def ask(self, n: int, question: HarnessQuestion) -> None:
-        _run(_ask(self.orchestrator, self.trial, n, question, NO_RELEASES))
+        self._run(_ask(self.orchestrator, self.trial, n, question, NO_RELEASES))

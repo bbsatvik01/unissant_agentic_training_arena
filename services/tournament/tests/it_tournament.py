@@ -42,14 +42,12 @@ from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
-from arena_core.turns.harness import run_interactive
 from arena_core.turns.orchestrator import Orchestrator, SubjectCall, SubjectOutcome, TrialSignals
 from arena_tournament import lifecycle
-from arena_tournament.harness_asker import HarnessAsker
 from arena_tournament.main import load_manifests
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.roster import FamilySpec, build_roster
-from arena_tournament.runner import TournamentRunner
+from arena_tournament.runner import TournamentRunner, _run_interactive_trial
 from tools import proc
 from tools.tests.subprocess_support import popen_role_module
 
@@ -318,8 +316,7 @@ def test_a_restarted_job_after_a_simulated_mid_block_crash_adds_no_duplicate_exe
     run(first_runner.db.start_trial(trial_id))
     packet = run(first_runner.db.public_packet(first_interactive["variant_id"]))
     assert packet is not None
-    ports = HarnessAsker(trial_id, first_runner.orchestrator)
-    run_interactive(ports, packet["opening_question"])
+    run(_run_interactive_trial(trial_id, first_runner.orchestrator, packet["opening_question"]))
     assert run(_terminal_record_count(world["admin"], tournament_id)) == already_done
 
     # The job "restarts": a brand-new process, a brand-new runner, no in-memory state from the above.
