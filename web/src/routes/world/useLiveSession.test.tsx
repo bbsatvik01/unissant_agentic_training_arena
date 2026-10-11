@@ -34,6 +34,7 @@ function api(overrides: Partial<ArenaApi>): ArenaApi {
     listCases: refuse,
     caseBrief: refuse,
     startSession: refuse,
+    leaderboard: refuse,
     ...overrides,
   };
 }

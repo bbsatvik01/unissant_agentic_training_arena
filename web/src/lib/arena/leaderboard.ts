@@ -42,8 +42,19 @@ export interface BoardRow {
   readonly qqProvisional: boolean;
 }
 
+/** A published paired comparison of two ranked candidates (S3 5.5): A minus B on their common planned cells. */
+export interface PairView {
+  readonly a: string;
+  readonly b: string;
+  readonly commonCells: number;
+  readonly recall: MetricView | null;
+  readonly qq: MetricView | null;
+}
+
 export interface Board {
   readonly board: "assistant" | "subject";
+  /** The board's paired differences (assistant board), as published. */
+  readonly pairwise: readonly PairView[];
   readonly status: string;
   /** The server's "not ranked: isolation gate failed": no ranks and no rows. */
   readonly notRanked: boolean;
@@ -129,8 +140,13 @@ export function parseBoard(v: unknown): Board | null {
   const rows = (v["rows"] as unknown[]).map(parseRow);
   if (rows.some((r) => r === null)) return null;
   const binding = isRecord(v["binding"]) ? v["binding"] : null;
+  const pairs = Array.isArray(v["pairwise"]) ? (v["pairwise"] as unknown[]) : [];
   return {
     board: v["board"],
+    pairwise: pairs.flatMap((p) => {
+      if (!isRecord(p) || typeof p["a"] !== "string" || typeof p["b"] !== "string") return [];
+      return [{ a: p["a"], b: p["b"], commonCells: num(p["common_cells"]) ?? 0, recall: metricView(p["recall_difference"]), qq: metricView(p["qq_difference"]) }];
+    }),
     status: v["status"],
     notRanked: v["status"].startsWith("not ranked"),
     manifestHash: binding !== null && typeof binding["manifest_sha256"] === "string" ? binding["manifest_sha256"] : null,
@@ -175,4 +191,16 @@ export function rankStatus(board: Board, row: BoardRow): string {
   const reasons = [row.provisional ? "false-positive attrition sensitivity" : null, row.qqProvisional ? "questioning quality coverage" : null].filter((r) => r !== null);
   if (board.status !== "provisional" && reasons.length === 0) return "definitive";
   return reasons.length === 0 ? "provisional ranking" : `provisional ranking (${reasons.join("; ")})`;
+}
+
+/** A published difference (A minus B, on a 0-1 scale) in signed percentage points: "+10 points, interval -30 to
+ * +10 points"; "undefined" without a point (no common cells), "not computed" when absent. */
+export function differenceText(m: MetricView | null): string {
+  if (m === null) return "not computed";
+  if (m.point === null) return "undefined";
+  const pts = (x: number) => {
+    const n = Math.round(x * 100);
+    return `${n > 0 ? "+" : ""}${String(n)}`;
+  };
+  return m.interval === null ? `${pts(m.point)} points, interval unavailable` : `${pts(m.point)} points, interval ${pts(m.interval.lo)} to ${pts(m.interval.hi)} points`;
 }

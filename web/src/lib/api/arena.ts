@@ -139,6 +139,8 @@ export interface ArenaApi {
   caseBrief(caseId: string): Promise<CaseBrief>;
   /** `POST /api/sessions` (the body is checked against its wire schema first). */
   startSession(body: SessionCreate): Promise<StartedSession>;
+  /** `GET /api/leaderboards/{tournament_id}?board=`: the published board body verbatim (WP-16), read with `parseBoard`. */
+  leaderboard(tournamentId: string, board: "assistant" | "subject"): Promise<unknown>;
 }
 
 const id = encodeURIComponent;
@@ -209,6 +211,9 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       const brief = parseBrief(await client.get(path));
       if (brief === null) throw new ContractError(path, "the case brief");
       return brief;
+    },
+    async leaderboard(tournamentId, board) {
+      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}`);
     },
     async startSession(body) {
       const path = "/api/sessions";

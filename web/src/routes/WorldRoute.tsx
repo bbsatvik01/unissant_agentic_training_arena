@@ -84,19 +84,31 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string } | null>(null);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; example: boolean } | null>(null);
   const [showArena, setShowArena] = useState(false);
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
+  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
+  // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
   const openArena = () => {
     setShowArena(true);
     if (arena !== null) return;
-    void Promise.all([import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([lb, tour]) => {
+    const tournamentId = new URLSearchParams(window.location.search).get("tournament");
+    const published =
+      live && tournamentId !== null
+        ? Promise.all([api.leaderboard(tournamentId, "assistant"), api.leaderboard(tournamentId, "subject")]).then(
+            ([a, s]) => ({ assistant: parseBoard(a), subject: parseBoard(s) }),
+            () => null,
+          )
+        : Promise.resolve(null);
+    void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
       const poll: unknown = tour.default.poll;
+      const real = boards !== null && boards.assistant !== null;
       setArena({
-        name: lb.default.tournament.name,
-        assistant: parseBoard(lb.default.assistant),
-        subject: parseBoard(lb.default.subject),
+        name: real ? "Tournament leaderboards" : lb.default.tournament.name,
+        assistant: real ? boards.assistant : parseBoard(lb.default.assistant),
+        subject: real ? boards.subject : parseBoard(lb.default.subject),
         tournament: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        example: !real,
       });
     });
   };
@@ -723,7 +735,7 @@ export function WorldRoute() {
       {place === "hub" && showArena && arena !== null ? (
         <ArenaView
           name={arena.name}
-          example
+          example={arena.example}
           assistant={arena.assistant}
           subject={arena.subject}
           tournament={arena.tournament}

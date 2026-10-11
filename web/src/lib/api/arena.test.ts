@@ -196,4 +196,10 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     const { client: bad } = fakeClient(() => ({ ...started, mode: "free" }));
     await expect(createArenaApi(bad).startSession(body)).rejects.toBeInstanceOf(ContractError);
   });
+
+  it("reads a tournament's published board by its id and board name", async () => {
+    const { client, calls } = fakeClient(() => ({ board: "subject", status: "unranked", rows: [] }));
+    await expect(createArenaApi(client).leaderboard("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "subject")).resolves.toMatchObject({ board: "subject" });
+    expect(calls[0]).toEqual({ method: "GET", path: "/api/leaderboards/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f?board=subject" });
+  });
 });

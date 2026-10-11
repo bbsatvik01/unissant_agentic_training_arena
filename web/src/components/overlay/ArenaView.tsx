@@ -9,7 +9,7 @@ import { useState } from "react";
 
 import { EX4_TEXT } from "../../lib/copy/ex4";
 import { assistantDetails, countMatrix, subjectDetails, type DetailLine } from "../../lib/arena/details";
-import { fprGate, metricText, rankBar, rankStatus, type Board, type BoardRow } from "../../lib/arena/leaderboard";
+import { differenceText, fprGate, metricText, rankBar, rankStatus, type Board, type BoardRow } from "../../lib/arena/leaderboard";
 import { cellState, matrix, tracks, type Track, type TournamentState } from "../../lib/arena/tournament";
 import { Tabs } from "./Tabs";
 
@@ -126,6 +126,31 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
             ))}
           </ul>
         </>
+      )}
+      {board.pairwise.length === 0 ? null : (
+        <table className="board pairwise">
+          <caption className="fine">Paired differences between ranked coaches, first minus second, on the trials both played</caption>
+          <thead>
+            <tr>
+              <th scope="col">Pair</th>
+              <th scope="col">Common trials</th>
+              <th scope="col">Recall difference</th>
+              <th scope="col">Questioning difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {board.pairwise.map((p) => (
+              <tr key={`${p.a}-${p.b}`}>
+                <td className="mono">
+                  {p.a} minus {p.b}
+                </td>
+                <td className="mono">{p.commonCells}</td>
+                <td>{differenceText(p.recall)}</td>
+                <td>{differenceText(p.qq)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
       <CandidateDetails rows={board.rows} lines={(r) => assistantDetails(r.published)} matrix />
     </>
@@ -309,7 +334,8 @@ export function ArenaView(props: {
         <p className="fine">
           {EX4_TEXT} {NOT_CERTIFICATION}
         </p>
-        {props.example ? <p className="fine">Example data until the leaderboard and tournament routes are live. Not a result.</p> : null}
+        {props.example ? <p className="fine">Example data until a tournament&apos;s leaderboards are published. Not a result.</p> : null}
+        <p className="fine">The tournament matrix shows example data until the tournament route is live.</p>
       </div>
       <Tabs
         label="Arena views"
