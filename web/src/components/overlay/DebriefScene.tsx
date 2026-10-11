@@ -78,7 +78,7 @@ function Scores({ debrief }: { debrief: Debrief }) {
   );
 }
 
-function FlagList({ card, view, records, onCite }: { card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: (turn: number) => void }) {
+function FlagList({ card, view, records, onCite }: { card: CoachCard["card"]; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; onCite: (turn: number, quote: string) => void }) {
   return (
     <>
       <ul className="flags">
@@ -91,17 +91,59 @@ function FlagList({ card, view, records, onCite }: { card: CoachCard["card"]; vi
   );
 }
 
+/** A voice session's stored exchanges, role-tagged, in order (S6 4.7, FE-DEB-6): not scored, shown as spoken. */
+function VoiceExchanges({ view }: { view: TrialView }) {
+  return (
+    <ol className="review">
+      {view.voiceExchanges.map((x) => (
+        <li key={x.exchange_no} className="review-item">
+          <span className="mono">V{x.exchange_no}</span>
+          {x.lines.map((l, i) => (
+            <p key={i} className="line">
+              <span className="speaker">{l.role === "investigator" ? "You said" : "The subject said"}</span>
+              {l.text}
+              {l.partial ? " (cut off)" : ""}
+            </p>
+          ))}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function Questions({ view, documents }: { view: TrialView | null; documents: readonly CaseDocument[] }) {
+  if (view !== null && view.turns.length === 0 && view.voiceExchanges.length > 0) return <VoiceExchanges view={view} />;
   if (view === null || view.turns.length === 0) return <p className="empty">No questions were asked.</p>;
   const records = recordMap(documents, view.released);
-  // A citation chip brings its turn into view.
-  const onCite = (turn: number) => {
-    document.getElementById(`review-T${String(turn)}`)?.scrollIntoView({ block: "center" });
+  return <Review view={view} records={records} />;
+}
+
+/** The answer with the cited quote marked, when the quote is in it. */
+function Answer({ text, quote }: { text: string; quote: string | null }) {
+  const at = quote === null || quote === "" ? -1 : text.indexOf(quote);
+  if (quote === null || at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark>{quote}</mark>
+      {text.slice(at + quote.length)}
+    </>
+  );
+}
+
+function Review({ view, records }: { view: TrialView; records: ReadonlyMap<string, { title: string; text: string }> }) {
+  const [cited, setCited] = useState<{ turn: number; quote: string } | null>(null);
+  // A citation chip moves focus to its turn and marks the quote there (S6 9: keyboard reachable, visible target).
+  const onCite = (turn: number, quote: string) => {
+    setCited({ turn, quote });
+    const target = document.getElementById(`review-T${String(turn)}`);
+    target?.scrollIntoView({ block: "center" });
+    target?.focus();
   };
   return (
     <ol className="review">
       {questionReview(view).map((r) => (
-        <li key={r.turn} id={`review-T${String(r.turn)}`} className="review-item">
+        <li key={r.turn} id={`review-T${String(r.turn)}`} className="review-item" tabIndex={-1} data-cited={cited?.turn === r.turn ? "true" : undefined}>
           <span className="mono">T{r.turn}</span>
           <p className="line">
             <span className="speaker">Asked</span>
@@ -117,7 +159,7 @@ function Questions({ view, documents }: { view: TrialView | null; documents: rea
           {r.answer === null ? null : (
             <p className="line">
               <span className="speaker">Answered</span>
-              {r.answer}
+              <Answer text={r.answer} quote={cited?.turn === r.turn ? cited.quote : null} />
             </p>
           )}
           {r.answerCategory === null ? null : <p className="fine">Answer: {words(r.answerCategory)}</p>}
@@ -265,7 +307,7 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
         onChange={setTab}
         tabs={[
           { id: "scores", label: "Scores", content: <Scores debrief={debrief} /> },
-          { id: "questions", label: "Questions", content: <Questions view={view} documents={documents} /> },
+          { id: "questions", label: debrief.scored ? "Questions" : "Exchanges", content: <Questions view={view} documents={documents} /> },
           { id: "detection", label: "Detection", content: <Detection debrief={debrief} /> },
           { id: "learning", label: "Learning", content: <Learning debrief={debrief} /> },
         ]}

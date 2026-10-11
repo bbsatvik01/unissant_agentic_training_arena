@@ -1385,3 +1385,20 @@ td {
     gap: 2px;
   }
 }
+
+.arena-view .candidate-details {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 16px;
+  font-size: 13px;
+}
+.arena-view .candidate-details summary {
+  cursor: pointer;
+}
+.arena-view .count-matrix {
+  max-width: 520px;
+}
+.debrief-scene .review-item[data-cited="true"] {
+  outline: 2px solid var(--arena-ink, currentColor);
+  outline-offset: 4px;
+}

@@ -13,6 +13,7 @@ import type { DebriefRead, EvidenceResult, InvestigatorFinding } from "../../lib
 import { createSessionController, type ConnectionState, type SessionController } from "../../lib/trial/sessionController";
 import { initialTrialState, type TrialState } from "../../lib/trial/trialReducer";
 import { EMPTY_TRACKER, trackArrivals, type ArrivalTracker } from "../../lib/world/live";
+import { recallSession, rememberSession } from "../../lib/world/sessionMemory";
 import { deriveWorld, type WorldState } from "../../lib/world/worldState";
 
 export type LivePhase = "idle" | "starting" | "running" | "error";
@@ -28,6 +29,10 @@ export interface LiveControls {
   /** The last action's error in words, or null. */
   readonly error: string | null;
   readonly start: (mode: "practice" | "assessment") => Promise<void>;
+  /** The session this tab last started on the case, when there is one to go back to (S6 5.1). */
+  readonly resumable: StartedSession | null;
+  /** Attach to `resumable` again: its snapshot, then the stream or its published debrief. */
+  readonly resume: () => Promise<void>;
   readonly ask: (question: string) => Promise<boolean>;
   readonly request: (recordId: string) => Promise<EvidenceResult | null>;
   readonly commit: (finding: InvestigatorFinding) => Promise<boolean>;
@@ -157,6 +162,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
       try {
         const started = await api.startSession({ case_id: caseId, mode, voice: false, idem_key: crypto.randomUUID() });
         if (generation.current !== run) return;
+        rememberSession(started);
         await attach(started, run);
       } catch (e) {
         if (generation.current !== run) return;
@@ -167,6 +173,23 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     },
     [api, attach, caseId],
   );
+
+  const resumable = caseId === null || phase !== "idle" ? null : recallSession(caseId);
+  const resume = useCallback(async () => {
+    const started = caseId === null ? null : recallSession(caseId);
+    if (started === null || controller.current !== null) return;
+    const run = generation.current;
+    setPhase("starting");
+    setError(null);
+    try {
+      await attach(started, run);
+    } catch (e) {
+      if (generation.current !== run) return;
+      dropController();
+      setError(describeError(e));
+      setPhase("error");
+    }
+  }, [attach, caseId]);
 
   // Reconnect after the stream gave up or the end could not be read (the controller's own retry), or reload the
   // session from its snapshot when the first snapshot read failed (the controller cannot recover that one).
@@ -290,5 +313,5 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   );
 
   const connectionError = phase === "running" ? describeConnection(connection) : null;
-  return { phase, session, connection, trial, world, debrief, clock, error, start, ask, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
+  return { phase, session, connection, trial, world, debrief, clock, error, start, resumable, resume, ask, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
 }

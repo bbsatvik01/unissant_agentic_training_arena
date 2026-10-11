@@ -11,9 +11,10 @@ import { useLiveSession } from "./useLiveSession";
 
 afterEach(() => {
   cleanup();
+  sessionStorage.clear();
 });
 
-const STARTED = { session_id: "11111111-1111-4111-8111-111111111111", trial_id: "22222222-2222-4222-8222-222222222222" } as StartedSession;
+const STARTED = { mode: "practice", case_id: "C-7Q2MXK4D", session_id: "11111111-1111-4111-8111-111111111111", trial_id: "22222222-2222-4222-8222-222222222222" } as StartedSession;
 
 function api(overrides: Partial<ArenaApi>): ArenaApi {
   const refuse = () => Promise.reject(new Error("not in this test"));
@@ -78,5 +79,27 @@ describe("useLiveSession", () => {
     });
     expect(startSession).toHaveBeenCalledTimes(1);
     expect(result.current.session).toBe(STARTED);
+  });
+
+  it("goes back to the session this tab started on the case instead of starting another (S6 5.1)", async () => {
+    const startSession = vi.fn(() => Promise.resolve(STARTED));
+    const trialSnapshot = vi.fn<(id: string) => Promise<never>>(() => Promise.reject(new Error("down")));
+    const { result } = renderHook(() => useLiveSession({ api: api({ startSession, trialSnapshot }), ...OPTIONS }));
+    expect(result.current.resumable).toBeNull();
+    await act(async () => {
+      await result.current.start("practice");
+    });
+    act(() => {
+      result.current.stop();
+    });
+    expect(result.current.resumable).toEqual(STARTED);
+    const reads = trialSnapshot.mock.calls.length;
+    await act(async () => {
+      await result.current.resume();
+    });
+    expect(startSession).toHaveBeenCalledTimes(1);
+    expect(trialSnapshot.mock.calls.length).toBeGreaterThan(reads);
+    expect(trialSnapshot.mock.calls.at(-1)?.[0]).toBe(STARTED.trial_id);
+    expect(result.current.session).toEqual(STARTED);
   });
 });

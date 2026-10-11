@@ -36,6 +36,10 @@ export interface BoardRow {
   readonly fprBound: FamilyBoundView | null;
   readonly rankInterval: { readonly lo: number; readonly hi: number } | null;
   readonly metrics: Readonly<Record<string, MetricView>>;
+  /** The published metrics body, whole, for the row's detail. */
+  readonly published: Readonly<Record<string, unknown>>;
+  /** M09 published as provisional (its coverage or calibration conditions). */
+  readonly qqProvisional: boolean;
 }
 
 export interface Board {
@@ -114,6 +118,8 @@ function parseRow(v: unknown): BoardRow | null {
     reason: typeof v["reason"] === "string" ? v["reason"] : null,
     rankInterval: lo === null || hi === null ? null : { lo, hi },
     metrics,
+    published: metricsIn,
+    qqProvisional: isRecord(metricsIn["M09_questioning_quality"]) && metricsIn["M09_questioning_quality"]["provisional"] === true,
   };
 }
 
@@ -161,4 +167,12 @@ export function fprGate(row: BoardRow): { result: string; fpr: string; bound: st
 export function rankBar(interval: { readonly lo: number; readonly hi: number }, n: number): { left: number; width: number } {
   const span = Math.max(1, n);
   return { left: (interval.lo - 1) / span, width: (interval.hi - interval.lo + 1) / span };
+}
+
+/** A ranked row's status as published (S6 4.10 item 3): the ranking is provisional when the board says so (WP-16
+ * decides it from attrition, eligibility and questioning-quality conditions), with the row's own published reasons. */
+export function rankStatus(board: Board, row: BoardRow): string {
+  const reasons = [row.provisional ? "false-positive attrition sensitivity" : null, row.qqProvisional ? "questioning quality coverage" : null].filter((r) => r !== null);
+  if (board.status !== "provisional" && reasons.length === 0) return "definitive";
+  return reasons.length === 0 ? "provisional ranking" : `provisional ranking (${reasons.join("; ")})`;
 }

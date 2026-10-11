@@ -8,7 +8,8 @@
 import { useState } from "react";
 
 import { EX4_TEXT } from "../../lib/copy/ex4";
-import { fprGate, metricText, rankBar, type Board } from "../../lib/arena/leaderboard";
+import { assistantDetails, countMatrix, subjectDetails, type DetailLine } from "../../lib/arena/details";
+import { fprGate, metricText, rankBar, rankStatus, type Board, type BoardRow } from "../../lib/arena/leaderboard";
 import { cellState, matrix, tracks, type Track, type TournamentState } from "../../lib/arena/tournament";
 import { Tabs } from "./Tabs";
 
@@ -108,7 +109,7 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
                 <td>{metricText(r.metrics["M01_deceptive_recall"])}</td>
                 <td>{metricText(r.metrics["M09_questioning_quality"])}</td>
                 <td>{metricText(r.metrics["M03_ppv"])}</td>
-                <td>{r.provisional ? "provisional (attrition sensitivity)" : "definitive"}</td>
+                <td>{rankStatus(board, r)}</td>
               </tr>
             );
           })}
@@ -126,14 +127,78 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
           </ul>
         </>
       )}
+      <CandidateDetails rows={board.rows} lines={(r) => assistantDetails(r.published)} matrix />
     </>
+  );
+}
+
+function Lines({ lines }: { lines: readonly DetailLine[] }) {
+  return (
+    <dl className="facts">
+      {lines.map((l) => (
+        <div key={l.label}>
+          <dt>{l.label}</dt>
+          <dd>{l.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+const OUTPUT_NAMES = ["truthful", "deceptive", "insufficient evidence"];
+
+function CandidateDetails({ rows, lines, matrix: withMatrix = false }: { rows: readonly BoardRow[]; lines: (r: BoardRow) => readonly DetailLine[]; matrix?: boolean }) {
+  return (
+    <div className="candidate-details">
+      {rows.map((r) => {
+        const counts = withMatrix ? countMatrix(r.published) : null;
+        return (
+          <details key={r.candidate_id}>
+            <summary>
+              {r.display_name} <span className="mono fine">{r.candidate_id}</span>: details
+            </summary>
+            {counts === null ? null : (
+              <table className="board count-matrix">
+                <caption className="fine">Findings by the subject&apos;s role, raw counts (M05)</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Role</th>
+                    {OUTPUT_NAMES.map((o) => (
+                      <th key={o} scope="col">
+                        Found {o}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {counts.map((row) => (
+                    <tr key={row.role}>
+                      <th scope="row">{row.role}</th>
+                      {row.cells.map((n, i) => (
+                        <td key={OUTPUT_NAMES[i]} className="mono">
+                          {n}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <Lines lines={lines(r)} />
+          </details>
+        );
+      })}
+    </div>
   );
 }
 
 function SubjectBoard({ board }: { board: Board }) {
   return (
+    <>
     <table className="board">
-      <caption className="fine">Subject board, {board.status}: subjects are compared, not ranked.</caption>
+      <caption className="fine">
+        Subject board, {board.status}: subjects are compared, not ranked. The referee that labels subject turns runs on the same model as the subjects, so read fidelity with that shared checkpoint in mind.
+      </caption>
       <thead>
         <tr>
           <th scope="col">Subject</th>
@@ -155,6 +220,8 @@ function SubjectBoard({ board }: { board: Board }) {
         ))}
       </tbody>
     </table>
+    <CandidateDetails rows={board.rows} lines={(r) => subjectDetails(r.published)} />
+    </>
   );
 }
 

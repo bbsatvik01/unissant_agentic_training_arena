@@ -532,9 +532,17 @@ export function WorldRoute() {
               ) : null}
               {mode === "choose" ? (
                 <div className="start-row" role="group" aria-label="Start">
+                  {live && session.resumable !== null ? (
+                    <button type="button" className="btn-primary" onClick={() => {
+                        setMode("live");
+                        void session.resume();
+                      }}>
+                      Return to your {session.resumable.mode === "practice" ? "practice interview" : "assessment"}
+                    </button>
+                  ) : null}
                   {live ? (
                     <>
-                      <button type="button" className="btn-primary" onClick={() => {
+                      <button type="button" className={session.resumable === null ? "btn-primary" : "btn-secondary-sm start-alt"} onClick={() => {
                           startLive("practice");
                         }}>
                         Start practice interview

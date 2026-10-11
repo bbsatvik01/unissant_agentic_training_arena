@@ -5,13 +5,20 @@
  * the provenance line, the subject's role, and the annotated transcript with answers, flags and releases.
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import raw from "../../fixtures/recordings/F01-truthful.json";
-import type { ScoredDebrief } from "../../lib/contracts/generated/types";
+import type { Debrief, ScoredDebrief, TrialSnapshot } from "../../lib/contracts/generated/types";
+import { initialTrialState, trialReducer } from "../../lib/trial/trialReducer";
+import { fixture } from "../../test/wire-fixtures";
 import { parseRecording } from "../../lib/world/parseRecording";
 import { seek, startCursor } from "../../lib/world/recording";
 import { DebriefScene } from "./DebriefScene";
+
+beforeAll(() => {
+  // jsdom has no layout, so no scrolling.
+  Element.prototype.scrollIntoView = () => undefined;
+});
 
 afterEach(() => {
   cleanup();
@@ -69,5 +76,32 @@ describe("DebriefScene", () => {
     const released = view?.released[0];
     expect(released).toBeDefined();
     expect(document.querySelector(`#review-T${String(released?.released_at_turn)} .release-marker`)?.textContent).toContain(released?.record_id ?? "?");
+  });
+
+  it("a citation chip moves focus to its turn and marks the quote there", () => {
+    show();
+    fireEvent.click(screen.getByRole("tab", { name: "Questions" }));
+    const chip = document.querySelector<HTMLButtonElement>('.review .chip[data-cite="ok"]');
+    if (chip === null) throw new Error("no verified chip");
+    fireEvent.click(chip);
+    const target = document.activeElement;
+    expect(target?.classList.contains("review-item")).toBe(true);
+    expect(target?.getAttribute("data-cited")).toBe("true");
+    const mark = target?.querySelector("mark");
+    expect(mark?.textContent).toBeTruthy();
+    expect(target?.textContent).toContain(mark?.textContent ?? "?");
+  });
+
+  it("shows a voice session's stored exchanges, not scored (FE-DEB-6)", () => {
+    const snapshot = fixture("snapshot:voice") as TrialSnapshot;
+    const voiceView = trialReducer(initialTrialState(), { type: "snapshot", snapshot }).view;
+    const unscored = fixture("debrief:unscored") as Debrief;
+    render(<DebriefScene debrief={unscored} view={voiceView} documents={[]} reducedMotion onClose={() => undefined} />);
+    expect(screen.getAllByText("Voice practice: not scored.").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("tab", { name: "Exchanges" }));
+    const firstLine = snapshot.voice_exchanges[0]?.lines[0];
+    expect(firstLine).toBeDefined();
+    expect(screen.getByText(firstLine?.text ?? "?")).toBeTruthy();
+    expect(screen.queryByText("No questions were asked.")).toBeNull();
   });
 });

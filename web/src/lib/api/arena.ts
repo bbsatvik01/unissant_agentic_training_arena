@@ -116,7 +116,7 @@ export function parseBrief(value: unknown): CaseBrief | null {
   return { case: card, initialDocuments };
 }
 
-function parseStarted(value: unknown): StartedSession | null {
+export function parseStarted(value: unknown): StartedSession | null {
   if (!isRecord(value)) return null;
   const { session_id: sessionId, trial_id: trialId, mode, case_id: caseId } = value;
   if (!isText(sessionId) || !isText(trialId) || !isText(caseId) || (mode !== "practice" && mode !== "assessment")) return null;

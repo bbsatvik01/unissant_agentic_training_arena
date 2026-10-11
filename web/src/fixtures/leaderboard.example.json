@@ -127,6 +127,176 @@
       "total": "2.41",
       "mean_per_included": "0.27",
       "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 8,
+       "deceptive": 0,
+       "insufficient_evidence": 1
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 8,
+       "insufficient_evidence": 0
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 7,
+       "den": 9,
+       "value": 0.7777777777777778
+      },
+      "interval": {
+       "lo": 0.5,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 2.41,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       2.9
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
      }
     },
     "fairness_violations": []
@@ -229,6 +399,176 @@
       "total": "2.41",
       "mean_per_included": "0.27",
       "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 7,
+       "deceptive": 3,
+       "insufficient_evidence": 2
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 6,
+       "insufficient_evidence": 2
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 7,
+       "den": 9,
+       "value": 0.7777777777777778
+      },
+      "interval": {
+       "lo": 0.5,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 2.71,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       3.1999999999999997
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
      }
     },
     "fairness_violations": []
@@ -329,6 +669,176 @@
       "total": "2.41",
       "mean_per_included": "0.27",
       "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 6,
+       "deceptive": 0,
+       "insufficient_evidence": 3
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 6,
+       "insufficient_evidence": 2
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 7,
+       "den": 9,
+       "value": 0.7777777777777778
+      },
+      "interval": {
+       "lo": 0.5,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 3.0100000000000002,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       3.5
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
      }
     },
     "fairness_violations": []
@@ -368,6 +878,19 @@
         "status": "ok",
         "pool": "families"
        }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
       }
      },
      "M13_invalid_session_rate": {
@@ -394,6 +917,52 @@
        "hi": 0.5,
        "status": "ok",
        "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
       }
      }
     }
@@ -413,6 +982,19 @@
        "interval": {
         "lo": 0.83,
         "hi": 0.98,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
         "status": "ok",
         "pool": "families"
        }
@@ -442,6 +1024,52 @@
        "hi": 0.5,
        "status": "ok",
        "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
       }
      }
     }
@@ -461,6 +1089,19 @@
        "interval": {
         "lo": 0.79,
         "hi": 0.95,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
         "status": "ok",
         "pool": "families"
        }
@@ -490,6 +1131,52 @@
        "hi": 0.5,
        "status": "ok",
        "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
       }
      }
     }

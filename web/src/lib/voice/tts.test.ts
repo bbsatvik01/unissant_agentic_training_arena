@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { speechDurationMs } from "../world/cadence";
+import { CHARS_PER_SECOND, MAX_LINE_CHARS, speechDurationMs } from "../world/cadence";
 
 import { fitRate, pickVoice, utteranceSettings, VOICE_CPS } from "./tts";
 
@@ -42,5 +42,12 @@ describe("fitRate", () => {
     expect(rate).toBeGreaterThan(1);
     expect((long.length / (VOICE_CPS * rate)) * 1000).toBeCloseTo(speechDurationMs(long), 0);
     expect(fitRate("word ".repeat(400), 1)).toBe(2);
+  });
+
+  it("fits the longest answer the stream carries well inside the synthesis limit, so no voiced line outlasts its mouth", () => {
+    const longest = "a".repeat(MAX_LINE_CHARS);
+    expect(speechDurationMs(longest)).toBe((MAX_LINE_CHARS / CHARS_PER_SECOND) * 1000);
+    expect(fitRate(longest, 1)).toBeLessThan(1.1);
+    expect(fitRate(longest, 1.2)).toBeLessThan(2);
   });
 });
