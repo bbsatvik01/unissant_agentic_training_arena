@@ -475,6 +475,7 @@ class IsolationCheckRow:
     evidence_hash: str
     commit_sha: str
     candidate_id: str | None
+    report: str | None = None  # IG-4's sanitized scan report (paths, counts, hidden field paths; never text)
 
 
 async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> None:
@@ -487,7 +488,10 @@ async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> 
                 UUID(row.candidate_id) if row.candidate_id else None,
                 row.check_name,
                 row.passed,
-                Jsonb({"hash": row.evidence_hash, "commit_sha": row.commit_sha}),
+                Jsonb(
+                    {"hash": row.evidence_hash, "commit_sha": row.commit_sha}
+                    | ({"report": row.report} if row.report is not None else {})
+                ),
             ),
         )
 

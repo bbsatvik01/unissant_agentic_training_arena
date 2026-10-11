@@ -5,6 +5,7 @@ process tree."""
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
@@ -363,3 +364,30 @@ def test_a_canary_only_in_a_mirrored_span_fails_ig6(owner: str, culprit: str | N
     assert result.items["IG-6"][0] is False
     [ig6] = [p for q, p in conn.executed if "insert into arena.isolation_checks" in q and "ig6" in str(p)]
     assert (str(ig6[0]) if ig6[0] else None) == culprit
+
+
+def test_the_ig4_row_keeps_its_sanitized_scan_report_next_to_the_hash(tmp_path: Path) -> None:
+    # Codex r3 minor (S1 10.4): an operator reads which path and hidden field leaked, never the leaked text.
+    root = tmp_path / "prompts"
+    root.mkdir()
+    (root / "leak.md").write_text("Case C-FHIDD shows CANARY-FHID3.")
+    conn = FakeConn(
+        {
+            "sealed.family_ingests": [("hidden", hidden_family_json("FHID", "Jo Rivers"), False)],
+            "sealed.verify_hidden_seal": [(True,)],
+            "ledger.verify_chain": [(None,)],
+            "ledger.corpus_digest": [(True,)],
+        }
+    )
+    request = isolation.IsolationGateRequest(
+        git_sha="0" * 40, ig1=(True, "a"), ig2=(True, "b"), ig3=(True, "c"), scan_roots=(root,)
+    )
+    run(isolation.run_isolation_gate(connector(conn), request))
+    evidence = {p[1]: p[3].obj for q, p in conn.executed if "arena.isolation_checks" in q}
+    report = evidence["ig4_hidden_text_scan"]["report"]
+    assert hashlib.sha256(report.encode()).hexdigest() == evidence["ig4_hidden_text_scan"]["hash"]
+    assert f"{root / 'leak.md'}|" in report
+    assert "variants.deceptive.private_packet.canary" in report
+    assert "CANARY-FHID3" not in report
+    assert "C-FHIDD" not in report
+    assert "report" not in evidence["ig5_commitment_verification"]

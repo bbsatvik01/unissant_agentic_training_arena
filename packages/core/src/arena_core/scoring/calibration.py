@@ -5,6 +5,10 @@ Exact `Fraction` arithmetic throughout (S3 1.4; FX-C01's pinned values are exact
 can turn a 0.599999... into a passing 0.60. Reimplemented directly from the spec's own ~15-line formulas
 (irrCAC is an R package, cross-checked once on FX-C01, S3 7.4) rather than adding a new dependency -- the same
 choice `arena_core.scoring.fairness` made for its own statistics.
+
+Deferred to WP-25a (Codex WP-16 r3 #6): the full S3 7.4 report builder over proxy, human and consensus
+observations (inter-human agreement, per-check diagnostics, total-score differences with transcript bootstrap
+intervals, label confusion with per-class precision and recall, false-compliant counts).
 """
 
 from __future__ import annotations

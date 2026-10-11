@@ -26,6 +26,7 @@ from arena_core.referee.isolation import (
     combined_corpus_scan_evidence,
     count_canary_hits,
     ig4_evidence,
+    ig4_report,
     ig5_evidence,
     ig6_evidence,
     report_evidence,
@@ -180,7 +181,9 @@ async def _ig5(connect: Connector) -> tuple[bool, str]:
     return ig5_evidence(chain_verifies=chain_ok, corpus_seal_verifies=corpus_seal_ok, commitments=commitments)
 
 
-async def _record(connect: Connector, evidence: IsolationEvidence, git_sha: str) -> None:
+async def _record(
+    connect: Connector, evidence: IsolationEvidence, git_sha: str, reports: Mapping[str, str] | None = None
+) -> None:
     # Known gap (not fixed this round, Codex finding #2): each item below commits in its own transaction
     # (`db.record_isolation_check`), not all atomically. If a write fails partway through, the NEXT read of
     # `arena.isolation_checks` ("latest row per check_name") would fold this run's successful writes together
@@ -197,6 +200,7 @@ async def _record(connect: Connector, evidence: IsolationEvidence, git_sha: str)
                 candidate_id=evidence.canary_culprit
                 if item == "IG-6" and evidence.canary_culprit != UNATTRIBUTED
                 else None,
+                report=(reports or {}).get(item),
             ),
         )
 
@@ -227,7 +231,7 @@ async def _recompute_and_record(
         },
         canary_culprit=canary.culprit,
     )
-    await _record(connect, evidence, git_sha)
+    await _record(connect, evidence, git_sha, {"IG-4": ig4_report(seal_verifies=seal_ok, scan=scan)})
     return evidence.result()
 
 

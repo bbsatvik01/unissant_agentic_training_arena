@@ -3,6 +3,8 @@ pure `isolation_result`/`canary_audit` (already covered end to end in `scoring/t
 
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 
 from arena_core.referee.isolation import (
@@ -11,6 +13,7 @@ from arena_core.referee.isolation import (
     corpus_scan_evidence,
     count_canary_hits,
     ig4_evidence,
+    ig4_report,
     ig5_evidence,
     ig6_evidence,
     report_evidence,
@@ -128,6 +131,18 @@ def test_ig4_report_never_carries_the_matched_text() -> None:
     assert "CANARY-ccc333" not in scan.report_text
     assert "C-DECEP0002" not in scan.report_text
     assert scan.hit_paths  # the field paths that matched are reported instead
+
+
+def test_the_ig4_report_is_exactly_what_the_hash_covers_and_names_paths_not_text() -> None:
+    corpus = build_corpus(hidden_family(), frozenset())
+    scan = corpus_scan_evidence(corpus, {"prompts/leak.md": "Case C-DECEP0002 shows CANARY-ccc333."})
+    report = ig4_report(seal_verifies=True, scan=scan)
+    _, evidence_hash = ig4_evidence(seal_verifies=True, scan=scan)
+    assert hashlib.sha256(report.encode()).hexdigest() == evidence_hash
+    assert "prompts/leak.md|" in report
+    assert all(path in report for path in scan.hit_paths)
+    assert "CANARY-ccc333" not in report
+    assert "C-DECEP0002" not in report
 
 
 def test_ig5_fails_closed_on_any_unverified_commitment_or_chain_break() -> None:

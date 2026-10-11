@@ -28,6 +28,7 @@ __all__ = [
     "corpus_scan_evidence",
     "count_canary_hits",
     "ig4_evidence",
+    "ig4_report",
     "ig5_evidence",
     "ig6_evidence",
     "report_evidence",
@@ -80,10 +81,15 @@ def ig4_evidence(*, seal_verifies: bool, scan: CorpusScanEvidence) -> tuple[bool
     hidden family field paths that matched, never the matched text itself, L7) is folded into the hashed
     report here so an operator diagnosing a failure can tell which hidden field leaked, and two different
     leaks with the same hit COUNT but different source fields never hash identically."""
-    passed = seal_verifies and scan.passed
+    return seal_verifies and scan.passed, _hash(ig4_report(seal_verifies=seal_verifies, scan=scan))
+
+
+def ig4_report(*, seal_verifies: bool, scan: CorpusScanEvidence) -> str:
+    """The exact text IG-4's evidence hash covers (S1 10.4): seal status, each scanned path with its hit count,
+    and the hidden field paths that matched -- never the matched text (L7). Stored next to the hash so an
+    operator can read which path and field leaked and re-derive the hash."""
     hit_path_lines = "\n".join(scan.hit_paths)
-    report = f"seal_verifies={seal_verifies}\n{scan.report_text}\n{hit_path_lines}"
-    return passed, _hash(report)
+    return f"seal_verifies={seal_verifies}\n{scan.report_text}\n{hit_path_lines}"
 
 
 def ig5_evidence(
