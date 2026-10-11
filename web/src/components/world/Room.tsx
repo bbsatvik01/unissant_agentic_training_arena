@@ -378,7 +378,7 @@ export function Room({ world, documents, clock, still, reducedMotion }: RoomProp
       </mesh>
       {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
-      {world === null ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} />}
+      {world === null ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
       <pointLight position={[0.2, 2.7, 0.4]} intensity={0.6} distance={8} decay={1.5} />
     </group>
   );

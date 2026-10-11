@@ -142,6 +142,24 @@ describe("deriveWorld", () => {
     expect(w?.shot).toBe("mirror");
   });
 
+  it("does not point out a conflict flag whose citation failed the server's check or the shared predicate", () => {
+    const card = when("coach.card", turn(5));
+    const t = card + HAND_MS + 100;
+    const cursor = seek(REC, startCursor(REC), t);
+    const view = cursor.state.view;
+    const last = view?.cards.at(-1);
+    if (view === null || last === undefined) throw new Error("no card");
+    const base = { nowMs: t, arrivals: cursor.arrivals, subjectName: "S", investigatorActive: false, reducedMotion: false, paused: false };
+    const withCard = (c: typeof last.card) => ({ ...view, cards: [...view.cards.slice(0, -1), { ...last, card: c }] });
+    const ref = last.card.flags[0]?.flag_ref ?? "";
+    const serverFailed = withCard({ ...last.card, validation: { ...last.card.validation, flags: { [ref]: { citation_ok: false, demeanor_based: false, duplicate: false } } } });
+    expect(deriveWorld({ ...base, view: serverFailed })?.flag).toBe(null);
+    const notFound = withCard({ ...last.card, flags: last.card.flags.map((f) => ({ ...f, quote: "She said B-10 instead." })) });
+    expect(deriveWorld({ ...base, view: notFound })?.flag).toBe(null);
+    const recordMismatch = withCard({ ...last.card, flags: last.card.flags.map((f) => ({ ...f, conflict_record_quote: "Words the statement never had." })) });
+    expect(deriveWorld({ ...base, view: recordMismatch })?.flag).toBe(null);
+  });
+
   it("stamps the seal when the trial is finalized, then ends with the companion asleep and the debrief ready", () => {
     const finalized = when("trial.finalized");
     const sealing = at(finalized + 100);

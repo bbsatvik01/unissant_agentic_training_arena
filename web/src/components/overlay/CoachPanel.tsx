@@ -45,7 +45,8 @@ function Chip({ turn, quote, ok, onCite }: { turn: number; quote: string; ok: bo
       data-cite={ok ? "ok" : "missing"}
       aria-label={ok ? `Turn ${String(turn)}: ${quote.slice(0, 60)}` : `Quote not found in T${String(turn)}`}
       onClick={() => {
-        onCite(turn, quote);
+        // An unverifiable citation is never highlighted (S6 4.5); its chip only says so.
+        if (ok) onCite(turn, quote);
       }}
     >
       T{turn}
@@ -88,7 +89,8 @@ function Flag({ flag, card, view, records, onCite }: { flag: StoredFlag; card: C
 function Card({ card, view, records, onCite, onUseQuestion, finding }: { card: CoachCard; view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; finding: StoredFinding } & Pick<CoachPanelProps, "onCite" | "onUseQuestion">) {
   const c = card.card;
   const [first, second] = renderFinding(finding);
-  const suggested = c.follow_up.record_request === null ? undefined : records.get(c.follow_up.record_request);
+  const requested = c.follow_up.record_request;
+  const suggested = requested === null ? undefined : (records.get(requested) ?? view.requestable.find((r) => r.record_id === requested));
   return (
     <div className="card-body">
       <dl className="facts">

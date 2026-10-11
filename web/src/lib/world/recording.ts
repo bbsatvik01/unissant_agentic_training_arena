@@ -14,6 +14,9 @@ import { initialTrialState, trialReducer, type TrialState } from "../trial/trial
 
 export const RECORDING_FORMAT = "arena.recording.v1";
 
+/** Playback runs this long past the last event, so a moment it starts (a seal, a pinned record) completes. */
+export const END_TAIL_MS = 3_000;
+
 export interface RecordedEvent {
   readonly at_ms: number;
   readonly frame: TrialFrame;
@@ -46,7 +49,7 @@ export interface Recording {
   readonly snapshot: TrialSnapshot;
   readonly events: readonly RecordedEvent[];
   readonly debrief: Debrief | null;
-  /** The time of the last event. */
+  /** The time of the last event plus a short tail, so the last signature moment plays out (`END_TAIL_MS`). */
   readonly durationMs: number;
 }
 

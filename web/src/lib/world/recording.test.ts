@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import raw from "../../fixtures/recordings/F01-truthful.json";
 import { initialTrialState, trialReducer } from "../trial/trialReducer";
 import { parseRecording } from "./parseRecording";
-import { arrivalKey, noteArrival, seek, startCursor, SNAPSHOT_ARRIVAL, type Recording } from "./recording";
+import { END_TAIL_MS, arrivalKey, noteArrival, seek, startCursor, SNAPSHOT_ARRIVAL, type Recording } from "./recording";
 
 function load(): Recording {
   const result = parseRecording(structuredClone(raw));
@@ -27,7 +27,7 @@ describe("the F01 fixture recording", () => {
     const rec = load();
     expect(rec.events.length).toBeGreaterThan(30);
     expect(rec.debrief?.schema_version).toBe("debrief.v1");
-    expect(rec.durationMs).toBe(rec.events.at(-1)?.at_ms);
+    expect(rec.durationMs).toBe((rec.events.at(-1)?.at_ms ?? 0) + END_TAIL_MS);
   });
 
   it("carries public case metadata only (no role, style or family id before the debrief)", () => {

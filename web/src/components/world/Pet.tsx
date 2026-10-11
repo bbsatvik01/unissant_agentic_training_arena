@@ -5,7 +5,7 @@
  * Decorative: the room's caption carries its state in words.
  */
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, type RefObject } from "react";
 import type { Group } from "three";
 
 import type { PetPose } from "../../lib/companion/fsm";
@@ -17,21 +17,23 @@ interface PetProps {
   readonly pose: PetPose;
   /** Yaw the companion turns to when it notices something (toward the evidence wall and mirror). */
   readonly noticeYaw: number;
+  /** The session clock in ms: one-shots play on it, so playback pause and speed carry them. */
+  readonly clock: RefObject<number>;
 }
 
 function approach(current: number, target: number, rate: number, dt: number): number {
   return current + (target - current) * Math.min(1, rate * dt);
 }
 
-export function Pet({ position, pose, noticeYaw }: PetProps) {
+export function Pet({ position, pose, noticeYaw, clock }: PetProps) {
   const body = useRef<Group>(null);
   const eyes = useRef<Group>(null);
   const started = useRef({ state: pose.state, at: 0 });
 
   useFrame((frame, delta) => {
     const t = frame.clock.elapsedTime;
-    if (started.current.state !== pose.state) started.current = { state: pose.state, at: t };
-    const since = t - started.current.at;
+    if (started.current.state !== pose.state) started.current = { state: pose.state, at: clock.current };
+    const since = (clock.current - started.current.at) / 1000;
     const animate = pose.motion !== "still";
     const dt = animate ? delta : 1;
     const g = body.current;

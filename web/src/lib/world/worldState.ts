@@ -13,6 +13,7 @@
  */
 
 import { activeOneShot, cardSignals, petStateFor, type OneShot, type PetPose } from "../companion/fsm";
+import { contentText, quoteOk } from "../contracts/quote";
 import type { RoomStatus, TrialView } from "../trial/trialReducer";
 import { speechDurationMs } from "./cadence";
 import { SNAPSHOT_ARRIVAL } from "./recording";
@@ -150,8 +151,17 @@ function flagMoment(view: TrialView, input: WorldInput): FlagMoment | null {
   if (view.mode !== "practice") return null;
   const card = view.cards.at(-1);
   if (card === undefined || !within(input.arrivals, `coach.card:${String(card.turn_no)}`, input.nowMs, FLAG_MS)) return null;
+  const answer = (n: number | null) => view.turns.find((t) => t.turn_no === n)?.answer ?? "";
   for (const flag of card.card.flags) {
-    if (flag.kind === "contradiction" || flag.kind === "evidence_conflict") {
+    // Only a verified citation is pointed out (S6 4.5): the server's check and the shared predicate both agree,
+    // for the flagged quote and for the turn or released record it conflicts with.
+    const record = view.released.find((r) => r.record_id === flag.conflict_record_id);
+    const verified =
+      card.card.validation.flags[flag.flag_ref]?.citation_ok !== false &&
+      quoteOk(flag.quote, answer(turnNo(flag.turn_id))) &&
+      (flag.conflict_quote === null || quoteOk(flag.conflict_quote, answer(turnNo(flag.conflict_turn_id)))) &&
+      (flag.conflict_record_quote === null || record === undefined || quoteOk(flag.conflict_record_quote, contentText(record.content)));
+    if (verified && (flag.kind === "contradiction" || flag.kind === "evidence_conflict")) {
       return {
         kind: flag.kind,
         turn: turnNo(flag.turn_id) ?? card.turn_no,

@@ -6,7 +6,7 @@
 
 import type { Debrief } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
-import { RECORDING_FORMAT, type Recording } from "./recording";
+import { END_TAIL_MS, RECORDING_FORMAT, type Recording } from "./recording";
 
 export type RecordingResult = { readonly ok: true; readonly recording: Recording } | { readonly ok: false; readonly errors: readonly string[] };
 
@@ -98,7 +98,7 @@ export function parseRecording(raw: unknown): RecordingResult {
   }
   if (errors.length > 0) return { ok: false, errors };
   const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief"> & { readonly debrief?: Debrief | null };
-  const durationMs = checked.events.at(-1)?.at_ms ?? 0;
+  const durationMs = (checked.events.at(-1)?.at_ms ?? 0) + END_TAIL_MS;
   return { ok: true, recording: { ...checked, debrief: checked.debrief ?? null, durationMs } };
 }
 
