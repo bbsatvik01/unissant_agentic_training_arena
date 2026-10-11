@@ -57,6 +57,7 @@ class Req:
 class Harness:
     def __init__(self, *, identity: DevIdentity | None = WHO, mode: str = "practice") -> None:
         self.db = FakeArenaDb(WHO.user_id, mode=mode)
+        self.db.acks["ex4"] = datetime(2026, 10, 11, tzinfo=UTC)  # acknowledged unless a test says otherwise
         self.subject_error: SubjectUnavailableError | None = None
         self.referee_error: RefereeError | None = None
 
@@ -183,6 +184,7 @@ def test_the_kill_switch_pauses_every_api_route() -> None:
 
 def test_me_sets_the_csrf_cookie_and_reports_the_identity() -> None:
     h = Harness()
+    h.db.acks.clear()
     r = h.get("/api/me")
     body = r.json()
     assert body["user_id"] == str(WHO.user_id)
@@ -542,3 +544,15 @@ def test_an_unscored_voice_debrief_has_no_score() -> None:
     h.db.debriefs[pre] = _debrief(None, scored=False)
     _test_session(h, "post", 6)
     assert h.get("/api/progress").json()["kpi1"] is None
+
+
+def test_a_session_does_not_start_before_the_ex4_acknowledgement() -> None:
+    h = Harness()
+    h.db.acks.clear()
+    body = {"case_id": PACKET["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    refused = h.post("/api/sessions", body)
+    assert refused.status_code == HTTPStatus.FORBIDDEN
+    assert refused.json() == {"code": "ex4_required"}
+    assert "start_session" not in h.db.calls
+    assert h.post("/api/me/ack-ex4").status_code == HTTPStatus.OK
+    assert h.post("/api/sessions", body).status_code == HTTPStatus.OK
