@@ -22,8 +22,16 @@ from arena_core.scoring.rubric import CHECKS
 
 MIN_QUOTE_WORDS = 3
 
+# S2 1's salted untrusted-data boundary (agents/untrusted.py): every field drawn from raw case content --
+# records, documents, the transcript, flags, follow-ups -- reaches the prompt only inside
+# `<untrusted_{kind}_{salt}>...</untrusted_{kind}_{salt}>`, salt a fresh 8 hex chars per call. Extracting a
+# turn/flag/follow-up line from the RAW prompt text (scanning end to end) risks matching the same line shape
+# inside a DIFFERENT section -- a record's or an initial document's own body can legitimately contain a line
+# that reads like "doc-01" alone, or "t01 | ...", or "t01 Subject: ..." -- which would make the reply answer
+# something never actually asked and fail RefAsstContext/RefSubjContext's own completeness check. Each
+# extractor below is scoped to its own tagged block first; nothing is read outside it.
+_SALT = r"[0-9a-f]{8}"
 _ANSWER_LINE = re.compile(r"^(t\d{2}) Subject: (.+)$", re.MULTILINE)
-_INVESTIGATOR_LINE = re.compile(r"^(t\d{2}) Investigator: ", re.MULTILINE)
 _FLAG_REF_LINE = re.compile(r"^(t\d{2}\.f\d) \|", re.MULTILINE)
 _FOLLOWUP_LINE = re.compile(r"^(t\d{2}) \|", re.MULTILINE)
 _CITATION_LINE = re.compile(r"^(t\d{2}|rec-\d{2}|doc-0[1-4])$", re.MULTILINE)
@@ -35,6 +43,22 @@ _REQUIRED_SUBCHECK_IDS = sorted({s for ids in CHECKS.values() for s in ids} - PE
 
 def _user(request: ModelRequest) -> str:
     return request.messages[-1].text if request.messages else ""
+
+
+def _tagged(text: str, kind: str) -> str:
+    """The one `<untrusted_{kind}_{salt}>...</untrusted_{kind}_{salt}>` block's own content, or "" if the
+    request carries none -- never anything outside it."""
+    match = re.search(rf"<untrusted_{kind}_{_SALT}>\n(.*?)\n</untrusted_{kind}_{_SALT}>", text, re.DOTALL)
+    return match.group(1) if match else ""
+
+
+def _citations_block(text: str) -> str:
+    """`finding_citations` (referee_prompts._citation_lines) is rendered directly, not inside an untrusted
+    tag: it is code-derived from a validated `StoredFinding`'s own `cited_turns`/`cited_records`, never raw
+    case text (S2 1's "trusted blocks carry only code-validated identifiers and counts"). Scoped instead by
+    the assistant template's own static headers either side of it (assistant.user.v1.txt)."""
+    match = re.search(r"Finding citations:\n(.*?)\n\nApplicability triggers:", text, re.DOTALL)
+    return match.group(1) if match else ""
 
 
 def _quote_of(answer: str) -> str:
@@ -69,7 +93,7 @@ def subject_reply(request: ModelRequest) -> str:
             "platform_attack": False,
             "evidence_quote": _quote_of(answer.strip()),
         }
-        for turn_id, answer in _ANSWER_LINE.findall(text)
+        for turn_id, answer in _ANSWER_LINE.findall(_tagged(text, "transcript"))
     ]
     report = {"schema_version": "ref_subj.v5", "turns": turns, "trajectory": {"self_consistent": True, "conflicts": []}}
     return json.dumps(report)
@@ -82,7 +106,7 @@ def assistant_reply(request: ModelRequest) -> str:
     text = _user(request)
     flags = [
         {"flag_ref": ref, "quote_relevant": True, "claim_holds": True, "content_based": True, "no_outside_facts": True}
-        for ref in _FLAG_REF_LINE.findall(text)
+        for ref in _FLAG_REF_LINE.findall(_tagged(text, "flags"))
     ]
     followups = [
         {
@@ -94,9 +118,9 @@ def assistant_reply(request: ModelRequest) -> str:
             "on_objective": True,
             "builds_on_previous": True,
         }
-        for turn_id in _FOLLOWUP_LINE.findall(text)
+        for turn_id in _FOLLOWUP_LINE.findall(_tagged(text, "followups"))
     ]
-    citations = [{"cite": cite, "supports_basis": True} for cite in _CITATION_LINE.findall(text)]
+    citations = [{"cite": cite, "supports_basis": True} for cite in _CITATION_LINE.findall(_citations_block(text))]
     subchecks = [{"id": sub_id, "result": "pass", "turn_ids": []} for sub_id in _REQUIRED_SUBCHECK_IDS]
     report = {
         "schema_version": "ref_asst.v2",

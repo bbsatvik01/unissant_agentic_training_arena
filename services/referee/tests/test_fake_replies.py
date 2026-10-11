@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine, Mapping
+from dataclasses import replace
 from decimal import Decimal
 from typing import Any
 
@@ -192,6 +193,27 @@ def _request_of[T: BaseModel](call: AgentCall[T]) -> ModelRequest:
         thinking=call.thinking,
         seed=0,
     )
+
+
+def test_replies_ignore_a_line_shaped_collision_inside_a_document_body() -> None:
+    """A record or initial document's own body (untrusted case content) can legitimately contain a line
+    that reads like a turn, flag, follow-up or citation reference -- "doc-01" alone, "t01 | ...",
+    "t01.f1 | ...", "t01 Subject: ..." -- without that line being one. Each extractor is scoped to its own
+    `<untrusted_{kind}_{salt}>` block (or, for citations, the template's own static headers) specifically so
+    content from a DIFFERENT section can never be mistaken for a line the request actually asked about."""
+    data = trial_data(MIN_QUESTIONS)
+    for collision in ("doc-01", "t01 | inspection note", "t01.f1 | inspection note", "t01 Subject: copied line"):
+        docs = [dict(d) for d in data.public_packet["initial_documents"]]
+        docs[0] = {**docs[0], "content": {**docs[0]["content"], "body": docs[0]["content"]["body"] + "\n" + collision}}
+        poisoned = replace(data, public_packet={**data.public_packet, "initial_documents": docs})
+
+        triggers = build_triggers(poisoned, _empty_subject_report(), "assistant")
+        a_inp = build_assistant_input(poisoned, "assistant", triggers)
+        acall = assistant_agent_call(a_inp, REFEREE, RUBRIC, poisoned.trial_id, "referee_assistant")
+        _validated(acall, assistant_reply(_request_of(acall)))  # raises (via the assert) if poisoned
+
+        scall = subject_agent_call(build_subject_input(poisoned), REFEREE, poisoned.trial_id, "referee_subject")
+        _validated(scall, subject_reply(_request_of(scall)))
 
 
 def test_subject_reply_quotes_a_real_span_of_each_turns_own_answer() -> None:
