@@ -8,6 +8,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { ArenaView } from "../components/overlay/ArenaView";
+import { DemoGuide } from "../components/overlay/DemoGuide";
 import { Onboarding } from "../components/overlay/Onboarding";
 import { ProgressView } from "../components/overlay/ProgressView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
@@ -29,6 +30,7 @@ import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
 import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { followRoom, type DemoStep } from "../lib/demo/demo";
 import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
 import { draftAfterSend } from "../lib/world/live";
 import type { RecordingResult } from "../lib/world/parseRecording";
@@ -92,6 +94,8 @@ export function WorldRoute() {
   const [rightOpen, setRightOpen] = useState(true);
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
+  // The judge demo (`?demo` or the precinct's Guided demo button): its step and when it began.
+  const [demo, setDemo] = useState<{ step: DemoStep; startedAt: number } | null>(() => (new URLSearchParams(window.location.search).has("demo") ? { step: "precinct", startedAt: Date.now() } : null));
   // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
   const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
@@ -334,6 +338,17 @@ export function WorldRoute() {
     },
     [api, playRecording],
   );
+  // The demo's interview: the bundled recorded run (no model call), whatever the server offers.
+  const openDemoRecording = useCallback(() => {
+    void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
+      ([raw, { parseRecording }]) => {
+        playRecording(structuredClone(raw.default), parseRecording);
+      },
+      () => {
+        setFileError("The recorded run could not be loaded.");
+      },
+    );
+  }, [playRecording]);
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
@@ -375,6 +390,8 @@ export function WorldRoute() {
   const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
   const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;
   const showDebrief = place === "room" && debriefReady && !debriefClosed;
+  // The demo's interview step moves on to the debrief by itself once the debrief is up.
+  const demoStep: DemoStep | null = demo === null ? null : followRoom(demo.step, place === "room" && debriefReady);
   // The debrief scene's score cards on the wall: the document's total and five dimension scores, as they are.
   const scoreCards: readonly ScoreCard[] | null = useMemo(() => {
     if (!showDebrief || debrief === null || !debrief.scored || debrief.rubric.total === null) return null;
@@ -417,7 +434,7 @@ export function WorldRoute() {
   })();
 
   return (
-    <div className="app" data-place={place} data-paused={paused ? "true" : "false"}>
+    <div className="app" data-place={place} data-paused={paused ? "true" : "false"} data-demo={demo === null ? "false" : "true"}>
       <header className="topbar">
         <div className="brand">
           <span className="eyebrow">Training arena</span>
@@ -457,6 +474,15 @@ export function WorldRoute() {
                 setShowOnboarding((v) => !v);
               }}>
               Ground rule
+            </button>
+          ) : null}
+          {place === "hub" && demo === null ? (
+            <button type="button" className="btn-secondary-sm" onClick={() => {
+                setDemo({ step: "precinct", startedAt: Date.now() });
+                setShowArena(false);
+                setShowProgress(false);
+              }}>
+              Guided demo
             </button>
           ) : null}
           {place === "hub" ? (
@@ -864,6 +890,54 @@ export function WorldRoute() {
           }}
         />
       ) : null}
+      {demoStep === null || demo === null || mustAcknowledge ? null : (
+        <DemoGuide
+          step={demoStep}
+          startedAt={demo.startedAt}
+          recordingLoaded={mode === "playback" && recording !== null}
+          canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id)}
+          onClose={() => {
+            setDemo(null);
+          }}
+          onBack={demoStep === "precinct" ? null : () => {
+            if (demoStep === "interview") {
+              backToHub();
+              setDemo({ ...demo, step: "precinct" });
+            } else if (demoStep === "debrief") {
+              // Watch the run again from the start.
+              playback.seekTo(0);
+              playback.play();
+            } else {
+              setShowArena(false);
+              openDemoRecording();
+              setDemo({ ...demo, step: "interview" });
+            }
+          }}
+          onNext={() => {
+            if (demoStep === "precinct") {
+              openDemoRecording();
+              setDemo({ ...demo, step: "interview" });
+            } else if (demoStep === "interview" || demoStep === "debrief") {
+              backToHub();
+              openArena();
+              setDemo({ ...demo, step: "arena" });
+            }
+          }}
+          onRecorded={() => {
+            if (mode === "playback" && recording?.case.case_id === RECORDED_CASE_ID) {
+              playback.seekTo(0);
+              playback.play();
+            } else openDemoRecording();
+          }}
+          onFile={openRecordingFile}
+          onLive={() => {
+            startLive("practice");
+          }}
+          onSkip={mode === "playback" && recording !== null && !debriefReady ? () => {
+            playback.seekTo(playback.duration);
+          } : null}
+        />
+      )}
       <footer className="ex4">{EX4_TEXT}</footer>
     </div>
   );

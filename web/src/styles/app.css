@@ -1748,3 +1748,60 @@ td {
     transform: none !important;
   }
 }
+
+.demo-guide {
+  position: fixed;
+  z-index: 7;
+  left: 12px;
+  bottom: 64px;
+  width: min(360px, calc(100vw - 24px));
+  display: grid;
+  gap: var(--arena-space-2);
+  padding: var(--arena-space-4);
+  border-radius: var(--arena-radius-lg);
+  background: var(--arena-glass-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--arena-glass-shadow);
+}
+.demo-guide h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.demo-guide p {
+  margin: 0;
+}
+.demo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--arena-space-2);
+}
+.demo-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--arena-space-2);
+}
+.demo-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--arena-space-2);
+}
+
+.trust-body a,
+.console-top a,
+.arena-view .corrected a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* During the judge demo the arena sits right of the guide card, which keeps the left column. */
+@media (min-width: 900px) {
+  .app[data-demo="true"] .arena-view {
+    left: 384px;
+    right: 12px;
+    width: auto;
+    transform: none;
+  }
+}
