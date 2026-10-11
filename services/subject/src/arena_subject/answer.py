@@ -231,10 +231,12 @@ async def answer(
 
     try:
         result = await port.run(call)
+    # silent-ok: S2 6.10's G0_schema carries no detail beyond its rule tag; the quarantine itself is the record.
     except StructuredOutputError:
         g0 = schema_failure().as_record()
         req = RecordSubjectTurn(trial_id=trial_id, work_item_id=work_item_id, utterance="", tag=None, guard_result=g0)
         return await _finish(record, req)
+    # silent-ok: same as above (S2 6.10's G0_blocked carries no further detail either).
     except ProviderBlockedError:
         g0 = provider_blocked().as_record()
         req = RecordSubjectTurn(trial_id=trial_id, work_item_id=work_item_id, utterance="", tag=None, guard_result=g0)

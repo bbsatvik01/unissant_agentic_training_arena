@@ -72,11 +72,25 @@ def _obj(raw: object, fn: str) -> dict[str, Any]:
     return cast("dict[str, Any]", parsed)
 
 
-def _field(raw: dict[str, Any], key: str, fn: str) -> Any:  # noqa: ANN401 - the jsonb payload is untyped by design
-    if key not in raw:
-        msg = f"{fn}: missing {key}"
+def _require(raw: dict[str, Any], keys: tuple[str, ...], fn: str) -> None:
+    missing = [key for key in keys if key not in raw]
+    if missing:
+        msg = f"{fn}: missing {', '.join(missing)}"
         raise GuardProtocolError(msg)
-    return raw[key]
+
+
+_TURN_CONTEXT_FIELDS = (
+    "trial_id",
+    "turn_no",
+    "transcript_version",
+    "exchanges",
+    "private_packet",
+    "public_packet",
+    "transcript",
+    "released_evidence",
+    "disclosure_state",
+    "subject_manifest",
+)
 
 
 async def turn_context(conn: Conn, trial_id: UUID, work_item_id: UUID) -> TurnContext:
@@ -90,18 +104,19 @@ async def turn_context(conn: Conn, trial_id: UUID, work_item_id: UUID) -> TurnCo
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)
     raw = _obj(row[0], fn)
+    _require(raw, _TURN_CONTEXT_FIELDS, fn)
     try:
         return TurnContext(
-            trial_id=UUID(str(_field(raw, "trial_id", fn))),
-            turn_no=int(_field(raw, "turn_no", fn)),
-            transcript_version=int(_field(raw, "transcript_version", fn)),
-            exchanges=int(_field(raw, "exchanges", fn)),
-            private_packet=_field(raw, "private_packet", fn),
-            public_packet=_field(raw, "public_packet", fn),
-            transcript=_field(raw, "transcript", fn),
-            released_evidence=_field(raw, "released_evidence", fn),
-            disclosure_state=_field(raw, "disclosure_state", fn),
-            subject_manifest=_field(raw, "subject_manifest", fn),
+            trial_id=UUID(str(raw["trial_id"])),
+            turn_no=int(raw["turn_no"]),
+            transcript_version=int(raw["transcript_version"]),
+            exchanges=int(raw["exchanges"]),
+            private_packet=raw["private_packet"],
+            public_packet=raw["public_packet"],
+            transcript=raw["transcript"],
+            released_evidence=raw["released_evidence"],
+            disclosure_state=raw["disclosure_state"],
+            subject_manifest=raw["subject_manifest"],
         )
     except (TypeError, ValueError) as exc:
         msg = f"{fn}: malformed result ({exc})"
@@ -127,13 +142,14 @@ async def record_subject_turn(conn: Conn, req: RecordSubjectTurn) -> RecordResul
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)
     raw = _obj(row[0], fn)
-    outcome = _field(raw, "outcome", fn)
+    _require(raw, ("outcome", "turn_no"), fn)
+    outcome = raw["outcome"]
     if outcome not in get_args(RecordOutcome):
         msg = f"{fn}: unknown outcome {outcome!r}"
         raise GuardProtocolError(msg)
     version = raw.get("transcript_version")
     return RecordResult(
         outcome=cast("RecordOutcome", outcome),
-        turn_no=int(_field(raw, "turn_no", fn)),
+        turn_no=int(raw["turn_no"]),
         transcript_version=None if version is None else int(version),
     )

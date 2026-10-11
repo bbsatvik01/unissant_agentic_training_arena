@@ -1,8 +1,10 @@
-"""arena-subject application factory: `GET /api/health` and `POST /internal/answer` (S2 6.10; S5 1, 5.2, 5.5).
+"""arena-subject application factory: `POST /internal/answer` (S2 6.10; S5 1, 5.2, 5.5).
 
-`arena-subject` is internal-only (S5 5.5: "never reachable from a browser"), so this app has no CORS, no static
-serving and no OpenAPI UI; its one real route is authenticated by `arena_subject.internal_auth`, the local
-stand-in for the Host/Origin/CSRF policy `arena_core.http_guard` applies to the browser-facing services (WP-13).
+`arena-subject` is internal-only (S5 5.5: its route table has exactly `/internal/answer` and
+`/internal/voice/ws`, "never reachable from a browser"), so this app has no CORS, no static serving, no
+OpenAPI UI and no extra route beyond the one S5 5.5 names; its one real route is authenticated by
+`arena_subject.internal_auth`, the local stand-in for the Host/Origin/CSRF policy `arena_core.http_guard`
+applies to the browser-facing services (WP-13).
 """
 
 from __future__ import annotations
@@ -75,10 +77,6 @@ def _response(outcome: AnswerOutcome) -> AnswerResponse:
 
 def create_app(state: AppState) -> FastAPI:
     app = FastAPI(title="arena-subject", docs_url=None, redoc_url=None, openapi_url=None)
-
-    @app.get("/api/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
 
     async def _get_context(trial_id: UUID, work_item_id: UUID) -> db_subject.TurnContext:
         async with state.connect() as conn:

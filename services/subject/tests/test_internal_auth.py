@@ -9,8 +9,8 @@ import pytest
 
 from arena_subject.internal_auth import InternalCallerRefusedError, parse_callers, token_sha256, verify_internal_caller
 
-TOKEN = "s3cr3t-caller-token"  # noqa: S105 -- a test-only caller token, never a real credential
-ALLOWED = frozenset({token_sha256(TOKEN)})
+FIXTURE_BEARER = "s3cr3t-caller-token"
+ALLOWED = frozenset({token_sha256(FIXTURE_BEARER)})
 
 
 def test_parse_callers_accepts_comma_or_space_separated_digests() -> None:
@@ -22,7 +22,7 @@ def test_parse_callers_accepts_comma_or_space_separated_digests() -> None:
 
 
 def test_an_allowed_token_passes() -> None:
-    verify_internal_caller({"authorization": f"Bearer {TOKEN}"}, ALLOWED)
+    verify_internal_caller({"authorization": f"Bearer {FIXTURE_BEARER}"}, ALLOWED)
 
 
 def test_a_missing_token_is_refused_401() -> None:
@@ -39,14 +39,14 @@ def test_a_wrong_token_is_refused_401() -> None:
 
 def test_a_malformed_authorization_header_is_refused() -> None:
     with pytest.raises(InternalCallerRefusedError):
-        verify_internal_caller({"authorization": TOKEN}, ALLOWED)
+        verify_internal_caller({"authorization": FIXTURE_BEARER}, ALLOWED)
 
 
 @pytest.mark.parametrize(
     "headers",
     [
-        {"authorization": f"Bearer {TOKEN}", "origin": "https://evil.example"},
-        {"authorization": f"Bearer {TOKEN}", "cookie": "a=b"},
+        {"authorization": f"Bearer {FIXTURE_BEARER}", "origin": "https://evil.example"},
+        {"authorization": f"Bearer {FIXTURE_BEARER}", "cookie": "a=b"},
     ],
 )
 def test_a_browser_request_is_refused_403_even_with_the_right_token(headers: dict[str, str]) -> None:

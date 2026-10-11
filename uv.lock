@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.12.*"
 
 [options]
-exclude-newer = "2026-10-04T10:14:17.326932Z"
+exclude-newer = "2026-10-04T10:53:38.035609Z"
 exclude-newer-span = "P7D"
 
 [manifest]
@@ -107,8 +107,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arena-core", editable = "packages/core" },
-    { name = "fastapi", specifier = ">=0.141.1" },
-    { name = "uvicorn", specifier = ">=0.54.0" },
+    { name = "fastapi", specifier = "==0.141.1" },
+    { name = "uvicorn", specifier = "==0.54.0" },
 ]
 
 [[package]]

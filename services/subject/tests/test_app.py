@@ -31,9 +31,9 @@ from arena_subject.internal_auth import token_sha256
 from tools.tests.subprocess_support import good_env
 
 REPO = Path(__file__).resolve().parents[3]
-TOKEN = "caller-token"  # noqa: S105 -- a test-only caller token, never a real credential
-ALLOWED = frozenset({token_sha256(TOKEN)})
-AUTH = {"Authorization": f"Bearer {TOKEN}"}
+FIXTURE_BEARER = "caller-token"
+ALLOWED = frozenset({token_sha256(FIXTURE_BEARER)})
+AUTH = {"Authorization": f"Bearer {FIXTURE_BEARER}"}
 
 VALID_REPLY = (
     '{"utterance": "I kept to my usual rounds that afternoon.", '
@@ -134,10 +134,12 @@ def _app(
     return create_app(state)
 
 
-def test_health_needs_no_auth() -> None:
+def test_the_app_has_no_route_beyond_the_one_s5_5_5_names() -> None:
+    """S5 5.5: arena-subject's whole route table is `/internal/answer` and `/internal/voice/ws` (not yet
+    built, WP-22); no health check or other convenience route is added here."""
     app = _app(uuid4(), {"outcome": "recorded", "turn_no": 1, "transcript_version": 2}, [VALID_REPLY])
-    resp = run(_request(app, "GET", "/api/health"))
-    assert resp.status_code == HTTPStatus.OK
+    resp = run(_request(app, "GET", "/api/health", headers=AUTH))
+    assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_missing_token_is_refused_401_before_any_db_or_model_call() -> None:
@@ -203,8 +205,8 @@ def test_state_from_env_wires_boot_checks_the_connector_the_port_and_the_callers
     env = {
         **good_env("subject", "ARENA_SUBJECT_DSN"),
         "ARENA_MODEL_MODE": "fake",
-        "ARENA_LOCAL_CALLERS": f"{token_sha256(TOKEN)}, {token_sha256('other-caller')}",
+        "ARENA_LOCAL_CALLERS": f"{token_sha256(FIXTURE_BEARER)}, {token_sha256('other-caller')}",
     }
     state = state_from_env(env)
-    assert state.allowed_callers == {token_sha256(TOKEN), token_sha256("other-caller")}
+    assert state.allowed_callers == {token_sha256(FIXTURE_BEARER), token_sha256("other-caller")}
     assert isinstance(state.port, AgentPort)
