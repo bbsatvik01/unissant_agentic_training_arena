@@ -12,6 +12,7 @@
 | WP-05 port | MERGED (8ab36a8) | done |
 | WP-12 subject | MERGED | pilot via WP-13 (D-024) |
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
+| WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
 | WP-13 orchestrator (ad05fb8f3c14649dc, Opus, wt-wp13-orch) | building: routes, SSE, D-021 export-run, D-024 actor, local launcher | review, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
