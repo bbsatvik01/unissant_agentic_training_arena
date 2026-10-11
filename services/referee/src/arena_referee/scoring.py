@@ -194,26 +194,32 @@ async def run_r1(
     stage_key = f"{data.trial_id}:{purpose}"
     stored = await deps.get_judgment(stage_key)
     if stored is not None:
-        raw = RefereeSubjectReport.model_validate(stored)
+        # `apply_quote_check` blanks an invalid `evidence_quote` to "" (S2 7.2); re-running it on an
+        # already-blanked report cannot tell "no quote given" from "had a quote that didn't match" (both
+        # read as falsy) and would recompute the wrong rationale for that turn's label, so the stored
+        # judgment carries the original check's `quote_invalid` turn IDs alongside the report and both are
+        # read back directly rather than re-derived.
+        report = RefereeSubjectReport.model_validate(stored["report"])
+        invalid = frozenset(stored["quote_invalid"])
     elif not data.transcript:
-        raw = empty_subject_report()
+        report, invalid = empty_subject_report(), frozenset()
     else:
         inp = build_subject_input(data)
         call = subject_agent_call(inp, prompts, data.trial_id, purpose)
         raw = await deps.run_subject_call(call)
-    # `apply_quote_check` is idempotent on its own output (an already-blanked quote stays blanked, a valid
-    # one stays valid), so re-deriving it -- and the labels and judgment below -- from a *stored* report on
-    # resume reaches the exact same content the first attempt did. Both stores then run on every call, never
-    # only on the fresh-model-call path: a process that died between `store_labels` and `store_judgment`
-    # (or never reached either) resumes by re-submitting the same content, which the underlying S4 functions
-    # accept as 'exists' rather than refusing with AR003 -- the one-sided version of this (store_labels only
-    # in the fresh-call branch) left a trial permanently wedged if any retry's model output differed even
-    # slightly from the interrupted attempt's.
-    answers = {turn_id(t["turn_no"]): t["answer"] for t in data.transcript}
-    report, invalid = apply_quote_check(raw, answers)
+        answers = {turn_id(t["turn_no"]): t["answer"] for t in data.transcript}
+        report, invalid = apply_quote_check(raw, answers)
+    # The judgment is stored BEFORE the labels, and both run on every call, never only on the fresh-model-
+    # call path: a crash between the two stores (or before either) resumes into the `stored is not None`
+    # branch above once the judgment lands, re-deriving the exact same labels from it deterministically and
+    # storing them for the first time -- never a second, possibly different, model call racing against
+    # labels a first attempt already committed. Labels-before-judgment (the one-sided version of this) left
+    # a trial permanently wedged: a crash after labels landed but before the judgment did meant every retry
+    # re-called the model, and any output drift tripped AR003 against the labels already on record.
+    payload = {"report": report.model_dump(mode="json"), "quote_invalid": sorted(invalid)}
+    await deps.store_judgment(data.trial_id, "fidelity_detail", None, payload, stage_key)
     labels = adapt_subject_report(report, invalid)
     await deps.store_labels(data.trial_id, "model", independent_label_rows(labels), deps.prompt_sha256)
-    await deps.store_judgment(data.trial_id, "fidelity_detail", None, report.model_dump(mode="json"), stage_key)
     # The validity decision is recomputed on every call (pure and cheap from the stored report); on resume
     # `adjudicate_valid` reaches the same idempotent S4 function with the same evidence_ref, so a repeat is
     # a no-op (ledger.adjudicate_validity returns the existing adjudication for a reused key).

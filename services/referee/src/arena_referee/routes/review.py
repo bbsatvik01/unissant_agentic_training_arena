@@ -44,5 +44,9 @@ async def submit_item(
         return dict(await review.submit_item(request.app.state.connect, item_id, identity.user_id, submission))
     except review.ReviewItemNotFoundError as exc:
         raise HTTPException(status_code=404, detail="no such review item") from exc
+    except review.ReviewItemCorruptError as exc:
+        # Never str(exc) here: the underlying pydantic message can include a stored, rejected field's
+        # value, which could be exactly the content review items exist to keep out of the rater's sight.
+        raise HTTPException(status_code=500, detail="review item is malformed") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

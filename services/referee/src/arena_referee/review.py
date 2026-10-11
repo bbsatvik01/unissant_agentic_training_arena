@@ -24,6 +24,8 @@ from collections.abc import Mapping
 from typing import Any, cast
 from uuid import UUID
 
+from pydantic import ValidationError
+
 from arena_core.contracts.common import turn_id
 from arena_core.contracts.referee import RefAsstContext, RefSubjContext
 from arena_core.contracts.review import (
@@ -51,6 +53,13 @@ _SUBMISSION_MODELS: dict[str, type[ReviewSubmission]] = {
 
 class ReviewItemNotFoundError(LookupError):
     """No item with this id is assigned to this rater (S5 5.5: no existence oracle for someone else's item)."""
+
+
+class ReviewItemCorruptError(RuntimeError):
+    """A stored item does not validate as its own typed shape -- a storage-layer defect, never the rater's
+    own input, so its message is never echoed to a caller (pydantic's own validation message can include
+    the offending field's value, which could be exactly the content review items exist to keep out of the
+    rater's sight, S3 7.3's own invariant: never a role, outcome, candidate or participant identity)."""
 
 
 def parse_item(payload: Mapping[str, Any]) -> ReviewItem:
@@ -113,6 +122,10 @@ async def submit_item(
     payload = await db.get_review_item(connect, item_id, rater_user_id)
     if payload is None:
         raise ReviewItemNotFoundError(str(item_id))
-    item = parse_item(payload)
+    try:
+        item = parse_item(payload)
+    except ValidationError as exc:
+        msg = f"stored review item {item_id} does not validate as its own task shape"
+        raise ReviewItemCorruptError(msg) from exc
     submission = parse_submission(item.task, raw_submission, context=context_for(item))
     return await db.submit_review_item(connect, item_id, rater_user_id, submission.model_dump(mode="json"))

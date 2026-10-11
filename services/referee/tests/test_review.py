@@ -209,3 +209,21 @@ def test_submit_item_rejects_a_t_flag_submission_naming_an_unrelated_flag(monkey
     }
     with pytest.raises(Exception, match="flags"):
         run(review.submit_item(_connector, ITEM, RATER, bogus))
+
+
+def test_submit_item_on_a_corrupt_stored_item_never_echoes_its_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A stored item that fails its own typed validation (e.g. a forbidden extra field a sampler bug put
+    there) must raise a generic error, never one whose message could carry the offending field's value --
+    review items exist specifically to keep that content out of the rater's sight (S3 7.3)."""
+
+    async def fake_get(_connect: object, _item_id: UUID, _rater_user_id: UUID) -> dict[str, Any]:
+        return {
+            **LAB_PAYLOAD,
+            "private_packet": {"role": "deceptive", "hidden_note": "should never reach a rater"},
+        }
+
+    monkeypatch.setattr(db, "get_review_item", fake_get)
+    with pytest.raises(review.ReviewItemCorruptError) as exc_info:
+        run(review.submit_item(_connector, ITEM, RATER, LAB_SUBMISSION))
+    assert "should never reach a rater" not in str(exc_info.value)
+    assert "hidden_note" not in str(exc_info.value)

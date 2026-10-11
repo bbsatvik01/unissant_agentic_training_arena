@@ -4,6 +4,7 @@ database, no model call."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import Awaitable, Callable, Coroutine, Mapping
 from dataclasses import replace
 from typing import Any
@@ -151,10 +152,10 @@ def assistant_report() -> RefereeAssistantReport:
 class FakeDeps:
     """Records call order and resumes from a fake judgment store, exactly as `ScoringDeps` requires.
 
-    `run_subject_call`/`run_assistant_call` are plain instance attributes (assigned in `__init__`, not
-    defined as methods on the class) so a test can swap one out for a scripted callable with the same
-    signature by ordinary attribute assignment -- no `type: ignore[method-assign]` needed, since mypy's
-    method-assignment restriction only applies to functions defined on the class itself.
+    `run_subject_call`/`run_assistant_call`/`store_labels` are plain instance attributes (assigned in
+    `__init__`, not defined as methods on the class) so a test can swap one out for a scripted callable with
+    the same signature by ordinary attribute assignment -- no `type: ignore[method-assign]` needed, since
+    mypy's method-assignment restriction only applies to functions defined on the class itself.
     """
 
     def __init__(self) -> None:
@@ -168,6 +169,7 @@ class FakeDeps:
         self.run_assistant_call: Callable[[AgentCall[RefereeAssistantReport]], Awaitable[RefereeAssistantReport]] = (
             self._default_assistant_call
         )
+        self.store_labels: Callable[[str, str, list[dict[str, Any]], str], Awaitable[None]] = self._default_store_labels
 
     async def fetch_trial_data(self, trial_id: str) -> TrialData:
         assert trial_id == trial_data().trial_id
@@ -176,7 +178,9 @@ class FakeDeps:
     async def get_judgment(self, key: str) -> Mapping[str, Any] | None:
         return self.judgments.get(key)
 
-    async def store_labels(self, trial_id: str, labeler: str, rows: list[dict[str, Any]], prompt_sha256: str) -> None:
+    async def _default_store_labels(
+        self, trial_id: str, labeler: str, rows: list[dict[str, Any]], prompt_sha256: str
+    ) -> None:
         self.labels.append((trial_id, labeler, rows, prompt_sha256))
 
     async def store_judgment(
@@ -303,6 +307,59 @@ def test_run_r1_resuming_from_a_stored_report_re_derives_identical_labels() -> N
     assert len(fake.labels) == expected_label_calls  # store_labels ran again on resume (the fix), not skipped
     assert fake.labels[1][2] == first_rows  # identical content: the real SQL would accept it, never AR003
     assert fake.judgments[f"{trial_data().trial_id}:referee_subject"] == first_judgment
+
+
+def test_run_r1_resuming_a_report_with_a_quote_invalid_turn_keeps_the_same_rationale() -> None:
+    """`apply_quote_check` blanks an invalid `evidence_quote` to "" (S2 7.2); re-running the check on an
+    already-blanked report cannot tell "no quote given" from "had a quote that didn't match" -- both read
+    as falsy -- and would recompute the wrong rationale for that turn's label on resume, which the real SQL
+    would then reject as different content (AR003). The fix stores and reads back which turns were
+    quote-invalid directly, instead of re-deriving it from the (by then blanked) report."""
+    fake = FakeDeps()
+    bad_quote_report = subject_report().model_copy(
+        update={"turns": [subject_report().turns[0].model_copy(update={"evidence_quote": "not in the answer"})]}
+    )
+
+    async def bad_quote_call(_call: AgentCall[RefereeSubjectReport]) -> RefereeSubjectReport:
+        fake.calls.append("r1")
+        return bad_quote_report
+
+    fake.run_subject_call = bad_quote_call
+    run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    first_rows = fake.labels[0][2]
+    assert first_rows[0]["rationale"] == "no quote: quote did not match"
+
+    # Resume: the stored report already has this turn's quote blanked to "".
+    run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    assert fake.calls == ["r1"]  # no second model call
+    assert fake.labels[1][2] == first_rows  # same rationale on resume, not "no quote given"
+
+
+def test_run_r1_crash_between_judgment_and_labels_resumes_without_a_second_model_call() -> None:
+    """The judgment is stored before the labels specifically so a crash between the two resumes
+    deterministically from the already-committed judgment, never by re-calling the model (whose output
+    could differ and then conflict with labels a first attempt already committed, AR003)."""
+    fake = FakeDeps()
+    attempts = 0
+
+    async def flaky_store_labels(trial_id: str, labeler: str, rows: list[dict[str, Any]], prompt_sha256: str) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            msg = "connection lost after the judgment landed"
+            raise ConnectionError(msg)
+        fake.labels.append((trial_id, labeler, rows, prompt_sha256))
+
+    fake.store_labels = flaky_store_labels
+    with contextlib.suppress(ConnectionError):
+        run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    assert fake.calls == ["r1"]
+    assert len(fake.labels) == 0  # the simulated crash prevented the first attempt's store
+
+    # Resume: the judgment already landed before the simulated crash.
+    run(_run_r1(fake.deps(), trial_data(), REFEREE, "referee_subject"))
+    assert fake.calls == ["r1"]  # still no second model call
+    assert len(fake.labels) == 1  # labels now stored, successfully, on the repair attempt
 
 
 def test_run_r2_resuming_repairs_a_missing_questioning_quality_row() -> None:
