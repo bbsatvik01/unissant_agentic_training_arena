@@ -11,10 +11,10 @@ from fractions import Fraction
 from typing import Any
 
 from arena_core.referee.leaderboard import TrialScore
-from arena_core.scoring.inclusion import Exec
+from arena_core.scoring.inclusion import Exec, SubjInc
 from arena_core.scoring.kpi import LatencyRow
 from arena_referee.db import StoredTrialJudgments, TrialFacts
-from arena_referee.leaderboard import candidate_inputs, trial_score
+from arena_referee.leaderboard import candidate_inputs, subject_inputs, trial_score
 from arena_referee.mapping import TrialData
 
 TWO = 2
@@ -267,3 +267,27 @@ def test_candidate_inputs_attach_scores_and_latency_to_each_included_trial() -> 
     [candidate] = candidate_inputs(facts, {"t1": score, "t3": score}, latency)
     assert list(candidate.scored) == [score, TrialScore(family_id="F01")]
     assert [r.trial_id for r in candidate.latency] == ["t1"]
+
+
+def test_subject_inputs_group_by_subject_skip_replay_rows_and_read_r1_labels() -> None:
+    r1 = {
+        "report": {
+            "schema_version": "ref_subj.v5",
+            "turns": [_r1_turn(1), {**_r1_turn(2), "no_invention": False}],
+            "trajectory": {"self_consistent": True, "conflicts": []},
+        },
+        "quote_invalid": [],
+    }
+    facts = [
+        dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1"),
+        dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2", verdict="subject_invalid"),
+        dataclasses.replace(BASE, planned_trial_id="p3", trial_id="t3", track="replay"),  # re-reads a corpus row
+        dataclasses.replace(BASE, planned_trial_id="p4", trial_id="t4", subject_id="S2", assistant_id=None),
+    ]
+    by_id = {c.candidate_id: c for c in subject_inputs(facts, {"t1": r1})}
+    assert set(by_id) == {"S1", "S2"}
+    first, second = by_id["S1"].trials
+    assert first.output == "truthful"
+    assert first.labels is not None
+    assert [lab.compliant for lab in first.labels.values()] == [True, False]
+    assert (second.output, second.labels, second.subj_inc) == (None, None, SubjInc.AGAINST_SUBJECT)

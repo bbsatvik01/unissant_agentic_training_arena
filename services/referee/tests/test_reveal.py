@@ -109,7 +109,9 @@ def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> N
     )
     result = run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
     assert result.manifest_version == 1
-    [insert] = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    insert, subject_insert = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    assert (insert[2], subject_insert[2]) == ("assistant", "subject")  # both boards, same manifest and label
+    assert (subject_insert[1], subject_insert[3]) == (insert[1], insert[3])
     assert insert[3] == "original"
     assert insert[4].obj["binding"]["manifest_version"] == 1
 
@@ -142,7 +144,9 @@ def test_seal_correction_and_publish_writes_a_corrected_leaderboard_on_the_new_v
     )
     result = run(reveal.seal_correction_and_publish(connector(conn), TOURNAMENT, ctx()))
     assert result.manifest_version == CORRECTED_VERSION
-    [insert] = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    insert, subject_insert = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    assert (insert[2], subject_insert[2]) == ("assistant", "subject")  # both boards, same manifest and label
+    assert (subject_insert[1], subject_insert[3]) == (insert[1], insert[3])
     assert insert[3] == "corrected"
     assert insert[4].obj["binding"]["manifest_version"] == CORRECTED_VERSION
 
@@ -170,7 +174,9 @@ def test_reveal_publishes_qq_from_each_trial_s_stored_judgments(monkeypatch: pyt
     )
     run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
     assert seen == [("F01", sentinel)]
-    [insert] = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    insert, subject_insert = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    assert (insert[2], subject_insert[2]) == ("assistant", "subject")  # both boards, same manifest and label
+    assert (subject_insert[1], subject_insert[3]) == (insert[1], insert[3])
     [row] = insert[4].obj["rows"]
     m09 = row["metrics"]["M09_questioning_quality"]
     assert Fraction(m09["point"]["num"], m09["point"]["den"]) == Fraction(3, 4)

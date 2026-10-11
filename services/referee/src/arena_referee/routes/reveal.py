@@ -98,11 +98,13 @@ async def leaderboard_route(
     request: Request,
     _identity: Annotated[DevIdentity, Depends(require_console_role)],
     label: Literal["original", "corrected"] = "original",
+    board: Literal["assistant", "subject"] = "assistant",
 ) -> dict[str, object]:
-    """The published body verbatim (D-020: nothing added, nothing the spec lacks)."""
-    body = await db.fetch_leaderboard(request.app.state.connect, str(tournament_id), label=label)
+    """The published body verbatim (D-020: nothing added, nothing the spec lacks); `board` selects the assistant
+    or the subject leaderboard (S3 5.6)."""
+    body = await db.fetch_leaderboard(request.app.state.connect, str(tournament_id), board=board, label=label)
     if body is None:
-        raise HTTPException(status_code=404, detail=f"no {label} leaderboard for tournament {tournament_id}")
+        raise HTTPException(status_code=404, detail=f"no {label} {board} leaderboard for tournament {tournament_id}")
     return dict(body)
 
 

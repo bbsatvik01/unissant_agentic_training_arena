@@ -1,6 +1,6 @@
 """Referee operations around S4 `reveal` and `seal_corrected_manifest` (S3 4.4, 5.5-5.6; direction 4.2;
-WP-16): reveal (or a later correction), then publish the assistant leaderboard bound to the manifest version
-that operation just sealed.
+WP-16): reveal (or a later correction), then publish the assistant and subject leaderboards bound to the
+manifest version that operation just sealed.
 
 `reveal_tournament`/`seal_corrected_manifest` and `_publish`'s own read of live trial facts are two
 separate round trips, not one transaction: on this 1-2-concurrent-user, operator-triggered system that
@@ -18,13 +18,20 @@ those facts come from.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from arena_core.db.pool import Connector
-from arena_core.referee.leaderboard import Binding, TrialScore, build_assistant_leaderboard
+from arena_core.referee.leaderboard import (
+    Binding,
+    TrialScore,
+    build_assistant_leaderboard,
+    build_subject_leaderboard,
+)
 from arena_core.scoring.ranking import IsolationResult
 from arena_referee import db
-from arena_referee.leaderboard import candidate_inputs, trial_score
+from arena_referee.leaderboard import candidate_inputs, subject_inputs, trial_score
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -79,6 +86,11 @@ async def _publish(
     connect: Connector, tournament_id: str, result: db.RevealResult, label: str, ctx: PublishContext
 ) -> None:
     facts = await db.fetch_tournament_trial_facts(connect, tournament_id)
+    r1: dict[str, Mapping[str, Any]] = {}
+    for trial_id in sorted({f.trial_id for f in facts if f.subject_id is not None and f.trial_id is not None}):
+        payload = await db.get_judgment(connect, f"{trial_id}:referee_subject")
+        if payload is not None:
+            r1[trial_id] = payload
     trial_ids = sorted({f.trial_id for f in facts if f.assistant_id is not None and f.trial_id is not None})
     scores: dict[str, TrialScore] = {}
     family_of = {f.trial_id: f.family_id for f in facts if f.trial_id is not None}
@@ -103,12 +115,16 @@ async def _publish(
         qq_calibrated=ctx.qq_calibrated,
         binding=binding,
     )
-    await db.write_leaderboard(
-        connect,
-        db.LeaderboardRow(
-            tournament_id=tournament_id, manifest_id=result.manifest_id, board="assistant", label=label, body=body
-        ),
+    subject_body = build_subject_leaderboard(
+        candidates=subject_inputs(facts, r1), isolation=ctx.isolation, binding=binding
     )
+    for board, board_body in (("assistant", body), ("subject", subject_body)):
+        await db.write_leaderboard(
+            connect,
+            db.LeaderboardRow(
+                tournament_id=tournament_id, manifest_id=result.manifest_id, board=board, label=label, body=board_body
+            ),
+        )
 
 
 async def reveal_and_publish(connect: Connector, tournament_id: str, ctx: PublishContext) -> db.RevealResult:

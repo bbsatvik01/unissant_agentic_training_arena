@@ -662,12 +662,12 @@ def test_leaderboard_route_needs_a_console_identity(tmp_path: Path) -> None:
 def test_leaderboard_route_returns_the_published_body(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     app = make_app(tmp_path)
 
-    async def fake_fetch(_connect: object, _tournament_id: str, *, label: str) -> dict[str, Any]:
-        assert label == "corrected"
+    async def fake_fetch(_connect: object, _tournament_id: str, *, board: str, label: str) -> dict[str, Any]:
+        assert (board, label) == ("subject", "corrected")
         return {"status": "definitive", "rows": []}
 
     monkeypatch.setattr(db, "fetch_leaderboard", fake_fetch)
-    resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard?label=corrected"))
+    resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard?label=corrected&board=subject"))
     assert resp.status_code == httpx.codes.OK
     assert resp.json() == {"status": "definitive", "rows": []}
 
@@ -675,8 +675,8 @@ def test_leaderboard_route_returns_the_published_body(tmp_path: Path, monkeypatc
 def test_leaderboard_route_404s_before_any_board_is_published(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     app = make_app(tmp_path)
 
-    async def fake_fetch(_connect: object, _tournament_id: str, *, label: str) -> None:
-        assert label == "original"
+    async def fake_fetch(_connect: object, _tournament_id: str, *, board: str, label: str) -> None:
+        assert (board, label) == ("assistant", "original")
 
     monkeypatch.setattr(db, "fetch_leaderboard", fake_fetch)
     resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard"))
