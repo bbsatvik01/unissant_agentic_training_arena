@@ -97,6 +97,7 @@ def trial_fact_row() -> tuple[Any, ...]:
         "truthful",
         "0.01",
         "00000000-0000-0000-0000-0000000000e1",
+        "variant:subject:1",
     )
 
 

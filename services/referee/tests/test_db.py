@@ -618,6 +618,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
                     "truthful",
                     "0.05",
                     "00000000-0000-0000-0000-0000000000b3",
+                    "variant:subject:1",
                 )
             ]
         }
@@ -630,6 +631,7 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
     assert fact.classification == "truthful"
     assert fact.settled_cost == Decimal("0.05")
     assert fact.trial_id == "00000000-0000-0000-0000-0000000000b3"
+    assert fact.cell == "variant:subject:1"
     # M22's only cost source is the call receipts (S3 5.3), never a reservation's settlement (Codex r4 #3).
     query = next(q for q, _ in conn.executed if "ledger.planned_execution" in q)
     assert "sum(c.cost_usd) from ops.model_calls c" in query

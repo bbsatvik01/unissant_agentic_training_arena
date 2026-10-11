@@ -285,8 +285,8 @@ def test_r2_and_the_scorer_share_the_proposal_population_when_a_card_never_came(
 def test_candidate_inputs_attach_scores_and_latency_to_each_included_trial() -> None:
     commit = datetime(2026, 10, 1, tzinfo=UTC)
     facts = [
-        dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1"),
-        dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2"),  # included, never scored
+        dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1", cell="c1"),
+        dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2", cell="c2"),  # included, never scored
         dataclasses.replace(BASE, planned_trial_id="p3", trial_id="t3", verdict="subject_invalid"),  # excluded
     ]
     score = TrialScore(family_id="F01", qq=Fraction(1, 2))
@@ -296,6 +296,7 @@ def test_candidate_inputs_attach_scores_and_latency_to_each_included_trial() -> 
     ]
     [candidate] = candidate_inputs(facts, {"t1": score, "t3": score}, latency)
     assert list(candidate.scored) == [score, TrialScore(family_id="F01")]
+    assert list(candidate.cells) == ["c1", "c2"]  # aligned with the included trials
     assert [r.trial_id for r in candidate.latency] == ["t1"]
 
 

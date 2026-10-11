@@ -557,6 +557,7 @@ class TrialFacts:
     classification: str | None
     settled_cost: Decimal
     trial_id: str | None = None  # the latest attempt (`ledger.planned_execution`); None before any attempt
+    cell: str = ""  # the planned cell two assistants share (a replay row's corpus transcript), S3 5.5's pairs
 
 
 _COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
@@ -578,7 +579,10 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             "       coalesce((select sum(c.cost_usd) from ops.model_calls c"
             "                  join ops.budget_reservations r on r.id = c.reservation_id"
             "                  where r.trial_id in (select t.id from arena.trials t where t.planned_trial_id = p.id)"
-            "                    and r.purpose = any(%s)), 0), e.trial_id"
+            "                    and r.purpose = any(%s)), 0), e.trial_id,"
+            "       coalesce(p.source_planned_trial_id::text,"
+            "                p.variant_id::text || ':' || coalesce(p.subject_candidate_id::text, '')"
+            "                || ':' || p.repeat)"
             "  from arena.planned_trials p"
             "  join arena.case_variants v on v.id = p.variant_id"
             "  join arena.case_families f on f.id = v.family_id"
@@ -611,6 +615,7 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             classification=r[9],
             settled_cost=Decimal(r[10]),
             trial_id=str(r[11]) if r[11] else None,
+            cell=str(r[12]),
         )
         for r in rows
     ]

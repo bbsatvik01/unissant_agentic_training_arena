@@ -63,6 +63,7 @@ from arena_core.scoring.stats import (
     Interval,
     cluster_bootstrap,
     family_level_bound,
+    paired_difference,
     ratio,
 )
 
@@ -105,6 +106,7 @@ class CandidateInput:
     own_cost_rows: Sequence[tuple[Decimal, bool]]
     own_planned: int
     scored: Sequence[TrialScore] = ()  # one per included trial (M06-M10)
+    cells: Sequence[str] = ()  # one per included trial: its planned cell (case, subject, repeat), for 5.5's pairs
     latency: Sequence[LatencyRow] = ()  # this candidate's own latency samples (M16 reads the harness rows)
 
 
@@ -384,6 +386,31 @@ def _row_body(
     }
 
 
+def _pair(a: CandidateInput, b: CandidateInput, binding: Binding) -> dict[str, Any]:
+    """S3 5.5's pairwise comparison: recall and QQ differences (A - B) with a paired family bootstrap, on the
+    planned cells both candidates have included (`stats.paired_difference`)."""
+    common = set(a.cells) & set(b.cells)
+
+    def on_common(c: CandidateInput) -> tuple[list[TrialOutcome], list[TrialScore]]:
+        keep = [c.cells[i] in common for i in range(len(c.cells))]
+        return [t for t, k in zip(c.trials, keep, strict=False) if k], [
+            s for s, k in zip(c.scored, keep, strict=False) if k
+        ]
+
+    (ta, sa), (tb, sb) = on_common(a), on_common(b)
+    out: dict[str, Any] = {"a": a.candidate_id, "b": b.candidate_id, "common_cells": len(common)}
+    for metric, ca, cb in (
+        ("recall_difference", role_clusters(ta)["recall"], role_clusters(tb)["recall"]),
+        ("qq_difference", _qq(sa).clusters, _qq(sb).clusters),
+    ):
+        seed = seed_for(binding.manifest_sha256, metric, f"{a.candidate_id}|{b.candidate_id}", "I")
+        point, interval = paired_difference(
+            {cl.family_id: cl for cl in ca}, {cl.family_id: cl for cl in cb}, seed, binding.bootstrap_b
+        )
+        out[metric] = {"point": _frac(point), "interval": _interval(interval)}
+    return out
+
+
 def _binding(binding: Binding) -> dict[str, Any]:
     return {
         "manifest_sha256": binding.manifest_sha256,
@@ -414,6 +441,7 @@ def build_assistant_leaderboard(
     }
     if not board.rows:
         body["rows"] = []
+        body["pairwise"] = []
         return body
     # `rank_intervals`'s own contract (S3 5.5): its family pool is "every family with any included trial
     # for any ELIGIBLE candidate", and it never re-decides eligibility itself -- an ineligible candidate
@@ -426,6 +454,8 @@ def build_assistant_leaderboard(
         b=binding.bootstrap_b,
     )
     body["rows"] = [_row_body(row, by_id[row.candidate.id], binding, intervals, qq_calibrated) for row in board.rows]
+    ranked = [by_id[row.candidate.id] for row in board.rows if row.rank is not None]
+    body["pairwise"] = [_pair(a, b, binding) for i, a in enumerate(ranked) for b in ranked[i + 1 :]]
     return body
 
 

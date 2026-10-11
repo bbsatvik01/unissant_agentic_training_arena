@@ -117,6 +117,7 @@ def candidate_inputs(
         reasons: list[tuple[str, str]] = []
         cost_rows: list[tuple[Decimal, bool]] = []
         scored: list[TrialScore] = []
+        cells: list[str] = []
         for f in rows:
             block_bad = f.block_id is not None and invalid_blocks.get(f.block_id, False)
             asst, _subj, reason = inclusion(f.exec_state, f.verdict, block_bad)
@@ -125,6 +126,7 @@ def candidate_inputs(
             if asst in (AsstInc.INCLUDED, AsstInc.INCLUDED_AS_INSUFFICIENT):
                 score = (scores or {}).get(f.trial_id) if f.trial_id is not None else None
                 scored.append(score or TrialScore(family_id=f.family_id))
+                cells.append(f.cell)
             if asst is AsstInc.INCLUDED:
                 label = f.classification if f.classification in ("truthful", "deceptive") else "insufficient_evidence"
                 trials.append(TrialOutcome(f.family_id, f.role, asst, label, f.subject_id or ""))
@@ -149,6 +151,7 @@ def candidate_inputs(
                 own_cost_rows=cost_rows,
                 own_planned=len(rows),
                 scored=scored,
+                cells=cells,
                 latency=[r for r in latency if r.trial_id in own_trials],
             )
         )

@@ -437,6 +437,23 @@ def test_equal_recall_candidates_are_ordered_by_their_real_questioning_quality()
     assert uncalibrated["status"] == "provisional"
 
 
+def test_pairwise_differences_compare_only_the_cells_both_candidates_included() -> None:
+    # Codex r5 #5 (S3 5.5): A misses its last two deceptive cells, which B never included; on the common
+    # cells both detect everything, so the paired recall difference is 0 though A's overall recall is lower.
+    a = replace(good_candidate("A1"), cells=[f"c{i}" for i in range(20)])
+    full_b = good_candidate("A2")
+    b = replace(full_b, trials=full_b.trials[:18], cells=[f"c{i}" for i in range(18)])
+    a, b = _scored(a, Fraction(1, 2)), _scored(b, Fraction(3, 4))
+    body = build_assistant_leaderboard(
+        candidates=[a, b], isolation=PASSING_ISOLATION, qq_calibrated=True, binding=BINDING
+    )
+    [pair] = body["pairwise"]
+    assert (pair["a"], pair["b"], pair["common_cells"]) == ("A2", "A1", 18)
+    assert pair["recall_difference"]["point"]["value"] == 0.0
+    assert Fraction(**_nd(pair["qq_difference"]["point"])) == Fraction(1, 4)
+    assert pair["qq_difference"]["interval"]["status"] == "degenerate"
+
+
 def test_low_qq_coverage_is_published_and_makes_a_qq_decided_board_provisional() -> None:
     half = _scored(good_candidate("A1"), Fraction(1, 2))
     half = replace(half, scored=[replace(s, qq=None) if i % 2 else s for i, s in enumerate(half.scored)])
