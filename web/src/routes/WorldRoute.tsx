@@ -151,7 +151,9 @@ export function WorldRoute() {
   const onArrive = useCallback(() => {
     setArrived(true);
   }, []);
+  // A citation always lands in a visible transcript: it opens the panel if the viewer had collapsed it.
   const onCite = useCallback((turn: number, quote: string) => {
+    setLeftOpen(true);
     setCite((c) => ({ turn, quote, nonce: (c?.nonce ?? 0) + 1 }));
   }, []);
 

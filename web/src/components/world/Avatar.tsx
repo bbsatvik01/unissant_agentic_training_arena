@@ -104,7 +104,7 @@ function easeBeat(t: number): number {
 }
 
 /** The bones and faces the layers drive. */
-interface Rig {
+export interface Rig {
   readonly faces: readonly SkinnedMesh[];
   readonly head: Bone | null;
   readonly neck: Bone | null;
@@ -119,7 +119,7 @@ interface Rig {
 }
 
 /** Everything one frame of an avatar reads. */
-interface FrameContext {
+export interface FrameContext {
   readonly rig: Rig;
   readonly mixer: AnimationMixer;
   readonly scene: Object3D;
@@ -136,7 +136,7 @@ interface FrameContext {
   readonly random: () => number;
 }
 
-interface IdleState {
+export interface IdleState {
   nextSaccade: number;
   eyeX: number;
   eyeY: number;
@@ -148,12 +148,32 @@ interface IdleState {
   headPitch: number;
   handing: number;
   pointing: number;
+  /** The animated (pre-procedural) pose of each bone the layers rotate, captured after the clips each frame. */
+  readonly base: Map<Bone, Quaternion>;
+}
+
+/** The bones the procedural layers rotate on top of the clips. */
+function drivenBones(rig: Rig): Bone[] {
+  return [rig.spine, rig.neck, rig.head, rig.rUpper, rig.rFore, rig.lFore, rig.rHand].filter((b): b is Bone => b !== null);
 }
 
 /** One frame of the avatar's layers (clips, posture, work poses, gaze, speech, eyes). Mutates the rig in place. */
-function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: number): void {
+export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: number): void {
   const { rig, mixer, scene, track, beats, actions: acts, thinking, still, pose, speech, persona, gaze, clock, random } = ctx;
+  // The layers below add rotations to bones the clips also drive. Restore last frame's animated pose first, so the
+  // additions never accumulate (a paused mixer does not rewrite them), then let the clips advance and capture the
+  // fresh animated pose.
+  const driven = drivenBones(rig);
+  for (const bone of driven) {
+    const q = s.base.get(bone);
+    if (q !== undefined) bone.quaternion.copy(q);
+  }
   mixer.update(still ? 0 : Math.min(delta, 0.1));
+  for (const bone of driven) {
+    const q = s.base.get(bone);
+    if (q === undefined) s.base.set(bone, bone.quaternion.clone());
+    else q.copy(bone.quaternion);
+  }
   // Occasional idle variation: a look around, at persona-random intervals; it fades back out before it ends.
   const [base, look] = acts;
   if (!still && !thinking && base !== undefined && look !== undefined && t > s.nextLook) {
@@ -352,7 +372,7 @@ export function Avatar({ persona, name, position, facing, pose, speech = null, g
   }, [thinking]);
 
   const random = useMemo(() => seeded(seedOf(name)), [name]);
-  const state = useRef<IdleState>({ nextSaccade: 0, eyeX: 0, eyeY: 0, nextBlink: 1.5, blinkAt: -10, nextLook: 14, lookEnds: 0, headYaw: 0, headPitch: 0, handing: 0, pointing: 0 });
+  const state = useRef<IdleState>({ nextSaccade: 0, eyeX: 0, eyeY: 0, nextBlink: 1.5, blinkAt: -10, nextLook: 14, lookEnds: 0, headYaw: 0, headPitch: 0, handing: 0, pointing: 0, base: new Map() });
   const track = useMemo(() => (speech === null ? [] : visemeTrack(speech.text)), [speech]);
   const beats = useMemo(() => (speech === null ? [] : beatTimes(speech.text)), [speech]);
   const group = useRef<Group>(null);

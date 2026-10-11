@@ -1039,8 +1039,23 @@ td {
 }
 
 @media (max-width: 1023px) {
-  .side {
-    width: calc(100vw - 24px);
+  /* Narrow screens: the two panels stack (transcript above, coach below), full width, never overlapping. */
+  .side,
+  .side.left,
+  .side.right {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .side.left {
+    top: 72px;
+    bottom: calc(50% + 6px);
+  }
+
+  .side.right {
+    top: calc(50% + 6px);
+    bottom: 200px;
   }
 
   .room-controls,

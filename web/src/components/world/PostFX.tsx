@@ -14,13 +14,13 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 export function PostFX({ ao, bloom }: { ao: boolean; bloom: boolean }) {
-  const gl = useThree((s) => s.gl);
-  const scene = useThree((s) => s.scene);
-  const camera = useThree((s) => s.camera);
+  const get = useThree((s) => s.get);
   const size = useThree((s) => s.size);
   const dpr = useThree((s) => s.viewport.dpr);
 
+  // Built once per set of passes; resizes go through setSize below, never a rebuild.
   const composer = useMemo(() => {
+    const { gl, scene, camera, size } = get();
     const c = new EffectComposer(gl);
     c.addPass(new RenderPass(scene, camera));
     if (ao) {
@@ -32,15 +32,17 @@ export function PostFX({ ao, bloom }: { ao: boolean; bloom: boolean }) {
     if (bloom) c.addPass(new UnrealBloomPass(new Vector2(size.width, size.height), 0.22, 0.45, 1.35));
     c.addPass(new OutputPass());
     return c;
-  }, [gl, scene, camera, ao, bloom, size.width, size.height]);
+  }, [get, ao, bloom]);
 
   useEffect(() => {
     composer.setPixelRatio(dpr);
     composer.setSize(size.width, size.height);
   }, [composer, size, dpr]);
 
+  // The composer's dispose leaves its passes' render targets alive: dispose every pass too.
   useEffect(
     () => () => {
+      for (const pass of composer.passes) pass.dispose();
       composer.dispose();
     },
     [composer],

@@ -223,15 +223,16 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
           />
         </Suspense>
       )}
-      {world === null || !present ? null : (
+      {/* the subject is seated in the room before any session data arrives (an idle pose until then) */}
+      {!present ? null : (
         <Suspense fallback={null}>
           <Avatar
             persona={persona}
             name={subjectName}
             position={SUBJECT_SEAT}
             facing={0}
-            pose={world.subject.pose}
-            speech={world.subject.speech}
+            pose={world?.subject.pose ?? "idle"}
+            speech={world?.subject.speech ?? null}
             gaze={inRoom(INVESTIGATOR_EYES)}
             clock={clock}
             still={still}
