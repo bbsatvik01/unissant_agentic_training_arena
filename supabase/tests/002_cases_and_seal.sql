@@ -125,54 +125,62 @@ select is(array[(select val from cs22 where step = 1), (select (val ~ 'the hidde
   'CS-22 SG3-09: a hidden ingest blocks on the seal''s EXCLUSIVE lock, then fails AR001 (the hidden split is sealed) '
   || 'once the split is sealed; '
   || 'the seal still verifies');
-select dblink_disconnect('cs2a');
-select dblink_disconnect('cs2b');
 -- Combined clean-up for both races, done once each table (so the lock each ALTER TABLE ... DISABLE/ENABLE TRIGGER
--- holds for the rest of this transaction is taken after every dblink write to these tables is already done).
+-- holds for the rest of its transaction is taken after every write to these tables is already done). This MUST
+-- run over the dblink connection: CS21HID, CS22BASE and the seal/ledger event are real, committed rows (cs2a and
+-- cs2b committed them), invisible to any later session unless cleaned up there too; this whole file's own
+-- transaction only ever reads them and ends in ROLLBACK, so a clean-up run locally would itself roll back and
+-- leave the real database permanently sealed for every later file.
 -- CS-22's seal (unlike CS-21's, which rolled back) is a real, committed row with a real chained ledger event
 -- (sealed.seal_hidden_split wrote it inside cs2b's transaction); removing it also restores the chain head,
--- which is safe here because it is still the chain's last event (nothing else has appended to it since).
-do $$
-declare
-  v_family record;
-  v_variant record;
-  v_seq     bigint;
-  v_prevsha text;
-begin
-  select seq, prev_sha256 into v_seq, v_prevsha from ledger.events where event_type = 'hidden_split_sealed';
-  alter table ledger.events disable trigger events_append_only;
-  delete from ledger.events where seq = v_seq;
-  update ledger.chain_head set seq = v_seq - 1, head_sha256 = v_prevsha where id;
-  alter table ledger.events enable trigger events_append_only;
-  alter table sealed.hidden_split_seals disable trigger hidden_split_seals_immutable;
-  delete from sealed.hidden_split_seals;
-  alter table sealed.hidden_split_seals enable trigger hidden_split_seals_immutable;
-  alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable;
-  alter table sealed.hidden_public_packets disable trigger hidden_public_packets_immutable;
-  alter table subject.private_packets disable trigger private_packets_immutable;
-  alter table sealed.evaluator_packets disable trigger evaluator_packets_immutable;
-  alter table arena.case_variants disable trigger case_variants_immutable;
-  alter table sealed.family_ingests disable trigger family_ingests_immutable;
-  alter table arena.case_families disable trigger case_families_immutable;
-  for v_family in select id from arena.case_families where family_code in ('CS21HID', 'CS22BASE') loop
-    for v_variant in select id from arena.case_variants where family_id = v_family.id loop
-      delete from sealed.evidence_artifacts where variant_id = v_variant.id;
-      delete from sealed.hidden_public_packets where variant_id = v_variant.id;
-      delete from subject.private_packets where variant_id = v_variant.id;
-      delete from sealed.evaluator_packets where variant_id = v_variant.id;
+-- which is safe here because it is still the chain's last event (nothing else has appended to it since). The
+-- whole block is one dblink_exec call (a multi-statement simple-query message runs as one implicit transaction,
+-- committed only if every statement succeeds).
+select dblink_exec('cs2a', $cleanup$
+  do $$
+  declare
+    v_family record;
+    v_variant record;
+    v_seq     bigint;
+    v_prevsha text;
+  begin
+    select seq, prev_sha256 into v_seq, v_prevsha from ledger.events where event_type = 'hidden_split_sealed';
+    alter table ledger.events disable trigger events_append_only;
+    delete from ledger.events where seq = v_seq;
+    update ledger.chain_head set seq = v_seq - 1, head_sha256 = v_prevsha where id;
+    alter table ledger.events enable trigger events_append_only;
+    alter table sealed.hidden_split_seals disable trigger hidden_split_seals_immutable;
+    delete from sealed.hidden_split_seals;
+    alter table sealed.hidden_split_seals enable trigger hidden_split_seals_immutable;
+    alter table sealed.evidence_artifacts disable trigger evidence_artifacts_immutable;
+    alter table sealed.hidden_public_packets disable trigger hidden_public_packets_immutable;
+    alter table subject.private_packets disable trigger private_packets_immutable;
+    alter table sealed.evaluator_packets disable trigger evaluator_packets_immutable;
+    alter table arena.case_variants disable trigger case_variants_immutable;
+    alter table sealed.family_ingests disable trigger family_ingests_immutable;
+    alter table arena.case_families disable trigger case_families_immutable;
+    for v_family in select id from arena.case_families where family_code in ('CS21HID', 'CS22BASE') loop
+      for v_variant in select id from arena.case_variants where family_id = v_family.id loop
+        delete from sealed.evidence_artifacts where variant_id = v_variant.id;
+        delete from sealed.hidden_public_packets where variant_id = v_variant.id;
+        delete from subject.private_packets where variant_id = v_variant.id;
+        delete from sealed.evaluator_packets where variant_id = v_variant.id;
+      end loop;
+      delete from arena.case_variants where family_id = v_family.id;
+      delete from sealed.family_ingests where family_id = v_family.id;
+      delete from arena.case_families where id = v_family.id;
     end loop;
-    delete from arena.case_variants where family_id = v_family.id;
-    delete from sealed.family_ingests where family_id = v_family.id;
-    delete from arena.case_families where id = v_family.id;
-  end loop;
-  alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable;
-  alter table sealed.hidden_public_packets enable trigger hidden_public_packets_immutable;
-  alter table subject.private_packets enable trigger private_packets_immutable;
-  alter table sealed.evaluator_packets enable trigger evaluator_packets_immutable;
-  alter table arena.case_variants enable trigger case_variants_immutable;
-  alter table sealed.family_ingests enable trigger family_ingests_immutable;
-  alter table arena.case_families enable trigger case_families_immutable;
-end $$;
+    alter table sealed.evidence_artifacts enable trigger evidence_artifacts_immutable;
+    alter table sealed.hidden_public_packets enable trigger hidden_public_packets_immutable;
+    alter table subject.private_packets enable trigger private_packets_immutable;
+    alter table sealed.evaluator_packets enable trigger evaluator_packets_immutable;
+    alter table arena.case_variants enable trigger case_variants_immutable;
+    alter table sealed.family_ingests enable trigger family_ingests_immutable;
+    alter table arena.case_families enable trigger case_families_immutable;
+  end $$;
+$cleanup$);
+select dblink_disconnect('cs2a');
+select dblink_disconnect('cs2b');
 select is(array[(select count(*) from sealed.hidden_split_seals)::text,
                 (select count(*) from arena.case_families where family_code in ('CS21HID', 'CS22BASE', 'CS22NEW'))::text],
           array['0', '0'],
