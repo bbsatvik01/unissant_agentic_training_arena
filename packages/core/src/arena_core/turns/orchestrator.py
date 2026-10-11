@@ -158,21 +158,32 @@ class Orchestrator:
     async def _turn(
         self, trial: UUID, question: str, release_ids: list[str], expected_version: int, idem_key: str
     ) -> dict[str, Any]:
+        await self._check_requestable(trial, release_ids)
         asked = await self.db.submit_question(trial, expected_version, question, idem_key)
         n = int(asked["turn_no"])
         self.signals.notify(trial)
         item = await self._open(trial, "release", request_key(trial, n, "release", "turn"))
-        if item["status"] == "done":
-            released = dict(item["result"])
-        else:
-            released = await self.db.release_evidence(trial, UUID(item["work_item_id"]), release_ids)
+        # Always called, also for a finished item: S4 returns the stored result for the same input and refuses a
+        # different one (AR003), so a reused key never silently answers for another request.
+        await self.db.release_evidence(trial, UUID(item["work_item_id"]), release_ids)
         self.signals.notify(trial)
         answered = await self._answer(trial, n)
         if answered.outcome == "recorded":
             card_version = await self._coach(trial, n, "card", None)
             if card_version is not None:
-                await self._deep(trial, n, card_version, bool(released.get("released")))
+                await self._deep(trial, n, card_version)
         return {"turn_no": n, "outcome": answered.outcome}
+
+    async def _check_requestable(self, trial: UUID, release_ids: list[str]) -> None:
+        """An id off the case's requestable list is refused before the question is recorded (S5 5.4's AR005
+        contract), so a bad request never leaves an open, unanswerable question behind."""
+        if not release_ids:
+            return
+        meta = await self.db.trial(trial)
+        packet = None if meta is None else await self.db.public_packet(meta["variant_id"])
+        requestable = {r["record_id"] for r in (packet or {}).get("requestable_records", [])}
+        if not set(release_ids) <= requestable:
+            raise TurnRefusedError(422, "unknown_record", "a requested id is not on the case's requestable list")
 
     async def _answer(self, trial: UUID, n: int) -> SubjectOutcome:
         item = await self._open(trial, "subject_answer", request_key(trial, n, "subject_answer", "subject.answer"))
@@ -269,8 +280,7 @@ class Orchestrator:
             payload, kind = await self._model(_Step(call, trial, n, work_item, version, key))
         except BudgetRefusedError as exc:
             log.warning("coach %s for turn %s refused by the spend guard: %s", call, n, exc)
-            if call == "card":
-                await self._fail(trial, "budget_truncated", "the coach call was refused by the spend guard")
+            await self._fail(trial, "budget_truncated", f"the coach {call} call was refused by the spend guard")
             return None
         except ProviderError as exc:
             log.warning("coach %s for turn %s failed: %s: %s", call, n, type(exc).__name__, exc)
@@ -290,9 +300,12 @@ class Orchestrator:
         self.signals.notify(trial)
         return version
 
-    async def _deep(self, trial: UUID, n: int, card_version: int, released_this_turn: bool) -> None:
+    async def _deep(self, trial: UUID, n: int, card_version: int) -> None:
+        """A1's deep update: every third exchange, and on each release, i.e. when a record first became visible to
+        this turn's coaching (released after exchange n - 1, at this question or between the turns; S2 4.4.1)."""
         manifest, _ = await self._manifest(trial)
-        if deep_due(manifest.model_dump(mode="json"), n, released_this_turn):
+        released = any(r["released_after_exchanges"] == n - 1 for r in await self.db.released(trial))
+        if deep_due(manifest.model_dump(mode="json"), n, released):
             await self._coach(trial, n, "deep", card_version)
 
     # ------------------------------------------------------------------ between turns (S5 5.4)
@@ -312,8 +325,7 @@ class Orchestrator:
             try:
                 key = request_key(trial, 0, "finalize", f"investigator:{idem_key}")
                 item = await self._open(trial, "finalize", key)
-                if item["status"] == "done":
-                    return dict(item["result"])
+                # Called for a finished item too: S4 answers the stored result only for the same finding (AR003 else).
                 result = await self.db.finalize_trial(trial, UUID(item["work_item_id"]), finding)
             except ArenaError as exc:
                 raise refusal(exc) from exc

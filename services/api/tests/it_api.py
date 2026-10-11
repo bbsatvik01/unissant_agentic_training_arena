@@ -43,6 +43,7 @@ REPO = Path(__file__).resolve().parents[3]
 TESTS_DIR = REPO / "supabase" / "tests"
 DSN_VAR = "ARENA_IT_ADMIN_DSN"
 USER_A = UUID("00000000-0000-0000-0000-00000000000a")
+USER_B = UUID("00000000-0000-0000-0000-00000000000b")
 BASE = "http://127.0.0.1:8080"
 TURNS = 3
 FINDING = {
@@ -136,9 +137,9 @@ async def _no_debrief(_session: UUID) -> dict[str, Any]:
 
 
 class Client:
-    def __init__(self, dsns: dict[str, str]) -> None:
+    def __init__(self, dsns: dict[str, str], user: UUID = USER_A) -> None:
         port = AgentPort(FakeAdapter(canned=FAKE_COACH_REPLIES), RunBudget(Decimal(100)), PortOptions(sleep=_no_sleep))
-        who = DevIdentity(user_id=USER_A, email="a@example.test", display_name="A", roles=frozenset({"investigator"}))
+        who = DevIdentity(user_id=user, email="x@example.test", display_name="X", roles=frozenset({"investigator"}))
         state = ApiState(
             connect=dsn_connector(dsns["public"]),
             identity=who,
@@ -249,8 +250,21 @@ def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> N
     assert counts == [(TURNS, TURNS, True)]
 
 
-def test_another_users_trial_is_404(dsns: dict[str, str]) -> None:
-    api = Client(dsns)
-    trial = str(uuid4())
-    assert api.get(f"/api/trials/{trial}/snapshot").status_code == HTTPStatus.NOT_FOUND
-    assert api.post(f"/api/trials/{trial}/stream-tickets").status_code == HTTPStatus.NOT_FOUND
+def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None:
+    owner, other = Client(dsns), Client(dsns, USER_B)
+    case = owner.get("/api/cases").json()["cases"][0]["case_id"]
+    started = owner.post(
+        "/api/sessions", {"case_id": case, "mode": "practice", "voice": False, "idem_key": str(uuid4())}
+    )
+    trial, session = started.json()["trial_id"], started.json()["session_id"]
+    assert owner.get(f"/api/trials/{trial}/snapshot").status_code == HTTPStatus.OK
+    turn = {"question": "Why?", "release_ids": [], "expected_version": 0, "idem_key": str(uuid4())}
+    for status in (
+        other.get(f"/api/trials/{trial}/snapshot").status_code,
+        other.get(f"/api/trials/{trial}/recording").status_code,
+        other.post(f"/api/trials/{trial}/stream-tickets").status_code,
+        other.post(f"/api/trials/{trial}/turns", turn).status_code,
+        other.get(f"/api/sessions/{session}").status_code,
+        other.get(f"/api/sessions/{session}/debrief").status_code,
+    ):
+        assert status == HTTPStatus.NOT_FOUND

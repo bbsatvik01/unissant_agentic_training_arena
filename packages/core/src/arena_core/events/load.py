@@ -104,7 +104,11 @@ async def load_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     if meta is None:
         return None
     packet = await db.public_packet(meta["variant_id"]) or {}
-    events = stored_events(trial, await db.all_events(trial), packet, await db.released(trial), meta["execution_state"])
+    rows, released = await db.all_events(trial), await db.released(trial)
+    # Read the trial again after its events: a terminal record commits with its trial_ended event, so this read
+    # is at least as new as every row above (the trial cannot end between the reads unnoticed).
+    meta = await db.trial(trial) or meta
+    events = stored_events(trial, rows, packet, released, meta["execution_state"])
     status = s6_status(str(meta["status"]), meta["execution_state"])
     ended = [e for e in events if e.kind == "trial_ended"]
     reason = ended[-1].payload.get("reason") if ended and status not in ("running", "completed") else None

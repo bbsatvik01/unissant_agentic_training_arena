@@ -15,9 +15,11 @@ from uuid import UUID, uuid4
 import pytest
 
 from arena_core.db.arena import ArenaError
-from arena_core.providers.errors import ErrorKind, ProviderCallError
+from arena_core.db.calls import ModelCallRequest
+from arena_core.providers.errors import BudgetRefusedError, ErrorKind, ProviderCallError
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.spend.guard import Reservation
 from arena_core.spend.memory import RunBudget
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.orchestrator import (
@@ -29,7 +31,7 @@ from arena_core.turns.orchestrator import (
     request_key,
 )
 
-from .fakedb import FakeArenaDb
+from .fakedb import COACH, FakeArenaDb
 
 ACTOR = UUID("00000000-0000-0000-0000-00000000000a")
 
@@ -44,11 +46,16 @@ async def _no_sleep(_s: float) -> None:
 
 class Rig:
     def __init__(
-        self, *, script: list[Any] | None = None, budget: Decimal = Decimal(100), mode: str = "practice"
+        self,
+        *,
+        script: list[Any] | None = None,
+        budget: Decimal = Decimal(100),
+        mode: str = "practice",
+        guard: RunBudget | None = None,
     ) -> None:
         self.db = FakeArenaDb(ACTOR, mode=mode)
         self.adapter = FakeAdapter(script=list(script or []), canned=FAKE_COACH_REPLIES)
-        self.budget = RunBudget(budget)
+        self.budget = guard if guard is not None else RunBudget(budget)
         self.port = AgentPort(self.adapter, self.budget, PortOptions(sleep=_no_sleep))
         self.subject_calls: list[tuple[UUID, UUID, UUID | None]] = []
         self.subject_error: SubjectUnavailableError | None = None
@@ -84,7 +91,7 @@ def test_one_turn_runs_question_release_answer_and_card_in_order() -> None:
     ]
     card = rig.db.events[-1].payload
     assert (card["turn_id"], card["card_seq"], card["transcript_version"]) == ("t01", 1, 2)
-    assert card["candidate_sha256"] == rig.db.events[-1].payload["candidate_sha256"]
+    assert card["candidate_sha256"] == COACH.sha256
 
 
 def test_every_model_call_carries_the_investigator_as_actor() -> None:
@@ -335,3 +342,55 @@ def test_signals_wake_a_waiting_stream() -> None:
         return loop.time() - start
 
     assert run(scenario()) < 1.0
+
+
+class DeepRefused(RunBudget):
+    """The guard admits every call but A1's deep update (its reservation is refused, as at the cap)."""
+
+    async def reserve(self, req: ModelCallRequest) -> Reservation:
+        if req.purpose == "coach.deep":
+            raise BudgetRefusedError("cap")
+        return await super().reserve(req)
+
+
+def test_a_budget_refusal_of_the_deep_update_truncates_the_trial_after_its_card() -> None:
+    rig = Rig(guard=DeepRefused(Decimal(100)))
+    for _ in range(3):
+        rig.turn()
+    assert rig.kinds()[-2:] == ["coach_card", "trial_ended"]
+    assert rig.db.execution_state == "budget_truncated"
+
+
+def test_an_unrequestable_release_id_is_422_and_records_no_question() -> None:
+    rig = Rig()
+    with pytest.raises(TurnRefusedError) as exc_info:
+        run(rig.orch.run_turn(rig.db.trial_id, "Why?", ["rec-05"], 0, str(uuid4())))
+    assert (exc_info.value.status, exc_info.value.code) == (HTTPStatus.UNPROCESSABLE_ENTITY, "unknown_record")
+    assert rig.db.turns == {}
+    assert rig.turn()["turn_no"] == 1
+
+
+def test_a_release_between_turns_triggers_the_next_deep_update() -> None:
+    rig = Rig()
+    for _ in range(3):
+        rig.turn()
+    run(rig.orch.request_evidence(rig.db.trial_id, ["rec-02"], str(uuid4())))
+    rig.turn()
+    deeps = [e.payload["as_of_turn"] for e in rig.db.events if e.kind == "coach_deep"]
+    assert deeps == ["t03", "t04"]
+
+
+def test_a_reused_key_with_a_different_body_is_refused() -> None:
+    rig = Rig()
+    rig.turn()
+    rig.turn()
+    key = str(uuid4())
+    run(rig.orch.request_evidence(rig.db.trial_id, ["rec-01"], key))
+    with pytest.raises(TurnRefusedError) as evidence:
+        run(rig.orch.request_evidence(rig.db.trial_id, ["rec-01", "rec-02"], key))
+    assert evidence.value.code == "idempotency_conflict"
+    finding_key = str(uuid4())
+    run(rig.orch.commit_finding(rig.db.trial_id, FINDING, finding_key))
+    with pytest.raises(TurnRefusedError) as finding:
+        run(rig.orch.commit_finding(rig.db.trial_id, {**FINDING, "rationale": "Changed."}, finding_key))
+    assert finding.value.code == "idempotency_conflict"

@@ -140,8 +140,8 @@ class ArenaDb:
                 await self._begin(conn)
                 cur = await conn.execute("select arena.open_work_item(%s, 'release', %s)::text", (trial, request_key))
                 item = json.loads((await cur.fetchone() or ("{}",))[0])
-                if item.get("status") == "done":
-                    return dict(item["result"])
+                # A finished item goes through release_evidence too: S4 returns its stored result for the same ids
+                # and refuses different ones (AR003).
                 cur = await conn.execute(
                     "select arena.release_evidence(%s, %s, %s)::text", (trial, item["work_item_id"], record_ids)
                 )

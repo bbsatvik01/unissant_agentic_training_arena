@@ -94,6 +94,17 @@ class FakeArenaDb(ArenaDb):
         raise ArenaError("AR003", "unknown work item")
 
     @staticmethod
+    def _replayed(item: dict[str, Any], given: object) -> bool:
+        """S4 `_take_work_item`: a finished item answers its stored result for the same input, AR003 otherwise;
+        an open one remembers the input it is about to complete with."""
+        if item["status"] == "done":
+            if item.get("input") != given:
+                raise ArenaError("AR003", "work item reused with different input")
+            return True
+        item["input"] = given
+        return False
+
+    @staticmethod
     def _done(item: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         item["status"], item["result"] = "done", result
         return result
@@ -179,7 +190,7 @@ class FakeArenaDb(ArenaDb):
         self._check("release_evidence")
         assert trial == self.trial_id
         item = self._item(work_item)
-        if item["status"] == "done":
+        if self._replayed(item, sorted(set(record_ids))):
             return dict(item["result"])
         self._running()
         if item["transcript_version"] != self.version:
@@ -201,8 +212,6 @@ class FakeArenaDb(ArenaDb):
 
     async def release_between_turns(self, trial: UUID, request_key: str, record_ids: list[str]) -> dict[str, Any]:
         item = await self.open_work_item(trial, "release", request_key)
-        if item["status"] == "done":
-            return dict(item["result"])
         return await self.release_evidence(trial, UUID(item["work_item_id"]), record_ids)
 
     def record_answer(self, work_item: UUID, answer: str = "I went in to check the dehumidifier.") -> SubjectOutcome:
@@ -248,7 +257,7 @@ class FakeArenaDb(ArenaDb):
         self._check("finalize_trial")
         assert trial == self.trial_id
         item = self._item(work_item)
-        if item["status"] == "done":
+        if self._replayed(item, finding):
             return dict(item["result"])
         self._running()
         if self.coaching_pending:
