@@ -150,6 +150,15 @@ class CorpusAsker(CorpusPorts):
                 return str(row["title"])
         return record_id  # unreachable on a validated case (S1 V1c); a safe fallback, never a crash
 
+    def _date(self, record_id: str) -> str | None:
+        """The public packet's own optional record date (S2 8.6; not one of `released_with_titles`'s
+        columns, so this always reads the packet, unlike `_title`'s released-row shortcut)."""
+        for row in self.public_packet.get("requestable_records", []):
+            if row["record_id"] == record_id:
+                date = row.get("date")
+                return str(date) if date is not None else None
+        return None
+
     def release(self, n: int, record_ids: Sequence[str]) -> Sequence[ReleasedRecord]:
         db = self.orchestrator.db
         result = _run(self.orchestrator.request_evidence(self.trial, list(record_ids), f"corpus:{n}"))
@@ -157,7 +166,7 @@ class CorpusAsker(CorpusPorts):
         if not released_ids:
             return []
         titles = {row["record_id"]: row["title"] for row in _run(db.released_with_titles(self.trial))}
-        return [ReleasedRecord(rid, n - 1, self._title(rid, titles)) for rid in released_ids]
+        return [ReleasedRecord(rid, n - 1, self._title(rid, titles), self._date(rid)) for rid in released_ids]
 
     def ask(self, n: int, question: HarnessQuestion) -> None:
         _run(_ask(self.orchestrator, self.trial, n, question, NO_RELEASES))
