@@ -8,13 +8,13 @@
 | Item | State | Next |
 | --- | --- | --- |
 | WP-18 part 2 | MERGED (cc4d45f) + follow-up merged | done |
-| WP-11 guard (adb48fe0d3cc9a911) | cold Codex: 1 major (lexicon not in rubric hash, rubric.py:120); agent fixing, no new Codex round | review, merge |
+| WP-11 guard | MERGED (066e044); py-check green on main | done |
 | WP-05 port (ac1b3a38666e87dcf) | merging main + WP-10 helpers + D-019 | cold gate, merge |
 | WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
 | WP-07 observability (a928b8a9c3a763c65, Sonnet) | building | review, merge |
 | UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
 | Supabase 0600-1100 | background MCP apply declined by permission prompt at 0600 (nothing applied; stored format = file minus trailing newline). Asked owner for .env.owner (session-pooler DSN) to apply with psql -1 -v ON_ERROR_STOP=1 | apply, record in schema_migrations, set global ceiling $74 (D-022), roles, advisors |
-- Queue: WP-12 subject + WP-14 referee after WP-05 and WP-11; WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
+- Queue: WP-12 subject + WP-14 referee after WP-05 (WP-11 merged); WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
 - Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).
 
 ## HOLD 2 (owner directive 2026-10-09 ~01:50 EDT)
