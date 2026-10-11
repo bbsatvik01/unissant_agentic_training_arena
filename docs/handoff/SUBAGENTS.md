@@ -40,3 +40,6 @@
 - ac1b3a38666e87dcf WP-05 port (resumed): merge main, WP-10 helpers + parity test, D-019. wt-wp05-port. Gate: self Codex, then cold Codex.
 - aef227ff5a791ab22 WP-04 pgTAP suite (Sonnet). wt-wp04-pgtap feat/wp04-pgtap. Gate: db-test green, self + cold Codex.
 - a928b8a9c3a763c65 WP-07 observability (Sonnet). wt-wp07-obs feat/wp07-obs. Gate: S5 8.9, self + cold Codex.
+- ac2a4c78d321feac9 UI lead stage 1 (Opus): 3D world + overlay + playback (D-020, D-021). wt-ui-world feat/ui-world. Gate: pnpm check, screenshots, one Codex round.
+- ad9db92b288b7a8c1 Supabase migrations 0600-1100 via MCP (Sonnet), byte-exact check, advisors. No repo edits.
+- a80b942018d564e81 WP-18b follow-up (2 rare-path fixes), fix/wp18b-followup. adb48fe0d3cc9a911 WP-11 rubric lexicon hash fix.

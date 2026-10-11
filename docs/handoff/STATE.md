@@ -4,16 +4,18 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
-## RESUMED 2026-10-11 (owner: continue working)
+## RESUMED 2026-10-11 (owner: full speed, simple, UI is the centerpiece D-020, record runs D-021, Codex gates sparingly)
 | Item | State | Next |
 | --- | --- | --- |
-| WP-11 guard (feat/wp11-guard 6d15ad7) | cold Codex gate running (bg bcpr0tmfm, scratchpad cold/) | merge on CORRECT |
-| WP-18 part 2 (feat/wp18b-web 007d133) | cold Codex gate running (same bg) | merge on CORRECT |
-| WP-05 port (ac1b3a38666e87dcf, wt-wp05-port) | resumed: merge main (conflict in providers/structured.py), use WP-10 helpers + parity test, D-019 wire bytes | cold gate, merge |
-| WP-04 pgTAP suite (aef227ff5a791ab22, wt-wp04-pgtap, Sonnet) | dispatched | cold gate, merge |
-| WP-07 observability (a928b8a9c3a763c65, wt-wp07-obs, Sonnet) | dispatched | cold gate, merge |
-- Queue: WP-12 subject + WP-14 referee after WP-05 and WP-11 merge; WP-13 after WP-12; WP-19 after WP-18b (fake port); WP-16, WP-17 after WP-14; WP-24 integration.
-- Owner asks: Supabase MCP now needs re-auth (/mcp), or .env.owner; then migrations 0600-1100 + roles. Budget plan application (D-012) before first paid call.
+| WP-18 part 2 | MERGED (cc4d45f); web-check green; 2 rare-path Codex majors -> follow-up with a80b942018d564e81 (fix/wp18b-followup) | review small diff, merge |
+| WP-11 guard (adb48fe0d3cc9a911) | cold Codex: 1 major (lexicon not in rubric hash, rubric.py:120); agent fixing, no new Codex round | review, merge |
+| WP-05 port (ac1b3a38666e87dcf) | merging main + WP-10 helpers + D-019 | cold gate, merge |
+| WP-04 pgTAP (aef227ff5a791ab22, Sonnet) | building | review, merge |
+| WP-07 observability (a928b8a9c3a763c65, Sonnet) | building | review, merge |
+| UI lead stage 1 (ac2a4c78d321feac9, Opus, wt-ui-world feat/ui-world) | 3D world (hub, interview room, observation room, evidence wall, avatars, pet), overlay, playback of a F01 fixture recording | review + screenshots, merge |
+| Supabase 0600-1100 (ad9db92b288b7a8c1, Sonnet) | applying via MCP (owner approved; MCP re-authed) | roles + env files, advisors |
+- Queue: WP-12 subject + WP-14 referee after WP-05 and WP-11; WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
+- Owner ask pending: approve applying the $74 budget plan before the first paid call (~Oct 13).
 
 ## HOLD 2 (owner directive 2026-10-09 ~01:50 EDT)
 - No new agents or workflows. Do not stop anything running; let it finish. Usage refreshes ~07:00 EDT.
