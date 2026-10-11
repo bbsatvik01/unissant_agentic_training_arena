@@ -219,7 +219,9 @@ def test_reveal_publishes_qq_from_each_trial_s_stored_judgments(monkeypatch: pyt
     assert Fraction(m09["point"]["num"], m09["point"]["den"]) == Fraction(3, 4)
 
 
-def test_an_unscored_replay_trial_never_blocks_reveal() -> None:
+def test_an_unscored_replay_trial_blocks_reveal_until_it_is_scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Coordinator r7 #1: a replay trial waits for its judgments exactly as an interactive one does; once its R2 is
+    # stored, the same reveal goes through.
     row = (*trial_fact_row()[:1], "replay", *trial_fact_row()[2:])
     conn = FakeConn(
         {
@@ -227,6 +229,18 @@ def test_an_unscored_replay_trial_never_blocks_reveal() -> None:
             "ledger.planned_execution": [row],
         }
     )
+    with pytest.raises(reveal.ScoringIncompleteError):
+        run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    assert not any("ledger.reveal(" in q for q, _ in conn.executed)
+
+    async def scored(_connect: object, _trial_id: str) -> object:
+        return object()
+
+    def fake_score(family_id: str, _stored: object) -> TrialScore:
+        return TrialScore(family_id=family_id)
+
+    monkeypatch.setattr(db, "fetch_stored_trial_judgments", scored)
+    monkeypatch.setattr(reveal, "trial_score", fake_score)
     assert run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx())).manifest_version == 1
 
 

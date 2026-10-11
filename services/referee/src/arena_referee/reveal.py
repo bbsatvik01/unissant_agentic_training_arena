@@ -117,9 +117,8 @@ async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
         stored = await db.fetch_stored_trial_judgments(connect, trial_id)
         if stored is not None:
             scores[trial_id] = trial_score(f.family_id, stored)
-        elif f.track == "interactive" and f.exec_state in _SCORED_STATES:
-            # The scoring route scores interactive trials (S5 5.3); a replay trial has no scorer yet, so it stays
-            # unscored (counted against QQ coverage) rather than blocking every reveal with a replay track.
+        elif f.exec_state in _SCORED_STATES:
+            # Interactive and replay alike (S2 10: scoring and reveal wait until every stage row exists).
             unscored.append(trial_id)
     if unscored:
         msg = f"{len(unscored)} executed trial(s) not yet scored (R1/R2), e.g. {sorted(unscored)[:3]}"
