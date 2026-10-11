@@ -14,6 +14,13 @@
 import type { ErrorObject, ValidateFunction } from "ajv/dist/2020";
 
 import { WIRE_VALIDATORS } from "./compiled/validators.js";
+
+/**
+ * The bytes a string occupies on the wire inside a request body (D-019): the server's `contracts.common.wire_bytes`
+ * (Python `json.dumps`, `ensure_ascii`). Defined once, in the generated module, where the compiled `maxBytes`
+ * keyword uses it (`web/tools/validators-codegen.ts`); re-exported here.
+ */
+export { wireBytes } from "./compiled/validators.js";
 import type { WireTypes } from "./generated/types";
 import { invariantErrors } from "./invariants";
 
