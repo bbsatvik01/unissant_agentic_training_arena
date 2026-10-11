@@ -1072,3 +1072,33 @@ def test_admin_console_routes_refuse_a_non_admin(tmp_path: Path) -> None:
     app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
     for path in ("/api/admin/tournaments", "/api/admin/budget", "/api/admin/reviews"):
         assert run(_get(app, path)).status_code == FORBIDDEN
+
+
+# ---------------------------------------------------------------- the web bundle on this origin (S6 4.13)
+
+
+def _bundle(tmp_path: Path) -> Path:
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><title>arena</title>")
+    (dist / "assets" / "app.js").write_text("console.log(1)")
+    (tmp_path / "secret.txt").write_text("outside the bundle")
+    return dist
+
+
+def test_the_consoles_are_served_same_origin_with_an_spa_fallback(tmp_path: Path) -> None:
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
+    app = create_app({**env, "ARENA_WEB_DIST": str(_bundle(tmp_path))})
+    for path in ("/admin", "/review", "/"):
+        page = run(_get(app, path))
+        assert page.status_code == httpx.codes.OK
+        assert "<title>arena</title>" in page.text
+    assert run(_get(app, "/assets/app.js")).text == "console.log(1)"
+    assert "outside" not in run(_get(app, "/../secret.txt")).text
+    assert run(_get(app, "/api/no-such-route")).status_code == NOT_FOUND
+
+
+def test_without_a_built_bundle_nothing_is_mounted(tmp_path: Path) -> None:
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
+    app = create_app({**env, "ARENA_WEB_DIST": str(tmp_path / "missing")})
+    assert run(_get(app, "/admin")).status_code == NOT_FOUND
