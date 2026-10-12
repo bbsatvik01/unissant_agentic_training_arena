@@ -302,6 +302,7 @@ def test_a_designed_voice_is_one_post_of_the_measured_bytes_and_reads_its_id_sam
     [request] = sent
     assert str(request.url) == "https://aiplatform.googleapis.com/v1beta1/projects/cna-guardian/locations/global/voices"
     assert request.headers["authorization"] == f"Bearer {CREDS.token}"
+    assert request.headers["x-goog-user-project"] == "cna-guardian"  # the quota project local ADC lacks
     # The reservation is the body on the wire, byte for byte, with every character escaped as sent.
     assert len(request.content) == vertex.voice_design_bytes(
         "A clerk in her forties.", "arena subject:A", "female", "en-US"

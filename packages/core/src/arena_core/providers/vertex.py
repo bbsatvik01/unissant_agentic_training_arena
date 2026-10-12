@@ -557,7 +557,13 @@ class VertexVoiceDesigner:
             token = await asyncio.to_thread(_access_token, self.credentials)
         except google_auth_exceptions.GoogleAuthError as exc:
             raise ProviderCallError(ErrorKind.BAD_REQUEST, f"credentials: {type(exc).__name__}") from exc
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        # The quota project names who pays: user credentials (local ADC) carry none, and the Voices API refuses a
+        # call without one (403 SERVICE_DISABLED). The arena project, as the SDK does for the model calls.
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "x-goog-user-project": self.project,
+        }
         body = voice_design_wire(description, display_name, gender, language_code)
         client = self.http or httpx.AsyncClient(timeout=VOICE_DESIGN_TIMEOUT_S)
         try:
