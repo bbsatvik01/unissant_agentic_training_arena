@@ -270,21 +270,10 @@ async def _review(
         "transcript": [{"turn_no": int(n), "question": q, "answer": a} for n, q, a in turns],
         "released": [{"record_id": r, "title": t, "content": json.loads(c)} for r, t, c in released],
         "facts": [{"id": f["id"], "text": f["text"]} for f in packet.get("facts", [])],
-        # What compliance is judged against (S3 4.2 item 2): the private packet's persona, facts with their
-        # classes, uncertainty, gates and behaviors. Never the assistant's identity, cards or finding.
-        "private_packet": {
-            key: packet[key]
-            for key in (
-                "role",
-                "persona",
-                "facts",
-                "uncertainty",
-                "gates",
-                "permitted_behaviors",
-                "forbidden_behaviors",
-            )
-            if key in packet
-        },
+        # What compliance is judged against (S3 4.2 item 2): the whole private packet (persona, facts with their
+        # classes, unknown facts, uncertainty, gates, behaviors, forbidden assertions) but its isolation canary.
+        # Never the assistant's identity, cards or finding.
+        "private_packet": {key: value for key, value in packet.items() if key != "canary"},
         "evidence": [
             {
                 "turn_id": t.turn_id,
@@ -292,7 +281,6 @@ async def _review(
                 "failed_checks": list(t.failed_checks),
                 "violated_fact_ids": list(t.violated_fact_ids),
             }
-            for t in view.turns
-            if t.failed_checks
+            for t in view.turns  # every reviewed turn, with R1's quote, also when no check failed
         ],
     }
