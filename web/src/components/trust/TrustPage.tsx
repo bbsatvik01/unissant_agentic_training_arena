@@ -245,6 +245,17 @@ function Commitments({ rows, verify }: { rows: Load<readonly CommitmentRow[]>; v
   );
 }
 
+/** A permutation result in words, with its sample size; an undefined test says so instead of a p-value. */
+function testText(t: FairnessData["tests"][number]): string {
+  const result = t.pValue === null ? "undefined: nothing varies" : `${pText(t.pValue)}; ${t.significant ? "significant after correction" : "not detected at this sample size"}`;
+  return t.n === null ? result : `${result} (n = ${String(t.n)}, ${String(t.units ?? 0)} units)`;
+}
+
+/** The coach with the track its row is for (each audit row is per coach and track). */
+function coach(r: { readonly candidate: string; readonly track: string }): string {
+  return r.track === "" ? r.candidate : `${r.candidate} (${r.track})`;
+}
+
 function Fairness({ load }: { load: Load<FairnessData> }) {
   return (
     <Card title="Fairness audit">
@@ -266,8 +277,8 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
               </thead>
               <tbody>
                 {load.value.styleRates.map((r) => (
-                  <tr key={`${r.candidate}-${r.style}`}>
-                    <td className="mono">{r.candidate}</td>
+                  <tr key={`${r.candidate}-${r.track}-${r.style}`}>
+                    <td className="mono">{coach(r)}</td>
                     <td>{r.style}</td>
                     <td>{r.fpr}</td>
                     <td className="mono">{r.families ?? ""}</td>
@@ -285,15 +296,17 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
                   <th scope="col">Style</th>
                   <th scope="col">Role</th>
                   <th scope="col">Flag rate</th>
+                  <th scope="col">Families</th>
                 </tr>
               </thead>
               <tbody>
                 {load.value.flagRates.map((r) => (
-                  <tr key={`${r.candidate}-${r.style}-${r.role}`}>
-                    <td className="mono">{r.candidate}</td>
+                  <tr key={`${r.candidate}-${r.track}-${r.style}-${r.role}`}>
+                    <td className="mono">{coach(r)}</td>
                     <td>{r.style}</td>
                     <td>{r.role}</td>
                     <td>{r.rate}</td>
+                    <td className="mono">{r.families ?? ""}</td>
                   </tr>
                 ))}
               </tbody>
@@ -311,8 +324,8 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
               </thead>
               <tbody>
                 {load.value.demeanor.map((r) => (
-                  <tr key={r.candidate}>
-                    <td className="mono">{r.candidate}</td>
+                  <tr key={`${r.candidate}-${r.track}`}>
+                    <td className="mono">{coach(r)}</td>
                     <td>{r.flags}</td>
                     <td>{r.findings}</td>
                   </tr>
@@ -332,12 +345,10 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
               </thead>
               <tbody>
                 {load.value.tests.map((t) => (
-                  <tr key={`${t.candidate}-${t.test}`}>
-                    <td className="mono">{t.candidate}</td>
+                  <tr key={`${t.candidate}-${t.track}-${t.test}`}>
+                    <td className="mono">{coach(t)}</td>
                     <td className="mono">{t.test}</td>
-                    <td>
-                      {pText(t.pValue)}; {t.significant ? "significant after correction" : "not detected at this sample size"}
-                    </td>
+                    <td>{testText(t)}</td>
                   </tr>
                 ))}
               </tbody>

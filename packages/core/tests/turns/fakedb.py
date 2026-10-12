@@ -77,10 +77,9 @@ class FakeArenaDb(ArenaDb):
         self.tournament_progress_rows: dict[UUID, list[dict[str, Any]]] = {}
         self.tournament_event_pages: dict[UUID, tuple[list[dict[str, Any]], int]] = {}
         self.more_sessions: list[dict[str, Any]] = []
-        self.study_row: dict[str, Any] | None = (
-            None  # the actor's training.v_my_study row  # further sessions of the actor (progress tests)
-        )
+        self.study_row: dict[str, Any] | None = None  # the actor's training.v_my_study row
         self.boards: list[dict[str, Any]] = []  # {tournament, board, label, manifest_version, body}
+        self.published_fairness: dict[str, Any] | None = None
 
     # ------------------------------------------------------------------ helpers
 
@@ -512,6 +511,9 @@ class FakeArenaDb(ArenaDb):
 
     async def revealed_commitments(self) -> list[dict[str, Any]]:
         return []
+
+    async def fairness(self) -> dict[str, Any] | None:
+        return self.published_fairness
 
     async def budget_view(self) -> dict[str, Any]:
         return {"ceiling_usd": "0.000000", "spent_usd": "0", "open_usd": "0", "by_purpose": []}

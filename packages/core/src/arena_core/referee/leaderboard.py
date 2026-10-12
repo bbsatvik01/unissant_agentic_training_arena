@@ -8,7 +8,8 @@ records, adjudications and costs; M06-M10 from each included trial's `TrialScore
 through WP-15's scorer functions, computed by `arena_referee.leaderboard`); M16 from the candidate's harness
 latency samples; eligibility, rank (recall, then real QQ) and rank interval, and the binding fields. The
 subject metrics (M12-M15) are the separate subject board (`build_subject_leaderboard`). The fairness audit
-(M24) is not built yet; rather than publish a fabricated zero, the body's `not_computed` list names it.
+(M24) is `arena_core.referee.fairness_audit`, folded in at publish by its `with_fairness`; a body built here alone
+never publishes a fabricated zero: its `not_computed` list names M24 and its rows carry no violations yet.
 """
 
 from __future__ import annotations
@@ -83,6 +84,7 @@ class TrialScore:
     strict: EvasionCounts | None = None
     broad: EvasionCounts | None = None
     support: SupportCounts | None = None
+    finding_fails_5c: bool = False  # FA-3: a committed finding failing check 5c (lexicon or referee)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -382,7 +384,7 @@ def _row_body(
             "M23_execution_rates": _execution_rates_by_role(c.reasons),
             "M25_role_prevalence": _frac(prevalence(c.trials)),
         },
-        "fairness_violations": [],  # FA-3: none detected without the fairness audit's inputs (not_computed)
+        "fairness_violations": [],  # filled from the fairness audit at publish (`fairness_audit.with_fairness`)
     }
 
 
