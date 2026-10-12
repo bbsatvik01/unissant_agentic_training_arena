@@ -5,6 +5,7 @@
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
 ## Wave 2026-10-12
+- Dev tournament ca6c4b9b revealed on hosted (D-031). Running: voice polish (a47192aec3a6ecc1b, feat/voice-polish); calibration batch WP-25a (aa11884a8c667c2de, Sonnet, feat/calibration-batch, cap $4); hidden authoring WP-27, 15 families into git-ignored cases/hidden/, seal on hosted by coordinator (ab73e259fc6d907ab, feat/hidden-authoring).
 - WP-22 live voice merged (gemini-3.8-live); real hosted voice session blocked by voice_sessions_per_user_day=2 (owner ask). make bandit red on main (3 low findings) -> a47192aec3a6ecc1b fix/bandit-voice.
 - Real dev tournament ca6c4b9b closed; reveal blocked by 21 referee subject_invalid proposals awaiting human review; referee flakiness (R2 na, R1 output cap) -> a1baef3ba220e8b10 on feat/referee-robust (cap $6). Spend so far ~ $4.7 of $74.
 - Running: UI stage 8 (ac2a4c78d321feac9, feat/ui-stage8: polish pass, gemini-3.8-flash-tts designed voices, audio lip sync, coach earpiece); coach+arena quality on real Gemini (a1baef3ba220e8b10, feat/coach-quality, cap $8); WP-22 live voice (a47192aec3a6ecc1b, feat/wp22-voice, cap $8). WP-28 merged (D-029).

@@ -186,3 +186,7 @@
 ## 2026-10-12 · D-031 Voice limit 10/day; accept referee proposals for the dev practice tournament
 - **Decision:** owner. ops.config voice_sessions_per_user_day 2 -> 10 on hosted (voice_sessions_total stays 8). For the dev practice tournament ca6c4b9b only, the pending validity reviews are settled by accepting the referee's proposals; sealed tournaments keep human review.
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-032 Calibration raters, 15 hidden families, keep authoring lean
+- **Decision:** owner. Owner and Brundhar rate the calibration batch Oct 15-18. OD-8 = 15 hidden families (30 cases). Authoring stays lean: at most 2 revision rounds per family, drop and replace once if still failing (D-016). Owner will do a final UI review when the rating batch is ready.
+- **Reversibility:** cheap.
