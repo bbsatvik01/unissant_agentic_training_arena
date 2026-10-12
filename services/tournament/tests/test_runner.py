@@ -15,12 +15,19 @@ import pytest
 
 from arena_core.agents.manifests import CandidateManifest
 from arena_core.db.arena import ArenaDb, HarnessTrialState
+from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS
 from arena_core.turns.harness import Execution
 from arena_core.turns.orchestrator import Orchestrator
 from arena_tournament import admission
 from arena_tournament import runner as runner_module
 from arena_tournament.referee_client import RefereeClient
-from arena_tournament.runner import MAX_ATTEMPTS, Attempt, MissingPacketError, TournamentRunner
+from arena_tournament.runner import (
+    MAX_ATTEMPTS,
+    Attempt,
+    IsolationGateNotPassedError,
+    MissingPacketError,
+    TournamentRunner,
+)
 from packages.core.tests.turns.test_orchestrator import Rig
 
 
@@ -36,9 +43,19 @@ class _FakeDb:
     `run_replay_track_prerequisite` makes before it (an empty roster, so its own corpus/replay loops do
     nothing)."""
 
-    def __init__(self, *, admit: bool = True, start_state: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        admit: bool = True,
+        start_state: str | None = None,
+        split: str = "dev",
+        gate: list[tuple[str, bool, str | None]] | None = None,
+    ) -> None:
         self.admit = admit
         self.start_state = start_state
+        self.split = split
+        self.gate = gate or []
+        self.gate_reads = 0
         self.retry_calls: list[UUID] = []
         self.started: list[UUID] = []
 
@@ -55,6 +72,13 @@ class _FakeDb:
 
     async def planned_trials(self, _tournament: UUID) -> list[dict[str, Any]]:
         return []
+
+    async def tournament_split(self, _tournament: UUID) -> str:
+        return self.split
+
+    async def gate_rows_before_open(self, _tournament: UUID) -> list[tuple[str, bool, str | None]]:
+        self.gate_reads += 1
+        return list(self.gate)
 
     async def planned_trial_attempts(self, _tournament: UUID) -> dict[UUID, list[dict[str, Any]]]:
         return {}
@@ -189,10 +213,42 @@ def test_count_keys_an_execution_value_by_its_string_and_accumulates() -> None:
     assert runner.outcomes == {"completed": 2, "budget_skipped": 1}
 
 
-def test_run_replay_track_prerequisite_proceeds_with_an_empty_roster() -> None:
+def test_run_replay_track_prerequisite_proceeds_for_a_dev_tournament_without_reading_the_gate() -> None:
     db = _FakeDb()
     runner = _runner_with(db, _FakeOrchestrator())
     run(runner.run_replay_track_prerequisite(uuid4()))  # an empty roster: nothing else to do
+    assert db.gate_reads == 0
+
+
+SHA = "a" * 40
+PASSED_GATE: list[tuple[str, bool, str | None]] = [(IG_CHECK_NAMES[item], True, SHA) for item in IG_ITEMS]
+
+
+def test_a_hidden_tournament_whose_gate_passed_before_it_opened_runs() -> None:
+    db = _FakeDb(split="hidden", gate=PASSED_GATE)
+    run(_runner_with(db, _FakeOrchestrator()).run_replay_track_prerequisite(uuid4()))
+    assert db.gate_reads == 1
+
+
+@pytest.mark.parametrize(
+    "gate",
+    [
+        [],  # opened directly (`arena.open_tournament`), the gate never ran
+        PASSED_GATE[:-1],  # an item missing (IG-6)
+        [(name, name != IG_CHECK_NAMES["IG-4"], sha) for name, _, sha in PASSED_GATE],  # the hidden-text scan failed
+        [*PASSED_GATE[:-1], (IG_CHECK_NAMES["IG-6"], True, "b" * 40)],  # items from two different commits
+        [(name, True, None) for name, _, _ in PASSED_GATE],  # no commit recorded
+    ],
+)
+def test_a_hidden_tournament_without_a_passing_gate_before_it_opened_is_refused_before_any_trial(
+    gate: list[tuple[str, bool, str | None]],
+) -> None:
+    """S1 L9, S3 9: `arena.open_tournament` checks nothing itself, so the job refuses a hidden tournament that
+    did not pass the isolation gate (all six items, one commit) before it went `running`."""
+    db = _FakeDb(split="hidden", gate=gate)
+    with pytest.raises(IsolationGateNotPassedError, match="isolation gate"):
+        run(_runner_with(db, _FakeOrchestrator()).run_replay_track_prerequisite(uuid4()))
+    assert db.started == []
 
 
 class _FakeReferee:

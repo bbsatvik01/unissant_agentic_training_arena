@@ -369,14 +369,24 @@ class Orchestrator:
             return (await self.db.harness_trial_state(trial)).open_question
         return await self.db.open_question(trial)
 
+    async def _release_done(self, trial: UUID, key: str) -> bool:
+        """Whether the release step with this request key is already finished (`arena.work_item_results`, D3)."""
+        return any(
+            w["request_key"] == key and w["kind"] == "release" and w["status"] == "done"
+            for w in await self.db.work_item_results(trial)
+        )
+
     # ------------------------------------------------------------------ between turns (S5 5.4)
 
     async def request_evidence(self, trial: UUID, record_ids: list[str], idem_key: str) -> dict[str, Any]:
         async with self.signals.lock(trial):
-            if await self._open_question(trial):  # S5 5.4: between turns only; the open turn's retry owns it
+            key = request_key(trial, 0, "release", f"evidence:{idem_key}")
+            # S5 5.4: between turns only; the open turn's retry owns it. A retried request whose release already
+            # finished (a job resumed after a crash between a later question and its answer) answers its stored
+            # result instead (S4 2.3 item 4), so the resume reaches the open question's own retry.
+            if await self._open_question(trial) and not await self._release_done(trial, key):
                 raise TurnRefusedError(409, "turn_in_progress", "the last question is not answered yet")
             try:
-                key = request_key(trial, 0, "release", f"evidence:{idem_key}")
                 result = await self.db.release_between_turns(trial, key, record_ids)
             except ArenaError as exc:
                 raise refusal(exc) from exc

@@ -30,6 +30,7 @@ from uuid import UUID
 
 from arena_core.agents.manifests import CandidateManifest
 from arena_core.db.arena import ArenaDb
+from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS
 from arena_core.spend.rates import ModeledCall
 from arena_core.turns.harness import CorpusPorts, Execution, run_corpus, run_interactive
 from arena_core.turns.orchestrator import Orchestrator
@@ -40,6 +41,12 @@ from arena_tournament.harness_asker import CorpusAsker, HarnessAsker
 from arena_tournament.referee_client import RefereeClient
 
 log = logging.getLogger("arena_tournament")
+
+
+class IsolationGateNotPassedError(RuntimeError):
+    """A hidden tournament whose isolation gate (S1 L9, S3 9: the six IG items, the hidden-text scan among them)
+    did not pass, on one commit, before it went `running`. `arena.open_tournament` itself checks nothing, so the
+    job refuses to run one opened any other way than the referee's gated open route."""
 
 
 class MissingPacketError(RuntimeError):
@@ -157,6 +164,18 @@ class TournamentRunner:
             raise MissingPacketError(msg)
         return packet
 
+    async def _require_gate(self, tournament: UUID) -> None:
+        """A hidden tournament runs only if every IG item's latest check before it opened passed, all on one
+        commit (S1 L9, S3 9); a dev tournament has no hidden corpus to scan and opens ungated."""
+        if await self.db.tournament_split(tournament) != "hidden":
+            return
+        latest = {name: (passed, sha) for name, passed, sha in await self.db.gate_rows_before_open(tournament)}
+        needed = [latest.get(IG_CHECK_NAMES[item]) for item in IG_ITEMS]
+        commits = {row[1] for row in needed if row is not None}
+        if any(row is None or not row[0] for row in needed) or len(commits) != 1 or None in commits:
+            msg = f"hidden tournament {tournament} did not pass the isolation gate before it opened; not run"
+            raise IsolationGateNotPassedError(msg)
+
     # ------------------------------------------------------------------ corpus track (S2 8.6; BKO-6)
 
     async def _run_corpus_track(self, planned: Sequence[Row], attempts_by_planned: dict[UUID, list[Attempt]]) -> None:
@@ -229,7 +248,9 @@ class TournamentRunner:
         first, so a fresh `run` after a crash here just repeats the now-idempotent replay phase and moves
         on). A dev and a hidden tournament run the same way (WP-28): every read the harness makes of a trial
         while it runs goes through `arena.harness_trial_state`, and a hidden tournament reaches `running` only
-        through the referee's isolation gate (S3 9; `arena_referee.isolation.open_hidden_tournament`)."""
+        through the referee's isolation gate (S3 9; `arena_referee.isolation.open_hidden_tournament`), which
+        `_require_gate` checks again here."""
+        await self._require_gate(tournament)
         planned = await self.db.planned_trials(tournament)
         corpus = [r for r in planned if r["track"] == "replay_corpus"]
         replay = [r for r in planned if r["track"] == "replay"]

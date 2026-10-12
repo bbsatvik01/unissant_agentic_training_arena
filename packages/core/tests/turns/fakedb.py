@@ -439,6 +439,11 @@ class FakeArenaDb(ArenaDb):
             for r in self.releases
         ]
 
+    async def work_item_results(self, trial: UUID) -> list[dict[str, Any]]:
+        """`arena.work_item_results` (D3): every step of the trial with its key, kind and status."""
+        assert trial == self.trial_id
+        return [dict(item) for item in self.items.values()]
+
     async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
         """`arena.harness_trial_state` (WP-28): a harness request (no actor) on a running tournament trial only
         (AR040 otherwise, AR001 once it is not running); hidden or not, it reads the trial's own state."""

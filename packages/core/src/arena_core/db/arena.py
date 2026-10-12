@@ -639,6 +639,19 @@ class ArenaDb:
         rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
         return None if not rows else str(rows[0][0])
 
+    async def gate_rows_before_open(self, tournament: UUID) -> list[tuple[str, bool, str | None]]:
+        """`arena.v_isolation_checks`: the latest row per check name recorded before the tournament went
+        `running` (`check_name`, `passed`, `commit_sha`), the isolation gate the referee's open route runs fresh
+        for a hidden tournament (S1 L9, S3 9). Empty for an unknown or never-opened tournament."""
+        rows = await self.fetch(
+            "select distinct on (i.check_name) i.check_name, i.passed, i.commit_sha"
+            " from arena.v_isolation_checks i join arena.v_tournaments t on t.id = %s"
+            " where t.running_at is not null and i.run_at <= t.running_at"
+            " order by i.check_name, i.run_at desc",
+            (tournament,),
+        )
+        return [(str(r[0]), bool(r[1]), None if r[2] is None else str(r[2])) for r in rows]
+
     async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
         """`arena.harness_trial_state` (WP-28): the job's own in-flight read of a running tournament trial -- the
         case's public packet, whether a question is open, the released records' ids, titles and exchange counts,

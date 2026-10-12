@@ -27,7 +27,7 @@ from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.inclusion import Exec, RevealBlockedError
 from arena_core.scoring.kpi import LatencyRow
-from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
+from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
 from arena_referee.mapping import TrialData
@@ -568,14 +568,7 @@ async def seal_corrected_manifest(connect: Connector, tournament_id: str) -> Rev
 
 # ---------------------------------------------------------------- isolation gate (S3 9, WP-16)
 
-CHECK_NAMES: Mapping[str, str] = {
-    "IG-1": "ig1_privilege_tests",
-    "IG-2": "ig2_route_tests",
-    "IG-3": "ig3_assistant_context",
-    "IG-4": "ig4_hidden_text_scan",
-    "IG-5": "ig5_commitment_verification",
-    "IG-6": "ig6_canary_audit",
-}
+CHECK_NAMES: Mapping[str, str] = IG_CHECK_NAMES
 _IG_ITEM_BY_CHECK_NAME = {v: k for k, v in CHECK_NAMES.items()}
 
 

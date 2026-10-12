@@ -554,3 +554,16 @@ def test_an_investigator_request_keeps_reading_its_own_trial_through_the_project
     rig.turn()
     assert [e.turn_no for e in rig.db.events if e.kind == "coach_deep"] == [TURNS_BEFORE_DEEP, TURNS_BEFORE_DEEP + 1]
     assert "harness_trial_state" not in rig.db.calls
+
+
+def test_a_resumed_between_turns_release_answers_its_stored_result_while_a_later_question_is_open() -> None:
+    """A job killed after question 1 committed and before its answer (corpus track) restarts from exchange 1: the
+    release it already made answers its stored result (S4 2.3 item 4) rather than 409, so the resume reaches the
+    open question's own retry; a NEW release while the question is open is still refused (S5 5.4)."""
+    rig = _hidden_harness_rig()
+    first = run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:1"))
+    run(rig.db.submit_question(rig.db.trial_id, rig.db.version, "What did you do in B-12?", str(uuid4())))
+    assert run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:1")) == first
+    with pytest.raises(TurnRefusedError) as exc_info:
+        run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:2"))
+    assert exc_info.value.code == "turn_in_progress"

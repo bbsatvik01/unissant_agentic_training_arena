@@ -22,6 +22,16 @@ IG_ITEMS = ("IG-1", "IG-2", "IG-3", "IG-4", "IG-5", "IG-6")
 # the one item it does not require; the privilege, route and assistant-context suites (IG-1..3), commitments and
 # chain (IG-5) and the canary audit (IG-6) all still gate its ranking.
 DEV_IG_ITEMS = ("IG-1", "IG-2", "IG-3", "IG-5", "IG-6")
+# The `arena.isolation_checks.check_name` each IG item is recorded under (the referee writes them; the tournament
+# job reads them back before it runs a hidden tournament).
+IG_CHECK_NAMES: Mapping[str, str] = {
+    "IG-1": "ig1_privilege_tests",
+    "IG-2": "ig2_route_tests",
+    "IG-3": "ig3_assistant_context",
+    "IG-4": "ig4_hidden_text_scan",
+    "IG-5": "ig5_commitment_verification",
+    "IG-6": "ig6_canary_audit",
+}
 NOT_RANKED = "not ranked: isolation gate failed"
 QQ_COVERAGE_MIN = Fraction(9, 10)
 
