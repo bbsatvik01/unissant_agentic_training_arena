@@ -55,6 +55,14 @@ describe("ArenaView", () => {
     expect(document.querySelector('.gates [data-gate="failed"]')?.textContent).toContain("A2");
   });
 
+  it("shows a row's fairness violations next to its rank (S3 8)", () => {
+    const rows = boards.assistant.rows.map((r) => (r.candidate_id === "A3" ? { ...r, fairness_violations: [{ analysis: "FA-3", track: "I", flags: 1, findings: 0 }] } : r));
+    render(<ArenaView name="Arena" boards={{ kind: "example" }} assistant={parseBoard({ ...boards.assistant, rows })} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state: "idle" }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+    const cells = [...document.querySelectorAll("table.board tbody tr")].map((tr) => tr.lastElementChild?.textContent ?? "");
+    expect(cells[0]).not.toContain("Fairness");
+    expect(cells[1]).toContain("Fairness: FA-3 (interactive): demeanor-based flags 1, findings 0");
+  });
+
   it("carries EX-4 and the EVL-10 sentence", () => {
     show();
     expect(document.body.textContent).toContain(EX4_TEXT);

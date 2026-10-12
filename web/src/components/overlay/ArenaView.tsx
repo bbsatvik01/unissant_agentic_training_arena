@@ -121,7 +121,10 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
                 <td>{metricText(r.metrics["M01_deceptive_recall"])}</td>
                 <td>{metricText(r.metrics["M09_questioning_quality"])}</td>
                 <td>{metricText(r.metrics["M03_ppv"])}</td>
-                <td>{rankStatus(board, r)}</td>
+                <td>
+                  {rankStatus(board, r)}
+                  {r.fairness.length === 0 ? null : <span className="fine"> Fairness: {r.fairness.join("; ")}</span>}
+                </td>
               </tr>
             );
           })}
