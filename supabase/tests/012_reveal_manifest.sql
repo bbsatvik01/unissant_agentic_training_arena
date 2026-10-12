@@ -640,9 +640,18 @@ select pg_temp.rv_complete((select trial from rvh4), 'rvh-4');
 -- entirely, since there would be nothing underneath to leak.
 select pg_temp.rv_adj((select trial from rvh3), 'valid', 'rv19-pre-adj');
 
+-- The variant's real hidden packet, read as the harness's own (superuser) role, never as arena_public:
+-- arena_public holds no grant on schema sealed at all (RR-01..15), so a query that named
+-- sealed.hidden_public_packets INSIDE a tests.as_role('arena_public', ...) string -- as an earlier version of
+-- RV-20 did -- fails with "permission denied for schema sealed" there, not a defect in arena.v_hidden_cases
+-- itself (the view may read it, owner-rights; the querying role naming it directly may not, S4 9.1). Fetched
+-- once, before reveal, so RV-20 compares arena_public's post-reveal read against a value that could not
+-- itself have been influenced by the reveal this test is proving.
 -- RV-19: before reveal.
 create temp table rvh3variant on commit drop as
   select variant_id from arena.trials where id = (select trial from rvh3);
+create temp table rvh3expected on commit drop as
+  select packet from sealed.hidden_public_packets where variant_id = (select variant_id from rvh3variant);
 create temp table rv19 on commit drop as select tests.as_role('arena_public', format(
   'select jsonb_build_object(%L, (select count(*) from arena.v_transcripts where trial_id = %L),'
   || ' %L, (select count(*) from arena.v_findings where trial_id = %L),'
@@ -700,9 +709,8 @@ select is(array[
     (tests.as_role('arena_public', format('select count(*) from arena.v_trial_events where trial_id = %L', (select trial from rvh3)))::text::integer > 0)::text,
     tests.as_role('arena_public', format('select count(*) from ledger.v_adjudications where trial_id = %L', (select trial from rvh3)))::text,
     (tests.as_role('arena_public', format('select payload from ledger.v_commitments where trial_id = %L', (select trial from rvh3))) is not null)::text,
-    tests.as_role('arena_public', format('select public_packet = p.packet from arena.v_hidden_cases, sealed.hidden_public_packets p'
-      || ' where v_hidden_cases.variant_id = %L and p.variant_id = %L',
-      (select variant_id from rvh3variant), (select variant_id from rvh3variant)))::text],
+    (tests.as_role('arena_public', format('select public_packet from arena.v_hidden_cases where variant_id = %L',
+      (select variant_id from rvh3variant)))::text = (select packet::text from rvh3expected))::text],
   array['1', '1', 'true', '1', 'true', 'true'],
   'RV-20 after reveal, the same views return the hidden trial''s rows (and v_commitments.payload too); '
   || 'arena.v_hidden_cases now resolves the variant''s real packet byte for byte, closing the sealed-run '
