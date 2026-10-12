@@ -388,6 +388,31 @@ async def register_candidate(conn: Conn, *, kind: str, name: str, version: str, 
     return cast("UUID", row[0])
 
 
+async def seal_hidden_split(conn: Conn, sampler_record: Mapping[str, Any]) -> str:
+    """`sealed.seal_hidden_split(p_sampler_record)` (S1 10.3 step 3): seals the hidden split exactly once --
+    every hidden family ingested so far, never again after this call (`AR001` on a second seal, `AR007` on a
+    `sampler_record` that does not match the archived families exactly, SG1-29) -- and returns the published
+    seal hash. Not idempotent the way ingest is: a caller that wants "seal once, safely re-run" checks
+    `verify_hidden_seal` first."""
+    async with conn.transaction():
+        cur = await conn.execute("select sealed.seal_hidden_split(%s)", (Jsonb(dict(sampler_record)),))
+        row = await cur.fetchone()
+    if row is None:
+        msg = "sealed.seal_hidden_split returned no row"
+        raise GuardProtocolError(msg)
+    return cast("str", row[0])
+
+
+async def verify_hidden_seal(conn: Conn) -> bool:
+    """`sealed.verify_hidden_seal()` (S1 10.3 step 5, SG3-39): the archive's recomputed digest, the stored
+    sampler record and the public ledger commitment of the seal all still agree. `False` before any seal
+    exists, never an error."""
+    async with conn.transaction():
+        cur = await conn.execute("select sealed.verify_hidden_seal()")
+        row = await cur.fetchone()
+    return bool(row and row[0])
+
+
 async def allowlist_user(conn: Conn, *, user_id: UUID, email: str) -> None:
     """One allowlisted investigator (S4 2.3, S5 10.3): an `auth.users` row the operator creates directly, never
     through Supabase Auth (C-02, C-03 -- the browser never reaches Postgres). `user_id` is
