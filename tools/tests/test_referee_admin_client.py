@@ -21,7 +21,7 @@ def run[T](coro: Coroutine[Any, Any, T]) -> T:
 
 
 def _me_response(status: int = 200) -> httpx.Response:
-    return httpx.Response(status, json={"csrf_token": TOKEN}, headers={"set-cookie": f"arena_csrf={TOKEN}"})
+    return httpx.Response(status, json={"csrf_token": TOKEN}, headers={"set-cookie": f"arena_console_csrf={TOKEN}"})
 
 
 def test_admin_post_sends_the_csrf_cookie_and_header_from_get_me() -> None:
@@ -40,9 +40,9 @@ def test_admin_post_sends_the_csrf_cookie_and_header_from_get_me() -> None:
     get_me, post = seen
     assert (get_me.method, get_me.url.path) == ("GET", "/api/me")
     assert (post.method, post.url.path) == ("POST", "/api/admin/isolation-gate/run")
-    assert post.headers["x-arena-csrf"] == TOKEN
+    assert post.headers["x-arena-console-csrf"] == TOKEN
     assert post.headers["origin"] == BASE
-    assert f"arena_csrf={TOKEN}" in post.headers["cookie"]
+    assert f"arena_console_csrf={TOKEN}" in post.headers["cookie"]
     assert post.content == b'{"a":1}'
 
 
@@ -77,7 +77,7 @@ def test_admin_get_sends_no_csrf_dance() -> None:
     assert result == {"commit_sha": "a" * 40}
     [got] = seen
     assert (got.method, got.url.path) == ("GET", "/api/admin/isolation-gate")
-    assert "x-arena-csrf" not in got.headers
+    assert "x-arena-console-csrf" not in got.headers
 
 
 def test_admin_get_raises_on_a_non_200() -> None:

@@ -61,7 +61,7 @@ rules:
         - "/services/tournament/src/arena_tournament/referee_client.py"
         # an operator script's own D10-aware client for arena-referee's admin console (`make
         # isolation-reports`, S3 9): the double-submit CSRF dance (GET /api/me, then a POST with Origin,
-        # Cookie and X-Arena-CSRF), the same role-client shape as the pair above, never a model call.
+        # Cookie and X-Arena-Console-CSRF), the same role-client shape as the pair above, never a model call.
         - "/scripts/referee_admin_client.py"
         # httpx.ASGITransport drives the FastAPI app in process (no socket, no network, the same technique
         # FastAPI's own docs recommend over starlette.testclient, which this repo avoids because its newer

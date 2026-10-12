@@ -5,9 +5,12 @@
  * - Same origin only: a path must be a relative `/api/...` path of the origin that served the page (no
  *   scheme, no host, no `..` segment, also after URL normalization, so `%2e%2e` cannot escape); cookies travel `same-origin` and redirects are refused, so nothing is
  *   ever sent to, or followed to, another origin.
- * - CSRF: the token comes from `GET /api/me` (which also sets the `arena_csrf` cookie) and is kept in memory
- *   only. Every POST, bodyless ones included, carries `X-Arena-CSRF`; no POST is sent before the token is
- *   known. On a 403 the wrapper re-reads `/api/me` once and retries once.
+ * - CSRF: the token comes from `GET /api/me` (which also sets the service's CSRF cookie) and is kept in memory
+ *   only. Every POST, bodyless ones included, carries the service's CSRF header; no POST is sent before the token
+ *   is known. On a 403 the wrapper re-reads `/api/me` once and retries once. Each service has its own pair, since
+ *   browsers share cookies across the ports of one host: the world (arena-api) uses `arena_csrf` and
+ *   `X-Arena-CSRF`, the admin console (arena-referee, whose `/api/me` is a console profile) `arena_console_csrf`
+ *   and `X-Arena-Console-CSRF`.
  * - `X-Requested-With: XMLHttpRequest` on every request, so a hosted IAP front answers an expired session with
  *   401 instead of a redirect (S6 1.4); harmless locally.
  * - Errors: a non-2xx answer is an `ApiError` carrying the status and the server's `code` (`paused`,
@@ -162,15 +165,20 @@ async function readJson(response: Response): Promise<{ ok: true; value: unknown 
   }
 }
 
+export const CSRF_HEADER = "X-Arena-CSRF";
+export const CONSOLE_CSRF_HEADER = "X-Arena-Console-CSRF";
+
 export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   const transport: FetchLike = options.fetch ?? ((input, init) => fetch(input, init));
   let token: string | null = null;
+  /** The serving origin's own header, known from its `/api/me` (always read before the first POST). */
+  let csrfHeader = CSRF_HEADER;
   let meInFlight: Promise<Me> | null = null;
 
   /** `payload` is the body already serialized: every attempt of one call sends the same bytes. */
   const send = (method: "GET" | "POST", path: string, payload: string | undefined, keepalive: boolean, csrf: string | null): Promise<Response> => {
     const headers: Record<string, string> = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
-    if (csrf !== null) headers["X-Arena-CSRF"] = csrf;
+    if (csrf !== null) headers[csrfHeader] = csrf;
     const init: RequestInit = { method, headers, credentials: "same-origin", redirect: "error", cache: "no-store" };
     if (payload !== undefined) {
       headers["Content-Type"] = "application/json";
@@ -195,6 +203,7 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     const me = parseMe(value);
     if (me === null) throw new ContractError("/api/me", "the /api/me profile");
     token = me.csrf_token;
+    csrfHeader = me.console ? CONSOLE_CSRF_HEADER : CSRF_HEADER;
     return me;
   };
 

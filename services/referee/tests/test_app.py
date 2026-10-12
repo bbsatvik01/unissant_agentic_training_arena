@@ -124,7 +124,7 @@ async def _post_no_body(app: FastAPI, path: str, *, headers: dict[str, str], coo
 
 
 def _browser_post_headers(csrf: str) -> dict[str, str]:
-    return {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-csrf": csrf}
+    return {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-console-csrf": csrf}
 
 
 FORBIDDEN = 403
@@ -180,7 +180,7 @@ def test_get_me_mints_a_csrf_cookie_and_returns_the_identity(tmp_path: Path) -> 
     assert body["display_name"] == "Admin User"
     assert sorted(body["roles"]) == ["admin", "trainer"]
     assert "csrf_token" in body
-    assert "arena_csrf" in resp.cookies
+    assert "arena_console_csrf" in resp.cookies
 
 
 def test_get_me_refuses_an_identity_without_a_console_role(tmp_path: Path) -> None:
@@ -299,7 +299,7 @@ def test_submit_review_item_succeeds_with_a_valid_d10_request(tmp_path: Path, mo
             f"/api/review/items/{uuid4()}",
             json=LAB_SUBMISSION,
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -310,6 +310,26 @@ def test_submit_review_item_without_csrf_is_refused_by_d10(tmp_path: Path) -> No
     app = make_app(tmp_path)
     resp = run(_post(app, f"/api/review/items/{uuid4()}", json=LAB_SUBMISSION, headers={"origin": ORIGIN}))
     assert resp.status_code == FORBIDDEN
+
+
+def test_the_console_refuses_arena_api_s_csrf_pair(tmp_path: Path) -> None:
+    # Browsers share cookies across the ports of one host: the world's (arena-api) `arena_csrf` cookie reaches
+    # the console too, so the console mints and checks its own pair, and the world's pair is no pass here.
+    app = make_app(tmp_path)
+    me = run(_get(app, "/api/me"))
+    assert "arena_csrf" not in me.cookies
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/api/review/items/{uuid4()}",
+            json=LAB_SUBMISSION,
+            headers={"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-csrf": csrf},
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == FORBIDDEN
+    assert resp.json() == {"detail": "missing or mismatched X-Arena-Console-CSRF"}
 
 
 def test_submit_review_item_not_assigned_is_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -327,7 +347,7 @@ def test_submit_review_item_not_assigned_is_404(tmp_path: Path, monkeypatch: pyt
             f"/api/review/items/{uuid4()}",
             json=LAB_SUBMISSION,
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == NOT_FOUND
@@ -348,7 +368,7 @@ def test_submit_review_item_rejects_a_malformed_submission(tmp_path: Path, monke
             f"/api/review/items/{uuid4()}",
             json={"task": "T-LAB"},  # missing "turns"
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == UNPROCESSABLE
@@ -732,7 +752,7 @@ def test_reveal_route_publishes_and_returns_the_manifest(tmp_path: Path, monkeyp
             app,
             f"/api/admin/tournaments/{uuid4()}/reveal",
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -763,7 +783,7 @@ def test_reveal_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeyp
             app,
             f"/api/admin/tournaments/{uuid4()}/reveal",
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == CONFLICT
@@ -789,7 +809,7 @@ def test_correction_route_publishes_a_corrected_board(tmp_path: Path, monkeypatc
             app,
             f"/api/admin/tournaments/{uuid4()}/corrections",
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -853,7 +873,7 @@ def test_a_dev_tournament_opens_and_reveals_with_no_hidden_data(
     monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
     csrf = run(_get(app, "/api/me")).json()["csrf_token"]
     tournament = uuid4()
-    post = {"headers": _browser_post_headers(csrf), "cookies": {"arena_csrf": csrf}}
+    post = {"headers": _browser_post_headers(csrf), "cookies": {"arena_console_csrf": csrf}}
     opened = run(_post_no_body(app, f"/api/admin/tournaments/{tournament}/open", **post))
     assert opened.json() == {"opened": True, "gated": False}
     resp = run(_post(app, f"/api/admin/tournaments/{tournament}/reveal", **post))
@@ -939,7 +959,7 @@ def test_run_isolation_gate_route_rejects_a_malformed_body(tmp_path: Path) -> No
             # commit_sha matches (this test is about the missing ig1/ig2/ig3, not the commit check below).
             json={"commit_sha": BASE_ENV["ARENA_GIT_SHA"], "tournament_id": str(uuid4())},
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == UNPROCESSABLE
@@ -974,7 +994,7 @@ def test_run_isolation_gate_route_refuses_a_commit_sha_that_is_not_its_own(
                 "ig3": {"passed": True, "report_text": "context ok"},
             },
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.CONFLICT
@@ -1002,7 +1022,7 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
                 "ig3": {"passed": True, "report_text": "context ok"},
             },
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -1050,7 +1070,7 @@ def test_open_route_rejects_a_malformed_body(tmp_path: Path, monkeypatch: pytest
             f"/api/admin/tournaments/{uuid4()}/open",
             json={},  # missing ig1/ig2/ig3
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == UNPROCESSABLE
@@ -1078,7 +1098,7 @@ def test_open_route_opens_a_dev_tournament_directly_with_no_gate(
             f"/api/admin/tournaments/{tid}/open",
             json={},
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -1103,7 +1123,7 @@ def test_open_route_opens_on_a_passing_gate(tmp_path: Path, monkeypatch: pytest.
             f"/api/admin/tournaments/{uuid4()}/open",
             json=_open_body(),
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == httpx.codes.OK
@@ -1132,7 +1152,7 @@ def test_open_route_maps_a_failing_gate_to_409(tmp_path: Path, monkeypatch: pyte
             f"/api/admin/tournaments/{uuid4()}/open",
             json=_open_body(),
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == CONFLICT
@@ -1155,7 +1175,7 @@ def test_open_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeypat
             f"/api/admin/tournaments/{uuid4()}/open",
             json=_open_body(),
             headers=_browser_post_headers(csrf),
-            cookies={"arena_csrf": csrf},
+            cookies={"arena_console_csrf": csrf},
         )
     )
     assert resp.status_code == CONFLICT
@@ -1225,7 +1245,7 @@ def console(monkeypatch: pytest.MonkeyPatch) -> _Console:
 
 def _admin_posts(app: FastAPI) -> dict[str, Any]:
     csrf = run(_get(app, "/api/me")).json()["csrf_token"]
-    return {"headers": _browser_post_headers(csrf), "cookies": {"arena_csrf": csrf}}
+    return {"headers": _browser_post_headers(csrf), "cookies": {"arena_console_csrf": csrf}}
 
 
 def test_admin_reads_list_detail_budget_and_reviews(tmp_path: Path, console: _Console) -> None:

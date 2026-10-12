@@ -20,7 +20,14 @@ from arena_core.agents.manifests import load_prompts, referee_manifest, with_has
 from arena_core.config import ArenaRole, Settings, boot
 from arena_core.contracts.common import EvasionLabel
 from arena_core.db.pool import PooledConnector, closing_lifespan
-from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, evaluate_request
+from arena_core.http_guard import (
+    CONSOLE_CSRF_COOKIE,
+    CONSOLE_CSRF_HEADER,
+    GuardConfig,
+    GuardRefusalError,
+    RequestFacts,
+    evaluate_request,
+)
 from arena_core.identity import DevIdentity, resolve_dev_user
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort
@@ -100,8 +107,9 @@ def _install_d10_guard(app: FastAPI, config: GuardConfig) -> None:
             authorization=headers.get("authorization"),
             origin=headers.get("origin"),
             sec_fetch_site=headers.get("sec-fetch-site"),
-            csrf_cookie=request.cookies.get("arena_csrf"),
-            csrf_header=headers.get("x-arena-csrf"),
+            csrf_cookie=request.cookies.get(CONSOLE_CSRF_COOKIE),
+            csrf_header=headers.get(CONSOLE_CSRF_HEADER.lower()),
+            csrf_header_name=CONSOLE_CSRF_HEADER,
         )
         try:
             evaluate_request(config, facts)

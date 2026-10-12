@@ -9,6 +9,10 @@ from dataclasses import replace
 import pytest
 
 from arena_core.http_guard import (
+    CONSOLE_CSRF_COOKIE,
+    CONSOLE_CSRF_HEADER,
+    CSRF_COOKIE,
+    CSRF_HEADER,
     CSRF_TOKEN_BYTES,
     GuardConfig,
     GuardRefusalError,
@@ -151,6 +155,18 @@ def test_post_without_csrf_header_refused() -> None:
 def test_post_with_mismatched_csrf_refused() -> None:
     with pytest.raises(GuardRefusalError):
         evaluate_request(CONFIG, browser_post(csrf_cookie="a", csrf_header="b"))
+
+
+def test_each_service_has_its_own_csrf_pair_and_a_refusal_names_the_service_s_header() -> None:
+    # One host, two browser-facing ports: distinct cookie names keep one service's token from overwriting the other's.
+    assert CONSOLE_CSRF_COOKIE != CSRF_COOKIE
+    assert CONSOLE_CSRF_HEADER.lower() != CSRF_HEADER.lower()
+    with pytest.raises(GuardRefusalError) as exc:
+        evaluate_request(CONFIG, replace(browser_post(csrf_header=None), csrf_header_name=CONSOLE_CSRF_HEADER))
+    assert exc.value.reason == "missing or mismatched X-Arena-Console-CSRF"
+    with pytest.raises(GuardRefusalError) as default:
+        evaluate_request(CONFIG, browser_post(csrf_header=None))
+    assert default.value.reason == "missing or mismatched X-Arena-CSRF"
 
 
 def test_post_with_matching_origin_host_and_csrf_succeeds() -> None:
