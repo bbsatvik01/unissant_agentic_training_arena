@@ -13,15 +13,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import TypeAdapter
 
 from arena_api.state import ApiState, actor_db, api_state, error_response, identity
 from arena_core.contracts.routes import TurnSubmit
+from arena_core.contracts.snapshot import VoiceTrialSnapshot
 from arena_core.db.arena import ArenaDb
 from arena_core.events.load import LoadedTrial, load_recording, load_trial, snapshot_of
 from arena_core.identity import DevIdentity
 from arena_core.turns.orchestrator import TurnRefusedError
 
 router = APIRouter()
+VOICE_SNAPSHOT: TypeAdapter[VoiceTrialSnapshot] = TypeAdapter(VoiceTrialSnapshot)
 
 
 async def owned(db: ArenaDb, trial_id: UUID) -> LoadedTrial:
@@ -58,7 +61,16 @@ async def post_turn(
 
 @router.get("/api/trials/{trial_id}/snapshot")
 async def get_snapshot(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
-    return snapshot_of(await owned(db, trial_id))
+    snap = snapshot_of(await owned(db, trial_id))
+    meta = await db.trial(trial_id)
+    if meta is None or not meta["voice"]:
+        return snap
+    # The voice branch (S5 7.7, SG4-39): the stored exchange windows are the transcript and their count is the
+    # authority for the 12 cap; no turns, cards or coach updates exist in voice.
+    exchanges = await db.voice_exchanges(trial_id)
+    voice = {**snap, "channel": "voice", "voice_exchanges": exchanges, "exchanges_used": len(exchanges)}
+    dumped: dict[str, Any] = VOICE_SNAPSHOT.dump_python(VOICE_SNAPSHOT.validate_python(voice), mode="json")
+    return dumped
 
 
 @router.get("/api/trials/{trial_id}/recording")

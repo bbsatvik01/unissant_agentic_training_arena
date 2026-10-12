@@ -31,7 +31,7 @@ ENV_DIR="${ENV_DIR:-$ROOT}"
 case "$ENV_DIR" in /*) ;; *) ENV_DIR="$ROOT/$ENV_DIR" ;; esac
 # Canonical, so "." or a trailing slash still names the root (symlinks resolved).
 [[ -d "$ENV_DIR" ]] && ENV_DIR="$(cd "$ENV_DIR" && pwd -P)"
-CONTAINER="arena-dev-db"
+CONTAINER="${ARENA_DEV_CONTAINER:-arena-dev-db}"  # override to run a second local stack beside another
 # The image make db-test runs (supabase/tests/harness/db_test.sh), pinned by digest.
 IMAGE="supabase/postgres:17.11.0.002@sha256:0450166354dc9c1d25f0322ac8b580774d4fb0184d2b087f6e4fe9499c66cf53"
 DEV_USER="dev@arena.local"
@@ -192,7 +192,9 @@ up() {
   done
   grep -q '_DSN=' "$ENV_DIR/.env.local" && die ".env.local must not contain a DSN (S5 10.2)"
   read_env "$ENV_DIR/.env.local" "$ENV_DIR/.env.local.subject"
-  ENV_OUT=("${base[@]}" "${ENV_OUT[@]}" ARENA_ROLE=subject ARENA_LOCAL_CALLERS="$callers")
+  # The voice route admits the api's token only (S5 7.1); the tournament's token reaches /internal/answer alone.
+  ENV_OUT=("${base[@]}" "${ENV_OUT[@]}" ARENA_ROLE=subject ARENA_LOCAL_CALLERS="$callers"
+           ARENA_VOICE_CALLER="$(hash_of "$api_token")")
   launch arena-subject uv run --locked python -m arena_subject
 
   # The referee refuses to boot without the code version its gate and leaderboard evidence bind to (S3 9).

@@ -20,7 +20,8 @@ from starlette.responses import JSONResponse
 from arena_api.referee_client import referee_client
 from arena_api.routes import router
 from arena_api.state import PORT, ApiState
-from arena_api.subject_client import subject_client
+from arena_api.subject_client import SUBJECT_URL, subject_client
+from arena_api.voice_relay import subject_dialer
 from arena_core.config import ArenaRole, boot
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import PooledConnector, closing_lifespan
@@ -84,6 +85,7 @@ def create_app(state: ApiState, config: GuardConfig, *, phoenix_url: str | None 
         title="arena-api", docs_url=None, redoc_url=None, lifespan=lambda _app: closing_lifespan(state.connect)
     )
     app.state.api = state
+    app.state.guard_config = config
     app.state.phoenix_url = phoenix_url
     pause = _Pause()
 
@@ -127,6 +129,7 @@ def state_from_env(env: Mapping[str, str]) -> ApiState:
         port=port,
         subject=subject_client(token),
         debrief=referee_client(token),
+        voice_dialer=subject_dialer(token, SUBJECT_URL.replace("http://", "ws://") + "/internal/voice/ws"),
         coach_name=env.get("ARENA_TRAINING_COACH", "A1"),
         subject_name=env.get("ARENA_TRAINING_SUBJECT", "S1"),
         case_draw_seed=env.get("ARENA_CASE_DRAW_SEED", "0"),

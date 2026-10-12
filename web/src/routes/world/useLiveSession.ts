@@ -29,7 +29,8 @@ export interface LiveControls {
   readonly clock: { current: number };
   /** The last action's error in words, or null. */
   readonly error: string | null;
-  readonly start: (mode: "practice" | "assessment") => Promise<void>;
+  /** Start a session; `voice` opens a voice practice session (unscored, S6 3.3). */
+  readonly start: (mode: "practice" | "assessment", voice?: boolean) => Promise<void>;
   /** The session this tab last started on the case, when there is one to go back to (S6 5.1). */
   readonly resumable: StartedSession | null;
   /** Attach to `resumable` again: its snapshot, then the stream or its published debrief. */
@@ -164,7 +165,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   );
 
   const start = useCallback(
-    async (mode: "practice" | "assessment") => {
+    async (mode: "practice" | "assessment", voice = false) => {
       // One start at a time: a second click while the session is being created is ignored.
       if (caseId === null || controller.current !== null || starting.current) return;
       starting.current = true;
@@ -172,7 +173,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
       setPhase("starting");
       setError(null);
       try {
-        const started = await api.startSession({ case_id: caseId, mode, voice: false, idem_key: crypto.randomUUID() }).finally(() => {
+        const started = await api.startSession({ case_id: caseId, mode, voice, idem_key: crypto.randomUUID() }).finally(() => {
           starting.current = false;
         });
         if (generation.current !== run) return;

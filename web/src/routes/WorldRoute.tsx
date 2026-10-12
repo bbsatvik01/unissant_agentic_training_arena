@@ -48,6 +48,19 @@ import { modeBadge } from "../lib/world/badge";
 import { latestOnly } from "../lib/world/latest";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
+import { useVoiceSession } from "./world/useVoiceSession";
+import { INVESTIGATOR, subjectPersona } from "../lib/world/cast";
+import { VoiceBar } from "../components/overlay/VoiceBar";
+import { liveVoiceView, withLiveVoice } from "../lib/voice/liveWorld";
+import type { ExchangeEntry } from "../lib/voice/voiceMachine";
+import type { VoiceExchange } from "../lib/contracts/generated/types";
+
+type StartKind = "practice" | "assessment" | "voice";
+const NO_EXCHANGES: readonly VoiceExchange[] = [];
+
+function fromEntries(entries: readonly ExchangeEntry[]): VoiceExchange[] {
+  return entries.map((e) => ({ exchange_no: e.exchangeNo, lines: [...e.lines] }));
+}
 import { roomEngine } from "./world/voiceEngines";
 import { usePlayback } from "./world/usePlayback";
 
@@ -234,7 +247,11 @@ export function WorldRoute() {
   const { play, seekTo } = playback;
   const liveFeed = mode === "live";
   const view: TrialView | null = liveFeed ? session.trial.view : mode === "playback" ? playback.trial.view : null;
-  const world: WorldState | null = liveFeed ? session.world : mode === "playback" ? playback.world : null;
+  const isVoice = liveFeed && view?.channel === "voice";
+  const voice = useVoiceSession({ api, trialId: isVoice ? (session.session?.trial_id ?? null) : null, exchanges: view?.voiceExchanges ?? NO_EXCHANGES, voices: { subject: subjectPersona(subjectName).voice.gemini, investigator: INVESTIGATOR.voice.gemini } });
+  const derived: WorldState | null = liveFeed ? session.world : mode === "playback" ? playback.world : null;
+  // A voice session has no turns: who is talking comes from the voice session (lib/voice/liveWorld).
+  const world = isVoice && derived !== null ? withLiveVoice(derived, liveVoiceView(voice.state, voice.captureAboveFloor), subjectName) : derived;
   const clock = liveFeed ? session.clock : playback.clock;
 
   useEffect(() => {
@@ -322,14 +339,14 @@ export function WorldRoute() {
 
   // A live start waits for the render in which the session hook holds this case (coming from playback, the hook's
   // case is null until the mode changes), then starts once.
-  const pendingStart = useRef<"practice" | "assessment" | null>(null);
+  const pendingStart = useRef<StartKind | null>(null);
   const startSession = session.start;
   const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
-  const startLive = (m: "practice" | "assessment") => {
+  const startLive = (m: StartKind) => {
     replayOrder.current();
     // Already live (a retry after a refused start): start now; otherwise once the mode has changed.
     if (liveCaseId !== null) {
-      void startSession(m);
+      void startSession(m === "voice" ? "practice" : m, m === "voice");
       return;
     }
     pendingStart.current = m;
@@ -339,7 +356,7 @@ export function WorldRoute() {
     const m = pendingStart.current;
     if (m === null || liveCaseId === null) return;
     pendingStart.current = null;
-    void startSession(m);
+    void startSession(m === "voice" ? "practice" : m, m === "voice");
   }, [liveCaseId, startSession]);
 
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
@@ -543,13 +560,15 @@ export function WorldRoute() {
         <div className="topbar-meta">
           {place === "room" && view !== null ? (
             <>
-              <span className="badge">{modeBadge(view.mode, mode === "playback" ? (recording?.snapshot.mode ?? null) : null)}</span>
+              <span className="badge">{isVoice ? "Voice practice: not scored" : modeBadge(view.mode, mode === "playback" ? (recording?.snapshot.mode ?? null) : null)}</span>
               <span className="badge mono">
-                {view.exchangesUsed}/{view.exchangesCap} exchanges
+                {isVoice ? (voice.state.exchangeCount?.used ?? view.exchangesUsed) : view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>
-              <span className="badge" data-state={view.status}>
-                {subjectName}: {STATUS_WORD[view.status]}
-              </span>
+              {isVoice ? null : (
+                <span className="badge" data-state={view.status}>
+                  {subjectName}: {STATUS_WORD[view.status]}
+                </span>
+              )}
             </>
           ) : null}
           {place === "room" ? (
@@ -688,7 +707,7 @@ export function WorldRoute() {
           ) : (
             <Transcript
               turns={view?.turns ?? []}
-              voiceExchanges={view?.voiceExchanges ?? []}
+              voiceExchanges={isVoice ? fromEntries(voice.state.transcript) : (view?.voiceExchanges ?? [])}
               released={view?.released ?? []}
               subjectName={subjectName}
               highlighted={highlighted}
@@ -808,6 +827,18 @@ export function WorldRoute() {
                         </button>
                       ))
                     : null}
+                  {live && modes.includes("practice") ? (
+                    <button
+                      type="button"
+                      className="btn-secondary-sm start-alt"
+                      disabled={!canStartLive}
+                      onClick={() => {
+                        startLive("voice");
+                      }}
+                    >
+                      Start voice practice
+                    </button>
+                  ) : null}
                   {active?.case_id === RECORDED_CASE_ID ? (
                     <button type="button" className="btn-secondary-sm start-alt" onClick={watchRecording}>
                       Watch the recorded run
@@ -827,6 +858,21 @@ export function WorldRoute() {
                   onSeek={playback.seekTo}
                 />
               ) : null}
+              {isVoice ? (
+                <VoiceBar
+                  state={voice.state}
+                  captureAboveFloor={voice.captureAboveFloor}
+                  subjectName={subjectName}
+                  error={voice.error}
+                  talk={voice.state.audible !== null && !still ? 1 : 0}
+                  onOpen={voice.open}
+                  onConsent={voice.consent}
+                  onDecline={voice.decline}
+                  onStop={voice.stop}
+                  onInterrupt={voice.interrupt}
+                  onReconnect={voice.reconnect}
+                />
+              ) : (
               <Composer
                 draft={draft}
                 onDraft={(text) => {
@@ -844,6 +890,7 @@ export function WorldRoute() {
                 }
                 reason={reason ?? ""}
               />
+              )}
             </div>
           ) : (
             <p className="caption">Point at a file on the board, or use the list, to open a case.</p>
@@ -931,7 +978,7 @@ export function WorldRoute() {
                       documents={documents}
                       released={view?.released ?? []}
                       requestable={view?.requestable ?? []}
-                      exchangesUsed={view?.exchangesUsed ?? 0}
+                      exchangesUsed={isVoice ? (voice.state.exchangeCount?.used ?? 0) : (view?.exchangesUsed ?? 0)}
                       freshId={freshId}
                       onRequest={canAct ? (id) => void session.request(id) : null}
                     />

@@ -158,6 +158,8 @@ export function recordMap(documents: readonly CaseDocument[], released: readonly
 
 export function CoachPanel({ view, released, documents, onCite, onUseQuestion }: CoachPanelProps) {
   if (view.mode === "assessment") return <p className="empty">Coaching is saved for your debrief.</p>;
+  // Voice is unscored practice with no turns, so no card can be bound to it (S5 7.7, D7): the coach is paused.
+  if (view.channel === "voice") return <p className="empty">Coaching is text only. The coach is paused while you speak.</p>;
   const records = recordMap(documents, released);
   const newest = view.cards.at(-1);
   const earlier = view.cards.slice(0, -1).reverse();

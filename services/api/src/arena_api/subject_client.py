@@ -7,13 +7,14 @@ with that code; a transport failure is `subject_unreachable`. The orchestrator d
 
 from __future__ import annotations
 
+import os
 from uuid import UUID
 
 import httpx
 
 from arena_core.turns.orchestrator import SubjectCall, SubjectOutcome, SubjectUnavailableError
 
-SUBJECT_URL = "http://127.0.0.1:8081"
+SUBJECT_URL = f"http://127.0.0.1:{os.environ.get('ARENA_SUBJECT_PORT', '8081')}"
 ANSWER_TIMEOUT_S = 45.0  # under the turn's 60 s deadline (S5 5.2); the subject call's own deadline is 20 s
 
 

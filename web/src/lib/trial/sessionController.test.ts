@@ -112,7 +112,7 @@ function harness(opts: { snapshots?: Answer<TrialSnapshot>[]; tickets?: Answer<s
   const snapshots = [...(opts.snapshots ?? [snapshot()])];
   const tickets = [...(opts.tickets ?? [])];
   let mints = 0;
-  const api: Omit<ArenaApi, "listCases" | "caseBrief" | "startSession" | "leaderboard" | "me" | "ackEx4" | "progress" | "recording" | "speak" | "tournaments" | "tournament" | "tournamentEvents"> = {
+  const api: Omit<ArenaApi, "mintVoiceTicket" | "listCases" | "caseBrief" | "startSession" | "leaderboard" | "me" | "ackEx4" | "progress" | "recording" | "speak" | "tournaments" | "tournament" | "tournamentEvents"> = {
     trialSnapshot: (id) => {
       log.push(`snapshot ${id}`);
       const next = snapshots.length > 1 ? snapshots.shift() : snapshots[0];

@@ -24,6 +24,7 @@ function api(overrides: Partial<ArenaApi>): ArenaApi {
   return {
     trialSnapshot: refuse,
     mintStreamTicket: refuse,
+    mintVoiceTicket: refuse,
     readDebrief: refuse,
     requestDebrief: refuse,
     ackCard: () => Promise.resolve(),

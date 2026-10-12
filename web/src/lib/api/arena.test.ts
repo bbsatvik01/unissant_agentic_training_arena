@@ -191,6 +191,18 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     await expect(createArenaApi(bad).caseBrief("x")).rejects.toBeInstanceOf(ContractError);
   });
 
+  it("mints a voice ticket for a trial and refuses an answer without a 64-hex ticket", async () => {
+    const ticket = "a".repeat(64);
+    const trial = "6f9619ff-8b86-4011-b42d-00c04fc964ff";
+    const { client, calls } = fakeClient(() => ({ ticket, expires_in: 60 }));
+    await expect(createArenaApi(client).mintVoiceTicket(trial)).resolves.toBe(ticket);
+    expect(calls[0]).toEqual({ method: "POST", path: "/api/voice/tickets", body: { trial_id: trial }, keepalive: false });
+    const { client: bad } = fakeClient(() => ({ ticket: "short" }));
+    await expect(createArenaApi(bad).mintVoiceTicket(trial)).rejects.toBeInstanceOf(ContractError);
+    const { client: none } = fakeClient(() => null);
+    await expect(createArenaApi(none).mintVoiceTicket(trial)).rejects.toBeInstanceOf(ContractError);
+  });
+
   it("starts a session with a checked body and reads the started ids", async () => {
     const started = { session_id: "s1", trial_id: "t1", phase: "practice", mode: "practice", case_id: "C-7Q2MXK4D" };
     const { client, calls } = fakeClient(() => started);

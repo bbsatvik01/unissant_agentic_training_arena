@@ -168,3 +168,13 @@ def check_utterance(utterance: str, recital: RecitalIndex) -> GuardResult:
     if (hit := _g7(utterance)) is not None:
         return GuardResult(passed=False, rule="G7", span=_span(hit))
     return PASSED
+
+
+def check_speech(text: str, recital: RecitalIndex | None = None) -> GuardResult:
+    """The voice guard (S2 9.4): G3-G5 on a Live exchange's output transcription, and G6 when `recital` is given
+    (before the exchange is stored). G1, G2 and G7 do not apply to speech."""
+    if (lexical := _g3_to_g5(text)) is not None:
+        return GuardResult(passed=False, rule=lexical[0], span=_span(lexical[1]))
+    if recital is not None and (hit := _g6(text, recital)) is not None:
+        return GuardResult(passed=False, rule="G6", span=_span(hit))
+    return PASSED

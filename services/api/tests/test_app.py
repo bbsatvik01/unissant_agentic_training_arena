@@ -235,7 +235,8 @@ def test_session_start_refusals() -> None:
     unassigned = h.post(
         "/api/sessions", {"case_id": "C-ZZZZZZZZ", "mode": "practice", "voice": False, "idem_key": str(uuid4())}
     )
-    assert (voice.status_code, unassigned.status_code) == (422, 404)
+    # Voice sessions start since WP-22 (S5 7); a voice start reaches the database with voice=true (test_voice.py).
+    assert (voice.status_code, unassigned.status_code) == (HTTPStatus.OK, 404)
     h.db.fail_next["start_session"] = ArenaError("AR040", "daily session quota reached")
     quota = h.post(
         "/api/sessions", {"case_id": PACKET["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}

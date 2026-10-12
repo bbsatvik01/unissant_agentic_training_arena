@@ -9,20 +9,26 @@ applies to the browser-facing services (WP-13).
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+import logging
+import os
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict
 
 from arena_core.config import ArenaRole, boot
 from arena_core.db import subject as db_subject
-from arena_core.db.pool import Connector, PooledConnector, closing_lifespan
-from arena_core.providers.mode import model_adapter
+from arena_core.db.pool import Connector, PooledConnector, close_connector
+from arena_core.db.voice import close_orphans
+from arena_core.providers.mode import FAKE, MODE_VAR, model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.providers.vertex import vertex_live
 from arena_core.spend.guard import DbSpendGuard
+from arena_core.voice.live import FakeLive, LiveBackend
 from arena_subject.answer import AnswerError, AnswerOutcome, AnswerStep, answer
 from arena_subject.internal_auth import (
     CALLERS_VAR,
@@ -31,11 +37,16 @@ from arena_subject.internal_auth import (
     verify_host,
     verify_internal_caller,
 )
+from arena_subject.live_session import VoiceSession
+from arena_subject.voice_ws import VOICE_CALLER_VAR, DbVoiceStore, StarletteRelay
 
-# S5 10.1: arena-subject binds 127.0.0.1:8081. S5 10.3 step 1 applies the Host check "to every request"
+log = logging.getLogger("arena_subject")
+
+# S5 10.1: arena-subject binds 127.0.0.1:8081 (ARENA_SUBJECT_PORT moves it for a second local stack).
+# S5 10.3 step 1 applies the Host check "to every request"
 # before dispatching on the path - independent of who the caller is, so it runs as middleware ahead of the
 # one route this app has today and any internal route S5 5.5 adds later (/internal/voice/ws, WP-22).
-PORT = 8081
+PORT = int(os.environ.get("ARENA_SUBJECT_PORT", "8081"))
 _ALLOWED_HOSTS = frozenset({f"127.0.0.1:{PORT}", f"localhost:{PORT}"})
 
 # S2 6.8's SubjectTurn schema has no canned reply pre-registered anywhere; a local fake-mode run needs one so
@@ -63,6 +74,11 @@ class AppState:
     allowed_callers: frozenset[str]
     bind_host: str = "127.0.0.1"
     in_progress: set[tuple[UUID, UUID]] = field(default_factory=set)
+    # Voice (S5 7): the Live backend (None: voice is off) and the one caller allowed on /internal/voice/ws, the
+    # api's token (the tournament's is refused there).
+    live: LiveBackend | None = None
+    voice_callers: frozenset[str] = frozenset()
+    sweep_orphans: bool = False
 
 
 def state_from_env(env: Mapping[str, str]) -> AppState:
@@ -77,7 +93,17 @@ def state_from_env(env: Mapping[str, str]) -> AppState:
         port=port,
         allowed_callers=parse_callers(env.get(CALLERS_VAR, "")),
         bind_host=settings.bind_host,
+        live=live_backend(env),
+        voice_callers=parse_callers(env.get(VOICE_CALLER_VAR, "")),
+        sweep_orphans=True,
     )
+
+
+def live_backend(env: Mapping[str, str]) -> LiveBackend:
+    """The scripted fake in `ARENA_MODEL_MODE=fake` (no network, no spend), else Vertex Live."""
+    if env.get(MODE_VAR, "").strip() == FAKE:
+        return FakeLive()
+    return vertex_live(env)
 
 
 class AnswerRequest(BaseModel):
@@ -104,13 +130,32 @@ def _response(outcome: AnswerOutcome) -> AnswerResponse:
     )
 
 
+@asynccontextmanager
+async def _lifespan(state: AppState) -> AsyncIterator[None]:
+    """At start, close every voice session a previous process left open (S5 7.2 step 4: the local stack runs one
+    arena-subject); at stop, close the pool."""
+    if state.sweep_orphans:
+        try:
+            async with state.connect() as conn:
+                closed = await close_orphans(conn)
+            if closed:
+                log.info("closed %d orphaned voice sessions", closed)
+        except Exception:
+            # A failed sweep leaves the sessions for the next start; serving goes on.
+            log.exception("orphan voice sweep failed")
+    try:
+        yield
+    finally:
+        await close_connector(state.connect)
+
+
 def create_app(state: AppState) -> FastAPI:
     app = FastAPI(
         title="arena-subject",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
-        lifespan=lambda _app: closing_lifespan(state.connect),
+        lifespan=lambda _app: _lifespan(state),
     )
 
     @app.middleware("http")
@@ -158,5 +203,19 @@ def create_app(state: AppState) -> FastAPI:
         finally:
             state.in_progress.discard(key)
         return _response(outcome)
+
+    @app.websocket("/internal/voice/ws")
+    async def voice_ws(ws: WebSocket) -> None:
+        try:
+            verify_host(ws.headers, _ALLOWED_HOSTS)
+            verify_internal_caller(ws.headers, state.voice_callers)
+        except InternalCallerRefusedError:  # silent-ok: the refusal is the HTTP 403 of the upgrade
+            await ws.close()  # before accept: the upgrade is refused (HTTP 403)
+            return
+        if state.live is None:
+            await ws.close()
+            return
+        await ws.accept()
+        await VoiceSession(StarletteRelay(ws), DbVoiceStore(state.connect), state.live).run()
 
     return app

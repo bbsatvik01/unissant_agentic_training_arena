@@ -3,6 +3,7 @@ mapping from S4 refusals to HTTP answers (S5 5.5, 10.3)."""
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from uuid import UUID
@@ -11,13 +12,14 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from arena_api.referee_client import DebriefCall
+from arena_api.voice_relay import RelayRegistry, SubjectDialer
 from arena_core.db.arena import ArenaDb, ArenaError
 from arena_core.db.pool import Connector
 from arena_core.identity import DevIdentity
 from arena_core.providers.port import AgentPort
 from arena_core.turns.orchestrator import Orchestrator, SubjectCall, TrialSignals, TurnRefusedError, refusal
 
-PORT = 8080  # S5 10.1
+PORT = int(os.environ.get("ARENA_API_PORT", "8080"))  # S5 10.1 (ARENA_API_PORT moves it for a second local stack)
 QUESTION_MAX_CHARS = 600  # D11
 
 
@@ -37,6 +39,8 @@ class ApiState:
     ping_after_s: float = 15.0
     signals: TrialSignals = field(default_factory=TrialSignals)
     make_db: Callable[[Connector, UUID], ArenaDb] = ArenaDb
+    voice_dialer: SubjectDialer | None = None
+    voice_relays: RelayRegistry = field(default_factory=RelayRegistry)
 
     def db(self, actor: UUID) -> ArenaDb:
         return self.make_db(self.connect, actor)

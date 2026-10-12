@@ -278,6 +278,15 @@ class ArenaDb:
         )
         return dict(zip(keys, r, strict=True))
 
+    async def voice_exchanges(self, trial: UUID) -> list[dict[str, Any]]:
+        """The trial's stored voice exchanges (`training.v_my_voice_exchanges`, display only; S5 7.7)."""
+        rows = await self.fetch(
+            "select exchange_no, lines::text from training.v_my_voice_exchanges where trial_id = %s"
+            " order by exchange_no",
+            (trial,),
+        )
+        return [{"exchange_no": int(r[0]), "lines": json.loads(r[1])} for r in rows]
+
     async def open_question(self, trial: UUID) -> bool:
         """Whether the trial has a question with no answer yet (`arena.v_transcripts`)."""
         rows = await self.fetch(
