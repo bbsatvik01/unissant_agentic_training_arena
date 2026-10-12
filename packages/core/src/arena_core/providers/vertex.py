@@ -20,9 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import io
 import json
-import wave
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -325,32 +323,71 @@ def speech_from(resp: gtypes.GenerateContentResponse) -> tuple[bytes, Usage | No
     return audio, usage
 
 
+def _malformed(why: str) -> ProviderCallError:
+    return ProviderCallError(ErrorKind.TRANSIENT, f"malformed audio: {why}", maybe_billed=True)
+
+
+_PCM_FORMAT = 1  # WAVE_FORMAT_PCM
+_RIFF_HEADER = 12  # "RIFF", the file size, "WAVE"
+_FMT_MIN = 16  # the fmt chunk's PCM fields
+
+
+def _wav_pcm(audio: bytes) -> tuple[bytes, int]:
+    """A RIFF/WAVE file's 16-bit mono PCM and rate, every chunk read by its declared size: a short or truncated file,
+    another sample format, a zero rate, or a data chunk that is not whole frames is refused."""
+    if len(audio) < _RIFF_HEADER or audio[8:12] != b"WAVE":
+        why = "a RIFF file without its WAVE header"
+        raise _malformed(why)
+    fmt: tuple[int, int, int, int] | None = None
+    pos = 12
+    while pos + 8 <= len(audio):
+        chunk, size = audio[pos : pos + 4], int.from_bytes(audio[pos + 4 : pos + 8], "little")
+        body = audio[pos + 8 : pos + 8 + size]
+        if len(body) < size:
+            why = f"the {chunk!r} chunk is cut short"
+            raise _malformed(why)
+        if chunk == b"fmt ":
+            if size < _FMT_MIN:
+                why = "a short fmt chunk"
+                raise _malformed(why)
+            fmt = (
+                int.from_bytes(body[0:2], "little"),
+                int.from_bytes(body[2:4], "little"),
+                int.from_bytes(body[4:8], "little"),
+                int.from_bytes(body[14:16], "little"),
+            )
+        elif chunk == b"data":
+            if fmt is None:
+                why = "data before its fmt chunk"
+                raise _malformed(why)
+            kind, channels, rate, bits = fmt
+            if kind != _PCM_FORMAT or channels != 1 or bits != 8 * _PCM_SAMPLE_WIDTH:
+                why = f"WAV of format {kind}, {channels} channel(s) at {bits} bits"
+                raise _malformed(why)
+            if rate <= 0:
+                why = "a WAV with no sample rate"
+                raise _malformed(why)
+            if size == 0 or size % _PCM_SAMPLE_WIDTH:
+                why = f"a data chunk of {size} bytes"
+                raise _malformed(why)
+            return body, rate
+        pos += 8 + size + (size & 1)  # chunks are word-aligned
+    why = "a WAV without a data chunk"
+    raise _malformed(why)
+
+
 def pcm_from(audio: bytes) -> tuple[bytes, int]:
     """The reply's 16-bit mono PCM and its sample rate. The Gemini 3.8 TTS models answer a unary request with a
     complete WAV file (16-bit mono PCM, 24 kHz, standard RIFF header); earlier models answered headerless PCM at
     24 kHz. Either way the caller gets the samples and writes its own WAV, so a cached line is always one well-formed
-    file. A WAV in another sample format, a truncated or empty one, or PCM that is not whole 16-bit frames is a
-    malformed reply, never a clip."""
-    if audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
-        if not audio or len(audio) % _PCM_SAMPLE_WIDTH:
-            raise ProviderCallError(ErrorKind.TRANSIENT, f"PCM of {len(audio)} bytes", maybe_billed=True)
-        return audio, SPEECH_SAMPLE_RATE
-    try:
-        with wave.open(io.BytesIO(audio), "rb") as w:
-            channels, width, frames = w.getnchannels(), w.getsampwidth(), w.getnframes()
-            if width != _PCM_SAMPLE_WIDTH or channels != 1:
-                raise ProviderCallError(
-                    ErrorKind.TRANSIENT, f"WAV of {channels} channel(s) at {8 * width} bits", maybe_billed=True
-                )
-            pcm = w.readframes(frames)
-            rate = w.getframerate()
-    except (wave.Error, EOFError) as exc:
-        raise ProviderCallError(ErrorKind.TRANSIENT, f"malformed WAV: {exc}", maybe_billed=True) from exc
-    if frames == 0 or len(pcm) != frames * _PCM_SAMPLE_WIDTH:
-        raise ProviderCallError(
-            ErrorKind.TRANSIENT, f"WAV of {frames} frames with {len(pcm)} bytes of samples", maybe_billed=True
-        )
-    return pcm, rate
+    file. Anything starting as a RIFF file is read as one (a damaged one is refused, never taken for PCM); headerless
+    PCM must be whole 16-bit frames."""
+    if audio[:4] == b"RIFF":
+        return _wav_pcm(audio)
+    if not audio or len(audio) % _PCM_SAMPLE_WIDTH:
+        why = f"PCM of {len(audio)} bytes"
+        raise _malformed(why)
+    return audio, SPEECH_SAMPLE_RATE
 
 
 @dataclass(frozen=True)

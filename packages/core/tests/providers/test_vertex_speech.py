@@ -412,3 +412,49 @@ def test_empty_odd_or_truncated_audio_is_a_malformed_reply_never_a_clip(audio: o
     with pytest.raises(ProviderCallError) as err:
         speak(reply(audio=data or None) if data else reply(audio=b"\x00"))
     assert err.value.maybe_billed
+
+
+def riff(chunks: list[tuple[bytes, bytes]], declared: dict[bytes, int] | None = None) -> bytes:
+    body = b"WAVE"
+    for name, data in chunks:
+        size = (declared or {}).get(name, len(data))
+        body += name + size.to_bytes(4, "little") + data + (b"\x00" if len(data) % 2 else b"")
+    return b"RIFF" + len(body).to_bytes(4, "little") + body
+
+
+def fmt(rate: int = 24_000, channels: int = 1, bits: int = 16, kind: int = 1) -> bytes:
+    return (
+        kind.to_bytes(2, "little")
+        + channels.to_bytes(2, "little")
+        + rate.to_bytes(4, "little")
+        + (rate * channels * bits // 8).to_bytes(4, "little")
+        + (channels * bits // 8).to_bytes(2, "little")
+        + bits.to_bytes(2, "little")
+    )
+
+
+def test_a_well_formed_wav_is_read_by_its_chunks() -> None:
+    assert vertex.pcm_from(riff([(b"fmt ", fmt()), (b"LIST", b"xx"), (b"data", PCM)])) == (PCM, 24_000)
+    assert vertex.pcm_from(wav(PCM, rate=16_000)) == (PCM, 16_000)
+
+
+@pytest.mark.parametrize(
+    "audio",
+    [
+        b"RIFF\x00\x00\x00\x00",  # a truncated header is never taken for PCM
+        riff([(b"fmt ", fmt()), (b"data", b"\x01\x00\x02")]),  # not whole frames
+        riff([(b"fmt ", fmt(rate=0)), (b"data", PCM)]),  # no sample rate
+        riff([(b"fmt ", fmt(kind=3)), (b"data", PCM)]),  # float samples
+        riff([(b"fmt ", fmt()), (b"data", PCM)], {b"data": len(PCM) + 100}),  # cut short
+        riff([(b"data", PCM)]),  # data before fmt
+        riff([(b"fmt ", fmt())]),  # no data
+        riff([(b"fmt ", fmt()), (b"data", b"")]),  # empty
+        riff([(b"fmt ", b"\x01\x00")]),  # short fmt
+    ],
+    ids=["truncated", "odd", "zero-rate", "float", "cut-short", "data-first", "no-data", "empty", "short-fmt"],
+)
+def test_a_damaged_wav_is_refused_with_the_reply_s_usage(audio: bytes) -> None:
+    with pytest.raises(ProviderCallError) as err:
+        speak(reply(audio=audio))
+    assert err.value.maybe_billed
+    assert err.value.usage is not None
