@@ -26,5 +26,7 @@ describe("quality tiers", () => {
   it("keeps realism in every tier: only render cost changes", () => {
     expect(TIERS.low.shadowMap).toBeGreaterThan(0);
     expect(TIERS.high.ao && !TIERS.medium.ao).toBe(true);
+    // The low tier keeps the precinct to its one detective.
+    expect([TIERS.high.crowd, TIERS.medium.crowd, TIERS.low.crowd]).toEqual([true, true, false]);
   });
 });
