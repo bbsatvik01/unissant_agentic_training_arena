@@ -154,23 +154,45 @@ def is_legacy_codex_report(raw: object) -> TypeGuard[dict[str, Any]]:
 
 VALID_FINDINGS: frozenset[str] = frozenset({"truthful", "deceptive", "insufficient_evidence"})
 
+# S1 9.7's own pass rule for each solve session, fixed by which session it is: CX-2 per variant compares
+# against that variant's own correct finding (the truthful-variant session against `truthful`, the
+# deceptive-variant session against `deceptive`); CX-3 (truthful variant, free evidence only) compares
+# against `deceptive` or `insufficient_evidence` -- `truthful` is never a valid CX-3 finding. This is never
+# something a sheet gets to claim for itself: a report that moves `finding` and its own `expected` field
+# together, so the two still agree with each other, must still be refused below.
+EXPECTED_FINDINGS: dict[str, frozenset[str]] = {
+    "cx2_truthful": frozenset({"truthful"}),
+    "cx2_deceptive": frozenset({"deceptive"}),
+    "cx3": frozenset({"deceptive", "insufficient_evidence"}),
+}
+
 
 def _sheet_problems(key: str, sheet: Mapping[str, Any]) -> list[str]:
     """Whether one solve sheet (S1 9.7's CX-2 or CX-3 output shape: `finding`, `cited_records`, `cited_answers`,
     `basis`, `expected`, `pass`) is a real, filled-in sheet, not a bare `{"pass": true}` standing in for one,
-    and that its own `finding` is the literal its own `expected` names -- never resolved by trusting `pass`
-    alone. This is the sheet's internal self-consistency, the only thing checkable without a model call; it
-    is not a re-run of CX-2/CX-3's semantic comparison against the family (S1 9.7's own Codex session)."""
+    and that its own `finding` is the literal S1 9.7's fixed rule requires for this solve session
+    (`EXPECTED_FINDINGS[key]`) -- never resolved by trusting `pass` alone, and never by trusting the sheet's
+    own `expected` field, which is checked against that same fixed rule rather than used as the authority (so
+    a report that moves `finding` and `expected` together is still refused). This is the sheet's internal
+    self-consistency plus S1 9.7's fixed pass rule, the only things checkable without a model call; it is not
+    a re-run of CX-2/CX-3's full semantic comparison against the family -- citation completeness against the
+    family's own decisive-support items and their required account evidence runs in the authoring session
+    itself (S1 9.7's own "code compares", outside this package, which reads no family data and runs no
+    model), so a hand-edited report with a well-typed but fabricated or incomplete citation is not caught
+    here."""
     problems = []
     if sheet.get("pass") is not True:
         problems.append(f"solves.{key}.pass is {sheet.get('pass')!r}, not true")
     finding = sheet.get("finding")
-    if finding not in VALID_FINDINGS:
+    if not isinstance(finding, str) or finding not in VALID_FINDINGS:
         problems.append(f"solves.{key}.finding is {finding!r}, not one of {sorted(VALID_FINDINGS)}")
+    required = EXPECTED_FINDINGS[key]
+    if isinstance(finding, str) and finding in VALID_FINDINGS and finding not in required:
+        problems.append(f"solves.{key}.finding {finding!r} is not one of {sorted(required)} (S1 9.7, this session)")
     expected = sheet.get("expected")
     expected_values = {part.strip() for part in expected.split(" or ")} if isinstance(expected, str) else set()
-    if finding not in expected_values:
-        problems.append(f"solves.{key}.finding {finding!r} is not named by its own expected {expected!r}")
+    if expected_values != required:
+        problems.append(f"solves.{key}.expected {expected!r} does not name exactly {sorted(required)} (S1 9.7)")
     cited_records = sheet.get("cited_records")
     if not isinstance(cited_records, list) or not cited_records or not all(isinstance(r, str) for r in cited_records):
         problems.append(f"solves.{key}.cited_records is not a non-empty list of strings: {cited_records!r}")

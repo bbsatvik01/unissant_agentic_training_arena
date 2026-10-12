@@ -26,7 +26,7 @@ from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.providers.types import AgentCall, CallContext, Message
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
 from arena_core.spend.memory import RunBudget
-from arena_core.turns.orchestrator import SubjectCall, SubjectOutcome, SubjectUnavailableError
+from arena_core.turns.orchestrator import SubjectCall, SubjectOutcome, SubjectUnavailableError, TurnRefusedError
 from arena_subject.answer import AnswerError, AnswerOutcome, AnswerStep
 from packages.core.tests.turns.fakedb import FakeArenaDb
 from scripts.probes import real_smoke
@@ -147,6 +147,34 @@ def test_run_smoke_never_embeds_an_arena_errors_free_text_in_the_smoke_error(
     with pytest.raises(real_smoke.SmokeError) as caught:
         run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
     assert "AR040" in str(caught.value)
+    assert unsafe not in str(caught.value)
+    assert "s3cr3t-in-the-clear" not in str(caught.value)
+
+
+def test_run_smoke_never_embeds_a_turn_refused_errors_free_text_in_the_smoke_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`Orchestrator.run_turn` wraps ANY `ArenaError` raised anywhere inside a turn (`submit_question`,
+    `release_evidence`, `record_coaching_event`, ...) into a `TurnRefusedError` that carries the original
+    `exc.message` forward verbatim (`orchestrator.py`'s own `refusal()`) -- the same unsafe free-text a
+    malformed DSN can put in an `ArenaError.message`. Unlike `start_session`'s own `ArenaError`, this one is
+    not caught by a bare `except ArenaError` anywhere in this script, so `run_turn`'s own call needs its own
+    wrap. Proves a `submit_question` failure (reached well after `start_session` succeeds) is turned into a
+    `SmokeError` carrying only the safe `.code`, never the unsafe message."""
+    unsafe = "connection failed: password=s3cr3t-in-the-clear"
+    actor = UUID(int=7)
+    db = FakeArenaDb(actor)
+    db.fail_next["submit_question"] = ArenaError("AR040", unsafe)
+
+    monkeypatch.setattr(real_smoke, "resolve_dev_user", lambda _env: DevIdentity(actor, "x@test", "X", frozenset()))
+    monkeypatch.setattr(real_smoke, "dsn_connector", lambda _dsn: lambda: None)
+    monkeypatch.setattr(real_smoke, "ArenaDb", lambda _connect, _actor: db)
+    monkeypatch.setattr(real_smoke, "DbSpendGuard", lambda _connect: RunBudget(Decimal(100)))
+
+    env = {"ARENA_MODEL_MODE": "fake", "ARENA_PUBLIC_DSN": "x", "ARENA_SUBJECT_DSN": "y"}
+    with pytest.raises(real_smoke.SmokeError) as caught:
+        run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
+    assert "run_turn refused" in str(caught.value)
     assert unsafe not in str(caught.value)
     assert "s3cr3t-in-the-clear" not in str(caught.value)
 
@@ -392,6 +420,27 @@ def test_main_reports_a_smoke_error_and_prints_nothing(
     assert real_smoke.main(["--family", "F09"], {}) == 1
     captured = capsys.readouterr()
     assert "F09" in captured.err
+    assert captured.out == ""
+
+
+def test_main_never_echoes_a_turn_refused_errors_free_text_if_one_ever_escapes_run_smoke(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Defense in depth: `run_smoke` wraps a `TurnRefusedError` into a `SmokeError` itself (the test above),
+    but `main`'s own except tuple also lists `TurnRefusedError` directly, so a future call path that raises
+    one without that wrap still never prints its unsafe `.args[0]`/`str(exc)` (which can carry an
+    `ArenaError.message` forward verbatim, S4 2.3's `_arena_error`) -- only the exception's type name."""
+    unsafe = "connection failed: password=s3cr3t-in-the-clear"
+
+    async def boom(*_a: object, **_k: object) -> dict[str, Any]:
+        raise TurnRefusedError(500, "database_error", unsafe)
+
+    monkeypatch.setattr(real_smoke, "run_smoke", boom)
+    assert real_smoke.main([], {}) == 1
+    captured = capsys.readouterr()
+    assert "TurnRefusedError" in captured.err
+    assert unsafe not in captured.err
+    assert "s3cr3t-in-the-clear" not in captured.err
     assert captured.out == ""
 
 

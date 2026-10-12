@@ -62,6 +62,7 @@ from arena_core.turns.orchestrator import (
     SubjectOutcome,
     SubjectUnavailableError,
     TrialSignals,
+    TurnRefusedError,
 )
 from arena_subject.answer import AnswerError, AnswerStep, answer
 from arena_subject.app import FAKE_SUBJECT_REPLY
@@ -189,7 +190,18 @@ async def run_smoke(
     orchestrator = Orchestrator(db=public, port=coach_port, subject=subject_call, signals=TrialSignals())
 
     started_at = time.monotonic()
-    turn = await orchestrator.run_turn(trial_id, question, [], 0, secrets.token_hex(16))
+    try:
+        turn = await orchestrator.run_turn(trial_id, question, [], 0, secrets.token_hex(16))
+    except TurnRefusedError as exc:
+        # Orchestrator.run_turn wraps ANY ArenaError raised anywhere inside a turn (submit_question,
+        # release_evidence, record_coaching_event, ...) into a TurnRefusedError that carries the original
+        # exc.message forward verbatim (orchestrator.py's own refusal()) -- the same unsafe free-text a
+        # malformed ARENA_PUBLIC_DSN or ARENA_SUBJECT_DSN can put in an ArenaError.message (S4 2.3's
+        # _arena_error). Only exc.code (one of orchestrator.py's own REFUSALS strings, always safe) is
+        # carried into the SmokeError; unlike start_session's own ArenaError above, this one is never caught
+        # by a bare `except ArenaError` in main(), so it must be turned into a SmokeError here.
+        msg = f"run_turn refused: {exc.code}"
+        raise SmokeError(msg) from exc
     elapsed_ms = (time.monotonic() - started_at) * 1000
 
     # run_turn returns normally, never raising, for a budget refusal, a kill-switch pause or a quarantined
@@ -232,12 +244,14 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         result = asyncio.run(
             run_smoke(resolved, family=args.family, coach_name=coach, subject_name=subject, question=args.question)
         )
-    except (SmokeError, IdentityError, ArenaError, psycopg.Error) as exc:
+    except (SmokeError, IdentityError, ArenaError, psycopg.Error, TurnRefusedError) as exc:
         # SmokeError and IdentityError are raised by this script itself, from family/candidate names, an
         # email or a users-file path, never a DSN: safe to print in full. A bare ArenaError or psycopg.Error
         # (a malformed ARENA_PUBLIC_DSN or ARENA_SUBJECT_DSN failing to connect before start_session, inside
         # dev_variant's or registered_candidate's own lookup) is not: its message can echo the connection
-        # string verbatim, password included, so only its type name is printed.
+        # string verbatim, password included, so only its type name is printed. TurnRefusedError is caught
+        # (and turned into a safe SmokeError) inside run_smoke itself; it is listed here too, defensively, so
+        # a future call path that raises one without that wrap still never prints its unsafe message.
         detail = str(exc) if isinstance(exc, SmokeError | IdentityError) else "(detail withheld: it can echo a DSN)"
         sys.stderr.write(f"real_smoke: {type(exc).__name__}: {detail}\n")
         return 1

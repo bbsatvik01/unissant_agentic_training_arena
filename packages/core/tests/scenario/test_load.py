@@ -328,6 +328,37 @@ def test_codex_review_from_report_refuses_a_malformed_sheet_field(field: str, va
         codex_review_from_report(report)
 
 
+def test_codex_review_from_report_refuses_a_finding_and_its_own_expected_moved_together() -> None:
+    """S1 9.7 fixes what each solve session's finding must be by which session it is (`EXPECTED_FINDINGS`),
+    never by the sheet's own self-reported `expected` field: a report that moves `cx2_truthful`'s `finding`
+    to `"deceptive"` and its `expected` to `"deceptive"` together, so the two still agree with each other,
+    must still be refused -- only `truthful` is ever a valid cx2_truthful finding."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = "deceptive"
+    report["solves"]["cx2_truthful"]["expected"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_truthful_added_to_cx3s_expected() -> None:
+    """`truthful` is never a valid CX-3 finding (S1 9.7: "finding is deceptive or insufficient_evidence"),
+    even if a hand-edited report's own `expected` field is widened to claim it is."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"]["finding"] = "truthful"
+    report["solves"]["cx3"]["expected"] = "truthful or deceptive or insufficient_evidence"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_string_finding_without_crashing() -> None:
+    """A `finding` that is a list or object is not hashable against the valid-literal set: refused cleanly
+    (`LegacyCodexReportError`), never an uncaught `TypeError` from the membership test itself."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = ["truthful"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:
     """S1 8.5 step 3: the validators and the Codex review pass on the same family-file hash."""
     reviewed = seed("F01")
