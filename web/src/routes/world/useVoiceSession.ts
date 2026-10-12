@@ -167,13 +167,14 @@ export function useVoiceSession({ api, trialId, exchanges, voices }: Options): V
     const ws = new WebSocket(socketUrl(), [ticket]);
     ws.binaryType = "arraybuffer";
     socket.current = ws;
-    ws.onopen = () => {
-      if (!mine()) return;
-      dispatch({ type: "socket_open" });
-    };
+    // The bar stays "Connecting" until the server's first frame: the socket opens at once, the Live session about a
+    // second later (claim, reservation, context, Live handshake).
     ws.onmessage = (e: MessageEvent<string | ArrayBuffer>) => {
       if (!mine()) return;
-      ready.current = true;
+      if (!ready.current) {
+        ready.current = true;
+        dispatch({ type: "socket_open" });
+      }
       if (typeof e.data === "string") {
         let parsed: unknown;
         try {

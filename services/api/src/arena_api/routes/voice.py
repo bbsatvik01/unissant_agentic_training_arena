@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import time
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -69,14 +70,17 @@ async def voice_ws(ws: WebSocket) -> None:
         return
     dial = state.voice_dialer
     db = state.db(state.identity.user_id)
+    started = time.monotonic()
     try:
         binding = binding_from(await db.redeem_ticket(ticket, "voice"))
     except ArenaError:  # silent-ok: any refusal is the 4401 close; the reason never reaches the browser
         await _refuse(ws, p.REFUSED, ticket)
         return
+    redeemed = time.monotonic()
     await ws.accept(subprotocol=ticket)
     try:
         async with dial() as leg:
+            log.info("voice relay: ticket %.2fs, subject dial %.2fs", redeemed - started, time.monotonic() - redeemed)
             relay = VoiceRelay(ws, leg)
             state.voice_relays.add(binding.trial_id, relay)
             try:

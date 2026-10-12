@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CAPTURE_FLOOR, CaptureEdges, HANGOVER_MS, liveVoiceView, withLiveVoice } from "./liveWorld";
+import { CAPTURE_FLOOR, CaptureEdges, HANGOVER_MS, liveVoiceView, voiceShownCount, withLiveVoice } from "./liveWorld";
 import { initialVoiceState, voiceReducer, type VoiceEvent, type VoiceState } from "./voiceMachine";
 import type { WorldState } from "../world/worldState";
 
@@ -67,5 +67,14 @@ describe("liveWorld", () => {
     expect(edges.next(0, 100 + HANGOVER_MS - 1)).toBe(null);
     expect(edges.next(0, 100 + HANGOVER_MS)).toEqual({ type: "investigator_silence" });
     expect(edges.active).toBe(false);
+  });
+
+  it("counts the exchange whose answer is being spoken, up to the cap", () => {
+    const counted = fold([...OPEN, { type: "exchange_count", used: 2, cap: 12 }]);
+    expect(voiceShownCount(counted, 0)).toBe(2);
+    expect(voiceShownCount(voiceReducer(counted, { type: "utterance_start", utterance: 1 }), 0)).toBe(3);
+    expect(voiceShownCount(initialVoiceState("live"), 5)).toBe(5);
+    const full = fold([...OPEN, { type: "exchange_count", used: 12, cap: 12 }, { type: "utterance_start", utterance: 1 }]);
+    expect(voiceShownCount(full, 0)).toBe(12);
   });
 });

@@ -43,6 +43,7 @@ from arena_core.db.calls import SettleOutcome, UsageReport, UsageResult
 from arena_core.db.voice import OpenedVoice, VoiceOpenRefusedError
 from arena_core.safety.guard import RecitalIndex, check_speech
 from arena_core.voice import protocol as p
+from arena_core.voice.catalogue import speaker_for
 from arena_core.voice.live import (
     LiveAudio,
     LiveBackend,
@@ -109,6 +110,15 @@ def released_ids(ctx: Mapping[str, Any]) -> frozenset[str]:
     return frozenset(str(r["record_id"]) for r in ctx.get("released_evidence", []))
 
 
+def live_voice(public_packet: Mapping[str, Any]) -> str:
+    """The subject's Live voice: its persona's designed voice from the room's catalogue (the voice its TTS lines use,
+    which Live on Vertex accepts, probed 2026-10-12), else the persona's prebuilt fallback, else the packet's own
+    prebuilt `presentation.voice_id`. Role-free either way (PRB-4)."""
+    presentation = public_packet["presentation"]
+    speaker = speaker_for(f"subject:{presentation.get('display_name', '')}")
+    return speaker.voice if speaker is not None else str(presentation["voice_id"])
+
+
 def packet_of(ctx: Mapping[str, Any]) -> SubjectPacket:
     # subject.voice_context serves an open voice session only, and a voice ticket is claimable only on a
     # development-split trial (claim_voice_ticket), so the split here is dev by construction.
@@ -132,6 +142,22 @@ def earlier_conversation(exchanges: list[dict[str, Any]]) -> str:
         for line in x.get("lines", [])
     ]
     return EARLIER_HEADING + "\n".join(lines) if lines else ""
+
+
+class _Steps:
+    """Wall time of each opening step, for the log line that says where an opening's seconds went."""
+
+    def __init__(self) -> None:
+        self._last = self._first = time.monotonic()
+        self._parts: list[str] = []
+
+    def mark(self, name: str) -> None:
+        now = time.monotonic()
+        self._parts.append(f"{name} {now - self._last:.2f}s")
+        self._last = now
+
+    def __str__(self) -> str:
+        return f"{time.monotonic() - self._first:.2f}s ({', '.join(self._parts)})"
 
 
 @dataclass
@@ -198,14 +224,16 @@ class VoiceSession:
         if start is None:
             self.end(p.PROTOCOL)
             return
-        opening = time.monotonic()
+        steps = _Steps()
         try:
             self._opened = await self.store.open(start)
         except VoiceOpenRefusedError as exc:
             log.info("voice session refused: %s", exc.reason)
             self.end(exc.code)
             return
+        steps.mark("open")
         ctx = await self.store.context(self._opened.voice_session_id)
+        steps.mark("context")
         self._used = len(ctx.get("voice_exchanges", []))
         if self._used >= p.EXCHANGE_CAP:
             self.end(p.EXCHANGE_CAP_REACHED)
@@ -214,7 +242,7 @@ class VoiceSession:
             manifest = CandidateManifest.model_validate(ctx["subject_manifest"])
             self._prompts = load_prompts(manifest)
             self._packet = packet_of(ctx)
-            voice_id = str(ctx["public_packet"]["presentation"]["voice_id"])
+            voice_id = live_voice(ctx["public_packet"])
             setup = live_setup(self._packet, released_ids(ctx), self._prompts, voice_id)
             self._earlier = earlier_conversation(ctx.get("voice_exchanges", []))
         except (LiveNotAllowedError, ManifestMismatchError, KeyError, ValueError) as exc:
@@ -225,15 +253,18 @@ class VoiceSession:
         # words); the earlier conversation is appended after it.
         self._recital = build_recital_index(setup["system_instruction"], ctx["private_packet"], ctx["public_packet"])
         setup = {**setup, "system_instruction": setup["system_instruction"] + self._earlier}
+        steps.mark("instruction")
         if not await self.store.dispatch(self._opened.reservation_id):
             self.end(p.KILL)
             return
+        steps.mark("dispatch")
         self._meter = LiveMeter(self.store.record_usage, self._opened.reservation_id, self.backend.model)
         try:
             async with self.backend.connect(setup) as live:
                 self._live = live
                 self._started = self._last_activity = self.clock()
-                log.info("voice session open in %.2f s", time.monotonic() - opening)
+                steps.mark("live")
+                log.info("voice session open: %s", steps)
                 await self.relay.send_text(p.frame("exchange_count", used=self._used, cap=p.EXCHANGE_CAP))
                 await self._loops(live)
         except Exception:
