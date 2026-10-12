@@ -64,9 +64,13 @@ async def get_snapshot(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]
 @router.get("/api/trials/{trial_id}/recording")
 async def get_recording(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
     """D-021: the trial's full event history as `arena.recording.v1`, through the same projection and
-    visibility rules as the live stream -- the owner's own training trial, or a visible tournament trial
-    (`arena.events.load.load_recording`, shared with `make export-run`, no existence oracle beyond what
-    `arena.trial_visible` already grants an `arena_public` caller, S4 9.1)."""
+    visibility rules as the live stream -- the owner's own training trial, or a dev-split tournament trial
+    (`arena.events.load.load_recording`, shared with `make export-run`). A revealed hidden-split trial is
+    `arena.trial_visible` too but answers 404 here, same as an unknown id: `db.public_packet` resolves only
+    the dev split, so there is no packet to export yet (a real gap -- hidden export needs its own
+    visibility-checked projection, not this route). That 404 is deliberate, not accidental: distinguishing
+    it from a crash would itself leak which hidden ids are real, the existence oracle S4 9.1 exists to
+    deny."""
     recording = await load_recording(db, trial_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="not_found")

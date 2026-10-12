@@ -77,7 +77,21 @@ def isolation_gate_request(body: dict[str, Any], git_sha: str) -> IsolationGateR
 async def run_isolation_gate_route(
     body: dict[str, Any], request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
+    """The caller's own `commit_sha` (the checkout IG-1..3 actually ran against, `make isolation-reports`'s
+    own `current_git_sha()`) must equal this process's running commit before anything executes or is
+    recorded: checked here, at the one place that writes `arena.isolation_checks`, not only by a caller's
+    own earlier, unsynchronized `GET` -- a caller that checked a minute ago and the referee that restarted
+    in between would otherwise still let this call record checkout A's results as checkout B's own (S3 9's
+    "code version of the running processes"). The console's own `/admin/tournaments/{id}/open` body (the
+    one other caller of `isolation_gate_request`, `routes.reveal`) carries no `commit_sha` and is
+    unaffected: this check runs only here, not inside the shared parser."""
     git_sha = _git_sha(request)
+    claimed = body.get("commit_sha")
+    if claimed != git_sha:
+        raise HTTPException(
+            status_code=409,
+            detail=f"commit_sha {claimed!r} does not match the running referee's own commit {git_sha!r}",
+        )
     try:
         request_obj = isolation_gate_request(body, git_sha)
     except (KeyError, TypeError, ValueError) as exc:

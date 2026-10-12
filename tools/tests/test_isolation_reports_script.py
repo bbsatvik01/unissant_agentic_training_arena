@@ -109,12 +109,13 @@ def test_main_posts_the_real_reports_and_exits_zero_when_every_suite_passes(
     async def fake_admin_post(path: str, body: dict[str, Any] | None = None, **_kw: object) -> dict[str, Any]:
         posted["path"] = path
         posted["body"] = body
-        return {"passed": True, "evidence_hash": "h", "items": {}}
+        return {"passed": True, "evidence_hash": "h", "items": {}, "commit_sha": SHA}
 
     monkeypatch.setattr(ig, "admin_post", fake_admin_post)
     assert ig.main([]) == 0
     assert posted["path"] == "/api/admin/isolation-gate/run"
     assert posted["body"] == {
+        "commit_sha": SHA,
         "ig1": {"passed": True, "report_text": "ig1 report"},
         "ig2": {"passed": True, "report_text": "ig2 report"},
         "ig3": {"passed": True, "report_text": "ig3 report"},
@@ -134,7 +135,7 @@ def test_main_still_posts_a_real_failure_and_exits_nonzero(
 
     async def fake_admin_post(_path: str, body: dict[str, Any] | None = None, **_kw: object) -> dict[str, Any]:
         posted["body"] = body
-        return {"passed": False}
+        return {"passed": False, "commit_sha": SHA}
 
     monkeypatch.setattr(ig, "admin_post", fake_admin_post)
     assert ig.main([]) == 1
@@ -155,6 +156,7 @@ def test_main_exits_nonzero_when_ig1_3_pass_but_the_referees_own_verdict_is_fals
             "passed": False,
             "evidence_hash": "h",
             "items": {"IG-1": True, "IG-2": True, "IG-3": True, "IG-4": False},
+            "commit_sha": SHA,
         }
 
     monkeypatch.setattr(ig, "admin_post", fake_admin_post)
@@ -216,7 +218,11 @@ def test_main_fails_when_the_referee_refuses_the_post(
     assert "admin role required" in capsys.readouterr().err
 
 
-def test_main_refuses_a_malformed_git_sha_override_before_running_anything(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_no_longer_accepts_a_git_sha_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Codex round 3 finding 1: `--git-sha` let a caller replace the checkout under test with an arbitrary
+    claim instead of validating it -- `current_git_sha()` was never even called when the flag was passed.
+    Removed outright: there is no way to name any commit but this checkout's own `git rev-parse HEAD`, and
+    argparse refuses the now-unknown flag before anything runs."""
     calls: list[str] = []
 
     def fake_run_ig1() -> tuple[bool, str]:
@@ -224,8 +230,61 @@ def test_main_refuses_a_malformed_git_sha_override_before_running_anything(monke
         return True, ""
 
     monkeypatch.setattr(ig, "run_ig1", fake_run_ig1)
-    assert ig.main(["--git-sha", "not-a-sha"]) == 1
+    with pytest.raises(SystemExit):
+        ig.main(["--git-sha", SHA])
     assert calls == []
+
+
+def test_main_sends_its_own_commit_sha_in_the_post_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The referee's `run_isolation_gate_route` validates `commit_sha` against its own running commit at the
+    point it executes and records (Codex round 3 finding 2) -- this script must actually send it, not just
+    read it back from an earlier, unsynchronized `GET`."""
+    _patch_suites(monkeypatch)
+    posted: dict[str, Any] = {}
+
+    async def fake_admin_post(_path: str, body: dict[str, Any] | None = None, **_kw: object) -> dict[str, Any]:
+        posted["body"] = body
+        return {"passed": True, "commit_sha": SHA}
+
+    monkeypatch.setattr(ig, "admin_post", fake_admin_post)
+    assert ig.main([]) == 0
+    assert posted["body"]["commit_sha"] == SHA
+
+
+def test_main_fails_when_the_referee_refuses_the_post_time_commit_check(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The GET pre-check is a fast-path optimization only, not the race-free boundary: the referee can
+    restart onto a different commit while the suites run, after the GET already reported this checkout's
+    own commit. Simulates that race -- the POST reaches a referee that is no longer this commit and refuses
+    with 409 -- and the script must fail on that refusal rather than trust the stale GET."""
+    _patch_suites(monkeypatch)
+
+    async def fake_admin_post(*_a: object, **_kw: object) -> dict[str, Any]:
+        raise AdminCallError(409, "commit_sha mismatch")
+
+    monkeypatch.setattr(ig, "admin_post", fake_admin_post)
+    assert ig.main([]) == 1
+    assert "commit_sha mismatch" in capsys.readouterr().err
+
+
+def test_main_refuses_a_200_that_echoes_back_a_different_commit(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Codex round 3 finding 2's "also validate the response SHA": belt and suspenders on top of the
+    referee's own 409 -- even a 200 is checked against this checkout's own commit before its `passed` is
+    trusted, in case a referee answered 200 while echoing back some other commit."""
+    _patch_suites(monkeypatch)
+    other_sha = "c" * 40
+
+    async def fake_admin_post(*_a: object, **_kw: object) -> dict[str, Any]:
+        return {"passed": True, "commit_sha": other_sha}
+
+    monkeypatch.setattr(ig, "admin_post", fake_admin_post)
+    assert ig.main([]) == 1
+    err = capsys.readouterr().err
+    assert SHA in err
+    assert other_sha in err
 
 
 def test_the_pgtap_script_file_exists_and_is_executable() -> None:

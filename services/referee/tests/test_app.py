@@ -935,12 +935,49 @@ def test_run_isolation_gate_route_rejects_a_malformed_body(tmp_path: Path) -> No
         _post(
             app,
             "/api/admin/isolation-gate/run",
-            json={"tournament_id": str(uuid4())},  # missing ig1/ig2/ig3
+            # commit_sha matches (this test is about the missing ig1/ig2/ig3, not the commit check below).
+            json={"commit_sha": BASE_ENV["ARENA_GIT_SHA"], "tournament_id": str(uuid4())},
             headers=_browser_post_headers(csrf),
             cookies={"arena_csrf": csrf},
         )
     )
     assert resp.status_code == UNPROCESSABLE
+
+
+def test_run_isolation_gate_route_refuses_a_commit_sha_that_is_not_its_own(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S3 9: scoped to "the running processes'" own commit -- a caller claiming some other commit (its own
+    checkout drifted from the referee it is calling, or a referee that restarted between the caller's own
+    earlier check and this call) must be refused here, the one place that writes `arena.isolation_checks`,
+    before anything runs or is recorded."""
+    app = make_app(tmp_path)
+    ran = False
+
+    async def fake_run(_connect: object, _request: IsolationGateRequest) -> object:
+        nonlocal ran
+        ran = True
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(admin_route, "run_isolation_gate", fake_run)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            "/api/admin/isolation-gate/run",
+            json={
+                "commit_sha": "b" * 40,  # not BASE_ENV["ARENA_GIT_SHA"]
+                "ig1": {"passed": True, "report_text": "pgtap ok"},
+                "ig2": {"passed": True, "report_text": "routes ok"},
+                "ig3": {"passed": True, "report_text": "context ok"},
+            },
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.CONFLICT
+    assert ran is False
 
 
 def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -958,6 +995,7 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
             app,
             "/api/admin/isolation-gate/run",
             json={
+                "commit_sha": BASE_ENV["ARENA_GIT_SHA"],
                 "ig1": {"passed": True, "report_text": "pgtap ok"},
                 "ig2": {"passed": True, "report_text": "routes ok"},
                 "ig3": {"passed": True, "report_text": "context ok"},

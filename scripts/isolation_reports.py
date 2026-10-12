@@ -8,8 +8,13 @@ IG-1..3 passing locally with IG-4, 5 or 6 failing at the referee is still a fail
 S3 9 scopes every result to "the tournament's code version (git commit of the RUNNING PROCESSES)": before
 running anything, this script reads the referee's own `commit_sha` (`GET /api/admin/isolation-gate`,
 `arena_referee.routes.admin._result_json`, its one additive field) and refuses -- without running the
-suites at all -- if it does not equal this checkout's own `git rev-parse HEAD`. Without this check, testing
-checkout A and recording evidence at a referee still running checkout B would certify B using A's results.
+suites at all -- if it does not equal this checkout's own `git rev-parse HEAD`. That GET is a fail-fast
+optimization only, never the actual boundary: the referee can still restart onto a different commit while
+the suites run, so this script's own `git rev-parse HEAD` also goes in the `POST` body, and the referee
+(`run_isolation_gate_route`) refuses with 409, before executing or recording anything, if that claimed
+commit is not its own running one. Without the `POST`-time check, testing checkout A and racing a referee
+restart onto commit B would still certify B using A's results; this script never accepts a `--git-sha`
+override for the same reason -- the checkout under test is this one, never a claim.
 
 IG-1 the pgTAP privilege suite (`tools/isolation_gate_pgtap.sh`: `supabase/tests/harness/db_test.sh`'s own
     "plain path" duplicated into its own tool, never a second caller added to that proven gate script -- one
@@ -74,9 +79,9 @@ def current_git_sha() -> str:
 
 
 def is_commit_sha(value: str) -> bool:
-    """A full, lowercase 40-hex commit sha (the referee's own `commit_sha` column pattern): checked here
-    too, whether `value` came from `git rev-parse HEAD` or an operator's `--git-sha` override, so a bad
-    override fails fast rather than reaching the referee as some other string."""
+    """A full, lowercase 40-hex commit sha (the referee's own `commit_sha` column pattern): `git rev-parse
+    HEAD` always returns this shape, but a detached, corrupt, or non-git checkout might not -- checked here
+    so a bad value fails fast rather than reaching the referee as some other string."""
     return len(value) == GIT_SHA_LEN and set(value) <= HEX_DIGITS
 
 
@@ -125,19 +130,21 @@ async def _referee_commit_sha(base_url: str) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--git-sha", default=None, help="defaults to git rev-parse HEAD")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="the local arena-referee origin")
     args = parser.parse_args(argv)
 
-    git_sha = args.git_sha or current_git_sha()
+    # Always this checkout's own HEAD -- never an operator override. S3 9 scopes every result to "the
+    # tournament's code version (git commit of the RUNNING PROCESSES)"; a `--git-sha` flag that replaced
+    # this value would let a caller claim any commit it liked, defeating the check below entirely (that was
+    # exactly the Codex round-3 finding this rewrite closes).
+    git_sha = current_git_sha()
     if not is_commit_sha(git_sha):
         sys.stderr.write(f"isolation_reports: not a 40-hex commit sha: {git_sha!r}\n")
         return 1
 
-    # S3 9: results are scoped to "the tournament's code version (git commit of the RUNNING PROCESSES)" --
-    # refuse before running anything (never mind recording evidence) if the referee is not this checkout's
-    # own commit: testing A and recording at a referee still on B would otherwise certify B using A's
-    # results, with nothing before this check able to tell the two apart.
+    # Fail fast, before running the (slow) suites, when the referee is obviously on a different commit.
+    # This GET is an optimization only, not the boundary: the referee can still restart onto another commit
+    # while the suites run below, so the real, race-free check is server-side, at the POST (next).
     try:
         referee_sha = asyncio.run(_referee_commit_sha(args.base_url))
     except AdminCallError as exc:
@@ -157,6 +164,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         sys.stdout.write(f"isolation_reports: {name} {'PASS' if passed else 'FAIL'}\n")
 
     body = {
+        "commit_sha": git_sha,
         "ig1": {"passed": ig1[0], "report_text": ig1[1]},
         "ig2": {"passed": ig2[0], "report_text": ig2[1]},
         "ig3": {"passed": ig3[0], "report_text": ig3[1]},
@@ -164,7 +172,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         result = asyncio.run(admin_post("/api/admin/isolation-gate/run", body, base_url=args.base_url))
     except AdminCallError as exc:
+        # Covers the referee restarting onto a different commit between the GET above and this POST, since
+        # `run_isolation_gate_route` refuses any `commit_sha` that is not its own with a 409 -- the real,
+        # race-free check (the GET above is only a fast-path optimization).
         sys.stderr.write(f"isolation_reports: the referee refused the run (commit {git_sha}): {exc}\n")
+        return 1
+    # Belt and suspenders: a 200 should only ever echo this checkout's own commit back (the handler already
+    # refused anything else before recording), but never trust that without checking -- a referee that lied
+    # about its own identity would otherwise still read as a clean pass for the wrong commit.
+    recorded_sha = result.get("commit_sha")
+    if recorded_sha != git_sha:
+        sys.stderr.write(
+            f"isolation_reports: refused: the referee recorded commit {recorded_sha!r}, not this "
+            f"checkout's {git_sha!r}\n"
+        )
         return 1
     overall_passed = result.get("passed") is True
     sys.stdout.write(f"isolation_reports: referee recorded (commit {git_sha}): {result}\n")
