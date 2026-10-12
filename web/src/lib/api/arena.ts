@@ -143,6 +143,9 @@ export interface ArenaApi {
   progress: () => Promise<unknown>;
   /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
   recording: (trialId: string) => Promise<unknown>;
+  /** `POST /api/tts {voice, text}`: one line's WAV audio in a prebuilt Gemini voice, and whether it is the server's
+   * silence (its fake mode) rather than speech. */
+  speak: (voice: string, text: string) => Promise<{ readonly audio: ArrayBuffer; readonly silent: boolean }>;
   /** `GET /api/me`: identity, the EX-4 acknowledgement and the KPI-1 study status. */
   me: () => Promise<Me>;
   /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
@@ -221,6 +224,7 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       return brief;
     },
     me: () => client.me(),
+    speak: (voice, text) => client.postAudio("/api/tts", { voice, text }),
     progress: () => client.get("/api/progress"),
     recording: (trialId) => client.get(`/api/trials/${id(trialId)}/recording`),
     async ackEx4() {

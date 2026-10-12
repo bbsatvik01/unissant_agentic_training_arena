@@ -264,4 +264,27 @@ describe("fetch wrapper: the body is fixed when post() is called", () => {
     const bodies = t.sent.filter((s) => s.url === "/api/x").map((s) => s.init.body);
     expect(bodies).toEqual(['{"rationale":"first"}', '{"rationale":"first"}']);
   });
+
+  it("posts for audio with the CSRF header and returns the bytes, flagging the server's silence", async () => {
+    const wav = new Uint8Array([82, 73, 70, 70]);
+    const t = transport({
+      "GET /api/me": [() => json(200, ME)],
+      "POST /api/tts": [() => new Response(wav, { status: 200, headers: { "Content-Type": "audio/wav" } }), () => new Response(wav, { status: 200, headers: { "X-Arena-Speech": "silent" } })],
+    });
+    const api = createApiClient({ fetch: t.fetch });
+    const first = await api.postAudio("/api/tts", { voice: "Kore", text: "Hi." });
+    expect(new Uint8Array(first.audio)).toEqual(wav);
+    expect(first.silent).toBe(false);
+    expect((await api.postAudio("/api/tts", { voice: "Kore", text: "Hi." })).silent).toBe(true);
+    const post = t.sent.find((s) => s.init.method === "POST");
+    expect(post === undefined ? null : header(post, "X-Arena-CSRF")).toBe("tok-1");
+    expect(post?.init.body).toBe(JSON.stringify({ voice: "Kore", text: "Hi." }));
+  });
+
+  it("turns a refused audio request into an ApiError with the server's code, and refuses a foreign path", async () => {
+    const t = transport({ "GET /api/me": [() => json(200, ME)], "POST /api/tts": [() => json(503, { detail: "speech unavailable" })] });
+    const api = createApiClient({ fetch: t.fetch });
+    await expect(api.postAudio("/api/tts", {})).rejects.toMatchObject({ status: 503, code: "speech unavailable" });
+    await expect(api.postAudio("https://evil.example/x", {})).rejects.toThrow(/not a same-origin/);
+  });
 });

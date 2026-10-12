@@ -23,6 +23,10 @@ function fakeClient(answer: (call: Call) => unknown) {
       calls.push(call);
       return Promise.resolve(answer(call));
     },
+    postAudio: (path, body) => {
+      calls.push({ method: "POST", path, body, keepalive: false });
+      return Promise.resolve({ audio: new ArrayBuffer(4), silent: false });
+    },
     post: (path, body, options) => {
       const call: Call = { method: "POST", path, body, keepalive: options?.keepalive === true };
       calls.push(call);
@@ -214,5 +218,12 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(["GET /api/progress", "GET /api/trials/22222222-2222-4222-8222-222222222222/recording", "POST /api/me/ack-ex4"]);
     const { client: bad } = fakeClient(() => ({}));
     await expect(createArenaApi(bad).ackEx4()).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it("asks the speech route for a line in a voice", async () => {
+    const { client, calls } = fakeClient(() => null);
+    const spoken = await createArenaApi(client).speak("Kore", "Hello.");
+    expect(spoken.audio.byteLength).toBe(4);
+    expect(calls).toEqual([{ method: "POST", path: "/api/tts", body: { voice: "Kore", text: "Hello." }, keepalive: false }]);
   });
 });
