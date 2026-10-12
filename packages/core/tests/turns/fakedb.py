@@ -284,7 +284,8 @@ class FakeArenaDb(ArenaDb):
         self.finding = finding
         self.version += 1
         self._end("completed")
-        self._emit("finding_committed", finding)
+        if self.kind == "training":  # S4 finalize_trial emits finding_committed for a training trial only
+            self._emit("finding_committed", finding)
         self._emit("trial_ended", {"reason": "completed", "commitment_sha256": COMMITMENT})
         return self._done(item, {"commitment_sha256": COMMITMENT, "payload_sha256": "d" * 64})
 

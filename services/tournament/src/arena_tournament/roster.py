@@ -12,7 +12,7 @@ is the tournament's own, so the shuffle is reproducible from the frozen roster a
 
 from __future__ import annotations
 
-import random
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from uuid import UUID
@@ -127,7 +127,6 @@ def build_roster(
                         source_position=corpus_position[variant_id],
                     )
                 )
-    rng = random.Random(seed)  # noqa: S311 - a reproducible shuffle (direction 7.2's recorded seed), never a secret
     for block_no, family in enumerate(families, start=1):
         pairings = [
             (variant_id, assistant, subject)
@@ -135,7 +134,9 @@ def build_roster(
             for assistant in assistants
             for subject in subjects
         ]
-        rng.shuffle(pairings)
+        # Direction 7.2: "order within a block comes from a recorded seed" -- a reproducible order keyed by
+        # the tournament's own seed, so the fairness audit can rebuild it byte for byte.
+        pairings.sort(key=lambda p: hashlib.sha256(f"{seed}:{block_no}:{p[0]}:{p[1]}:{p[2]}".encode()).digest())
         for variant_id, assistant, subject in pairings:
             position += 1
             rows.append(
