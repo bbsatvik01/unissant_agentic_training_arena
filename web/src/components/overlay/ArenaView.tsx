@@ -304,7 +304,7 @@ function Matrix({ tournament, source, track, onTrack, onReplay }: { tournament: 
   if (present.length === 0) return <p className="empty">No trials yet.</p>;
   return (
     <>
-      {source === "ready" ? <p className="fine">Choose a trial to replay it in the interview room.</p> : <p className="fine">{MATRIX_NOTE.example}</p>}
+      {source === "ready" ? <p className="fine">Choose a finished trial to replay it in the interview room; a running trial can be replayed once it ends.</p> : <p className="fine">{MATRIX_NOTE.example}</p>}
       <Tabs
         label="Tracks"
         value={track ?? present[0] ?? "interactive"}
@@ -332,7 +332,8 @@ function TrackMatrix({ tournament, track, onReplay }: { tournament: TournamentSt
             const label = `Trial ${String(c.trial_ref)}${c.block === null ? "" : `, block ${String(c.block)}`}: ${state}`;
             return (
               <span key={c.trial_ref} className="matrix-cell" role="cell" data-state={state.replaceAll(" ", "_")} title={label}>
-                {onReplay === null ? (
+                {/* A running trial's recording is still growing: it replays once it has ended, whole. */}
+                {onReplay === null || state === "running" ? (
                   <>
                     <span className="mono">#{c.trial_ref}</span> {state}
                   </>

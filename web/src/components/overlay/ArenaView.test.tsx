@@ -86,7 +86,12 @@ describe("ArenaView", () => {
     const ref = started?.type === "trial.started" ? started.data.trial_ref : 0;
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Replay Trial ${String(ref)}:`) }));
     expect(onReplay).toHaveBeenCalledWith(trialId);
-    expect(screen.getByText("Choose a trial to replay it in the interview room.")).toBeTruthy();
+    expect(screen.getByText(/Choose a finished trial to replay it in the interview room/)).toBeTruthy();
+    // A running trial (no execution record, no commitment yet) does not replay until it ends.
+    const running = foldPoll(EMPTY_TOURNAMENT, { ...poll, frames: poll.frames.filter((f) => f.type === "trial.started" || f.type === "tournament.status") });
+    rerender(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={null} subject={null} tournament={running} matrix="ready" tournaments={{ state: "idle" }} notice={null} onReplay={onReplay} motionOff onClose={() => undefined} />);
+    expect(screen.queryAllByRole("button", { name: /^Replay / })).toHaveLength(0);
+    expect(screen.getAllByText("running").length).toBeGreaterThan(0);
     rerender(view("ready", "The server does not offer this run's recording."));
     expect(screen.getByRole("alert").textContent).toBe("The server does not offer this run's recording.");
     rerender(view("missing"));

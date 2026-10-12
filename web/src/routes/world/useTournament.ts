@@ -100,22 +100,35 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
           // schedule, or in 2 s while pages are still waiting (a revealed tournament half drained is not done).
           // Before any data the failure is the arena's state; a 404 always means the route is not there.
           const f = failure(e);
-          if (f.state === "missing" || folded === EMPTY_TOURNAMENT) setLoad(f);
-          else if (more) timer = setTimeout(poll, POLL_MS);
+          if (f.state === "missing") {
+            setLoad(f);
+            return;
+          }
+          // Shown until a poll succeeds; the poll itself keeps going.
+          if (folded === EMPTY_TOURNAMENT) setLoad(f);
+          if (more) timer = setTimeout(poll, POLL_MS);
           else schedule(false);
         },
       );
     }
-    readTournament(id).then(
-      (raw) => {
-        if (cancelled) return;
-        status = parseTournamentStatus(raw);
-        poll();
-      },
-      (e: unknown) => {
-        if (!cancelled) setLoad(failure(e));
-      },
-    );
+    // The state read: a 404 is final; any other failure is shown and read again in 2 s.
+    function start() {
+      timer = null;
+      readTournament(id).then(
+        (raw) => {
+          if (cancelled) return;
+          status = parseTournamentStatus(raw);
+          poll();
+        },
+        (e: unknown) => {
+          if (cancelled) return;
+          const f = failure(e);
+          setLoad(f);
+          if (f.state === "error") timer = setTimeout(start, POLL_MS);
+        },
+      );
+    }
+    start();
     return () => {
       cancelled = true;
       if (timer !== null) clearTimeout(timer);

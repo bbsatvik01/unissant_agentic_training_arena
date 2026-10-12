@@ -93,6 +93,7 @@ describe("useTournament (S6 4.9)", () => {
     await waitFor(() => {
       expect(broken.result.current.state).toBe("error");
     });
+    broken.unmount();
     vi.useFakeTimers();
     setVisibility("visible");
     const answers: (() => Promise<TournamentPoll>)[] = [() => Promise.resolve(events("running", 4)), () => Promise.reject(new ApiError(503, null, "x")), () => Promise.resolve(events("revealed", 6))];
@@ -148,6 +149,28 @@ describe("useTournament paging and visibility", () => {
     expect(tournamentEvents.mock.calls.map((c) => (c as unknown[])[1])).toEqual([0, 200, 200]);
     const r = result.current;
     expect(r.state === "ready" ? r.tournament.trials.size : 0).toBe(205);
+  });
+
+  it("recovers from a failed first poll and a failed state read: the error shows, the read is tried again", async () => {
+    vi.useFakeTimers();
+    setVisibility("visible");
+    const polls: (() => Promise<TournamentPoll>)[] = [() => Promise.reject(new ApiError(503, null, "x")), () => Promise.resolve(events("revealed", 4))];
+    const tournamentEvents = vi.fn(() => (polls.shift() ?? (() => Promise.resolve(events("revealed", 4))))());
+    const reads: (() => Promise<unknown>)[] = [() => Promise.reject(new ApiError(502, null, "x")), () => Promise.resolve({ status: "running" })];
+    const tournament = vi.fn(() => (reads.shift() ?? (() => Promise.resolve({ status: "running" })))());
+    const retryApi = { tournament, tournamentEvents };
+    const { result } = renderHook(() => useTournament(retryApi, T, true));
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(result.current.state).toBe("error");
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(tournament).toHaveBeenCalledTimes(2);
+    expect(tournamentEvents).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toBe("error");
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(tournamentEvents).toHaveBeenCalledTimes(2);
+    expect(result.current.state).toBe("ready");
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents).toHaveBeenCalledTimes(2);
   });
 
   it("sends nothing while the tab is hidden, at the start or after it hides during the wait", async () => {
