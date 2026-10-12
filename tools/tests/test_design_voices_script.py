@@ -22,11 +22,26 @@ REFUSED = 2
 ENTRY = {"prebuilt": "Kore", "gender": "female", "language_code": "en-US", "description": "A clerk.", "style": "brief"}
 
 
+UNDESIGNED = {"personas": {"subject:A": {**ENTRY, "voice_id": None}, "coach:flags": {**ENTRY, "voice_id": None}}}
+
+
+@pytest.fixture
+def undesigned(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A catalogue with voices still to design (the shipped one has every voice designed)."""
+    monkeypatch.setattr(design_voices, "load", lambda: catalogue.parse(UNDESIGNED))
+
+
+@pytest.mark.usefixtures("undesigned")
 def test_the_dry_run_prints_each_persona_to_design_and_calls_nothing(capsys: pytest.CaptureFixture[str]) -> None:
     assert design_voices.main(["--dry-run"], env={}) == 0
     out = capsys.readouterr().out
-    assert "subject:Jordan Pell" in out
-    assert "(dry run)" in out
+    assert "subject:A" in out
+    assert "2 to design (dry run)" in out
+
+
+def test_the_shipped_catalogue_has_nothing_left_to_design(capsys: pytest.CaptureFixture[str]) -> None:
+    assert design_voices.main(["--dry-run"], env={}) == 0
+    assert "0 to design" in capsys.readouterr().out
 
 
 def test_only_named_personas_and_nothing_to_do(capsys: pytest.CaptureFixture[str]) -> None:
@@ -34,6 +49,7 @@ def test_only_named_personas_and_nothing_to_do(capsys: pytest.CaptureFixture[str
     assert "0 to design" in capsys.readouterr().out
 
 
+@pytest.mark.usefixtures("undesigned")
 def test_fake_mode_refuses_a_paid_design(capsys: pytest.CaptureFixture[str]) -> None:
     assert design_voices.main(["--only", "coach:flags"], env={"ARENA_MODEL_MODE": "fake"}) == REFUSED
     assert "real, paid call" in capsys.readouterr().err

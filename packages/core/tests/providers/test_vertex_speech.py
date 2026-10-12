@@ -1,6 +1,6 @@
-"""Gemini TTS through the Vertex adapter (stage 5): the request carries audio out in one prebuilt voice, the billing
-label, one SDK attempt and a bounded output; the reply's audio and usage are read, and failures are typed like text
-calls (a non-200 is not billed, a timeout or a malformed reply may have been)."""
+"""Gemini TTS through the Vertex adapter (stages 5 and 8): the request carries audio out in one voice, the billing
+label and one SDK attempt (no output cap: the 3.8 TTS models refuse one); the reply's audio and usage are read, and
+failures are typed like text calls (a non-200 is not billed, a timeout or a malformed reply may have been)."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def speak(outcome: object, style: str | None = None) -> tuple[tuple[bytes, int, 
     return run(speech.synthesize("Hello there.", "Kore", style)), client
 
 
-def test_the_request_asks_for_audio_in_one_voice_labelled_with_one_attempt_and_a_bounded_output() -> None:
+def test_the_request_asks_for_audio_in_one_voice_labelled_with_one_attempt_and_no_output_cap() -> None:
     config = vertex.build_speech_config("Kore", 30.0)
     assert config.response_modalities == ["AUDIO"]
     speech_config = config.speech_config
@@ -91,7 +91,7 @@ def test_the_request_asks_for_audio_in_one_voice_labelled_with_one_attempt_and_a
     assert voice.voice == "Kore"  # the 3.8 TTS field, which also takes a designed voice id
     assert voice.prebuilt_voice_config is None
     assert config.labels == {"app": "unissant-arena"}
-    assert config.max_output_tokens == vertex.SPEECH_MAX_OUTPUT_TOKENS
+    assert config.max_output_tokens is None  # the 3.8 TTS models refuse it (400 on the first real call)
     assert config.http_options is not None
     assert config.http_options.retry_options is not None
     assert config.http_options.retry_options.attempts == 1
@@ -302,6 +302,7 @@ def test_a_designed_voice_is_one_post_of_the_measured_bytes_and_reads_its_id_sam
     [request] = sent
     assert str(request.url) == "https://aiplatform.googleapis.com/v1beta1/projects/cna-guardian/locations/global/voices"
     assert request.headers["authorization"] == f"Bearer {CREDS.token}"
+    assert request.headers["x-goog-user-project"] == "cna-guardian"  # the quota project local ADC lacks
     # The reservation is the body on the wire, byte for byte, with every character escaped as sent.
     assert len(request.content) == vertex.voice_design_bytes(
         "A clerk in her forties.", "arena subject:A", "female", "en-US"
