@@ -81,3 +81,4 @@
 - b141662 merge trust routes + assessment recording final snapshot
 - 79b2182 merge UI stage 5 (Gemini TTS route, inactive pending owner spend rows; hub life)
 - 6ea8e1b merge WP-17 tournament job + demo tournament CLI
+- 3bd02cc merge hosted seeding + real smoke; 2026-10-12 hosted Supabase seeded (F01-F09, A1-A3, S1-S3, dev@arena.local); FIRST REAL GEMINI CALL: gemini-3.1-flash-lite subject.answer on F01, 2 attempts, $0.0016, 1.4-1.7 s; reply quarantined G0_schema after repair (to debug)
