@@ -193,14 +193,18 @@ async def run_smoke(
     elapsed_ms = (time.monotonic() - started_at) * 1000
 
     # run_turn returns normally, never raising, for a budget refusal, a kill-switch pause or a quarantined
-    # reply (Orchestrator._answer) and for a coach call the orchestrator itself could not store
-    # (Orchestrator._coach): "outcome": "recorded" with at least one call on each port is the only shape that
-    # means a real subject call and a real coach card both actually happened; anything else is reported as a
-    # failure, never as a smoke test that silently proved nothing.
-    if turn["outcome"] != "recorded" or not subject_port.calls or not coach_port.calls:
+    # reply (Orchestrator._answer), and for a coach call whose MODEL attempt succeeded (so coach_port.calls
+    # is non-empty) but whose STORAGE step the orchestrator itself discarded (Orchestrator._coach: an AR002
+    # stale-version race on record_coaching_event returns None, "nothing was stored" -- a real failure mode,
+    # not a hypothetical one). A model call recorded on each port is not proof the card was ever written: the
+    # trial's own events, read back the same way the investigator's own client would, are.
+    events = await public.all_events(trial_id)
+    stored_card = any(e.kind == "coach_card" and e.turn_no == turn["turn_no"] for e in events)
+    if turn["outcome"] != "recorded" or not subject_port.calls or not coach_port.calls or not stored_card:
         msg = (
-            f"no real coach-card-and-subject-call round trip: outcome={turn['outcome']!r}, "
-            f"{len(subject_port.calls)} subject call(s), {len(coach_port.calls)} coach call(s)"
+            f"no real, persisted coach-card-and-subject-call round trip: outcome={turn['outcome']!r}, "
+            f"{len(subject_port.calls)} subject call(s), {len(coach_port.calls)} coach call(s), "
+            f"coach card stored={stored_card}"
         )
         raise SmokeError(msg)
 

@@ -237,6 +237,53 @@ def test_run_smoke_refuses_to_report_success_when_the_subject_call_never_happene
         run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
 
 
+def test_run_smoke_refuses_to_report_success_when_the_coach_card_was_never_persisted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A coach call whose MODEL attempt succeeds (so `coach_port.calls` is non-empty, exactly as a real call
+    would leave it) but whose STORAGE step `record_coaching_event` discards -- an AR002 stale-version race,
+    `Orchestrator._coach`'s own documented discard path -- still returns `outcome="recorded"` from
+    `run_turn`: nothing about the orchestrator's return value says the card was never written. `run_smoke`
+    must read the trial's own events back (`ArenaDb.all_events`), not trust a non-empty `coach_port.calls`,
+    and refuse this as a failure rather than report a false success."""
+    actor = UUID(int=7)
+    db = FakeArenaDb(actor)
+    db.fail_next["record:coach_card"] = ArenaError("AR002", "stale transcript version: discard this card")
+
+    def fake_subject_call(_connect: object, port: AgentPort, _actor: UUID | None) -> SubjectCall:
+        async def call(_trial: UUID, work_item: UUID, _step_actor: UUID | None) -> SubjectOutcome:
+            subject_call = AgentCall(
+                model=VertexModel.FLASH_LITE_31,
+                thinking=ThinkingLevel.MINIMAL,
+                system="s",
+                messages=(Message("user", "hello"),),
+                schema=SubjectTurn,
+                context=CallContext(
+                    call_type=CallType.SUBJECT,
+                    purpose="subject.answer",
+                    step_key=str(work_item),
+                    data_class="subject_private",
+                ),
+            )
+            await port.run(subject_call)
+            return db.record_answer(work_item)
+
+        return call
+
+    monkeypatch.setattr(real_smoke, "resolve_dev_user", lambda _env: DevIdentity(actor, "x@test", "X", frozenset()))
+    monkeypatch.setattr(real_smoke, "dsn_connector", lambda _dsn: lambda: None)
+    monkeypatch.setattr(real_smoke, "ArenaDb", lambda _connect, _actor: db)
+    monkeypatch.setattr(real_smoke, "DbSpendGuard", lambda _connect: RunBudget(Decimal(100)))
+    monkeypatch.setattr(real_smoke, "real_subject_call", fake_subject_call)
+
+    env = {"ARENA_MODEL_MODE": "fake", "ARENA_PUBLIC_DSN": "x", "ARENA_SUBJECT_DSN": "y"}
+    with pytest.raises(real_smoke.SmokeError, match="coach card stored=False"):
+        run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
+
+    # The model attempt genuinely ran (this is the condition the pre-fix code mistook for success).
+    assert db.calls.count("record:coach_card") == 1
+
+
 def _call(purpose: str, step_key: str = "k" * 10) -> AgentCall[Reply]:
     return AgentCall(
         model=VertexModel.FLASH_LITE_31,

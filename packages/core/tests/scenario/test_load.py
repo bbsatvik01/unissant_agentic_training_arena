@@ -283,6 +283,51 @@ def test_codex_review_from_report_refuses_a_non_object_solve_sheet() -> None:
         codex_review_from_report(report)
 
 
+def test_codex_review_from_report_refuses_a_bare_pass_true_standing_in_for_a_sheet() -> None:
+    """A sheet reduced to `{"pass": true}` -- the top-level flag's own word, with none of CX-2/CX-3's actual
+    output (`finding`, `cited_records`, `cited_answers`, `basis`, `expected`) -- is not a real solve sheet."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"] = {"pass": True}
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_finding_its_own_expected_does_not_name() -> None:
+    """The sheet's own `finding` must be named by its own `expected` (cx3's `expected` is a compound
+    "X or Y" string; `insufficient_evidence` is split from it by " or ", never treated as a mismatch)."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_accepts_cx3s_compound_expected() -> None:
+    """F01's cx3 sheet has `expected`: "deceptive or insufficient_evidence" and `finding`:
+    "insufficient_evidence" -- confirms the compound split, not a coincidental pass elsewhere."""
+    report = legacy_report("F01")
+    assert report["solves"]["cx3"]["expected"] == "deceptive or insufficient_evidence"
+    assert report["solves"]["cx3"]["finding"] == "insufficient_evidence"
+    codex_review_from_report(report)  # does not raise
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("finding", "not_a_real_finding"),
+        ("cited_records", []),
+        ("cited_records", None),
+        ("cited_answers", "A1"),
+        ("basis", ""),
+        ("basis", None),
+    ],
+)
+def test_codex_review_from_report_refuses_a_malformed_sheet_field(field: str, value: object) -> None:
+    report = legacy_report("F01")
+    report["solves"]["cx2_deceptive"][field] = value
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:
     """S1 8.5 step 3: the validators and the Codex review pass on the same family-file hash."""
     reviewed = seed("F01")

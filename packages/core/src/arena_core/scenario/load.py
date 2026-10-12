@@ -152,10 +152,42 @@ def is_legacy_codex_report(raw: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(raw, dict) and "solves" in raw and "cx1" in raw
 
 
+VALID_FINDINGS: frozenset[str] = frozenset({"truthful", "deceptive", "insufficient_evidence"})
+
+
+def _sheet_problems(key: str, sheet: Mapping[str, Any]) -> list[str]:
+    """Whether one solve sheet (S1 9.7's CX-2 or CX-3 output shape: `finding`, `cited_records`, `cited_answers`,
+    `basis`, `expected`, `pass`) is a real, filled-in sheet, not a bare `{"pass": true}` standing in for one,
+    and that its own `finding` is the literal its own `expected` names -- never resolved by trusting `pass`
+    alone. This is the sheet's internal self-consistency, the only thing checkable without a model call; it
+    is not a re-run of CX-2/CX-3's semantic comparison against the family (S1 9.7's own Codex session)."""
+    problems = []
+    if sheet.get("pass") is not True:
+        problems.append(f"solves.{key}.pass is {sheet.get('pass')!r}, not true")
+    finding = sheet.get("finding")
+    if finding not in VALID_FINDINGS:
+        problems.append(f"solves.{key}.finding is {finding!r}, not one of {sorted(VALID_FINDINGS)}")
+    expected = sheet.get("expected")
+    expected_values = {part.strip() for part in expected.split(" or ")} if isinstance(expected, str) else set()
+    if finding not in expected_values:
+        problems.append(f"solves.{key}.finding {finding!r} is not named by its own expected {expected!r}")
+    cited_records = sheet.get("cited_records")
+    if not isinstance(cited_records, list) or not cited_records or not all(isinstance(r, str) for r in cited_records):
+        problems.append(f"solves.{key}.cited_records is not a non-empty list of strings: {cited_records!r}")
+    cited_answers = sheet.get("cited_answers")
+    if not isinstance(cited_answers, list) or not all(isinstance(a, str) for a in cited_answers):
+        problems.append(f"solves.{key}.cited_answers is not a list of strings: {cited_answers!r}")
+    basis = sheet.get("basis")
+    if not isinstance(basis, str) or not basis.strip():
+        problems.append(f"solves.{key}.basis is not a non-empty string: {basis!r}")
+    return problems
+
+
 def _solve_mismatches(report: Mapping[str, Any]) -> list[str]:
     """Where `report["solves"]` (S1 9.7's per-sheet basis, kept for audit) disagrees with the top-level flag
-    `codex_review_from_report` would otherwise trust alone: a report edited (or corrupted) so one says pass
-    and the other does not is refused on either disagreement, never resolved in the passing field's favor."""
+    `codex_review_from_report` would otherwise trust alone, or is not a real, filled-in sheet in the first
+    place: a report edited (or corrupted) so one says pass and the other does not, or that stands in a bare
+    `{"pass": true}` for a sheet, is refused, never resolved in the passing field's favor."""
     solves = report.get("solves")
     if not isinstance(solves, Mapping):
         return [f"solves is not an object: {solves!r}"]
@@ -164,8 +196,8 @@ def _solve_mismatches(report: Mapping[str, Any]) -> list[str]:
         sheet = solves.get(key)
         if not isinstance(sheet, Mapping):
             problems.append(f"solves.{key} is not an object: {sheet!r}")
-        elif sheet.get("pass") is not True:
-            problems.append(f"solves.{key}.pass is {sheet.get('pass')!r}, not true")
+        else:
+            problems.extend(_sheet_problems(key, sheet))
     return problems
 
 
