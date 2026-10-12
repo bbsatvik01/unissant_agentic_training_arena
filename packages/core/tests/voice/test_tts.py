@@ -38,9 +38,10 @@ def run[T](coro: Coroutine[Any, Any, T]) -> T:
 
 
 class Session:
-    def __init__(self, log: list[Any], refuse: BaseException | None) -> None:
+    def __init__(self, log: list[Any], refuse: BaseException | None, refuse_dispatch: BaseException | None) -> None:
         self.log = log
         self.refuse = refuse
+        self.refuse_dispatch = refuse_dispatch
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         self.log.append(("reserve", req))
@@ -52,6 +53,8 @@ class Session:
 
     async def dispatch(self, reservation_id: UUID) -> None:
         self.log.append(("dispatch", reservation_id))
+        if self.refuse_dispatch is not None:
+            raise self.refuse_dispatch
 
     async def record(self, report: UsageReport) -> UsageResult:
         self.log.append(("record", report))
@@ -66,13 +69,14 @@ class Session:
 
 
 class Guard:
-    def __init__(self, refuse: BaseException | None = None) -> None:
+    def __init__(self, refuse: BaseException | None = None, refuse_dispatch: BaseException | None = None) -> None:
         self.log: list[Any] = []
         self.refuse = refuse
+        self.refuse_dispatch = refuse_dispatch
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[Session]:
-        yield Session(self.log, self.refuse)
+        yield Session(self.log, self.refuse, self.refuse_dispatch)
 
     def session(self) -> AbstractAsyncContextManager[Session]:
         return self._open()
@@ -289,3 +293,13 @@ def test_the_vertex_measure_is_used_for_the_reservation() -> None:
 
     synth = tts.VertexSynth(Sender(), lambda text, voice: len(text) * 100 + len(voice))
     assert synth.request_bytes("ab", "Kore") == MEASURED_AB
+
+
+def test_a_refusal_at_dispatch_releases_the_hold_and_sends_nothing(tmp_path: Path) -> None:
+    guard, synth = Guard(refuse_dispatch=KillSwitchOnError("kill switch")), Synth(AUDIO)
+    service = tts.TtsService(synth, guard, tmp_path)
+    with pytest.raises(KillSwitchOnError):
+        run(service.speak("Hello.", "Kore", ACTOR))
+    assert kinds(guard.log) == ["reserve", "dispatch", "settle"]
+    assert guard.log[-1] == ("settle", "released")
+    assert synth.calls == []

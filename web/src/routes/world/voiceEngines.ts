@@ -49,6 +49,9 @@ export function browserEngine(): VoiceEngine {
   };
 }
 
+/** How long a line waits for the browser to let audio play before the browser's own voice speaks it. */
+export const RESUME_WAIT_MS = 1000;
+
 interface WebClip {
   readonly duration: number;
   readonly buffer: AudioBuffer;
@@ -72,9 +75,13 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
     window.addEventListener("pointerdown", unlock, { once: true, capture: true });
     window.addEventListener("keydown", unlock, { once: true, capture: true });
   }
-  /** Whether audio can play now; a context the browser keeps suspended means the browser's voice speaks instead. */
+  /** Whether audio can play now. A context the browser keeps suspended (its resume may never settle while playback
+   * is blocked) is waited for at most RESUME_WAIT_MS; then the browser's voice speaks instead. */
   const running = async (c: AudioContext) => {
-    if (c.state !== "running") await c.resume().catch(() => undefined);
+    if (c.state !== "running") {
+      const waited = new Promise<void>((r) => setTimeout(r, RESUME_WAIT_MS));
+      await Promise.race([c.resume().catch(() => undefined), waited]);
+    }
     return c.state === "running";
   };
   const clips = new Map<string, Promise<WebClip | null>>();

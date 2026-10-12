@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { browserEngine, roomEngine, webAudioPort } from "./voiceEngines";
+import { browserEngine, RESUME_WAIT_MS, roomEngine, webAudioPort } from "./voiceEngines";
 
 class Utterance {
   text: string;
@@ -31,6 +31,8 @@ class FakeContext {
   state = "suspended";
   currentTime = 10;
   resume = vi.fn(() => {
+    // "never": the browser keeps playback blocked and the promise does not settle.
+    if (resumeMode === "never") return new Promise<void>(() => undefined);
     this.state = "running";
     return Promise.resolve();
   });
@@ -43,6 +45,7 @@ class FakeContext {
 }
 
 let lastContext: FakeContext | null = null;
+let resumeMode: "ok" | "never" = "ok";
 
 beforeEach(() => {
   speak.mockReset();
@@ -61,6 +64,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   lastContext = null;
+  resumeMode = "ok";
 });
 
 describe("browserEngine", () => {
@@ -117,13 +121,18 @@ describe("webAudioPort", () => {
     expect(lastContext?.source.onended).toBeNull();
   });
 
-  it("gives no clip when the browser keeps audio suspended, and unlocks audio on the first gesture", async () => {
-    const port = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
-    const pending = port.fetchClip("Kore", "Hi.");
-    // The context exists once the line is decoded; make its resume a no-op that leaves it suspended.
-    await Promise.resolve();
-    if (lastContext !== null) lastContext.resume = vi.fn(() => Promise.resolve());
-    expect(await pending).toBeNull();
+  it("gives no clip when the browser keeps audio suspended past the wait, and unlocks audio on the first gesture", async () => {
+    resumeMode = "never";
+    vi.useFakeTimers();
+    try {
+      const port = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
+      const pending = port.fetchClip("Kore", "Hi.");
+      await vi.advanceTimersByTimeAsync(RESUME_WAIT_MS);
+      expect(await pending).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+    resumeMode = "ok";
     const fresh = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
     window.dispatchEvent(new Event("pointerdown"));
     expect(lastContext?.resume).toHaveBeenCalled();

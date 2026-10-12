@@ -244,7 +244,13 @@ class TtsService:
         )
         async with guard.session() as session:
             reservation = await session.reserve(request)
-            await session.dispatch(reservation.id)
+            try:
+                await session.dispatch(reservation.id)
+            except BaseException:
+                # Refused at dispatch (the kill switch turned on) or interrupted: nothing was sent, the hold is
+                # released (S5 3.2), and the refusal goes on to the caller.
+                await session.settle(reservation.id, "released")
+                raise
             started = time.monotonic()
             try:
                 async with asyncio.timeout(SEND_TIMEOUT_S):
