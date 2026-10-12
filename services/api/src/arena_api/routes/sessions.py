@@ -30,6 +30,10 @@ async def start_session(
     state: Annotated[ApiState, Depends(api_state)],
     who: Annotated[DevIdentity, Depends(identity)],
 ) -> dict[str, Any] | JSONResponse:
+    if "ex4" not in await db.acknowledgements():
+        # EX-4 (S4 4.4, X-15): no session starts before the user's acknowledgement is stored; the client's gate is
+        # a convenience, this is the rule.
+        return JSONResponse({"code": "ex4_required"}, status_code=403)
     if body.voice:
         raise HTTPException(status_code=422, detail="voice sessions are not available (WP-22)")
     case = await find_case(db, state, who, body.case_id)

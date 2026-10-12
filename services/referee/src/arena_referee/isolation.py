@@ -192,7 +192,7 @@ _IG123 = ("IG-1", "IG-2", "IG-3")
 
 
 class GateNotRunError(RuntimeError):
-    """IG-1..3 (the suite reports) were never recorded for this commit: `/admin/isolation-gate/run` first."""
+    """IG-1..3 (the suite reports) were never recorded for this commit: `/api/admin/isolation-gate/run` first."""
 
 
 async def _recorded_ig123(connect: Connector, git_sha: str) -> dict[str, tuple[bool, str]]:
@@ -290,7 +290,7 @@ async def fetch_fresh_dev_isolation_result(
     connect: Connector, git_sha: str, prompt_roots: Sequence[Path] = _PROMPT_ROOTS, prompt_file_root: Path = Path()
 ) -> IsolationResult:
     """A dev tournament's reveal gate (`DEV_IG_ITEMS`): IG-1..3 reused from the latest recorded run for this
-    commit (as the hidden gate does; `/admin/isolation-gate/run` records them), IG-5 and IG-6 recomputed live and
+    commit (as the hidden gate does; `/api/admin/isolation-gate/run` records them), IG-5 and IG-6 recomputed live and
     recorded. It never reads the hidden seal or a hidden corpus (IG-4, S1 L9 gates the hidden split). Its IG-6
     also scans the prompt files, which the hidden gate covers through IG-4."""
     ig123 = await _recorded_ig123(connect, git_sha)
@@ -334,6 +334,18 @@ async def fetch_fresh_isolation_result(connect: Connector, git_sha: str) -> Isol
     fresh and rewritten every call, exactly as `run_isolation_gate` does, never read back stale."""
     ig123 = await _recorded_ig123(connect, git_sha)
     return await _recompute_and_record(connect, ig123=ig123, git_sha=git_sha, scan_roots=DEFAULT_SCAN_ROOTS)
+
+
+async def open_hidden_with_recorded_reports(connect: Connector, tournament_id: str, git_sha: str) -> IsolationResult:
+    """The console's open (no body): IG-1..3 are the evidence already recorded for this commit
+    (`/api/admin/isolation-gate/run`), reused as recorded; IG-4..6 run fresh (`fetch_fresh_isolation_result`).
+    Opens only if the whole gate passes; a failing gate raises and the tournament stays frozen."""
+    result = await fetch_fresh_isolation_result(connect, git_sha)
+    if not result.passed:
+        msg = f"isolation gate failed ({result.evidence_hash}); tournament {tournament_id} was not opened"
+        raise RuntimeError(msg)
+    await db.open_tournament(connect, tournament_id)
+    return result
 
 
 async def open_hidden_tournament(

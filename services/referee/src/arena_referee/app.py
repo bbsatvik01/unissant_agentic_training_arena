@@ -32,6 +32,7 @@ from arena_referee.debrief import DebriefProvenance
 from arena_referee.reveal import PublishConfig
 from arena_referee.routes import router as api_router
 from arena_referee.scoring import PromptContext, default_dev_rubric
+from arena_referee.static import install_static, web_dist
 
 
 def _label_set_sha256() -> str:
@@ -175,4 +176,6 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
         state-changing requests only)."""
         return {"ok": True}
 
+    # Last, so every API route above wins over the SPA fallback (S6 4.13).
+    install_static(app, web_dist(resolved_env))
     return app
