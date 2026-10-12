@@ -292,6 +292,8 @@ def _report(sessions: list[tuple[Any, ...]], scores: dict[UUID, int], scorer: st
     )
     out = run(kpi1.report(connector(conn), scorer=scorer, seed=SEED))
     assert next(p for q, p in conn.executed if "rubric_scores" in q) == (scorer,)
+    sessions_query = next(q for q, _ in conn.executed if "from training.sessions s join arena.trials" in q)
+    assert "u.question_source = 'investigator'  and u.answer is not null" in sessions_query
     return out
 
 
@@ -416,7 +418,9 @@ def test_blind_items_carry_the_public_context_strip_identity_and_shuffle(tmp_pat
     conn = _export_conn()
     items, key = run(kpi1.blind_items(connector(conn)))
     first_query, first_params = conn.executed[0]
-    assert "u.question_source = 'investigator') >= %s" in first_query
+    assert "u.question_source = 'investigator' and u.answer is not null) >= %s" in first_query
+    turns_query = next(q for q, _ in conn.executed if "from arena.turns where" in q)
+    assert "and answer is not null" in turns_query  # committed exchanges only, as R3 reads them
     assert first_params == (MIN_QUESTIONS,)  # only scorable sessions (S3 2.2) are exported
     assert sorted(key.values()) == sorted([str(S1), str(S2)])
     assert [i["blind_id"] for i in items] == sorted(key)

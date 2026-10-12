@@ -312,7 +312,8 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
             " t.status in ('finalized', 'terminated'),"
             " training.session_counts(s.phase, t.mode, s.voice, t.status),"
             " exists (select 1 from training.debriefs d where d.session_id = s.id),"
-            " (select count(*) from arena.turns u where u.trial_id = t.id and u.question_source = 'investigator')"
+            " (select count(*) from arena.turns u where u.trial_id = t.id and u.question_source = 'investigator'"
+            "  and u.answer is not null)"
             " from training.sessions s join arena.trials t on t.id = s.trial_id"
             " left join training.case_set_members m on m.variant_id = t.variant_id"
             " where s.participant_id is not null order by s.created_at",
@@ -325,7 +326,8 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
             " order by r.session_id, r.created_at desc",
             (scorer,),
         )
-    # S3 2.2: a session below three questions has no numeric score, whoever scores it.
+    # S3 2.2: a session below three questions has no numeric score, whoever scores it. A question counts once it
+    # has its answer (R3 reads committed exchanges only: a quarantined answer leaves a row with a null answer).
     short = {s[1] for s in sessions if s[7] < MIN_QUESTIONS}
     score = {r[0]: int(r[1]) for r in scores if r[0] not in short}
     out: list[dict[str, Any]] = []
@@ -473,14 +475,14 @@ async def blind_items(connect: Connector) -> tuple[list[dict[str, Any]], dict[st
             " where s.participant_id is not null and s.phase in ('pre', 'post')"
             " and t.status in ('finalized', 'terminated')"
             " and (select count(*) from arena.turns u where u.trial_id = t.id"
-            "      and u.question_source = 'investigator') >= %s",
+            "      and u.question_source = 'investigator' and u.answer is not null) >= %s",
             (MIN_QUESTIONS,),
         )
         trials = [r[3] for r in rows]
         turns = await _rows(
             conn,
-            "select trial_id, turn_no, question, answer from arena.turns where trial_id = any(%s)"
-            " order by trial_id, turn_no",
+            "select trial_id, turn_no, question, answer from arena.turns"
+            " where trial_id = any(%s) and answer is not null order by trial_id, turn_no",
             (trials,),
         )
         released = await _rows(
