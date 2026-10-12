@@ -880,6 +880,8 @@ export interface VoiceTrialSnapshot {
 
 export type TrialFrame = QuestionAcceptedFrame | SubjectThinkingFrame | EvidenceReleasedFrame | SubjectAnswerFrame | CoachWorkingFrame | CoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | TrialStatusFrame | TrialFinalizedFrame | DebriefReadyFrame | NoticeFrame;
 
+export type HarnessFrame = QuestionAcceptedFrame | SubjectThinkingFrame | EvidenceReleasedFrame | SubjectAnswerFrame | CoachWorkingFrame | CoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | TrialStatusFrame | TrialFinalizedFrame | DebriefReadyFrame | NoticeFrame | ReplayTrialStatusFrame;
+
 export type TrialSnapshot = TextTrialSnapshot | VoiceTrialSnapshot;
 
 export type Debrief = ScoredDebrief | UnscoredDebrief;
@@ -945,6 +947,7 @@ export interface CardAck {
 /** The root type of each wire schema, by file stem. */
 export interface WireTypes {
   readonly events: TrialFrame;
+  readonly "harness-events": HarnessFrame;
   readonly "training-card": TrainingWireCard;
   readonly "tournament-card": TournamentWireCard;
   readonly snapshot: TrialSnapshot;

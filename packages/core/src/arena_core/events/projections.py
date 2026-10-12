@@ -28,14 +28,12 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import ReplayTrialStatusFrame, TrialFrame
+from arena_core.contracts.events import HarnessFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
 _FRAMES: TypeAdapter[TrialFrame] = TypeAdapter(TrialFrame)
-# A harness trial's export (D-021) also carries a replay trial's `source_unavailable` end (C-45: never on a
-# browser's live stream, so the live `TrialFrame` union keeps its training-only `trial.status`).
-HarnessFrame = TrialFrame | ReplayTrialStatusFrame
+# A harness trial's export (D-021) also carries a replay trial's `source_unavailable` end (`HarnessFrame`).
 _HARNESS_FRAMES: TypeAdapter[HarnessFrame] = TypeAdapter(HarnessFrame)
 
 

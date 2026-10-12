@@ -56,8 +56,9 @@ import type {
 } from "../contracts/generated/types";
 
 export type ServerStatus = TrialSnapshot["status"];
-/** The interview room's own modes. A harness (tournament) trial has no investigator; the room shows it the
- * way it shows an assessment, coaching held back until the trial ends. */
+/** The interview room's own modes. A harness (tournament) trial is only ever played back (D-021): no
+ * investigator and no debrief to save its coaching for, so the room shows it the way it shows practice,
+ * every recorded card as it arrives. */
 export type RoomMode = "practice" | "assessment";
 
 export type RoomStatus =
@@ -194,7 +195,7 @@ function isTerminal(status: ServerStatus): boolean {
 
 /** The snapshot's coaching is visible unless it is a running assessment (S6 5.4). */
 function snapshotCoachingVisible(snapshot: TrialSnapshot): boolean {
-  return snapshot.mode === "practice" || isTerminal(snapshot.status);
+  return snapshot.mode !== "assessment" || isTerminal(snapshot.status);
 }
 
 function snapshotLeaks(snapshot: TrialSnapshot): boolean {
@@ -513,7 +514,7 @@ function derive(state: TrialState): TrialState {
   else if (exchangesUsed >= snapshot.exchanges_cap) status = "cap_reached";
   else status = "awaiting_question";
 
-  const coachingShown = snapshot.mode === "practice";
+  const coachingShown = snapshot.mode !== "assessment";
   const latestCoaching = coachingShown
     ? [...byKey(cards).map((c) => ({ turn: c.turn_no, rank: 0, finding: c.card.finding })), ...byKey(updates).map((u) => ({ turn: u.turn_no, rank: 1, finding: u.update.finding }))]
         .sort((a, b) => a.turn - b.turn || a.rank - b.rank)
@@ -524,7 +525,7 @@ function derive(state: TrialState): TrialState {
     status,
     serverStatus,
     reasonCode,
-    mode: snapshot.mode === "harness" ? "assessment" : snapshot.mode,
+    mode: snapshot.mode === "harness" ? "practice" : snapshot.mode,
     channel: snapshot.channel,
     split: snapshot.split,
     exchangesUsed,
