@@ -65,7 +65,7 @@ async def ack_ex4(db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, str]:
 async def get_config(request: Request, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
     config = await db.public_config()
     return {
-        "voice_available": False,
+        "voice_available": request.app.state.api.voice_dialer is not None,
         "exhibition_enabled": False,
         "phoenix_url": request.app.state.phoenix_url,
         "question_max_chars": QUESTION_MAX_CHARS,

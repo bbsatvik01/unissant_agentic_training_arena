@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.12.*"
 
 [options]
-exclude-newer = "2026-10-05T06:15:23.651903Z"
+exclude-newer = "2026-10-05T17:59:03.003149Z"
 exclude-newer-span = "P7D"
 
 [manifest]
@@ -55,6 +55,7 @@ dependencies = [
     { name = "arena-core" },
     { name = "fastapi" },
     { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -62,6 +63,7 @@ requires-dist = [
     { name = "arena-core", editable = "packages/core" },
     { name = "fastapi", specifier = "==0.141.1" },
     { name = "uvicorn", specifier = "==0.54.0" },
+    { name = "websockets", specifier = "==16.1.1" },
 ]
 
 [[package]]
@@ -124,6 +126,7 @@ dependencies = [
     { name = "arena-core" },
     { name = "fastapi" },
     { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -131,6 +134,7 @@ requires-dist = [
     { name = "arena-core", editable = "packages/core" },
     { name = "fastapi", specifier = "==0.141.1" },
     { name = "uvicorn", specifier = "==0.54.0" },
+    { name = "websockets", specifier = "==16.1.1" },
 ]
 
 [[package]]

@@ -1,12 +1,13 @@
 [project]
 name = "arena-subject"
 version = "0.1.0"
-description = "ARENA_ROLE=subject: answer(), the deterministic guard, Live voice sessions. Lands in WP-12, WP-22."
+description = "ARENA_ROLE=subject: answer(), the deterministic guard, Live voice sessions."
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "arena-core",
   "fastapi==0.141.1",
   "uvicorn==0.54.0",
+  "websockets==16.1.1",
 ]
 
 [build-system]

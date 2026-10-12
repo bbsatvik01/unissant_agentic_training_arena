@@ -33,4 +33,8 @@ async def request_evidence(
         )
     except TurnRefusedError as exc:
         return error_response(exc)
-    return EvidenceResult.model_validate(result).model_dump(mode="json")
+    out = EvidenceResult.model_validate(result)
+    if out.released:
+        # A voice session on this trial refreshes Live's context at its next exchange boundary (S5 7.4).
+        await state.voice_relays.context_changed(trial_id)
+    return out.model_dump(mode="json")
