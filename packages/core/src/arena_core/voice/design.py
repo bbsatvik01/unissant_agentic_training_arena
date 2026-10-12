@@ -32,6 +32,8 @@ class Designed(Protocol):
     @property
     def sample(self) -> bytes: ...
     @property
+    def sample_mime(self) -> str: ...
+    @property
     def usage(self) -> Usage | None: ...
 
 
@@ -60,7 +62,9 @@ def display_name(persona: PersonaVoice) -> str:
     return f"arena {persona.key}"[:64]
 
 
-async def design_one(persona: PersonaVoice, tools: Tools) -> Designed:
+async def design_one(persona: PersonaVoice, tools: Tools, keep: Callable[[str, Designed], None]) -> Designed:
+    """One persona's voice. The new voice is kept (``keep``) the moment the reply names it, before the usage is
+    recorded and the hold settled, so a failure in that accounting never loses a voice already paid for."""
     name = display_name(persona)
     request = ModelCallRequest(
         key=f"voice_design:{persona.key[:60]}:{uuid4().hex[:16]}",
@@ -87,6 +91,7 @@ async def design_one(persona: PersonaVoice, tools: Tools) -> Designed:
             unknown = exc.usage is None and exc.maybe_billed
             await session.settle(reservation.id, "usage_unknown" if unknown else "committed")
             raise
+        keep(persona.key, out)
         await _record(session, reservation.id, out.usage, "ok", started)
         await session.settle(reservation.id, "committed" if out.usage is not None else "usage_unknown")
         return out
@@ -136,10 +141,9 @@ async def design_missing(
         if persona.voice_id is not None or (only is not None and key not in only):
             continue
         try:
-            out = await design_one(persona, tools)
+            out = await design_one(persona, tools, on_designed)
         except ProviderCallError as exc:
             outcomes.append(Outcome(key, None, f"{exc.kind}: {exc}"))
             continue
-        on_designed(key, out)
         outcomes.append(Outcome(key, out.voice_id, None))
     return outcomes

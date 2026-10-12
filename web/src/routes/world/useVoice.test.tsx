@@ -180,13 +180,37 @@ describe("useVoice", () => {
     expect(on.result.current.coachSpeaking).toBe(false);
   });
 
-  it("stops an aside being said when the earpiece is muted", () => {
+  it("stops an aside being said when the earpiece is muted, and the indicator with it", () => {
     const clock = { current: 5000 };
     const props = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-10", engine: ENGINE, earpiece: true };
-    const { rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
-    speak.mock.calls[0]?.[0].onstart?.();
+    const { result, rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
+    const aside = speak.mock.calls[0]?.[0];
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(result.current.coachSpeaking).toBe(true);
     cancel.mockReset();
     rerender({ ...props, earpiece: false });
     expect(cancel).toHaveBeenCalled();
+    rerender({ ...props, earpiece: true });
+    expect(result.current.coachSpeaking).toBe(false);
+    // The cancelled aside's late callbacks change nothing.
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(result.current.coachSpeaking).toBe(false);
+  });
+
+  it("never cuts the subject's answer to mute the earpiece: the aside queued behind it is left to finish", () => {
+    const clock = { current: 1000 };
+    const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-11", engine: ENGINE, earpiece: true };
+    const { rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
+    speak.mock.calls[0]?.[0].onstart?.();
+    clock.current = 1200;
+    rerender({ ...props, world: world(LINE, null, true) });
+    expect(speak.mock.calls[1]?.[0].text).toBe("Try asking: What time did you leave?");
+    cancel.mockReset();
+    rerender({ ...props, world: world(LINE, null, true), earpiece: false });
+    expect(cancel).not.toHaveBeenCalled();
   });
 });

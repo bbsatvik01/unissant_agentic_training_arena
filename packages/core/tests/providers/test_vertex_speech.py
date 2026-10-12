@@ -8,14 +8,15 @@ import asyncio
 import io
 import json
 import wave
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from typing import Any, Protocol, cast
+from uuid import uuid4
 
 import pytest
 from google.oauth2.credentials import Credentials as GoogleTokenCredentials
 
 from arena_core.providers import vertex
-from arena_core.providers.errors import ErrorKind, ProviderCallError
+from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError
 from arena_core.providers.types import Usage
 from arena_core.spend.limits import LIMITS, CallType
 from arena_core.voice.catalogue import MAX_DESCRIPTION_CHARS, MAX_STYLE_CHARS
@@ -185,7 +186,7 @@ def wire_body(text: str, voice: str, style: str | None = None) -> bytes:
                     {
                         "content": {
                             "role": "model",
-                            "parts": [{"inlineData": {"mimeType": "audio/L16", "data": "AAAA"}}],
+                            "parts": [{"inlineData": {"mimeType": "audio/L16", "data": "AAAAAA=="}}],
                         },
                         "finishReason": "STOP",
                     }
@@ -253,74 +254,118 @@ def test_the_longest_line_fits_the_tts_call_limit_and_the_output_bound_is_the_li
     assert LIMITS[CallType.TTS].output_tokens == vertex.SPEECH_MAX_OUTPUT_TOKENS
 
 
-class FakeVoices:
-    def __init__(self, outcome: object) -> None:
-        self.outcome = outcome
-        self.calls: list[dict[str, object]] = []
+class Creds:
+    """A credential that is already valid (no refresh), with a random bearer token."""
 
-    async def create(self, *, voice: object, store: bool | None = None) -> object:
-        self.calls.append({"voice": voice, "store": store})
-        if isinstance(self.outcome, BaseException):
-            raise self.outcome
-        return self.outcome
+    def __init__(self) -> None:
+        self.valid = True
+        self.token = uuid4().hex
 
 
-class Obj:
-    def __init__(self, **kw: object) -> None:
-        self.__dict__.update(kw)
+Handler = Callable[[object], object]
 
 
-def design(outcome: object) -> tuple[vertex.DesignedVoice, FakeVoices]:
-    voices = FakeVoices(outcome)
-    out = run(
-        vertex.VertexVoiceDesigner(voices).design("A clerk in her forties.", "arena subject:A", "female", "en-US")
+def designer_with(handler: Handler) -> tuple[vertex.VertexVoiceDesigner, list[Any]]:
+    sent: list[Any] = []
+
+    def record(request: object) -> object:
+        sent.append(request)
+        return handler(request)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(record))
+    return vertex.VertexVoiceDesigner("cna-guardian", cast("Any", CREDS), http), sent
+
+
+CREDS = Creds()
+REPLY = {
+    "id": "voice_abc",
+    "sampleAudio": {"mimeType": "audio/l16; rate=24000", "data": "UklGRg=="},
+    "usage": {"totalInputTokens": 220, "totalOutputTokens": 1100},
+}
+
+
+def design(designer: vertex.VertexVoiceDesigner, description: str = "A clerk in her forties.") -> vertex.DesignedVoice:
+    return run(designer.design(description, "arena subject:A", "female", "en-US"))
+
+
+def test_a_designed_voice_is_one_post_of_the_measured_bytes_and_reads_its_id_sample_and_usage() -> None:
+    designer, sent = designer_with(lambda _request: httpx.Response(200, json=REPLY))
+    out = design(designer)
+    assert (out.voice_id, out.sample, out.sample_mime) == ("voice_abc", b"RIFF", "audio/l16; rate=24000")
+    assert out.usage == Usage(input_tokens=220, output_tokens=1100)
+    [request] = sent
+    assert str(request.url) == "https://aiplatform.googleapis.com/v1beta1/projects/cna-guardian/locations/global/voices"
+    assert request.headers["authorization"] == f"Bearer {CREDS.token}"
+    # The reservation is the body on the wire, byte for byte, with every character escaped as sent.
+    assert len(request.content) == vertex.voice_design_bytes(
+        "A clerk in her forties.", "arena subject:A", "female", "en-US"
     )
-    return out, voices
+    assert json.loads(request.content) == {
+        "store": True,
+        "voice": {
+            "type": "VOICE_TYPE_PROMPTED",
+            "displayName": "arena subject:A",
+            "gender": "female",
+            "languageCode": "en-US",
+            "prompted": {"input": "A clerk in her forties."},
+        },
+    }
+    accented, sent2 = designer_with(lambda _request: httpx.Response(200, json=REPLY))
+    design(accented, 'Une voix \u00e9l\u00e9gante \U0001f600 \\ "q"')
+    assert len(sent2[0].content) == vertex.voice_design_bytes(
+        'Une voix \u00e9l\u00e9gante \U0001f600 \\ "q"', "arena subject:A", "female", "en-US"
+    )
 
 
-def test_a_designed_voice_is_stored_prompted_and_read_with_its_sample_and_usage() -> None:
-    reply_ = Obj(
-        id="voice_abc", sample_audio=Obj(data="UklGRg=="), usage=Obj(total_input_tokens=220, total_output_tokens=1100)
-    )
-    out, voices = design(reply_)
-    assert (out.voice_id, out.sample, out.usage) == (
-        "voice_abc",
-        b"RIFF",
-        Usage(input_tokens=220, output_tokens=1100),
-    )
-    assert voices.calls == [
-        {
-            "voice": {
-                "type": "prompted",
-                "display_name": "arena subject:A",
-                "gender": "female",
-                "language_code": "en-US",
-                "prompted": {"input": "A clerk in her forties."},
-            },
-            "store": True,
-        }
-    ]
-    bare, _ = design(Obj(id="voice_x", sample_audio=None, usage=None))
+@pytest.mark.parametrize("status", [400, 429, 503])
+def test_a_refused_design_is_sent_once_typed_and_not_billed(status: int) -> None:
+    designer, sent = designer_with(lambda _request: httpx.Response(status, json={"error": {"code": status}}))
+    with pytest.raises(ProviderCallError) as err:
+        design(designer)
+    assert len(sent) == 1  # no retry layer: one send is one attempt
+    assert err.value.status == status
+    assert not err.value.maybe_billed
+
+
+def test_a_timeout_or_broken_reply_may_have_been_billed_and_a_reply_without_an_id_is_empty() -> None:
+    def slow(request: object) -> object:
+        msg = "slow"
+        raise httpx.ReadTimeout(msg, request=request)
+
+    with pytest.raises(ProviderCallError) as timeout:
+        design(designer_with(slow)[0])
+    assert timeout.value.maybe_billed
+
+    def refused(request: object) -> object:
+        msg = "no route"
+        raise httpx.ConnectError(msg, request=request)
+
+    with pytest.raises(ProviderCallError) as never:
+        design(designer_with(refused)[0])
+    assert not never.value.maybe_billed
+    with pytest.raises(ProviderCallError) as broken:
+        design(designer_with(lambda _request: httpx.Response(200, content=b"not json"))[0])
+    assert broken.value.maybe_billed
+    with pytest.raises(ProviderCallError) as empty:
+        design(designer_with(lambda _request: httpx.Response(200, json={"usage": REPLY["usage"]}))[0])
+    assert empty.value.kind == ErrorKind.EMPTY
+    assert empty.value.usage is not None
+    bare = design(designer_with(lambda _request: httpx.Response(200, json={"id": "voice_x"}))[0])
     assert (bare.sample, bare.usage) == (b"", None)
 
 
-def test_a_design_failure_is_typed_and_a_reply_without_a_stored_id_is_empty() -> None:
-    errors: Any = vertex.VOICES_ERRORS
-    refused = errors.GenAiError("quota", httpx.Response(429, request=httpx.Request("POST", "https://x/voices")))
-    with pytest.raises(ProviderCallError) as rate:
-        design(refused)
-    assert rate.value.kind == ErrorKind.TRANSIENT
-    assert not rate.value.maybe_billed
-    with pytest.raises(ProviderCallError) as slow:
-        design(httpx.ReadTimeout("slow"))
-    assert slow.value.maybe_billed
-    with pytest.raises(ProviderCallError) as broken:
-        design(ValueError("bad json"))
-    assert broken.value.maybe_billed
-    with pytest.raises(ProviderCallError) as empty:
-        design(Obj(id=None, usage=Obj(total_input_tokens=1, total_output_tokens=2)))
-    assert empty.value.kind == ErrorKind.EMPTY
-    assert empty.value.usage is not None
+def test_the_designer_refuses_another_project_and_a_credential_without_a_token() -> None:
+    other = vertex.VertexVoiceDesigner("other", cast("Any", Creds()))
+    with pytest.raises(ConfigError):
+        design(other)
+
+    class NoToken:
+        valid = True
+        token = None
+
+    with pytest.raises(ProviderCallError) as err:
+        design(vertex.VertexVoiceDesigner("cna-guardian", cast("Any", NoToken())))
+    assert err.value.kind == ErrorKind.BAD_REQUEST
 
 
 def test_the_longest_description_fits_the_voice_design_call_limit() -> None:
@@ -328,25 +373,30 @@ def test_the_longest_description_fits_the_voice_design_call_limit() -> None:
     assert worst <= LIMITS[CallType.VOICE_DESIGN].input_bytes
 
 
-def test_the_runtime_designer_uses_the_arena_project_in_the_global_location(monkeypatch: pytest.MonkeyPatch) -> None:
-    built: dict[str, object] = {}
+def test_the_runtime_designer_uses_the_arena_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    creds = object()
 
-    class Built:
-        def __init__(self) -> None:
-            self.aio = Obj(voices=FakeVoices(Obj(id="voice_q")))
-
-    def fake_build(project: str, location: str, credentials: object) -> object:
-        built.update(project=project, location=location)
-        del credentials
-        return Built()
-
-    monkeypatch.setattr(vertex, "build_vertex_client", fake_build)
-
-    def no_credentials(env: dict[str, str]) -> object:
+    def fake_credentials(env: dict[str, str]) -> object:
         del env
-        return object()
+        return creds
 
-    monkeypatch.setattr(vertex, "vertex_credentials", no_credentials)
+    monkeypatch.setattr(vertex, "vertex_credentials", fake_credentials)
     designer = vertex.vertex_voice_designer({"ARENA_GCP_PROJECT": "cna-guardian"})
-    assert built == {"project": "cna-guardian", "location": "global"}
-    assert run(designer.design("d", "n", "male", "en-US")).voice_id == "voice_q"
+    assert (designer.project, designer.credentials, designer.http) == ("cna-guardian", creds, None)
+
+
+@pytest.mark.parametrize(
+    "audio",
+    [b"", b"\x01\x00\x02", "truncated", "empty"],
+    ids=["no-pcm", "odd-pcm", "truncated-wav", "empty-wav"],
+)
+def test_empty_odd_or_truncated_audio_is_a_malformed_reply_never_a_clip(audio: object) -> None:
+    if audio == "truncated":
+        data = wav(PCM)[: 44 + 100]
+    elif audio == "empty":
+        data = wav(b"")
+    else:
+        data = cast("bytes", audio)
+    with pytest.raises(ProviderCallError) as err:
+        speak(reply(audio=data or None) if data else reply(audio=b"\x00"))
+    assert err.value.maybe_billed

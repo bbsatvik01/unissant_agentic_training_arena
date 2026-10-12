@@ -70,9 +70,9 @@ LIMITS: dict[CallType, CallLimits] = {
     # JSON; output: 80 s of audio at 25 tokens a second (cost_model.LIMITS['tts']).
     CallType.TTS: CallLimits(14_000, 2_000, 60.0, frozenset()),
     # One designed voice (stage 8, scripts/design_voices.py), reserved on the guard by the script itself: a
-    # 400-character description at up to 12 escaped bytes each plus the request JSON; output: the voice sample
-    # (about 1,100 audio tokens per Google's example, bounded here at 4,000).
-    CallType.VOICE_DESIGN: CallLimits(6_000, 4_000, 60.0, frozenset()),
+    # 400-character description at up to 12 escaped bytes each plus the request JSON; output: the model's hard
+    # output-token limit (16,384), since CreateVoice takes no output cap (the sample is about 1,100 tokens).
+    CallType.VOICE_DESIGN: CallLimits(6_000, 16_384, 60.0, frozenset()),
 }
 
 

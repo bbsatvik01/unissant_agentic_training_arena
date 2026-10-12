@@ -52,8 +52,9 @@ LIMITS = {  # call type: (input_limit_bytes, output_limit_including_thinking)
     # at 25 tokens a second.
     "tts": (14000, 2000),
     # One designed voice (scripts/design_voices.py): a description of at most 400 characters at up to 12 escaped
-    # bytes each plus the request JSON; output: the voice sample (about 1,100 audio tokens per Google's example).
-    "voice_design": (6000, 4000),
+    # bytes each plus the request JSON; output: the model's hard output-token limit (16,384), since CreateVoice takes no
+    # output cap (the sample is about 1,100 tokens in Google's example).
+    "voice_design": (6000, 16384),
 }
 
 

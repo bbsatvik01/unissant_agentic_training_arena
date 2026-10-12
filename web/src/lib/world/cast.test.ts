@@ -45,6 +45,9 @@ describe("the cast", () => {
     expect(COACHES.map((c) => c.voice.gemini)).toEqual(["coach:question", "coach:flags", "coach:follow_up"]);
     expect(INVESTIGATOR.voice.gemini).toBe("investigator");
     const prebuilt = new Set(["Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe", "Callirrhoe", "Charon", "Despina", "Enceladus", "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", "Leda", "Orus", "Puck", "Pulcherrima", "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", "Zephyr", "Zubenelgenubi"]);
+    // Every voice the cast asks for is its own (the server's catalogue test checks the resolved voices are too).
+    const all = [...names.map((n) => subjectPersona(n)), ...COACHES, INVESTIGATOR, HUB_STAFF, ...HUB_CREW].map((p) => p.voice.gemini);
+    expect(new Set(all).size).toBe(all.length);
     const staff = [HUB_STAFF, ...HUB_CREW].map((p) => p.voice.gemini);
     for (const v of staff) expect(prebuilt.has(v)).toBe(true);
     expect(new Set(staff).size).toBe(staff.length);

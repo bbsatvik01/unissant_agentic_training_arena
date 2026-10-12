@@ -77,3 +77,13 @@ def test_every_voice_the_web_cast_asks_for_is_in_the_catalogue_or_prebuilt() -> 
     unknown = {v for v in asked if speaker_for(v) is None}
     assert not unknown
     assert {v for v in asked if ":" in v or v == "investigator"} <= set(catalogue.PERSONAS)
+
+
+def test_every_persona_resolves_to_a_voice_of_its_own_fallback_or_designed() -> None:
+    personas = list(catalogue.PERSONAS.values())
+    fallbacks = [p.prebuilt for p in personas]
+    assert len(set(fallbacks)) == len(fallbacks)
+    designed = [p.voice_id for p in personas if p.voice_id is not None]
+    assert len(set(designed)) == len(designed)
+    resolved = [speaker_for(p.key) for p in personas]
+    assert len({r.voice for r in resolved if r is not None}) == len(personas)

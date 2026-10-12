@@ -20,13 +20,21 @@ export function MoreMenu({ items }: { readonly items: readonly MoreItem[] }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const root = useRef<HTMLDivElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  // Closing from inside the menu (Escape, or choosing an item) puts focus back on the More button, never on the page.
+  const closeToButton = () => {
+    setOpen(false);
+    toggle.current?.focus();
+  };
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
       if (root.current !== null && e.target instanceof Node && !root.current.contains(e.target)) setOpen(false);
     };
     const escape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggle.current?.focus();
     };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", escape);
@@ -39,6 +47,7 @@ export function MoreMenu({ items }: { readonly items: readonly MoreItem[] }) {
   return (
     <div className="more-menu" ref={root}>
       <button
+        ref={toggle}
         type="button"
         className="btn-secondary-sm"
         aria-expanded={open}
@@ -63,7 +72,7 @@ export function MoreMenu({ items }: { readonly items: readonly MoreItem[] }) {
                   className="more-item"
                   aria-pressed={item.pressed}
                   onClick={() => {
-                    setOpen(false);
+                    closeToButton();
                     item.onSelect?.();
                   }}
                 >

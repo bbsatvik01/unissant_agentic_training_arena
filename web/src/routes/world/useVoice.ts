@@ -45,34 +45,45 @@ interface Memory {
   speaking: { readonly token: object; readonly kind: "dialogue" | "coach" } | null;
   /** Coach items queued or speaking: while any is, a new line queues instead of cancelling. */
   coachPending: number;
+  /** Dialogue items queued or speaking (an earpiece mute never cancels them). */
+  dialoguePending: number;
+  /** Bumped on every silence: callbacks of items from before it are ignored. */
+  generation: number;
+  /** Tells the hook whether the coach's earpiece aside is being said. */
+  onCoach: (speaking: boolean) => void;
 }
 
 /** Speak `text` through the engine; a dialogue line reports its voice to `speechSync` (queued until it starts, so its
  * mouth waits). `onCoach` hears when the coach's earpiece aside starts and stops. */
-function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }, onCoach?: (speaking: boolean) => void): void {
+function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
   const epoch = speechSync.epoch();
+  const generation = memory.generation;
   const token = {};
-  let pending = kind === "coach";
-  if (pending) memory.coachPending += 1;
+  let pending = true;
+  if (kind === "coach") memory.coachPending += 1;
+  else memory.dialoguePending += 1;
   if (line !== null) speechSync.queue(line, clock.current, epoch);
   engine.speak(
     { voice: persona.voice, text, volume, line },
     {
       onstart: () => {
+        if (generation !== memory.generation) return;
         memory.speaking = { token, kind };
-        if (kind === "coach") onCoach?.(true);
+        if (kind === "coach") memory.onCoach(true);
         if (line !== null) speechSync.at(line, 0, clock.current, epoch);
       },
       onprogress: (charIndex) => {
         if (line !== null) speechSync.at(line, charIndex, clock.current, epoch);
       },
       onend: () => {
+        if (generation !== memory.generation) return;
         if (pending) {
           pending = false;
-          memory.coachPending = Math.max(0, memory.coachPending - 1);
+          if (kind === "coach") memory.coachPending = Math.max(0, memory.coachPending - 1);
+          else memory.dialoguePending = Math.max(0, memory.dialoguePending - 1);
         }
         if (memory.speaking?.token === token) memory.speaking = null;
-        if (kind === "coach") onCoach?.(false);
+        if (kind === "coach") memory.onCoach(false);
         if (line !== null) speechSync.end(line, epoch);
       },
     },
@@ -82,9 +93,12 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
 /** Stop every voice; lines go back to their text cadence. */
 function silence(engine: VoiceEngine, memory: Memory): void {
   speechSync.clear();
+  memory.generation += 1;
   engine.cancel();
   memory.speaking = null;
   memory.coachPending = 0;
+  memory.dialoguePending = 0;
+  memory.onCoach(false);
 }
 
 function forget(engine: VoiceEngine, memory: Memory): void {
@@ -101,7 +115,7 @@ function noteClock(engine: VoiceEngine, memory: Memory, now: number): void {
 
 export function useVoice({ world, view, subjectName, clock, active, scope, engine, earpiece = true }: Options): { readonly coachSpeaking: boolean } {
   const [coachSpeaking, setCoachSpeaking] = useState(false);
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0 });
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking });
   useEffect(() => {
     forget(engine, memory.current);
     memory.current.lastClock = 0;
@@ -151,12 +165,13 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
     if (!active || !handing || newest === null || m.cards.has(newest.turn_no)) return;
     m.cards.add(newest.turn_no);
     if (!earpiece) return;
-    speak(engine, m, "coach", COACH, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock, setCoachSpeaking);
+    speak(engine, m, "coach", COACH, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock);
   }, [newest, handing, active, clock, engine, earpiece]);
-  // Muting the earpiece stops an aside being said.
+  // Muting the earpiece stops an aside being said, when no dialogue is speaking or waiting behind it (the engine's
+  // cancel drops its whole queue, and an answer is never cut for the earpiece); otherwise the aside finishes.
   useEffect(() => {
     const m = memory.current;
-    if (earpiece || m.coachPending === 0) return;
+    if (earpiece || m.coachPending === 0 || m.dialoguePending > 0) return;
     silence(engine, m);
   }, [earpiece, engine]);
   return { coachSpeaking: coachSpeaking && active && earpiece };

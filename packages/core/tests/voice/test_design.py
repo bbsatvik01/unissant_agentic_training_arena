@@ -28,9 +28,10 @@ IN_TOKENS, OUT_TOKENS = 220, 1100
 
 
 class Session:
-    def __init__(self, log: list[Any], refuse_dispatch: BaseException | None) -> None:
+    def __init__(self, log: list[Any], refuse_dispatch: BaseException | None, fail_record: bool = False) -> None:
         self.log = log
         self.refuse_dispatch = refuse_dispatch
+        self.fail_record = fail_record
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         self.log.append(("reserve", req))
@@ -45,6 +46,9 @@ class Session:
 
     async def record(self, report: UsageReport) -> UsageResult:
         self.log.append(("record", report))
+        if self.fail_record:
+            msg = "database gone"
+            raise ConnectionError(msg)
         return UsageResult(
             outcome="recorded", cost_usd=Decimal(0), spend_usd=Decimal(0), reserved_usd=Decimal(0), shutoff=False
         )
@@ -56,13 +60,14 @@ class Session:
 
 
 class Guard:
-    def __init__(self, refuse_dispatch: BaseException | None = None) -> None:
+    def __init__(self, refuse_dispatch: BaseException | None = None, *, fail_record: bool = False) -> None:
         self.log: list[Any] = []
         self.refuse_dispatch = refuse_dispatch
+        self.fail_record = fail_record
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[Session]:
-        yield Session(self.log, self.refuse_dispatch)
+        yield Session(self.log, self.refuse_dispatch, self.fail_record)
 
     def session(self) -> AbstractAsyncContextManager[Session]:
         return self._open()
@@ -73,6 +78,7 @@ class Out:
     voice_id: str
     sample: bytes
     usage: Usage | None
+    sample_mime: str = "audio/wav"
 
 
 class Designer:
@@ -165,3 +171,23 @@ def test_a_new_voice_id_is_written_into_the_catalogue_file_alone(tmp_path: Path)
     assert doc["_note"] == "x"
     assert doc["personas"]["subject:A"]["voice_id"] == "voice_new"
     assert parse(doc)["subject:A"].voice_id == "voice_new"
+
+
+def test_a_new_voice_is_kept_before_its_accounting_so_a_failed_record_never_loses_it() -> None:
+    personas = parse({"personas": {"subject:A": ENTRY}})
+
+    kept: list[str] = []
+
+    def keep(key: str, out: object) -> None:
+        del out
+        kept.append(key)
+
+    with pytest.raises(ConnectionError):
+        asyncio.run(
+            design_missing(
+                personas,
+                Tools(Designer(Out("voice_new", b"", None)), Guard(fail_record=True), measure),
+                on_designed=keep,
+            )
+        )
+    assert kept == ["subject:A"]

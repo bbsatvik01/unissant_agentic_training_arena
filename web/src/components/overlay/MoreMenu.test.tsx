@@ -25,10 +25,13 @@ describe("MoreMenu", () => {
     expect(screen.getByRole("link", { name: "Trust center" }).getAttribute("href")).toBe("/trust/methodology");
     fireEvent.click(screen.getByRole("button", { name: "Pause motion" }));
     expect(pause).toHaveBeenCalled();
+    expect(document.activeElement).toBe(more);
     expect(screen.queryByRole("button", { name: "Pause motion" })).toBeNull();
     fireEvent.click(more);
+    screen.getByRole("link", { name: "Trust center" }).focus();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("link", { name: "Trust center" })).toBeNull();
+    expect(document.activeElement).toBe(more);
     fireEvent.click(more);
     fireEvent.pointerDown(screen.getByText("outside"));
     expect(screen.queryByRole("link", { name: "Trust center" })).toBeNull();

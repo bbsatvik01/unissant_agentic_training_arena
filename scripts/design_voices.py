@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import re
 import sys
 from collections.abc import Mapping, Sequence
 from importlib import resources
@@ -25,8 +26,18 @@ from arena_core.providers.vertex import vertex_voice_designer, voice_design_byte
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.voice.catalogue import load
 from arena_core.voice.design import Designed, Tools, design_missing, display_name, write_voice_id
+from arena_core.voice.tts import wav_bytes
 
 SAMPLES = Path(".run/voice-samples")
+PCM_RATE = 24_000
+
+
+def sample_wav(sample: bytes, mime: str) -> bytes:
+    """The sample as a playable WAV: as returned when it is one, else headerless 16-bit PCM at its stated rate."""
+    if sample[:4] == b"RIFF" or "wav" in mime.lower():
+        return sample
+    match = re.search(r"rate=(\d+)", mime)
+    return wav_bytes(sample, int(match.group(1)) if match else PCM_RATE)
 
 
 def catalogue_path() -> Path:
@@ -58,7 +69,9 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         write_voice_id(path, key, out.voice_id)
         if out.sample:
             SAMPLES.mkdir(parents=True, exist_ok=True)
-            (SAMPLES / f"{key.replace(':', '_').replace(' ', '_')}.wav").write_bytes(out.sample)
+            (SAMPLES / f"{key.replace(':', '_').replace(' ', '_')}.wav").write_bytes(
+                sample_wav(out.sample, out.sample_mime)
+            )
         sys.stdout.write(f"design_voices: {key} -> {out.voice_id}\n")
 
     tools = Tools(vertex_voice_designer(resolved), DbSpendGuard(dsn_connector(settings.dsn)), voice_design_bytes)

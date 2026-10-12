@@ -20,13 +20,12 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import importlib
 import io
 import json
 import wave
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol, cast
+from typing import Any, Protocol
 
 import google.auth
 import httpx
@@ -34,6 +33,7 @@ from google import genai
 from google.auth import exceptions as google_auth_exceptions
 from google.auth import impersonated_credentials
 from google.auth.credentials import Credentials
+from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.genai import errors as genai_errors
 from google.genai import types as gtypes
 
@@ -329,20 +329,28 @@ def pcm_from(audio: bytes) -> tuple[bytes, int]:
     """The reply's 16-bit mono PCM and its sample rate. The Gemini 3.8 TTS models answer a unary request with a
     complete WAV file (16-bit mono PCM, 24 kHz, standard RIFF header); earlier models answered headerless PCM at
     24 kHz. Either way the caller gets the samples and writes its own WAV, so a cached line is always one well-formed
-    file. A WAV in another sample format, or a damaged one, is a malformed reply."""
+    file. A WAV in another sample format, a truncated or empty one, or PCM that is not whole 16-bit frames is a
+    malformed reply, never a clip."""
     if audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
+        if not audio or len(audio) % _PCM_SAMPLE_WIDTH:
+            raise ProviderCallError(ErrorKind.TRANSIENT, f"PCM of {len(audio)} bytes", maybe_billed=True)
         return audio, SPEECH_SAMPLE_RATE
     try:
         with wave.open(io.BytesIO(audio), "rb") as w:
-            if w.getsampwidth() != _PCM_SAMPLE_WIDTH or w.getnchannels() != 1:
+            channels, width, frames = w.getnchannels(), w.getsampwidth(), w.getnframes()
+            if width != _PCM_SAMPLE_WIDTH or channels != 1:
                 raise ProviderCallError(
-                    ErrorKind.TRANSIENT,
-                    f"WAV of {w.getnchannels()} channel(s) at {8 * w.getsampwidth()} bits",
-                    maybe_billed=True,
+                    ErrorKind.TRANSIENT, f"WAV of {channels} channel(s) at {8 * width} bits", maybe_billed=True
                 )
-            return w.readframes(w.getnframes()), w.getframerate()
+            pcm = w.readframes(frames)
+            rate = w.getframerate()
     except (wave.Error, EOFError) as exc:
         raise ProviderCallError(ErrorKind.TRANSIENT, f"malformed WAV: {exc}", maybe_billed=True) from exc
+    if frames == 0 or len(pcm) != frames * _PCM_SAMPLE_WIDTH:
+        raise ProviderCallError(
+            ErrorKind.TRANSIENT, f"WAV of {frames} frames with {len(pcm)} bytes of samples", maybe_billed=True
+        )
+    return pcm, rate
 
 
 @dataclass(frozen=True)
@@ -390,86 +398,143 @@ def vertex_speech(env: Mapping[str, str], model: str) -> VertexSpeech:
 
 # ============================================================================================== voice design
 # Stage 8: one designed voice per persona (scripts/design_voices.py), stored in the arena project through the Voices
-# API (``voices.create``, type prompted, store true). Billed like speech: the description as text in, the voice sample
-# as audio out. Synthetic characters only: this module never creates a replicated voice.
+# API (CreateVoice, type prompted, store true), billed like speech: the description as text in, the voice sample as
+# audio out. Sent as one plain REST request on the pinned host (no SDK retry layer, so one send is one attempt, and
+# the reserved bytes are the bytes on the wire). Synthetic characters only: never a replicated voice.
 
 VOICE_DESIGN_TIMEOUT_S = 60.0
-# The Voices API client google-genai generates (2.25.0+) raises its own error types.
-VOICES_ERRORS = importlib.import_module("google.genai._gaos.errors")
+VOICES_API_VERSION = "v1beta1"
+_STATUS_OK = 200
 
 
 @dataclass(frozen=True)
 class DesignedVoice:
     voice_id: str
-    sample: bytes  # the sample audio as returned (WAV or 16-bit PCM), for an audition
+    sample: bytes  # the voice sample as returned, for an audition
+    sample_mime: str  # its encoding (``audio/wav``, or ``audio/l16; rate=24000`` for headerless PCM)
     usage: Usage | None
 
 
 def voice_design_body(description: str, display_name: str, gender: str, language_code: str) -> dict[str, object]:
-    """The CreateVoice request, as JSON: what a design is reserved on (its bytes bound its text tokens, D11)."""
+    """The CreateVoice request body (REST, camelCase)."""
     return {
         "store": True,
         "voice": {
-            "type": "prompted",
-            "display_name": display_name,
+            "type": "VOICE_TYPE_PROMPTED",
+            "displayName": display_name,
             "gender": gender,
-            "language_code": language_code,
+            "languageCode": language_code,
             "prompted": {"input": description},
         },
     }
 
 
+def voice_design_wire(description: str, display_name: str, gender: str, language_code: str) -> bytes:
+    """The exact bytes sent (``json.dumps`` defaults: every non-ASCII character as its escape)."""
+    return json.dumps(voice_design_body(description, display_name, gender, language_code)).encode("ascii")
+
+
 def voice_design_bytes(description: str, display_name: str, gender: str, language_code: str) -> int:
-    return len(json.dumps(voice_design_body(description, display_name, gender, language_code)).encode("ascii"))
+    """What a design is reserved on: the request's own byte length (D11)."""
+    return len(voice_design_wire(description, display_name, gender, language_code))
 
 
-class _VoicesApi(Protocol):
-    async def create(self, *, voice: object, store: bool | None = None) -> object: ...
+def voices_url(project: str) -> str:
+    host = vertex_base_url(SPEECH_LOCATION)
+    return f"{host}{VOICES_API_VERSION}/projects/{project}/locations/{SPEECH_LOCATION}/voices"
 
 
-def _int_or_none(value: object) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
+def _access_token(credentials: Credentials) -> str:
+    """A fresh bearer token (google-auth refreshes synchronously; the caller runs this off the event loop). google-auth
+    ships no annotations, so the credential is handled as untyped here."""
+    creds: Any = credentials
+    if not creds.valid:
+        creds.refresh(GoogleAuthRequest())
+    token = creds.token
+    if not isinstance(token, str) or not token:
+        raise ProviderCallError(ErrorKind.BAD_REQUEST, "credentials: no access token")
+    return token
+
+
+def _count(obj: Mapping[str, object], *names: str) -> int | None:
+    for name in names:
+        value = obj.get(name)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
+
+
+def designed_voice_from(data: object) -> DesignedVoice:
+    """The CreateVoice reply: the stored voice id, its sample and the billed usage (input and output tokens); a reply
+    without a stored id is empty (with its usage)."""
+    if not isinstance(data, dict):
+        raise ProviderCallError(ErrorKind.TRANSIENT, "malformed reply", maybe_billed=True)
+    raw_usage = data.get("usage")
+    usage = None
+    if isinstance(raw_usage, dict):
+        tokens_in = _count(raw_usage, "totalInputTokens", "promptTokenCount", "inputTokens")
+        tokens_out = _count(raw_usage, "totalOutputTokens", "candidatesTokenCount", "outputTokens")
+        if tokens_in is not None and tokens_out is not None:
+            usage = Usage(input_tokens=tokens_in, output_tokens=tokens_out)
+    voice_id = data.get("id")
+    if not isinstance(voice_id, str) or not voice_id.startswith("voice_"):
+        raise ProviderCallError(ErrorKind.EMPTY, "no stored voice id in the reply", usage=usage, maybe_billed=True)
+    sample_obj = data.get("sampleAudio")
+    sample, mime = b"", ""
+    if isinstance(sample_obj, dict):
+        raw = sample_obj.get("data")
+        mime_raw = sample_obj.get("mimeType")
+        mime = mime_raw if isinstance(mime_raw, str) else ""
+        if isinstance(raw, str):
+            try:
+                sample = base64.b64decode(raw, validate=True)
+            except ValueError:
+                sample = b""
+    return DesignedVoice(voice_id=voice_id, sample=sample, sample_mime=mime, usage=usage)
 
 
 @dataclass(frozen=True)
 class VertexVoiceDesigner:
-    """Creates one stored, prompted voice in the arena project."""
+    """Creates one stored, prompted voice in the arena project: one POST, no retries."""
 
-    voices: _VoicesApi
+    project: str
+    credentials: Credentials
+    http: httpx.AsyncClient | None = None  # tests pass an in-memory transport
 
     async def design(self, description: str, display_name: str, gender: str, language_code: str) -> DesignedVoice:
-        body = voice_design_body(description, display_name, gender, language_code)
+        if self.project != ALLOWED_GCP_PROJECT:
+            msg = f"Vertex project {self.project!r} refused: D-015 allows only {ALLOWED_GCP_PROJECT!r}"
+            raise ConfigError(msg)
         try:
-            async with asyncio.timeout(VOICE_DESIGN_TIMEOUT_S):
-                out = await self.voices.create(voice=body["voice"], store=True)
-        except VOICES_ERRORS.GenAiError as exc:
-            # The generated Voices client's HTTP error: a non-200 was not billed.
-            raise ProviderCallError(
-                kind_for_status(exc.status_code), f"HTTP {exc.status_code}", status=exc.status_code
-            ) from exc
-        except (httpx.TimeoutException, TimeoutError) as exc:
+            token = await asyncio.to_thread(_access_token, self.credentials)
+        except google_auth_exceptions.GoogleAuthError as exc:
+            raise ProviderCallError(ErrorKind.BAD_REQUEST, f"credentials: {type(exc).__name__}") from exc
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        body = voice_design_wire(description, display_name, gender, language_code)
+        client = self.http or httpx.AsyncClient(timeout=VOICE_DESIGN_TIMEOUT_S)
+        try:
+            resp = await client.post(voices_url(self.project), content=body, headers=headers)
+        except httpx.TimeoutException as exc:
             raise ProviderCallError(ErrorKind.TRANSIENT, "timeout", maybe_billed=True) from exc
-        except (httpx.HTTPError, VOICES_ERRORS.NoResponseError, ValueError) as exc:
+        except httpx.TransportError as exc:
+            never_sent = isinstance(exc, httpx.ConnectError)
             raise ProviderCallError(
-                ErrorKind.TRANSIENT, f"voice design failed: {type(exc).__name__}", maybe_billed=True
+                ErrorKind.TRANSIENT, f"transport error: {type(exc).__name__}", maybe_billed=not never_sent
             ) from exc
-        usage_obj = getattr(out, "usage", None)
-        tokens_in = _int_or_none(getattr(usage_obj, "total_input_tokens", None))
-        tokens_out = _int_or_none(getattr(usage_obj, "total_output_tokens", None))
-        usage = (
-            None if tokens_in is None or tokens_out is None else Usage(input_tokens=tokens_in, output_tokens=tokens_out)
-        )
-        voice_id = getattr(out, "id", None)
-        if not isinstance(voice_id, str) or not voice_id.startswith("voice_"):
-            raise ProviderCallError(ErrorKind.EMPTY, "no stored voice id in the reply", usage=usage, maybe_billed=True)
-        sample_obj = getattr(out, "sample_audio", None)
-        raw = getattr(sample_obj, "data", None)
-        sample = base64.b64decode(raw) if isinstance(raw, str) else raw if isinstance(raw, bytes) else b""
-        return DesignedVoice(voice_id=voice_id, sample=sample, usage=usage)
+        finally:
+            if self.http is None:
+                await client.aclose()
+        if resp.status_code != _STATUS_OK:
+            # A refused request (4xx) or a server error (5xx) created no voice and was not billed.
+            status = resp.status_code
+            raise ProviderCallError(kind_for_status(status), f"HTTP {status}", status=status)
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise ProviderCallError(ErrorKind.TRANSIENT, "malformed reply", maybe_billed=True) from exc
+        return designed_voice_from(data)
 
 
 def vertex_voice_designer(env: Mapping[str, str]) -> VertexVoiceDesigner:
     """The Voices API on the arena project (D-015), global location, credentials per S5 10.2."""
-    project = env.get("ARENA_GCP_PROJECT", "")
-    client = build_vertex_client(project, SPEECH_LOCATION, vertex_credentials(env))
-    return VertexVoiceDesigner(cast("_VoicesApi", client.aio.voices))
+    return VertexVoiceDesigner(env.get("ARENA_GCP_PROJECT", ""), vertex_credentials(env))
