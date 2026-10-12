@@ -137,6 +137,19 @@ describe("useTournament paging and visibility", () => {
     expect(r.state === "ready" ? r.tournament.trials.size : 0).toBe(201);
   });
 
+  it("keeps draining from the same cursor after a failed page of a revealed tournament", async () => {
+    vi.useFakeTimers();
+    setVisibility("visible");
+    const answers: (() => Promise<TournamentPoll>)[] = [() => Promise.resolve(page(1, 200)), () => Promise.reject(new ApiError(503, null, "x")), () => Promise.resolve(page(201, 5))];
+    const tournamentEvents = vi.fn(() => (answers.shift() ?? (() => Promise.resolve(page(206, 1))))());
+    const drainApi = { tournament: () => Promise.resolve({ status: "revealed" }), tournamentEvents };
+    const { result } = renderHook(() => useTournament(drainApi, T, true));
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents.mock.calls.map((c) => (c as unknown[])[1])).toEqual([0, 200, 200]);
+    const r = result.current;
+    expect(r.state === "ready" ? r.tournament.trials.size : 0).toBe(205);
+  });
+
   it("sends nothing while the tab is hidden, at the start or after it hides during the wait", async () => {
     vi.useFakeTimers();
     setVisibility("hidden");

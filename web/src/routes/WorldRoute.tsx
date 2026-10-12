@@ -41,6 +41,7 @@ import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
 import { useTournament, useTournamentList } from "./world/useTournament";
+import { latestOnly } from "../lib/world/latest";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
 import { roomEngine } from "./world/voiceEngines";
@@ -360,16 +361,20 @@ export function WorldRoute() {
     [playRecording],
   );
 
-  // One of the participant's own runs, from the server (`GET /api/trials/{id}/recording`), replayed in the room.
+  // A run from the server (`GET /api/trials/{id}/recording`): one of the participant's own, or a tournament trial
+  // chosen in the arena, replayed in the room. Only the newest choice's answers are used: choosing another run
+  // before the first arrives never lets the first replace it.
+  const replayOrder = useRef(latestOnly());
   const replayTrial = useCallback(
     (trialId: string) => {
+      const current = replayOrder.current();
       setShowProgress(false);
       void Promise.all([api.recording(trialId), import("../lib/world/parseRecording")]).then(
         ([raw, { parseRecording }]) => {
-          playRecording(raw, parseRecording);
+          if (current()) playRecording(raw, parseRecording);
         },
         (e: unknown) => {
-          setFileError(e instanceof ApiError && e.status === 404 ? "The server does not offer this run's recording." : "That run could not be loaded.");
+          if (current()) setFileError(e instanceof ApiError && e.status === 404 ? "The server does not offer this run's recording." : "That run could not be loaded.");
         },
       );
       // The ended trial's snapshot carries coaching an assessment withheld, which its recording does not (FE-DEB-4).
@@ -377,7 +382,7 @@ export function WorldRoute() {
       api.trialSnapshot(trialId).then(
         (snapshot) => {
           const ended = trialReducer(initialTrialState(), { type: "snapshot", snapshot }).view;
-          if (ended !== null) setEndedTrial({ trialId, view: ended });
+          if (ended !== null && current()) setEndedTrial({ trialId, view: ended });
         },
         () => undefined,
       );

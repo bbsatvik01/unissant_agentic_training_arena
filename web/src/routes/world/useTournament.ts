@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import type { ArenaApi } from "../../lib/api/arena";
 import { ApiError } from "../../lib/api/client";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../../lib/arena/tournament";
-import { nextPoll, parseTournamentList, parseTournamentStatus, POLL_PAGE, type TournamentListing } from "../../lib/arena/tournamentPoll";
+import { nextPoll, parseTournamentList, parseTournamentStatus, POLL_MS, POLL_PAGE, type TournamentListing } from "../../lib/arena/tournamentPoll";
 
 export type TournamentLoad =
   | { readonly state: "idle" }
@@ -64,6 +64,8 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
     };
     let timer: ReturnType<typeof setTimeout> | null = null;
     let folded: TournamentState = EMPTY_TOURNAMENT;
+    // Whether the last answer was a full page: more frames are waiting, whatever the lifecycle state says.
+    let more = false;
     let status: TournamentState["state"] = null;
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
@@ -89,14 +91,17 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
           if (cancelled) return;
           folded = foldPoll(folded, answer);
           setLoad({ state: "ready", tournament: folded });
-          schedule(answer.visibility === "events" && answer.frames.length >= POLL_PAGE);
+          more = answer.visibility === "events" && answer.frames.length >= POLL_PAGE;
+          schedule(more);
         },
         (e: unknown) => {
           if (cancelled) return;
-          // A failed poll after data keeps what was shown and tries again on the same schedule; before any data it
-          // is the arena's state. A 404 always means the route is not there.
+          // A failed poll after data keeps what was shown and tries again from the same cursor: on the lifecycle's
+          // schedule, or in 2 s while pages are still waiting (a revealed tournament half drained is not done).
+          // Before any data the failure is the arena's state; a 404 always means the route is not there.
           const f = failure(e);
           if (f.state === "missing" || folded === EMPTY_TOURNAMENT) setLoad(f);
+          else if (more) timer = setTimeout(poll, POLL_MS);
           else schedule(false);
         },
       );
