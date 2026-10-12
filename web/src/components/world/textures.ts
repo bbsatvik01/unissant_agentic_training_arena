@@ -5,6 +5,7 @@
  */
 import { CanvasTexture, SRGBColorSpace } from "three";
 
+import { standingsLayout, type Standings } from "../../lib/arena/standings";
 import { PALETTE } from "../../lib/world/palette";
 
 const SANS = "Inter, system-ui, -apple-system, sans-serif";
@@ -166,5 +167,47 @@ export function scoreCardTexture(label: string, title: string, score: string): C
   });
   ctx.font = `600 96px ${SANS}`;
   ctx.fillText(score, 28, 286);
+  return texture(el);
+}
+
+/** The standings board on the precinct wall (S6 4.10): a mesh-gradient band, the heading and note, then each ranked
+ * coach's rank, name and detail, and the ineligible apart. 2.4 x 1.3 metres at about 500 px per metre. */
+export function standingsTexture(s: Standings): CanvasTexture {
+  const w = 1200;
+  const h = 650;
+  const [el, ctx] = canvas(w, h);
+  ctx.fillStyle = PALETTE.canvas;
+  ctx.fillRect(0, 0, w, h);
+  const band = ctx.createLinearGradient(0, 0, w, 0);
+  PALETTE.mesh.forEach((c, i) => {
+    band.addColorStop(i / (PALETTE.mesh.length - 1), c);
+  });
+  ctx.fillStyle = band;
+  ctx.fillRect(0, 0, w, 14);
+  ctx.fillStyle = PALETTE.mute;
+  ctx.font = `400 26px ${MONO}`;
+  ctx.fillText("TOURNAMENT", 56, 78);
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = `600 76px ${SANS}`;
+  ctx.fillText(s.heading, 56, 160);
+  ctx.fillStyle = PALETTE.body;
+  ctx.font = `400 32px ${SANS}`;
+  for (const [i, line] of wrap(ctx, s.note, w - 112, 2).entries()) ctx.fillText(line, 56, 214 + i * 40);
+  for (const line of standingsLayout(s, 250, h - 24)) {
+    if (line.kind === "row") {
+      ctx.fillStyle = PALETTE.hairline;
+      ctx.fillRect(56, line.y - line.size * 1.25, w - 112, 2);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.font = `600 ${String(line.size)}px ${MONO}`;
+      ctx.fillText(line.rank, 56, line.y);
+      ctx.font = `600 ${String(line.size)}px ${SANS}`;
+      ctx.fillText(wrap(ctx, line.name, w - 200, 1)[0] ?? "", 56 + line.size * 1.8, line.y);
+    } else {
+      const indented = line.kind !== "excluded";
+      ctx.fillStyle = line.kind === "detail" ? PALETTE.body : PALETTE.mute;
+      ctx.font = `400 ${String(line.size)}px ${line.kind === "detail" ? MONO : SANS}`;
+      ctx.fillText(wrap(ctx, line.text, w - 112 - (indented ? 100 : 0), 1)[0] ?? "", indented ? 156 : 56, line.y);
+    }
+  }
   return texture(el);
 }

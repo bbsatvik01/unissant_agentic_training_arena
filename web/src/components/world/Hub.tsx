@@ -17,6 +17,8 @@ import { CASE_BOARD, caseSlot, HUB, HUB_DOOR_X, ROOM, ROOM_SIZE, type Vec3 } fro
 import { Avatar } from "./Avatar";
 import { CorridorPasser, DeskPhone, ScreenGlow } from "./hubLife";
 import { brushedSteel, cork, paint, plaster, woodPlanks } from "./materials";
+import type { Standings } from "../../lib/arena/standings";
+import { STANDINGS_SIZE, StandingsBoard } from "./StandingsBoard";
 import { BlindWindow, Block, Cabinet, CeilingPanel, Desk, Door, Keyboard, Monitor, OfficeChair, Plant, WallClock } from "./props";
 import { caseFileTexture, meshGradientTexture, signTexture } from "./textures";
 
@@ -36,6 +38,9 @@ interface HubProps {
   readonly still: boolean;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
+  /** The tournament standings for the right wall, or null for the framed print. */
+  readonly standings: Standings | null;
+  readonly onOpenStandings: () => void;
 }
 
 function CaseFile({ card, index, recorded, focused, reducedMotion, onOpen, onFocus }: {
@@ -107,6 +112,9 @@ function CaseFile({ card, index, recorded, focused, reducedMotion, onOpen, onFoc
   );
 }
 
+/** The standings board's centre along the back wall: between the case board's right edge and the corridor door. */
+const STANDINGS_X = (CASE_BOARD.center[0] + CASE_BOARD.width / 2 + HUB_DOOR_X - 0.5) / 2;
+
 const DESKS: readonly (readonly [number, number, number])[] = [
   [-4.4, 0.4, 0.25],
   [-4.4, 2.4, Math.PI - 0.25],
@@ -122,7 +130,7 @@ const CREW_SEATS: readonly (readonly [Vec3, number, Vec3])[] = [0, 3].map((d) =>
   return [[x + Math.sin(r) * 0.62, 0, z + Math.cos(r) * 0.62], r + Math.PI, [x, 1.0, z - Math.cos(r) * 0.2]] as const;
 });
 
-function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, present, crowd, clock, still, onOpenCase, onFocusCase }: HubProps) {
+function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, present, crowd, clock, still, onOpenCase, onFocusCase, standings, onOpenStandings }: HubProps) {
   const mesh = useMemo(() => meshGradientTexture(), []);
   const sign = useMemo(() => signTexture("Interview rooms"), []);
   const boardSign = useMemo(() => signTexture("Open cases"), []);
@@ -188,6 +196,13 @@ function HubScene({ cases, recordedCaseId, focusedCase, reducedMotion, shadows, 
       </mesh>
       <Block size={[0.04, 1.4, 2.5]} at={[W / 2 - 0.03, 1.8, -1.5]} material={paint("frame")} />
       <WallClock position={[W / 2 - 0.02, 2.75, 2.2]} rotation={-Math.PI / 2} still={still} />
+      {/* between the case board and the corridor door: the tournament standings, once the arena has a board */}
+      {standings === null ? null : (
+        <>
+          <StandingsBoard standings={standings} position={[STANDINGS_X, 1.85, back + 0.03]} rotation={0} still={still} onOpen={onOpenStandings} />
+          <Block size={[STANDINGS_SIZE[0] + 0.08, STANDINGS_SIZE[1] + 0.08, 0.03]} at={[STANDINGS_X, 1.85, back + 0.012]} material={paint("frame")} />
+        </>
+      )}
       {/* the case board: cork in a steel frame, files pinned on it */}
       <mesh position={[bx, by, bz - 0.01]} material={cork()} receiveShadow>
         <boxGeometry args={[CASE_BOARD.width + 0.3, CASE_BOARD.height + 0.3, 0.03]} />

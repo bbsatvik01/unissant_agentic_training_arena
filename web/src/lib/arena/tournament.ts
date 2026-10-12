@@ -3,8 +3,9 @@
  * tournament answers `{visibility: "events", frames, last}` on the global ledger cursor; a hidden tournament before
  * reveal answers `{visibility: "counts", progress}` and nothing else (D9): the fold then holds only the progress
  * rows, never a trial id, text or count of flags (FE-SSE-4). Frames are absolute and idempotent, so the fold is
- * order-independent and duplicate-safe; when the visibility switches from counts to events, the caller restarts at
- * `after=0` (S6 4.9) and calls `resetForEvents`.
+ * order-independent and duplicate-safe: each frame applies to the attempt current at its ledger seq, so a retried
+ * trial, which keeps its `trial_ref` (the planned position), starts clean. When the visibility switches from counts
+ * to events, the caller restarts at `after=0` (S6 4.9).
  */
 import type { ProgressRow, TournamentPoll, TrialExecution, TrialStarted } from "../contracts/generated/types";
 
@@ -13,6 +14,8 @@ export interface TournamentState {
   readonly state: "draft" | "frozen" | "running" | "sealed" | "scoring" | "revealed" | null;
   /** The ledger cursor for the next poll (`after=`). */
   readonly last: number;
+  /** The ledger seq of the `tournament.status` frame `state` came from, so a re-folded older one never reverts it. */
+  readonly stateSeq: number;
   readonly trials: ReadonlyMap<number, TrialCell>;
   readonly progress: readonly ProgressRow[];
 }
@@ -25,44 +28,57 @@ export interface TrialCell {
   readonly block: number | null;
   readonly execution: TrialExecution["state"] | null;
   readonly commitment_hash: string | null;
+  /** The ledger seq of this attempt's `trial.started`. A retried planned trial keeps its `trial_ref` and starts a new
+   * attempt (a new `trial_id`, D-027): frames older than this belong to an earlier attempt and never touch the cell. */
+  readonly since: number;
 }
 
-export const EMPTY_TOURNAMENT: TournamentState = { visibility: "none", state: null, last: 0, trials: new Map(), progress: [] };
+export const EMPTY_TOURNAMENT: TournamentState = { visibility: "none", state: null, last: 0, stateSeq: 0, trials: new Map(), progress: [] };
 
 /** Fold one poll response into the state. A counts response replaces everything with its progress rows. */
 export function foldPoll(state: TournamentState, poll: TournamentPoll): TournamentState {
-  if (poll.visibility === "counts") return { visibility: "counts", state: state.state, last: 0, trials: new Map(), progress: poll.progress };
+  if (poll.visibility === "counts") return { visibility: "counts", state: state.state, last: 0, stateSeq: 0, trials: new Map(), progress: poll.progress };
   const base = state.visibility === "counts" ? EMPTY_TOURNAMENT : state;
   const trials = new Map(base.trials);
   let tournamentState = base.state;
-  const pending: { ref: number; patch: Partial<TrialCell> }[] = [];
-  for (const frame of [...poll.frames].sort((a, b) => a.seq - b.seq)) {
+  let stateSeq = base.stateSeq;
+  // Frames apply in ledger order, each to the attempt current at its seq: a retry's `trial.started` starts the cell
+  // clean, and an earlier attempt's end (in this poll, or folded again as a duplicate) never lands on the retry.
+  const patch = (ref: number, seq: number, change: Partial<TrialCell>) => {
+    const held = trials.get(ref);
+    if (held !== undefined && seq >= held.since) trials.set(ref, { ...held, ...change });
+  };
+  // A never-started attempt (budget_skipped, source_unavailable) has its start and its end on one ledger row, so
+  // frames sharing a seq apply the start first.
+  const first = (type: string) => (type === "trial.started" ? 0 : 1);
+  for (const frame of [...poll.frames].sort((a, b) => a.seq - b.seq || first(a.type) - first(b.type))) {
     switch (frame.type) {
       case "tournament.status":
-        tournamentState = frame.data.state;
+        if (frame.seq >= stateSeq) {
+          tournamentState = frame.data.state;
+          stateSeq = frame.seq;
+        }
         break;
       case "trial.started": {
         const d = frame.data;
         const held = trials.get(d.trial_ref);
-        trials.set(d.trial_ref, { execution: null, commitment_hash: null, ...held, trial_ref: d.trial_ref, trial_id: d.trial_id, pairing: d.pairing, track: d.track, block: d.block });
+        // An older attempt's start, or this attempt's again, changes nothing.
+        if (held !== undefined && held.since >= frame.seq) break;
+        trials.set(d.trial_ref, { trial_ref: d.trial_ref, trial_id: d.trial_id, pairing: d.pairing, track: d.track, block: d.block, execution: null, commitment_hash: null, since: frame.seq });
         break;
       }
       case "trial.execution":
-        pending.push({ ref: frame.data.trial_ref, patch: { execution: frame.data.state } });
+        patch(frame.data.trial_ref, frame.seq, { execution: frame.data.state });
         break;
       case "trial.finalized":
-        pending.push({ ref: frame.data.trial_ref, patch: { commitment_hash: frame.data.commitment_hash } });
+        patch(frame.data.trial_ref, frame.seq, { commitment_hash: frame.data.commitment_hash });
         break;
       default:
         // replay.turn frames move no cell (a corpus turn copied into a replay trial).
         break;
     }
   }
-  for (const { ref, patch } of pending) {
-    const held = trials.get(ref);
-    if (held !== undefined) trials.set(ref, { ...held, ...patch });
-  }
-  return { visibility: "events", state: tournamentState, last: Math.max(base.last, poll.last), trials, progress: [] };
+  return { visibility: "events", state: tournamentState, last: Math.max(base.last, poll.last), stateSeq, trials, progress: [] };
 }
 
 export type Track = TrialCell["track"];
