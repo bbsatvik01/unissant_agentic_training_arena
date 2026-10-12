@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 from uuid import UUID
 
-from arena_core.agents.manifests import CandidateManifest, load_prompts
+from arena_core.agents.manifests import CandidateManifest, ManifestMismatchError, load_prompts
 from arena_core.agents.subject_prompts import (
     LiveNotAllowedError,
     SubjectPacket,
@@ -194,7 +194,7 @@ class VoiceSession:
             self._packet = packet_of(ctx)
             voice_id = str(ctx["public_packet"]["presentation"]["voice_id"])
             setup = live_setup(self._packet, released_ids(ctx), self._prompts, voice_id)
-        except (LiveNotAllowedError, KeyError, ValueError) as exc:
+        except (LiveNotAllowedError, ManifestMismatchError, KeyError, ValueError) as exc:
             log.warning("voice setup refused: %s", type(exc).__name__)
             self.end(p.REFUSED)
             return

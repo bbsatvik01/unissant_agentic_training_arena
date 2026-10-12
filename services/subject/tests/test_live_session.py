@@ -18,7 +18,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from arena_core.agents.manifests import committed_manifest
+from arena_core.agents.manifests import ManifestMismatchError, committed_manifest
 from arena_core.db.calls import SettleOutcome, UsageReport, UsageResult
 from arena_core.db.voice import OpenedVoice, VoiceOpenRefusedError
 from arena_core.voice import protocol as p
@@ -31,6 +31,7 @@ from arena_core.voice.live import (
     LiveTurnComplete,
     LiveUsage,
 )
+from arena_subject import live_session
 from arena_subject.live_session import RelayClosedError, VoiceSession
 
 REPO = Path(__file__).resolve().parents[3]
@@ -545,3 +546,20 @@ def test_fake_live_answers_spoken_audio_end_to_end() -> None:
     assert store.stored[0][1][0] == {"role": "investigator", "text": "Question 1.", "partial": False}
     assert any(isinstance(x, bytes) for x in relay.sent)
     assert store.log[-1] == ("settle", "committed")
+
+
+def test_a_manifest_this_checkout_cannot_load_closes_4401_and_releases_the_hold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def absent(manifest: object) -> object:
+        # A registered candidate whose prompt file this checkout does not have (a manifest from another branch).
+        del manifest
+        msg = "manifest_mismatch for S1: prompts/subject/style.v2.txt unreadable (FileNotFoundError)"
+        raise ManifestMismatchError(msg)
+
+    monkeypatch.setattr(live_session, "load_prompts", absent)
+    store = Store()
+    relay, live = run(_drive(store, lambda _r, _c: asyncio.sleep(0)))
+    assert relay.closed == p.REFUSED
+    assert live.connections == []
+    assert store.log[-2:] == [("close", "4401"), ("settle", "released")]
