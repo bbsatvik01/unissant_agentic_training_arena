@@ -40,7 +40,9 @@ export function useBoards(api: Pick<ArenaApi, "leaderboard">, tournamentId: stri
         (e: unknown) => {
           if (cancelled) return;
           const state = e instanceof ApiError ? boardsFailure(e.status, e.code) : ({ kind: "error" } as const);
-          setHeld({ key, boards: { assistant: null, subject: null, state } });
+          // A transient failure on a re-read keeps the boards already shown (the wall does not drop and turn over
+          // again); a definite answer (sealed, missing) replaces them.
+          setHeld((h) => (state.kind === "error" && h !== null && h.key === key && h.boards.state.kind === "published" ? h : { key, boards: { assistant: null, subject: null, state } }));
           // A failed read is tried again; so is a revealed tournament's board that has not appeared yet.
           const again = state.kind === "error" || (revealed && (state.kind === "sealed" || state.kind === "missing"));
           if (again && tries + 1 < REVEAL_TRIES) {

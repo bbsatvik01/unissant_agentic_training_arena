@@ -72,4 +72,19 @@ describe("useBoards", () => {
     await act(() => vi.advanceTimersByTimeAsync(0));
     expect(result.current?.state.kind).toBe("published");
   });
+
+  it("keeps the published boards through a failed re-read", async () => {
+    vi.useFakeTimers();
+    let fail = false;
+    const leaderboard = vi.fn((_t: string, board: "assistant" | "subject") => (fail ? Promise.reject(new ApiError(503, null, "x")) : Promise.resolve(board === "assistant" ? boards.assistant : boards.subject)));
+    const api = { leaderboard };
+    const { result, rerender } = renderHook(({ round }: { round: number }) => useBoards(api, "t", null, true, true, round), { initialProps: { round: 0 } });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    const shown = result.current;
+    expect(shown?.state.kind).toBe("published");
+    fail = true;
+    rerender({ round: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(result.current).toBe(shown);
+  });
 });
