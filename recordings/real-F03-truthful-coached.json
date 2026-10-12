@@ -1,0 +1,4259 @@
+{
+ "format": "arena.recording.v1",
+ "trial_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+ "case": {
+  "case_id": "C-R6DJ3NWC",
+  "title": "Network room entry on card A-2291",
+  "objective": "Establish who used card A-2291 to open Network Room N-3 at 07:12 on 13 March 2026, how that person came to have the card, and whether the entry followed policy.",
+  "domain": "facility_access",
+  "difficulty_level": 3,
+  "subject": {
+   "display_name": "Avery Lindqvist",
+   "position": "IT Support Specialist"
+  },
+  "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+  "initial_documents": [
+   {
+    "doc_id": "doc-01",
+    "kind": "badge_log",
+    "title": "Badge events, lobby and Network Room N-3, 13 March 2026, 06:30-08:00",
+    "content": {
+     "body": "Holder names are taken from the badge database. Exception raised 13 March at 09:00 by Security Operations: card A-2291 is listed to R. Haddad, who is on approved leave from 9 to 20 March.",
+     "table": {
+      "rows": [
+       [
+        "07:04:18",
+        "Lobby turnstile 1",
+        "41877",
+        "A. Lindqvist",
+        "Granted"
+       ],
+       [
+        "07:12:40",
+        "N-3 door",
+        "A-2291",
+        "R. Haddad",
+        "Granted"
+       ],
+       [
+        "07:52:11",
+        "Lobby turnstile 2",
+        "39020",
+        "M. Tran",
+        "Granted"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Reader",
+       "Card",
+       "Holder in database",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-02",
+    "kind": "monitor_alert",
+    "title": "Network monitor alerts, switch SW-2B, 13 March 2026",
+    "content": {
+     "body": "Alert paged to the on-call IT technician (A. Lindqvist) at 06:55.",
+     "table": {
+      "rows": [
+       [
+        "06:55:02",
+        "SW-2B (floor 2)",
+        "Unreachable"
+       ],
+       [
+        "07:26:40",
+        "SW-2B (floor 2)",
+        "Reachable"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Device",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-03",
+    "kind": "access_change_notice",
+    "title": "Access change notice, A. Lindqvist, 12 March 2026",
+    "content": {
+     "body": "Effective 12 March 2026 at 17:00: Network Room N-3 access removed pending completion of annual access recertification training (overdue since 28 February). Access is restored when the training is completed."
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "status": "running",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 0,
+  "exchanges_cap": 12,
+  "released": [],
+  "requestable": [
+   {
+    "record_id": "rec-01",
+    "kind": "lockbox_log",
+    "title": "IT lockbox spare-card sign-out sheet, March 2026",
+    "description": "Sign-out sheet for the spare access cards kept in the IT lockbox: date, name, card, reason, time out and time in.",
+    "requestable_after_exchanges": 5,
+    "date": null
+   },
+   {
+    "record_id": "rec-02",
+    "kind": "credential_record",
+    "title": "Badge administration record, card A-2291",
+    "description": "Issue and status history for card A-2291 from the badge office.",
+    "requestable_after_exchanges": 5,
+    "date": null
+   },
+   {
+    "record_id": "rec-03",
+    "kind": "incident_ticket",
+    "title": "Incident ticket INC-0313-004",
+    "description": "The IT incident ticket for the SW-2B outage, with its notes.",
+    "requestable_after_exchanges": 3,
+    "date": "2026-03-13"
+   },
+   {
+    "record_id": "rec-04",
+    "kind": "email",
+    "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+    "description": "Reply from the card holder listed in the badge database to the review office's question about card A-2291.",
+    "requestable_after_exchanges": 7,
+    "date": null
+   }
+  ],
+  "finding": null,
+  "commitment_hash": null,
+  "last_seq": 0,
+  "channel": "text",
+  "turns": [],
+  "voice_exchanges": [],
+  "cards": [],
+  "updates": [],
+  "coach_failures": []
+ },
+ "events": [
+  {
+   "at_ms": 188,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:20.840Z",
+    "transcript_version": 1,
+    "seq": 1,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 1,
+     "text": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 188,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:20.840Z",
+    "transcript_version": 1,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 3644,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:24.296Z",
+    "transcript_version": 2,
+    "seq": 2,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 1,
+     "text": "I was on call that morning, and I arrived at the office just after seven because I was paged about a downed switch. Since my own access to Network Room N-3 had been removed for overdue training, I signed out the spare card A-2291 from the lockbox under OP-7. I used that card to enter N-3, where I successfully power-cycled the switch, and I returned the card to the lockbox before eight. It makes me uneasy to recount these details, but I am certain no one else from my team was present during that time.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:24.296Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3644,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:24.296Z",
+    "transcript_version": 2,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 6123,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:26.775Z",
+    "transcript_version": 2,
+    "seq": 3,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 1,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t01",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "An open and neutral initial question inviting the subject to describe their morning activities."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you walk me through how you handled the page for the downed switch after you arrived at the office?",
+       "tactic": "funnel_probe",
+       "purpose": "Probe the details of the subject's actions and response to the switch alert before introducing records.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify the lockbox sign-out sheet for card A-2291",
+        "check incident ticket INC-0313-004"
+       ],
+       "rationale": "The subject provided an initial account acknowledging use of the spare card due to removed access, which requires corroboration against logs and ticket records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 1,
+      "turn_no": 1,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2089,
+      "work_item": "07b51d16-b1d0-4741-b12f-255aab22fc89",
+      "transcript_version": 2
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 6894,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:27.546Z",
+    "transcript_version": 3,
+    "seq": 4,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 2,
+     "text": "What did you do after the SW-2B alert paged you at 06:55?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 6894,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:27.546Z",
+    "transcript_version": 3,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 9297,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:29.949Z",
+    "transcript_version": 4,
+    "seq": 5,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 2,
+     "text": "After I received the page about SW-2B being down at 06:55, I traveled to the Halvern Street Annex. I entered through the lobby just after seven. Once inside, I signed out the spare card A-2291 from the lockbox located under OP-7 to gain access to the room. I am not entirely sure if I filled in the sign-out log time column immediately or after I had already entered N-3.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:29.949Z"
+    }
+   }
+  },
+  {
+   "at_ms": 9297,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:29.949Z",
+    "transcript_version": 4,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 11586,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:32.238Z",
+    "transcript_version": 4,
+    "seq": 6,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 2,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t02",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked an open question about the subject's actions after receiving the page."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through the exact procedure you followed when you signed out card A-2291 from the lockbox under OP-7?",
+       "tactic": "funnel_probe",
+       "purpose": "Explore the details of the card sign-out process before introducing records.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify the lockbox sign-out sheet for card A-2291",
+        "check incident ticket INC-0313-004"
+       ],
+       "rationale": "The subject gave an account of responding to the page and signing out the spare card, but verification against the sign-out sheet and incident ticket is still required.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 2,
+      "turn_no": 2,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 1904,
+      "work_item": "87306d0f-5ee4-48eb-a232-b11b71f96c77",
+      "transcript_version": 4
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 12349,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:33.001Z",
+    "transcript_version": 5,
+    "seq": 7,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 3,
+     "text": "How did you get into Network Room N-3 at 07:12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 12349,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:33.001Z",
+    "transcript_version": 5,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 14271,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:34.923Z",
+    "transcript_version": 6,
+    "seq": 8,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 3,
+     "text": "I gained entry to the Network Room N-3 at 07:12 by using the spare card A-2291. As I mentioned, I signed this card out from the lockbox under OP-7 just after my arrival. My own credentials for the room were not working due to the training issue, so this was the only way for me to address the switch outage.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:34.923Z"
+    }
+   }
+  },
+  {
+   "at_ms": 14271,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:34.923Z",
+    "transcript_version": 6,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 16803,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:37.455Z",
+    "transcript_version": 6,
+    "seq": 9,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 3,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t03",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about how entry was gained at 07:12."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you describe the exact incident ticket you worked on for the switch SW-2B outage that morning?",
+       "tactic": "evidence_topic",
+       "purpose": "Probe for verifiable details regarding the incident ticket before requesting it.",
+       "record_request": "rec-03"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify incident ticket INC-0313-004",
+        "check the lockbox sign-out sheet"
+       ],
+       "rationale": "The subject maintains a consistent account of using card A-2291 due to inactive personal credentials, but incident records and lockbox logs must be reviewed to verify the details.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 3,
+      "turn_no": 3,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2151,
+      "work_item": "0f217be2-cf7b-448b-af27-b2ec5c637ea6",
+      "transcript_version": 6
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 21644,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:42.296Z",
+    "transcript_version": 6,
+    "seq": 10,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 3,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t03",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify incident ticket INC-0313-004",
+        "check the lockbox sign-out sheet"
+       ],
+       "rationale": "The subject has provided a consistent account of signing out card A-2291 due to inactive personal credentials, but records are needed to verify the lockbox sign-out and incident response.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 22473,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:43.125Z",
+    "transcript_version": 7,
+    "seq": 11,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-03",
+     "title": "Incident ticket INC-0313-004",
+     "kind": "record",
+     "doc_kind": "incident_ticket",
+     "date": "2026-03-13",
+     "content": {
+      "body": "Opened 07:30 by A. Lindqvist. SW-2B unreachable since 06:55. Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification). Power-cycled SW-2B; reachable at 07:26. Closed 07:35.",
+      "table": null
+     },
+     "released_at_turn": 3,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 22925,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:43.577Z",
+    "transcript_version": 8,
+    "seq": 12,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 4,
+     "text": "The incident ticket INC-0313-004 for the SW-2B outage has notes on it. What did you record in the ticket about the outage and how you reached the switch?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 22925,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:43.577Z",
+    "transcript_version": 8,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 25193,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:45.845Z",
+    "transcript_version": 9,
+    "seq": 13,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 4,
+     "text": "In the incident ticket I opened around half past seven, I recorded that the SW-2B switch went down. I noted that I addressed the outage by using the spare card A-2291, which I obtained from the lockbox under OP-7. That was the extent of the details I included regarding my access to the room.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:45.845Z"
+    }
+   }
+  },
+  {
+   "at_ms": 25193,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:45.845Z",
+    "transcript_version": 9,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 27736,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:48.388Z",
+    "transcript_version": 9,
+    "seq": 14,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 4,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t04",
+      "question": {
+       "question_type": "probing",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks the subject to elaborate on the details recorded in incident ticket INC-0313-004."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you walk me through the exact procedure for signing out card A-2291 from the IT lockbox?",
+       "tactic": "evidence_topic",
+       "purpose": "Explore the topic of the lockbox sign-out procedure before presenting the sign-out record.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "verify the IT lockbox spare-card sign-out sheet",
+        "check badge administration records for card A-2291"
+       ],
+       "rationale": "The subject's account aligns with incident ticket INC-0313-004, but physical lockbox records and badge administration details are still needed to fully verify the access event.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 4,
+      "turn_no": 4,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2080,
+      "work_item": "1ce38a67-b67f-4328-8749-1620a061b7f0",
+      "transcript_version": 9
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 30694,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:51.346Z",
+    "transcript_version": 9,
+    "seq": 15,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 4,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t04",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "verify the IT lockbox spare-card sign-out sheet",
+        "check badge administration records for card A-2291"
+       ],
+       "rationale": "The subject's account is consistent with incident ticket INC-0313-004, but physical lockbox records and badge administration details remain unverified.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 31228,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:51.880Z",
+    "transcript_version": 10,
+    "seq": 16,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 5,
+     "text": "Where did card A-2291 come from, and how did you come to have it?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 31228,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:51.880Z",
+    "transcript_version": 10,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 31382,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:52.034Z",
+    "transcript_version": 11,
+    "seq": 17,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-05",
+     "title": "Outage procedure OP-7 (Infrastructure Support)",
+     "kind": "clarification",
+     "doc_kind": "clarification",
+     "date": null,
+     "content": {
+      "body": "When an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox, must record the time and reason on the sign-out sheet, and must note the card number in the incident ticket. Personal badges must never be lent or borrowed.",
+      "table": null
+     },
+     "released_at_turn": 4,
+     "trigger": "scheduled"
+    }
+   }
+  },
+  {
+   "at_ms": 33231,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:53.883Z",
+    "transcript_version": 12,
+    "seq": 18,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 5,
+     "text": "I obtained the spare card A-2291 directly from the designated lockbox located under OP-7. I signed it out from that location myself just after I arrived at the office shortly after seven. This was the necessary procedure for me to access Network Room N-3 while my own credentials were not active.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:53.883Z"
+    }
+   }
+  },
+  {
+   "at_ms": 33231,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:53.883Z",
+    "transcript_version": 12,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 35962,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:17:56.614Z",
+    "transcript_version": 12,
+    "seq": 19,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 5,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t05",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a closed question about the origin and acquisition of card A-2291."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you sign your name and time on the IT lockbox spare-card sign-out sheet when you took card A-2291?",
+       "tactic": "evidence_topic",
+       "purpose": "Probe the topic of the lockbox sign-out sheet before introducing record rec-01.",
+       "record_request": "rec-01"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ],
+       "cited_records": [
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "verify the IT lockbox spare-card sign-out sheet",
+        "check badge administration records for card A-2291"
+       ],
+       "rationale": "The subject consistently maintains having signed out card A-2291 from the IT lockbox per OP-7, but physical sign-out logs and badge administration records must be reviewed to confirm.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 5,
+      "turn_no": 5,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2266,
+      "work_item": "f10db6a7-08c5-4651-bf76-ea6ea53b7b59",
+      "transcript_version": 12
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 41313,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:01.965Z",
+    "transcript_version": 12,
+    "seq": 20,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 5,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t05",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ],
+       "cited_records": [
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "verify the IT lockbox spare-card sign-out sheet for March 2026",
+        "check badge administration records for card A-2291"
+       ],
+       "rationale": "The subject consistently describes signing out spare card A-2291 from the IT lockbox under OP-7, which matches ticket INC-0313-004, but physical sign-out logs and badge administration records are still needed for verification.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t03",
+         "t04"
+        ]
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-01",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 42215,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:02.867Z",
+    "transcript_version": 13,
+    "seq": 21,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-01",
+     "title": "IT lockbox spare-card sign-out sheet, March 2026",
+     "kind": "record",
+     "doc_kind": "lockbox_log",
+     "date": null,
+     "content": {
+      "body": "Spare cards in the pool on 13 March: A-3310, A-2291.",
+      "table": {
+       "columns": [
+        "Date",
+        "Name",
+        "Card",
+        "Reason",
+        "Out",
+        "In"
+       ],
+       "rows": [
+        [
+         "03 Mar",
+         "M. Tran",
+         "A-3310",
+         "Printer room repair",
+         "10:02",
+         "10:40"
+        ],
+        [
+         "13 Mar",
+         "A. Lindqvist",
+         "A-2291",
+         "SW-2B outage, N-3",
+         "07:09",
+         "07:41"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 5,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 42216,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:02.868Z",
+    "transcript_version": 13,
+    "seq": 22,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-02",
+     "title": "Badge administration record, card A-2291",
+     "kind": "record",
+     "doc_kind": "credential_record",
+     "date": null,
+     "content": {
+      "body": "Issued 2 May 2023 to R. Haddad. Deactivated for R. Haddad on 28 February 2026 (photo replacement; new card A-4120 issued). Reassigned on 1 March 2026 to the IT lockbox spare pool. Holder name in the badge database pending update (backlog ticket BA-118).",
+      "table": null
+     },
+     "released_at_turn": 5,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 42676,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:03.328Z",
+    "transcript_version": 14,
+    "seq": 23,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 6,
+     "text": "The IT lockbox sign-out sheet for March records spare cards taken out, and the badge office keeps an issue history for card A-2291. How was card A-2291 signed out that morning?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 42676,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:03.328Z",
+    "transcript_version": 14,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 47070,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:07.722Z",
+    "transcript_version": 15,
+    "seq": 24,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 6,
+     "text": "I signed out card A-2291 by writing my details on the sign-out sheet located at the lockbox under OP-7. I know that I signed it out just after I arrived, but I am not sure whether I filled in the time column on the sheet before or after I went to N-3. That is how the log for that card would appear for the morning of March 13.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:07.722Z"
+    }
+   }
+  },
+  {
+   "at_ms": 47070,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:07.722Z",
+    "transcript_version": 15,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 52342,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:12.994Z",
+    "transcript_version": 15,
+    "seq": 25,
+    "type": "coach.failed",
+    "data": {
+     "turn_no": 6,
+     "reason": "repair_failed"
+    }
+   }
+  },
+  {
+   "at_ms": 55369,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:16.021Z",
+    "transcript_version": 15,
+    "seq": 26,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 6,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t06",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of obtaining spare card A-2291 from the lockbox under OP-7 is fully corroborated by the incident ticket, the OP-7 outage procedure, the lockbox sign-out sheet showing the correct time and card, and the badge administration record confirming the card was in the spare pool.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t03",
+         "t04"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 56053,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:16.705Z",
+    "transcript_version": 16,
+    "seq": 27,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 7,
+     "text": "Did you know your own N-3 access had been removed the evening before?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 56053,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:16.705Z",
+    "transcript_version": 16,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 57988,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:18.640Z",
+    "transcript_version": 17,
+    "seq": 28,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 7,
+     "text": "Yes, I was aware that my access to Network Room N-3 had been taken off the evening before. I knew this was due to my recertification training being overdue. Because of this, I understood I needed to use the spare card from the lockbox to complete my work.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:18.640Z"
+    }
+   }
+  },
+  {
+   "at_ms": 57988,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:18.640Z",
+    "transcript_version": 17,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 60735,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:21.387Z",
+    "transcript_version": 17,
+    "seq": 29,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 7,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t07",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a clear, closed question about the subject's prior awareness of access removal."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you review the email from Rafael Haddad dated March 14 regarding card A-2291?",
+       "tactic": "evidence_specific",
+       "purpose": "Introduce the newly available email record regarding the card assignment to test the subject's account further.",
+       "record_request": "rec-04"
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject consistently acknowledges their access status and correctly describes following OP-7 procedures, which are fully corroborated by the badge records, incident ticket, and sign-out sheet.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 6,
+      "turn_no": 7,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2288,
+      "work_item": "71e0c934-a334-40e7-8bc0-a26694545713",
+      "transcript_version": 17
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 61966,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:22.618Z",
+    "transcript_version": 18,
+    "seq": 30,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-04",
+     "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+     "kind": "record",
+     "doc_kind": "email",
+     "date": null,
+     "content": {
+      "body": "My old card was replaced on 28 February when my photo was redone; I have the new one with me. I have not been in the building since 6 March and I do not know where the old card went.",
+      "table": null
+     },
+     "released_at_turn": 7,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 62420,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:23.072Z",
+    "transcript_version": 19,
+    "seq": 31,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 8,
+     "text": "Rafael Haddad replied to the review office about card A-2291 on 14 March. Did you have any contact with him about the card?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 62420,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:23.072Z",
+    "transcript_version": 19,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 64535,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:25.187Z",
+    "transcript_version": 20,
+    "seq": 32,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 8,
+     "text": "I have not had any contact with Rafael regarding the spare card. Rafael is on leave this month, so I have not spoken with him at all about this matter. I do not know anything about his communications with the review office.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:25.187Z"
+    }
+   }
+  },
+  {
+   "at_ms": 64535,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:25.187Z",
+    "transcript_version": 20,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 67063,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:27.715Z",
+    "transcript_version": 20,
+    "seq": 33,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 8,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t08",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately explored potential contact with the card holder regarding the review office email."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you summarize how you returned card A-2291 to the lockbox after resolving the switch issue?",
+       "tactic": "summary_check",
+       "purpose": "Verify the final step of the subject's account regarding the spare card.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account remains consistent throughout the interview and is fully corroborated by all released records and logs.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 7,
+      "turn_no": 8,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2070,
+      "work_item": "11b0a67e-79fa-4480-a44e-842fd456b0ac",
+      "transcript_version": 20
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 70591,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:31.243Z",
+    "transcript_version": 20,
+    "seq": 34,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 8,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t08",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of signing out card A-2291 from the IT lockbox under OP-7 and using it to address the SW-2B outage is fully supported by the incident ticket, sign-out sheet, badge administration record, and badge logs.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t05",
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t08"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t03",
+         "t05"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 71127,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:31.779Z",
+    "transcript_version": 21,
+    "seq": 35,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 9,
+     "text": "What did you do with card A-2291 after the switch was back up at 07:26?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 71127,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:31.779Z",
+    "transcript_version": 21,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 73297,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:33.949Z",
+    "transcript_version": 22,
+    "seq": 36,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 9,
+     "text": "Once the switch was back up, I left the room and immediately returned the card to the lockbox under OP-7. I recall doing this before eight that morning, though I do not know the exact time. That was the end of my use of the card for that incident.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:33.949Z"
+    }
+   }
+  },
+  {
+   "at_ms": 73297,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:33.949Z",
+    "transcript_version": 22,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 75883,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:36.535Z",
+    "transcript_version": 22,
+    "seq": 37,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 9,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t09",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open follow-up about the return of the card after the outage resolved."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you briefly summarize how you completed the incident ticket and returned the spare card before resuming your normal shift tasks?",
+       "tactic": "summary_check",
+       "purpose": "Confirm the final steps of the morning procedure to complete the account.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of returning the card to the lockbox after the switch became reachable is fully consistent with the sign-out sheet and incident records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 8,
+      "turn_no": 9,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2125,
+      "work_item": "1608bd44-a525-4afc-b91e-bf5ed8c23c1c",
+      "transcript_version": 22
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 79072,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:39.724Z",
+    "transcript_version": 22,
+    "seq": 38,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 9,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t09",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of returning the card to the lockbox after the switch became reachable is fully consistent with the sign-out sheet, badge logs, and incident records.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t05",
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t08"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t03",
+         "t05"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 79766,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:40.418Z",
+    "transcript_version": 23,
+    "seq": 39,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 10,
+     "text": "Did anyone approve your use of that card to enter N-3?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 79766,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:40.418Z",
+    "transcript_version": 23,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 81870,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:42.522Z",
+    "transcript_version": 24,
+    "seq": 40,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 10,
+     "text": "No, no one approved my use of the spare card to enter the room. I was the one on call that morning, and since the switch needed to be fixed immediately, I just followed the standard procedure of using the lockbox. I did not ask for specific approval for that card because it is there for exactly this kind of situation. I did not know it had ever been anyone's personal card before that, either.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:42.522Z"
+    }
+   }
+  },
+  {
+   "at_ms": 81870,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:42.522Z",
+    "transcript_version": 24,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 84473,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:45.125Z",
+    "transcript_version": 24,
+    "seq": 41,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 10,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t10",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked a direct closed question about whether anyone approved the card use."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you complete your overdue recertification training after the incident on 13 March?",
+       "tactic": "funnel_probe",
+       "purpose": "Verify training completion timing and administrative follow-up.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of using the spare card from the lockbox under OP-7 due to an on-call emergency is fully consistent with the released records and earlier answers.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 9,
+      "turn_no": 10,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2144,
+      "work_item": "6a353bec-4e35-4f23-b931-0b5db89d0120",
+      "transcript_version": 24
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 85382,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:46.034Z",
+    "transcript_version": 25,
+    "seq": 42,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 11,
+     "text": "Have you completed the recertification training since then?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 85382,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:46.034Z",
+    "transcript_version": 25,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 87300,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:47.952Z",
+    "transcript_version": 26,
+    "seq": 43,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 11,
+     "text": "I do not have that information, as I am unsure if I have completed the training requirements since the incident occurred. My current status regarding the training is not something I can confirm right now. I have been focused on my regular duties since that day.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:47.952Z"
+    }
+   }
+  },
+  {
+   "at_ms": 87300,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:47.952Z",
+    "transcript_version": 26,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 89926,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:50.578Z",
+    "transcript_version": 26,
+    "seq": 44,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 11,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t11",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a closed question about the completion of the overdue recertification training."
+      },
+      "answer_category": "explicit_uncertainty",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you check your training status and let us know when it was completed?",
+       "tactic": "verifiable_detail",
+       "purpose": "Verify training status completion date.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account is consistent with the released records and earlier answers, and the main gaps are closed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 10,
+      "turn_no": 11,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2238,
+      "work_item": "522518fa-bba4-4363-b5c6-9fa8c8d25d78",
+      "transcript_version": 26
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 90856,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:51.508Z",
+    "transcript_version": 27,
+    "seq": 45,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 12,
+     "text": "Is there anything else about that morning that you think I should know?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 90856,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:51.508Z",
+    "transcript_version": 27,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 93047,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:53.699Z",
+    "transcript_version": 28,
+    "seq": 46,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 12,
+     "text": "I have shared everything I know regarding the outage and my use of the spare card that morning. I was alone in the room and no other staff from my team were on-site yet. I followed the standard procedure for the on-call rotation to address the issue. I have no other information to provide.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:53.699Z"
+    }
+   }
+  },
+  {
+   "at_ms": 93047,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:53.699Z",
+    "transcript_version": 28,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 95548,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:18:56.200Z",
+    "transcript_version": 28,
+    "seq": 47,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 12,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t12",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The question is a standard open closing inquiry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you confirm if you have finished the required recertification training now?",
+       "tactic": "funnel_probe",
+       "purpose": "To close out remaining administrative details regarding training status.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account is consistent with all released records and earlier answers, and the main gaps are closed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 11,
+      "turn_no": 12,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2027,
+      "work_item": "22a0adfd-8d84-4f83-bfa8-19dd587b9ecc",
+      "transcript_version": 28
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 101194,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:19:01.846Z",
+    "transcript_version": 28,
+    "seq": 48,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 12,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t12",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account remains entirely consistent with all released records, badge logs, and incident documentation.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t05",
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t08"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t02",
+         "t03",
+         "t05"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 102299,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:19:02.951Z",
+    "transcript_version": 29,
+    "seq": 49,
+    "type": "finding.committed",
+    "data": {
+     "by": "investigator",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account is consistent with all released records and earlier answers, and the main gaps are closed.",
+      "alternative_explanations": null,
+      "last_revised_turn": null
+     },
+     "committed_at": "2026-10-12T19:19:02.951Z"
+    }
+   }
+  },
+  {
+   "at_ms": 102299,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:19:02.951Z",
+    "transcript_version": 29,
+    "seq": null,
+    "type": "trial.status",
+    "data": {
+     "status": "completed",
+     "reason_code": null
+    }
+   }
+  },
+  {
+   "at_ms": 102299,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:19:02.951Z",
+    "transcript_version": 29,
+    "seq": 50,
+    "type": "trial.finalized",
+    "data": {
+     "commitment_hash": "409bc1ce309fc277b2aef03ba3752bccaecd122b759d00164f5fa9d81e781a76"
+    }
+   }
+  },
+  {
+   "at_ms": 120398,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "ed8132ce-34c1-43f1-bb9a-8e0f53b3f510",
+    "ts": "2026-10-12T19:19:21.050Z",
+    "transcript_version": 29,
+    "seq": 51,
+    "type": "debrief.ready",
+    "data": {
+     "session_id": "805674b5-dbd9-49a3-9734-3e96be8e08e1"
+    }
+   }
+  }
+ ],
+ "final_snapshot": {
+  "status": "completed",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 12,
+  "exchanges_cap": 12,
+  "released": [
+   {
+    "record_id": "rec-03",
+    "title": "Incident ticket INC-0313-004",
+    "kind": "record",
+    "doc_kind": "incident_ticket",
+    "date": "2026-03-13",
+    "content": {
+     "body": "Opened 07:30 by A. Lindqvist. SW-2B unreachable since 06:55. Entered N-3 at 07:12 with lockbox spare card A-2291 under OP-7 (own N-3 access pending recertification). Power-cycled SW-2B; reachable at 07:26. Closed 07:35.",
+     "table": null
+    },
+    "released_at_turn": 3,
+    "trigger": "requested",
+    "transcript_version": 7,
+    "event_seq": 11
+   },
+   {
+    "record_id": "rec-05",
+    "title": "Outage procedure OP-7 (Infrastructure Support)",
+    "kind": "clarification",
+    "doc_kind": "clarification",
+    "date": null,
+    "content": {
+     "body": "When an on-call technician's own access is unavailable during an outage, the technician may sign out a spare access card from the IT lockbox, must record the time and reason on the sign-out sheet, and must note the card number in the incident ticket. Personal badges must never be lent or borrowed.",
+     "table": null
+    },
+    "released_at_turn": 4,
+    "trigger": "scheduled",
+    "transcript_version": 11,
+    "event_seq": 17
+   },
+   {
+    "record_id": "rec-01",
+    "title": "IT lockbox spare-card sign-out sheet, March 2026",
+    "kind": "record",
+    "doc_kind": "lockbox_log",
+    "date": null,
+    "content": {
+     "body": "Spare cards in the pool on 13 March: A-3310, A-2291.",
+     "table": {
+      "columns": [
+       "Date",
+       "Name",
+       "Card",
+       "Reason",
+       "Out",
+       "In"
+      ],
+      "rows": [
+       [
+        "03 Mar",
+        "M. Tran",
+        "A-3310",
+        "Printer room repair",
+        "10:02",
+        "10:40"
+       ],
+       [
+        "13 Mar",
+        "A. Lindqvist",
+        "A-2291",
+        "SW-2B outage, N-3",
+        "07:09",
+        "07:41"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 5,
+    "trigger": "requested",
+    "transcript_version": 13,
+    "event_seq": 21
+   },
+   {
+    "record_id": "rec-02",
+    "title": "Badge administration record, card A-2291",
+    "kind": "record",
+    "doc_kind": "credential_record",
+    "date": null,
+    "content": {
+     "body": "Issued 2 May 2023 to R. Haddad. Deactivated for R. Haddad on 28 February 2026 (photo replacement; new card A-4120 issued). Reassigned on 1 March 2026 to the IT lockbox spare pool. Holder name in the badge database pending update (backlog ticket BA-118).",
+     "table": null
+    },
+    "released_at_turn": 5,
+    "trigger": "requested",
+    "transcript_version": 13,
+    "event_seq": 22
+   },
+   {
+    "record_id": "rec-04",
+    "title": "Email from Rafael Haddad to the review office, 14 March 2026",
+    "kind": "record",
+    "doc_kind": "email",
+    "date": null,
+    "content": {
+     "body": "My old card was replaced on 28 February when my photo was redone; I have the new one with me. I have not been in the building since 6 March and I do not know where the old card went.",
+     "table": null
+    },
+    "released_at_turn": 7,
+    "trigger": "requested",
+    "transcript_version": 18,
+    "event_seq": 30
+   }
+  ],
+  "requestable": [],
+  "finding": {
+   "label": "truthful",
+   "likelihood": "unlikely",
+   "confidence": "high",
+   "basis_flag_refs": [],
+   "cited_turns": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "cited_records": [
+    "doc-01",
+    "doc-02",
+    "doc-03",
+    "rec-01",
+    "rec-02",
+    "rec-03"
+   ],
+   "corroboration_needed": [],
+   "rationale": "The subject's account is consistent with all released records and earlier answers, and the main gaps are closed.",
+   "alternative_explanations": null,
+   "last_revised_turn": null
+  },
+  "commitment_hash": "409bc1ce309fc277b2aef03ba3752bccaecd122b759d00164f5fa9d81e781a76",
+  "last_seq": 50,
+  "channel": "text",
+  "turns": [
+   {
+    "turn_no": 1,
+    "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the morning of 13 March 2026?",
+    "source": "investigator",
+    "answer": "I was on call that morning, and I arrived at the office just after seven because I was paged about a downed switch. Since my own access to Network Room N-3 had been removed for overdue training, I signed out the spare card A-2291 from the lockbox under OP-7. I used that card to enter N-3, where I successfully power-cycled the switch, and I returned the card to the lockbox before eight. It makes me uneasy to recount these details, but I am certain no one else from my team was present during that time.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:24.296Z",
+    "answer_version": 2,
+    "question_seq": 1
+   },
+   {
+    "turn_no": 2,
+    "question": "What did you do after the SW-2B alert paged you at 06:55?",
+    "source": "investigator",
+    "answer": "After I received the page about SW-2B being down at 06:55, I traveled to the Halvern Street Annex. I entered through the lobby just after seven. Once inside, I signed out the spare card A-2291 from the lockbox located under OP-7 to gain access to the room. I am not entirely sure if I filled in the sign-out log time column immediately or after I had already entered N-3.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:29.949Z",
+    "answer_version": 4,
+    "question_seq": 4
+   },
+   {
+    "turn_no": 3,
+    "question": "How did you get into Network Room N-3 at 07:12?",
+    "source": "investigator",
+    "answer": "I gained entry to the Network Room N-3 at 07:12 by using the spare card A-2291. As I mentioned, I signed this card out from the lockbox under OP-7 just after my arrival. My own credentials for the room were not working due to the training issue, so this was the only way for me to address the switch outage.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:34.923Z",
+    "answer_version": 6,
+    "question_seq": 7
+   },
+   {
+    "turn_no": 4,
+    "question": "The incident ticket INC-0313-004 for the SW-2B outage has notes on it. What did you record in the ticket about the outage and how you reached the switch?",
+    "source": "investigator",
+    "answer": "In the incident ticket I opened around half past seven, I recorded that the SW-2B switch went down. I noted that I addressed the outage by using the spare card A-2291, which I obtained from the lockbox under OP-7. That was the extent of the details I included regarding my access to the room.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:45.845Z",
+    "answer_version": 9,
+    "question_seq": 12
+   },
+   {
+    "turn_no": 5,
+    "question": "Where did card A-2291 come from, and how did you come to have it?",
+    "source": "investigator",
+    "answer": "I obtained the spare card A-2291 directly from the designated lockbox located under OP-7. I signed it out from that location myself just after I arrived at the office shortly after seven. This was the necessary procedure for me to access Network Room N-3 while my own credentials were not active.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:53.883Z",
+    "answer_version": 12,
+    "question_seq": 16
+   },
+   {
+    "turn_no": 6,
+    "question": "The IT lockbox sign-out sheet for March records spare cards taken out, and the badge office keeps an issue history for card A-2291. How was card A-2291 signed out that morning?",
+    "source": "investigator",
+    "answer": "I signed out card A-2291 by writing my details on the sign-out sheet located at the lockbox under OP-7. I know that I signed it out just after I arrived, but I am not sure whether I filled in the time column on the sheet before or after I went to N-3. That is how the log for that card would appear for the morning of March 13.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:07.722Z",
+    "answer_version": 15,
+    "question_seq": 23
+   },
+   {
+    "turn_no": 7,
+    "question": "Did you know your own N-3 access had been removed the evening before?",
+    "source": "investigator",
+    "answer": "Yes, I was aware that my access to Network Room N-3 had been taken off the evening before. I knew this was due to my recertification training being overdue. Because of this, I understood I needed to use the spare card from the lockbox to complete my work.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:18.640Z",
+    "answer_version": 17,
+    "question_seq": 27
+   },
+   {
+    "turn_no": 8,
+    "question": "Rafael Haddad replied to the review office about card A-2291 on 14 March. Did you have any contact with him about the card?",
+    "source": "investigator",
+    "answer": "I have not had any contact with Rafael regarding the spare card. Rafael is on leave this month, so I have not spoken with him at all about this matter. I do not know anything about his communications with the review office.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:25.187Z",
+    "answer_version": 20,
+    "question_seq": 31
+   },
+   {
+    "turn_no": 9,
+    "question": "What did you do with card A-2291 after the switch was back up at 07:26?",
+    "source": "investigator",
+    "answer": "Once the switch was back up, I left the room and immediately returned the card to the lockbox under OP-7. I recall doing this before eight that morning, though I do not know the exact time. That was the end of my use of the card for that incident.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:33.949Z",
+    "answer_version": 22,
+    "question_seq": 35
+   },
+   {
+    "turn_no": 10,
+    "question": "Did anyone approve your use of that card to enter N-3?",
+    "source": "investigator",
+    "answer": "No, no one approved my use of the spare card to enter the room. I was the one on call that morning, and since the switch needed to be fixed immediately, I just followed the standard procedure of using the lockbox. I did not ask for specific approval for that card because it is there for exactly this kind of situation. I did not know it had ever been anyone's personal card before that, either.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:42.522Z",
+    "answer_version": 24,
+    "question_seq": 39
+   },
+   {
+    "turn_no": 11,
+    "question": "Have you completed the recertification training since then?",
+    "source": "investigator",
+    "answer": "I do not have that information, as I am unsure if I have completed the training requirements since the incident occurred. My current status regarding the training is not something I can confirm right now. I have been focused on my regular duties since that day.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:47.952Z",
+    "answer_version": 26,
+    "question_seq": 42
+   },
+   {
+    "turn_no": 12,
+    "question": "Is there anything else about that morning that you think I should know?",
+    "source": "investigator",
+    "answer": "I have shared everything I know regarding the outage and my use of the spare card that morning. I was alone in the room and no other staff from my team were on-site yet. I followed the standard procedure for the on-call rotation to address the issue. I have no other information to provide.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:53.699Z",
+    "answer_version": 28,
+    "question_seq": 45
+   }
+  ],
+  "voice_exchanges": [],
+  "cards": [
+   {
+    "turn_no": 1,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t01",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "An open and neutral initial question inviting the subject to describe their morning activities."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you walk me through how you handled the page for the downed switch after you arrived at the office?",
+      "tactic": "funnel_probe",
+      "purpose": "Probe the details of the subject's actions and response to the switch alert before introducing records.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify the lockbox sign-out sheet for card A-2291",
+       "check incident ticket INC-0313-004"
+      ],
+      "rationale": "The subject provided an initial account acknowledging use of the spare card due to removed access, which requires corroboration against logs and ticket records.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 1,
+     "turn_no": 1,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2089,
+     "work_item": "07b51d16-b1d0-4741-b12f-255aab22fc89",
+     "transcript_version": 2
+    },
+    "event_seq": 3
+   },
+   {
+    "turn_no": 2,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t02",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked an open question about the subject's actions after receiving the page."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you walk me through the exact procedure you followed when you signed out card A-2291 from the lockbox under OP-7?",
+      "tactic": "funnel_probe",
+      "purpose": "Explore the details of the card sign-out process before introducing records.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify the lockbox sign-out sheet for card A-2291",
+       "check incident ticket INC-0313-004"
+      ],
+      "rationale": "The subject gave an account of responding to the page and signing out the spare card, but verification against the sign-out sheet and incident ticket is still required.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 2,
+     "turn_no": 2,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 1904,
+     "work_item": "87306d0f-5ee4-48eb-a232-b11b71f96c77",
+     "transcript_version": 4
+    },
+    "event_seq": 6
+   },
+   {
+    "turn_no": 3,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t03",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about how entry was gained at 07:12."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you describe the exact incident ticket you worked on for the switch SW-2B outage that morning?",
+      "tactic": "evidence_topic",
+      "purpose": "Probe for verifiable details regarding the incident ticket before requesting it.",
+      "record_request": "rec-03"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify incident ticket INC-0313-004",
+       "check the lockbox sign-out sheet"
+      ],
+      "rationale": "The subject maintains a consistent account of using card A-2291 due to inactive personal credentials, but incident records and lockbox logs must be reviewed to verify the details.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 3,
+     "turn_no": 3,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2151,
+     "work_item": "0f217be2-cf7b-448b-af27-b2ec5c637ea6",
+     "transcript_version": 6
+    },
+    "event_seq": 9
+   },
+   {
+    "turn_no": 4,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t04",
+     "question": {
+      "question_type": "probing",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks the subject to elaborate on the details recorded in incident ticket INC-0313-004."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you walk me through the exact procedure for signing out card A-2291 from the IT lockbox?",
+      "tactic": "evidence_topic",
+      "purpose": "Explore the topic of the lockbox sign-out procedure before presenting the sign-out record.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "verify the IT lockbox spare-card sign-out sheet",
+       "check badge administration records for card A-2291"
+      ],
+      "rationale": "The subject's account aligns with incident ticket INC-0313-004, but physical lockbox records and badge administration details are still needed to fully verify the access event.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 4,
+     "turn_no": 4,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2080,
+     "work_item": "1ce38a67-b67f-4328-8749-1620a061b7f0",
+     "transcript_version": 9
+    },
+    "event_seq": 14
+   },
+   {
+    "turn_no": 5,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t05",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a closed question about the origin and acquisition of card A-2291."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you sign your name and time on the IT lockbox spare-card sign-out sheet when you took card A-2291?",
+      "tactic": "evidence_topic",
+      "purpose": "Probe the topic of the lockbox sign-out sheet before introducing record rec-01.",
+      "record_request": "rec-01"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "cited_records": [
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "verify the IT lockbox spare-card sign-out sheet",
+       "check badge administration records for card A-2291"
+      ],
+      "rationale": "The subject consistently maintains having signed out card A-2291 from the IT lockbox per OP-7, but physical sign-out logs and badge administration records must be reviewed to confirm.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 5,
+     "turn_no": 5,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2266,
+     "work_item": "f10db6a7-08c5-4651-bf76-ea6ea53b7b59",
+     "transcript_version": 12
+    },
+    "event_seq": 19
+   },
+   {
+    "turn_no": 7,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t07",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a clear, closed question about the subject's prior awareness of access removal."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you review the email from Rafael Haddad dated March 14 regarding card A-2291?",
+      "tactic": "evidence_specific",
+      "purpose": "Introduce the newly available email record regarding the card assignment to test the subject's account further.",
+      "record_request": "rec-04"
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject consistently acknowledges their access status and correctly describes following OP-7 procedures, which are fully corroborated by the badge records, incident ticket, and sign-out sheet.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 6,
+     "turn_no": 7,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2288,
+     "work_item": "71e0c934-a334-40e7-8bc0-a26694545713",
+     "transcript_version": 17
+    },
+    "event_seq": 29
+   },
+   {
+    "turn_no": 8,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t08",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately explored potential contact with the card holder regarding the review office email."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you summarize how you returned card A-2291 to the lockbox after resolving the switch issue?",
+      "tactic": "summary_check",
+      "purpose": "Verify the final step of the subject's account regarding the spare card.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account remains consistent throughout the interview and is fully corroborated by all released records and logs.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 7,
+     "turn_no": 8,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2070,
+     "work_item": "11b0a67e-79fa-4480-a44e-842fd456b0ac",
+     "transcript_version": 20
+    },
+    "event_seq": 33
+   },
+   {
+    "turn_no": 9,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t09",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open follow-up about the return of the card after the outage resolved."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you briefly summarize how you completed the incident ticket and returned the spare card before resuming your normal shift tasks?",
+      "tactic": "summary_check",
+      "purpose": "Confirm the final steps of the morning procedure to complete the account.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of returning the card to the lockbox after the switch became reachable is fully consistent with the sign-out sheet and incident records.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 8,
+     "turn_no": 9,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2125,
+     "work_item": "1608bd44-a525-4afc-b91e-bf5ed8c23c1c",
+     "transcript_version": 22
+    },
+    "event_seq": 37
+   },
+   {
+    "turn_no": 10,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t10",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked a direct closed question about whether anyone approved the card use."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you complete your overdue recertification training after the incident on 13 March?",
+      "tactic": "funnel_probe",
+      "purpose": "Verify training completion timing and administrative follow-up.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of using the spare card from the lockbox under OP-7 due to an on-call emergency is fully consistent with the released records and earlier answers.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 9,
+     "turn_no": 10,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2144,
+     "work_item": "6a353bec-4e35-4f23-b931-0b5db89d0120",
+     "transcript_version": 24
+    },
+    "event_seq": 41
+   },
+   {
+    "turn_no": 11,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t11",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a closed question about the completion of the overdue recertification training."
+     },
+     "answer_category": "explicit_uncertainty",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you check your training status and let us know when it was completed?",
+      "tactic": "verifiable_detail",
+      "purpose": "Verify training status completion date.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account is consistent with the released records and earlier answers, and the main gaps are closed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 10,
+     "turn_no": 11,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2238,
+     "work_item": "522518fa-bba4-4363-b5c6-9fa8c8d25d78",
+     "transcript_version": 26
+    },
+    "event_seq": 44
+   },
+   {
+    "turn_no": 12,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t12",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The question is a standard open closing inquiry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you confirm if you have finished the required recertification training now?",
+      "tactic": "funnel_probe",
+      "purpose": "To close out remaining administrative details regarding training status.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account is consistent with all released records and earlier answers, and the main gaps are closed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 11,
+     "turn_no": 12,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2027,
+     "work_item": "22a0adfd-8d84-4f83-bfa8-19dd587b9ecc",
+     "transcript_version": 28
+    },
+    "event_seq": 47
+   }
+  ],
+  "updates": [
+   {
+    "turn_no": 3,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t03",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify incident ticket INC-0313-004",
+       "check the lockbox sign-out sheet"
+      ],
+      "rationale": "The subject has provided a consistent account of signing out card A-2291 due to inactive personal credentials, but records are needed to verify the lockbox sign-out and incident response.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 4,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t04",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "verify the IT lockbox spare-card sign-out sheet",
+       "check badge administration records for card A-2291"
+      ],
+      "rationale": "The subject's account is consistent with incident ticket INC-0313-004, but physical lockbox records and badge administration details remain unverified.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 5,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t05",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "cited_records": [
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "verify the IT lockbox spare-card sign-out sheet for March 2026",
+       "check badge administration records for card A-2291"
+      ],
+      "rationale": "The subject consistently describes signing out spare card A-2291 from the IT lockbox under OP-7, which matches ticket INC-0313-004, but physical sign-out logs and badge administration records are still needed for verification.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t03",
+        "t04"
+       ]
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Lockbox sign-out confirmation for card A-2291",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-01",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 6,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t06",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of obtaining spare card A-2291 from the lockbox under OP-7 is fully corroborated by the incident ticket, the OP-7 outage procedure, the lockbox sign-out sheet showing the correct time and card, and the badge administration record confirming the card was in the spare pool.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t03",
+        "t04"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 8,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t08",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of signing out card A-2291 from the IT lockbox under OP-7 and using it to address the SW-2B outage is fully supported by the incident ticket, sign-out sheet, badge administration record, and badge logs.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t05",
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t08"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t03",
+        "t05"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 9,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t09",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of returning the card to the lockbox after the switch became reachable is fully consistent with the sign-out sheet, badge logs, and incident records.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t05",
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t08"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t03",
+        "t05"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 12,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t12",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account remains entirely consistent with all released records, badge logs, and incident documentation.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t05",
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t08"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t02",
+        "t03",
+        "t05"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   }
+  ],
+  "coach_failures": [
+   {
+    "turn_no": 6,
+    "reason": "repair_failed"
+   }
+  ]
+ },
+ "debrief": {
+  "rubric": {
+   "total": 100,
+   "scorable": true,
+   "dimensions": [
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "1a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1b",
+       "turns": [
+        7,
+        8,
+        10,
+        11
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "1c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D1"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "2a",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2b",
+       "turns": [
+        11
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "2c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "2d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D2"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "3a",
+       "turns": [
+        2
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3b",
+       "turns": [
+        9
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3c",
+       "turns": [
+        4,
+        5,
+        6,
+        7
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3d",
+       "turns": [
+        4,
+        5,
+        6
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3e",
+       "turns": [],
+       "result": "na"
+      }
+     ],
+     "dim_id": "D3"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "4a",
+       "turns": [
+        10
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4b",
+       "turns": [
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4c",
+       "turns": [
+        5
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4d",
+       "turns": [
+        12
+       ],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D4"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "5a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5b",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5c",
+       "turns": [
+        1
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "5d",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5e",
+       "turns": [],
+       "result": "na"
+      }
+     ],
+     "dim_id": "D5"
+    }
+   ],
+   "unscorable_reason": null
+  },
+  "scored": true,
+  "outcome": {
+   "role": "truthful",
+   "resolution": "SW-2B went down at 06:55. Lindqvist, on call and with her own N-3 access suspended pending overdue training, signed out lockbox spare card A-2291 under OP-7 at 07:09, entered N-3 at 07:12, power-cycled the switch and recorded the spare card in her ticket. A-2291 had been Haddad's old card, moved to the spare pool on 1 March, but the badge database still shows his name. Misleading circumstances: the card listed to an employee on leave, her suspended access, and her privacy about her performance plan. The corroborating records open only from exchange 5.",
+   "committed_label": "truthful",
+   "correct_finding": "truthful"
+  },
+  "provenance": {
+   "rubric_sha256": "a2eb8ba8a38a423728c2ea5599d0ca384019cf8469b48b06c363e6ed05966ac7",
+   "scorer_git_sha": "e60927e6e9f8e6b6e8acff23d70b921eb6699f99",
+   "r3_prompt_sha256": [
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c",
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c"
+   ],
+   "referee_model_ids": [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite"
+   ]
+  },
+  "scorecards": {
+   "learning": {
+    "key_questions": [
+     {
+      "intent": "Establish how she entered N-3: the card used and where it came from.",
+      "addressed_turns": [
+       2,
+       3,
+       4,
+       5,
+       6
+      ]
+     },
+     {
+      "intent": "Establish the state of her own access.",
+      "addressed_turns": [
+       3,
+       5,
+       7
+      ]
+     },
+     {
+      "intent": "Establish which outage-procedure steps she followed and where they are recorded.",
+      "addressed_turns": [
+       2,
+       3,
+       4,
+       5,
+       6
+      ]
+     },
+     {
+      "intent": "Establish where card A-2291 is now.",
+      "addressed_turns": [
+       9
+      ]
+     },
+     {
+      "intent": "Establish who else was present.",
+      "addressed_turns": []
+     }
+    ],
+    "evidence_coverage": {
+     "addressed": 4,
+     "key_facts": 5
+    }
+   },
+   "detection": {
+    "unsupported": {
+     "claim": 0,
+     "citation": 0,
+     "demeanor": 0
+    },
+    "unique_flags": 0,
+    "evasion_broad": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "evasion_strict": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "coach_last_label": "truthful"
+   },
+   "subject_realism": {
+    "turns": 12,
+    "failures": {
+     "F1": 0,
+     "F3": 0,
+     "F5": 0,
+     "F6": 0,
+     "F2_F4": 0
+    },
+    "compliant": 12
+   }
+  },
+  "session_id": "805674b5-dbd9-49a3-9734-3e96be8e08e1",
+  "schema_version": "debrief.v1"
+ }
+}

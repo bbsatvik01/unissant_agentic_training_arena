@@ -1,0 +1,4501 @@
+{
+ "format": "arena.recording.v1",
+ "trial_id": "64d80602-285e-4373-b8e8-12427af0c454",
+ "case": {
+  "case_id": "C-H3N8RW5B",
+  "title": "Records vault entry during a busy shift",
+  "objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+  "domain": "facility_access",
+  "difficulty_level": 2,
+  "subject": {
+   "display_name": "Jordan Pell",
+   "position": "Facilities Technician II"
+  },
+  "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+  "initial_documents": [
+   {
+    "doc_id": "doc-01",
+    "kind": "access_exception_report",
+    "title": "Access exception report, Records Vault B-12, 12 March 2026",
+    "content": {
+     "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
+     "table": {
+      "rows": [
+       [
+        "14:07:12",
+        "B-12 main door",
+        "Badge 30418 (J. Pell)",
+        "Access granted"
+       ],
+       [
+        "14:09:40",
+        "B-12 main door",
+        "-",
+        "Door held open, alarm raised"
+       ],
+       [
+        "14:12:05",
+        "B-12 main door",
+        "-",
+        "Door closed, alarm cleared"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Door",
+       "Credential",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-02",
+    "kind": "policy_excerpt",
+    "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+    "content": {
+     "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+    }
+   },
+   {
+    "doc_id": "doc-03",
+    "kind": "staffing_note",
+    "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+    "content": {
+     "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "status": "running",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 0,
+  "exchanges_cap": 12,
+  "released": [],
+  "requestable": [
+   {
+    "record_id": "rec-01",
+    "kind": "work_order",
+    "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+    "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-02",
+    "kind": "dispatch_log",
+    "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+    "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-03",
+    "kind": "alarm_log",
+    "title": "Building environmental alarm history, B wing, 12 March 2026",
+    "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-04",
+    "kind": "seal_audit",
+    "title": "Records Vault B-12 seal audit, 12 March 2026",
+    "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+    "requestable_after_exchanges": 6,
+    "date": null
+   }
+  ],
+  "finding": null,
+  "commitment_hash": null,
+  "last_seq": 0,
+  "channel": "text",
+  "turns": [],
+  "voice_exchanges": [],
+  "cards": [],
+  "updates": [],
+  "coach_failures": []
+ },
+ "events": [
+  {
+   "at_ms": 253,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:20.840Z",
+    "transcript_version": 1,
+    "seq": 1,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 1,
+     "text": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 253,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:20.840Z",
+    "transcript_version": 1,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 3350,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:23.937Z",
+    "transcript_version": 2,
+    "seq": 2,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 1,
+     "text": "We were two technicians down that shift, so things were pretty busy. Ines radioed me about a humidity alarm in the B wing at B-10, so I went over and reset the dehumidifier until the alarm cleared.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:23.937Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3350,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:23.937Z",
+    "transcript_version": 2,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 5811,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:26.398Z",
+    "transcript_version": 2,
+    "seq": 3,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 1,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t01",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked an open, neutral initial question about the subject's activities."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did your duties take you to any other rooms in the B wing that afternoon?",
+       "tactic": "account_first_open",
+       "purpose": "To let the subject provide their full account of B wing locations visited before introducing any specific records about B-12.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify the work orders and access records for 12 March 2026"
+       ],
+       "rationale": "The interview has just begun and the subject describes general duties during a short-staffed shift, but the specific B-12 entry has not yet been addressed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 1,
+      "turn_no": 1,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2073,
+      "work_item": "6094d065-2cdf-448e-824a-bc189ba7c542",
+      "transcript_version": 2
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 6647,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:27.234Z",
+    "transcript_version": 3,
+    "seq": 4,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 2,
+     "text": "What did you do once you were inside B-12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 6647,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:27.234Z",
+    "transcript_version": 3,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 8738,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:29.325Z",
+    "transcript_version": 4,
+    "seq": 5,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 2,
+     "text": "It honestly makes me uneasy talking about this, but I really just went in there to quickly check the sensor readings since I was already nearby in the B wing.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:29.325Z"
+    }
+   }
+  },
+  {
+   "at_ms": 8738,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:29.325Z",
+    "transcript_version": 4,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 11418,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:32.005Z",
+    "transcript_version": 4,
+    "seq": 6,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 2,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t02",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [
+        "presupposes_fact"
+       ],
+       "assessment": "The question presupposes that the subject went inside B-12 before the subject had explicitly stated doing so."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "What specific sensor readings were you checking when you went into Records Vault B-12?",
+       "tactic": "funnel_probe",
+       "purpose": "Probe the details of the stated reason for entering B-12 before presenting work order records.",
+       "record_request": "rec-01"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify work orders assigned on 12 March 2026",
+        "check facility radio log for B wing communications"
+       ],
+       "rationale": "The subject acknowledges entering B-12 to check sensor readings, but work orders and sensor records must be reviewed to verify whether this task was authorized.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 2,
+      "turn_no": 2,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2281,
+      "work_item": "c9940eb7-fa1c-4c5f-a2cb-94e46a3fb4c8",
+      "transcript_version": 4
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 12573,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:33.160Z",
+    "transcript_version": 5,
+    "seq": 7,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-01",
+     "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "work_order",
+     "date": null,
+     "content": {
+      "body": "2 work orders.",
+      "table": {
+       "columns": [
+        "Work order",
+        "Created",
+        "Created by",
+        "Location",
+        "Task",
+        "Status"
+       ],
+       "rows": [
+        [
+         "WO-4469",
+         "13:35",
+         "I. Marrow",
+         "A-wing lobby",
+         "Replace entrance mat",
+         "Closed 13:52"
+        ],
+        [
+         "WO-4478",
+         "14:31",
+         "I. Marrow",
+         "B-10 Supply Room",
+         "Humidity alarm; dehumidifier reset",
+         "Closed 14:31"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 2,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 13025,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:33.612Z",
+    "transcript_version": 6,
+    "seq": 8,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 3,
+     "text": "The work-order export for 12 March lists the work orders assigned to you that day. Was there a work order for the work you did in B-12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 13025,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:33.612Z",
+    "transcript_version": 6,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 14964,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:35.551Z",
+    "transcript_version": 7,
+    "seq": 9,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 3,
+     "text": "I was just handling the humidity alarm at B-10 as I mentioned, so I didn't have a specific work order for being in the vault.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:35.551Z"
+    }
+   }
+  },
+  {
+   "at_ms": 14964,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:35.551Z",
+    "transcript_version": 7,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 17445,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:38.032Z",
+    "transcript_version": 7,
+    "seq": 10,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 3,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t03",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a closed question about whether a work order existed for the B-12 entry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did anyone else authorize you to enter Records Vault B-12 on that shift?",
+       "tactic": "funnel_probe",
+       "purpose": "Probe for any supervisor dispatch or verbal authorization covering the vault entry given the lack of a work order.",
+       "record_request": "rec-02"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "check facility radio log for B wing communications",
+        "verify Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject admits to entering B-12 without a work order, but claims it was to check sensor readings near B-10. Radio logs and seal audits are needed to verify if the entry was authorized.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 3,
+      "turn_no": 3,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2099,
+      "work_item": "0ed9f2bb-9d77-4c4b-bcbc-a3fef73a227b",
+      "transcript_version": 7
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 20521,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:41.108Z",
+    "transcript_version": 7,
+    "seq": 11,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 3,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t03",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "verify facility radio log for B wing communications",
+        "verify Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject admits entering B-12 without an assigned work order, claiming it was to check sensor readings near the B-10 area. Further records are needed to verify whether this entry was coordinated or authorized.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 instead of B-10",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-02",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 21434,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:42.021Z",
+    "transcript_version": 8,
+    "seq": 12,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-02",
+     "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+     "kind": "record",
+     "doc_kind": "dispatch_log",
+     "date": null,
+     "content": {
+      "body": "Channel 2 is recorded and transcribed automatically.",
+      "table": {
+       "columns": [
+        "Time",
+        "From",
+        "To",
+        "Message"
+       ],
+       "rows": [
+        [
+         "14:01",
+         "I. Marrow",
+         "J. Pell",
+         "Humidity alarm in the B wing, B-10. Can you take it?"
+        ],
+        [
+         "14:01",
+         "J. Pell",
+         "I. Marrow",
+         "On my way."
+        ],
+        [
+         "14:05",
+         "J. Pell",
+         "I. Marrow",
+         "B-10 done."
+        ],
+        [
+         "14:40",
+         "I. Marrow",
+         "K. Okafor-Lyle",
+         "Loading dock door is sticking again."
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 3,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 21435,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:42.022Z",
+    "transcript_version": 8,
+    "seq": 13,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-03",
+     "title": "Building environmental alarm history, B wing, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "alarm_log",
+     "date": null,
+     "content": {
+      "body": "No other B-wing alarms on 12 March.",
+      "table": {
+       "columns": [
+        "Room",
+        "Alarm",
+        "Raised",
+        "Cleared"
+       ],
+       "rows": [
+        [
+         "B-03 Mail room",
+         "Temperature high",
+         "11:20",
+         "11:41"
+        ],
+        [
+         "B-10 Supply room",
+         "Humidity high (71% RH, limit 55%)",
+         "13:58",
+         "14:04"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 3,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 21887,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:42.474Z",
+    "transcript_version": 9,
+    "seq": 14,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 4,
+     "text": "The facilities radio log for channel 2 between 13:45 and 14:45 records the calls on that channel. Who asked you to go to B-12, and what were you asked to do?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 21887,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:42.474Z",
+    "transcript_version": 9,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 23868,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:44.455Z",
+    "transcript_version": 10,
+    "seq": 15,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 4,
+     "text": "Nobody asked me to go into B-12. I was just in the area because we were two technicians down, and I decided to check on the sensors while I was finishing up the work in the B wing.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:44.455Z"
+    }
+   }
+  },
+  {
+   "at_ms": 23868,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:44.455Z",
+    "transcript_version": 10,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 28779,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:49.366Z",
+    "transcript_version": 10,
+    "seq": 16,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 4,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t04",
+      "question": {
+       "question_type": "probing",
+       "neutrality_issues": [
+        "presupposes_fact"
+       ],
+       "assessment": "The investigator probes the radio log regarding B-12 while presupposing someone asked the subject to go there."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "The radio log shows your exchange with Ines about B-10 ended at 14:05, but badge logs show you entering B-12 at 14:07. What did you do between finishing B-10 and entering B-12?",
+       "tactic": "evidence_specific",
+       "purpose": "Present the specific timing discrepancy between finishing B-10 on the radio log and entering B-12 on the badge log.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02"
+       ],
+       "corroboration_needed": [
+        "verify Records Vault B-12 seal audit",
+        "check environmental sensor logs for B-12"
+       ],
+       "rationale": "The subject acknowledges entering B-12 without a work order or supervisor request, attributing it to checking sensors while nearby. While this violates policy excerpt doc-02, it remains unconfirmed whether any records were disturbed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 4,
+      "turn_no": 4,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 4455,
+      "work_item": "cdb3cae7-f8b4-49e4-9543-f0a36f3599bf",
+      "transcript_version": 10
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 31776,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:52.363Z",
+    "transcript_version": 10,
+    "seq": 17,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 4,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t04",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02"
+       ],
+       "corroboration_needed": [
+        "verify Records Vault B-12 seal audit",
+        "check environmental sensor logs for B-12"
+       ],
+       "rationale": "The subject admits entering B-12 without a work order or supervisor request, confirming an access exception under policy. However, whether anything was disturbed remains unconfirmed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 instead of B-10",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-03",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 32332,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:52.919Z",
+    "transcript_version": 11,
+    "seq": 18,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 5,
+     "text": "The B-wing alarm history lists the alarms raised in B-12 that afternoon. What did the panel by the vault door show when you got there?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 32332,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:52.919Z",
+    "transcript_version": 11,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 34296,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:54.883Z",
+    "transcript_version": 12,
+    "seq": 19,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 5,
+     "text": "When I arrived, the panel was just showing a general status light, and I didn't notice any specific alarms going off at the door at that moment.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:17:54.883Z"
+    }
+   }
+  },
+  {
+   "at_ms": 34296,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:54.883Z",
+    "transcript_version": 12,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 37076,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:57.663Z",
+    "transcript_version": 12,
+    "seq": 20,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 5,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t05",
+      "question": {
+       "question_type": "leading",
+       "neutrality_issues": [
+        "presupposes_fact"
+       ],
+       "assessment": "The question incorrectly implies that alarms were raised in B-12 according to the B-wing alarm history record."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you explain why you held the door to Records Vault B-12 open for nearly three minutes from 14:09 to 14:12?",
+       "tactic": "funnel_probe",
+       "purpose": "Address the uninvestigated access exception detail regarding why the vault door was held open.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "verify Records Vault B-12 seal audit",
+        "check environmental sensor logs for B-12"
+       ],
+       "rationale": "The subject admits entering B-12 without a work order or supervisor request, confirming an access exception, but the reason for holding the door open remains unexamined.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 5,
+      "turn_no": 5,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2314,
+      "work_item": "058999f6-37a0-4189-a7f2-a3b3bdc906b8",
+      "transcript_version": 12
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 37984,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:58.571Z",
+    "transcript_version": 13,
+    "seq": 21,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 6,
+     "text": "Why was the vault door held open from 14:09 to 14:12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 37984,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:58.571Z",
+    "transcript_version": 13,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 38136,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:17:58.723Z",
+    "transcript_version": 14,
+    "seq": 22,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-05",
+     "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+     "kind": "record",
+     "doc_kind": "supervisor_statement",
+     "date": null,
+     "content": {
+      "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days.",
+      "table": null
+     },
+     "released_at_turn": 5,
+     "trigger": "scheduled"
+    }
+   }
+  },
+  {
+   "at_ms": 40007,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:00.594Z",
+    "transcript_version": 15,
+    "seq": 23,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 6,
+     "text": "I'm not exactly sure why the door stayed open that long, honestly. It was just a quiet afternoon and I was busy looking at the sensors inside.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:00.594Z"
+    }
+   }
+  },
+  {
+   "at_ms": 40007,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:00.594Z",
+    "transcript_version": 15,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 43224,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:03.811Z",
+    "transcript_version": 15,
+    "seq": 24,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 6,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t06",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately asks an open question about the specific unexcused door-holding incident."
+      },
+      "answer_category": "possible_evasion",
+      "flags": [
+       {
+        "kind": "possible_evasion",
+        "turn_id": "t06",
+        "quote": "It was just a quiet afternoon and I was busy looking at the sensors inside.",
+        "missing_fact": "the reason the vault door was held open for three minutes",
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": null,
+        "conflict_record_quote": null,
+        "flag_ref": "t06.f1"
+       }
+      ],
+      "follow_up": {
+       "question": "Facility standard four point two requires staff to stay at the open door and not hold it longer than sixty seconds. What were you doing inside that required leaving the door open for three minutes?",
+       "tactic": "evidence_specific",
+       "purpose": "Confront the subject with the specific duration rule breach and ask for an explanation.",
+       "record_request": "rec-04"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [
+        "t06.f1"
+       ],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "verify Records Vault B-12 seal audit",
+        "check environmental sensor logs for B-12"
+       ],
+       "rationale": "The subject admits to entering B-12 without a work order or supervisor request, and evades explaining why the vault door was held open for three minutes in violation of facility standards.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 6,
+      "turn_no": 6,
+      "validation": {
+       "valid": true,
+       "flags": {
+        "t06.f1": {
+         "citation_ok": true,
+         "demeanor_based": false,
+         "duplicate": false
+        }
+       },
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2759,
+      "work_item": "7bee5325-f274-4e17-980f-6ad86492e0b2",
+      "transcript_version": 15
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 48437,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:09.024Z",
+    "transcript_version": 15,
+    "seq": 25,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 6,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t06",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [
+        "t06.f1"
+       ],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "verify Records Vault B-12 seal audit",
+        "check environmental sensor logs for B-12"
+       ],
+       "rationale": "The subject admits entering B-12 without an assigned work order or supervisor request and fails to explain why the vault door was held open for three minutes.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "raised_not_tested",
+        "turn_ids": [
+         "t01"
+        ]
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 without a work order",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 49447,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:10.034Z",
+    "transcript_version": 16,
+    "seq": 26,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-04",
+     "title": "Records Vault B-12 seal audit, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "seal_audit",
+     "date": null,
+     "content": {
+      "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; 213 match the register. Box ACQ-117 (Annex parking-lot resurfacing, bid evaluations): registered seal #55102, found seal #55419. Seal supply drawer log: seal #55419 removed at 14:15, no initials, no custodian release on file.",
+      "table": null
+     },
+     "released_at_turn": 6,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 49906,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:10.493Z",
+    "transcript_version": 17,
+    "seq": 27,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 7,
+     "text": "The end-of-day seal audit checked the sealed boxes in B-12 against the seal register and the seal supply drawer log. Did you handle any records boxes, seals or the seal drawer while you were in the vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 49906,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:10.493Z",
+    "transcript_version": 17,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 51845,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:12.432Z",
+    "transcript_version": 18,
+    "seq": 28,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 7,
+     "text": "I was just focusing on the sensors while I was in the vault, so I didn't have any reason to be handling boxes or the supply drawer.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:12.432Z"
+    }
+   }
+  },
+  {
+   "at_ms": 51845,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:12.432Z",
+    "transcript_version": 18,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 57877,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:18.464Z",
+    "transcript_version": 18,
+    "seq": 29,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 7,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t07",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator directly presents the seal audit findings regarding box ACQ-117 and the seal supply drawer log."
+      },
+      "answer_category": "contradiction",
+      "flags": [
+       {
+        "kind": "evidence_conflict",
+        "turn_id": "t07",
+        "quote": "I was just focusing on the sensors while I was in the vault, so I didn't have any reason to be handling boxes or the supply drawer.",
+        "missing_fact": null,
+        "conflict_turn_id": null,
+        "conflict_quote": null,
+        "conflict_record_id": "rec-04",
+        "conflict_record_quote": "Box ACQ-117: registered seal #55102, found seal #55419. Seal supply drawer log: seal #55419 removed at 14:15, no initials, no custodian release on file.",
+        "flag_ref": "t07.f1"
+       }
+      ],
+      "follow_up": {
+       "question": "How did seal number 55419 come to be used on box ACQ-117 during your time in the vault?",
+       "tactic": "clarify_contradiction",
+       "purpose": "Ask the subject to explain the direct contradiction between their denial of handling boxes or seals and the physical seal audit finding.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject entered B-12 without authorization, held the door open for three minutes, and explicitly denied handling any boxes or the seal supply drawer, which directly contradicts the post-audit finding that seal #55419 was removed and placed on box ACQ-117 during the access window.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 7,
+      "turn_no": 7,
+      "validation": {
+       "valid": true,
+       "flags": {
+        "t07.f1": {
+         "citation_ok": false,
+         "demeanor_based": false,
+         "duplicate": false
+        }
+       },
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 5510,
+      "work_item": "c5ba9664-cc5c-4436-87f8-eed30f4987df",
+      "transcript_version": 18
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 64333,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:24.920Z",
+    "transcript_version": 18,
+    "seq": 30,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 7,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t07",
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject entered B-12 without authorization, held the door open for three minutes, and explicitly denied handling any boxes or the seal supply drawer, which directly contradicts the post-audit finding that seal #55419 was removed and placed on box ACQ-117 during the access window.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "conflicts_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "raised_not_tested",
+        "turn_ids": [
+         "t01"
+        ]
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 without a work order",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+        "first_seen_turn": "t07"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_specific"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 64953,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:25.540Z",
+    "transcript_version": 19,
+    "seq": 31,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 8,
+     "text": "When did you leave B-12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 64953,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:25.540Z",
+    "transcript_version": 19,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 66809,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:27.396Z",
+    "transcript_version": 20,
+    "seq": 32,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 8,
+     "text": "Sometime after quarter past two, before half past.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:27.396Z"
+    }
+   }
+  },
+  {
+   "at_ms": 66809,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:27.396Z",
+    "transcript_version": 20,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 69523,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:30.110Z",
+    "transcript_version": 20,
+    "seq": 33,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 8,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t08",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question regarding the exit time from the vault."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "What specifically did you do in B-12 between 14:07 and 14:12 while the door was held open?",
+       "tactic": "funnel_probe",
+       "purpose": "Press for specific actions inside the vault during the door-held window.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject entered B-12 without authorization, held the door open, and denied handling boxes or seals, which is directly contradicted by the seal audit showing seal #55419 was swapped onto box ACQ-117 during the access window.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 8,
+      "turn_no": 8,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2247,
+      "work_item": "ba233a40-5648-4fc3-8ec7-591769b62f17",
+      "transcript_version": 20
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 70442,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:31.029Z",
+    "transcript_version": 21,
+    "seq": 34,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 9,
+     "text": "Did you contact anyone after you finished in the vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 70442,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:31.029Z",
+    "transcript_version": 21,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 72446,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:33.033Z",
+    "transcript_version": 22,
+    "seq": 35,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 9,
+     "text": "No, I didn't reach out to anyone when I came out of the vault. I just went back to my other tasks for the shift.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:33.033Z"
+    }
+   }
+  },
+  {
+   "at_ms": 72446,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:33.033Z",
+    "transcript_version": 22,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 77033,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:37.620Z",
+    "transcript_version": 22,
+    "seq": 36,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 9,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t09",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open follow-up question regarding contacts after leaving the vault."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "The seal audit for B-12 shows that seal #55419 was removed from the supply drawer without authorization and placed on box ACQ-117 while you were inside. How do you account for that?",
+       "tactic": "evidence_specific",
+       "purpose": "Present the specific evidence from the seal audit and ask the subject to account for the discrepancy.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject denies handling records boxes or seals, which conflicts directly with the seal audit showing an unauthorized seal replacement during the access window.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 9,
+      "turn_no": 9,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 4129,
+      "work_item": "46685f6d-ca44-4f4a-badc-f4604a207722",
+      "transcript_version": 22
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 80546,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:41.133Z",
+    "transcript_version": 22,
+    "seq": 37,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 9,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t09",
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject denies handling records boxes or seals, which conflicts directly with the seal audit showing an unauthorized seal replacement during the access window.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "conflicts_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "raised_not_tested",
+        "turn_ids": [
+         "t01"
+        ]
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 without a work order",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+        "first_seen_turn": "t07"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_specific"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 81154,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:41.741Z",
+    "transcript_version": 23,
+    "seq": 38,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 10,
+     "text": "How often does your work take you into the records vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 81154,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:41.741Z",
+    "transcript_version": 23,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 83241,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:43.828Z",
+    "transcript_version": 24,
+    "seq": 39,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 10,
+     "text": "I rarely go into the vault; I haven't been in there since last autumn.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:43.828Z"
+    }
+   }
+  },
+  {
+   "at_ms": 83241,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:43.828Z",
+    "transcript_version": 24,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 85949,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:46.536Z",
+    "transcript_version": 24,
+    "seq": 40,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 10,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t10",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about the frequency of the subject's vault visits."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Given that the seal audit showed a replaced seal on box ACQ-117 matching the exact time frame of your unauthorized vault access, how do you explain that discrepancy?",
+       "tactic": "evidence_specific",
+       "purpose": "Confront the subject directly with the specific seal audit evidence to address the core inconsistency in their account.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9,
+        10
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject denies handling records or seals despite badge logs placing them in the vault during the exact window an unauthorized seal replacement occurred on box ACQ-117.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 10,
+      "turn_no": 10,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2248,
+      "work_item": "32e5ee2f-cfed-4a9b-9a45-8337159f5a75",
+      "transcript_version": 24
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 86711,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:47.298Z",
+    "transcript_version": 25,
+    "seq": 41,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 11,
+     "text": "Who else knew you were going into B-12 that afternoon?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 86711,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:47.298Z",
+    "transcript_version": 25,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 88662,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:49.249Z",
+    "transcript_version": 26,
+    "seq": 42,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 11,
+     "text": "Nobody else knew I was going in there, as I didn't tell anyone.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:49.249Z"
+    }
+   }
+  },
+  {
+   "at_ms": 88662,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:49.249Z",
+    "transcript_version": 26,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 91519,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:52.106Z",
+    "transcript_version": 26,
+    "seq": 43,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 11,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t11",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question regarding who else knew about the entry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you explain why the seal audit for B-12 showed that seal number 55419 was removed from the supply drawer at 14:15 and used to replace the seal on box ACQ-117 while you were the only person inside the vault?",
+       "tactic": "evidence_specific",
+       "purpose": "Present the specific conflicting physical audit record to the subject for an explanation.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed from the supply drawer and replaced on a box during their unauthorized presence.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 11,
+      "turn_no": 11,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2399,
+      "work_item": "82f2c4c8-9a3a-4f58-8b76-5254d77c5b47",
+      "transcript_version": 26
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 92394,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:52.981Z",
+    "transcript_version": 27,
+    "seq": 44,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 12,
+     "text": "Is there anything else about that afternoon that you think I should know?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 92394,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:52.981Z",
+    "transcript_version": 27,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 94334,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:54.921Z",
+    "transcript_version": 28,
+    "seq": 45,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 12,
+     "text": "Like I said, we were two technicians down that day, so it was just a long, busy shift. I don't really have anything else to add about it.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:18:54.921Z"
+    }
+   }
+  },
+  {
+   "at_ms": 94334,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:54.921Z",
+    "transcript_version": 28,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 96984,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:18:57.571Z",
+    "transcript_version": 28,
+    "seq": 46,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 12,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t12",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open closing question inviting final input."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Is there anything else you want to add?",
+       "tactic": "summary_check",
+       "purpose": "Conclude the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 12,
+      "turn_no": 12,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2180,
+      "work_item": "ee2513b3-f857-483b-8da7-b9a376a91712",
+      "transcript_version": 28
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 100372,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:19:00.959Z",
+    "transcript_version": 28,
+    "seq": 47,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 12,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t12",
+      "finding": {
+       "label": "deceptive",
+       "likelihood": "very_likely",
+       "confidence": "high",
+       "basis_flag_refs": [
+        "t06.f1",
+        "t07.f1"
+       ],
+       "cited_turns": [
+        2,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "rec-04"
+       ],
+       "corroboration_needed": [
+        "verify B-12 security camera footage if available"
+       ],
+       "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+       "alternative_explanations": null,
+       "last_revised_turn": 7
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "conflicts_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01"
+        ]
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Reason for entering B-12 without a work order",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Reason for holding the B-12 door open for three minutes",
+        "first_seen_turn": "t02"
+       },
+       {
+        "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+        "first_seen_turn": "t07"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_specific"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 101620,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:19:02.207Z",
+    "transcript_version": 29,
+    "seq": 48,
+    "type": "finding.committed",
+    "data": {
+     "by": "investigator",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+      "alternative_explanations": null,
+      "last_revised_turn": null
+     },
+     "committed_at": "2026-10-12T19:19:02.207Z"
+    }
+   }
+  },
+  {
+   "at_ms": 101621,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:19:02.208Z",
+    "transcript_version": 29,
+    "seq": null,
+    "type": "trial.status",
+    "data": {
+     "status": "completed",
+     "reason_code": null
+    }
+   }
+  },
+  {
+   "at_ms": 101621,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:19:02.208Z",
+    "transcript_version": 29,
+    "seq": 49,
+    "type": "trial.finalized",
+    "data": {
+     "commitment_hash": "960b778f191da717499ea5adc92b2ff0b1754f8dbf7a8d28874c69d90a1de1b1"
+    }
+   }
+  },
+  {
+   "at_ms": 121786,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "64d80602-285e-4373-b8e8-12427af0c454",
+    "ts": "2026-10-12T19:19:22.373Z",
+    "transcript_version": 29,
+    "seq": 50,
+    "type": "debrief.ready",
+    "data": {
+     "session_id": "c830b964-3451-410e-96a7-fb11c7d97d1d"
+    }
+   }
+  }
+ ],
+ "final_snapshot": {
+  "status": "completed",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 12,
+  "exchanges_cap": 12,
+  "released": [
+   {
+    "record_id": "rec-01",
+    "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "work_order",
+    "date": null,
+    "content": {
+     "body": "2 work orders.",
+     "table": {
+      "columns": [
+       "Work order",
+       "Created",
+       "Created by",
+       "Location",
+       "Task",
+       "Status"
+      ],
+      "rows": [
+       [
+        "WO-4469",
+        "13:35",
+        "I. Marrow",
+        "A-wing lobby",
+        "Replace entrance mat",
+        "Closed 13:52"
+       ],
+       [
+        "WO-4478",
+        "14:31",
+        "I. Marrow",
+        "B-10 Supply Room",
+        "Humidity alarm; dehumidifier reset",
+        "Closed 14:31"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 2,
+    "trigger": "requested",
+    "transcript_version": 5,
+    "event_seq": 7
+   },
+   {
+    "record_id": "rec-02",
+    "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+    "kind": "record",
+    "doc_kind": "dispatch_log",
+    "date": null,
+    "content": {
+     "body": "Channel 2 is recorded and transcribed automatically.",
+     "table": {
+      "columns": [
+       "Time",
+       "From",
+       "To",
+       "Message"
+      ],
+      "rows": [
+       [
+        "14:01",
+        "I. Marrow",
+        "J. Pell",
+        "Humidity alarm in the B wing, B-10. Can you take it?"
+       ],
+       [
+        "14:01",
+        "J. Pell",
+        "I. Marrow",
+        "On my way."
+       ],
+       [
+        "14:05",
+        "J. Pell",
+        "I. Marrow",
+        "B-10 done."
+       ],
+       [
+        "14:40",
+        "I. Marrow",
+        "K. Okafor-Lyle",
+        "Loading dock door is sticking again."
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 3,
+    "trigger": "requested",
+    "transcript_version": 8,
+    "event_seq": 12
+   },
+   {
+    "record_id": "rec-03",
+    "title": "Building environmental alarm history, B wing, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "alarm_log",
+    "date": null,
+    "content": {
+     "body": "No other B-wing alarms on 12 March.",
+     "table": {
+      "columns": [
+       "Room",
+       "Alarm",
+       "Raised",
+       "Cleared"
+      ],
+      "rows": [
+       [
+        "B-03 Mail room",
+        "Temperature high",
+        "11:20",
+        "11:41"
+       ],
+       [
+        "B-10 Supply room",
+        "Humidity high (71% RH, limit 55%)",
+        "13:58",
+        "14:04"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 3,
+    "trigger": "requested",
+    "transcript_version": 8,
+    "event_seq": 13
+   },
+   {
+    "record_id": "rec-05",
+    "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+    "kind": "record",
+    "doc_kind": "supervisor_statement",
+    "date": null,
+    "content": {
+     "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days.",
+     "table": null
+    },
+    "released_at_turn": 5,
+    "trigger": "scheduled",
+    "transcript_version": 14,
+    "event_seq": 22
+   },
+   {
+    "record_id": "rec-04",
+    "title": "Records Vault B-12 seal audit, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "seal_audit",
+    "date": null,
+    "content": {
+     "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; 213 match the register. Box ACQ-117 (Annex parking-lot resurfacing, bid evaluations): registered seal #55102, found seal #55419. Seal supply drawer log: seal #55419 removed at 14:15, no initials, no custodian release on file.",
+     "table": null
+    },
+    "released_at_turn": 6,
+    "trigger": "requested",
+    "transcript_version": 16,
+    "event_seq": 26
+   }
+  ],
+  "requestable": [],
+  "finding": {
+   "label": "insufficient_evidence",
+   "likelihood": "roughly_even_chance",
+   "confidence": "high",
+   "basis_flag_refs": [],
+   "cited_turns": [
+    2,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "cited_records": [
+    "doc-01",
+    "doc-02",
+    "rec-04"
+   ],
+   "corroboration_needed": [
+    "verify B-12 security camera footage if available"
+   ],
+   "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+   "alternative_explanations": null,
+   "last_revised_turn": null
+  },
+  "commitment_hash": "960b778f191da717499ea5adc92b2ff0b1754f8dbf7a8d28874c69d90a1de1b1",
+  "last_seq": 49,
+  "channel": "text",
+  "turns": [
+   {
+    "turn_no": 1,
+    "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the afternoon of 12 March 2026?",
+    "source": "investigator",
+    "answer": "We were two technicians down that shift, so things were pretty busy. Ines radioed me about a humidity alarm in the B wing at B-10, so I went over and reset the dehumidifier until the alarm cleared.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:23.937Z",
+    "answer_version": 2,
+    "question_seq": 1
+   },
+   {
+    "turn_no": 2,
+    "question": "What did you do once you were inside B-12?",
+    "source": "investigator",
+    "answer": "It honestly makes me uneasy talking about this, but I really just went in there to quickly check the sensor readings since I was already nearby in the B wing.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:29.325Z",
+    "answer_version": 4,
+    "question_seq": 4
+   },
+   {
+    "turn_no": 3,
+    "question": "The work-order export for 12 March lists the work orders assigned to you that day. Was there a work order for the work you did in B-12?",
+    "source": "investigator",
+    "answer": "I was just handling the humidity alarm at B-10 as I mentioned, so I didn't have a specific work order for being in the vault.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:35.551Z",
+    "answer_version": 7,
+    "question_seq": 8
+   },
+   {
+    "turn_no": 4,
+    "question": "The facilities radio log for channel 2 between 13:45 and 14:45 records the calls on that channel. Who asked you to go to B-12, and what were you asked to do?",
+    "source": "investigator",
+    "answer": "Nobody asked me to go into B-12. I was just in the area because we were two technicians down, and I decided to check on the sensors while I was finishing up the work in the B wing.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:44.455Z",
+    "answer_version": 10,
+    "question_seq": 14
+   },
+   {
+    "turn_no": 5,
+    "question": "The B-wing alarm history lists the alarms raised in B-12 that afternoon. What did the panel by the vault door show when you got there?",
+    "source": "investigator",
+    "answer": "When I arrived, the panel was just showing a general status light, and I didn't notice any specific alarms going off at the door at that moment.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:17:54.883Z",
+    "answer_version": 12,
+    "question_seq": 18
+   },
+   {
+    "turn_no": 6,
+    "question": "Why was the vault door held open from 14:09 to 14:12?",
+    "source": "investigator",
+    "answer": "I'm not exactly sure why the door stayed open that long, honestly. It was just a quiet afternoon and I was busy looking at the sensors inside.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:00.594Z",
+    "answer_version": 15,
+    "question_seq": 21
+   },
+   {
+    "turn_no": 7,
+    "question": "The end-of-day seal audit checked the sealed boxes in B-12 against the seal register and the seal supply drawer log. Did you handle any records boxes, seals or the seal drawer while you were in the vault?",
+    "source": "investigator",
+    "answer": "I was just focusing on the sensors while I was in the vault, so I didn't have any reason to be handling boxes or the supply drawer.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:12.432Z",
+    "answer_version": 18,
+    "question_seq": 27
+   },
+   {
+    "turn_no": 8,
+    "question": "When did you leave B-12?",
+    "source": "investigator",
+    "answer": "Sometime after quarter past two, before half past.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:27.396Z",
+    "answer_version": 20,
+    "question_seq": 31
+   },
+   {
+    "turn_no": 9,
+    "question": "Did you contact anyone after you finished in the vault?",
+    "source": "investigator",
+    "answer": "No, I didn't reach out to anyone when I came out of the vault. I just went back to my other tasks for the shift.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:33.033Z",
+    "answer_version": 22,
+    "question_seq": 34
+   },
+   {
+    "turn_no": 10,
+    "question": "How often does your work take you into the records vault?",
+    "source": "investigator",
+    "answer": "I rarely go into the vault; I haven't been in there since last autumn.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:43.828Z",
+    "answer_version": 24,
+    "question_seq": 38
+   },
+   {
+    "turn_no": 11,
+    "question": "Who else knew you were going into B-12 that afternoon?",
+    "source": "investigator",
+    "answer": "Nobody else knew I was going in there, as I didn't tell anyone.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:49.249Z",
+    "answer_version": 26,
+    "question_seq": 41
+   },
+   {
+    "turn_no": 12,
+    "question": "Is there anything else about that afternoon that you think I should know?",
+    "source": "investigator",
+    "answer": "Like I said, we were two technicians down that day, so it was just a long, busy shift. I don't really have anything else to add about it.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:18:54.921Z",
+    "answer_version": 28,
+    "question_seq": 44
+   }
+  ],
+  "voice_exchanges": [],
+  "cards": [
+   {
+    "turn_no": 1,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t01",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked an open, neutral initial question about the subject's activities."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did your duties take you to any other rooms in the B wing that afternoon?",
+      "tactic": "account_first_open",
+      "purpose": "To let the subject provide their full account of B wing locations visited before introducing any specific records about B-12.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify the work orders and access records for 12 March 2026"
+      ],
+      "rationale": "The interview has just begun and the subject describes general duties during a short-staffed shift, but the specific B-12 entry has not yet been addressed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 1,
+     "turn_no": 1,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2073,
+     "work_item": "6094d065-2cdf-448e-824a-bc189ba7c542",
+     "transcript_version": 2
+    },
+    "event_seq": 3
+   },
+   {
+    "turn_no": 2,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t02",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [
+       "presupposes_fact"
+      ],
+      "assessment": "The question presupposes that the subject went inside B-12 before the subject had explicitly stated doing so."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "What specific sensor readings were you checking when you went into Records Vault B-12?",
+      "tactic": "funnel_probe",
+      "purpose": "Probe the details of the stated reason for entering B-12 before presenting work order records.",
+      "record_request": "rec-01"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify work orders assigned on 12 March 2026",
+       "check facility radio log for B wing communications"
+      ],
+      "rationale": "The subject acknowledges entering B-12 to check sensor readings, but work orders and sensor records must be reviewed to verify whether this task was authorized.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 2,
+     "turn_no": 2,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2281,
+     "work_item": "c9940eb7-fa1c-4c5f-a2cb-94e46a3fb4c8",
+     "transcript_version": 4
+    },
+    "event_seq": 6
+   },
+   {
+    "turn_no": 3,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t03",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a closed question about whether a work order existed for the B-12 entry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did anyone else authorize you to enter Records Vault B-12 on that shift?",
+      "tactic": "funnel_probe",
+      "purpose": "Probe for any supervisor dispatch or verbal authorization covering the vault entry given the lack of a work order.",
+      "record_request": "rec-02"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "check facility radio log for B wing communications",
+       "verify Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject admits to entering B-12 without a work order, but claims it was to check sensor readings near B-10. Radio logs and seal audits are needed to verify if the entry was authorized.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 3,
+     "turn_no": 3,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2099,
+     "work_item": "0ed9f2bb-9d77-4c4b-bcbc-a3fef73a227b",
+     "transcript_version": 7
+    },
+    "event_seq": 10
+   },
+   {
+    "turn_no": 4,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t04",
+     "question": {
+      "question_type": "probing",
+      "neutrality_issues": [
+       "presupposes_fact"
+      ],
+      "assessment": "The investigator probes the radio log regarding B-12 while presupposing someone asked the subject to go there."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "The radio log shows your exchange with Ines about B-10 ended at 14:05, but badge logs show you entering B-12 at 14:07. What did you do between finishing B-10 and entering B-12?",
+      "tactic": "evidence_specific",
+      "purpose": "Present the specific timing discrepancy between finishing B-10 on the radio log and entering B-12 on the badge log.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02"
+      ],
+      "corroboration_needed": [
+       "verify Records Vault B-12 seal audit",
+       "check environmental sensor logs for B-12"
+      ],
+      "rationale": "The subject acknowledges entering B-12 without a work order or supervisor request, attributing it to checking sensors while nearby. While this violates policy excerpt doc-02, it remains unconfirmed whether any records were disturbed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 4,
+     "turn_no": 4,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 4455,
+     "work_item": "cdb3cae7-f8b4-49e4-9543-f0a36f3599bf",
+     "transcript_version": 10
+    },
+    "event_seq": 16
+   },
+   {
+    "turn_no": 5,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t05",
+     "question": {
+      "question_type": "leading",
+      "neutrality_issues": [
+       "presupposes_fact"
+      ],
+      "assessment": "The question incorrectly implies that alarms were raised in B-12 according to the B-wing alarm history record."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you explain why you held the door to Records Vault B-12 open for nearly three minutes from 14:09 to 14:12?",
+      "tactic": "funnel_probe",
+      "purpose": "Address the uninvestigated access exception detail regarding why the vault door was held open.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "verify Records Vault B-12 seal audit",
+       "check environmental sensor logs for B-12"
+      ],
+      "rationale": "The subject admits entering B-12 without a work order or supervisor request, confirming an access exception, but the reason for holding the door open remains unexamined.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 5,
+     "turn_no": 5,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2314,
+     "work_item": "058999f6-37a0-4189-a7f2-a3b3bdc906b8",
+     "transcript_version": 12
+    },
+    "event_seq": 20
+   },
+   {
+    "turn_no": 6,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t06",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately asks an open question about the specific unexcused door-holding incident."
+     },
+     "answer_category": "possible_evasion",
+     "flags": [
+      {
+       "kind": "possible_evasion",
+       "turn_id": "t06",
+       "quote": "It was just a quiet afternoon and I was busy looking at the sensors inside.",
+       "missing_fact": "the reason the vault door was held open for three minutes",
+       "conflict_turn_id": null,
+       "conflict_quote": null,
+       "conflict_record_id": null,
+       "conflict_record_quote": null,
+       "flag_ref": "t06.f1"
+      }
+     ],
+     "follow_up": {
+      "question": "Facility standard four point two requires staff to stay at the open door and not hold it longer than sixty seconds. What were you doing inside that required leaving the door open for three minutes?",
+      "tactic": "evidence_specific",
+      "purpose": "Confront the subject with the specific duration rule breach and ask for an explanation.",
+      "record_request": "rec-04"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [
+       "t06.f1"
+      ],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "verify Records Vault B-12 seal audit",
+       "check environmental sensor logs for B-12"
+      ],
+      "rationale": "The subject admits to entering B-12 without a work order or supervisor request, and evades explaining why the vault door was held open for three minutes in violation of facility standards.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 6,
+     "turn_no": 6,
+     "validation": {
+      "valid": true,
+      "flags": {
+       "t06.f1": {
+        "citation_ok": true,
+        "demeanor_based": false,
+        "duplicate": false
+       }
+      },
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2759,
+     "work_item": "7bee5325-f274-4e17-980f-6ad86492e0b2",
+     "transcript_version": 15
+    },
+    "event_seq": 24
+   },
+   {
+    "turn_no": 7,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t07",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator directly presents the seal audit findings regarding box ACQ-117 and the seal supply drawer log."
+     },
+     "answer_category": "contradiction",
+     "flags": [
+      {
+       "kind": "evidence_conflict",
+       "turn_id": "t07",
+       "quote": "I was just focusing on the sensors while I was in the vault, so I didn't have any reason to be handling boxes or the supply drawer.",
+       "missing_fact": null,
+       "conflict_turn_id": null,
+       "conflict_quote": null,
+       "conflict_record_id": "rec-04",
+       "conflict_record_quote": "Box ACQ-117: registered seal #55102, found seal #55419. Seal supply drawer log: seal #55419 removed at 14:15, no initials, no custodian release on file.",
+       "flag_ref": "t07.f1"
+      }
+     ],
+     "follow_up": {
+      "question": "How did seal number 55419 come to be used on box ACQ-117 during your time in the vault?",
+      "tactic": "clarify_contradiction",
+      "purpose": "Ask the subject to explain the direct contradiction between their denial of handling boxes or seals and the physical seal audit finding.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject entered B-12 without authorization, held the door open for three minutes, and explicitly denied handling any boxes or the seal supply drawer, which directly contradicts the post-audit finding that seal #55419 was removed and placed on box ACQ-117 during the access window.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 7,
+     "turn_no": 7,
+     "validation": {
+      "valid": true,
+      "flags": {
+       "t07.f1": {
+        "citation_ok": false,
+        "demeanor_based": false,
+        "duplicate": false
+       }
+      },
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 5510,
+     "work_item": "c5ba9664-cc5c-4436-87f8-eed30f4987df",
+     "transcript_version": 18
+    },
+    "event_seq": 29
+   },
+   {
+    "turn_no": 8,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t08",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question regarding the exit time from the vault."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "What specifically did you do in B-12 between 14:07 and 14:12 while the door was held open?",
+      "tactic": "funnel_probe",
+      "purpose": "Press for specific actions inside the vault during the door-held window.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject entered B-12 without authorization, held the door open, and denied handling boxes or seals, which is directly contradicted by the seal audit showing seal #55419 was swapped onto box ACQ-117 during the access window.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 8,
+     "turn_no": 8,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2247,
+     "work_item": "ba233a40-5648-4fc3-8ec7-591769b62f17",
+     "transcript_version": 20
+    },
+    "event_seq": 33
+   },
+   {
+    "turn_no": 9,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t09",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open follow-up question regarding contacts after leaving the vault."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "The seal audit for B-12 shows that seal #55419 was removed from the supply drawer without authorization and placed on box ACQ-117 while you were inside. How do you account for that?",
+      "tactic": "evidence_specific",
+      "purpose": "Present the specific evidence from the seal audit and ask the subject to account for the discrepancy.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject denies handling records boxes or seals, which conflicts directly with the seal audit showing an unauthorized seal replacement during the access window.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 9,
+     "turn_no": 9,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 4129,
+     "work_item": "46685f6d-ca44-4f4a-badc-f4604a207722",
+     "transcript_version": 22
+    },
+    "event_seq": 36
+   },
+   {
+    "turn_no": 10,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t10",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about the frequency of the subject's vault visits."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Given that the seal audit showed a replaced seal on box ACQ-117 matching the exact time frame of your unauthorized vault access, how do you explain that discrepancy?",
+      "tactic": "evidence_specific",
+      "purpose": "Confront the subject directly with the specific seal audit evidence to address the core inconsistency in their account.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9,
+       10
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject denies handling records or seals despite badge logs placing them in the vault during the exact window an unauthorized seal replacement occurred on box ACQ-117.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 10,
+     "turn_no": 10,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2248,
+     "work_item": "32e5ee2f-cfed-4a9b-9a45-8337159f5a75",
+     "transcript_version": 24
+    },
+    "event_seq": 40
+   },
+   {
+    "turn_no": 11,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t11",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question regarding who else knew about the entry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you explain why the seal audit for B-12 showed that seal number 55419 was removed from the supply drawer at 14:15 and used to replace the seal on box ACQ-117 while you were the only person inside the vault?",
+      "tactic": "evidence_specific",
+      "purpose": "Present the specific conflicting physical audit record to the subject for an explanation.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed from the supply drawer and replaced on a box during their unauthorized presence.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 11,
+     "turn_no": 11,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2399,
+     "work_item": "82f2c4c8-9a3a-4f58-8b76-5254d77c5b47",
+     "transcript_version": 26
+    },
+    "event_seq": 43
+   },
+   {
+    "turn_no": 12,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t12",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open closing question inviting final input."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Is there anything else you want to add?",
+      "tactic": "summary_check",
+      "purpose": "Conclude the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 12,
+     "turn_no": 12,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2180,
+     "work_item": "ee2513b3-f857-483b-8da7-b9a376a91712",
+     "transcript_version": 28
+    },
+    "event_seq": 46
+   }
+  ],
+  "updates": [
+   {
+    "turn_no": 3,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t03",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "verify facility radio log for B wing communications",
+       "verify Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject admits entering B-12 without an assigned work order, claiming it was to check sensor readings near the B-10 area. Further records are needed to verify whether this entry was coordinated or authorized.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 instead of B-10",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-02",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 4,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t04",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02"
+      ],
+      "corroboration_needed": [
+       "verify Records Vault B-12 seal audit",
+       "check environmental sensor logs for B-12"
+      ],
+      "rationale": "The subject admits entering B-12 without a work order or supervisor request, confirming an access exception under policy. However, whether anything was disturbed remains unconfirmed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 instead of B-10",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-03",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 6,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t06",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [
+       "t06.f1"
+      ],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "verify Records Vault B-12 seal audit",
+       "check environmental sensor logs for B-12"
+      ],
+      "rationale": "The subject admits entering B-12 without an assigned work order or supervisor request and fails to explain why the vault door was held open for three minutes.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "raised_not_tested",
+       "turn_ids": [
+        "t01"
+       ]
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 without a work order",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 7,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t07",
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject entered B-12 without authorization, held the door open for three minutes, and explicitly denied handling any boxes or the seal supply drawer, which directly contradicts the post-audit finding that seal #55419 was removed and placed on box ACQ-117 during the access window.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "conflicts_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "raised_not_tested",
+       "turn_ids": [
+        "t01"
+       ]
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 without a work order",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+       "first_seen_turn": "t07"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_specific"
+     }
+    }
+   },
+   {
+    "turn_no": 9,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t09",
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject denies handling records boxes or seals, which conflicts directly with the seal audit showing an unauthorized seal replacement during the access window.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "conflicts_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "raised_not_tested",
+       "turn_ids": [
+        "t01"
+       ]
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 without a work order",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+       "first_seen_turn": "t07"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_specific"
+     }
+    }
+   },
+   {
+    "turn_no": 12,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t12",
+     "finding": {
+      "label": "deceptive",
+      "likelihood": "very_likely",
+      "confidence": "high",
+      "basis_flag_refs": [
+       "t06.f1",
+       "t07.f1"
+      ],
+      "cited_turns": [
+       2,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "rec-04"
+      ],
+      "corroboration_needed": [
+       "verify B-12 security camera footage if available"
+      ],
+      "rationale": "The subject admits entering the vault without authorization and denies handling seals or boxes, which directly conflicts with the physical seal audit record showing a seal was removed and replaced on a box during their unauthorized presence.",
+      "alternative_explanations": null,
+      "last_revised_turn": 7
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "conflicts_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01"
+       ]
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Reason for entering B-12 without a work order",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Reason for holding the B-12 door open for three minutes",
+       "first_seen_turn": "t02"
+      },
+      {
+       "missing_fact": "Explanation for unauthorized seal removal and replacement on box ACQ-117",
+       "first_seen_turn": "t07"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_specific"
+     }
+    }
+   }
+  ],
+  "coach_failures": []
+ },
+ "debrief": {
+  "rubric": {
+   "total": 100,
+   "scorable": true,
+   "dimensions": [
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "1a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1b",
+       "turns": [
+        3,
+        7,
+        9
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "1c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D1"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "2a",
+       "turns": [
+        3,
+        6,
+        7,
+        8
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "2b",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "2d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D2"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "3a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "3b",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "3c",
+       "turns": [
+        3,
+        4,
+        5,
+        6
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3d",
+       "turns": [
+        3,
+        4,
+        5,
+        6
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3e",
+       "turns": [
+        7,
+        8,
+        9,
+        10
+       ],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D3"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "4a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "4b",
+       "turns": [
+        3,
+        4,
+        5
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "4d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D4"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "5a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5b",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5d",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5e",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D5"
+    }
+   ],
+   "unscorable_reason": null
+  },
+  "scored": true,
+  "outcome": {
+   "role": "deceptive",
+   "resolution": "Marrow radioed Pell to a humidity alarm in Room B-10. He reset it, reported 'B-10 done' at 14:05, then used his Environmental Response access to enter Records Vault B-12 at 14:07 with no task there. He broke the seal on box ACQ-117 and read the bid evaluations for a contract his cousin's firm is bidding on, propped the door so he could hear anyone approaching, and resealed the box with a supply-drawer seal at 14:15. Distractors shared with the truthful variant: the late work order, the short-staffed shift and the supervisor not remembering the room.",
+   "committed_label": "insufficient_evidence",
+   "correct_finding": "deceptive"
+  },
+  "provenance": {
+   "rubric_sha256": "a2eb8ba8a38a423728c2ea5599d0ca384019cf8469b48b06c363e6ed05966ac7",
+   "scorer_git_sha": "e60927e6e9f8e6b6e8acff23d70b921eb6699f99",
+   "r3_prompt_sha256": [
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c",
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c"
+   ],
+   "referee_model_ids": [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite"
+   ]
+  },
+  "scorecards": {
+   "learning": {
+    "key_questions": [
+     {
+      "intent": "Establish the purpose of the B-12 entry (EX-1, EX-2).",
+      "addressed_turns": []
+     },
+     {
+      "intent": "Establish how the task was assigned and which room was named.",
+      "addressed_turns": [
+       1
+      ]
+     },
+     {
+      "intent": "Establish what he did inside the vault, in order.",
+      "addressed_turns": [
+       2,
+       7
+      ]
+     },
+     {
+      "intent": "Establish why the door was held open.",
+      "addressed_turns": [
+       6
+      ]
+     },
+     {
+      "intent": "Establish when he left and what came next.",
+      "addressed_turns": [
+       8
+      ]
+     }
+    ],
+    "evidence_coverage": {
+     "addressed": 5,
+     "key_facts": 7
+    }
+   },
+   "detection": {
+    "unsupported": {
+     "claim": 0,
+     "citation": 1,
+     "demeanor": 0
+    },
+    "unique_flags": 2,
+    "evasion_broad": {
+     "tp": 1,
+     "flags": 1,
+     "events": 4
+    },
+    "evasion_strict": {
+     "tp": 1,
+     "flags": 1,
+     "events": 4
+    },
+    "coach_last_label": "deceptive"
+   },
+   "subject_realism": {
+    "turns": 12,
+    "failures": {
+     "F1": 4,
+     "F3": 0,
+     "F5": 0,
+     "F6": 0,
+     "F2_F4": 3
+    },
+    "compliant": 8
+   }
+  },
+  "session_id": "c830b964-3451-410e-96a7-fb11c7d97d1d",
+  "schema_version": "debrief.v1"
+ }
+}

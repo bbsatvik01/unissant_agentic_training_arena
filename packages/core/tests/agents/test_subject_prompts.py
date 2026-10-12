@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from arena_core.agents.manifests import ManifestMismatchError, load_prompts, with_hash
+from arena_core.agents.manifests import INITIAL, ManifestMismatchError, load_prompts, official_manifests, with_hash
 from arena_core.agents.repair import ID_KIND_MESSAGES, MAX_ERROR_BYTES
 from arena_core.agents.subject_prompts import (
     LiveNotAllowedError,
@@ -263,7 +263,9 @@ def test_policy_blocks_follow_the_candidate_and_the_role() -> None:
 
 def test_style_lines_render_per_axis() -> None:
     raw = fx.variant("F03", "deceptive")["private_packet"]
-    text = behavior_blocks(SubjectPacket.from_private_packet(raw, split="dev"), fx.prompts("S2"))
+    # A registered 1.0.0 subject renders S2's own style table (style.v1); test_prompt_release covers 1.1.0.
+    initial = load_prompts(official_manifests(release=INITIAL)["S2"])
+    text = behavior_blocks(SubjectPacket.from_private_packet(raw, split="dev"), initial)
     assert text.endswith(
         "Your speaking style\n- Answer in three to five sentences, with ordinary context around the facts.\n"
         "- Speak smoothly.\n- Sound worried at times; you may say this interview makes you uneasy.\n"

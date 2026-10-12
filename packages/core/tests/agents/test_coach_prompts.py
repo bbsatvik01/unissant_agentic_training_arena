@@ -12,7 +12,7 @@ import pytest
 from pydantic import BaseModel
 
 from arena_core.agents.coach_prompts import build_coach_prompt
-from arena_core.agents.manifests import ManifestMismatchError, load_prompts, official_manifests
+from arena_core.agents.manifests import COMMON, ManifestMismatchError, load_prompts, official_manifests
 from arena_core.agents.subject_prompts import SubjectPacket
 from arena_core.agents.views import CoachCall, PublicTrialView, TranscriptTurn
 from arena_core.contracts.coaching import StoredFlag
@@ -128,7 +128,7 @@ def test_a2_and_a3_make_no_deep_call() -> None:
 
 
 def test_common_contract_is_byte_identical_in_every_assistant() -> None:
-    common = Path(fx.REPO / "prompts/coach/common.v1.txt").read_text().strip("\n")
+    common = Path(fx.REPO / COMMON).read_text().strip("\n")
     for candidate in ("A1", "A2", "A3"):
         system = build_coach_prompt(fx.coach_view(3), fx.prompts(candidate), "card", salt=fx.SALT).system_instruction
         assert system.startswith(common + "\n\nYour coaching strategy: ")

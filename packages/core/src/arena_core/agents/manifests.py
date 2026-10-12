@@ -467,7 +467,8 @@ def check_referee_freeze(manifest: CandidateManifest, root: Path = REPO_ROOT) ->
 COACH_DIR = "prompts/coach/"
 SUBJECT_DIR = "prompts/subject/"
 REFEREE_DIR = "prompts/referee/"
-COMMON = f"{COACH_DIR}common.v1.txt"
+COMMON_V1 = f"{COACH_DIR}common.v1.txt"
+COMMON = f"{COACH_DIR}common.v2.txt"
 FINAL = f"{COACH_DIR}final.v1.txt"
 DEEP = f"{COACH_DIR}a1.deep.v1.txt"
 USER_CARD = f"{COACH_DIR}user.card.v1.txt"
@@ -477,7 +478,10 @@ SUBJECT_SYSTEM = f"{SUBJECT_DIR}system.v1.txt"
 SUBJECT_LIVE = f"{SUBJECT_DIR}live.v1.txt"
 ROLE_T = f"{SUBJECT_DIR}role.t.v1.txt"
 ROLE_D = f"{SUBJECT_DIR}role.d.v1.txt"
-STYLE = f"{SUBJECT_DIR}style.v1.txt"
+STYLE_V1 = f"{SUBJECT_DIR}style.v1.txt"
+STYLE = f"{SUBJECT_DIR}style.v2.txt"
+# Every style table a registered subject version may name (the subject builder renders the manifest's own).
+STYLES = (STYLE_V1, STYLE)
 POLICY = {"standard": f"{SUBJECT_DIR}policy.standard.v1.txt", "skilled_deceiver": f"{SUBJECT_DIR}policy.skilled.v1.txt"}
 SUBJECT_USER = f"{SUBJECT_DIR}user.turn.v1.txt"
 REFEREE_SUBJECT = f"{REFEREE_DIR}subject.v1.txt"
@@ -517,19 +521,45 @@ def _schemas(*keys: tuple[str, str]) -> list[dict[str, str]]:
     return [{"name": n, "version": v, "sha256": output_schema_sha256(OUTPUT_MODELS[(n, v)])} for n, v in keys]
 
 
-def _base(candidate_id: str, kind: str, display_name: str) -> dict[str, Any]:
+@dataclass(frozen=True)
+class Release:
+    """One version of the official coaches and subjects: the shared files that changed and why (S2 3.3: a new
+    prompt is a new version whose `lineage.parent_sha256` names the version it replaces)."""
+
+    version: str
+    common: str
+    style: str
+    coach_note: str
+    subject_note: str
+
+
+INITIAL = Release("1.0.0", COMMON_V1, STYLE_V1, "initial", "initial")
+CURRENT = Release(
+    "1.1.0",
+    COMMON,
+    STYLE,
+    "common.v2: an unexplained 'do not remember' about a point the subject could answer is possible_evasion and is"
+    " flagged; neutrality issues are the investigator's own wording only; follow-ups never repeat a question and"
+    " stay a question at the last exchange.",
+    "style.v2: anxious affect said aloud at most once and no repeated remarks about feelings; varied fillers.",
+)
+
+
+def _base(
+    candidate_id: str, kind: str, display_name: str, version: str = INITIAL.version, note: str = "initial"
+) -> dict[str, Any]:
     return {
         "manifest_version": "manifest.v1",
         "candidate_id": candidate_id,
         "kind": kind,
         "display_name": display_name,
-        "version": "1.0.0",
+        "version": version,
         "official": True,
         "transport": "in_process",
         "model": {"provider": "vertex", "location": "global"},
         "repair": {"schema_repairs": 1, "transient_retries": 2},
         "sampling": {"temperature": None, "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]"},
-        "lineage": {"parent_sha256": None, "change_note": "initial"},
+        "lineage": {"parent_sha256": None, "change_note": note},
     }
 
 
@@ -544,7 +574,7 @@ class CoachSpec:
     two_stage: bool
 
 
-def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT) -> dict[str, Any]:
+def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT, release: Release = CURRENT) -> dict[str, Any]:
     """An S2 5.3 coach: the common contract, its strategy block and the final block; A1 adds the deep call."""
     candidate_id, display_name, strategy, model_id, two_stage = (
         spec.candidate_id,
@@ -553,8 +583,9 @@ def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT) -> dict[str, Any
         spec.model_id,
         spec.two_stage,
     )
-    files = [COMMON, strategy, *([DEEP] if two_stage else []), FINAL]
-    assembly = {"card": [COMMON, strategy], "final": [COMMON, strategy, FINAL]}
+    common = release.common
+    files = [common, strategy, *([DEEP] if two_stage else []), FINAL]
+    assembly = {"card": [common, strategy], "final": [common, strategy, FINAL]}
     templates = [USER_CARD, USER_FINAL]
     schemas = [("CoachingCard", "card.v1"), ("FinalFinding", "final.v1")]
     limits = {
@@ -567,7 +598,7 @@ def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT) -> dict[str, Any
         schemas.insert(1, ("DeepUpdate", "deep.v1"))
         limits["deep"] = _limit(model_id, DEEP_BUDGET)
     return {
-        **_base(candidate_id, "assistant", display_name),
+        **_base(candidate_id, "assistant", display_name, release.version, release.coach_note),
         "prompt": {
             "files": _refs(files, root),
             "assembly": assembly,
@@ -586,14 +617,23 @@ def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT) -> dict[str, Any
     }
 
 
-def subject_manifest(
-    candidate_id: str, display_name: str, model_id: str, policy: str, root: Path = REPO_ROOT
-) -> dict[str, Any]:
+@dataclass(frozen=True)
+class SubjectSpec:
+    """One S2 6.5 subject: identity, model and policy."""
+
+    candidate_id: str
+    display_name: str
+    model_id: str
+    policy: str
+
+
+def subject_manifest(spec: SubjectSpec, root: Path = REPO_ROOT, release: Release = CURRENT) -> dict[str, Any]:
     """An S2 6.5 subject: base, role blocks T and D, its policy block and the style table; the Live instruction
     (S2 9.3) renders from the same blocks. The builder picks the role block by the packet's role."""
-    behavior = [ROLE_T, ROLE_D, POLICY[policy], STYLE]
+    candidate_id, display_name, model_id, policy = spec.candidate_id, spec.display_name, spec.model_id, spec.policy
+    behavior = [ROLE_T, ROLE_D, POLICY[policy], release.style]
     return {
-        **_base(candidate_id, "subject", display_name),
+        **_base(candidate_id, "subject", display_name, release.version, release.subject_note),
         "prompt": {
             "files": _refs([SUBJECT_SYSTEM, *behavior, SUBJECT_LIVE], root),
             "assembly": {"subject": [SUBJECT_SYSTEM, *behavior], "live": [SUBJECT_LIVE, *behavior]},
@@ -639,20 +679,29 @@ def with_hash(raw: Mapping[str, Any]) -> CandidateManifest:
     return manifest.model_copy(update={"sha256": manifest_sha256(manifest)})
 
 
-def official_manifests(root: Path = REPO_ROOT) -> dict[str, CandidateManifest]:
-    """The official roster of S2 5.3 and 6.5, each with its `sha256` filled in."""
+def official_manifests(root: Path = REPO_ROOT, release: Release = CURRENT) -> dict[str, CandidateManifest]:
+    """The official roster of S2 5.3 and 6.5 at `release`, each with its `sha256` filled in. A release after the
+    initial one names, in `lineage.parent_sha256`, the same candidate's initial manifest (S2 3.3)."""
+    raw = _official_raw(root, release)
+    if release != INITIAL:
+        parents = {m["candidate_id"]: with_hash(m).sha256 for m in _official_raw(root, INITIAL)}
+        for m in raw:
+            m["lineage"]["parent_sha256"] = parents[m["candidate_id"]]
+    return {m.candidate_id: m for m in map(with_hash, raw)}
+
+
+def _official_raw(root: Path, release: Release) -> list[dict[str, Any]]:
     coaches = [
         CoachSpec("A1", "Evidence Strategist", f"{COACH_DIR}a1.strategy.v1.txt", _FLASH_35, two_stage=True),
         CoachSpec("A2", "Cognitive-Load Prober", f"{COACH_DIR}a2.strategy.v1.txt", _FLASH_35, two_stage=False),
         CoachSpec("A3", "Conservative Corroborator", f"{COACH_DIR}a3.strategy.v1.txt", _FLASH_31, two_stage=False),
     ]
-    raw = [
-        *(assistant_manifest(spec, root) for spec in coaches),
-        subject_manifest("S1", "Subject S1", _FLASH_31, "standard", root),
-        subject_manifest("S2", "Subject S2", _FLASH_35, "standard", root),
-        subject_manifest("S3", "Subject S3", _FLASH_35, "skilled_deceiver", root),
+    return [
+        *(assistant_manifest(spec, root, release) for spec in coaches),
+        subject_manifest(SubjectSpec("S1", "Subject S1", _FLASH_31, "standard"), root, release),
+        subject_manifest(SubjectSpec("S2", "Subject S2", _FLASH_35, "standard"), root, release),
+        subject_manifest(SubjectSpec("S3", "Subject S3", _FLASH_35, "skilled_deceiver"), root, release),
     ]
-    return {m.candidate_id: m for m in map(with_hash, raw)}
 
 
 def manifest_text(manifest: CandidateManifest) -> str:
