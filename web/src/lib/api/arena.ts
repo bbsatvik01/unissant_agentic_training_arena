@@ -127,6 +127,8 @@ export function parseStarted(value: unknown): StartedSession | null {
 export interface ArenaApi {
   trialSnapshot(trialId: string): Promise<TrialSnapshot>;
   mintStreamTicket(trialId: string): Promise<string>;
+  /** `POST /api/voice/tickets {trial_id}`: a 60 s single-use ticket for the voice socket's subprotocol (S5 7.2). */
+  mintVoiceTicket(trialId: string): Promise<string>;
   submitTurn(trialId: string, body: TurnSubmit): Promise<PostAck>;
   requestEvidence(trialId: string, body: EvidenceRequest): Promise<EvidenceResult>;
   commitFinding(trialId: string, body: FindingCommit): Promise<PostAck>;
@@ -188,6 +190,13 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       const answer = await client.post(path);
       const ticket = typeof answer === "object" && answer !== null ? (answer as { ticket?: unknown }).ticket : undefined;
       if (typeof ticket !== "string" || ticket === "") throw new ContractError(path, "a stream ticket");
+      return ticket;
+    },
+    async mintVoiceTicket(trialId) {
+      const path = "/api/voice/tickets";
+      const answer = await send("voice-ticket-request", path, { trial_id: trialId });
+      const ticket = isRecord(answer) ? answer["ticket"] : undefined;
+      if (typeof ticket !== "string" || !/^[0-9a-f]{64}$/.test(ticket)) throw new ContractError(path, "a voice ticket");
       return ticket;
     },
     async submitTurn(trialId, body) {

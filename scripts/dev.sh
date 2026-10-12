@@ -31,7 +31,7 @@ ENV_DIR="${ENV_DIR:-$ROOT}"
 case "$ENV_DIR" in /*) ;; *) ENV_DIR="$ROOT/$ENV_DIR" ;; esac
 # Canonical, so "." or a trailing slash still names the root (symlinks resolved).
 [[ -d "$ENV_DIR" ]] && ENV_DIR="$(cd "$ENV_DIR" && pwd -P)"
-CONTAINER="arena-dev-db"
+CONTAINER="${ARENA_DEV_CONTAINER:-arena-dev-db}"  # override to run a second local stack beside another
 # The image make db-test runs (supabase/tests/harness/db_test.sh), pinned by digest.
 IMAGE="supabase/postgres:17.11.0.002@sha256:0450166354dc9c1d25f0322ac8b580774d4fb0184d2b087f6e4fe9499c66cf53"
 DEV_USER="dev@arena.local"

@@ -1830,3 +1830,76 @@ td {
     transform: none;
   }
 }
+
+/* Voice pill bar and consent (S6 3.3, 6.2; WP-22): docked at the bottom of the room, never a takeover. */
+.voice-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--arena-space-2) var(--arena-space-3);
+  border-radius: var(--arena-radius-pill);
+  box-shadow: var(--arena-shadow-card);
+  background: var(--arena-canvas);
+  padding: var(--arena-space-2) var(--arena-space-4);
+}
+
+.voice-bar .start-row {
+  margin-left: auto;
+}
+
+.voice-status {
+  margin: 0;
+  font-weight: 600;
+}
+
+.voice-ring {
+  --arena-talk: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--arena-signal);
+  box-shadow: 0 0 0 calc(2px + var(--arena-talk) * 6px) var(--arena-signal-soft);
+  transition: box-shadow var(--arena-motion-quick) var(--arena-ease-standard);
+}
+
+.voice-bar[data-state="ended"] .voice-ring,
+.voice-bar[data-state="listening"] .voice-ring {
+  background: var(--arena-hairline-strong);
+}
+
+.voice-bar[data-state="investigator_speaking"] .voice-ring {
+  background: var(--arena-ink);
+}
+
+.voice-captions {
+  flex-basis: 100%;
+  max-height: 6.5em;
+  overflow-y: auto;
+}
+
+.voice-captions .caption-line {
+  margin: 0;
+  color: var(--arena-ink-2);
+}
+
+.voice-captions .caption-line.subject {
+  color: var(--arena-ink);
+}
+
+.voice-consent {
+  border-radius: var(--arena-radius-lg);
+  box-shadow: var(--arena-shadow-card);
+  background: var(--arena-canvas);
+  padding: var(--arena-space-4);
+}
+
+.voice-consent h3 {
+  margin: 0 0 var(--arena-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-ring {
+    transition: none;
+    box-shadow: none;
+  }
+}

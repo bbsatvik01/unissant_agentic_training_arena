@@ -221,7 +221,7 @@ function caption(view: TrialView, input: WorldInput, wall: readonly WallPaper[],
  * (over the investigator's shoulder for the question, a close-up for the answer), then the observation room while
  * the coaches work, else the wide room shot. Lifecycle and timing only: no shot is chosen by what was said.
  */
-function shotFor(world: Pick<WorldState, "wall" | "flag" | "seal" | "subject" | "investigator" | "status" | "mode">, reaction: boolean): ShotName {
+export function shotFor(world: Pick<WorldState, "wall" | "flag" | "seal" | "subject" | "investigator" | "status" | "mode">, reaction: boolean): ShotName {
   if (world.seal?.fresh === true) return "table";
   if (world.wall.some((p) => p.fresh)) return "wall";
   // A conflict with a record is shown wide, where the thread from the wall to the subject's seat is in view; one
