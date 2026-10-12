@@ -20,7 +20,7 @@ from arena_core.agents.referee_prompts import (
     build_referee_subject_prompt,
     empty_subject_report,
 )
-from arena_core.agents.rubric import Rubric
+from arena_core.agents.rubric import Rubric, manifest_rubric
 from arena_core.contracts.adapter import adapt_subject_report
 from arena_core.contracts.common import turn_id
 from arena_core.contracts.referee import (
@@ -125,6 +125,17 @@ def _subject_context(inp: RefereeSubjectInput) -> RefSubjContext:
     )
 
 
+def _applicable(inp: RefereeAssistantInput) -> frozenset[str]:
+    """The sub-checks code knows apply here (scored by `scoring.rubric` with an `na` refused): each one a listed
+    trigger names, 5c when a finding was committed, 5e when it is insufficient_evidence (S3 2.7)."""
+    out = {t.subcheck_id for t in inp.triggers}
+    if inp.finding is not None:
+        out.add("5c")
+        if inp.finding.label == "insufficient_evidence":
+            out.add("5e")
+    return frozenset(out)
+
+
 def _assistant_context(inp: RefereeAssistantInput, rubric: Rubric) -> RefAsstContext:
     return RefAsstContext(
         flag_refs=frozenset(f.flag_ref for f in inp.flags),
@@ -132,6 +143,7 @@ def _assistant_context(inp: RefereeAssistantInput, rubric: Rubric) -> RefAsstCon
         citation_ids=frozenset([*(turn_id(t) for t in inp.citations.cited_turns), *inp.citations.cited_records]),
         rubric_subcheck_ids=frozenset(s.id for dim in rubric.dimensions for s in dim.subchecks),
         transcript_turn_ids=frozenset(turn_id(t.turn_no) for t in inp.transcript),
+        applicable_subcheck_ids=_applicable(inp),
     )
 
 
@@ -162,6 +174,9 @@ def assistant_agent_call(
     inp: RefereeAssistantInput, prompts: PromptSet, rubric: Rubric | None, trial_id: str, purpose: Purpose
 ) -> AgentCall[RefereeAssistantReport]:
     prompt = build_referee_assistant_prompt(inp, prompts, dev_rubric=rubric)
+    # The rubric the prompt rendered: the manifest's rubric.v1 when it hashes one, else the development placeholder
+    # (the builder refuses any other combination), so the validation context always matches the prompt.
+    rendered = manifest_rubric(prompts) or rubric
     model, thinking = REFEREE_COMBINATIONS[purpose]
     return AgentCall(
         model=model,
@@ -176,7 +191,7 @@ def assistant_agent_call(
             trial_id=UUID(trial_id),
             data_class="evaluator",
         ),
-        validation_context=_assistant_context(inp, rubric) if rubric is not None else None,
+        validation_context=_assistant_context(inp, rendered) if rendered is not None else None,
         salt=prompt.salt,
     )
 
