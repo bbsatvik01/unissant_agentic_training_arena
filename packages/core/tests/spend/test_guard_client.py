@@ -423,10 +423,16 @@ def test_a_cancelled_dispatch_still_settles_usage_unknown_on_a_fresh_connection(
         Conn({"ops.settle_reservation": {"outcome": "usage_unknown", "settled_usd": 1}}),
     ]
     pending = list(opened)
+    slot = asyncio.Semaphore(1)  # a one-connection pool: a closed checkout must be returned before the next one
 
     @asynccontextmanager
     async def connect() -> AsyncIterator[Any]:
-        yield pending.pop(0)
+        async with asyncio.timeout(1):
+            await slot.acquire()
+        try:
+            yield pending.pop(0)
+        finally:
+            slot.release()
 
     async def body() -> Decimal:
         async with DbSpendGuard(connect).session() as session:

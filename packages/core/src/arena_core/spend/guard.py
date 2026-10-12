@@ -13,7 +13,7 @@ token counts; the database prices both, reads the kill switch and enforces the c
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol
@@ -78,20 +78,30 @@ class SpendGuard(Protocol):
 
 
 class _DbSession:
-    """One model call's ledger writes. Each write runs on the session's connection, opened on first use; a write
-    that fails closes its connection (`db.pool.one_statement`: a failed or interrupted call never hands its
-    connection back), so the next write (the cleanup a cancelled dispatch still owes, S5 4.10) opens a fresh one
-    rather than failing on the closed one."""
+    """One model call's ledger writes. Each write runs on the session's connection, checked out on first use; a
+    write that fails closes its connection (`db.pool.one_statement`: a failed or interrupted call never hands its
+    connection back), so the next write (the cleanup a cancelled dispatch still owes, S5 4.10) first returns that
+    checkout, so the pool can replace it, then checks out a fresh connection instead of failing on the closed one."""
 
-    def __init__(self, connect: Connector, stack: AsyncExitStack) -> None:
+    def __init__(self, connect: Connector) -> None:
         self._connect = connect
-        self._stack = stack
+        self._checkout: AbstractAsyncContextManager[calls.Conn] | None = None
         self._current: calls.Conn | None = None
 
     async def _conn(self) -> calls.Conn:
-        if self._current is None or self._current.closed:
-            self._current = await self._stack.enter_async_context(self._connect())
+        if self._current is not None and self._current.closed:
+            await self.release(None)
+        if self._current is None:
+            checkout = self._connect()
+            self._current = await checkout.__aenter__()
+            self._checkout = checkout
         return self._current
+
+    async def release(self, exc: BaseException | None) -> None:
+        """Return the current checkout, if any (with the exception the session is ending on, as `async with`)."""
+        checkout, self._checkout, self._current = self._checkout, None, None
+        if checkout is not None:
+            await checkout.__aexit__(type(exc) if exc else None, exc, exc.__traceback__ if exc else None)
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
         return reservation_from(await calls.reserve_model_call(await self._conn(), req))
@@ -123,8 +133,13 @@ class DbSpendGuard:
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
-        async with AsyncExitStack() as stack:
-            yield _DbSession(self._connect, stack)
+        session = _DbSession(self._connect)
+        try:
+            yield session
+        except BaseException as exc:
+            await session.release(exc)
+            raise
+        await session.release(None)
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()
