@@ -5,7 +5,7 @@
  * EVL-10 sentence are present (FE-LB-4), and each track has its own matrix.
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import boards from "../../fixtures/leaderboard.example.json";
 import tournamentExample from "../../fixtures/tournament.example.json";
@@ -27,6 +27,10 @@ function show() {
       assistant={parseBoard(boards.assistant)}
       subject={parseBoard(boards.subject)}
       tournament={foldPoll(EMPTY_TOURNAMENT, tournamentExample.poll as TournamentPoll)}
+      matrix="example"
+      tournaments={null}
+      notice={null}
+      onReplay={() => undefined}
       motionOff
       onClose={() => undefined}
     />,
@@ -64,10 +68,43 @@ describe("ArenaView", () => {
     expect(screen.getByRole("table", { name: "Replay track: trials by pairing" }).querySelectorAll('[role="cell"]')).toHaveLength(9);
     fireEvent.click(screen.getByRole("tab", { name: "Interactive track" }));
     expect(screen.getByRole("table", { name: "Interactive track: trials by pairing" }).querySelectorAll('[role="cell"]')).toHaveLength(27);
+    // The example's trials are not real runs: nothing in it replays.
+    expect(screen.queryAllByRole("button", { name: /^Replay / })).toHaveLength(0);
+    expect(screen.getAllByText("Example data: no tournament is selected. Not a result.").length).toBeGreaterThan(0);
+  });
+
+  it("replays any visible trial of a selected tournament in the room, and says why there is no matrix", () => {
+    const onReplay = vi.fn();
+    const poll = tournamentExample.poll as Extract<TournamentPoll, { visibility: "events" }>;
+    const view = (matrix: "ready" | "missing" | "error" | "loading", notice: string | null = null) => (
+      <ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={null} subject={null} tournament={foldPoll(EMPTY_TOURNAMENT, poll)} matrix={matrix} tournaments={null} notice={notice} onReplay={onReplay} motionOff onClose={() => undefined} />
+    );
+    const { rerender } = render(view("ready"));
+    fireEvent.click(screen.getByRole("tab", { name: "Tournament" }));
+    const started = poll.frames.find((f) => f.type === "trial.started" && f.data.track === "replay");
+    const trialId = started?.type === "trial.started" ? started.data.trial_id : "";
+    const ref = started?.type === "trial.started" ? started.data.trial_ref : 0;
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Replay Trial ${String(ref)}:`) }));
+    expect(onReplay).toHaveBeenCalledWith(trialId);
+    expect(screen.getByText("Choose a trial to replay it in the interview room.")).toBeTruthy();
+    rerender(view("ready", "The server does not offer this run's recording."));
+    expect(screen.getByRole("alert").textContent).toBe("The server does not offer this run's recording.");
+    rerender(view("missing"));
+    expect(screen.getByText(/does not offer the tournament routes yet/)).toBeTruthy();
+    expect(screen.queryAllByRole("button", { name: /^Replay / })).toHaveLength(0);
+    rerender(view("error"));
+    expect(screen.getByText("The tournament could not be read. Try again later.")).toBeTruthy();
+  });
+
+  it("lists the tournaments to choose from when none is selected", () => {
+    render(
+      <ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={[{ id: "t 1", name: "dev-demo", split: "dev", status: "revealed" }]} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />,
+    );
+    expect(screen.getByRole("link", { name: "dev-demo" }).getAttribute("href")).toBe("?tournament=t%201");
   });
 
   it("shows the sealed state with no numbers before reveal (FE-LB-5), never the example", () => {
-    render(<ArenaView name="Arena" boards={{ kind: "sealed" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} motionOff onClose={() => undefined} />);
+    render(<ArenaView name="Arena" boards={{ kind: "sealed" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="loading" tournaments={null} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
     expect(screen.getByText("Results are sealed until reveal.")).toBeTruthy();
     expect(document.querySelector("table.board")).toBeNull();
     expect(document.body.textContent).not.toMatch(/\d+%|Example data/);
@@ -75,7 +112,7 @@ describe("ArenaView", () => {
 
   it("labels a corrected board and links to its original", () => {
     const corrected = parseBoard({ ...boards.assistant, binding: { ...boards.assistant.binding, manifest_version: 2 } });
-    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={corrected} subject={null} tournament={EMPTY_TOURNAMENT} motionOff onClose={() => undefined} />);
+    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={corrected} subject={null} tournament={EMPTY_TOURNAMENT} matrix="ready" tournaments={null} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
     expect(screen.getByText("Corrected leaderboard")).toBeTruthy();
     expect(screen.getByRole("link", { name: "See the original leaderboard" }).getAttribute("href")).toBe("?tournament=t-1&label=original");
     expect(document.body.textContent).not.toMatch(/Example data/);

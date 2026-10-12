@@ -1318,7 +1318,8 @@ td {
 
 .matrix-row {
   display: grid;
-  grid-template-columns: 96px repeat(3, 1fr);
+  /* A pairing runs as many trials as the roster gives it (the example has three; a real roster often more). */
+  grid-template-columns: 96px repeat(auto-fill, minmax(104px, 1fr));
   gap: var(--arena-space-2);
   align-items: center;
 }
@@ -1329,6 +1330,28 @@ td {
   box-shadow: 0 0 0 1px var(--arena-hairline);
   font-size: 12px;
   background: var(--arena-canvas);
+}
+
+.matrix-replay {
+  all: unset;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.matrix-replay:focus-visible {
+  outline: 2px solid var(--arena-ink);
+  outline-offset: 4px;
+  border-radius: var(--arena-radius-md);
+}
+
+.matrix-cell:has(.matrix-replay:hover) {
+  box-shadow: 0 0 0 2px var(--arena-ink);
+}
+
+.tournament-list {
+  margin: var(--arena-space-2) 0 0;
+  padding-left: 18px;
 }
 
 .matrix-cell[data-state="completed"] {

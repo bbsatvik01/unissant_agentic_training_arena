@@ -40,6 +40,7 @@ import type { WorldState } from "../lib/world/worldState";
 import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
+import { useTournament, useTournamentList } from "./world/useTournament";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
 import { roomEngine } from "./world/voiceEngines";
@@ -98,13 +99,18 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; example: TournamentState | null; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [endedTrial, setEndedTrial] = useState<EndedTrial | null>(null);
   // The judge demo (`?demo` or the precinct's Guided demo button): its step and when it began.
   const [demo, setDemo] = useState<{ step: DemoStep; startedAt: number } | null>(() => (new URLSearchParams(window.location.search).has("demo") ? { step: "precinct", startedAt: Date.now() } : null));
   // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
   const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
+  // The selected tournament's matrix comes from the tournament poll (S6 4.9); without a selection, the list of
+  // tournaments to choose from.
+  const [tournamentId] = useState(() => new URLSearchParams(window.location.search).get("tournament"));
+  const tournamentLoad = useTournament(api, tournamentId, showArena);
+  const tournamentList = useTournamentList(api, showArena && tournamentId === null);
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
   // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
   // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
@@ -120,7 +126,6 @@ export function WorldRoute() {
   useEffect(() => {
     if (!showArena || arenaLoaded) return;
     const params = new URLSearchParams(window.location.search);
-    const tournamentId = params.get("tournament");
     const label = params.get("label") === "original" ? "original" : null;
     type Boards = { assistant: Board | null; subject: Board | null; state: BoardsState };
     const published: Promise<Boards | null> =
@@ -139,13 +144,12 @@ export function WorldRoute() {
         name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
         assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
         subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
-        // The example matrix only without a selected tournament; a selected one has no trials to show until the
-        // tournament route is live (WP-17), never the example's.
-        tournament: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        // The example matrix only without a selected tournament; a selected one shows its own poll, never the example.
+        example: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : null,
         boards: boards === null ? { kind: "example" } : boards.state,
       });
     });
-  }, [showArena, arenaLoaded, api]);
+  }, [showArena, arenaLoaded, api, tournamentId]);
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -364,8 +368,8 @@ export function WorldRoute() {
         ([raw, { parseRecording }]) => {
           playRecording(raw, parseRecording);
         },
-        () => {
-          setFileError("That run could not be loaded.");
+        (e: unknown) => {
+          setFileError(e instanceof ApiError && e.status === 404 ? "The server does not offer this run's recording." : "That run could not be loaded.");
         },
       );
       // The ended trial's snapshot carries coaching an assessment withheld, which its recording does not (FE-DEB-4).
@@ -928,7 +932,11 @@ export function WorldRoute() {
           boards={arena.boards}
           assistant={arena.assistant}
           subject={arena.subject}
-          tournament={arena.tournament}
+          tournament={arena.example ?? (tournamentLoad.state === "ready" ? tournamentLoad.tournament : EMPTY_TOURNAMENT)}
+          matrix={arena.example !== null ? "example" : tournamentLoad.state === "ready" || tournamentLoad.state === "idle" ? "ready" : tournamentLoad.state}
+          tournaments={tournamentList.state === "ready" ? tournamentList.list : null}
+          notice={fileError}
+          onReplay={replayTrial}
           motionOff={still}
           onClose={() => {
             setShowArena(false);
