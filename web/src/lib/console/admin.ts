@@ -194,10 +194,11 @@ export interface CompliancePacket {
   readonly persona: { readonly name: string; readonly position: string; readonly organization: string; readonly unit: string | null; readonly background: string } | null;
   readonly matter: string | null;
   readonly objective: string | null;
-  readonly facts: readonly { readonly id: string; readonly cls: string; readonly text: string; readonly gate: string | null }[];
+  readonly facts: readonly { readonly id: string; readonly cls: string; readonly text: string; readonly gate: string | null; readonly certainty: string | null }[];
   readonly unknown: readonly { readonly fact_id: string; readonly text: string }[];
-  readonly uncertainty: readonly { readonly id: string; readonly fact_id: string; readonly text: string; readonly range: string | null }[];
-  readonly gates: readonly { readonly id: string; readonly condition: string; readonly opens: readonly string[]; readonly records: readonly string[] }[];
+  readonly uncertainty: readonly { readonly id: string; readonly fact_id: string; readonly text: string; readonly form: string | null; readonly range: string | null }[];
+  /** `records`: the gate's precondition records, any one of which, once released, unlocks it (S1 7.2). */
+  readonly gates: readonly { readonly id: string; readonly condition: string; readonly opens: readonly string[]; readonly level: number | null; readonly records: readonly string[] }[];
   readonly permitted: readonly string[];
   readonly forbidden: readonly string[];
   readonly assertions: readonly { readonly id: string; readonly text: string; readonly contradicts: string }[];
@@ -230,7 +231,7 @@ function parsePacket(v: unknown): CompliancePacket | null {
     facts: list(v["facts"], (f) => {
       const id = text(f["id"]);
       const t = text(f["text"]);
-      return id === null || t === null ? null : { id, cls: text(f["class"]) ?? "", text: t, gate: text(f["gate_id"]) };
+      return id === null || t === null ? null : { id, cls: text(f["class"]) ?? "", text: t, gate: text(f["gate_id"]), certainty: text(f["certainty"]) };
     }),
     unknown: list(v["unknown_facts"], (u) => {
       const id = text(u["fact_id"]);
@@ -240,12 +241,12 @@ function parsePacket(v: unknown): CompliancePacket | null {
     uncertainty: list(v["uncertainty"], (u) => {
       const id = text(u["id"]);
       const t = text(u["text"]);
-      return id === null || t === null ? null : { id, fact_id: text(u["fact_id"]) ?? "", text: t, range: text(u["range_text"]) };
+      return id === null || t === null ? null : { id, fact_id: text(u["fact_id"]) ?? "", text: t, form: text(u["answer_form"]), range: text(u["range_text"]) };
     }),
     gates: list(v["gates"], (g) => {
       const id = text(g["id"]);
       const c = text(g["condition"]);
-      return id === null || c === null ? null : { id, condition: c, opens: strings(g["opens"]), records: strings(g["precondition_records"]) };
+      return id === null || c === null ? null : { id, condition: c, opens: strings(g["opens"]), level: count(g["min_evidence_level"]), records: strings(g["precondition_records"]) };
     }),
     permitted: strings(v["permitted_behaviors"]).map((b) => b.replaceAll("_", " ")),
     forbidden: strings(v["forbidden_behaviors"]).map((b) => b.replaceAll("_", " ")),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EMPTY_TOURNAMENT, foldPoll } from "./tournament";
-import { nextPoll, parseTournamentList, parseTournamentStatus, POLL_MS } from "./tournamentPoll";
+import { nextPoll, parseTournamentList, parseTournamentStatus, POLL_MS, POLL_PAGE } from "./tournamentPoll";
 
 describe("tournament poll lifecycle (S6 4.9, S5 6.2)", () => {
   it("polls every 2 s while running, sealed or scoring and the tab is visible; reads draft, frozen and revealed once", () => {
@@ -12,6 +12,14 @@ describe("tournament poll lifecycle (S6 4.9, S5 6.2)", () => {
     expect(nextPoll("revealed", false)).toBe("stop");
     // A state no response has reported yet (a hidden tournament's counts carry none): keep polling while visible.
     expect(nextPoll(null, true)).toBe(POLL_MS);
+  });
+
+  it("drains a full page at once before the lifecycle rule applies, but never while the tab is hidden", () => {
+    expect(POLL_PAGE).toBe(200);
+    expect(nextPoll("revealed", true, true)).toBe(0);
+    expect(nextPoll("running", true, true)).toBe(0);
+    expect(nextPoll("revealed", false, true)).toBe("hidden");
+    expect(nextPoll("revealed", true, false)).toBe("stop");
   });
 
   it("restarts at after=0 when a hidden tournament's counts switch to events at reveal", () => {

@@ -934,7 +934,7 @@ export function WorldRoute() {
           subject={arena.subject}
           tournament={arena.example ?? (tournamentLoad.state === "ready" ? tournamentLoad.tournament : EMPTY_TOURNAMENT)}
           matrix={arena.example !== null ? "example" : tournamentLoad.state === "ready" || tournamentLoad.state === "idle" ? "ready" : tournamentLoad.state}
-          tournaments={tournamentList.state === "ready" ? tournamentList.list : null}
+          tournaments={tournamentList}
           notice={fileError}
           onReplay={replayTrial}
           motionOff={still}

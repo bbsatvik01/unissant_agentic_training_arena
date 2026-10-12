@@ -1,9 +1,10 @@
 /**
  * The arena's tournament data (S6 4.9): the tournament list once the arena opens, and for the selected tournament
  * its state (`GET /api/tournaments/{id}`) then the poll on the global ledger cursor
- * (`GET /api/tournaments/{id}/events?after=`), folded into the matrix. The poll repeats every 2 s while the
- * tournament is running, sealed or scoring and the tab is visible, waits while the tab is hidden, and stops after
- * the response that reports a state that needs no polling (`nextPoll`). A 404 means the server does not offer the
+ * (`GET /api/tournaments/{id}/events?after=`), folded into the matrix. A full page is followed at once by the next
+ * one; otherwise the poll repeats every 2 s while the tournament is running, sealed or scoring, and stops after the
+ * response that reports a state that needs no polling (`nextPoll`). No request leaves while the tab is hidden: a
+ * poll that falls due then waits for the tab to be visible again. A 404 means the server does not offer the
  * route yet, which the arena says plainly; nothing else stands in for the data.
  */
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { useEffect, useState } from "react";
 import type { ArenaApi } from "../../lib/api/arena";
 import { ApiError } from "../../lib/api/client";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../../lib/arena/tournament";
-import { nextPoll, parseTournamentList, parseTournamentStatus, type TournamentListing } from "../../lib/arena/tournamentPoll";
+import { nextPoll, parseTournamentList, parseTournamentStatus, POLL_PAGE, type TournamentListing } from "../../lib/arena/tournamentPoll";
 
 export type TournamentLoad =
   | { readonly state: "idle" }
@@ -69,19 +70,26 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
       document.removeEventListener("visibilitychange", onVisible);
       poll();
     };
-    const schedule = () => {
-      const next = nextPoll(folded.state ?? status, document.visibilityState === "visible");
+    const visible = () => document.visibilityState === "visible";
+    const schedule = (more: boolean) => {
+      const next = nextPoll(folded.state ?? status, visible(), more);
       if (next === "stop") return;
       if (next === "hidden") document.addEventListener("visibilitychange", onVisible);
       else timer = setTimeout(poll, next);
     };
     function poll() {
+      timer = null;
+      // Checked when the request would leave, not only when it was scheduled: the tab may have been hidden since.
+      if (!visible()) {
+        document.addEventListener("visibilitychange", onVisible);
+        return;
+      }
       tournamentEvents(id, folded.last).then(
         (answer) => {
           if (cancelled) return;
           folded = foldPoll(folded, answer);
           setLoad({ state: "ready", tournament: folded });
-          schedule();
+          schedule(answer.visibility === "events" && answer.frames.length >= POLL_PAGE);
         },
         (e: unknown) => {
           if (cancelled) return;
@@ -89,7 +97,7 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
           // is the arena's state. A 404 always means the route is not there.
           const f = failure(e);
           if (f.state === "missing" || folded === EMPTY_TOURNAMENT) setLoad(f);
-          else schedule();
+          else schedule(false);
         },
       );
     }

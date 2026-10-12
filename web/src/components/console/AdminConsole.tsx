@@ -93,6 +93,7 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
               <th scope="col">Fact</th>
               <th scope="col">Class</th>
               <th scope="col">Text</th>
+              <th scope="col">Certainty</th>
               <th scope="col">Opened by</th>
             </tr>
           </thead>
@@ -105,6 +106,7 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
                 </td>
                 <td className="mono">{f.cls}</td>
                 <td>{f.text}</td>
+                <td>{f.certainty ?? ""}</td>
                 <td className="mono">{f.gate ?? ""}</td>
               </tr>
             ))}
@@ -115,7 +117,8 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
         <ul className="fine">
           {packet.gates.map((g) => (
             <li key={g.id}>
-              <span className="mono">{g.id}</span> {g.condition} Opens <Ids ids={g.opens} />; needs <Ids ids={g.records} />.
+              <span className="mono">{g.id}</span> {g.condition} Opens <Ids ids={g.opens} />
+              {g.level === null ? "" : `; evidence level ${String(g.level)} or above`}; unlocked once any one of <Ids ids={g.records} /> is released.
             </li>
           ))}
         </ul>
@@ -133,7 +136,8 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
         <ul className="fine">
           {packet.uncertainty.map((u) => (
             <li key={u.id}>
-              <span className="mono">{u.id}</span> on <span className="mono">{u.fact_id}</span>: {u.text}
+              <span className="mono">{u.id}</span> on <span className="mono">{u.fact_id}</span>
+              {u.form === null ? "" : ` (answer as ${u.form === "range" ? "a range" : u.form})`}: {u.text}
               {u.range === null ? "" : ` Allowed answer: ${u.range}`}
             </li>
           ))}

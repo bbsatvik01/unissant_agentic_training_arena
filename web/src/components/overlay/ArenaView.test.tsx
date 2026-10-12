@@ -28,7 +28,7 @@ function show() {
       subject={parseBoard(boards.subject)}
       tournament={foldPoll(EMPTY_TOURNAMENT, tournamentExample.poll as TournamentPoll)}
       matrix="example"
-      tournaments={null}
+      tournaments={{ state: "idle" }}
       notice={null}
       onReplay={() => undefined}
       motionOff
@@ -77,7 +77,7 @@ describe("ArenaView", () => {
     const onReplay = vi.fn();
     const poll = tournamentExample.poll as Extract<TournamentPoll, { visibility: "events" }>;
     const view = (matrix: "ready" | "missing" | "error" | "loading", notice: string | null = null) => (
-      <ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={null} subject={null} tournament={foldPoll(EMPTY_TOURNAMENT, poll)} matrix={matrix} tournaments={null} notice={notice} onReplay={onReplay} motionOff onClose={() => undefined} />
+      <ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={null} subject={null} tournament={foldPoll(EMPTY_TOURNAMENT, poll)} matrix={matrix} tournaments={{ state: "idle" }} notice={notice} onReplay={onReplay} motionOff onClose={() => undefined} />
     );
     const { rerender } = render(view("ready"));
     fireEvent.click(screen.getByRole("tab", { name: "Tournament" }));
@@ -98,13 +98,21 @@ describe("ArenaView", () => {
 
   it("lists the tournaments to choose from when none is selected", () => {
     render(
-      <ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={[{ id: "t 1", name: "dev-demo", split: "dev", status: "revealed" }]} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />,
+      <ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state: "ready", list: [{ id: "t 1", name: "dev-demo", split: "dev", status: "revealed" }] }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />,
     );
     expect(screen.getByRole("link", { name: "dev-demo" }).getAttribute("href")).toBe("?tournament=t%201");
+    cleanup();
+    for (const [state, text] of [["missing", "The server does not offer the tournament list yet."], ["error", "The tournament list could not be read."]] as const) {
+      render(<ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+      expect(screen.getByText(text)).toBeTruthy();
+      cleanup();
+    }
+    render(<ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state: "ready", list: [] }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+    expect(screen.getByText("No tournaments yet.")).toBeTruthy();
   });
 
   it("shows the sealed state with no numbers before reveal (FE-LB-5), never the example", () => {
-    render(<ArenaView name="Arena" boards={{ kind: "sealed" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="loading" tournaments={null} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+    render(<ArenaView name="Arena" boards={{ kind: "sealed" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="loading" tournaments={{ state: "idle" }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
     expect(screen.getByText("Results are sealed until reveal.")).toBeTruthy();
     expect(document.querySelector("table.board")).toBeNull();
     expect(document.body.textContent).not.toMatch(/\d+%|Example data/);
@@ -112,7 +120,7 @@ describe("ArenaView", () => {
 
   it("labels a corrected board and links to its original", () => {
     const corrected = parseBoard({ ...boards.assistant, binding: { ...boards.assistant.binding, manifest_version: 2 } });
-    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={corrected} subject={null} tournament={EMPTY_TOURNAMENT} matrix="ready" tournaments={null} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={corrected} subject={null} tournament={EMPTY_TOURNAMENT} matrix="ready" tournaments={{ state: "idle" }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
     expect(screen.getByText("Corrected leaderboard")).toBeTruthy();
     expect(screen.getByRole("link", { name: "See the original leaderboard" }).getAttribute("href")).toBe("?tournament=t-1&label=original");
     expect(document.body.textContent).not.toMatch(/Example data/);

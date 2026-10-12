@@ -9,6 +9,9 @@
 import type { TournamentState } from "./tournament";
 
 export const POLL_MS = 2000;
+/** The most frames one poll response carries (the tournament-poll schema's `maxItems`): a full page means more are
+ * waiting behind it. */
+export const POLL_PAGE = 200;
 
 type Status = NonNullable<TournamentState["state"]>;
 
@@ -22,11 +25,13 @@ export interface TournamentListing {
   readonly status: Status;
 }
 
-/** When the next poll is due: in `POLL_MS`, once the tab is visible again (`hidden`), or never (`stop`). A state no
- * response has reported yet keeps the poll going, as a hidden tournament's counts responses carry none. */
-export function nextPoll(state: TournamentState["state"], visible: boolean): number | "hidden" | "stop" {
-  if (state !== null && !LIVE.includes(state)) return "stop";
-  return visible ? POLL_MS : "hidden";
+/** When the next poll is due: at once (a full page left more frames behind it, whatever the state), in `POLL_MS`,
+ * once the tab is visible again (`hidden`), or never (`stop`). A state no response has reported yet keeps the poll
+ * going, as a hidden tournament's counts responses carry none. */
+export function nextPoll(state: TournamentState["state"], visible: boolean, more = false): number | "hidden" | "stop" {
+  if (!more && state !== null && !LIVE.includes(state)) return "stop";
+  if (!visible) return "hidden";
+  return more ? 0 : POLL_MS;
 }
 
 function isRecord(v: unknown): v is Readonly<Record<string, unknown>> {

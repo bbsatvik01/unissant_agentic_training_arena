@@ -168,6 +168,8 @@ describe("ConsoleRoute", () => {
               { id: "f:44", class: "HOLD", text: "No task in B-12.", gate_id: "g:01" },
             ],
             forbidden_assertions: [{ id: "x:02", text: "I had a work task in B-12.", contradicts: "f:44" }],
+            gates: [{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], min_evidence_level: 3, precondition_records: ["rec-01", "rec-02"] }],
+            uncertainty: [{ id: "u:01", fact_id: "f:10", text: "Left after 14:15.", answer_form: "unsure" }],
           },
         },
         { trial_id: "tr-2", proposal: "valid" },
@@ -185,6 +187,8 @@ describe("ConsoleRoute", () => {
     expect(screen.getByText("f:44 (contradicted)")).toBeTruthy();
     expect(screen.getByText("f:01")).toBeTruthy();
     expect(screen.getByText(/Must never say: "I had a work task in B-12."/)).toBeTruthy();
+    expect(screen.getByText(/evidence level 3 or above; unlocked once any one of/)).toBeTruthy();
+    expect(screen.getByText(/\(answer as unsure\): Left after 14:15\./)).toBeTruthy();
     expect(await screen.findByText(/in dev-1/)).toBeTruthy();
     const [reason, reason2] = screen.getAllByRole("textbox", { name: "Reason" });
     fireEvent.change(reason2 as HTMLElement, { target: { value: "looks fine" } });

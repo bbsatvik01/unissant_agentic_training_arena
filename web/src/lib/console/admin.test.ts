@@ -101,7 +101,7 @@ describe("admin console data (S6 4.13)", () => {
       ],
       unknown_facts: [{ fact_id: "f:07", subject_view: "You do not know when Ines wrote it." }],
       uncertainty: [{ id: "u:01", fact_id: "f:10", text: "Left between 14:15 and 14:30.", answer_form: "range", range_text: "After quarter past two." }],
-      gates: [{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], precondition_records: ["rec-01"] }],
+      gates: [{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], min_evidence_level: 3, precondition_records: ["rec-01"] }],
       permitted_behaviors: ["omission", "deflection"],
       forbidden_behaviors: ["deny_known_fact"],
       forbidden_assertions: [{ id: "x:02", text: "I had a work task in B-12.", contradicts: "f:44" }],
@@ -115,12 +115,12 @@ describe("admin console data (S6 4.13)", () => {
     expect(p?.role).toBe("deceptive");
     expect(p?.persona).toEqual({ name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", background: "Handles HVAC." });
     expect(p?.facts).toEqual([
-      { id: "f:01", cls: "FREE", text: "Two technicians down.", gate: null },
-      { id: "f:44", cls: "HOLD", text: "No task in B-12.", gate: "g:01" },
+      { id: "f:01", cls: "FREE", text: "Two technicians down.", gate: null, certainty: "certain" },
+      { id: "f:44", cls: "HOLD", text: "No task in B-12.", gate: "g:01", certainty: null },
     ]);
     expect(p?.unknown).toEqual([{ fact_id: "f:07", text: "You do not know when Ines wrote it." }]);
-    expect(p?.uncertainty).toEqual([{ id: "u:01", fact_id: "f:10", text: "Left between 14:15 and 14:30.", range: "After quarter past two." }]);
-    expect(p?.gates).toEqual([{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], records: ["rec-01"] }]);
+    expect(p?.uncertainty).toEqual([{ id: "u:01", fact_id: "f:10", text: "Left between 14:15 and 14:30.", form: "range", range: "After quarter past two." }]);
+    expect(p?.gates).toEqual([{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], level: 3, records: ["rec-01"] }]);
     expect(p?.permitted).toEqual(["omission", "deflection"]);
     expect(p?.forbidden).toEqual(["deny known fact"]);
     expect(p?.assertions).toEqual([{ id: "x:02", text: "I had a work task in B-12.", contradicts: "f:44" }]);

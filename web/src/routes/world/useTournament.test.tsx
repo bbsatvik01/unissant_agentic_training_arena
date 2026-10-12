@@ -10,6 +10,7 @@ import { useTournament, useTournamentList } from "./useTournament";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  setVisibility("visible");
 });
 
 const T = "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f";
@@ -69,16 +70,19 @@ describe("useTournament (S6 4.9)", () => {
     const runningApi = { tournament: () => Promise.resolve({ status: "running" }), tournamentEvents: running };
     renderHook(() => useTournament(runningApi, T, true));
     await act(() => vi.advanceTimersByTimeAsync(10000));
-    expect(running).toHaveBeenCalledTimes(1);
+    expect(running).toHaveBeenCalledTimes(0);
     setVisibility("visible");
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(running).toHaveBeenCalledTimes(1);
+    await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(running).toHaveBeenCalledTimes(2);
   });
 
   it("says when the route is missing, an error before any data, and keeps shown data through a failed poll", async () => {
+    setVisibility("visible");
     const missingApi = { tournament: () => Promise.reject(new ApiError(404, null, "/api/tournaments/x")), tournamentEvents: vi.fn() };
     const missing = renderHook(() => useTournament(missingApi, T, true));
     await waitFor(() => {
@@ -103,6 +107,59 @@ describe("useTournament (S6 4.9)", () => {
     const idleApi = { tournament: vi.fn(), tournamentEvents: vi.fn() };
     const idle = renderHook(() => useTournament(idleApi, null, true));
     expect(idle.result.current.state).toBe("idle");
+  });
+});
+
+function page(from: number, n: number): TournamentPoll {
+  const frames = Array.from({ length: n }, (_, i) => ({
+    v: 1,
+    seq: from + i,
+    scope: "tournament",
+    scope_id: T,
+    ts: "2026-10-11T12:00:00Z",
+    type: "trial.started",
+    data: { trial_ref: from + i, trial_id: "22222222-2222-4222-8222-222222222222", pairing: "A1 x S1", track: "replay", block: null },
+  }));
+  return { visibility: "events", last: from + n - 1, frames } as TournamentPoll;
+}
+
+describe("useTournament paging and visibility", () => {
+  it("drains every full page of a revealed tournament before it stops", async () => {
+    vi.useFakeTimers();
+    setVisibility("visible");
+    const pages = [page(1, 200), page(201, 1)];
+    const tournamentEvents = vi.fn(() => Promise.resolve(pages.shift() ?? page(202, 0 + 1)));
+    const pagedApi = { tournament: () => Promise.resolve({ status: "revealed" }), tournamentEvents };
+    const { result } = renderHook(() => useTournament(pagedApi, T, true));
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents.mock.calls.map((c) => (c as unknown[])[1])).toEqual([0, 200]);
+    const r = result.current;
+    expect(r.state === "ready" ? r.tournament.trials.size : 0).toBe(201);
+  });
+
+  it("sends nothing while the tab is hidden, at the start or after it hides during the wait", async () => {
+    vi.useFakeTimers();
+    setVisibility("hidden");
+    const tournamentEvents = vi.fn(() => Promise.resolve(events("running", 3)));
+    const hiddenApi = { tournament: () => Promise.resolve({ status: "running" }), tournamentEvents };
+    renderHook(() => useTournament(hiddenApi, T, true));
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    expect(tournamentEvents).not.toHaveBeenCalled();
+    setVisibility("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(tournamentEvents).toHaveBeenCalledTimes(1);
+    setVisibility("hidden");
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents).toHaveBeenCalledTimes(1);
+    setVisibility("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(tournamentEvents).toHaveBeenCalledTimes(2);
   });
 });
 

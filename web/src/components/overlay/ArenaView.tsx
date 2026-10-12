@@ -252,6 +252,13 @@ function SubjectBoard({ board }: { board: Board }) {
   );
 }
 
+export type TournamentChoices = { readonly state: "idle" | "loading" | "missing" | "error" } | { readonly state: "ready"; readonly list: readonly TournamentListing[] };
+
+const CHOICES_NOTE: Readonly<Record<"missing" | "error", string>> = {
+  missing: "The server does not offer the tournament list yet.",
+  error: "The tournament list could not be read.",
+};
+
 /** Where the matrix's data stands: the example, the selected tournament's poll, or why there is none. */
 export type MatrixSource = "example" | "ready" | "loading" | "missing" | "error";
 
@@ -358,8 +365,8 @@ export function ArenaView(props: {
   readonly tournament: TournamentState;
   /** Where the matrix's data stands. */
   readonly matrix: MatrixSource;
-  /** The tournaments to choose from, when none is selected and the server lists them. */
-  readonly tournaments: readonly TournamentListing[] | null;
+  /** The tournaments to choose from when none is selected (`idle` when one is). */
+  readonly tournaments: TournamentChoices;
   /** Why the last replay did not start, if it did not. */
   readonly notice: string | null;
   readonly onReplay: (trialId: string) => void;
@@ -389,10 +396,12 @@ export function ArenaView(props: {
           </p>
         )}
         {props.boards.kind === "example" ? <p className="fine">The tournament matrix shows example data too.</p> : null}
-        {props.tournaments === null || props.tournaments.length === 0 ? null : (
+        {props.tournaments.state === "missing" || props.tournaments.state === "error" ? <p className="fine">{CHOICES_NOTE[props.tournaments.state]}</p> : null}
+        {props.tournaments.state === "ready" && props.tournaments.list.length === 0 ? <p className="fine">No tournaments yet.</p> : null}
+        {props.tournaments.state !== "ready" || props.tournaments.list.length === 0 ? null : (
           <nav aria-label="Tournaments">
             <ul className="tournament-list">
-              {props.tournaments.map((t) => (
+              {props.tournaments.list.map((t) => (
                 <li key={t.id}>
                   <a href={`?tournament=${encodeURIComponent(t.id)}`}>{t.name}</a> <span className="fine">{t.split} split, {t.status}</span>
                 </li>
