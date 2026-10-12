@@ -232,3 +232,19 @@ def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str
         ),
         "debrief": debrief,
     }
+
+
+async def load_recording(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
+    """`GET /api/trials/{id}/recording` (D-021) and `make export-run`'s one shared loader: the owner's own
+    training trial, or else a tournament trial -- `arena.trial_visible` has already restricted which one an
+    `arena_public` caller may read (a dev-split trial, or a hidden one after reveal) regardless of the acting
+    identity, so the same dev identity that exports a training trial can export a visible tournament trial
+    too (`scripts/export_run.py`'s own docstring). `None` when `trial` is neither (another user's training
+    trial, or an unknown id)."""
+    loaded = await load_trial(db, trial)
+    if loaded is None:
+        loaded = await load_tournament_trial(db, trial)
+    if loaded is None:
+        return None
+    debrief = None if loaded.session_id is None else await db.debrief(loaded.session_id)
+    return recording_of(loaded, debrief)

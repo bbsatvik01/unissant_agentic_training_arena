@@ -28,7 +28,7 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import HarnessFrame, TrialFrame
+from arena_core.contracts.events import HarnessFrame, TournamentFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
@@ -420,3 +420,122 @@ def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict
     }
     dumped: dict[str, Any] = _SNAPSHOT.dump_python(_SNAPSHOT.validate_python(body), mode="json")
     return dumped
+
+
+# ---------------------------------------------------------------- tournament scope (polled; S5 6.2, S6 4.9, 5.3)
+
+_TOURNAMENT_FRAMES: TypeAdapter[TournamentFrame] = TypeAdapter(TournamentFrame)
+# Every S4 tournament-lifecycle `ledger.append_event` type (`tournament_ledger.sql`) that becomes
+# `tournament.status`, to the state it reports.
+_TOURNAMENT_STATUS: dict[str, str] = {
+    "tournament_created": "draft",
+    "roster_frozen": "frozen",
+    "tournament_running": "running",
+    "tournament_sealed": "sealed",
+    "tournament_scoring": "scoring",
+    "tournament_revealed": "revealed",
+}
+
+
+@dataclass(frozen=True)
+class LedgerRow:
+    """One `ledger.v_events` row scoped to a tournament (S5 6.2, S6 4.9, 5.3). The caller (`arena_core.db.arena`,
+    never this module's own SQL) joins in what a tournament frame needs beyond the payload: the trial's own
+    planned position (`trial_ref`, an opaque per-tournament ordinal, `arena.planned_trials.position`), its
+    track and block, and, for `trial.started`, its pairing (the registered assistant and subject candidate
+    names, S6 4.9's "A1 x S1"; a replay trial's subject is its corpus source's own, joined through
+    `source_planned_trial_id`). `trial_ref`, `track`, `block` and `pairing` are all None for a tournament-level
+    row (one with no `trial_id` at all, such as `tournament_running`)."""
+
+    seq: int
+    event_type: str
+    trial_id: str | None
+    created_at: str
+    payload: Mapping[str, Any]
+    trial_ref: int | None = None
+    track: str | None = None
+    block: int | None = None
+    pairing: str | None = None
+
+
+def _started(row: LedgerRow) -> tuple[str, dict[str, Any]]:
+    return "trial.started", {
+        "trial_ref": row.trial_ref,
+        "trial_id": row.trial_id,
+        "pairing": row.pairing,
+        "track": row.track,
+        "block": row.block,
+    }
+
+
+def _replay_turn(row: LedgerRow) -> tuple[str, dict[str, Any]]:
+    return "replay.turn", {"trial_ref": row.trial_ref, "turn_no": row.payload["turn_no"]}
+
+
+def _trial_finalized(row: LedgerRow) -> tuple[str, dict[str, Any]]:
+    return "trial.finalized", {"trial_ref": row.trial_ref, "commitment_hash": row.payload["commitment_sha256"]}
+
+
+def _trial_execution(row: LedgerRow) -> tuple[str, dict[str, Any]]:
+    return "trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]}
+
+
+# Every ledger `event_type` naming a trial that still carries a tournament-scope frame (S6 5.3), keyed by
+# that name; `_tournament_frame` dispatches here once it knows the row's own trial is framed at all.
+_TRIAL_FRAME_BUILDERS: dict[str, Callable[[LedgerRow], tuple[str, dict[str, Any]]]] = {
+    "trial_started": _started,
+    "replay_turn_copied": _replay_turn,
+    "trial_finalized": _trial_finalized,
+    "execution_recorded": _trial_execution,
+}
+
+
+def _tournament_frame(row: LedgerRow) -> tuple[str, dict[str, Any]] | None:
+    """The tournament-scope wire type and data for this row, or `None`: a row this scope carries no frame for
+    (S6 5.3: "no block-start frame... no referee.labeled or budget.* frame") -- a trial-scope event this
+    tournament trial also wrote (`question_asked`, `evidence_released`, `subject_answered`, ...), a
+    lifecycle or audit row with no wire type (`trial_retry`, `validity_adjudicated`, `manifest_corrected`),
+    or any event of a `replay_corpus` trial, which S6 4.9 shows only as progress counts, dev split or
+    revealed alike, never a wire frame (its corpus producer run stays internal)."""
+    state = _TOURNAMENT_STATUS.get(row.event_type)
+    if state is not None:
+        return "tournament.status", {"state": state}
+    if row.trial_ref is None or row.track == "replay_corpus":
+        return None
+    builder = _TRIAL_FRAME_BUILDERS.get(row.event_type)
+    return None if builder is None else builder(row)
+
+
+def tournament_frames(rows: Iterable[object], tournament_id: str, limit: int = 200) -> tuple[list[dict[str, Any]], int]:
+    """`GET /api/tournaments/{id}/events?after=` (S5 6.2, S6 4.9, 5.3): the tournament's wire frames for these
+    ledger rows (in ascending `seq` order), validated against `TournamentFrame` and dumped -- never a frame
+    object leaves this module -- at most `limit` of them. Returns the frames and the ledger `seq` to resume
+    after: the last row this call actually consumed, whether or not it produced a frame, so a filtered-out
+    row (a trial-scope event, a replay-corpus trial) is never re-read on the next poll; a row that would push
+    the page past `limit` is left entirely for that next call (its own `seq` never becomes the returned
+    cursor), so its frame is built exactly once, on the call that has room for it."""
+    out: list[dict[str, Any]] = []
+    last = 0
+    for row in rows:
+        if not isinstance(row, LedgerRow):
+            msg = f"tournament_frames projects ledger rows, not {type(row).__name__}"
+            raise TypeError(msg)
+        built = _tournament_frame(row)
+        if built is not None:
+            if len(out) >= limit:
+                break
+            wire_type, data = built
+            frame = _TOURNAMENT_FRAMES.validate_python(
+                {
+                    "v": 1,
+                    "seq": row.seq,
+                    "scope": "tournament",
+                    "scope_id": tournament_id,
+                    "type": wire_type,
+                    "ts": row.created_at,
+                    "data": data,
+                }
+            )
+            out.append(_TOURNAMENT_FRAMES.dump_python(frame, mode="json"))
+        last = row.seq
+    return out, last

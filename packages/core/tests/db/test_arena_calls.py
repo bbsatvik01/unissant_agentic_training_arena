@@ -396,6 +396,80 @@ def test_tournament_status_and_leaderboard_reads() -> None:
     assert script.executed[-1][1] == (tournament, "subject", "original", "original")
 
 
+# ------------------------------------------------------------------ tournament arena (S5 6.2, S6 4.9)
+
+
+def test_tournaments_lists_every_row() -> None:
+    row = (uuid4(), "dev-demo-F01", "dev", "running", 7, "a" * 64)
+    arena, _ = db([("arena.v_tournaments", [row])])
+    assert run(arena.tournaments()) == [
+        {
+            "id": str(row[0]),
+            "name": "dev-demo-F01",
+            "split": "dev",
+            "status": "running",
+            "seed": 7,
+            "roster_sha256": "a" * 64,
+        }
+    ]
+
+
+def test_tournament_progress_reads_the_view_in_track_and_block_order() -> None:
+    tournament = uuid4()
+    rows = [("interactive", 1, 18, json.dumps({"completed": 18}))]
+    arena, script = db([("arena.v_tournament_progress", rows)])
+    assert run(arena.tournament_progress(tournament)) == [
+        {"track": "interactive", "block": 1, "planned": 18, "counts_by_state": {"completed": 18}}
+    ]
+    assert script.executed[-1][1] == (tournament,)
+
+
+def test_tournament_events_joins_trial_refs_and_projects_the_ledger() -> None:
+    """A tournament-level row (no `trial_id`) needs no join hit; a trial-scoped one is named by its own
+    planned position, track, block and pairing (`_tournament_trial_refs`), then projected
+    (`events.projections.tournament_frames`, never built here)."""
+    tournament = uuid4()
+    trial = uuid4()
+    refs_rows = [(trial, 3, "interactive", 2, "A1", "S1")]
+    created_us = int(NOW.timestamp() * 1_000_000)
+    ledger_rows = [
+        (1, "tournament_running", None, json.dumps({}), created_us),
+        (2, "trial_started", str(trial), json.dumps({}), created_us),
+    ]
+    arena, script = db([("arena.v_trials", refs_rows), ("ledger.v_events", ledger_rows)])
+    frames, last = run(arena.tournament_events(tournament, 0))
+    last_ledger_seq = ledger_rows[-1][0]
+    assert [f["type"] for f in frames] == ["tournament.status", "trial.started"]
+    assert frames[0]["data"] == {"state": "running"}
+    assert frames[1]["data"] == {
+        "trial_ref": 3,
+        "trial_id": str(trial),
+        "pairing": "A1 x S1",
+        "track": "interactive",
+        "block": 2,
+    }
+    assert last == last_ledger_seq
+    assert script.executed[-1][1] == (tournament, 0)
+
+
+def test_tournament_events_names_a_replay_trials_pairing_from_its_corpus_source() -> None:
+    """A `replay` planned trial carries no subject of its own; its pairing names the corpus trial it
+    replays' subject instead (`source_planned_trial_id`)."""
+    tournament = uuid4()
+    trial = uuid4()
+    refs_rows = [(trial, 10, "replay", None, "A2", "S3")]
+    ledger_rows = [(1, "trial_started", str(trial), json.dumps({}), int(NOW.timestamp() * 1_000_000))]
+    arena, _ = db([("arena.v_trials", refs_rows), ("ledger.v_events", ledger_rows)])
+    frames, _ = run(arena.tournament_events(tournament, 0))
+    assert frames[0]["data"] == {
+        "trial_ref": 10,
+        "trial_id": str(trial),
+        "pairing": "A2 x S3",
+        "track": "replay",
+        "block": None,
+    }
+
+
 def test_trust_center_reads() -> None:
     payload = {"transcript_sha256": "t" * 64, "evidence_sha256": "e" * 64}
     tournament = uuid4()

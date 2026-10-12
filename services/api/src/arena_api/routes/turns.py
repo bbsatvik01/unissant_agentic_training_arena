@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from arena_api.state import ApiState, actor_db, api_state, error_response, identity
 from arena_core.contracts.routes import TurnSubmit
 from arena_core.db.arena import ArenaDb
-from arena_core.events.load import LoadedTrial, load_trial, recording_of, snapshot_of
+from arena_core.events.load import LoadedTrial, load_recording, load_trial, snapshot_of
 from arena_core.identity import DevIdentity
 from arena_core.turns.orchestrator import TurnRefusedError
 
@@ -64,11 +64,10 @@ async def get_snapshot(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]
 @router.get("/api/trials/{trial_id}/recording")
 async def get_recording(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
     """D-021: the trial's full event history as `arena.recording.v1`, through the same projection and
-    visibility rules as the live stream."""
-    trial = await owned(db, trial_id)
-    # `owned` only ever loads a training trial (`load_trial`), which always has a session (D-021's tournament
-    # path, `load_tournament_trial`, is this route's investigator-only sibling; it never reaches here).
-    if trial.session_id is None:
-        msg = f"training trial {trial_id} was loaded without a session id"
-        raise RuntimeError(msg)
-    return recording_of(trial, await db.debrief(trial.session_id))
+    visibility rules as the live stream -- the owner's own training trial, or a visible tournament trial
+    (`arena.events.load.load_recording`, shared with `make export-run`, no existence oracle beyond what
+    `arena.trial_visible` already grants an `arena_public` caller, S4 9.1)."""
+    recording = await load_recording(db, trial_id)
+    if recording is None:
+        raise HTTPException(status_code=404, detail="not_found")
+    return recording

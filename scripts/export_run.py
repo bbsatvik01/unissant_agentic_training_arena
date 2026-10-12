@@ -26,7 +26,7 @@ from uuid import UUID
 from arena_core.config import ArenaRole, boot
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import Connector, dsn_connector
-from arena_core.events.load import load_tournament_trial, load_trial, recording_of
+from arena_core.events.load import load_recording
 from arena_core.identity import resolve_dev_user
 
 
@@ -35,13 +35,9 @@ async def export(connect: Connector, actor: UUID, trial: UUID) -> dict[str, Any]
 
 
 async def export_from(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
-    loaded = await load_trial(db, trial)
-    if loaded is None:
-        loaded = await load_tournament_trial(db, trial)
-    if loaded is None:
-        return None
-    debrief = None if loaded.session_id is None else await db.debrief(loaded.session_id)
-    return recording_of(loaded, debrief)
+    """`arena_core.events.load.load_recording`, shared with `GET /api/trials/{id}/recording` (no duplicated
+    projection or visibility logic between the two callers)."""
+    return await load_recording(db, trial)
 
 
 def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> int:
