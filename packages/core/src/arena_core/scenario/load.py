@@ -194,8 +194,13 @@ def _sheet_problems(key: str, sheet: Mapping[str, Any]) -> list[str]:
     if expected_values != required:
         problems.append(f"solves.{key}.expected {expected!r} does not name exactly {sorted(required)} (S1 9.7)")
     cited_records = sheet.get("cited_records")
-    if not isinstance(cited_records, list) or not cited_records or not all(isinstance(r, str) for r in cited_records):
-        problems.append(f"solves.{key}.cited_records is not a non-empty list of strings: {cited_records!r}")
+    if not isinstance(cited_records, list) or not all(isinstance(r, str) for r in cited_records):
+        problems.append(f"solves.{key}.cited_records is not a list of strings: {cited_records!r}")
+    elif key != "cx3" and not cited_records:
+        # S1 9.7: CX-2's own pass rule needs the cited records to cover a decisive-support item, so an empty
+        # list can never be real; CX-3's pass rule is `finding` alone (no citation requirement at all), so an
+        # honest "insufficient_evidence" sheet may legitimately cite nothing.
+        problems.append(f"solves.{key}.cited_records is empty (S1 9.7's CX-2 pass rule needs one cited)")
     cited_answers = sheet.get("cited_answers")
     if not isinstance(cited_answers, list) or not all(isinstance(a, str) for a in cited_answers):
         problems.append(f"solves.{key}.cited_answers is not a list of strings: {cited_answers!r}")

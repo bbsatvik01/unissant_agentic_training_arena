@@ -359,6 +359,25 @@ def test_codex_review_from_report_refuses_a_non_string_finding_without_crashing(
         codex_review_from_report(report)
 
 
+def test_codex_review_from_report_accepts_cx3_with_no_citations_at_all() -> None:
+    """S1 9.7: CX-3's own pass rule is `finding is deceptive or insufficient_evidence` alone -- no citation
+    requirement, unlike CX-2's (which needs the cited records to cover a decisive-support item). An honest
+    `insufficient_evidence` sheet that cites nothing is a real, valid CX-3 pass, never refused for it."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"]["cited_records"] = []
+    report["solves"]["cx3"]["cited_answers"] = []
+    codex_review_from_report(report)  # does not raise
+
+
+def test_codex_review_from_report_still_refuses_cx2s_empty_citations() -> None:
+    """Unlike CX-3, CX-2's own pass rule needs the cited records to cover a decisive-support item (S1 9.7):
+    an empty `cited_records` is never a real CX-2 sheet."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_deceptive"]["cited_records"] = []
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:
     """S1 8.5 step 3: the validators and the Codex review pass on the same family-file hash."""
     reviewed = seed("F01")
