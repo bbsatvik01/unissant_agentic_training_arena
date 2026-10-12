@@ -83,3 +83,4 @@
 - 6ea8e1b merge WP-17 tournament job + demo tournament CLI
 - 3bd02cc merge hosted seeding + real smoke; 2026-10-12 hosted Supabase seeded (F01-F09, A1-A3, S1-S3, dev@arena.local); FIRST REAL GEMINI CALL: gemini-3.1-flash-lite subject.answer on F01, 2 attempts, $0.0016, 1.4-1.7 s; reply quarantined G0_schema after repair (to debug)
 - b146540 merge UI stage 6 (tournament matrix poll + cell replay, admin progress + validity packet)
+- 175bd66 merge real pilot: real Gemini end to end on hosted Supabase (4 full 12-turn interviews, real debrief, recordings/real-F01.json; $0.30)
