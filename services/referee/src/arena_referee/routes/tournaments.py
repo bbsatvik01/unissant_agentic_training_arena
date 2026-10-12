@@ -8,6 +8,7 @@ a repeat returns the current state, and a refused transition is 409 with S4's re
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from arena_referee.identity_dep import require_admin_role
 from arena_referee.routes.reveal import publish_context, run_publish
 
 router = APIRouter(prefix="/api/admin/tournaments")
+log = logging.getLogger("arena_referee.tournaments")
 Admin = Annotated[DevIdentity, Depends(require_admin_role)]
 
 
@@ -61,6 +63,7 @@ async def _step(
         if done is not None:
             found = await admin_db.tournament(request.app.state.connect, done[0])
             if found is not None and ORDER.index(found["status"]) >= ORDER.index(done[1]):
+                log.info("repeated step on a %s tournament: %s", found["status"], exc.sqlstate)
                 return None
         # S4 refuses a transition its state does not allow (AR001), a key reused with other input (AR003) or a
         # bad argument (AR007): the admin sees S4's code, the tournament is unchanged.
@@ -110,6 +113,7 @@ async def add_roster(tournament_id: UUID, body: RosterRows, request: Request, _a
         # A repeat of rows already on the roster is a no-op (S5 5.5); anything else is S4's refusal.
         if not await admin_db.roster_has(request.app.state.connect, tournament_id, body.rows):
             raise HTTPException(status_code=409, detail=exc.sqlstate or "refused") from exc
+        log.info("repeated roster rows: %s", exc.sqlstate)
         added = 0
     return {**await _detail(request, tournament_id), "added": added}
 
