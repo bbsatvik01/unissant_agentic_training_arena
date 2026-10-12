@@ -4,7 +4,7 @@
  * allows and when Confirm may be pressed.
  */
 
-import type { StoredFinding, StoredFlag } from "../contracts/generated/types";
+import type { InvestigatorFinding, StoredFinding, StoredFlag } from "../contracts/generated/types";
 
 export type Label = StoredFinding["label"];
 export type Likelihood = StoredFinding["likelihood"];
@@ -128,4 +128,20 @@ export function draftProblems(draft: FindingDraft): readonly string[] {
   const rationale = draft.rationale.trim();
   if (rationale.length < 1 || rationale.length > 600) problems.push("Write a rationale (1-600 characters).");
   return problems;
+}
+
+/** The investigator's finding from a complete draft (S2 4.8 investigator column: no basis flags; corroboration only
+ * for insufficient evidence). Null while the draft still has problems. */
+export function draftToFinding(draft: FindingDraft): InvestigatorFinding | null {
+  if (draftProblems(draft).length > 0 || draft.label === null || draft.likelihood === null || draft.confidence === null) return null;
+  return {
+    label: draft.label,
+    likelihood: draft.likelihood,
+    confidence: draft.confidence,
+    basis_flag_refs: [],
+    cited_turns: [...draft.citedTurns].sort((a, b) => a - b),
+    cited_records: [...draft.citedRecords],
+    corroboration_needed: draft.label === "insufficient_evidence" ? corroborationItems(draft.corroboration) : [],
+    rationale: draft.rationale.trim(),
+  };
 }

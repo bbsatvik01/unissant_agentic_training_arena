@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { initialTrialState, type TrialState } from "../../lib/trial/trialReducer";
 import { seek, startCursor, type PlaybackCursor, type Recording, type Speed } from "../../lib/world/recording";
+import { speechSync } from "../../lib/voice/speechSync";
 import { deriveWorld, type WorldState } from "../../lib/world/worldState";
 
 export interface PlaybackControls {
@@ -48,6 +49,7 @@ function worldAt(cursor: PlaybackCursor, options: Options): WorldState | null {
     investigatorActive: false,
     reducedMotion: options.reducedMotion,
     paused: options.paused,
+    voice: speechSync.activeFor,
   });
 }
 

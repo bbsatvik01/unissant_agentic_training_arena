@@ -159,3 +159,8 @@
 - **Decision:** owner directive ("the ui has to be fully realistic, use amazing personalities ... realistic movements and speaking ... do not simply use stick figures"). Characters are realistic rigged 3D humans (open-licensed avatar sets such as Microsoft Rocketbox (MIT) or VRM/GLB with ARKit blendshapes), animated with motion-capture clips (idle, sit, gesture, listen, think, type), with lip-synced speech (viseme-driven, e.g. the MIT TalkingHead approach on three.js) and distinct personalities per subject persona and coach (look, voice, gesture set). Licences verified before use; assets stored locally. Supersedes D-020's "procedural, stylized geometry" for characters; rooms may stay lightweight. PRB-4 still applies: no nervous or stress tells keyed to role.
 - **Also:** KPI-1 study with the owner and one friend on 2026-10-24 (owner confirmed).
 - **Reversibility:** moderate.
+
+## 2026-10-11 · D-026 Calibration report builder moves from WP-16 to WP-25a
+- **Decision:** coordinator. S3 7.4's full calibration report (inter-human agreement, per-check diagnostics, total-score differences with transcript bootstrap intervals, label confusion and per-class precision/recall, false-compliant counts) is built in WP-25a, where the human ratings it consumes are produced. WP-16 keeps the AC1/AC2/QWK primitives and the CalibrationReport status type.
+- **Reason:** no human ratings exist before WP-25a; building the report against synthetic inputs now would be speculative work (D-016).
+- **Reversibility:** cheap.

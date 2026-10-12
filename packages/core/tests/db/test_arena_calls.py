@@ -376,3 +376,21 @@ def test_submit_question_passes_a_harness_origin_through() -> None:
     run(arena.submit_question(TRIAL, 0, "Why?", "k" * 10, origin))
     params = script.executed[-1][1]
     assert (params[-3], params[-2], params[-1]) == ("assistant_relay", "accepted", 2)
+
+
+def test_tournament_status_and_leaderboard_reads() -> None:
+    tournament = uuid4()
+    arena, script = db(
+        [
+            ("arena.v_tournaments", [("revealed",)]),
+            ("arena.v_tournaments", []),
+            ("arena.v_leaderboards", [(json.dumps({"board": "assistant"}), "corrected", 2)]),
+            ("arena.v_leaderboards", []),
+        ]
+    )
+    assert run(arena.tournament_status(tournament)) == "revealed"
+    assert run(arena.tournament_status(tournament)) is None
+    found = run(arena.leaderboard(tournament, "assistant", None))
+    assert found == {"body": {"board": "assistant"}, "label": "corrected", "manifest_version": 2}
+    assert run(arena.leaderboard(tournament, "subject", "original")) is None
+    assert script.executed[-1][1] == (tournament, "subject", "original", "original")

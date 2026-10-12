@@ -7,6 +7,7 @@ from fractions import Fraction
 import pytest
 
 from arena_core.scoring.ranking import (
+    DEV_IG_ITEMS,
     IG_ITEMS,
     NOT_RANKED,
     CandidateStats,
@@ -74,6 +75,18 @@ def test_the_isolation_hash_binds_every_item() -> None:
     b = isolation_result({**dict.fromkeys(IG_ITEMS, (True, "e")), "IG-3": (True, "other")})
     assert (a.passed, b.passed) == (True, True)
     assert a.evidence_hash != b.evidence_hash
+
+
+def test_a_dev_gate_requires_only_its_own_items_and_any_of_them_failing_ranks_nothing() -> None:
+    dev = dict.fromkeys(DEV_IG_ITEMS, (True, "e"))
+    assert isolation_result(dev, DEV_IG_ITEMS).passed
+    assert not isolation_result(dev).passed  # the hidden gate still needs all six
+    for item in DEV_IG_ITEMS:
+        iso = isolation_result({**dev, item: (False, "e")}, DEV_IG_ITEMS)
+        assert rank([cand("A1")], iso, qq_calibrated=True).rows == []
+    assert not isolation_result({"IG-5": (True, "e")}, DEV_IG_ITEMS).passed  # a missing dev item fails too
+    # The overall hash binds the required set: the same items under the two scopes never share a hash.
+    assert isolation_result(dev, DEV_IG_ITEMS).evidence_hash != isolation_result(dev).evidence_hash
 
 
 def test_ac_s3_5_3_never_ranks_fpr_above_5_percent_or_insufficient_eligibility() -> None:

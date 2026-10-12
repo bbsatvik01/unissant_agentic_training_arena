@@ -12,13 +12,19 @@
 | WP-05 port | MERGED (8ab36a8) | done |
 | WP-12 subject | MERGED | pilot via WP-13 (D-024) |
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
-| WP-16 reveal + leaderboards (a0b00bfa4c3d5b0bc, Sonnet, wt-wp16-reveal) | building | review, merge |
-| WP-13 orchestrator (ad05fb8f3c14649dc) | done 60439ea (Codex CORRECT r5-r6); BLOCKER before merge: dev.sh dev-db overwrites/deletes the root .env.local.* Supabase role files -> agent moving local-DB env to .run/localdb + ENV_DIR | merge |
+| WP-16 reveal + leaderboards | MERGED | done |
+| WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
+| Hosted seed + real smoke (a79b6bd60d05a4e17, Sonnet, wt-hosted-seed) | real ingest bundles (cx.json format), make seed-hosted, real-model env, make real-smoke; no hosted/real calls by the agent | coordinator runs against hosted Supabase + Vertex |
+| WP-17 tournament (a5040005c90e1d761, Opus, wt-wp17-tourney 98447a0) | built, real-SQL integration green; fixing: event-loop bridge blocker (real Vertex), db-test contamination, replay assistant_failed scoring, kill-switch consistency, export terminal replay, demo roster version, compiled validators, single fake referee | merge |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI stage 1 | MERGED (38792cd); reads as a gray prototype vs owner bar | stage 1b running |
-| UI stage 1b (ac2a4c78d321feac9, feat/ui-world-1b) | realistic humans + lip sync (D-025), full-bleed cinematic shots, PBR lighting/materials | review screenshots, merge |
+| UI stage 1b | MERGED (5035094) | done |
+| UI stage 2 | MERGED (f7f2a37) | done |
+| UI stage 3 (WP-20a) | MERGED (6588996) | done |
+| UI stage 4 (ac2a4c78d321feac9, feat/ui-stage4) | trust center, methodology, debrief export, judge demo mode | review, merge |
+| api UI routes (ad05fb8f3c14649dc, feat/api-ui-routes) | /api/progress+kpi1, EX-4 server check, /api/admin/* per S5, referee serves bundle | merge |
 | Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role logins enabled (owner-authorized, random passwords) and .env.local.{public,subject,referee} written (0600, git-ignored); each role connects | next: advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
 - Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).

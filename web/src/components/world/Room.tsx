@@ -1,95 +1,103 @@
 /**
- * The interview room (D-020): the table with the subject across from the investigator's seat, the evidence wall
- * where records pin themselves as they are released, the one-way mirror into the observation room where the coach
- * desks work, the companion on the table, and the seal stamped on the case folder when the finding is committed.
- * Everything here is drawn from the world state; nothing reads session data directly (FE-SSE-7).
+ * The interview room (D-020, D-025): a believable municipal interview room. Vinyl tile floor, painted walls with
+ * acoustic panels, ceiling light panels, an oak-topped table with the recorder and case folders, the subject seated
+ * across from the investigator's empty chair, the evidence whiteboard where records pin themselves, and the one-way
+ * mirror onto the observation room where three coaches work at their desks. Everything here is drawn from the world
+ * state; nothing reads session data directly (FE-SSE-7).
  */
-import { useGSAP } from "@gsap/react";
-import { useFrame } from "@react-three/fiber";
-import gsap from "gsap";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
-import { QuadraticBezierCurve3, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { Suspense, useMemo, type RefObject } from "react";
+import { Object3D } from "three";
 
+import { COACHES, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import {
   COACH_DESKS,
-  EVIDENCE_WALL,
   evidenceSlot,
   FOLDER_SPOT,
+  inRoom,
+  INVESTIGATOR_EYES,
+  INVESTIGATOR_SEAT,
   MIRROR,
   PET_SPOT,
   ROOM,
+  ROOM_DOOR_X,
   ROOM_SIZE,
   SUBJECT_SEAT,
   TABLE,
   type Vec3,
 } from "../../lib/world/layout";
-import { PALETTE } from "../../lib/world/palette";
-import type { WorldState } from "../../lib/world/worldState";
-import { Figure } from "./Figure";
-import { Hairline } from "./Hairline";
+import type { CoachPose, WorldState } from "../../lib/world/worldState";
+import { Avatar } from "./Avatar";
+import { acousticFabric, brushedSteel, oakLaminate, oneWayGlass, paint, plaster, vinylFloor } from "./materials";
+import { DebriefBoard, EvidenceWall, Seal, Thread, type ScoreCard, type WallDocument } from "./moments";
 import { Pet } from "./Pet";
-import { paperTexture } from "./textures";
-
-gsap.registerPlugin(useGSAP);
-
-export interface WallDocument {
-  readonly id: string;
-  readonly title: string;
-  readonly note: string;
-  /** When it was released on the session clock; null for a document on file from the start. */
-  readonly releasedAt: number | null;
-}
+import { Block, CeilingPanel, Chair, Cup, Desk, Door, FolderStack, Keyboard, Monitor, Recorder, SecurityCamera, WallClock } from "./props";
 
 interface RoomProps {
   readonly world: WorldState | null;
   readonly documents: readonly WallDocument[];
+  readonly subjectName: string;
   readonly clock: RefObject<number>;
   readonly still: boolean;
   readonly reducedMotion: boolean;
   /** The viewer can hide the companion (S6 6.3). */
   readonly showPet: boolean;
+  /** Shadow map size for the quality tier, 0 for none. */
+  readonly shadowMap: number;
+  /** People are drawn only while the camera is in the room (they are behind walls from the hub). */
+  readonly present: boolean;
+  /** The debrief scene's score cards, when the debrief is shown. */
+  readonly scoreCards: readonly ScoreCard[] | null;
 }
 
-const COACH_LOOKS = [
-  { skin: PALETTE.skin[1], cloth: PALETTE.cloth[2], hair: PALETTE.ink },
-  { skin: PALETTE.skin[3], cloth: PALETTE.cloth[3], hair: PALETTE.cloth[2] },
-  { skin: PALETTE.skin[2], cloth: PALETTE.cloth[1], hair: PALETTE.ink },
-] as const;
-const SUBJECT_LOOK = { skin: PALETTE.skin[0], cloth: PALETTE.cloth[0], hair: PALETTE.cloth[2] } as const;
+const W = ROOM_SIZE.width;
+const D = ROOM_SIZE.depth;
+const H = ROOM_SIZE.height;
+const BACK = -D / 2;
 
-function Box({ size, position, color, edges = false }: { size: Vec3; position: Vec3; color: string; edges?: boolean }) {
-  return (
-    <mesh position={position}>
-      <boxGeometry args={size} />
-      <meshLambertMaterial color={color} />
-      {edges ? <Hairline size={size} /> : null}
-    </mesh>
-  );
-}
-
-function Shell() {
-  const { width, depth, height } = ROOM_SIZE;
-  const back = -depth / 2;
-  const mirrorLeft = MIRROR.center[0] - MIRROR.width / 2;
-  const mirrorRight = MIRROR.center[0] + MIRROR.width / 2;
-  const mirrorBottom = MIRROR.center[1] - MIRROR.height / 2;
-  const mirrorTop = MIRROR.center[1] + MIRROR.height / 2;
+function Shell({ clockStill }: { clockStill: boolean }) {
+  const mL = MIRROR.center[0] - MIRROR.width / 2;
+  const mR = MIRROR.center[0] + MIRROR.width / 2;
+  const mB = MIRROR.center[1] - MIRROR.height / 2;
+  const mT = MIRROR.center[1] + MIRROR.height / 2;
+  const doorW = 1.0;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[width, depth]} />
-        <meshLambertMaterial color={PALETTE.floor} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} material={vinylFloor()} receiveShadow>
+        <planeGeometry args={[W, D]} />
       </mesh>
-      {/* back wall around the mirror */}
-      <Box size={[mirrorLeft + width / 2, height, 0.1]} position={[(-width / 2 + mirrorLeft) / 2, height / 2, back - 0.05]} color={PALETTE.canvasSoft} />
-      <Box size={[width / 2 - mirrorRight, height, 0.1]} position={[(mirrorRight + width / 2) / 2, height / 2, back - 0.05]} color={PALETTE.canvasSoft} />
-      <Box size={[MIRROR.width, mirrorBottom, 0.1]} position={[MIRROR.center[0], mirrorBottom / 2, back - 0.05]} color={PALETTE.canvasSoft} />
-      <Box size={[MIRROR.width, height - mirrorTop, 0.1]} position={[MIRROR.center[0], (height + mirrorTop) / 2, back - 0.05]} color={PALETTE.canvasSoft} />
-      {/* side walls */}
-      <Box size={[0.1, height, depth]} position={[-width / 2 - 0.05, height / 2, 0]} color={PALETTE.canvasSoft2} />
-      <Box size={[0.1, height, depth]} position={[width / 2 + 0.05, height / 2, 0]} color={PALETTE.canvasSoft2} />
-      {/* skirting hairline */}
-      <Box size={[width, 0.06, 0.02]} position={[0, 0.03, back + 0.01]} color={PALETTE.hairlineStrong} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, H, 0]} material={plaster("light")} receiveShadow>
+        <planeGeometry args={[W, D]} />
+      </mesh>
+      {/* back wall, cut around the mirror */}
+      <Block size={[mL + W / 2, H, 0.12]} at={[(-W / 2 + mL) / 2, H / 2, BACK - 0.06]} material={plaster("light")} />
+      <Block size={[W / 2 - mR, H, 0.12]} at={[(mR + W / 2) / 2, H / 2, BACK - 0.06]} material={plaster("light")} />
+      <Block size={[MIRROR.width, mB, 0.12]} at={[MIRROR.center[0], mB / 2, BACK - 0.06]} material={plaster("light")} />
+      <Block size={[MIRROR.width, H - mT, 0.12]} at={[MIRROR.center[0], (H + mT) / 2, BACK - 0.06]} material={plaster("light")} />
+      {/* side walls with acoustic panels */}
+      <Block size={[0.12, H, D]} at={[-W / 2 - 0.06, H / 2, 0]} material={plaster("warm")} />
+      <Block size={[0.12, H, D]} at={[W / 2 + 0.06, H / 2, 0]} material={plaster("warm")} />
+      {[-1.6, 0, 1.6].map((z) => (
+        <Block key={`l${String(z)}`} size={[0.05, 1.2, 1.2]} at={[-W / 2 + 0.03, 1.55, z]} material={acousticFabric()} />
+      ))}
+      {[-1.6, 0, 1.6].map((z) => (
+        <Block key={`r${String(z)}`} size={[0.05, 1.2, 1.2]} at={[W / 2 - 0.03, 1.55, z]} material={acousticFabric()} />
+      ))}
+      {/* front wall with the door to the corridor */}
+      <Block size={[ROOM_DOOR_X - doorW / 2 + W / 2, H, 0.12]} at={[(-W / 2 + ROOM_DOOR_X - doorW / 2) / 2, H / 2, D / 2 + 0.06]} material={plaster("light")} />
+      <Block size={[W / 2 - ROOM_DOOR_X - doorW / 2, H, 0.12]} at={[(ROOM_DOOR_X + doorW / 2 + W / 2) / 2, H / 2, D / 2 + 0.06]} material={plaster("light")} />
+      <Block size={[doorW, H - 2.1, 0.12]} at={[ROOM_DOOR_X, (H + 2.1) / 2, D / 2 + 0.06]} material={plaster("light")} />
+      <Door position={[ROOM_DOOR_X, 0, D / 2]} rotation={Math.PI} open={-1.3} width={0.95} window />
+      {/* skirting */}
+      <Block size={[W, 0.1, 0.02]} at={[0, 0.05, BACK + 0.01]} material={paint("frame")} />
+      <Block size={[0.02, 0.1, D]} at={[-W / 2 + 0.01, 0.05, 0]} material={paint("frame")} />
+      <Block size={[0.02, 0.1, D]} at={[W / 2 - 0.01, 0.05, 0]} material={paint("frame")} />
+      {/* ceiling fixtures: light panels, a vent, the camera in the corner; a clock on the side wall */}
+      <CeilingPanel position={[0, H - 0.02, 0.1]} size={[1.2, 0.6]} />
+      <CeilingPanel position={[-1.9, H - 0.02, -1.6]} size={[0.6, 0.6]} />
+      <CeilingPanel position={[1.9, H - 0.02, 1.6]} size={[0.6, 0.6]} />
+      <Block size={[0.5, 0.02, 0.3]} at={[1.6, H - 0.012, -0.6]} material={paint("white")} />
+      <SecurityCamera position={[W / 2 - 0.25, H, D / 2 - 0.25]} rotation={-2.4} />
+      <WallClock position={[W / 2 - 0.02, 2.3, -1.6]} rotation={-Math.PI / 2} still={clockStill} />
     </group>
   );
 }
@@ -98,117 +106,22 @@ function Table() {
   const [x, y, z] = TABLE.center;
   return (
     <group>
-      <mesh position={[x, y, z]}>
-        <boxGeometry args={[TABLE.width, 0.05, TABLE.depth]} />
-        <meshLambertMaterial color={PALETTE.canvas} />
-        <Hairline size={[TABLE.width, 0.05, TABLE.depth]} />
-      </mesh>
+      <Block size={[TABLE.width, 0.04, TABLE.depth]} at={[x, y, z]} material={oakLaminate()} />
+      <Block size={[TABLE.width - 0.1, 0.06, 0.03]} at={[x, y - 0.05, z - TABLE.depth / 2 + 0.06]} material={paint("frame")} />
+      <Block size={[TABLE.width - 0.1, 0.06, 0.03]} at={[x, y - 0.05, z + TABLE.depth / 2 - 0.06]} material={paint("frame")} />
       {[-1, 1].map((sx) =>
         [-1, 1].map((sz) => (
-          <mesh key={`${String(sx)}${String(sz)}`} position={[x + sx * (TABLE.width / 2 - 0.08), y / 2, z + sz * (TABLE.depth / 2 - 0.08)]}>
-            <cylinderGeometry args={[0.022, 0.022, y, 8]} />
-            <meshLambertMaterial color={PALETTE.ink} />
+          <mesh key={`${String(sx)}${String(sz)}`} position={[x + sx * (TABLE.width / 2 - 0.07), y / 2, z + sz * (TABLE.depth / 2 - 0.07)]} material={brushedSteel()} castShadow>
+            <cylinderGeometry args={[0.025, 0.025, y, 12]} />
           </mesh>
         )),
       )}
-      <mesh position={[x, 0.004, z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[TABLE.width + 0.3, TABLE.depth + 0.3]} />
-        <meshBasicMaterial color={PALETTE.ink} transparent opacity={0.05} depthWrite={false} />
-      </mesh>
-      {/* investigator's empty chair and notepad */}
-      <Box size={[0.5, 0.05, 0.48]} position={[TABLE.center[0], 0.44, 1.3]} color={PALETTE.ink} />
-      <Box size={[0.22, 0.006, 0.3]} position={[0.55, 0.768, 0.45]} color={PALETTE.canvas} edges />
-    </group>
-  );
-}
-
-/**
- * Drive a paused GSAP timeline from the session clock, so playback pause, speed and scrub move the moment with
- * everything else; with motion off it shows its end state.
- */
-function useClockTimeline(timeline: RefObject<gsap.core.Timeline | null>, clock: RefObject<number>, at: number | null, motionOff: boolean) {
-  useFrame(() => {
-    const tl = timeline.current;
-    if (tl === null || at === null) return;
-    const elapsed = motionOff ? tl.duration() : (clock.current - at) / 1000;
-    tl.time(Math.max(0, Math.min(tl.duration(), elapsed)));
-  });
-}
-
-function Paper({ slot, doc, clock, motionOff, highlighted }: { slot: Vec3; doc: WallDocument; clock: RefObject<number>; motionOff: boolean; highlighted: boolean }) {
-  const flight = useRef<Group>(null);
-  const lift = useRef<Group>(null);
-  const pin = useRef<Mesh>(null);
-  const timeline = useRef<gsap.core.Timeline | null>(null);
-  const texture = useMemo(() => paperTexture(doc.id, doc.title, doc.note), [doc.id, doc.title, doc.note]);
-  useEffect(() => () => {
-    texture.dispose();
-  }, [texture]);
-  // Evidence released (signature moment): the record flies from the table to its slot and is pinned, on the
-  // session clock from its release. A document on file from the start is simply there.
-  useGSAP(
-    () => {
-      const g = flight.current;
-      const p = pin.current;
-      if (g === null || p === null || doc.releasedAt === null) return;
-      const tl = gsap.timeline({ paused: true });
-      tl.from(g.position, { x: TABLE.center[0] - 0.3, y: 1.05, z: TABLE.center[2] - 0.2, duration: 1.15, ease: "power3.out" })
-        .from(g.rotation, { x: -1.35, y: 0.5, z: 0.5, duration: 1.15, ease: "power3.out" }, 0)
-        .from(g.scale, { x: 0.55, y: 0.55, z: 0.55, duration: 0.7, ease: "power2.out" }, 0)
-        .fromTo(p.position, { z: 0.3 }, { z: 0.012, duration: 0.22, ease: "power4.in" }, 1.05)
-        .to(g.rotation, { z: 0.035, duration: 0.12, yoyo: true, repeat: 1, ease: "sine.inOut" }, 1.27);
-      timeline.current = tl;
-      return () => {
-        timeline.current = null;
-      };
-    },
-    { dependencies: [doc.releasedAt] },
-  );
-  useClockTimeline(timeline, clock, doc.releasedAt, motionOff);
-  useGSAP(
-    () => {
-      const g = lift.current;
-      if (g === null) return;
-      const s = highlighted ? 1.12 : 1;
-      if (motionOff) g.scale.set(s, s, 1);
-      else gsap.to(g.scale, { x: s, y: s, duration: 0.35, ease: "power2.out" });
-    },
-    { dependencies: [highlighted, motionOff] },
-  );
-  return (
-    <group ref={flight} position={slot}>
-      <group ref={lift}>
-        <mesh>
-          <planeGeometry args={[0.36, 0.48]} />
-          <meshLambertMaterial map={texture} />
-        </mesh>
-        {highlighted ? (
-          <mesh position={[0, 0, -0.002]}>
-            <planeGeometry args={[0.4, 0.52]} />
-            <meshBasicMaterial color={PALETTE.link} />
-          </mesh>
-        ) : null}
-        <mesh ref={pin} position={[0, 0.2, 0.012]}>
-          <sphereGeometry args={[0.014, 10, 8]} />
-          <meshLambertMaterial color={PALETTE.ink} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-function EvidenceWall({ documents, clock, motionOff, highlight }: { documents: readonly WallDocument[]; clock: RefObject<number>; motionOff: boolean; highlight: string | null }) {
-  const [cx, cy, cz] = EVIDENCE_WALL.center;
-  return (
-    <group>
-      <mesh position={[cx, cy, cz]}>
-        <planeGeometry args={[EVIDENCE_WALL.width + 0.25, EVIDENCE_WALL.height + 0.25]} />
-        <meshLambertMaterial color={PALETTE.canvas} />
-        <Hairline size={[EVIDENCE_WALL.width + 0.25, EVIDENCE_WALL.height + 0.25]} />
-      </mesh>
-      {documents.map((doc, i) => (
-        <Paper key={doc.id} slot={evidenceSlot(i)} doc={doc} clock={clock} motionOff={motionOff} highlighted={doc.id === highlight} />
-      ))}
+      <Recorder position={[0.45, y + 0.02, -0.05]} rotation={0.3} />
+      <FolderStack position={[FOLDER_SPOT[0], y + 0.02, FOLDER_SPOT[2]]} rotation={0.15} count={3} />
+      <Cup position={[0.68, y + 0.02, -0.28]} />
+      {/* the investigator's notepad and pen */}
+      <Block size={[0.21, 0.008, 0.29]} at={[0.25, y + 0.024, 0.28]} material={paint("white")} rot={[0, -0.12, 0]} />
+      <Block size={[0.008, 0.008, 0.14]} at={[0.4, y + 0.028, 0.26]} material={paint("ink")} rot={[0, 0.3, 0]} />
     </group>
   );
 }
@@ -217,67 +130,57 @@ function Mirror() {
   const [x, y, z] = MIRROR.center;
   return (
     <group>
-      <mesh position={[x, y, z]}>
+      <mesh position={[x, y, z]} material={oneWayGlass()}>
         <planeGeometry args={[MIRROR.width, MIRROR.height]} />
-        <meshBasicMaterial color={PALETTE.glass} transparent opacity={0.28} depthWrite={false} />
       </mesh>
-      {/* a soft reflection band across the glass */}
-      <mesh position={[x - 0.3, y + 0.15, z + 0.005]} rotation={[0, 0, 0.5]}>
-        <planeGeometry args={[0.25, MIRROR.height * 1.3]} />
-        <meshBasicMaterial color={PALETTE.canvas} transparent opacity={0.16} depthWrite={false} />
-      </mesh>
-      <Box size={[MIRROR.width + 0.08, 0.04, 0.06]} position={[x, y - MIRROR.height / 2, z + 0.02]} color={PALETTE.ink} />
-      <Box size={[MIRROR.width + 0.08, 0.04, 0.06]} position={[x, y + MIRROR.height / 2, z + 0.02]} color={PALETTE.ink} />
-      <Box size={[0.04, MIRROR.height, 0.06]} position={[x - MIRROR.width / 2, y, z + 0.02]} color={PALETTE.ink} />
-      <Box size={[0.04, MIRROR.height, 0.06]} position={[x + MIRROR.width / 2, y, z + 0.02]} color={PALETTE.ink} />
+      {[1, -1].map((s) => (
+        <Block key={`h${String(s)}`} size={[MIRROR.width + 0.1, 0.05, 0.14]} at={[x, y + s * (MIRROR.height / 2 + 0.025), z]} material={brushedSteel()} />
+      ))}
+      {[1, -1].map((s) => (
+        <Block key={`v${String(s)}`} size={[0.05, MIRROR.height + 0.1, 0.14]} at={[x + s * (MIRROR.width / 2 + 0.025), y, z]} material={brushedSteel()} />
+      ))}
     </group>
   );
 }
 
-function Desk({ position, active }: { position: Vec3; active: boolean }) {
-  const [x, , z] = position;
-  return (
-    <group>
-      <Box size={[0.8, 0.04, 0.5]} position={[x, 0.72, z + 0.42]} color={PALETTE.canvasSoft2} />
-      <Box size={[0.04, 0.72, 0.46]} position={[x - 0.36, 0.36, z + 0.42]} color={PALETTE.ink} />
-      <Box size={[0.04, 0.72, 0.46]} position={[x + 0.36, 0.36, z + 0.42]} color={PALETTE.ink} />
-      <mesh position={[x, 0.92, z + 0.6]} rotation={[-0.15, Math.PI, 0]}>
-        <boxGeometry args={[0.42, 0.27, 0.02]} />
-        <meshBasicMaterial color={active ? PALETTE.canvas : PALETTE.body} />
-      </mesh>
-      <Box size={[0.02, 0.12, 0.02]} position={[x, 0.78, z + 0.62]} color={PALETTE.ink} />
-    </group>
-  );
+/** Where a coach looks: the monitor while working, the subject through the glass otherwise. */
+function coachGaze(desk: Vec3, pose: CoachPose): Vec3 {
+  if (pose === "typing" || pose === "thinking") return inRoom([desk[0], 0.98, desk[2] + 0.75]);
+  return inRoom([SUBJECT_SEAT[0], 1.2, SUBJECT_SEAT[2]]);
 }
 
-function ObservationRoom({ world, clock, still }: { world: WorldState | null; clock: RefObject<number>; still: boolean }) {
-  const back = -ROOM_SIZE.depth / 2;
+function ObservationRoom({ world, clock, still, shadows }: { world: WorldState | null; clock: RefObject<number>; still: boolean; shadows: boolean }) {
   const coaches = world?.coaches ?? [];
+  const depth = 3.6;
+  const x0 = -0.3;
+  const x1 = 3.2;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.5, 0.001, back - 2]}>
-        <planeGeometry args={[3.8, 4]} />
-        <meshLambertMaterial color={PALETTE.observation} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, 0.001, BACK - depth / 2]} material={vinylFloor()} receiveShadow>
+        <planeGeometry args={[x1 - x0, depth]} />
       </mesh>
-      <Box size={[3.8, ROOM_SIZE.height, 0.1]} position={[1.5, ROOM_SIZE.height / 2, back - 4]} color={PALETTE.observation} />
-      <Box size={[0.1, ROOM_SIZE.height, 4]} position={[-0.4, ROOM_SIZE.height / 2, back - 2]} color={PALETTE.observation} />
-      <Box size={[0.1, ROOM_SIZE.height, 4]} position={[3.4, ROOM_SIZE.height / 2, back - 2]} color={PALETTE.observation} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, H, BACK - depth / 2]} material={plaster("dim")}>
+        <planeGeometry args={[x1 - x0, depth]} />
+      </mesh>
+      <Block size={[x1 - x0, H, 0.1]} at={[(x0 + x1) / 2, H / 2, BACK - depth]} material={plaster("dim")} />
+      <Block size={[0.1, H, depth]} at={[x0, H / 2, BACK - depth / 2]} material={plaster("dim")} />
+      <Block size={[0.1, H, depth]} at={[x1, H / 2, BACK - depth / 2]} material={plaster("dim")} />
+      <CeilingPanel position={[1.45, H - 0.02, BACK - 2.4]} size={[1.2, 0.3]} />
+      <pointLight position={[1.45, H - 0.4, BACK - 1.4]} intensity={1.4} distance={5} decay={2} color="#f3f1ea" />
       {COACH_DESKS.map((desk, i) => {
-        const coach = coaches[i];
-        const pose = coach?.pose ?? "away";
+        const pose = coaches[i]?.pose ?? "away";
+        const persona = COACHES[i];
+        const working = pose === "typing" || pose === "thinking";
         return (
           <group key={desk.join(",")}>
-            <Desk position={desk} active={pose === "typing" || pose === "thinking"} />
-            {pose === "away" ? null : (
-              <Figure
-                position={desk}
-                look={COACH_LOOKS[i % COACH_LOOKS.length] ?? COACH_LOOKS[0]}
-                pose={pose}
-                clock={clock}
-                still={still}
-                phase={i * 1.3}
-                holdsCard={pose === "handing"}
-              />
+            <Desk position={[desk[0], 0, desk[2] + 0.62]} width={0.9} depth={0.55} />
+            <Monitor position={[desk[0], 0.76, desk[2] + 0.78]} rotation={Math.PI} lit={working} width={0.5} />
+            <Keyboard position={[desk[0], 0.76, desk[2] + 0.48]} />
+            <Chair position={desk} />
+            {pose === "away" || persona === undefined ? null : (
+              <Suspense fallback={null}>
+                <Avatar persona={persona} name={persona.name} position={desk} facing={0} pose={pose} gaze={coachGaze(desk, pose)} clock={clock} still={still} shadows={shadows} />
+              </Suspense>
             )}
           </group>
         );
@@ -286,102 +189,86 @@ function ObservationRoom({ world, clock, still }: { world: WorldState | null; cl
   );
 }
 
-/** Contradiction noticed (signature moment): a thread from the cited record on the wall to the subject's seat. */
-function Thread({ from, reducedMotion }: { from: Vec3; reducedMotion: boolean }) {
-  const material = useRef<MeshBasicMaterial>(null);
-  const curve = useMemo(() => {
-    const to = new Vector3(SUBJECT_SEAT[0], 1.2, SUBJECT_SEAT[2]);
-    const start = new Vector3(...from);
-    const mid = start.clone().add(to).multiplyScalar(0.5);
-    mid.y = Math.max(start.y, to.y) + 0.25;
-    return new QuadraticBezierCurve3(start, mid, to);
-  }, [from]);
-  useGSAP(() => {
-    if (material.current === null || reducedMotion) return;
-    gsap.from(material.current, { opacity: 0, duration: 0.6, ease: "power2.out" });
-  });
-  return (
-    <mesh>
-      <tubeGeometry args={[curve, 40, 0.006, 6, false]} />
-      <meshBasicMaterial ref={material} color={PALETTE.link} transparent opacity={0.9} />
-    </mesh>
-  );
-}
-
-/** Finding committed (signature moment): the seal is stamped on the case folder, on the session clock. */
-function Seal({ at, clock, motionOff }: { at: number | null; clock: RefObject<number>; motionOff: boolean }) {
-  const stamp = useRef<Group>(null);
-  const mark = useRef<Mesh>(null);
-  const timeline = useRef<gsap.core.Timeline | null>(null);
-  useGSAP(
-    () => {
-      const s = stamp.current;
-      const m = mark.current;
-      if (s === null || m === null) return;
-      if (at === null) {
-        s.visible = false;
-        return;
-      }
-      const tl = gsap.timeline({ paused: true });
-      tl.fromTo(s.position, { y: 0.7 }, { y: 0.05, duration: 0.55, ease: "power4.in" })
-        .fromTo(m.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.18, ease: "back.out(3)" }, 0.55)
-        .to(s.scale, { y: 0.85, duration: 0.08, yoyo: true, repeat: 1 }, 0.55)
-        .to(s.position, { y: 0.8, duration: 0.6, ease: "power2.out" }, 0.9)
-        .set(s, { visible: false });
-      timeline.current = tl;
-      return () => {
-        timeline.current = null;
-      };
-    },
-    { dependencies: [at] },
-  );
-  useClockTimeline(timeline, clock, at, motionOff);
-  const [x, y, z] = FOLDER_SPOT;
-  return (
-    <group position={[x, y, z]}>
-      <mesh ref={mark} position={[0.02, 0.004, 0.02]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.045, 0.06, 32]} />
-        <meshBasicMaterial color={PALETTE.ink} />
-      </mesh>
-      <group ref={stamp} position={[0.02, 0.7, 0.02]}>
-        <mesh position={[0, 0.03, 0]}>
-          <cylinderGeometry args={[0.06, 0.06, 0.04, 24]} />
-          <meshLambertMaterial color={PALETTE.ink} />
-        </mesh>
-        <mesh position={[0, 0.12, 0]}>
-          <cylinderGeometry args={[0.018, 0.022, 0.14, 12]} />
-          <meshLambertMaterial color={PALETTE.ink} />
-        </mesh>
-        <mesh position={[0, 0.21, 0]}>
-          <sphereGeometry args={[0.035, 16, 12]} />
-          <meshLambertMaterial color={PALETTE.ink} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-export function Room({ world, documents, clock, still, reducedMotion, showPet }: RoomProps) {
+export function Room({ world, documents, subjectName, clock, still, reducedMotion, showPet, shadowMap, present, scoreCards }: RoomProps) {
   const flag = world?.flag ?? null;
   const highlightIndex = flag?.conflictRecord == null ? -1 : documents.findIndex((d) => d.id === flag.conflictRecord);
+  const shadows = shadowMap > 0;
+  const persona = subjectPersona(subjectName);
+  const keyTarget = useMemo(() => {
+    const o = new Object3D();
+    o.position.set(0, 0.6, -0.3);
+    return o;
+  }, []);
   return (
     <group position={ROOM}>
-      <Shell />
+      <Shell clockStill={still} />
       <Table />
+      <Chair position={SUBJECT_SEAT} />
+      <Chair position={INVESTIGATOR_SEAT} rotation={Math.PI} />
       <EvidenceWall documents={documents} clock={clock} motionOff={reducedMotion} highlight={highlightIndex < 0 ? null : (flag?.conflictRecord ?? null)} />
       <Mirror />
-      <ObservationRoom world={world} clock={clock} still={still} />
-      <Figure position={SUBJECT_SEAT} look={SUBJECT_LOOK} pose={world?.subject.pose ?? "idle"} speech={world?.subject.speech ?? null} clock={clock} still={still} />
-      {/* the case folder */}
-      <mesh position={[FOLDER_SPOT[0], FOLDER_SPOT[1] - 0.002, FOLDER_SPOT[2]]}>
-        <boxGeometry args={[0.3, 0.008, 0.22]} />
-        <meshLambertMaterial color={PALETTE.canvasSoft2} />
-        <Hairline size={[0.3, 0.008, 0.22]} />
-      </mesh>
+      {scoreCards === null ? null : <DebriefBoard cards={scoreCards} motionOff={reducedMotion} />}
+      <ObservationRoom world={present ? world : null} clock={clock} still={still} shadows={shadows} />
+      {world === null || !present ? null : (
+        <Suspense fallback={null}>
+          {/* the investigator's own seat, seen from behind in the over-the-shoulder shot */}
+          <Avatar
+            persona={INVESTIGATOR}
+            name="investigator"
+            position={INVESTIGATOR_SEAT}
+            facing={Math.PI}
+            pose={world.investigator.speech === null ? "listening" : "speaking"}
+            speech={world.investigator.speech}
+            gaze={inRoom([SUBJECT_SEAT[0], 1.2, SUBJECT_SEAT[2]])}
+            clock={clock}
+            still={still}
+            shadows={shadows}
+          />
+        </Suspense>
+      )}
+      {/* the subject is seated in the room before any session data arrives (an idle pose until then) */}
+      {!present ? null : (
+        <Suspense fallback={null}>
+          <Avatar
+            persona={persona}
+            name={subjectName}
+            position={SUBJECT_SEAT}
+            facing={0}
+            pose={world?.subject.pose ?? "idle"}
+            speech={world?.subject.speech ?? null}
+            gaze={inRoom(INVESTIGATOR_EYES)}
+            clock={clock}
+            still={still}
+            shadows={shadows}
+          />
+        </Suspense>
+      )}
       {world?.seal == null ? null : <Seal key={world.seal.hash} at={world.seal.at} clock={clock} motionOff={reducedMotion} />}
       {highlightIndex < 0 ? null : <Thread from={evidenceSlot(highlightIndex)} reducedMotion={reducedMotion} />}
-      {world === null || !showPet ? null : <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />}
-      <pointLight position={[0.2, 2.7, 0.4]} intensity={0.6} distance={8} decay={1.5} />
+      {world === null || !showPet ? null : (
+        <Suspense fallback={null}>
+          <Pet position={PET_SPOT} pose={world.pet} noticeYaw={-2.4} clock={clock} />
+        </Suspense>
+      )}
+      {/* key light from the main ceiling panel, soft-shadowed; warm fills from the corner panels */}
+      <primitive object={keyTarget} />
+      <spotLight
+        position={[0.1, H - 0.05, 0.5]}
+        target={keyTarget}
+        angle={1.1}
+        penumbra={0.9}
+        intensity={11}
+        distance={10}
+        decay={2}
+        castShadow={shadows}
+        shadow-mapSize-width={shadowMap > 0 ? shadowMap : 512}
+        shadow-mapSize-height={shadowMap > 0 ? shadowMap : 512}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.02}
+        color="#fff6ea"
+      />
+      <pointLight position={[-1.9, H - 0.25, -1.6]} intensity={1.1} distance={5} decay={2} color="#fff4e6" />
+      <pointLight position={[1.9, H - 0.25, 1.6]} intensity={1.1} distance={5} decay={2} color="#fff4e6" />
     </group>
   );
 }

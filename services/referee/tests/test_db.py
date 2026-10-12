@@ -3,6 +3,8 @@ test_guard_client.py` uses for the same reason): every statement it sends and ev
 with no real connection. `packages/core/tests/db/it_spend_guard.py`'s sibling pattern -- a real-database
 integration pass -- is out of this WP's committed scope (see the report); this file is what the coverage
 gate measures, and it exercises every function and error branch in the module directly.
+
+WP-16 adds reveal, isolation-gate and leaderboard functions below the WP-14 ones, same pattern.
 """
 
 from __future__ import annotations
@@ -23,12 +25,15 @@ from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectR
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, AgentResult, CallContext, Message, Usage
+from arena_core.scoring.inclusion import Exec
 from arena_core.scoring.rubric import CheckResult, RubricResult
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
 from arena_referee import db
 from arena_referee.debrief import DebriefProvenance
+from arena_referee.mapping import TrialData
 
 TRIAL = "00000000-0000-0000-0000-00000000000a"
+SOURCE_TRIAL = "00000000-0000-0000-0000-00000000000d"
 VARIANT = UUID("00000000-0000-0000-0000-0000000000b1")
 SESSION = "00000000-0000-0000-0000-00000000000c"
 
@@ -150,7 +155,8 @@ def _trial_data_conn(extra: AnswerMap | None = None) -> FakeConn:
         "sealed.hidden_public_packets": None,
         "arena.released_evidence": [],
         "arena.turns": [],
-        "trial_events": [],
+        "kind = 'coach_card'": [],
+        "kind = 'coach_unavailable'": [],
         "arena.final_findings": [],
     }
     base.update(extra or {})
@@ -181,7 +187,8 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
         {
             "arena.released_evidence": [("rec-01", "Work order", {"body": "x"}, 1)],
             "arena.turns": [(1, "Why?", "Because.", "investigator")],
-            "trial_events": [({"text": "a card"},)],
+            "kind = 'coach_card'": [({"text": "a card"},)],
+            "kind = 'coach_unavailable'": [(3,)],
             "arena.final_findings": [({"label": "deceptive"},)],
         }
     )
@@ -193,6 +200,7 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
         {"turn_no": 1, "question": "Why?", "answer": "Because.", "question_source": "investigator"}
     ]
     assert data.cards == [{"text": "a card"}]
+    assert data.unavailable_turns == [3]
     assert data.final_finding == {"label": "deceptive"}
 
 
@@ -607,3 +615,176 @@ def test_submit_review_item_raises_when_no_row_returned() -> None:
     conn = FakeConn({"training.submit_review_item": []})
     with pytest.raises(LookupError, match="submit_review_item returned no row"):
         run(db.submit_review_item(connector(conn), item_id=uuid4(), rater_user_id=RATER, submission={}))
+
+
+# ---------------------------------------------------------------- reveal, isolation gate, leaderboard (WP-16)
+
+TOURNAMENT = UUID("00000000-0000-0000-0000-0000000000a1")
+MANIFEST = UUID("00000000-0000-0000-0000-0000000000a2")
+CANDIDATE = UUID("00000000-0000-0000-0000-0000000000a3")
+SUBJECT = UUID("00000000-0000-0000-0000-0000000000a4")
+
+
+def test_reveal_tournament_returns_manifest_version_one() -> None:
+    conn = FakeConn({"ledger.reveal": [({"manifest_id": str(MANIFEST), "manifest_sha256": "a" * 64},)]})
+    result = run(db.reveal_tournament(connector(conn), str(TOURNAMENT)))
+    assert result == db.RevealResult(str(MANIFEST), "a" * 64, 1)
+    (query, params) = conn.executed[0]
+    assert "ledger.reveal" in query
+    assert params == (TOURNAMENT,)
+
+
+def test_seal_corrected_manifest_returns_the_new_version() -> None:
+    conn = FakeConn(
+        {
+            "ledger.seal_corrected_manifest": [
+                ({"manifest_id": str(MANIFEST), "manifest_sha256": "b" * 64, "version": 2},)
+            ]
+        }
+    )
+    result = run(db.seal_corrected_manifest(connector(conn), str(TOURNAMENT)))
+    assert result == db.RevealResult(str(MANIFEST), "b" * 64, 2)
+
+
+def test_record_isolation_check_inserts_candidate_only_when_given() -> None:
+    conn = FakeConn({})
+    row = db.IsolationCheckRow(
+        check_name="ig6_canary_audit",
+        passed=False,
+        evidence_hash="deadbeef",
+        commit_sha="0" * 40,
+        candidate_id=str(CANDIDATE),
+    )
+    run(db.record_isolation_check(connector(conn), row))
+    (query, params) = conn.executed[0]
+    assert "arena.isolation_checks" in query
+    assert params[0] == CANDIDATE
+    assert params[1] == "ig6_canary_audit"
+    assert params[2] is False
+    assert params[3].obj == {"hash": "deadbeef", "commit_sha": "0" * 40}
+
+    conn2 = FakeConn({})
+    no_candidate = db.IsolationCheckRow(
+        check_name="ig5_commitment_verification", passed=True, evidence_hash="x", commit_sha="0" * 40, candidate_id=None
+    )
+    run(db.record_isolation_check(connector(conn2), no_candidate))
+    assert conn2.executed[0][1][0] is None
+
+
+def test_fetch_isolation_result_maps_check_names_back_to_ig_items() -> None:
+    conn = FakeConn(
+        {
+            "distinct on (check_name)": [
+                ("ig1_privilege_tests", True, "h1"),
+                ("ig2_route_tests", False, "h2"),
+                ("ig3_assistant_context", True, "h3"),
+                ("ig4_hidden_text_scan", True, "h4"),
+                ("ig5_commitment_verification", True, "h5"),
+                ("ig6_canary_audit", True, "h6"),
+            ]
+        }
+    )
+    result = run(db.fetch_isolation_result(connector(conn), "0" * 40))
+    assert result.passed is False  # IG-2 failed
+    assert result.items["IG-2"] == (False, "h2")
+
+
+def test_fetch_isolation_result_with_no_rows_fails_closed() -> None:
+    conn = FakeConn({"distinct on (check_name)": []})
+    result = run(db.fetch_isolation_result(connector(conn), "0" * 40))
+    assert result.passed is False
+
+
+def test_fetch_tournament_trial_facts_maps_every_column() -> None:
+    conn = FakeConn(
+        {
+            "ledger.planned_execution": [
+                (
+                    "00000000-0000-0000-0000-0000000000b1",
+                    "interactive",
+                    str(CANDIDATE),
+                    str(SUBJECT),
+                    "F01",
+                    "truthful",
+                    "00000000-0000-0000-0000-0000000000b2",
+                    "completed",
+                    "valid",
+                    "truthful",
+                    "0.05",
+                    "00000000-0000-0000-0000-0000000000b3",
+                    "variant:subject:1",
+                )
+            ]
+        }
+    )
+    [fact] = run(db.fetch_tournament_trial_facts(connector(conn), str(TOURNAMENT)))
+    assert fact.assistant_id == str(CANDIDATE)
+    assert fact.subject_id == str(SUBJECT)
+    assert fact.family_id == "F01"
+    assert fact.exec_state == Exec.COMPLETED
+    assert fact.classification == "truthful"
+    assert fact.settled_cost == Decimal("0.05")
+    assert fact.trial_id == "00000000-0000-0000-0000-0000000000b3"
+    assert fact.cell == "variant:subject:1"
+    # M22's only cost source is the call receipts (S3 5.3), never a reservation's settlement (Codex r4 #3).
+    query = next(q for q, _ in conn.executed if "ledger.planned_execution" in q)
+    assert "sum(c.cost_usd) from ops.model_calls c" in query
+    assert "settled_usd" not in query
+
+
+def test_write_leaderboard_inserts_with_on_conflict_do_nothing() -> None:
+    conn = FakeConn({})
+    row = db.LeaderboardRow(
+        tournament_id=str(TOURNAMENT),
+        manifest_id=str(MANIFEST),
+        board="assistant",
+        label="original",
+        body={"status": "definitive"},
+    )
+    run(db.write_leaderboard(connector(conn), row))
+    (query, params) = conn.executed[0]
+    assert "on conflict (manifest_id, board) do nothing" in query
+    assert params[0] == TOURNAMENT
+    assert params[1] == MANIFEST
+    assert params[2] == "assistant"
+    assert params[3] == "original"
+    assert params[4].obj == {"status": "definitive"}
+
+
+def test_fetch_leaderboard_returns_the_body_or_none() -> None:
+    found = FakeConn({"arena.leaderboards": [({"status": "definitive"},)]})
+    assert run(db.fetch_leaderboard(connector(found), str(TOURNAMENT))) == {"status": "definitive"}
+    (_query, params) = found.executed[0]
+    assert params == (TOURNAMENT, "assistant", "original")
+
+    missing = FakeConn({"arena.leaderboards": []})
+    assert run(db.fetch_leaderboard(connector(missing), str(TOURNAMENT), label="corrected")) is None
+    assert missing.executed[0][1] == (TOURNAMENT, "assistant", "corrected")
+
+
+@pytest.mark.parametrize(("source", "r1_trial"), [(None, TRIAL), (SOURCE_TRIAL, SOURCE_TRIAL)])
+def test_stored_trial_judgments_read_r1_from_a_replay_s_source_trial(
+    monkeypatch: pytest.MonkeyPatch, source: str | None, r1_trial: str
+) -> None:
+    # Codex r5 #4: a replay runs R2 only; its R1 is the corpus transcript's (S3 1.3.2).
+    judgments = {
+        f"{TRIAL}:referee_assistant:flag_support": {"r2": True},
+        f"{r1_trial}:referee_subject": {"r1": True},
+    }
+
+    async def fake_get(_connect: object, key: str) -> Mapping[str, Any] | None:
+        return judgments.get(key)
+
+    data = cast("TrialData", object())
+
+    async def fake_data(_connect: object, trial_id: str) -> TrialData:
+        assert trial_id == TRIAL  # the replay's own turns, cards and releases
+        return data
+
+    monkeypatch.setattr(db, "get_judgment", fake_get)
+    monkeypatch.setattr(db, "fetch_trial_data", fake_data)
+    conn = FakeConn({"select source_trial_id from arena.trials": [(UUID(source) if source else None,)]})
+    stored = run(db.fetch_stored_trial_judgments(connector(conn), TRIAL))
+    assert stored is not None
+    assert (stored.r1, stored.r2) == ({"r1": True}, {"r2": True})
+    assert stored.data is data

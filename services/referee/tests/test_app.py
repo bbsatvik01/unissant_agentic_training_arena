@@ -9,8 +9,10 @@ identity, status codes and body shapes.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
-from collections.abc import Awaitable, Mapping
+import json
+from collections.abc import AsyncIterator, Awaitable, Mapping
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -23,11 +25,16 @@ from fastapi import FastAPI
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.identity import DevIdentity, user_id_for
 from arena_core.referee.pipeline import ValidityDecision
+from arena_core.scoring.ranking import IG_ITEMS, isolation_result
 from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_referee import db
 from arena_referee.app import create_app
 from arena_referee.debrief import SessionNotEndedError
+from arena_referee.isolation import IsolationGateRequest
+from arena_referee.reveal import PublishContext
+from arena_referee.routes import admin as admin_route
 from arena_referee.routes import debrief as debrief_route
+from arena_referee.routes import reveal as reveal_route
 from arena_referee.routes import score as score_route
 from arena_referee.routes import tournament as tournament_route
 from arena_referee.scoring import ScoreResult
@@ -48,6 +55,7 @@ BASE_ENV: Mapping[str, str] = {
     "ARENA_BIND_HOST": "127.0.0.1",
     "ARENA_MODEL_MODE": "fake",
     "ARENA_LOCAL_CALLERS": CALLER_HASH,
+    "ARENA_GIT_SHA": "f" * 40,  # fixture value only: a real deployment's own commit sha
 }
 
 
@@ -105,6 +113,14 @@ async def _post(
         return await client.post(path, json=json or {}, headers=request_headers)
 
 
+IG123_NAMES = ((1, "privilege_tests"), (2, "route_tests"), (3, "assistant_context"))
+
+
+async def _post_no_body(app: FastAPI, path: str, *, headers: dict[str, str], cookies: dict[str, str]) -> httpx.Response:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN, cookies=cookies) as client:
+        return await client.post(path, headers={"host": HOST_HEADER, **headers})
+
+
 def _browser_post_headers(csrf: str) -> dict[str, str]:
     return {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-csrf": csrf}
 
@@ -117,6 +133,15 @@ UNPROCESSABLE = 422
 
 
 # ---------------------------------------------------------------- D10: Host, health
+
+
+def test_create_app_refuses_to_boot_without_arena_git_sha(tmp_path: Path) -> None:
+    # Codex finding #3: a silent "0"*40 default would let every misconfigured deployment share one fake
+    # identity for isolation-gate and leaderboard evidence, defeating S3 9's code-version binding.
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
+    del env["ARENA_GIT_SHA"]
+    with pytest.raises(RuntimeError, match="ARENA_GIT_SHA"):
+        create_app(env)
 
 
 def test_debrief_provenance_uses_the_rubric_hash_not_the_prompt_manifest_hash(tmp_path: Path) -> None:
@@ -654,3 +679,429 @@ def test_close_route_maps_a_sql_error_to_409(tmp_path: Path, monkeypatch: pytest
     resp = run(_post(app, f"/internal/tournaments/{uuid4()}/close", headers=_caller_headers()))
     assert resp.status_code == CONFLICT
     assert resp.json()["detail"] == "AR001: not every planned trial has an execution record yet"
+
+
+# ---------------------------------------------------------------- reveal, corrections, isolation gate (WP-16)
+
+PASSING_ISOLATION = isolation_result({item: (True, f"{item}-hash") for item in IG_ITEMS})
+REVEAL_RESULT = db.RevealResult(manifest_id=str(uuid4()), manifest_sha256="a" * 64, manifest_version=1)
+
+
+async def _hidden_split(_connect: object, _tournament_id: str) -> str:
+    return "hidden"
+
+
+class _Blocked(psycopg.Error):
+    """A stand-in for the AR020/AR021 SQL exception `ledger.reveal` raises; psycopg's own `Error.sqlstate`
+    is a plain class attribute, so overriding it here needs no real connection or `ErrorInfo`."""
+
+    sqlstate = "AR020"
+
+
+def test_reveal_route_needs_an_admin_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
+    me_admin = run(_get(make_app(tmp_path), "/api/me"))
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/reveal",
+            headers=_browser_post_headers(me_admin.json()["csrf_token"]),
+        )
+    )
+    assert resp.status_code == FORBIDDEN
+
+
+def test_reveal_route_publishes_and_returns_the_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_fetch_isolation(_connect: object, _git_sha: str) -> object:
+        return PASSING_ISOLATION
+
+    async def fake_reveal_and_publish(_connect: object, _tournament_id: str, _ctx: object) -> db.RevealResult:
+        return REVEAL_RESULT
+
+    monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
+    monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/reveal",
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {
+        "manifest_id": REVEAL_RESULT.manifest_id,
+        "manifest_sha256": REVEAL_RESULT.manifest_sha256,
+        "manifest_version": 1,
+    }
+
+
+def test_reveal_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_fetch_isolation(_connect: object, _git_sha: str) -> object:
+        return PASSING_ISOLATION
+
+    async def fake_reveal_and_publish(_connect: object, _tournament_id: str, _ctx: object) -> db.RevealResult:
+        msg = "reveal follows scoring"
+        raise _Blocked(msg)
+
+    monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
+    monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/reveal",
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == CONFLICT
+
+
+def test_correction_route_publishes_a_corrected_board(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+    corrected = db.RevealResult(manifest_id=str(uuid4()), manifest_sha256="b" * 64, manifest_version=2)
+
+    async def fake_fetch_isolation(_connect: object, _git_sha: str) -> object:
+        return PASSING_ISOLATION
+
+    async def fake_correction(_connect: object, _tournament_id: str, _ctx: object) -> db.RevealResult:
+        return corrected
+
+    monkeypatch.setattr(reveal_route, "fetch_fresh_isolation_result", fake_fetch_isolation)
+    monkeypatch.setattr(db, "fetch_tournament_split", _hidden_split)
+    monkeypatch.setattr(reveal_route, "seal_correction_and_publish", fake_correction)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/corrections",
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json()["manifest_version"] == corrected.manifest_version
+
+
+class _SqlConn:
+    """A fake connection answering by SQL substring (first match wins), recording every statement."""
+
+    def __init__(self, answers: list[tuple[str, list[tuple[Any, ...]]]]) -> None:
+        self.answers = answers
+        self.executed: list[str] = []
+
+    async def execute(self, query: str, _params: tuple[Any, ...] = ()) -> _SqlCursor:
+        self.executed.append(query)
+        return _SqlCursor(next((rows for key, rows in self.answers if key in query), []))
+
+    def transaction(self) -> contextlib.AbstractAsyncContextManager[None]:
+        return contextlib.nullcontext()
+
+
+class _SqlCursor:
+    def __init__(self, rows: list[tuple[Any, ...]]) -> None:
+        self.rows = rows
+
+    async def fetchone(self) -> tuple[Any, ...] | None:
+        return self.rows[0] if self.rows else None
+
+    async def fetchall(self) -> list[tuple[Any, ...]]:
+        return list(self.rows)
+
+
+def test_a_dev_tournament_opens_and_reveals_with_no_hidden_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Codex r3 #2: a dev open records no gate results and there is no hidden seal; reveal must still pass the
+    # dev gate (IG-5, IG-6 live) and never read the hidden seal or a hidden corpus.
+    dev_family = {"family_id": "F01", "variants": {"truthful": {"private_packet": {"canary": "CANARY-F01"}}}}
+    conn = _SqlConn(
+        [
+            ("from arena.tournaments", [("dev",)]),
+            ("distinct on (check_name)", [(f"ig{k}_{n}", True, f"h{k}") for k, n in IG123_NAMES]),
+            ("from sealed.family_ingests", [(json.dumps(dev_family),)]),
+            ("ledger.verify_chain", [(None,)]),
+            ("ledger.corpus_seals", [(True,)]),
+        ]
+    )
+
+    @contextlib.asynccontextmanager
+    async def connect() -> AsyncIterator[_SqlConn]:
+        yield conn
+
+    seen: list[PublishContext] = []
+
+    async def fake_reveal_and_publish(_connect: object, _tournament_id: str, ctx: PublishContext) -> db.RevealResult:
+        seen.append(ctx)
+        return REVEAL_RESULT
+
+    app = make_app(tmp_path)
+    app.state.connect = connect
+    monkeypatch.setattr(reveal_route, "reveal_and_publish", fake_reveal_and_publish)
+    csrf = run(_get(app, "/api/me")).json()["csrf_token"]
+    tournament = uuid4()
+    post = {"headers": _browser_post_headers(csrf), "cookies": {"arena_csrf": csrf}}
+    opened = run(_post_no_body(app, f"/admin/tournaments/{tournament}/open", **post))
+    assert opened.json() == {"opened": True, "gated": False}
+    resp = run(_post(app, f"/admin/tournaments/{tournament}/reveal", **post))
+    assert resp.status_code == httpx.codes.OK, resp.text
+    assert seen[0].isolation.passed
+    assert sorted(seen[0].isolation.items) == ["IG-1", "IG-2", "IG-3", "IG-5", "IG-6"]
+    assert not any("hidden_seal" in q or "hidden_split_seals" in q for q in conn.executed)
+    assert sum("insert into arena.isolation_checks" in q for q in conn.executed) == len(seen[0].isolation.items)
+    # Before IG-1..3 were ever recorded for this commit, reveal is blocked with a clear 409, never a 500.
+    conn.answers = [a for a in conn.answers if a[0] != "distinct on (check_name)"]
+    assert run(_post(app, f"/admin/tournaments/{tournament}/reveal", **post)).status_code == CONFLICT
+
+
+def test_leaderboard_route_needs_a_console_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)  # investigator only
+    resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard"))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_leaderboard_route_returns_the_published_body(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_fetch(_connect: object, _tournament_id: str, *, board: str, label: str) -> dict[str, Any]:
+        assert (board, label) == ("subject", "corrected")
+        return {"status": "definitive", "rows": []}
+
+    monkeypatch.setattr(db, "fetch_leaderboard", fake_fetch)
+    resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard?label=corrected&board=subject"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"status": "definitive", "rows": []}
+
+
+def test_leaderboard_route_404s_before_any_board_is_published(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_fetch(_connect: object, _tournament_id: str, *, board: str, label: str) -> None:
+        assert (board, label) == ("assistant", "original")
+
+    monkeypatch.setattr(db, "fetch_leaderboard", fake_fetch)
+    resp = run(_get(app, f"/admin/tournaments/{uuid4()}/leaderboard"))
+    assert resp.status_code == NOT_FOUND
+
+
+def test_get_isolation_gate_needs_an_admin_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
+    resp = run(_get(app, "/admin/isolation-gate"))
+    assert resp.status_code == FORBIDDEN
+
+
+def test_get_isolation_gate_reads_the_latest_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_fetch(_connect: object, _git_sha: str) -> object:
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(db, "fetch_isolation_result", fake_fetch)
+    resp = run(_get(app, "/admin/isolation-gate"))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json()["passed"] is True
+
+
+def test_run_isolation_gate_route_rejects_a_malformed_body(tmp_path: Path) -> None:
+    app = make_app(tmp_path)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            "/admin/isolation-gate/run",
+            json={"tournament_id": str(uuid4())},  # missing ig1/ig2/ig3
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == UNPROCESSABLE
+
+
+def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+
+    async def fake_run(_connect: object, request: IsolationGateRequest) -> object:
+        assert request.ig1 == (True, "pgtap ok")
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(admin_route, "run_isolation_gate", fake_run)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            "/admin/isolation-gate/run",
+            json={
+                "ig1": {"passed": True, "report_text": "pgtap ok"},
+                "ig2": {"passed": True, "report_text": "routes ok"},
+                "ig3": {"passed": True, "report_text": "context ok"},
+            },
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json()["passed"] is True
+
+
+def _open_body() -> dict[str, object]:
+    return {
+        "ig1": {"passed": True, "report_text": "pgtap ok"},
+        "ig2": {"passed": True, "report_text": "routes ok"},
+        "ig3": {"passed": True, "report_text": "context ok"},
+    }
+
+
+def _stub_split(monkeypatch: pytest.MonkeyPatch, split: str) -> None:
+    async def fake_split(_connect: object, _tournament_id: str) -> str:
+        return split
+
+    monkeypatch.setattr(db, "fetch_tournament_split", fake_split)
+
+
+def test_open_route_needs_an_admin_identity(tmp_path: Path) -> None:
+    app = make_app(tmp_path, dev_user=VIEWER_EMAIL)
+    me_admin = run(_get(make_app(tmp_path), "/api/me"))
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(me_admin.json()["csrf_token"]),
+        )
+    )
+    assert resp.status_code == FORBIDDEN
+
+
+def test_open_route_rejects_a_malformed_body(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+    _stub_split(monkeypatch, "hidden")
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json={},  # missing ig1/ig2/ig3
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == UNPROCESSABLE
+
+
+def test_open_route_opens_a_dev_tournament_directly_with_no_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Codex finding #4: a dev-split tournament has no hidden seal to verify; it must open directly, never
+    # go through the hidden-text-scan gate (which would 409 it forever), and needs no ig1/ig2/ig3 body.
+    app = make_app(tmp_path)
+    _stub_split(monkeypatch, "dev")
+    opened = []
+
+    async def fake_open_tournament(_connect: object, tournament_id: str) -> None:
+        opened.append(tournament_id)
+
+    monkeypatch.setattr(db, "open_tournament", fake_open_tournament)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    tid = str(uuid4())
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{tid}/open",
+            json={},
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"opened": True, "gated": False}
+    assert opened == [tid]
+
+
+def test_open_route_opens_on_a_passing_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+    _stub_split(monkeypatch, "hidden")
+
+    async def fake_open(_connect: object, _tournament_id: str, request: IsolationGateRequest) -> object:
+        assert request.ig1 == (True, "pgtap ok")
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {
+        "opened": True,
+        "gated": True,
+        "passed": True,
+        "evidence_hash": PASSING_ISOLATION.evidence_hash,
+    }
+
+
+def test_open_route_maps_a_failing_gate_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+    _stub_split(monkeypatch, "hidden")
+
+    async def fake_open(_connect: object, _tournament_id: str, _request: IsolationGateRequest) -> object:
+        msg = "isolation gate failed"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == CONFLICT
+
+
+def test_open_route_maps_a_blocked_precondition_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = make_app(tmp_path)
+    _stub_split(monkeypatch, "hidden")
+
+    async def fake_open(_connect: object, _tournament_id: str, _request: IsolationGateRequest) -> object:
+        msg = "only a frozen tournament can open"
+        raise _Blocked(msg)
+
+    monkeypatch.setattr(reveal_route, "open_hidden_tournament", fake_open)
+    me = run(_get(app, "/api/me"))
+    csrf = me.json()["csrf_token"]
+    resp = run(
+        _post(
+            app,
+            f"/admin/tournaments/{uuid4()}/open",
+            json=_open_body(),
+            headers=_browser_post_headers(csrf),
+            cookies={"arena_csrf": csrf},
+        )
+    )
+    assert resp.status_code == CONFLICT

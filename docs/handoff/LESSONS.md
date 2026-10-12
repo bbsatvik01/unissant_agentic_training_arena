@@ -52,3 +52,13 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Root cause:** a semantic rule ("every claim matches a record") was assigned to deterministic code that cannot decide it, so every round produced a new adversarial counterexample; the coordinator did not cap the scope of the self-gate.
 - **Fix:** S2 11.1 now assigns semantics to the recorded, hash-bound independent review; code checks only IDs and verbatim released quotes (07c756b). The agent was told to run one Codex round scoped to the current spec.
 - **Prevention pattern:** when a gate loop passes ~5 rounds on the same class, stop and ask whether the check is decidable by code at all; if not, move it to a recorded review and shrink the code. Scope every Codex prompt to the current spec, and never let fixture or test tooling outgrow the product code it supports (D-016).
+
+## 2026-10-11 · Parallel agents collide on fixed local ports and slow suites look hung
+- **Symptom:** api/subject boot tests failed "address already in use"; it_spend_guard looked hung.
+- **Root cause:** a coordinator or UI dev stack held 127.0.0.1:8080/8081 while other worktrees ran tests that bind the same ports; it_spend_guard's cap replay runs ~13.6k guarded calls and takes ~36 min.
+- **Prevention:** stop dev stacks before gate runs (or give boot tests an ephemeral port); give db-test a timeout above 40 min and check CPU progress before calling a suite hung.
+
+## 2026-10-11 · Pattern-based pkill kills other agents' runs
+- **Symptom:** a WP-17 agent ran `pkill -f db_test.sh` and killed another worktree's concurrent db-test.
+- **Root cause:** shared machine, identical command lines across worktrees.
+- **Prevention:** agents kill only PIDs they started (record them); dispatch prompts say so.

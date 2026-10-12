@@ -46,6 +46,7 @@ USER_A = UUID("00000000-0000-0000-0000-00000000000a")
 USER_B = UUID("00000000-0000-0000-0000-00000000000b")
 BASE = "http://127.0.0.1:8080"
 TURNS = 3
+F01_TITLE = "Records vault entry during a busy shift"
 FINDING = {
     "label": "insufficient_evidence",
     "likelihood": "roughly_even_chance",
@@ -171,8 +172,10 @@ class Client:
 
 def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> None:
     api = Client(dsns)
-    cases = api.get("/api/cases").json()["cases"]
-    assert [c["title"] for c in cases] == ["Records vault entry during a busy shift"]
+    # The database is shared with the other suites, which may have committed fixture families of their own: the
+    # interview runs on F01, one variant of which the draw lists (C-37).
+    cases = [c for c in api.get("/api/cases").json()["cases"] if c["title"] == F01_TITLE]
+    assert len(cases) == 1
     started = api.post(
         "/api/sessions", {"case_id": cases[0]["case_id"], "mode": "practice", "voice": False, "idem_key": str(uuid4())}
     )
@@ -252,7 +255,7 @@ def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> N
 
 def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None:
     owner, other = Client(dsns), Client(dsns, USER_B)
-    case = owner.get("/api/cases").json()["cases"][0]["case_id"]
+    case = next(c["case_id"] for c in owner.get("/api/cases").json()["cases"] if c["title"] == F01_TITLE)
     started = owner.post(
         "/api/sessions", {"case_id": case, "mode": "practice", "voice": False, "idem_key": str(uuid4())}
     )

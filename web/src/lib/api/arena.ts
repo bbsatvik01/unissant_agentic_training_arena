@@ -18,10 +18,27 @@ import type {
   EvidenceResult,
   FindingCommit,
   TrialSnapshot,
+  SessionCreate,
   TurnSubmit,
   WireTypes,
 } from "../contracts/generated/types";
-import { ContractError, type ApiClient } from "./client";
+import type { CaseCard } from "../world/cases";
+import type { CaseDocument } from "../world/recording";
+import { ContractError, type ApiClient, type Me } from "./client";
+
+/** `POST /api/sessions` answers (S5 5.5): the new session and its trial. */
+export interface StartedSession {
+  readonly session_id: string;
+  readonly trial_id: string;
+  readonly mode: "practice" | "assessment";
+  readonly case_id: string;
+}
+
+/** `GET /api/cases/{id}`: the case card and the public packet fields the room shows. */
+export interface CaseBrief {
+  readonly case: CaseCard;
+  readonly initialDocuments: readonly CaseDocument[];
+}
 
 /** What a POST that produces events answers, for the catch-up check (S6 5.1). */
 export interface PostAck {
@@ -36,6 +53,76 @@ export interface ContractViolationReport {
   readonly reason: string;
 }
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isText(value: unknown): value is string {
+  return typeof value === "string" && value !== "";
+}
+
+/** A case card exactly as S6 4.2 lists it: public fields only (FE-LIB-1 refuses role, style, family or variant). */
+export function parseCaseCard(value: unknown): CaseCard | null {
+  if (!isRecord(value)) return null;
+  if (["role", "style", "family_id", "variant"].some((k) => k in value)) return null;
+  const subject = value["subject"];
+  const ok =
+    isText(value["case_id"]) &&
+    isText(value["title"]) &&
+    isText(value["objective"]) &&
+    typeof value["domain"] === "string" &&
+    typeof value["difficulty_level"] === "number" &&
+    isRecord(subject) &&
+    isText(subject["display_name"]) &&
+    typeof subject["position"] === "string" &&
+    typeof value["facility"] === "string" &&
+    typeof value["initial_documents"] === "number" &&
+    typeof value["requestable_records"] === "number";
+  if (!ok) return null;
+  return {
+    case_id: value["case_id"] as string,
+    title: value["title"] as string,
+    objective: value["objective"] as string,
+    domain: value["domain"] as string,
+    difficulty_level: value["difficulty_level"] as number,
+    subject: { display_name: subject["display_name"] as string, position: subject["position"] as string },
+    facility: value["facility"] as string,
+    initial_documents: value["initial_documents"] as number,
+    requestable_records: value["requestable_records"] as number,
+  };
+}
+
+/** S1's Content: a body and, when present, a table whose every row has one text cell per column. */
+function contentOk(value: unknown): boolean {
+  if (!isRecord(value) || !isText(value["body"])) return false;
+  const table = value["table"];
+  if (table === undefined || table === null) return true;
+  if (!isRecord(table) || !Array.isArray(table["columns"]) || !Array.isArray(table["rows"])) return false;
+  const columns = table["columns"] as unknown[];
+  return columns.every((c) => typeof c === "string") && (table["rows"] as unknown[]).every((r) => Array.isArray(r) && r.length === columns.length && r.every((cell) => typeof cell === "string"));
+}
+
+/** The brief's initial documents, each checked whole (S1 6.1). */
+export function parseBrief(value: unknown): CaseBrief | null {
+  if (!isRecord(value) || !isRecord(value["brief"])) return null;
+  const card = parseCaseCard(value["case"]);
+  const docs = value["brief"]["initial_documents"];
+  if (card === null || !Array.isArray(docs)) return null;
+  const initialDocuments: CaseDocument[] = [];
+  for (const doc of docs as unknown[]) {
+    if (!isRecord(doc) || !isText(doc["doc_id"]) || !isText(doc["kind"]) || !isText(doc["title"]) || !contentOk(doc["content"])) return null;
+    initialDocuments.push({ doc_id: doc["doc_id"], kind: doc["kind"], title: doc["title"], content: doc["content"] as CaseDocument["content"] });
+  }
+  return { case: card, initialDocuments };
+}
+
+export function parseStarted(value: unknown): StartedSession | null {
+  if (!isRecord(value)) return null;
+  const { session_id: sessionId, trial_id: trialId, mode, case_id: caseId } = value;
+  if (!isText(sessionId) || !isText(trialId) || !isText(caseId) || (mode !== "practice" && mode !== "assessment")) return null;
+  return { session_id: sessionId, trial_id: trialId, mode, case_id: caseId };
+}
+
 export interface ArenaApi {
   trialSnapshot(trialId: string): Promise<TrialSnapshot>;
   mintStreamTicket(trialId: string): Promise<string>;
@@ -46,6 +133,22 @@ export interface ArenaApi {
   readDebrief(sessionId: string): Promise<DebriefRead>;
   ackCard(body: CardAck): Promise<void>;
   reportContractViolation(body: ContractViolationReport): Promise<void>;
+  /** `GET /api/cases`: the cases offered to this user (one variant per family, C-37). */
+  listCases(): Promise<readonly CaseCard[]>;
+  /** `GET /api/cases/{id}`: its card and initial documents. */
+  caseBrief(caseId: string): Promise<CaseBrief>;
+  /** `POST /api/sessions` (the body is checked against its wire schema first). */
+  startSession(body: SessionCreate): Promise<StartedSession>;
+  /** `GET /api/progress`: the participant's own sessions (read with `parseProgress`). */
+  progress: () => Promise<unknown>;
+  /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
+  recording: (trialId: string) => Promise<unknown>;
+  /** `GET /api/me`: identity, the EX-4 acknowledgement and the KPI-1 study status. */
+  me: () => Promise<Me>;
+  /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
+  ackEx4: () => Promise<string>;
+  /** `GET /api/leaderboards/{tournament_id}?board=`: the published board body verbatim (WP-16), read with `parseBoard`. */
+  leaderboard(tournamentId: string, board: "assistant" | "subject", label?: "original" | "corrected"): Promise<unknown>;
 }
 
 const id = encodeURIComponent;
@@ -102,6 +205,38 @@ export function createArenaApi(client: ApiClient): ArenaApi {
     },
     async reportContractViolation(body) {
       await client.post("/api/telemetry/contract-violation", body, { keepalive: true });
+    },
+    async listCases() {
+      const path = "/api/cases";
+      const answer = await client.get(path);
+      const list = isRecord(answer) && Array.isArray(answer["cases"]) ? (answer["cases"] as unknown[]) : null;
+      const cards = list?.map(parseCaseCard) ?? null;
+      if (cards === null || cards.some((c) => c === null)) throw new ContractError(path, "the case list");
+      return cards as CaseCard[];
+    },
+    async caseBrief(caseId) {
+      const path = `/api/cases/${id(caseId)}`;
+      const brief = parseBrief(await client.get(path));
+      if (brief === null) throw new ContractError(path, "the case brief");
+      return brief;
+    },
+    me: () => client.me(),
+    progress: () => client.get("/api/progress"),
+    recording: (trialId) => client.get(`/api/trials/${id(trialId)}/recording`),
+    async ackEx4() {
+      const path = "/api/me/ack-ex4";
+      const answer = await client.post(path);
+      if (!isRecord(answer) || !isText(answer["ex4_acknowledged"])) throw new ContractError(path, "the acknowledgement");
+      return answer["ex4_acknowledged"];
+    },
+    async leaderboard(tournamentId, board, label) {
+      return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}${label === undefined ? "" : `&label=${label}`}`);
+    },
+    async startSession(body) {
+      const path = "/api/sessions";
+      const started = parseStarted(await send("session-create", path, body));
+      if (started === null) throw new ContractError(path, "the started session");
+      return started;
     },
   };
 }

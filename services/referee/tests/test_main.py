@@ -43,6 +43,7 @@ GOOD_ENV = {
     "ARENA_MODEL_MODE": "fake",
     "ARENA_DEV_USER": ADMIN_EMAIL,
     "ARENA_USERS_FILE": str(_USERS_PATH),
+    "ARENA_GIT_SHA": "f" * 40,  # fixture value only: create_app refuses to boot without one (S3 9)
 }
 TIMEOUT_S = 10.0
 

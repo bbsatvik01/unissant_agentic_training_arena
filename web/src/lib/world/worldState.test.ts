@@ -12,7 +12,7 @@ import { initialTrialState, trialReducer, type TrialView } from "../trial/trialR
 import { speechDurationMs } from "./cadence";
 import { parseRecording } from "./parseRecording";
 import { noteArrival, seek, startCursor, type Recording } from "./recording";
-import { deriveWorld, EVIDENCE_MS, FLAG_MS, HAND_MS, SEAL_MS, type WorldInput, type WorldState } from "./worldState";
+import { deriveWorld, EVIDENCE_MS, FLAG_MS, HAND_MS, REACTION_AFTER_MS, REACTION_MS, SEAL_MS, type WorldInput, type WorldState } from "./worldState";
 
 function load(): Recording {
   const result = parseRecording(structuredClone(raw));
@@ -72,6 +72,22 @@ describe("deriveWorld", () => {
     expect(w.exchanges).toEqual({ used: 0, cap: 12 });
   });
 
+  it("cuts over the shoulder for the question, to a close-up for the answer, and to the observation room while the coach works", () => {
+    const q = when("question.accepted", turn(2));
+    const a = when("subject.answer", turn(2));
+    expect(at(q + 100).shot).toBe("over_shoulder");
+    expect(at(a - 50).shot).toBe("subject_close");
+    expect(at(a + 100).shot).toBe("subject_close");
+    const working = when("coach.working", turn(2));
+    expect(at(working + REACTION_AFTER_MS + 100).shot).toBe("observation");
+    expect(at(working + REACTION_AFTER_MS + REACTION_MS + 100).shot).not.toBe("observation");
+    expect(at(working + REACTION_AFTER_MS - 100).shot).toBe("subject_close");
+    const log = new LogBuilder("practice").ask({ coach: "none" });
+    log.frames.push(...new LogBuilder("practice").ask().frames.filter((f) => f.type === "coach.working"));
+    expect(fromLog(log, "practice", log.frames.length * 1000 + 500)?.shot).toBe("observation");
+    expect(fromLog(new LogBuilder("assessment").ask().ask(), "assessment", 999_999)?.shot).toBe("room");
+  });
+
   it("has the subject listen while the question is spoken, then prepare, then speak the answer at reading pace", () => {
     const q = when("question.accepted", turn(2));
     const a = when("subject.answer", turn(2));
@@ -86,6 +102,19 @@ describe("deriveWorld", () => {
     expect(at(a + 600).caption).toBe("Jordan Pell is answering. Coach is reading T2.");
     const text = speaking.subject.speech?.text ?? "";
     expect(at(a + speechDurationMs(text) + 10).subject.speech).toBe(null);
+  });
+
+  it("keeps a voiced answer on stage while its voice speaks, ends it with its voice, and leaves an unvoiced one to the cadence", () => {
+    const a = when("subject.answer", turn(2));
+    const text = at(a + 100).subject.speech?.text ?? "";
+    const past = a + speechDurationMs(text) + 10;
+    // Still before the next turn starts (a newer turn ends the line whatever the voice does).
+    expect(when("question.accepted", turn(3))).toBeGreaterThan(past);
+    expect(at(past, { voice: () => true }).subject.speech).toMatchObject({ turn: 2, startedAt: a });
+    expect(at(past, { voice: () => true }).subject.pose).toBe("speaking");
+    expect(at(a + 100, { voice: () => false }).subject.speech).toBe(null);
+    expect(at(past, { voice: () => null }).subject.speech).toBe(null);
+    expect(at(a + 100, { voice: () => null }).subject.speech?.turn).toBe(2);
   });
 
   it("puts the observation room to work between the answer and the card, then hands the card over", () => {
@@ -127,7 +156,7 @@ describe("deriveWorld", () => {
     expect(at(card + FLAG_MS + 10).flag).toBe(null);
   });
 
-  it("points a contradiction between two turns out from the observation room (mirror shot)", () => {
+  it("points a contradiction between two turns out from the observation room", () => {
     const card = when("coach.card", turn(5));
     const t = card + HAND_MS + 100;
     const cursor = seek(REC, startCursor(REC), t);
@@ -139,7 +168,7 @@ describe("deriveWorld", () => {
     const edited = { ...view, cards: [...view.cards.slice(0, -1), { ...last, card: { ...last.card, flags: [flag] } }] };
     const w = deriveWorld({ view: edited, nowMs: t, arrivals: cursor.arrivals, subjectName: "S", investigatorActive: false, reducedMotion: false, paused: false });
     expect(w?.flag).toEqual({ kind: "contradiction", turn: 4, conflictTurn: 3, conflictRecord: null });
-    expect(w?.shot).toBe("mirror");
+    expect(w?.shot).toBe("observation");
   });
 
   it("does not point out a conflict flag whose citation failed the server's check or the shared predicate", () => {

@@ -173,7 +173,7 @@ stop_all() {
 }
 
 up() {
-  need uv
+  need uv; need git
   mkdir -p "$RUN"; chmod 700 "$RUN"
   if [[ -f "$RUN/stack.pid" ]] && kill -0 "$(cat "$RUN/stack.pid")" 2>/dev/null; then die "the stack is already running"; fi
   echo $$ >"$RUN/stack.pid"
@@ -195,8 +195,11 @@ up() {
   ENV_OUT=("${base[@]}" "${ENV_OUT[@]}" ARENA_ROLE=subject ARENA_LOCAL_CALLERS="$callers")
   launch arena-subject uv run --locked python -m arena_subject
 
+  # The referee refuses to boot without the code version its gate and leaderboard evidence bind to (S3 9).
+  local git_sha
+  git_sha="$(git -C "$ROOT" rev-parse --verify HEAD)" || die "cannot read the checkout's commit (git rev-parse HEAD)"
   read_env "$ENV_DIR/.env.local" "$ENV_DIR/.env.local.referee"
-  ENV_OUT=("${base[@]}" "${ENV_OUT[@]}" ARENA_ROLE=referee ARENA_LOCAL_CALLERS="$callers")
+  ENV_OUT=("${base[@]}" "${ENV_OUT[@]}" ARENA_ROLE=referee ARENA_LOCAL_CALLERS="$callers" ARENA_GIT_SHA="$git_sha")
   launch arena-referee uv run --locked uvicorn --factory arena_referee.app:create_app --host 127.0.0.1 --port 8082
 
   read_env "$ENV_DIR/.env.local" "$ENV_DIR/.env.local.public"

@@ -134,6 +134,7 @@ def _referee_env(world: dict[str, Any], scratch_port: int) -> dict[str, str]:
         "ARENA_USERS_FILE": str(world["users_path"]),
         "ARENA_DEV_USER": ADMIN_EMAIL,
         "ARENA_REFEREE_PORT": str(scratch_port),
+        "ARENA_GIT_SHA": "f" * 40,  # fixture value only: create_app refuses to boot without one (S3 9)
     }
 
 
