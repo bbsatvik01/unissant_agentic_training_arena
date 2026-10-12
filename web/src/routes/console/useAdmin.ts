@@ -25,8 +25,8 @@ function refusal(e: unknown, refused: string): string {
 export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction" | "adminReviews" | "adminVerdict">, enabled: boolean) {
   const [budget, setBudget] = useState<Section<readonly BudgetRow[]>>({ state: "loading" });
   const [tournaments, setTournaments] = useState<Section<readonly AdminTournament[]>>({ state: "loading" });
-  // Each tournament's detail by id; null when it could not be read.
-  const [details, setDetails] = useState<Readonly<Record<string, TournamentDetail | null>>>({});
+  // Each tournament's detail by id, as a section of its own (a missing route or a failed read says so).
+  const [details, setDetails] = useState<Readonly<Record<string, Section<TournamentDetail>>>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Section<readonly ValidityReview[]>>({ state: "loading" });
@@ -63,11 +63,13 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         setTournaments(list === null ? { state: "error" } : { state: "ready", value: list });
         for (const t of list ?? []) {
           adminTournament(t.id).then(
-            (detail) => {
-              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: parseTournamentDetail(detail) }));
+            (raw) => {
+              if (cancelled) return;
+              const detail = parseTournamentDetail(raw);
+              setDetails((m) => ({ ...m, [t.id]: detail === null ? { state: "error" } : { state: "ready", value: detail } }));
             },
-            () => {
-              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: null }));
+            (e: unknown) => {
+              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: failed(e) }));
             },
           );
         }

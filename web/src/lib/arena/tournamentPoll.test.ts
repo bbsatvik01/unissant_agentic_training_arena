@@ -29,9 +29,9 @@ describe("tournament poll lifecycle (S6 4.9, S5 6.2)", () => {
   });
 
   it("reads the tournament list and a tournament's status, nothing more", () => {
-    const list = parseTournamentList({ tournaments: [{ id: "t1", name: "dev-demo", split: "dev", status: "revealed", seed: 7 }, { id: "t2", name: "x", split: "hidden", status: "paused" }, "x"] });
-    expect(list).toEqual([{ id: "t1", name: "dev-demo", split: "dev", status: "revealed" }]);
-    expect(parseTournamentList([{ id: "t3", name: "h", split: "hidden", status: "running" }])).toEqual([{ id: "t3", name: "h", split: "hidden", status: "running" }]);
+    const list = parseTournamentList({ tournaments: [{ id: "t1", name: "dev-demo", split: "dev", status: "revealed", seed: 7, roster_sha256: "d".repeat(64) }, { id: "t2", name: "x", split: "hidden", status: "paused" }, "x"] });
+    expect(list).toEqual([{ id: "t1", name: "dev-demo", split: "dev", status: "revealed", seed: 7, rosterHash: "d".repeat(64) }]);
+    expect(parseTournamentList([{ id: "t3", name: "h", split: "hidden", status: "running", seed: 1.5, roster_sha256: "nope" }])).toEqual([{ id: "t3", name: "h", split: "hidden", status: "running", seed: null, rosterHash: null }]);
     expect(parseTournamentList({})).toBe(null);
     expect(parseTournamentStatus({ id: "t1", status: "scoring", progress: [] })).toBe("scoring");
     expect(parseTournamentStatus({ tournament: { status: "sealed" } })).toBe("sealed");

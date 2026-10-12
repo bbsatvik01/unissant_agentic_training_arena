@@ -136,6 +136,17 @@ describe("ConsoleRoute", () => {
     expect(calls.some((c) => c.startsWith("POST"))).toBe(false);
   });
 
+  it("says when a tournament's detail is missing or failed, instead of hiding it", async () => {
+    serve({
+      "GET /api/me": CONSOLE_ME,
+      "GET /api/admin/tournaments": [{ id: "t1", name: "dev-1", split: "dev", status: "running" }, { id: "t2", name: "dev-2", split: "dev", status: "running" }],
+      "GET /api/admin/tournaments/t2": new Refusal(500, { detail: "boom" }),
+    });
+    render(<ConsoleRoute kind="admin" />);
+    expect(await screen.findByText("The server does not offer this tournament's detail yet.")).toBeTruthy();
+    expect(await screen.findByText("This tournament's detail could not be read.")).toBeTruthy();
+  });
+
   it("shows the server's reason when it refuses a lifecycle action", async () => {
     serve({
       "GET /api/me": CONSOLE_ME,

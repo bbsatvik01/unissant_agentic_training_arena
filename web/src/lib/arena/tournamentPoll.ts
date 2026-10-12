@@ -23,6 +23,9 @@ export interface TournamentListing {
   readonly name: string;
   readonly split: "dev" | "hidden";
   readonly status: Status;
+  /** The tournament's seed and roster manifest hash (S6 4.9), null when the server does not send them. */
+  readonly seed: number | null;
+  readonly rosterHash: string | null;
 }
 
 /** When the next poll is due: at once (a full page left more frames behind it, whatever the state), in `POLL_MS`,
@@ -51,7 +54,10 @@ export function parseTournamentList(v: unknown): readonly TournamentListing[] | 
     if (!isRecord(r)) return [];
     const { id, name, split } = r;
     const st = status(r["status"]);
-    return typeof id === "string" && typeof name === "string" && (split === "dev" || split === "hidden") && st !== null ? [{ id, name, split, status: st }] : [];
+    const seed = typeof r["seed"] === "number" && Number.isSafeInteger(r["seed"]) ? r["seed"] : null;
+    const roster = r["roster_sha256"];
+    const rosterHash = typeof roster === "string" && /^[0-9a-f]{64}$/.test(roster) ? roster : null;
+    return typeof id === "string" && typeof name === "string" && (split === "dev" || split === "hidden") && st !== null ? [{ id, name, split, status: st, seed, rosterHash }] : [];
   });
 }
 

@@ -16,8 +16,8 @@ export type Section<T> = { readonly state: "loading" } | { readonly state: "miss
 interface AdminConsoleProps {
   readonly budget: Section<readonly BudgetRow[]>;
   readonly tournaments: Section<readonly AdminTournament[]>;
-  /** Each tournament's detail by id (progress, open reviews, reveal preconditions); null when it could not be read. */
-  readonly details: Readonly<Record<string, TournamentDetail | null>>;
+  /** Each tournament's detail by id (progress, open reviews, reveal preconditions); absent while loading. */
+  readonly details: Readonly<Record<string, Section<TournamentDetail>>>;
   readonly reviews: Section<readonly ValidityReview[]>;
   readonly busy: string | null;
   readonly message: string | null;
@@ -347,7 +347,8 @@ export function AdminConsole({ budget, tournaments, details, reviews, busy, mess
           {tournaments.state === "ready"
             ? tournaments.value.map((t) => {
                 const next = nextAction(t.status);
-                const detail = details[t.id] ?? null;
+                const section = details[t.id] ?? { state: "loading" };
+                const detail = section.state === "ready" ? section.value : null;
                 const pre = detail?.preconditions ?? null;
                 const blocked = next?.action === "reveal" && !revealAllowed(pre);
                 return (
@@ -360,6 +361,8 @@ export function AdminConsole({ budget, tournaments, details, reviews, busy, mess
                         </span>
                       )}
                     </p>
+                    {section.state === "missing" ? <p className="fine">The server does not offer this tournament&apos;s detail yet.</p> : null}
+                    {section.state === "error" ? <p className="fine">This tournament&apos;s detail could not be read.</p> : null}
                     {detail?.progress === null || detail?.progress === undefined ? null : <ProgressTable rows={detail.progress} />}
                     {next?.action === "reveal" ? (
                       <ul className="checks">

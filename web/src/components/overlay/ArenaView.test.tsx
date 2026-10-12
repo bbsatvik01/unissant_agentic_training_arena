@@ -103,9 +103,11 @@ describe("ArenaView", () => {
 
   it("lists the tournaments to choose from when none is selected", () => {
     render(
-      <ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state: "ready", list: [{ id: "t 1", name: "dev-demo", split: "dev", status: "revealed" }] }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />,
+      <ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state: "ready", list: [{ id: "t 1", name: "dev-demo", split: "dev", status: "revealed", seed: 20261011, rosterHash: "ab".repeat(32) }] }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />,
     );
     expect(screen.getByRole("link", { name: "dev-demo" }).getAttribute("href")).toBe("?tournament=t%201");
+    expect(screen.getByText(/dev split, revealed, seed 20261011, roster/)).toBeTruthy();
+    expect(screen.getByTitle("ab".repeat(32)).textContent).toBe("abababababab");
     cleanup();
     for (const [state, text] of [["missing", "The server does not offer the tournament list yet."], ["error", "The tournament list could not be read."]] as const) {
       render(<ArenaView name="Arena" boards={{ kind: "example" }} assistant={null} subject={null} tournament={EMPTY_TOURNAMENT} matrix="example" tournaments={{ state }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);

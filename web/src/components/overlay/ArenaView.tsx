@@ -404,7 +404,17 @@ export function ArenaView(props: {
             <ul className="tournament-list">
               {props.tournaments.list.map((t) => (
                 <li key={t.id}>
-                  <a href={`?tournament=${encodeURIComponent(t.id)}`}>{t.name}</a> <span className="fine">{t.split} split, {t.status}</span>
+                  <a href={`?tournament=${encodeURIComponent(t.id)}`}>{t.name}</a>{" "}
+                  <span className="fine">
+                    {t.split} split, {t.status}
+                    {t.seed === null ? "" : `, seed ${String(t.seed)}`}
+                    {t.rosterHash === null ? "" : ", roster "}
+                  </span>
+                  {t.rosterHash === null ? null : (
+                    <code className="mono hash" title={t.rosterHash}>
+                      {t.rosterHash.slice(0, 12)}
+                    </code>
+                  )}
                 </li>
               ))}
             </ul>
