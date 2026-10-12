@@ -96,3 +96,4 @@
 - 2026-10-12 hosted: KPI-1 setup done (P01, P02); text_sessions_per_user_day 5 -> 20 (owner); stuck wt-wp08 pytest runs stopped (owner)
 - 525c260 merge WP-28 hidden execution (D-029); hosted: applied 20261012000200
 - 3eec25d merge UI stage 8 (polish, gemini-3.8-flash-tts designed voices, audio lip sync, coach earpiece); hosted: applied 20261012000300_tts_limits_prices
+- 10319bf merge designed voices (13/13 live, ~$0.20 actual)
