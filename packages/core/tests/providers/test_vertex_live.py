@@ -62,33 +62,36 @@ def test_the_native_audio_fallback_turns_proactivity_and_affective_dialog_off() 
     assert cfg.enable_affective_dialog is False
 
 
-def _usage() -> gtypes.UsageMetadata:
+PROMPT, RESPONSE, TOTAL = 147, 97, 297
+
+
+def _usage(
+    prompt: int | None = PROMPT, response: int | None = RESPONSE, total: int | None = TOTAL
+) -> gtypes.UsageMetadata:
     return gtypes.UsageMetadata(
-        prompt_token_count=147,
+        prompt_token_count=prompt,
         prompt_tokens_details=[
             gtypes.ModalityTokenCount(modality=gtypes.MediaModality.TEXT, token_count=100),
             gtypes.ModalityTokenCount(modality=gtypes.MediaModality.AUDIO, token_count=47),
         ],
-        response_token_count=97,
+        response_token_count=response,
         response_tokens_details=[
             gtypes.ModalityTokenCount(modality=gtypes.MediaModality.TEXT, token_count=17),
             gtypes.ModalityTokenCount(modality=gtypes.MediaModality.AUDIO, token_count=80),
         ],
         thoughts_token_count=53,
-        total_token_count=297,
+        total_token_count=total,
     )
 
 
 def test_usage_is_split_by_modality_with_thinking_billed_as_text_out() -> None:
     assert live_usage(_usage()) == LiveUsage(text_in=100, audio_in=47, text_out=70, audio_out=80, thinking=53)
     # A total beyond the parts raises text out to everything the total reports past the prompt and audio.
-    raised = _usage().model_copy(update={"total_token_count": 400})
-    assert live_usage(raised).text_out == 400 - 147 - 80
+    raised = TOTAL + 100
+    assert live_usage(_usage(total=raised)).text_out == raised - PROMPT - 80
     # Counts given only by their details still add up.
-    bare = _usage().model_copy(
-        update={"prompt_token_count": None, "response_token_count": None, "total_token_count": None}
-    )
-    assert live_usage(bare) == LiveUsage(text_in=100, audio_in=47, text_out=70, audio_out=80, thinking=53)
+    bare = live_usage(_usage(None, None, None))
+    assert bare == LiveUsage(text_in=100, audio_in=47, text_out=70, audio_out=80, thinking=53)
 
 
 def test_a_server_message_becomes_audio_captions_interruption_turn_complete_and_usage_in_that_order() -> None:
