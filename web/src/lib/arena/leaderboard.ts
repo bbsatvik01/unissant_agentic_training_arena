@@ -40,6 +40,8 @@ export interface BoardRow {
   readonly published: Readonly<Record<string, unknown>>;
   /** M09 published as provisional (its coverage or calibration conditions). */
   readonly qqProvisional: boolean;
+  /** S3 8: FA-3 violations and Holm-significant FA-5 results, shown next to the rank (empty when none). */
+  readonly fairness: readonly string[];
 }
 
 /** A published paired comparison of two ranked candidates (S3 5.5): A minus B on their common planned cells. */
@@ -99,6 +101,18 @@ function familyBound(v: unknown): FamilyBoundView | null {
   return { bound: num(v["bound"]), kind: v["kind"], families, failed };
 }
 
+const TRACK_NAMES: Readonly<Record<string, string>> = { I: "interactive", R: "replay" };
+
+/** One published fairness violation in words: "FA-3 (interactive): demeanor-based flags 2, findings 1" or
+ * "FA-5b:verbosity:truthful (replay): significant after Holm, p = 0.004". */
+function fairnessText(v: unknown): string | null {
+  if (!isRecord(v) || typeof v["analysis"] !== "string") return null;
+  const where = typeof v["track"] === "string" ? ` (${TRACK_NAMES[v["track"]] ?? v["track"]})` : "";
+  if (v["analysis"] === "FA-3") return `FA-3${where}: demeanor-based flags ${String(num(v["flags"]) ?? 0)}, findings ${String(num(v["findings"]) ?? 0)}`;
+  const p = num(v["p_holm"]);
+  return `${v["analysis"]}${where}: significant after Holm${p === null ? "" : `, p = ${p.toFixed(3)}`}`;
+}
+
 function parseRow(v: unknown): BoardRow | null {
   if (!isRecord(v) || typeof v["candidate_id"] !== "string" || typeof v["display_name"] !== "string") return null;
   const rank = v["rank"] === null ? null : num(v["rank"]);
@@ -131,6 +145,7 @@ function parseRow(v: unknown): BoardRow | null {
     metrics,
     published: metricsIn,
     qqProvisional: isRecord(metricsIn["M09_questioning_quality"]) && metricsIn["M09_questioning_quality"]["provisional"] === true,
+    fairness: (Array.isArray(v["fairness_violations"]) ? (v["fairness_violations"] as unknown[]) : []).flatMap((f) => fairnessText(f) ?? []),
   };
 }
 

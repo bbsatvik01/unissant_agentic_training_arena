@@ -112,6 +112,19 @@ describe("fetch wrapper (S6 1.3, FE-TECH-5)", () => {
     await expect(createApiClient({ fetch: c.fetch }).me()).resolves.toMatchObject({ roles: ["trainer"], ex4_acknowledged: null, study: null, console: true });
   });
 
+  it("sends the admin console's own CSRF header when /api/me is a console profile", async () => {
+    // The world and the console share one host on two ports, so each service has its own cookie and header pair.
+    const consoleMe = { user_id: "u2", display_name: "Rater", roles: ["trainer"], csrf_token: "tok-c" };
+    const c = transport({ "GET /api/me": [() => json(200, consoleMe)], "POST /api/x": [() => json(200, {})] });
+    await createApiClient({ fetch: c.fetch }).post("/api/x");
+    expect(header(c.sent[1] as Sent, "X-Arena-Console-CSRF")).toBe("tok-c");
+    expect(header(c.sent[1] as Sent, "X-Arena-CSRF")).toBeNull();
+    const w = transport({ "GET /api/me": [() => json(200, ME)], "POST /api/x": [() => json(200, {})] });
+    await createApiClient({ fetch: w.fetch }).post("/api/x");
+    expect(header(w.sent[1] as Sent, "X-Arena-CSRF")).toBe("tok-1");
+    expect(header(w.sent[1] as Sent, "X-Arena-Console-CSRF")).toBeNull();
+  });
+
   it("returns the validated profile from me() and keeps its token", async () => {
     const t = transport({ "GET /api/me": [() => json(200, ME)], "POST /api/x": [() => json(200, {})] });
     const api = createApiClient({ fetch: t.fetch });

@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
 
-from arena_core.http_guard import CSRF_COOKIE, new_csrf_token
+from arena_core.http_guard import CONSOLE_CSRF_COOKIE, new_csrf_token
 from arena_core.identity import DevIdentity
 from arena_referee.identity_dep import require_console_role
 
@@ -19,7 +19,7 @@ async def get_me(
     response: Response, identity: Annotated[DevIdentity, Depends(require_console_role)]
 ) -> dict[str, object]:
     token = new_csrf_token()
-    response.set_cookie(CSRF_COOKIE, token, httponly=True, samesite="strict", path="/")
+    response.set_cookie(CONSOLE_CSRF_COOKIE, token, httponly=True, samesite="strict", path="/")
     return {
         "user_id": str(identity.user_id),
         "display_name": identity.display_name,

@@ -33,6 +33,17 @@ describe("leaderboard bodies (WP-16 shape)", () => {
     expect(fprGate({ ...a1, eligible: false, eligibilityStatus: "insufficient: no included truthful trials", fpr: null })).toMatchObject({ result: "insufficient (no included truthful trials)", fpr: "undefined" });
   });
 
+  it("reads each row's fairness violations as words, none when the row publishes none (S3 8)", () => {
+    const rows = example.assistant.rows.map((r) =>
+      r.candidate_id === "A1"
+        ? { ...r, fairness_violations: [{ analysis: "FA-3", track: "I", flags: 2, findings: 1 }, { analysis: "FA-5b:verbosity:truthful", track: "R", p_value: 0.001, p_holm: 0.004 }, { track: "I" }] }
+        : r,
+    );
+    const a = parseBoard({ ...example.assistant, rows });
+    expect(a?.rows[0]?.fairness).toEqual(["FA-3 (interactive): demeanor-based flags 2, findings 1", "FA-5b:verbosity:truthful (replay): significant after Holm, p = 0.004"]);
+    expect(a?.rows[1]?.fairness).toEqual([]);
+  });
+
   it("reads a not-ranked board (isolation failed) as having no ranks", () => {
     const b = parseBoard({ board: "assistant", status: "not ranked: isolation gate failed", rows: [] });
     expect(b?.notRanked).toBe(true);

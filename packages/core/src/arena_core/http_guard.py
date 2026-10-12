@@ -19,8 +19,13 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
 STATE_CHANGING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
-CSRF_COOKIE = "arena_csrf"
+# Each browser-facing service has its own double-submit pair: browsers share cookies across ports of one host, so
+# with arena-api (the world) and arena-referee (the admin console) open together on 127.0.0.1, one shared cookie
+# name would let each service's `/api/me` overwrite the other's token and 403 the other tab's POSTs.
+CSRF_COOKIE = "arena_csrf"  # arena-api
 CSRF_HEADER = "X-Arena-CSRF"
+CONSOLE_CSRF_COOKIE = "arena_console_csrf"  # arena-referee's admin console
+CONSOLE_CSRF_HEADER = "X-Arena-Console-CSRF"
 CSRF_TOKEN_BYTES = 32
 INTERNAL_PREFIX = "/internal/"
 
@@ -77,13 +82,13 @@ def new_csrf_token() -> str:
     return secrets.token_hex(CSRF_TOKEN_BYTES)
 
 
-def check_csrf(method: str, cookie_value: str | None, header_value: str | None) -> None:
-    """Every state-changing browser request must carry `X-Arena-CSRF` equal to the `arena_csrf` cookie
+def check_csrf(method: str, cookie_value: str | None, header_value: str | None, header_name: str = CSRF_HEADER) -> None:
+    """Every state-changing browser request must carry the service's CSRF header equal to its CSRF cookie
     (constant-time comparison); a missing cookie or header, or a mismatch, is refused (S5 10.3 step 3)."""
     if method not in STATE_CHANGING_METHODS:
         return
     if not cookie_value or not header_value or not hmac.compare_digest(cookie_value, header_value):
-        raise GuardRefusalError(403, "missing or mismatched X-Arena-CSRF")
+        raise GuardRefusalError(403, f"missing or mismatched {header_name}")
 
 
 @dataclass(frozen=True)
@@ -118,6 +123,7 @@ class RequestFacts:
     sec_fetch_site: str | None
     csrf_cookie: str | None
     csrf_header: str | None
+    csrf_header_name: str = CSRF_HEADER  # the service's own header, named in a refusal
 
 
 def evaluate_request(config: GuardConfig, request: RequestFacts) -> GuardDecision:
@@ -128,5 +134,5 @@ def evaluate_request(config: GuardConfig, request: RequestFacts) -> GuardDecisio
         check_internal_caller(request.authorization, request.headers, config.internal_caller_hashes(request.path))
         return GuardDecision(is_internal=True)
     check_origin(request.method, request.origin, request.sec_fetch_site, config.allowed_origins)
-    check_csrf(request.method, request.csrf_cookie, request.csrf_header)
+    check_csrf(request.method, request.csrf_cookie, request.csrf_header, request.csrf_header_name)
     return GuardDecision(is_internal=False)

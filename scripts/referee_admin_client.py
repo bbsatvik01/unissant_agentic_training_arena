@@ -4,8 +4,8 @@ or a one-off `scoring`/`reveal` call against a local dev tournament) reuses this
 double-submit dance again. `GET /api/me` first, for the CSRF cookie and token the console mints there
 (`arena_referee.routes.console.get_me`); the acting identity itself is the referee process's own one resolved
 user (S5 10.3: "one acting user per run", `ARENA_DEV_USER`) -- this client names no bearer token or header for
-it, only the Origin, Cookie and `X-Arena-CSRF` header `arena_core.http_guard` checks on every state-changing
-request. Never retries: the caller decides that for itself.
+it, only the Origin, the console's own CSRF cookie and `X-Arena-Console-CSRF` header `arena_core.http_guard`
+checks on every state-changing request. Never retries: the caller decides that for itself.
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ async def admin_post(
         if me.status_code != httpx.codes.OK:
             raise AdminCallError(me.status_code, me.text)
         token = str(me.json()["csrf_token"])
-        resp = await client.post(path, json=body, headers={"Origin": base_url, "X-Arena-CSRF": token})
+        resp = await client.post(path, json=body, headers={"Origin": base_url, "X-Arena-Console-CSRF": token})
         if resp.status_code != httpx.codes.OK:
             raise AdminCallError(resp.status_code, resp.text)
         return dict(resp.json())

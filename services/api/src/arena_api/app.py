@@ -26,6 +26,7 @@ from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import PooledConnector, closing_lifespan
 from arena_core.http_guard import (
     CSRF_COOKIE,
+    CSRF_HEADER,
     GuardConfig,
     GuardRefusalError,
     RequestFacts,
@@ -74,7 +75,7 @@ def _facts(request: Request) -> RequestFacts:
         origin=headers.get("origin"),
         sec_fetch_site=headers.get("sec-fetch-site"),
         csrf_cookie=request.cookies.get(CSRF_COOKIE),
-        csrf_header=headers.get("x-arena-csrf"),
+        csrf_header=headers.get(CSRF_HEADER.lower()),
     )
 
 
