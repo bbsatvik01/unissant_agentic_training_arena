@@ -20,6 +20,7 @@ import secrets
 import socket
 import time
 from collections.abc import Coroutine, Iterator
+from dataclasses import dataclass
 from decimal import Decimal
 from http import HTTPStatus
 from pathlib import Path
@@ -27,13 +28,13 @@ from subprocess import Popen, TimeoutExpired
 from typing import Any
 from uuid import UUID, uuid4
 
-import httpx
 import pytest
 from psycopg import AsyncConnection, sql
 from psycopg.conninfo import make_conninfo
+from starlette.types import ASGIApp, Message
 
 from arena_api.app import create_app, guard_config
-from arena_api.referee_client import referee_client
+from arena_api.referee_client import DebriefCall, RefereeError, referee_client
 from arena_api.state import ApiState
 from arena_core.db import subject as db_subject
 from arena_core.db.pool import Connector, dsn_connector
@@ -83,6 +84,10 @@ async def _login(dsn: str, role: str) -> str:
     return make_conninfo(dsn, user=role, password=password)
 
 
+async def _probe(debrief: DebriefCall) -> None:
+    await debrief(uuid4())
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
@@ -123,16 +128,17 @@ def world(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, str]]:
     process: Popen[str] = popen_role_module("arena_referee", env)
     base_url = f"http://127.0.0.1:{port}"
     deadline = time.monotonic() + REFEREE_READY_TIMEOUT_S
+    probe = referee_client(CALLER_TOKEN, base_url=base_url)
     while True:
         if process.poll() is not None:
             out = process.stdout.read() if process.stdout else ""
             msg = f"arena-referee exited early ({process.returncode}):\n{out}"
             raise RuntimeError(msg)
         try:
-            if httpx.get(f"{base_url}/api/health", timeout=1.0).status_code == HTTPStatus.OK:
+            run(_probe(probe))
+        except RefereeError as exc:
+            if exc.status == HTTPStatus.NOT_FOUND:  # serving: an unknown session is a 404
                 break
-        except httpx.HTTPError:  # silent-ok: not listening yet; the deadline below bounds the wait
-            pass
         if time.monotonic() > deadline:
             process.terminate()
             msg = "arena-referee never became ready"
@@ -173,6 +179,68 @@ async def _no_sleep(_s: float) -> None:
     return None
 
 
+@dataclass(frozen=True)
+class Reply:
+    status_code: int
+    headers: list[tuple[bytes, bytes]]
+    text: str
+
+    def json(self) -> dict[str, Any]:
+        body: dict[str, Any] = json.loads(self.text)
+        return body
+
+    def cookie(self) -> str:
+        """The `name=value` pairs of every Set-Cookie header, as a Cookie header."""
+        pairs = [v.decode().split(";", 1)[0] for k, v in self.headers if k.lower() == b"set-cookie"]
+        return "; ".join(pairs)
+
+
+async def _asgi(app: ASGIApp, method: str, path: str, headers: list[tuple[bytes, bytes]], body: object = None) -> Reply:
+    """One request straight into the ASGI app object, in process (no socket, no HTTP client), as it_api.py does
+    with httpx's ASGI transport."""
+    payload = b"" if body is None else json.dumps(body).encode()
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": method,
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"host", b"127.0.0.1:8080"), (b"content-type", b"application/json"), *headers],
+        "client": ("127.0.0.1", 50000),
+        "server": ("127.0.0.1", 8080),
+    }
+    sent = asyncio.Event()
+    done = asyncio.Event()
+    status = 0
+    out_headers: list[tuple[bytes, bytes]] = []
+    chunks: list[bytes] = []
+
+    async def receive() -> Message:
+        if not sent.is_set():
+            sent.set()
+            return {"type": "http.request", "body": payload, "more_body": False}
+        await done.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message: Message) -> None:
+        nonlocal status
+        if message["type"] == "http.response.start":
+            status = message["status"]
+            out_headers.extend(message.get("headers", []))
+        elif message["type"] == "http.response.body":
+            chunks.append(message.get("body", b""))
+            if not message.get("more_body", False):
+                done.set()
+
+    await app(scope, receive, send)
+    done.set()
+    return Reply(status, out_headers, b"".join(chunks).decode())
+
+
 class Investigator:
     """arena-api in process as one allowlisted user (S5 10.3: one acting user per run)."""
 
@@ -191,13 +259,13 @@ class Investigator:
         )
         self.app = create_app(state, guard_config({}))
 
-    def call(self, method: str, path: str, body: object = None) -> httpx.Response:
-        async def go() -> httpx.Response:
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url=BASE) as client:
-                token = (await client.get("/api/me")).json()["csrf_token"]
-                client.cookies.set("arena_csrf", token)
-                headers = {"Origin": BASE, "X-Arena-CSRF": token}
-                return await client.request(method, path, json=body, headers=headers, timeout=180.0)
+    def call(self, method: str, path: str, body: object = None) -> Reply:
+        async def go() -> Reply:
+            me = await _asgi(self.app, "GET", "/api/me", [])
+            token = me.json()["csrf_token"]
+            cookie = me.cookie()
+            headers = [(b"origin", BASE.encode()), (b"x-arena-csrf", token.encode()), (b"cookie", cookie.encode())]
+            return await _asgi(self.app, method, path, headers, body)
 
         return run(go())
 
@@ -207,14 +275,15 @@ class Investigator:
         body: dict[str, Any] = r.json()
         return body
 
-    def start(self, case_id: str, mode: str) -> httpx.Response:
+    def start(self, case_id: str, mode: str) -> Reply:
         return self.call(
             "POST", "/api/sessions", {"case_id": case_id, "mode": mode, "voice": False, "idem_key": str(uuid4())}
         )
 
     def session(self, case_id: str, mode: str, phase: str) -> int:
         """One whole session: start, three questions, a finding, the published debrief; returns its score."""
-        doc = self.get(f"/api/cases/{case_id}")["brief"]["initial_documents"][0]["doc_id"]
+        brief = self.get(f"/api/cases/{case_id}")["brief"]
+        doc = brief["initial_documents"][0]["doc_id"]
         started = self.start(case_id, mode)
         assert started.status_code == HTTPStatus.OK, started.text
         assert started.json()["phase"] == phase
@@ -226,13 +295,22 @@ class Investigator:
             assert r.status_code == HTTPStatus.OK, r.text
             assert r.json()["turn_no"] == n
             version = r.json()["version"]
+        # Every requestable record whose window has opened (after the questions above); the ones released are cited.
+        wanted = [r["record_id"] for r in brief["requestable_records"] if r["requestable_after_exchanges"] <= n]
+        released: list[str] = []
+        if wanted:
+            asked = self.call(
+                "POST", f"/api/trials/{trial}/evidence-requests", {"record_ids": wanted, "idem_key": str(uuid4())}
+            )
+            assert asked.status_code == HTTPStatus.OK, asked.text
+            released = [r["record_id"] for r in asked.json()["released"]]
         finding = {
             "label": "insufficient_evidence",
             "likelihood": "roughly_even_chance",
             "confidence": "low",
             "basis_flag_refs": [],
             "cited_turns": [1, 2],
-            "cited_records": [doc],
+            "cited_records": [doc, *released],
             "corroboration_needed": ["the access log for that evening"],
             "rationale": "The account is not yet tested against the access log.",
         }
@@ -302,6 +380,55 @@ def _protocol(world: dict[str, str], email: str) -> None:
     assert k["relative_change"] == (None if k["pre"] == 0 else (k["post"] - k["pre"]) / k["pre"])
 
 
+def _human_rating(world: dict[str, str], capsys: pytest.CaptureFixture[str], out: Path) -> None:
+    """Blinded human rating (S3 6.1): export, a rater fills the sheet, import; then the report from human scores."""
+    referee_env = {kpi1.DSN_VAR: world["referee"]}
+    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
+    assert json.loads(capsys.readouterr().out)["kpi1"].startswith(kpi1.PENDING)  # no rating yet
+    assert kpi1.main(["export-blind", "--out", str(out)], env=referee_env) == 0
+    capsys.readouterr()
+    items = json.loads((out / "items.json").read_text(encoding="utf-8"))["items"]
+    assert len(items) == len(EMAILS) * TESTS_PER_PHASE * 2
+    assert all(len(i["transcript"]) == len(QUESTIONS) and i["finding"] for i in items)
+    blob = json.dumps(items)
+    assert "@" not in blob
+    assert "P01" not in blob
+    assert "pre" not in {k for i in items for k in i}
+    key = json.loads((out / "key.json").read_text(encoding="utf-8"))
+    released_db = run(
+        _admin(
+            world["admin"],
+            "select s.id::text, count(r.record_id) from training.sessions s"
+            " left join arena.released_evidence r on r.trial_id = s.trial_id"
+            " where s.phase in ('pre', 'post') group by 1",
+        )
+    )
+    released_count = {r[0]: r[1] for r in released_db}
+    for item in items:  # the rater sees exactly the records released in that session, with their positions
+        assert len(item["released_records"]) == released_count[key[item["blind_id"]]]
+        cited = set(item["finding"]["cited_records"]) - {d["doc_id"] for d in item["initial_documents"]}
+        assert cited <= {r["record_id"] for r in item["released_records"]}  # every cited record is in the export
+    assert any(item["released_records"] for item in items)
+    assert any(len(item["finding"]["cited_records"]) > 1 for item in items)  # some finding cites a released record
+    phase_of = {
+        str(r[0]): r[1]
+        for r in run(_admin(world["admin"], "select id, phase from training.sessions where phase in ('pre', 'post')"))
+    }
+    sheet = json.loads((out / "ratings.json").read_text(encoding="utf-8"))
+    for rating in sheet["ratings"]:  # every check passes, except 1a on every pre-test: D1 3 of 4 -> 3, total 95
+        pre_test = phase_of[key[rating["blind_id"]]] == "pre"
+        rating["checks"] = {c: "fail" if pre_test and c == "1a" else "pass" for c in rating["checks"]}
+    (out / "ratings.json").write_text(json.dumps(sheet), encoding="utf-8")
+    imported = ["import-human", "--ratings", str(out / "ratings.json"), "--key", str(out / "key.json")]
+    assert kpi1.main(imported, env=referee_env) == 0
+    assert capsys.readouterr().out.startswith(f"{len(items)} human scores stored")
+    assert kpi1.main(imported, env=referee_env) == 0  # idempotent per (session, rater)
+    assert capsys.readouterr().out.startswith("0 human scores stored")
+    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
+    human = json.loads(capsys.readouterr().out)["kpi1"]
+    assert (human["mean_abs"], human["mean_rel"], human["met"]) == (5.0, round(5 / 95, 4), False)  # 95 -> 100
+
+
 def test_kpi1_setup_then_two_participants_through_the_whole_protocol(
     world: dict[str, str], capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
@@ -333,36 +460,7 @@ def test_kpi1_setup_then_two_participants_through_the_whole_protocol(
     assert "@" not in json.dumps(report)
     assert set(report["kpi1"]["ci"]) == {"mean_rel", "median_rel", "share_ge_20pct", "mean_abs", "ratio_of_means"}
 
-    # Blinded human rating: export, a rater fills the sheet, import; then the same report from human scores.
-    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
-    assert json.loads(capsys.readouterr().out)["kpi1"].startswith(kpi1.PENDING)  # no rating yet
-    out = tmp_path / "blind"
-    assert kpi1.main(["export-blind", "--out", str(out)], env=referee_env) == 0
-    capsys.readouterr()
-    items = json.loads((out / "items.json").read_text(encoding="utf-8"))["items"]
-    assert len(items) == len(EMAILS) * TESTS_PER_PHASE * 2
-    assert all(len(i["transcript"]) == len(QUESTIONS) and i["finding"] for i in items)
-    blob = json.dumps(items)
-    assert "@" not in blob
-    assert "P01" not in blob
-    assert "pre" not in {k for i in items for k in i}
-    key = json.loads((out / "key.json").read_text(encoding="utf-8"))
-    phase_of = {
-        str(r[0]): r[1]
-        for r in run(_admin(world["admin"], "select id, phase from training.sessions where phase in ('pre', 'post')"))
-    }
-    sheet = json.loads((out / "ratings.json").read_text(encoding="utf-8"))
-    for rating in sheet["ratings"]:  # the rater scores post-tests one point higher on every dimension
-        rating.update(dict.fromkeys(kpi1.RATING_FIELDS, 3 if phase_of[key[rating["blind_id"]]] == "post" else 2))
-    (out / "ratings.json").write_text(json.dumps(sheet), encoding="utf-8")
-    imported = ["import-human", "--ratings", str(out / "ratings.json"), "--key", str(out / "key.json")]
-    assert kpi1.main(imported, env=referee_env) == 0
-    assert capsys.readouterr().out.startswith(f"{len(items)} human scores stored")
-    assert kpi1.main(imported, env=referee_env) == 0  # idempotent per (session, rater)
-    assert capsys.readouterr().out.startswith("0 human scores stored")
-    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
-    human = json.loads(capsys.readouterr().out)["kpi1"]
-    assert (human["mean_abs"], human["mean_rel"], human["met"]) == (25.0, 0.5, True)  # 50 -> 75 for both
+    _human_rating(world, capsys, tmp_path / "blind")
 
 
 def test_setup_refuses_a_user_who_practised_on_a_kpi1_family_before(world: dict[str, str]) -> None:

@@ -47,17 +47,28 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 import psycopg
 from psycopg.types.json import Jsonb
 
-from arena_core.agents.rubric import canonical_rubric
 from arena_core.db.pool import Connector, dsn_connector
 from arena_core.identity import user_id_for
 from arena_core.ids import read_json_text
+from arena_core.scoring.exact import DIMENSIONS, dimension_score
 from arena_core.scoring.kpi import kpi1
+from arena_core.scoring.rubric import (
+    CEILING,
+    CHECK_APPLICABILITY,
+    CHECK_NAME,
+    CHECK_PASSES_WHEN,
+    CHECKS,
+    DIMENSION_ANCHORS,
+    DIMENSION_NAMES,
+    HIGH_CONFIDENCE_MIN_S,
+    MIN_QUESTIONS,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DEV_DIR = ROOT / "cases" / "dev"
@@ -288,8 +299,9 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
     """The blinded results and the KPI-1 estimate (S3 6.1) from `training.rubric_scores` rows of `scorer` (the
     latest row per session when a session was scored more than once).
 
-    An ended test session with no score is unscorable once its outcome is known (proxy: its debrief is
-    published without a score, SG2-38) and pending otherwise (proxy: no debrief yet; human: no rating yet).
+    An ended test session with no score is unscorable once its outcome is known (fewer than three questions,
+    S3 2.2, for either scorer; proxy: its debrief is published without a score, SG2-38) and pending otherwise
+    (proxy: no debrief yet; human: no rating yet).
     While any participant who completed the protocol has a pending test, no estimate is printed: a late score
     could change it."""
     async with connect() as conn:
@@ -299,7 +311,8 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
             "select s.participant_id, s.id, s.phase, m.set_code,"
             " t.status in ('finalized', 'terminated'),"
             " training.session_counts(s.phase, t.mode, s.voice, t.status),"
-            " exists (select 1 from training.debriefs d where d.session_id = s.id)"
+            " exists (select 1 from training.debriefs d where d.session_id = s.id),"
+            " (select count(*) from arena.turns u where u.trial_id = t.id and u.question_source = 'investigator')"
             " from training.sessions s join arena.trials t on t.id = s.trial_id"
             " left join training.case_set_members m on m.variant_id = t.variant_id"
             " where s.participant_id is not null order by s.created_at",
@@ -312,7 +325,9 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
             " order by r.session_id, r.created_at desc",
             (scorer,),
         )
-    score = {r[0]: int(r[1]) for r in scores}
+    # S3 2.2: a session below three questions has no numeric score, whoever scores it.
+    short = {s[1] for s in sessions if s[7] < MIN_QUESTIONS}
+    score = {r[0]: int(r[1]) for r in scores if r[0] not in short}
     out: list[dict[str, Any]] = []
     pre: dict[str, list[int]] = {}
     post: dict[str, list[int]] = {}
@@ -328,7 +343,7 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
             if s[1] in score and s[3] in per_set:
                 per_set[s[3]].append(score[s[1]])
         unscored = [s for s in tests_ended if s[1] not in score]
-        unscorable = sum(1 for s in unscored if scorer == "proxy" and s[6])
+        unscorable = sum(1 for s in unscored if s[1] in short or (scorer == "proxy" and s[6]))
         pending = len(unscored) - unscorable
         completed = ended["pre"] >= len(SETS["A"]) and practice >= PRACTICE_NEEDED and ended["post"] >= len(SETS["B"])
         out.append(
@@ -382,15 +397,9 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
 # ---------------------------------------------------------------- blinded human rating (S3 6.1 "Scoring")
 
 
-RATING_FIELDS = (
-    "clarity_neutrality",
-    "response_relevance",
-    "evidence_follow_up",
-    "alternative_testing",
-    "supported_closure",
-)
 RATER_CODE = re.compile(r"^R[0-9]{2}$")
-MAX_DIMENSION = 4  # each rubric dimension is scored 0-4 (S3 2.2)
+VERDICTS = {"pass": True, "fail": False, "na": None}
+CHECK_IDS = tuple(c for d in DIMENSIONS for c in CHECKS[d])
 
 
 def _write_new(path: Path, data: object) -> None:
@@ -403,54 +412,105 @@ def _write_new(path: Path, data: object) -> None:
         raise StudyError(msg) from exc
 
 
-def rubric_sheet() -> list[dict[str, Any]]:
-    """The five rubric.v1 dimensions with their anchors and checks (S3 2.3-2.7), what the rater scores against."""
-    return [
-        {
-            "field": field,
-            "name": d.name,
-            "anchors_0_to_4": list(d.anchors_0_to_4),
-            "checks": [f"{c.id}: {c.text}" for c in d.subchecks],
-        }
-        for field, d in zip(RATING_FIELDS, canonical_rubric().dimensions, strict=True)
+def rubric_sheet() -> dict[str, Any]:
+    """rubric.v1 for the rater (S3 2.3-2.8): every check's name, applicability and pass rule, verbatim from
+    `arena_core.scoring.rubric`, the 5d confidence ceiling table, and how the code turns verdicts into 0-4
+    dimension scores. The rater answers the same 22 checks the proxy answers; the code does the arithmetic."""
+    ceiling = [
+        {"label": label, "likelihood": lk, "min_s": min_s, "needs_cited_record": rec}
+        for label, rows in CEILING.items()
+        for lk, (min_s, rec) in rows.items()
     ]
+    return {
+        "rubric_version": "rubric.v1",
+        "how_to_rate": (
+            "For every check answer pass, fail or na. Answer na only for a check whose 'applicable' says when it "
+            f"does not apply. Each dimension is floor(4 x passed / applicable + 1/2); the total is 5 x the sum. "
+            f"A session below {MIN_QUESTIONS} questions is not exported (S3 2.2)."
+        ),
+        "dimensions": [
+            {
+                "dimension": dim,
+                "name": DIMENSION_NAMES[dim],
+                "anchors_0_to_4": list(DIMENSION_ANCHORS[dim]),
+                "checks": [
+                    {
+                        "id": c,
+                        "name": CHECK_NAME[c],
+                        "applicable": CHECK_APPLICABILITY[c] or "always",
+                        "passes_when": CHECK_PASSES_WHEN[c],
+                    }
+                    for c in CHECKS[dim]
+                ],
+            }
+            for dim in DIMENSIONS
+        ],
+        "confidence_ceiling_5d": {
+            "s": (
+                "the number of distinct subject turns in cited_turns whose citation exists and supports the "
+                "finding; records do not count toward s"
+            ),
+            "rows": ceiling,
+            "any_high_confidence_needs_min_s": HIGH_CONFIDENCE_MIN_S,
+            "other_likelihood_terms": "fail 5d",
+        },
+    }
 
 
 async def blind_items(connect: Connector) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    """Every ended pre-test and post-test session as a blinded item for one human rater (S3 6.1): the case's public
-    title, the questions and answers in order and the committed finding; no participant code, phase, session id or
-    timestamp. Items are ordered by a random blind id (a shuffle). Returns the items and the key (blind id ->
-    session id); `write_export` writes them."""
+    """Every ended, scorable pre-test and post-test session as a blinded item for one human rater (S3 6.1): the
+    case's public brief (title, objective, initial documents), the questions and answers in order, the records
+    released during the session with the exchange each followed, and the committed finding; no participant
+    code, phase, session id or timestamp. Items are ordered by a random blind id (a shuffle). Returns the items
+    and the key (blind id -> session id); `write_export` writes them."""
     async with connect() as conn:
         rows = await _rows(
             conn,
-            "select s.id, p.packet ->> 'title', p.packet ->> 'case_id', f.finding"
+            "select s.id, p.packet, f.finding, t.id"
             " from training.sessions s join arena.trials t on t.id = s.trial_id"
             " join arena.public_packets p on p.variant_id = t.variant_id"
             " left join arena.final_findings f on f.trial_id = t.id"
             " where s.participant_id is not null and s.phase in ('pre', 'post')"
-            " and t.status in ('finalized', 'terminated')",
+            " and t.status in ('finalized', 'terminated')"
+            " and (select count(*) from arena.turns u where u.trial_id = t.id"
+            "      and u.question_source = 'investigator') >= %s",
+            (MIN_QUESTIONS,),
         )
+        trials = [r[3] for r in rows]
         turns = await _rows(
             conn,
-            "select s.id, u.turn_no, u.question, u.answer from training.sessions s"
-            " join arena.turns u on u.trial_id = s.trial_id"
-            " where s.participant_id is not null and s.phase in ('pre', 'post') order by s.id, u.turn_no",
+            "select trial_id, turn_no, question, answer from arena.turns where trial_id = any(%s)"
+            " order by trial_id, turn_no",
+            (trials,),
+        )
+        released = await _rows(
+            conn,
+            "select trial_id, record_id, released_after_exchanges, title, content from arena.released_evidence"
+            " where trial_id = any(%s) order by trial_id, release_seq",
+            (trials,),
         )
     if not rows:
-        msg = "no ended test session to export"
+        msg = "no ended, scorable test session to export"
         raise StudyError(msg)
     blind = {r[0]: secrets.token_hex(6) for r in rows}
-    items = [
-        {
-            "blind_id": blind[r[0]],
-            "case_title": r[1],
-            "case_id": r[2],
-            "transcript": [{"turn": t[1], "question": t[2], "answer": t[3]} for t in turns if t[0] == r[0]],
-            "finding": r[3],
-        }
-        for r in rows
-    ]
+    items = []
+    for session_id, packet, finding, trial_id in rows:
+        items.append(
+            {
+                "blind_id": blind[session_id],
+                "case_title": packet.get("title"),
+                "case_id": packet.get("case_id"),
+                "objective": packet.get("investigation_objective"),
+                "initial_documents": packet.get("initial_documents", []),
+                "transcript": [{"turn": t[1], "question": t[2], "answer": t[3]} for t in turns if t[0] == trial_id],
+                "released_records": [
+                    {"record_id": r[1], "released_after_exchange": r[2], "title": r[3], "content": r[4]}
+                    for r in released
+                    if r[0] == trial_id
+                ],
+                "finding": finding,
+            }
+        )
     items.sort(key=lambda i: str(i["blind_id"]))
     return items, {blind[r[0]]: str(r[0]) for r in rows}
 
@@ -460,8 +520,8 @@ def write_export(out_dir: Path, items: Sequence[Mapping[str, Any]], key: Mapping
     operator only. Never over an existing file."""
     out_dir.mkdir(parents=True, exist_ok=True)
     _write_new(out_dir / "items.json", {"rubric": rubric_sheet(), "items": list(items)})
-    ratings = [{"blind_id": i["blind_id"], **dict.fromkeys(RATING_FIELDS), "notes": ""} for i in items]
-    _write_new(out_dir / "ratings.json", {"rater": "R01", "ratings": ratings})
+    blank = [{"blind_id": i["blind_id"], "checks": dict.fromkeys(CHECK_IDS), "notes": ""} for i in items]
+    _write_new(out_dir / "ratings.json", {"rater": "R01", "ratings": blank})
     _write_new(out_dir / "key.json", dict(key))
 
 
@@ -473,8 +533,35 @@ def _load(path: Path) -> object:
         raise StudyError(msg) from exc
 
 
-def parse_ratings(ratings: object, key: object) -> list[tuple[UUID, str, tuple[int, ...], str]]:
-    """(session id, rater code, five 0-4 scores, notes) per rating; refuses a blank, out-of-range or unknown entry."""
+@dataclass(frozen=True)
+class HumanRating:
+    session_id: UUID
+    rater: str
+    checks: dict[str, bool | None]
+    dimensions: dict[str, int]
+    notes: str
+
+
+def _checks(i: int, raw: object) -> dict[str, bool | None]:
+    if not isinstance(raw, dict) or set(raw) != set(CHECK_IDS):
+        msg = f"ratings[{i}]: checks must name exactly the 22 rubric.v1 checks"
+        raise StudyError(msg)
+    out: dict[str, bool | None] = {}
+    for c in CHECK_IDS:
+        v = raw[c]
+        if v not in VERDICTS:
+            msg = f"ratings[{i}].checks.{c}: pass, fail or na"
+            raise StudyError(msg)
+        if v == "na" and CHECK_APPLICABILITY[c] is None:
+            msg = f"ratings[{i}].checks.{c}: always applicable, so pass or fail"
+            raise StudyError(msg)
+        out[c] = VERDICTS[v]
+    return out
+
+
+def parse_ratings(ratings: object, key: object) -> list[HumanRating]:
+    """One `HumanRating` per entry, its dimensions computed from the check verdicts by the canonical conversion
+    (`arena_core.scoring.exact.dimension_score`, S3 2.8); refuses an unknown blind id or any check left blank."""
     if not isinstance(ratings, dict) or not isinstance(key, dict):
         msg = "ratings and key are JSON objects (as export-blind wrote them)"
         raise StudyError(msg)
@@ -487,29 +574,33 @@ def parse_ratings(ratings: object, key: object) -> list[tuple[UUID, str, tuple[i
         if not isinstance(r, dict) or r.get("blind_id") not in key:
             msg = f"ratings[{i}]: unknown blind_id"
             raise StudyError(msg)
-        values = tuple(r.get(f) for f in RATING_FIELDS)
-        if not all(isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= MAX_DIMENSION for v in values):
-            msg = f"ratings[{i}]: each of {', '.join(RATING_FIELDS)} is an integer 0-4"
-            raise StudyError(msg)
-        out.append((UUID(str(key[r["blind_id"]])), rater, cast("tuple[int, ...]", values), str(r.get("notes") or "")))
+        checks = _checks(i, r.get("checks"))
+        dims = {d: dimension_score({c: checks[c] for c in CHECKS[d]}) for d in DIMENSIONS}
+        out.append(HumanRating(UUID(str(key[r["blind_id"]])), rater, checks, dims, str(r.get("notes") or "")))
     if not out:
         msg = "no ratings"
         raise StudyError(msg)
     return out
 
 
-async def import_human(connect: Connector, ratings: Sequence[tuple[UUID, str, tuple[int, ...], str]]) -> int:
+async def import_human(connect: Connector, ratings: Sequence[HumanRating]) -> int:
     """`training.rubric_scores` rows with scorer `human` (S3 6.1), all or nothing; idempotent per (session, rater).
     Returns the number of new rows."""
     added = 0
     async with connect() as conn, conn.transaction():
-        for session_id, rater, values, notes in ratings:
+        for r in ratings:
+            rationale = {
+                "checks": {c: {"result": v} for c, v in sorted(r.checks.items())},
+                "notes": r.notes,
+                "instrument": "kpi1 blinded rating, rubric.v1",
+            }
+            # D1..D5 in DIMENSIONS order are these five columns (S4 training.rubric_scores, as the proxy stores them).
             cur = await conn.execute(
                 "insert into training.rubric_scores (session_id, scorer, scorer_ref, clarity_neutrality,"
                 " response_relevance, evidence_follow_up, alternative_testing, supported_closure, rationale)"
                 " values (%s, 'human', %s, %s, %s, %s, %s, %s, %s)"
                 " on conflict (session_id, scorer, scorer_ref) do nothing",
-                (session_id, rater, *values, Jsonb({"notes": notes, "instrument": "kpi1 blinded rating"})),
+                (r.session_id, r.rater, *(r.dimensions[d] for d in DIMENSIONS), Jsonb(rationale)),
             )
             added += cur.rowcount
     return added
