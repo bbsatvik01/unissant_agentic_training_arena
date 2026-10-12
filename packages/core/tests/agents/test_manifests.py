@@ -178,10 +178,23 @@ def test_at_man_5_a_negative_control_refuses_the_freeze(official: dict[str, m.Ca
 
 
 def test_the_referee_cannot_freeze_without_rubric_v1() -> None:
-    referee = m.with_hash(m.referee_manifest())
+    """`rubric=None` builds the pre-publication shape (S2 7.4): no rubric.v1 hashed, freeze refused."""
+    referee = m.with_hash(m.referee_manifest(rubric=None))
     m.load_prompts(referee)
     with pytest.raises(m.RosterRefusedError, match=r"rubric\.v1\.json"):
         m.check_referee_freeze(referee)
+    with pytest.raises(m.RosterRefusedError, match="cannot be on a tournament roster"):
+        m.check_roster([referee])
+
+
+def test_the_referee_freezes_by_default_with_the_registered_rubric_v1() -> None:
+    """S2 3.4/7.4: the default `referee_manifest()` registers the published `rubric.v1.json`
+    (`prompts/referee/rubric.v1.json`), so it freezes with no `rubric=` override; a referee still cannot join a
+    tournament roster (that refusal is about `kind`, unrelated to the rubric)."""
+    referee = m.with_hash(m.referee_manifest())
+    prompts = m.load_prompts(referee)
+    assert prompts.manifest is referee
+    m.check_referee_freeze(referee)  # does not raise
     with pytest.raises(m.RosterRefusedError, match="cannot be on a tournament roster"):
         m.check_roster([referee])
 

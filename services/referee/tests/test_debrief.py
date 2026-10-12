@@ -28,7 +28,10 @@ def run[T](coro: Coroutine[Any, Any, T]) -> T:
     return asyncio.run(coro)
 
 
-REFEREE = load_prompts(with_hash(referee_manifest()))
+# rubric=None: this module supplies its own placeholder RUBRIC below as CTX.rubric; the default manifest now
+# registers the published rubric.v1 (S2 3.4/7.4), which `build_referee_assistant_prompt` would refuse to let a
+# placeholder replace (`ManifestMismatchError`, "cannot replace it").
+REFEREE = load_prompts(with_hash(referee_manifest(rubric=None)))
 RUBRIC = Rubric.model_validate(
     {
         "rubric_version": "rubric.v1",

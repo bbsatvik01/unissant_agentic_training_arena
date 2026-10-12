@@ -46,18 +46,28 @@ ASSISTANT_PURPOSE_FOR_MODE: dict[AssistantMode, Literal["referee_assistant", "r3
 
 
 def default_dev_rubric() -> Rubric:
-    """S2 7.4: the referee manifest has no `rubric.v1` file registered yet, so J3/J4 render rubric.v1's real,
-    published text (`arena_core.agents.rubric.canonical_rubric`, spec S3 2.3-2.7) as a development rubric
-    rather than a manifest-hashed one; the manifest still cannot freeze without that file
-    (`manifests.check_referee_freeze`), but the content the model sees is the real rubric, not a placeholder."""
+    """S2 7.4: rubric.v1's real, published text (`arena_core.agents.rubric.canonical_rubric`, spec S3 2.3-2.7),
+    for a referee manifest built without its own `rubric.v1` file registered (`manifests.referee_manifest
+    (rubric=None)`; such a manifest cannot freeze, `manifests.check_referee_freeze`). The default manifest now
+    registers the real file, so `dev_rubric_for` below is what callers should use: it falls back to this only
+    when the manifest's own prompts carry none."""
     return canonical_rubric()
+
+
+def dev_rubric_for(prompts: PromptSet) -> Rubric | None:
+    """`None` once `prompts` already carries its own `rubric.v1` (`manifest_rubric`, true for the default
+    referee manifest, S2 3.4/7.4): the assistant/investigator prompt builder then renders that file directly,
+    and a development placeholder passed alongside it would conflict (`ManifestMismatchError`, "cannot replace
+    it"). Only a manifest built with no rubric.v1 registered (`referee_manifest(rubric=None)`) still needs the
+    development fallback (`default_dev_rubric`)."""
+    return None if manifest_rubric(prompts) is not None else default_dev_rubric()
 
 
 @dataclass(frozen=True, kw_only=True)
 class PromptContext:
-    """The manifest's rendered prompts and, until spec S3's `rubric.v1` file is registered on the referee
-    manifest, the development rubric (S2 7.4, `default_dev_rubric`); `referee_assistant` and `r3_investigator`
-    both render from it."""
+    """The manifest's rendered prompts and, only when the manifest carries no `rubric.v1` of its own
+    (`dev_rubric_for`), the development rubric (S2 7.4, `default_dev_rubric`); `referee_assistant` and
+    `r3_investigator` both render from whichever one applies."""
 
     prompts: PromptSet
     rubric: Rubric | None

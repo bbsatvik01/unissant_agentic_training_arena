@@ -38,7 +38,7 @@ from arena_referee import db
 from arena_referee.debrief import DebriefProvenance
 from arena_referee.reveal import PublishConfig
 from arena_referee.routes import router as api_router
-from arena_referee.scoring import PromptContext, default_dev_rubric
+from arena_referee.scoring import PromptContext, dev_rubric_for
 from arena_referee.static import install_static, web_dist
 
 
@@ -130,7 +130,9 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     port = AgentPort(adapter, guard)
     manifest = with_hash(referee_manifest())
     prompts = load_prompts(manifest)
-    rubric = default_dev_rubric()  # S2 7.4: rubric.v1's real text, not yet registered on the manifest file
+    # S2 3.4/7.4: the default manifest registers the real rubric.v1, so this is None in production; only a
+    # manifest built with no rubric.v1 falls back to the development placeholder (`dev_rubric_for`).
+    rubric = dev_rubric_for(prompts)
     prompt_sha256 = manifest.sha256 or ""
 
     scoring_deps = db.make_scoring_deps(connect, port, prompt_sha256)

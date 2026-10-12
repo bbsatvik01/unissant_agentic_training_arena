@@ -322,7 +322,11 @@ def _official(kind: str) -> tuple[PromptSet, ...]:
 
 @cache
 def _referee() -> PromptSet:
-    return load_prompts(with_hash(referee_manifest()))
+    # rubric=None: `max_context` substitutes its own worst-case rubric (`_max_rubric`, every subcheck at its
+    # 400-byte cap) as `dev_rubric`, which only `build_referee_assistant_prompt` accepts when the manifest's
+    # own prompts carry no rubric.v1 -- the real, published one (the default) is smaller than the adversarial
+    # maximum this measures against, so it must not be the one substituted here.
+    return load_prompts(with_hash(referee_manifest(rubric=None)))
 
 
 def max_context(family: Mapping[str, Any], role: str) -> dict[str, int]:
