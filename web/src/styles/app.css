@@ -1867,3 +1867,73 @@ td {
     animation: none;
   }
 }
+
+/* Stage 8 declutter. A side panel's own Hide button sits over its header's right end: keep the header clear of it. */
+.side .panel-head {
+  padding-right: 72px;
+}
+
+.brand .eyebrow {
+  white-space: nowrap;
+}
+
+.topbar-meta {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.topbar-meta .badge {
+  white-space: nowrap;
+}
+
+.more-menu {
+  position: relative;
+}
+
+.more-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--arena-canvas);
+  border-radius: var(--arena-radius-md);
+  box-shadow: var(--arena-shadow-card), 0 0 0 1px var(--arena-hairline);
+  z-index: 5;
+  animation: more-in var(--arena-motion-fast, 140ms) var(--arena-ease-standard, ease-out);
+}
+
+.more-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--arena-radius-sm, 6px);
+  background: none;
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.more-item:hover,
+.more-item:focus-visible {
+  background: var(--arena-canvas-soft, #fafafa);
+}
+
+@keyframes more-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-list {
+    animation: none;
+  }
+}

@@ -7,6 +7,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { MoreMenu } from "../components/overlay/MoreMenu";
 import { ArenaView } from "../components/overlay/ArenaView";
 import { DemoGuide } from "../components/overlay/DemoGuide";
 import { Onboarding } from "../components/overlay/Onboarding";
@@ -108,6 +109,9 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  // Progressive disclosure (stage 8): the room's side panels stay out of the way until the interview has something
+  // in them (its first turn) or the trainee opens one; the precinct's brief appears once a case is pointed at.
+  const [panelsAsked, setPanelsAsked] = useState(false);
   // The example arena (no tournament selected): boards and matrix from the bundled fixtures.
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; example: TournamentState | null; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
@@ -304,6 +308,7 @@ export function WorldRoute() {
       setMode(live || !recorded ? "choose" : "playback");
       setLoad((l) => (l.state === "ready" && l.recording.case.case_id === card.case_id ? l : recorded ? { state: "loading" } : { state: "none" }));
       resetRoom();
+      setPanelsAsked(false);
       setPlace("room");
       seekTo(0);
     },
@@ -364,6 +369,7 @@ export function WorldRoute() {
     setArrived((a) => (placeRef.current === "room" ? a : false));
     setDebriefClosed(false);
     setCite(null);
+    setPanelsAsked(false);
     setPlace("room");
   }, []);
 
@@ -438,6 +444,7 @@ export function WorldRoute() {
     playback.pause();
     session.stop();
     refreshMe();
+    setPanelsAsked(false);
     setPlace("hub");
     setArrived(false);
   }, [playback, session, refreshMe]);
@@ -522,6 +529,10 @@ export function WorldRoute() {
     return `${active.subject.display_name}, ${active.subject.position}.${live ? "" : ` ${OFFLINE_REASON}`}`;
   })();
 
+  const roomQuiet = place === "room" && !panelsAsked && (view?.turns.length ?? 0) === 0 && (view?.voiceExchanges.length ?? 0) === 0;
+  const leftShown = leftOpen && !showDebrief && !roomQuiet;
+  const rightShown = rightOpen && !roomQuiet && (place !== "hub" || panelsAsked || focused !== null);
+
   return (
     <div className="app" data-place={place} data-paused={paused ? "true" : "false"} data-demo={demo === null ? "false" : "true"}>
       <header className="topbar">
@@ -542,18 +553,6 @@ export function WorldRoute() {
             </>
           ) : null}
           {place === "room" ? (
-            <button
-              type="button"
-              className="btn-secondary-sm"
-              aria-pressed={!showPet}
-              onClick={() => {
-                setShowPet((v) => !v);
-              }}
-            >
-              {showPet ? "Hide companion" : "Show companion"}
-            </button>
-          ) : null}
-          {place === "room" ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
               {sound ? "Mute voices" : "Unmute voices"}
             </button>
@@ -572,13 +571,6 @@ export function WorldRoute() {
               {coachSpeaking ? <span className="sr-only">, the coach is speaking</span> : null}
             </button>
           ) : null}
-          {live && meCtl.me !== null ? (
-            <button type="button" className="btn-secondary-sm" aria-pressed={showOnboarding || mustAcknowledge} onClick={() => {
-                setShowOnboarding((v) => !v);
-              }}>
-              Ground rule
-            </button>
-          ) : null}
           {place === "hub" && demo === null ? (
             <button type="button" className="btn-secondary-sm" onClick={() => {
                 setDemo({ step: "precinct", startedAt: Date.now() });
@@ -587,11 +579,6 @@ export function WorldRoute() {
               }}>
               Guided demo
             </button>
-          ) : null}
-          {place === "hub" ? (
-            <a className="btn-secondary-sm" href="/trust/methodology">
-              Trust center
-            </a>
           ) : null}
           {place === "hub" && live && meCtl.me !== null ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
@@ -606,9 +593,17 @@ export function WorldRoute() {
               Arena
             </button>
           ) : null}
-          <button type="button" className="btn-secondary-sm" aria-pressed={paused} onClick={togglePaused}>
-            {paused ? "Resume motion" : "Pause motion"}
-          </button>
+          {/* Now-and-then controls behind one button, so the bar holds only what the moment needs. */}
+          <MoreMenu
+            items={[
+              ...(live && meCtl.me !== null
+                ? [{ id: "rule", label: "Ground rule", pressed: showOnboarding || mustAcknowledge, onSelect: () => { setShowOnboarding((v) => !v); } }]
+                : []),
+              ...(place === "hub" ? [{ id: "trust", label: "Trust center", href: "/trust/methodology" }] : []),
+              ...(place === "room" ? [{ id: "pet", label: showPet ? "Hide companion" : "Show companion", pressed: !showPet, onSelect: () => { setShowPet((v) => !v); } }] : []),
+              { id: "motion", label: paused ? "Resume motion" : "Pause motion", pressed: paused, onSelect: togglePaused },
+            ]}
+          />
           {place === "room" ? (
             <button type="button" className="btn-secondary-sm" onClick={backToHub}>
               Back to precinct
@@ -618,17 +613,21 @@ export function WorldRoute() {
       </header>
 
       <main className="stage">
-        <aside className="side left" data-open={leftOpen && !showDebrief ? "true" : "false"}>
+        <aside className="side left" data-open={leftShown ? "true" : "false"}>
           <button
             type="button"
             className="panel-toggle"
-            aria-expanded={leftOpen && !showDebrief}
+            aria-expanded={leftShown}
             disabled={showDebrief}
             onClick={() => {
-              setLeftOpen((v) => !v);
+              if (leftShown) setLeftOpen(false);
+              else {
+                setPanelsAsked(true);
+                setLeftOpen(true);
+              }
             }}
           >
-            {leftOpen && !showDebrief ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
+            {leftShown ? "Hide" : place === "hub" ? "Cases" : "Transcript"}
           </button>
           {place === "hub" ? (
             <section className="panel" aria-labelledby="cases-title">
@@ -851,16 +850,20 @@ export function WorldRoute() {
           )}
         </div>
 
-        <aside className="side right" data-open={rightOpen ? "true" : "false"}>
+        <aside className="side right" data-open={rightShown ? "true" : "false"}>
           <button
             type="button"
             className="panel-toggle"
-            aria-expanded={rightOpen}
+            aria-expanded={rightShown}
             onClick={() => {
-              setRightOpen((v) => !v);
+              if (rightShown) setRightOpen(false);
+              else {
+                setPanelsAsked(true);
+                setRightOpen(true);
+              }
             }}
           >
-            {rightOpen ? "Hide" : place === "hub" ? "Brief" : "Coach, evidence, finding"}
+            {rightShown ? "Hide" : place === "hub" ? "Brief" : "Coach, evidence, finding"}
           </button>
           {place === "hub" ? (
             focusCard === null ? null : (

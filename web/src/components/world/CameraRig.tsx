@@ -67,7 +67,8 @@ export function CameraRig({ place, shot, reducedMotion, onArrive }: CameraRigPro
     const tl = gsap.timeline(settle === undefined ? {} : { onComplete: settle });
     path.forEach((name, i) => {
       const s = SHOTS[name];
-      const duration = i === 0 ? 0.9 : 1.1;
+      // A brisk walk through the corridor with a gentle settle at the end (stage 8: the whole flight was 5.3 s).
+      const duration = i === 0 ? 0.7 : i === path.length - 1 ? 1.0 : 0.75;
       const ease = i === 0 ? "power2.in" : i === path.length - 1 ? "power2.out" : "none";
       tl.to(camera.position, { x: s.position[0], y: s.position[1], z: s.position[2], duration, ease });
       tl.to(target.current, { x: s.target[0], y: s.target[1], z: s.target[2], duration, ease }, "<");
