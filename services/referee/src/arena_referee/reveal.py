@@ -19,10 +19,11 @@ those facts come from.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from arena_core.db.pool import Connector
+from arena_core.referee.fairness_audit import fairness_audit, with_fairness
 from arena_core.referee.leaderboard import (
     Binding,
     TrialScore,
@@ -33,7 +34,14 @@ from arena_core.scoring.inclusion import Exec
 from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.ranking import IsolationResult
 from arena_referee import db
-from arena_referee.leaderboard import candidate_inputs, subject_inputs, trial_score
+from arena_referee.leaderboard import (
+    TrialExtras,
+    candidate_inputs,
+    fairness_inputs,
+    subject_inputs,
+    trial_extras,
+    trial_score,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -99,6 +107,7 @@ class _Inputs:
     scores: dict[str, TrialScore]
     latency: list[LatencyRow]
     r1: dict[str, Mapping[str, Any]]
+    extras: dict[str, TrialExtras] = field(default_factory=dict)
 
 
 async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
@@ -112,11 +121,13 @@ async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
             r1[trial_id] = payload
     scored = [(f.trial_id, f) for f in facts if f.assistant_id is not None and f.trial_id is not None]
     scores: dict[str, TrialScore] = {}
+    extras: dict[str, TrialExtras] = {}
     unscored: list[str] = []
     for trial_id, f in scored:
         stored = await db.fetch_stored_trial_judgments(connect, trial_id)
         if stored is not None:
             scores[trial_id] = trial_score(f.family_id, stored)
+            extras[trial_id] = trial_extras(stored)
         elif f.exec_state in _SCORED_STATES:
             # Interactive and replay alike (S2 10: scoring and reveal wait until every stage row exists).
             unscored.append(trial_id)
@@ -124,7 +135,7 @@ async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
         msg = f"{len(unscored)} executed trial(s) not yet scored (R1/R2), e.g. {sorted(unscored)[:3]}"
         raise ScoringIncompleteError(msg)
     latency = await db.fetch_latency_rows(connect, sorted(trial_id for trial_id, _ in scored))
-    return _Inputs(tournament_id, facts, scores, latency, r1)
+    return _Inputs(tournament_id, facts, scores, latency, r1, extras)
 
 
 async def _publish(
@@ -150,6 +161,9 @@ async def _publish(
     subject_body = build_subject_leaderboard(
         candidates=subject_inputs(facts, inputs.r1), isolation=ctx.isolation, binding=binding
     )
+    # S3 8.1 item 4: the fairness audit is published with the leaderboard, bound to the same manifest.
+    trials, labels = fairness_inputs(facts, inputs.scores, inputs.extras, inputs.r1)
+    body = with_fairness(body, fairness_audit(trials, labels, result.manifest_sha256, ctx.bootstrap_b))
     for board, board_body in (("assistant", body), ("subject", subject_body)):
         await db.write_leaderboard(
             connect,

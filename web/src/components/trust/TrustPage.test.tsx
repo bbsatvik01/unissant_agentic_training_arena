@@ -86,13 +86,18 @@ describe("TrustPage", () => {
       <TrustPage
         {...base}
         section="fairness"
-        fairness={{ state: "ready", value: { styleRates: [{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%", families: 6 }], flagRates: [{ candidate: "A1", style: "terse", role: "truthful", rate: "10%, interval 0%-30%" }], demeanor: [{ candidate: "A2", flags: 3, findings: 0 }], tests: [{ candidate: "A1", test: "FA-5a", pValue: 0.2, significant: false }], negativeControlsCaught: true } }}
+        fairness={{ state: "ready", value: { styleRates: [{ candidate: "A1", track: "interactive", style: "terse", fpr: "0%, interval 0%-40%", families: 6 }], flagRates: [{ candidate: "A1", track: "interactive", style: "terse", role: "truthful", rate: "10%, interval 0%-30%", families: 6 }], demeanor: [{ candidate: "A2", track: "", flags: 3, findings: 0 }], tests: [{ candidate: "A1", track: "replay", test: "FA-5a", pValue: 0.2, significant: false, n: null, units: null }, { candidate: "A1", track: "interactive", test: "FA-5c", pValue: null, significant: false, n: 0, units: 0 }], negativeControlsCaught: true } }}
       />,
     );
     expect(screen.getByText("0%, interval 0%-40%")).toBeTruthy();
     expect(screen.getByText("10%, interval 0%-30%")).toBeTruthy();
     expect(screen.getByText("Negative controls: the audit flagged them, as it must.")).toBeTruthy();
     expect(screen.getByText("p = 0.200; not detected at this sample size")).toBeTruthy();
+    expect(screen.getByText("undefined: nothing varies (n = 0, 0 units)")).toBeTruthy();
+    // each row names its coach and track; a row with no published track shows the coach alone
+    expect(screen.getAllByText("A1 (interactive)")).toHaveLength(3);
+    expect(screen.getByText("A1 (replay)")).toBeTruthy();
+    expect(screen.getByText("A2")).toBeTruthy();
     unmount();
     render(<TrustPage {...base} calibration={{ state: "ready", value: [{ instrument: "EVL-7 D2", statistic: "QWK", value: null, threshold: 0.6, met: false }] }} />);
     expect(screen.getByText("uninformative sample")).toBeTruthy();

@@ -3,8 +3,8 @@
 - `isolation`: `arena.v_isolation_checks` rows (check, candidate, pass or fail, run time, commit; never evidence).
 - `commitments`: for revealed tournaments only, each trial's commitment, its transcript and evidence hashes, the
   payload text and the revealed nonce, so the browser can recompute the commitment (FE-TRUST-1).
-- `fairness`: the fairness audit (M24) is not computed by the scorer yet (WP-16 publishes it as `not_computed`):
-  empty lists and `published: false` until it is.
+- `fairness`: the S3 8 audit published with the newest revealed assistant board (FA-1 to FA-6, per candidate
+  and track); before any reveal, empty lists and `published: false`.
 - `methodology`: calibration results are referee-only rows; `calibration` is empty until they are published.
 - `budget`: the applied `global` ceiling, settled spend and open holds, spend by purpose label, and the planned
   case count. A ceiling of $0 means the budget plan is not applied (FE-TRUST-4); the client computes nothing.
@@ -32,6 +32,9 @@ async def trust(
     if section == "commitments":
         return {"commitments": await db.revealed_commitments()}
     if section == "fairness":
+        published = await db.fairness()
+        if published is not None:
+            return published
         return {
             "published": False,
             "style_fpr": [],

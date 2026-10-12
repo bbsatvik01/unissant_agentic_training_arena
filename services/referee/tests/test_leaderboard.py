@@ -12,10 +12,18 @@ from typing import Any
 
 from arena_core.contracts.referee import RefereeSubjectReport
 from arena_core.referee.leaderboard import TrialScore
+from arena_core.scoring.flags import SupportCounts
 from arena_core.scoring.inclusion import Exec, SubjInc
 from arena_core.scoring.kpi import LatencyRow
 from arena_referee.db import StoredTrialJudgments, TrialFacts
-from arena_referee.leaderboard import candidate_inputs, subject_inputs, trial_score
+from arena_referee.leaderboard import (
+    TrialExtras,
+    candidate_inputs,
+    fairness_inputs,
+    subject_inputs,
+    trial_extras,
+    trial_score,
+)
 from arena_referee.mapping import TrialData, build_triggers
 
 TWO = 2
@@ -326,3 +334,121 @@ def test_subject_inputs_group_by_subject_skip_replay_rows_and_read_r1_labels() -
     assert (second.output, second.labels, second.subj_inc) == (None, None, SubjInc.AGAINST_SUBJECT)
     [corpus] = by_id["S2"].trials
     assert corpus.output is None  # no assistant on a corpus row: never an invented outcome
+
+
+def test_trial_extras_counts_the_answered_subject_turns() -> None:
+    case = stored(3)
+    unanswered = [*case.data.transcript, {"turn_no": 4, "question": "Q4?", "answer": "", "question_source": "x"}]
+    assert trial_extras(dataclasses.replace(case, data=dataclasses.replace(case.data, transcript=unanswered))) == (
+        TrialExtras(subject_turns=3)
+    )
+
+
+def _with_finding(rationale: str, verdict_5c: str | None) -> StoredTrialJudgments:
+    case = stored(3)
+    finding = {
+        "label": "deceptive",
+        "likelihood": "likely",
+        "confidence": "moderate",
+        "basis_flag_refs": [],
+        "cited_turns": [2],
+        "cited_records": [],
+        "corroboration_needed": [],
+        "rationale": rationale,
+        "alternative_explanations": None,
+        "last_revised_turn": 2,
+    }
+    subchecks = [*case.r2["subchecks"]]
+    if verdict_5c is not None:
+        subchecks.append({"id": "5c", "result": verdict_5c, "turn_ids": []})
+    return dataclasses.replace(
+        case, data=dataclasses.replace(case.data, final_finding=finding), r2={**case.r2, "subchecks": subchecks}
+    )
+
+
+def test_a_committed_finding_fails_5c_by_the_lexicon_or_by_the_referee() -> None:
+    # FA-3 counts committed findings failing check 5c: a lexicon hit fails it outright, else R2's own verdict.
+    assert trial_score("F01", _with_finding("The subject sounded nervous.", None)).finding_fails_5c is True
+    assert trial_score("F01", _with_finding("The work order does not match.", "fail")).finding_fails_5c is True
+    assert trial_score("F01", _with_finding("The work order does not match.", "pass")).finding_fails_5c is False
+    assert trial_score("F01", stored(3)).finding_fails_5c is False  # no committed finding
+
+
+def test_fairness_inputs_carry_inclusion_style_position_flags_and_truthful_r1_labels() -> None:
+    r1: dict[str, Any] = {
+        "report": {
+            "schema_version": "ref_subj.v5",
+            "turns": [_r1_turn(1), {**_r1_turn(2), "label": "evasion", "eva_subtype": "stall"}],
+            "trajectory": {"self_consistent": True, "conflicts": []},
+        },
+        "quote_invalid": [],
+    }
+    style = {"verbosity": "terse"}
+    facts = [
+        dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1", variant_id="v1", style=style, position=40),
+        dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2", verdict="subject_invalid", position=20),
+        # a replay row: no subject of its own (its source corpus row p4's), re-reads that transcript (no labels)
+        dataclasses.replace(
+            BASE,
+            planned_trial_id="p3",
+            trial_id="t3",
+            track="replay",
+            subject_id=None,
+            cell="p4",
+            style=style,
+            position=90,
+        ),
+        dataclasses.replace(
+            BASE,
+            planned_trial_id="p4",
+            trial_id="t4",
+            assistant_id=None,
+            subject_id="S2",
+            track="replay_corpus",
+            block_id=None,
+            style=style,
+            position=5,
+        ),
+    ]
+    score = TrialScore(
+        family_id="F01",
+        support=SupportCounts(unique=2, emitted=5, unsupported={}, demeanor_based=1),
+        finding_fails_5c=True,
+    )
+    extras = {"t1": TrialExtras(subject_turns=12)}
+    # the replay trial's own id carries a different report: the source corpus transcript's (t4) must win
+    replay_own = {**r1, "report": {**r1["report"], "turns": [_r1_turn(1)]}}
+    trials, labels = fairness_inputs(facts, {"t1": score}, extras, {"t1": r1, "t3": replay_own, "t4": r1})
+    assert [(t.track, t.output) for t in trials] == [("I", "truthful"), ("I", None), ("R", "truthful")]
+    first = trials[0]
+    assert (first.candidate_id, first.variant_id, first.style, first.block_id) == ("A1", "v1", style, "B1")
+    # FA-5c's within-block ordinal, by roster position in block B1 (p2 at 20, p1 at 40, p3 at 90)
+    assert [t.position for t in trials] == [2, 1, 3]
+    assert [t.subject_id for t in trials] == ["S1", "S1", "S2"]
+    assert (first.unique_flags, first.emitted_flags, first.demeanor_flags, first.subject_turns) == (2, 5, 1, 12)
+    assert first.finding_demeanor is True
+    assert (trials[1].unique_flags, trials[1].subject_turns, trials[1].finding_demeanor) == (None, None, False)
+    # FA-4 per assistant trial: t1's own transcript (I), and replay t3's source corpus transcript t4's (R); the
+    # corpus row t4 itself belongs to no assistant
+    assert [(lab.candidate_id, lab.track, lab.style) for lab in labels] == [("A1", "I", style), ("A1", "R", style)]
+    assert labels[0].turns == [("responsive", None, True), ("evasion", "stall", True)]
+    assert labels[1].turns == [("responsive", None, True), ("evasion", "stall", True)]
+
+
+def test_fa4_leaves_out_transcripts_of_an_invalid_block() -> None:
+    r1 = {
+        "report": {
+            "schema_version": "ref_subj.v5",
+            "turns": [_r1_turn(1)],
+            "trajectory": {"self_consistent": True, "conflicts": []},
+        },
+        "quote_invalid": [],
+    }
+    facts = [
+        dataclasses.replace(BASE, planned_trial_id="p1", trial_id="t1"),
+        dataclasses.replace(BASE, planned_trial_id="p2", trial_id="t2", exec_state=Exec.INFRA_FAILED),
+        dataclasses.replace(BASE, planned_trial_id="p3", trial_id="t3", block_id="B2", family_id="F02"),
+    ]
+    _trials, labels = fairness_inputs(facts, {}, {}, {"t1": r1, "t3": r1})
+    # one infra failure invalidates block B1 (S3 4.3): t1's subject side is excluded; B2's t3 stays
+    assert [lab.family_id for lab in labels] == ["F02"]

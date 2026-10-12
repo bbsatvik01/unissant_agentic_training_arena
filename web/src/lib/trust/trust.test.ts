@@ -88,17 +88,43 @@ describe("fairness and calibration", () => {
       tests: [{ candidate: "A1", test: "FA-5a", p_value: 0.0004, significant_after_holm: true }],
       negative_controls: { caught: true },
     });
-    expect(f?.styleRates).toEqual([{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%", families: null }]);
+    expect(f?.styleRates).toEqual([{ candidate: "A1", track: "", style: "terse", fpr: "0%, interval 0%-40%", families: null }]);
     const small = parseFairness({ style_fpr: [{ candidate: "A1", style: "anxious", point: { num: 0, den: 3, value: 0 }, families: 3, bound: { bound: 0.632, kind: "zero-event", families: 3, failed: 0 } }], flag_rates: [{ candidate: "A1", style: "terse", role: "truthful", point: { num: 1, den: 10, value: 0.1 }, interval: { lo: 0, hi: 0.3 } }] });
     expect(small?.styleRates[0]?.fpr).toBe("0%; 0 of 3 families failed; one-sided 95% bound 63.2%");
-    expect(small?.flagRates).toEqual([{ candidate: "A1", style: "terse", role: "truthful", rate: "10%, interval 0%-30%" }]);
-    expect(f?.demeanor).toEqual([{ candidate: "A2", flags: 3, findings: 1 }]);
+    expect(small?.flagRates).toEqual([{ candidate: "A1", track: "", style: "terse", role: "truthful", rate: "10%, interval 0%-30%", families: null }]);
+    expect(f?.demeanor).toEqual([{ candidate: "A2", track: "", flags: 3, findings: 1 }]);
     expect(f?.tests[0]).toMatchObject({ test: "FA-5a", significant: true });
     expect(f?.negativeControlsCaught).toBe(true);
     expect(parseFairness({})?.negativeControlsCaught).toBe(null);
     expect(parseFairness(null)).toBe(null);
     expect(pText(0.0004)).toBe("p < 0.001");
     expect(pText(0.0312)).toBe("p = 0.031");
+  });
+
+  it("keeps each row's track and names the bound's own family count", async () => {
+    const { parseFairness } = await import("./fairness");
+    // 5 families have an included trial, only 4 are complete: the bound is over its own 4, never the 5
+    const f = parseFairness({
+      style_fpr: [{ candidate: "A1", track: "R", style: "verbosity=terse", point: { num: 1, den: 5, value: 0.2 }, interval: null, families: 5, bound: { bound: 0.75, kind: "family", families: 4, failed: 1 } }],
+      demeanor: [{ candidate: "A1", track: "I", flags: 0, findings: 0 }, { candidate: "A1", track: "R", flags: 1, findings: 0 }],
+      tests: [{ candidate: "A1", track: "I", test: "FA-5c", p_value: 0.5, significant_after_holm: false }],
+    });
+    expect(f?.styleRates[0]).toMatchObject({ track: "replay", fpr: "20%; 1 of 4 families failed; one-sided 95% bound 75.0%" });
+    expect(f?.demeanor.map((d) => d.track)).toEqual(["interactive", "replay"]);
+    expect(f?.tests[0]?.track).toBe("interactive");
+  });
+
+  it("shows a small flag-rate stratum's bound, and an undefined test with its sample size", async () => {
+    const { parseFairness } = await import("./fairness");
+    const f = parseFairness({
+      flag_rates: [{ candidate: "A1", track: "I", style: "verbosity=terse", role: "truthful", point: { num: 3, den: 20, value: 0.15 }, interval: null, families: 2, bound: { bound: 0.9, kind: "family", families: 2, failed: 1 } }],
+      tests: [
+        { candidate: "A1", track: "I", test: "FA-5c", p_value: null, significant_after_holm: false, n: 0, units: 0 },
+        { candidate: "A1", track: "I", test: "FA-5d", p_value: "x", significant_after_holm: false },
+      ],
+    });
+    expect(f?.flagRates[0]).toMatchObject({ rate: "15%; 1 of 2 families with a flag; one-sided 95% bound 90.0%", families: 2 });
+    expect(f?.tests).toEqual([{ candidate: "A1", track: "interactive", test: "FA-5c", pValue: null, significant: false, n: 0, units: 0 }]);
   });
 
   it("reads calibration against its thresholds, an uninformative sample as not met", async () => {

@@ -696,6 +696,9 @@ def test_fetch_isolation_result_with_no_rows_fails_closed() -> None:
     assert result.passed is False
 
 
+ROSTER_POSITION = 7
+
+
 def test_fetch_tournament_trial_facts_maps_every_column() -> None:
     conn = FakeConn(
         {
@@ -714,6 +717,9 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
                     "0.05",
                     "00000000-0000-0000-0000-0000000000b3",
                     "variant:subject:1",
+                    "00000000-0000-0000-0000-0000000000b4",
+                    '{"verbosity": "terse", "affect": "calm"}',
+                    7,
                 )
             ]
         }
@@ -727,6 +733,9 @@ def test_fetch_tournament_trial_facts_maps_every_column() -> None:
     assert fact.settled_cost == Decimal("0.05")
     assert fact.trial_id == "00000000-0000-0000-0000-0000000000b3"
     assert fact.cell == "variant:subject:1"
+    assert fact.variant_id == "00000000-0000-0000-0000-0000000000b4"
+    assert fact.style == {"verbosity": "terse", "affect": "calm"}
+    assert fact.position == ROSTER_POSITION
     # M22's only cost source is the call receipts (S3 5.3), never a reservation's settlement (Codex r4 #3).
     query = next(q for q, _ in conn.executed if "ledger.planned_execution" in q)
     assert "sum(c.cost_usd) from ops.model_calls c" in query
