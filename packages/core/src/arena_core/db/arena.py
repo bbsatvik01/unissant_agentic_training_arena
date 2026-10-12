@@ -312,6 +312,64 @@ class ArenaDb:
             return None
         return {"body": json.loads(rows[0][0]), "label": str(rows[0][1]), "manifest_version": int(rows[0][2])}
 
+    # ------------------------------------------------------------------ trust center (S6 4.11)
+
+    async def isolation_checks(self) -> list[dict[str, Any]]:
+        """`arena.v_isolation_checks`: check, candidate, pass or fail, run time and commit (never the evidence)."""
+        rows = await self.fetch(
+            "select check_name, candidate_name, passed, run_at, commit_sha from arena.v_isolation_checks"
+            " order by run_at desc, check_name"
+        )
+        return [
+            {"check": r[0], "candidate": r[1], "passed": bool(r[2]), "run_at": iso(r[3]), "commit_sha": r[4]}
+            for r in rows
+        ]
+
+    async def revealed_commitments(self) -> list[dict[str, Any]]:
+        """The commitments of revealed tournaments' trials with their payload and the revealed nonce (S4 6:
+        public after reveal), each trial named by an opaque per-tournament ordinal (`trial_ref`, S5 6.2)."""
+        rows = await self.fetch(
+            "select t.tournament_id, row_number() over (partition by t.tournament_id order by t.id),"
+            " c.commitment_sha256, c.payload_text, n.nonce_hex"
+            " from ledger.v_commitments c join arena.v_trials t on t.id = c.trial_id"
+            " join arena.v_tournaments x on x.id = t.tournament_id and x.status = 'revealed'"
+            " left join ledger.v_revealed_nonces n on n.trial_id = c.trial_id"
+            " where c.payload_text is not null order by t.tournament_id, 2"
+        )
+        out = []
+        for tournament, ref, commitment, payload_text, nonce in rows:
+            payload = json.loads(payload_text)
+            out.append(
+                {
+                    "tournament_id": str(tournament),
+                    "trial_ref": int(ref),
+                    "commitment_sha256": commitment,
+                    "transcript_sha256": payload.get("transcript_sha256"),
+                    "evidence_sha256": payload.get("evidence_sha256"),
+                    "payload_text": payload_text,
+                    "nonce": nonce,
+                }
+            )
+        return out
+
+    async def budget_view(self) -> dict[str, Any]:
+        """The `global` bucket (`ops.v_budget_status`) and spend by purpose label (`ops.v_call_costs`), money as
+        decimal strings. `spent_usd` is the bucket's settled liability (liability minus open holds)."""
+        rows = await self.fetch(
+            "select ceiling_usd, liability_usd, open_usd from ops.v_budget_status where bucket = 'global'"
+        )
+        ceiling, liability, held = rows[0] if rows else (0, 0, 0)
+        purposes = await self.fetch(
+            "select purpose, count(distinct reservation_id), coalesce(sum(cost_usd), 0) from ops.v_call_costs"
+            " group by purpose order by purpose"
+        )
+        return {
+            "ceiling_usd": str(ceiling),
+            "spent_usd": str(liability - held),
+            "open_usd": str(held),
+            "by_purpose": [{"purpose": p, "calls": int(n), "cost_usd": str(c)} for p, n, c in purposes],
+        }
+
     async def public_config(self) -> dict[str, Any]:
         rows = await self.fetch(
             "select paused, text_sessions_per_user_day, voice_sessions_per_user_day from ops.v_public_config"
