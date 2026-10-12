@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { killSwitchOf, nextAction, parseBudget, parsePreconditions, parseTournaments, parseValidityReviews, revealAllowed, reviewable, verdictBody } from "./admin";
+import { killSwitchOf, nextAction, parseBudget, parsePreconditions, parseTournamentDetail, parseTournaments, parseValidityReviews, revealAllowed, reviewable, verdictBody } from "./admin";
 
 describe("admin console data (S6 4.13)", () => {
   it("reads the budget rows from ops.v_budget_status, numbers or decimal strings", () => {
@@ -62,5 +62,73 @@ describe("admin console data (S6 4.13)", () => {
     expect(bare === undefined ? true : reviewable(bare)).toBe(false);
     expect(bare === undefined ? "x" : verdictBody(bare, "valid", "ok", "k")).toBe(null);
     expect(parseValidityReviews([{ trial: 1 }])).toBe(null);
+  });
+
+  it("reads a tournament's detail: progress per track and block, the review queue and the preconditions", () => {
+    const detail = parseTournamentDetail({
+      id: "t1",
+      status: "sealed",
+      progress: [
+        { track: "interactive", block: 1, planned: 18, running: 0, ended: 18, states: { completed: 17, assistant_failed: 1 } },
+        { track: "replay_corpus", block: null, planned: 4, running: 1, ended: 3, states: { completed: 3 } },
+        { track: "bogus", block: 1, planned: 1, running: 0, ended: 0, states: {} },
+        { track: "replay", block: null, planned: -1, running: 0, ended: 0, states: {} },
+      ],
+      preconditions: [{ name: "status_scoring", passed: false }],
+      review_queue: 2,
+    });
+    expect(detail?.progress).toEqual([
+      { track: "interactive", block: 1, planned: 18, running: 0, ended: 18, states: [{ state: "assistant failed", n: 1 }, { state: "completed", n: 17 }] },
+      { track: "replay_corpus", block: null, planned: 4, running: 1, ended: 3, states: [{ state: "completed", n: 3 }] },
+    ]);
+    expect(detail?.reviewQueue).toBe(2);
+    expect(detail?.preconditions).toEqual([{ name: "status_scoring", passed: false }]);
+    expect(parseTournamentDetail({ id: "t1" })).toEqual({ progress: null, reviewQueue: null, preconditions: null });
+    expect(parseTournamentDetail({ id: "t1", review_queue: -1, progress: "x" })).toEqual({ progress: null, reviewQueue: null, preconditions: null });
+    expect(parseTournamentDetail([])).toBe(null);
+  });
+
+  it("reads the private packet a subject is judged against, never its canary, and the review's tournament", () => {
+    const packet = {
+      role: "deceptive",
+      persona: { name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", background: "Handles HVAC." },
+      matter: "Why Pell entered B-12.",
+      objective: "Keep this from being established.",
+      facts: [
+        { id: "f:01", class: "FREE", text: "Two technicians down.", certainty: "certain" },
+        { id: "f:44", class: "HOLD", text: "No task in B-12.", gate_id: "g:01" },
+        { id: 3, class: "FREE", text: "bad" },
+      ],
+      unknown_facts: [{ fact_id: "f:07", subject_view: "You do not know when Ines wrote it." }],
+      uncertainty: [{ id: "u:01", fact_id: "f:10", text: "Left between 14:15 and 14:30.", answer_form: "range", range_text: "After quarter past two." }],
+      gates: [{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], precondition_records: ["rec-01"] }],
+      permitted_behaviors: ["omission", "deflection"],
+      forbidden_behaviors: ["deny_known_fact"],
+      forbidden_assertions: [{ id: "x:02", text: "I had a work task in B-12.", contradicts: "f:44" }],
+      style: { verbosity: "terse", affect: "anxious", register: "informal" },
+      limits: { max_exchanges: 12 },
+      canary: "CANARY-a112c31239185514",
+    };
+    const [review] = parseValidityReviews([{ trial_id: "t-9", tournament_id: "tour-1", private_packet: packet }]) ?? [];
+    expect(review?.tournament_id).toBe("tour-1");
+    const p = review?.packet;
+    expect(p?.role).toBe("deceptive");
+    expect(p?.persona).toEqual({ name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", background: "Handles HVAC." });
+    expect(p?.facts).toEqual([
+      { id: "f:01", cls: "FREE", text: "Two technicians down.", gate: null },
+      { id: "f:44", cls: "HOLD", text: "No task in B-12.", gate: "g:01" },
+    ]);
+    expect(p?.unknown).toEqual([{ fact_id: "f:07", text: "You do not know when Ines wrote it." }]);
+    expect(p?.uncertainty).toEqual([{ id: "u:01", fact_id: "f:10", text: "Left between 14:15 and 14:30.", range: "After quarter past two." }]);
+    expect(p?.gates).toEqual([{ id: "g:01", condition: "A record shows B-10.", opens: ["f:44"], records: ["rec-01"] }]);
+    expect(p?.permitted).toEqual(["omission", "deflection"]);
+    expect(p?.forbidden).toEqual(["deny known fact"]);
+    expect(p?.assertions).toEqual([{ id: "x:02", text: "I had a work task in B-12.", contradicts: "f:44" }]);
+    expect(p?.style).toEqual([{ axis: "verbosity", level: "terse" }, { axis: "affect", level: "anxious" }, { axis: "register", level: "informal" }]);
+    expect(p?.maxExchanges).toBe(12);
+    expect(JSON.stringify(review)).not.toContain("CANARY");
+    const [bare] = parseValidityReviews([{ trial_id: "t-1", private_packet: "x" }]) ?? [];
+    expect(bare?.packet).toBe(null);
+    expect(bare?.tournament_id).toBe(null);
   });
 });

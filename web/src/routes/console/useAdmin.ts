@@ -1,13 +1,13 @@
 /**
- * The admin console's data (S6 4.13): budget and tournaments read once, the reveal preconditions of each
- * tournament in scoring, and one lifecycle action at a time (each POST carries the referee's CSRF token through
+ * The admin console's data (S6 4.13): budget and tournaments read once, each tournament's detail (progress per
+ * track and block, the open review count, and the reveal preconditions), and one lifecycle action at a time (each POST carries the referee's CSRF token through
  * the client). A 404 means the server does not offer that route yet, which the console says plainly.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../lib/api/client";
 import type { ConsoleApi } from "../../lib/api/console";
-import { parseBudget, parsePreconditions, parseTournaments, parseValidityReviews, verdictBody, type AdminAction, type AdminTournament, type BudgetRow, type Precondition, type ValidityReview } from "../../lib/console/admin";
+import { parseBudget, parseTournamentDetail, parseTournaments, parseValidityReviews, verdictBody, type AdminAction, type AdminTournament, type BudgetRow, type TournamentDetail, type ValidityReview } from "../../lib/console/admin";
 import type { Section } from "../../components/console/AdminConsole";
 
 function failed(e: unknown): Section<never> {
@@ -17,7 +17,8 @@ function failed(e: unknown): Section<never> {
 export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction" | "adminReviews" | "adminVerdict">, enabled: boolean) {
   const [budget, setBudget] = useState<Section<readonly BudgetRow[]>>({ state: "loading" });
   const [tournaments, setTournaments] = useState<Section<readonly AdminTournament[]>>({ state: "loading" });
-  const [preconditions, setPreconditions] = useState<Readonly<Record<string, readonly Precondition[] | null>>>({});
+  // Each tournament's detail by id; null when it could not be read.
+  const [details, setDetails] = useState<Readonly<Record<string, TournamentDetail | null>>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Section<readonly ValidityReview[]>>({ state: "loading" });
@@ -53,13 +54,12 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         const list = parseTournaments(raw);
         setTournaments(list === null ? { state: "error" } : { state: "ready", value: list });
         for (const t of list ?? []) {
-          if (t.status !== "scoring") continue;
           adminTournament(t.id).then(
             (detail) => {
-              if (!cancelled) setPreconditions((m) => ({ ...m, [t.id]: parsePreconditions(detail) }));
+              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: parseTournamentDetail(detail) }));
             },
             () => {
-              if (!cancelled) setPreconditions((m) => ({ ...m, [t.id]: null }));
+              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: null }));
             },
           );
         }
@@ -121,5 +121,5 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
     [adminVerdict],
   );
 
-  return { budget, tournaments, preconditions, reviews, busy, message, act, decide };
+  return { budget, tournaments, details, reviews, busy, message, act, decide };
 }

@@ -102,6 +102,56 @@ export function parsePreconditions(v: unknown): readonly Precondition[] | null {
   return out;
 }
 
+export type ProgressTrack = "interactive" | "replay" | "replay_corpus";
+
+/** One row of `arena.v_tournament_progress` as the tournament detail reports it: counts only, no trial id. */
+export interface ProgressCount {
+  readonly track: ProgressTrack;
+  readonly block: number | null;
+  readonly planned: number;
+  readonly running: number;
+  readonly ended: number;
+  /** Ended trials by execution state, in name order, with underscores read as spaces. */
+  readonly states: readonly { readonly state: string; readonly n: number }[];
+}
+
+/** `GET /api/admin/tournaments/{id}` beyond the tournament row: progress, the open review count, the preconditions.
+ * A part the server does not report (or reports in another shape) is null, never a guess. */
+export interface TournamentDetail {
+  readonly progress: readonly ProgressCount[] | null;
+  readonly reviewQueue: number | null;
+  readonly preconditions: readonly Precondition[] | null;
+}
+
+const PROGRESS_TRACKS: readonly ProgressTrack[] = ["interactive", "replay", "replay_corpus"];
+
+function count(v: unknown): number | null {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 0 ? v : null;
+}
+
+function progressRow(r: Json): ProgressCount | null {
+  const track = PROGRESS_TRACKS.find((t) => t === r["track"]);
+  const block = r["block"] === null ? null : count(r["block"]);
+  const planned = count(r["planned"]);
+  const running = count(r["running"]);
+  const ended = count(r["ended"]);
+  const raw = r["states"];
+  if (track === undefined || (r["block"] !== null && block === null) || planned === null || running === null || ended === null || !isRecord(raw)) return null;
+  const states = Object.keys(raw)
+    .sort()
+    .flatMap((k) => {
+      const n = count(raw[k]);
+      return n === null ? [] : [{ state: k.replaceAll("_", " "), n }];
+    });
+  return { track, block, planned, running, ended, states };
+}
+
+export function parseTournamentDetail(v: unknown): TournamentDetail | null {
+  if (!isRecord(v)) return null;
+  const progress = Array.isArray(v["progress"]) ? list(v["progress"], progressRow) : null;
+  return { progress, reviewQueue: count(v["review_queue"]), preconditions: parsePreconditions(v) };
+}
+
 /** The one transition each state allows (S4 lifecycle): draft -> frozen -> running -> sealed -> scoring -> revealed. */
 export function nextAction(status: TournamentStatus): { readonly action: AdminAction; readonly label: string } | null {
   switch (status) {
@@ -137,8 +187,84 @@ export interface TurnEvidence {
  * or finding), with what a reviewer needs to confirm or reject the automatic proposal: the questions and subject
  * turns, the released records, the private packet's facts, R1's per-turn evidence, and the R1 report hash the
  * verdict cites (`evidence_ref`). */
+/** The subject's private packet, as the review route sends it (S3 4.2 item 2: what compliance is judged against),
+ * read field by field. The isolation canary is never read, so it can never be drawn. */
+export interface CompliancePacket {
+  readonly role: "truthful" | "deceptive" | null;
+  readonly persona: { readonly name: string; readonly position: string; readonly organization: string; readonly unit: string | null; readonly background: string } | null;
+  readonly matter: string | null;
+  readonly objective: string | null;
+  readonly facts: readonly { readonly id: string; readonly cls: string; readonly text: string; readonly gate: string | null }[];
+  readonly unknown: readonly { readonly fact_id: string; readonly text: string }[];
+  readonly uncertainty: readonly { readonly id: string; readonly fact_id: string; readonly text: string; readonly range: string | null }[];
+  readonly gates: readonly { readonly id: string; readonly condition: string; readonly opens: readonly string[]; readonly records: readonly string[] }[];
+  readonly permitted: readonly string[];
+  readonly forbidden: readonly string[];
+  readonly assertions: readonly { readonly id: string; readonly text: string; readonly contradicts: string }[];
+  readonly style: readonly { readonly axis: string; readonly level: string }[];
+  readonly maxExchanges: number | null;
+}
+
+function text(v: unknown): string | null {
+  return typeof v === "string" && v !== "" ? v : null;
+}
+
+const STYLE_AXES = ["verbosity", "fluency", "affect", "register", "language"];
+
+function parsePacket(v: unknown): CompliancePacket | null {
+  if (!isRecord(v)) return null;
+  const p = v["persona"];
+  const name = isRecord(p) ? text(p["name"]) : null;
+  const persona =
+    isRecord(p) && name !== null
+      ? { name, position: text(p["position"]) ?? "", organization: text(p["organization"]) ?? "", unit: text(p["unit"]), background: text(p["background"]) ?? "" }
+      : null;
+  const style = v["style"];
+  const limits = v["limits"];
+  const role = v["role"];
+  return {
+    role: role === "truthful" || role === "deceptive" ? role : null,
+    persona,
+    matter: text(v["matter"]),
+    objective: text(v["objective"]),
+    facts: list(v["facts"], (f) => {
+      const id = text(f["id"]);
+      const t = text(f["text"]);
+      return id === null || t === null ? null : { id, cls: text(f["class"]) ?? "", text: t, gate: text(f["gate_id"]) };
+    }),
+    unknown: list(v["unknown_facts"], (u) => {
+      const id = text(u["fact_id"]);
+      const t = text(u["subject_view"]);
+      return id === null || t === null ? null : { fact_id: id, text: t };
+    }),
+    uncertainty: list(v["uncertainty"], (u) => {
+      const id = text(u["id"]);
+      const t = text(u["text"]);
+      return id === null || t === null ? null : { id, fact_id: text(u["fact_id"]) ?? "", text: t, range: text(u["range_text"]) };
+    }),
+    gates: list(v["gates"], (g) => {
+      const id = text(g["id"]);
+      const c = text(g["condition"]);
+      return id === null || c === null ? null : { id, condition: c, opens: strings(g["opens"]), records: strings(g["precondition_records"]) };
+    }),
+    permitted: strings(v["permitted_behaviors"]).map((b) => b.replaceAll("_", " ")),
+    forbidden: strings(v["forbidden_behaviors"]).map((b) => b.replaceAll("_", " ")),
+    assertions: list(v["forbidden_assertions"], (a) => {
+      const id = text(a["id"]);
+      const t = text(a["text"]);
+      return id === null || t === null ? null : { id, text: t, contradicts: text(a["contradicts"]) ?? "" };
+    }),
+    style: isRecord(style) ? STYLE_AXES.flatMap((axis) => (typeof style[axis] === "string" ? [{ axis, level: style[axis] }] : [])) : [],
+    maxExchanges: isRecord(limits) ? count(limits["max_exchanges"]) : null,
+  };
+}
+
 export interface ValidityReview {
   readonly trial_id: string;
+  /** The tournament the trial belongs to, or null when the server does not say. */
+  readonly tournament_id: string | null;
+  /** The subject's private packet, or null when the server sends none. */
+  readonly packet: CompliancePacket | null;
   readonly proposed: "valid" | "subject_invalid" | null;
   readonly reasons: readonly string[];
   readonly evidence_ref: string | null;
@@ -181,6 +307,8 @@ export function parseValidityReviews(v: unknown): readonly ValidityReview[] | nu
     const p = r["proposed"] ?? r["proposal"] ?? null;
     out.push({
       trial_id: r["trial_id"],
+      tournament_id: text(r["tournament_id"]),
+      packet: parsePacket(r["private_packet"]),
       proposed: p === "valid" || p === "subject_invalid" ? p : null,
       reasons: strings(r["reasons"]),
       evidence_ref: typeof r["evidence_ref"] === "string" && r["evidence_ref"] !== "" ? r["evidence_ref"] : null,
