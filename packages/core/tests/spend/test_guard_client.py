@@ -17,6 +17,7 @@ import pytest
 
 from arena_core.db import calls, pool
 from arena_core.db.calls import GuardProtocolError, ModelCallRequest, UsageReport
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.providers.errors import BudgetRefusedError, KillSwitchOnError
 from arena_core.spend import plan
 from arena_core.spend.guard import DbSpendGuard, Reservation, refusal
@@ -40,7 +41,7 @@ class Cursor:
         return self.rows
 
 
-class Conn:
+class Conn(ScriptedConnection):
     """Answers `select ops.<fn>(...)` with the jsonb text registered for <fn>; records every statement."""
 
     def __init__(self, answers: dict[str, object]) -> None:
@@ -53,7 +54,7 @@ class Conn:
         self.transactions += 1
         yield
 
-    async def execute(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
         self.executed.append((query, params))
         for name, answer in self.answers.items():
             if name in query:

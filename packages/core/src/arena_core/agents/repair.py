@@ -20,6 +20,7 @@ from functools import cache
 
 from pydantic import BaseModel, ValidationError
 
+from arena_core.contracts.common import FACT_ID, GATE_ID, UNCERTAINTY_ID
 from arena_core.contracts.rendered import clean, rendered_overruns
 
 MAX_ERRORS = 10
@@ -27,6 +28,14 @@ MAX_ERROR_BYTES = 100
 UNKNOWN_KEY = "(unexpected key)"
 SALT_LEAK = "reply: repeats the request's data-tag identifier; never copy tag names or identifiers"
 REPAIR_SUFFIX = "Reply again with only the corrected JSON object."
+# A ledger-ID field that fails its pattern is reported as the ID kind that belongs there, not as the regular
+# expression: in the real pilot (gemini-3.1-flash-lite, F01) a subject listed uncertainty IDs as withheld facts,
+# and the pattern message did not always get them out on the one repair. Names kinds only, never the value.
+ID_KIND_MESSAGES = {
+    FACT_ID: "not a fact ID; only f:NN fact IDs go here, never u:NN or g:NN",
+    UNCERTAINTY_ID: "not an uncertainty ID; only u:NN IDs go here, never f:NN or g:NN",
+    GATE_ID: "not a gate ID; only g:NN gate IDs go here, never f:NN or u:NN",
+}
 MAX_TOKENS_REPAIR = (
     "Your reply was cut off at the output limit. Reply again with only the corrected JSON object, shorter."
 )
@@ -81,9 +90,11 @@ def _path(loc: tuple[int | str, ...], known: frozenset[str]) -> str:
 def error_items(exc: ValidationError, known: frozenset[str]) -> list[str]:
     """Field-path messages, one per problem, bounded in count and size."""
     items: list[str] = []
-    for err in exc.errors(include_input=False, include_url=False, include_context=False):
+    for err in exc.errors(include_input=False, include_url=False):
         path = _path(err["loc"], known)
         msg = str(err["msg"]).removeprefix("Value error, ")
+        if err["type"] == "string_pattern_mismatch":
+            msg = ID_KIND_MESSAGES.get(str(err.get("ctx", {}).get("pattern")), msg)
         if err["type"] == "json_invalid":
             items.append("reply: not valid JSON")
         elif path:

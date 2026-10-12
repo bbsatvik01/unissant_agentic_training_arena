@@ -1,23 +1,32 @@
 /**
- * The admin console's data (S6 4.13): budget and tournaments read once, the reveal preconditions of each
- * tournament in scoring, and one lifecycle action at a time (each POST carries the referee's CSRF token through
+ * The admin console's data (S6 4.13): budget and tournaments read once, each tournament's detail (progress per
+ * track and block, the open review count, and the reveal preconditions), and one lifecycle action at a time (each POST carries the referee's CSRF token through
  * the client). A 404 means the server does not offer that route yet, which the console says plainly.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../../lib/api/client";
 import type { ConsoleApi } from "../../lib/api/console";
-import { parseBudget, parsePreconditions, parseTournaments, parseValidityReviews, verdictBody, type AdminAction, type AdminTournament, type BudgetRow, type Precondition, type ValidityReview } from "../../lib/console/admin";
+import { parseBudget, parseTournamentDetail, parseTournaments, parseValidityReviews, verdictBody, type AdminAction, type AdminTournament, type BudgetRow, type TournamentDetail, type ValidityReview } from "../../lib/console/admin";
 import type { Section } from "../../components/console/AdminConsole";
 
 function failed(e: unknown): Section<never> {
   return e instanceof ApiError && e.status === 404 ? { state: "missing" } : { state: "error" };
 }
 
+/** What the admin reads when a POST fails: a missing route, or the refusal with the server's own reason (the
+ * referee's `detail`, for example which reveal check is not met), cut to a readable length. */
+function refusal(e: unknown, refused: string): string {
+  if (e instanceof ApiError && e.status === 404) return "The server does not offer this action yet.";
+  const reason = e instanceof ApiError ? e.code : null;
+  return reason === null || reason === "" ? refused : `${refused} Reason: ${reason.length > 300 ? `${reason.slice(0, 300)}...` : reason}`;
+}
+
 export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction" | "adminReviews" | "adminVerdict">, enabled: boolean) {
   const [budget, setBudget] = useState<Section<readonly BudgetRow[]>>({ state: "loading" });
   const [tournaments, setTournaments] = useState<Section<readonly AdminTournament[]>>({ state: "loading" });
-  const [preconditions, setPreconditions] = useState<Readonly<Record<string, readonly Precondition[] | null>>>({});
+  // Each tournament's detail by id, as a section of its own (a missing route or a failed read says so).
+  const [details, setDetails] = useState<Readonly<Record<string, Section<TournamentDetail>>>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Section<readonly ValidityReview[]>>({ state: "loading" });
@@ -53,13 +62,14 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         const list = parseTournaments(raw);
         setTournaments(list === null ? { state: "error" } : { state: "ready", value: list });
         for (const t of list ?? []) {
-          if (t.status !== "scoring") continue;
           adminTournament(t.id).then(
-            (detail) => {
-              if (!cancelled) setPreconditions((m) => ({ ...m, [t.id]: parsePreconditions(detail) }));
+            (raw) => {
+              if (cancelled) return;
+              const detail = parseTournamentDetail(raw);
+              setDetails((m) => ({ ...m, [t.id]: detail === null ? { state: "error" } : { state: "ready", value: detail } }));
             },
-            () => {
-              if (!cancelled) setPreconditions((m) => ({ ...m, [t.id]: null }));
+            (e: unknown) => {
+              if (!cancelled) setDetails((m) => ({ ...m, [t.id]: failed(e) }));
             },
           );
         }
@@ -85,7 +95,7 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         },
         (e: unknown) => {
           setBusy(null);
-          setMessage(e instanceof ApiError && e.status === 404 ? "The server does not offer this action yet." : "The server refused the action; the tournament is unchanged.");
+          setMessage(refusal(e, "The server refused the action; the tournament is unchanged."));
         },
       );
     },
@@ -114,12 +124,12 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         },
         (e: unknown) => {
           setBusy(null);
-          setMessage(e instanceof ApiError && e.status === 404 ? "The server does not offer this action yet." : "The server refused the verdict.");
+          setMessage(refusal(e, "The server refused the verdict."));
         },
       );
     },
     [adminVerdict],
   );
 
-  return { budget, tournaments, preconditions, reviews, busy, message, act, decide };
+  return { budget, tournaments, details, reviews, busy, message, act, decide };
 }

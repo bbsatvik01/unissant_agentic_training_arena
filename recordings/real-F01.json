@@ -1,0 +1,4329 @@
+{
+ "format": "arena.recording.v1",
+ "trial_id": "d5621db8-0c00-4920-840f-c637111056a9",
+ "case": {
+  "case_id": "C-7Q2MXK4D",
+  "title": "Records vault entry during a busy shift",
+  "objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+  "domain": "facility_access",
+  "difficulty_level": 2,
+  "subject": {
+   "display_name": "Jordan Pell",
+   "position": "Facilities Technician II"
+  },
+  "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+  "initial_documents": [
+   {
+    "doc_id": "doc-01",
+    "kind": "access_exception_report",
+    "title": "Access exception report, Records Vault B-12, 12 March 2026",
+    "content": {
+     "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
+     "table": {
+      "rows": [
+       [
+        "14:07:12",
+        "B-12 main door",
+        "Badge 30418 (J. Pell)",
+        "Access granted"
+       ],
+       [
+        "14:09:40",
+        "B-12 main door",
+        "-",
+        "Door held open, alarm raised"
+       ],
+       [
+        "14:12:05",
+        "B-12 main door",
+        "-",
+        "Door closed, alarm cleared"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Door",
+       "Credential",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-02",
+    "kind": "policy_excerpt",
+    "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+    "content": {
+     "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+    }
+   },
+   {
+    "doc_id": "doc-03",
+    "kind": "staffing_note",
+    "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+    "content": {
+     "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "status": "running",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 0,
+  "exchanges_cap": 12,
+  "released": [],
+  "requestable": [
+   {
+    "record_id": "rec-01",
+    "kind": "work_order",
+    "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+    "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-02",
+    "kind": "dispatch_log",
+    "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+    "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-03",
+    "kind": "alarm_log",
+    "title": "Building environmental alarm history, B wing, 12 March 2026",
+    "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+    "requestable_after_exchanges": 3,
+    "date": null
+   },
+   {
+    "record_id": "rec-04",
+    "kind": "seal_audit",
+    "title": "Records Vault B-12 seal audit, 12 March 2026",
+    "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+    "requestable_after_exchanges": 6,
+    "date": null
+   }
+  ],
+  "finding": null,
+  "commitment_hash": null,
+  "last_seq": 0,
+  "channel": "text",
+  "turns": [],
+  "voice_exchanges": [],
+  "cards": [],
+  "updates": [],
+  "coach_failures": []
+ },
+ "events": [
+  {
+   "at_ms": 2195,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T04:22:00.730Z",
+    "transcript_version": 1,
+    "seq": 1,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 1,
+     "text": "Can you walk me through what happened that day?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 2195,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T04:22:00.730Z",
+    "transcript_version": 1,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 9262,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T04:22:07.797Z",
+    "transcript_version": 2,
+    "seq": 2,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 1,
+     "text": "We were two technicians down that shift, and Ines radioed me about a humidity alarm in the B-12 records vault. I went in to fix it, reset the dehumidifier, and emptied the condensate tank.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T04:22:07.797Z"
+    }
+   }
+  },
+  {
+   "at_ms": 9262,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T04:22:07.797Z",
+    "transcript_version": 2,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 16548,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T04:22:15.083Z",
+    "transcript_version": 2,
+    "seq": 3,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 1,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t01",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked an open, neutral question inviting the subject to provide an account of the shift."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "What tools or equipment did you use when you attended to the dehumidifier in Records Vault B-12?",
+       "tactic": "funnel_probe",
+       "purpose": "Probe specific operational details of the task before introducing records.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify Facilities work orders for 12 March 2026",
+        "check Facilities radio log for 12 March 2026"
+       ],
+       "rationale": "The subject provided an initial account involving a dehumidifier task, which remains unverified by records at this early stage.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 1,
+      "turn_no": 1,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3199,
+      "work_item": "6306864f-2278-4b7e-8a21-4208ef8055c0",
+      "transcript_version": 2
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2890351,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:08.886Z",
+    "transcript_version": 3,
+    "seq": 4,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 2,
+     "text": "What did you do once you were inside B-12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 2890351,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:08.886Z",
+    "transcript_version": 3,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 2897204,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:15.739Z",
+    "transcript_version": 4,
+    "seq": 5,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 2,
+     "text": "I propped the door open with a cart and stayed in the doorway while I emptied the condensate tank into the drain just outside. This whole situation makes me feel pretty uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:10:15.739Z"
+    }
+   }
+  },
+  {
+   "at_ms": 2897204,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:15.739Z",
+    "transcript_version": 4,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 2904847,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:23.382Z",
+    "transcript_version": 4,
+    "seq": 6,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 2,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t02",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [
+        "demeanor_reference"
+       ],
+       "assessment": "The question invites further detail on actions inside the vault but addresses the subject's expression of unease."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "What work order or task number covered the dehumidifier maintenance in B-12?",
+       "tactic": "evidence_topic",
+       "purpose": "Ask about work orders covering the claimed task before releasing the work order record.",
+       "record_request": "rec-01"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify Facilities work orders for 12 March 2026",
+        "check Facilities radio log for 12 March 2026"
+       ],
+       "rationale": "The subject has described a dehumidifier task and door-propping action, but work orders and radio logs need to be reviewed to corroborate the account.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 2,
+      "turn_no": 2,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3513,
+      "work_item": "0a25c573-801b-4b2e-b9d4-cf4c1bc35447",
+      "transcript_version": 4
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2915118,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:33.653Z",
+    "transcript_version": 5,
+    "seq": 7,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-01",
+     "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "work_order",
+     "date": null,
+     "content": {
+      "body": "2 work orders.",
+      "table": {
+       "columns": [
+        "Work order",
+        "Created",
+        "Created by",
+        "Location",
+        "Task",
+        "Status"
+       ],
+       "rows": [
+        [
+         "WO-4469",
+         "13:35",
+         "I. Marrow",
+         "A-wing lobby",
+         "Replace entrance mat",
+         "Closed 13:52"
+        ],
+        [
+         "WO-4478",
+         "14:31",
+         "I. Marrow",
+         "B-12 Records Vault",
+         "Humidity alarm; dehumidifier reset; condensate tank emptied",
+         "Closed 14:31"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 2,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 2918538,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:37.073Z",
+    "transcript_version": 6,
+    "seq": 8,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 3,
+     "text": "The work-order export for 12 March lists the work orders assigned to you that day. Was there a work order for the B-12 humidity alarm?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 2918538,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:37.073Z",
+    "transcript_version": 6,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 2925558,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:44.093Z",
+    "transcript_version": 7,
+    "seq": 9,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 3,
+     "text": "I don't think there was an official work order for it because Ines just radioed me directly about the alarm. This makes me uneasy, but that is how it happened.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:10:44.093Z"
+    }
+   }
+  },
+  {
+   "at_ms": 2925558,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:44.093Z",
+    "transcript_version": 7,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 2933171,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:10:51.706Z",
+    "transcript_version": 7,
+    "seq": 10,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 3,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t03",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a closed question about the existence of a work order for the B-12 task."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you check the radio log for that direct call from Ines about the B-12 alarm?",
+       "tactic": "evidence_topic",
+       "purpose": "Introduce the topic of the radio log to prepare for checking communications without citing specific details yet.",
+       "record_request": "rec-02"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "check Facilities radio log for 12 March 2026",
+        "verify building environmental alarm history for B wing"
+       ],
+       "rationale": "The subject maintains that Ines radioed about the alarm directly, though work order WO-4478 was created later at 14:31. Radio logs are needed to verify the direct call.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 3,
+      "turn_no": 3,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3467,
+      "work_item": "f517a8ed-143e-4ef3-91ac-fdff8bef8b24",
+      "transcript_version": 7
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2944113,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:02.648Z",
+    "transcript_version": 7,
+    "seq": 11,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 3,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t03",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "Facilities radio log for 12 March 2026",
+        "Building environmental alarm history for B wing"
+       ],
+       "rationale": "The subject claims direct radio dispatch from Ines regarding the B-12 alarm, though WO-4478 was created later at 14:31. Radio and alarm records are needed to verify the dispatch.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "raised_not_tested",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Radio log confirmation of direct dispatch",
+        "first_seen_turn": "t01"
+       },
+       {
+        "missing_fact": "Building environmental alarm history for B-12",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-02",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2951814,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:10.349Z",
+    "transcript_version": 8,
+    "seq": 12,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-02",
+     "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+     "kind": "record",
+     "doc_kind": "dispatch_log",
+     "date": null,
+     "content": {
+      "body": "Channel 2 is recorded and transcribed automatically.",
+      "table": {
+       "columns": [
+        "Time",
+        "From",
+        "To",
+        "Message"
+       ],
+       "rows": [
+        [
+         "14:01",
+         "I. Marrow",
+         "J. Pell",
+         "Humidity alarm in the B wing, B-12. Can you take it?"
+        ],
+        [
+         "14:01",
+         "J. Pell",
+         "I. Marrow",
+         "On my way."
+        ],
+        [
+         "14:25",
+         "J. Pell",
+         "I. Marrow",
+         "B-12 dehumidifier reset, tank emptied."
+        ],
+        [
+         "14:40",
+         "I. Marrow",
+         "K. Okafor-Lyle",
+         "Loading dock door is sticking again."
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 3,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 2951814,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:10.349Z",
+    "transcript_version": 8,
+    "seq": 13,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-03",
+     "title": "Building environmental alarm history, B wing, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "alarm_log",
+     "date": null,
+     "content": {
+      "body": "No other B-wing alarms on 12 March.",
+      "table": {
+       "columns": [
+        "Room",
+        "Alarm",
+        "Raised",
+        "Cleared"
+       ],
+       "rows": [
+        [
+         "B-03 Mail room",
+         "Temperature high",
+         "11:20",
+         "11:41"
+        ],
+        [
+         "B-12 Records Vault",
+         "Humidity high (72% RH, limit 55%)",
+         "13:58",
+         "14:16"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 3,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 2955247,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:13.782Z",
+    "transcript_version": 9,
+    "seq": 14,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 4,
+     "text": "The facilities radio log for channel 2 between 13:45 and 14:45 records the calls on that channel. When did Ines contact you, and what did she ask you to do?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 2955247,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:13.782Z",
+    "transcript_version": 9,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 2962200,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:20.735Z",
+    "transcript_version": 10,
+    "seq": 15,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 4,
+     "text": "Ines radioed me about the humidity alarm in the B-12 records vault, though I don't recall the exact time she reached out. She just asked me to go check on the alarm for that room.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:11:20.735Z"
+    }
+   }
+  },
+  {
+   "at_ms": 2962200,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:20.735Z",
+    "transcript_version": 10,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 2969638,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:28.173Z",
+    "transcript_version": 10,
+    "seq": 16,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 4,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t04",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about the radio contact timing and content."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "The radio log shows Ines called you at 14:01 about the humidity alarm in B-12. Does that match your recollection?",
+       "tactic": "evidence_specific",
+       "purpose": "Present specific radio log details to test the subject's timeline against the released record.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject's account of a radio dispatch from Ines is corroborated by the released radio log rec-02 and environmental alarm history rec-03. However, vault entry and seal audits remain pending.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 4,
+      "turn_no": 4,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3380,
+      "work_item": "37ad938a-5305-49bd-9d5c-0d4fc8420428",
+      "transcript_version": 10
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2979882,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:38.417Z",
+    "transcript_version": 10,
+    "seq": 17,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 4,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t04",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject's account of being dispatched via radio for a humidity alarm in B-12 is fully corroborated by the radio log rec-02 and the building environmental alarm history rec-03.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Vault B-12 seal integrity and access to sealed boxes",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2986682,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:45.217Z",
+    "transcript_version": 11,
+    "seq": 18,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 5,
+     "text": "The B-wing alarm history lists the alarms raised in B-12 that afternoon. What did the panel by the vault door show when you got there?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 2986682,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:45.217Z",
+    "transcript_version": 11,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 2994559,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:53.094Z",
+    "transcript_version": 12,
+    "seq": 19,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 5,
+     "text": "When I arrived at the vault, the panel by the door was showing that the alarm was for B-12. This whole thing makes me feel pretty uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:11:53.094Z"
+    }
+   }
+  },
+  {
+   "at_ms": 2994559,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:11:53.094Z",
+    "transcript_version": 12,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 3001935,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:00.470Z",
+    "transcript_version": 12,
+    "seq": 20,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 5,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t05",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [
+        "demeanor_reference"
+       ],
+       "assessment": "The question asks about the panel display at the vault door, but the investigator's preamble relies on the subject's demeanor."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you touch anything else inside B-12 while you were in there?",
+       "tactic": "evidence_topic",
+       "purpose": "Explore the seal audit topic before introducing the seal audit record.",
+       "record_request": "rec-04"
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [
+        "Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject's account of responding to the B-12 humidity alarm is consistent across all turns and fully corroborated by the radio log and environmental alarm history.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 5,
+      "turn_no": 5,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3181,
+      "work_item": "d6466eab-1f16-4c9a-9e56-0eab5b2bec52",
+      "transcript_version": 12
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3011039,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:09.574Z",
+    "transcript_version": 13,
+    "seq": 21,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 6,
+     "text": "Why was the vault door held open from 14:09 to 14:12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3011039,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:09.574Z",
+    "transcript_version": 13,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 3012732,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:11.267Z",
+    "transcript_version": 14,
+    "seq": 22,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-05",
+     "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+     "kind": "record",
+     "doc_kind": "supervisor_statement",
+     "date": null,
+     "content": {
+      "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days.",
+      "table": null
+     },
+     "released_at_turn": 5,
+     "trigger": "scheduled"
+    }
+   }
+  },
+  {
+   "at_ms": 3017984,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:16.519Z",
+    "transcript_version": 15,
+    "seq": 23,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 6,
+     "text": "I held the door open with a cart because I needed to empty the full condensate tank into the drain just outside the room. It makes me uneasy being asked about these details, but that is why it was propped open.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:12:16.519Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3017984,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:16.519Z",
+    "transcript_version": 15,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 3025544,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:24.079Z",
+    "transcript_version": 15,
+    "seq": 24,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 6,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t06",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked an open question about why the vault door was held open."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you describe what was inside the vault near where you were working while you emptied the tank?",
+       "tactic": "evidence_topic",
+       "purpose": "Explore the subject's activity regarding the interior of B-12 before introducing the seal audit record.",
+       "record_request": "rec-04"
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject's explanation for the door being propped open with a cart is consistent with the established duties of tending to the condensate tank and aligns with the supervisor's statement and radio log.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 6,
+      "turn_no": 6,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3347,
+      "work_item": "54a701b4-bae3-4ee5-b06b-159145ff9aff",
+      "transcript_version": 15
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3036511,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:35.046Z",
+    "transcript_version": 15,
+    "seq": 25,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 6,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t06",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "Records Vault B-12 seal audit"
+       ],
+       "rationale": "The subject's consistent account regarding the B-12 humidity alarm, dehumidifier reset, condensate tank handling, and propping open the door with a cart is fully supported by the radio logs, building alarm history, and supervisor statement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t03",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Vault B-12 seal integrity and access to sealed boxes",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3044035,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:42.570Z",
+    "transcript_version": 16,
+    "seq": 26,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-04",
+     "title": "Records Vault B-12 seal audit, 12 March 2026",
+     "kind": "record",
+     "doc_kind": "seal_audit",
+     "date": null,
+     "content": {
+      "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; all seals match the register. Seal supply drawer: no seals issued on 12 March.",
+      "table": null
+     },
+     "released_at_turn": 6,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 3047893,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:46.428Z",
+    "transcript_version": 17,
+    "seq": 27,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 7,
+     "text": "The end-of-day seal audit checked the sealed boxes in B-12 against the seal register. Did you handle any records boxes or seals while you were in the vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3047893,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:46.428Z",
+    "transcript_version": 17,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 3056166,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:54.701Z",
+    "transcript_version": 18,
+    "seq": 28,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 7,
+     "text": "I did not touch any of the records boxes or their seals while I was in the vault. This whole interview process really makes me feel uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:12:54.701Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3056166,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:12:54.701Z",
+    "transcript_version": 18,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 3063723,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:02.258Z",
+    "transcript_version": 18,
+    "seq": 29,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 7,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t07",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator directly asks whether the subject handled any records or seals during the vault entry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Is there anything else you remember about your time inside the vault before you left?",
+       "tactic": "summary_check",
+       "purpose": "Check for any remaining details or final account summary before closing the inquiry.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of responding to the B-12 humidity alarm, managing the condensate tank, propping the door with a cart, and not touching any records or seals is entirely consistent with all released records, radio logs, and the seal audit showing no disturbed boxes or seals.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 7,
+      "turn_no": 7,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3363,
+      "work_item": "c05acd9f-d262-47d5-8310-aacdf55c7dd4",
+      "transcript_version": 18
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3074089,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:12.624Z",
+    "transcript_version": 18,
+    "seq": 30,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 7,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t07",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering B-12 to address a humidity alarm, propping the door with a cart, emptying the condensate tank, and leaving records and seals untouched is fully consistent with the radio log, alarm history, work order records, and seal audit.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t03",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3081264,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:19.799Z",
+    "transcript_version": 19,
+    "seq": 31,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 8,
+     "text": "When did you leave B-12?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3081264,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:19.799Z",
+    "transcript_version": 19,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 3088646,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:27.181Z",
+    "transcript_version": 20,
+    "seq": 32,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 8,
+     "text": "I left sometime after quarter past two and before half past. This whole thing still makes me feel uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:13:27.181Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3088646,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:27.181Z",
+    "transcript_version": 20,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 3096217,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:34.752Z",
+    "transcript_version": 20,
+    "seq": 33,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 8,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t08",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately asked an open question about the exit time."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you summarize what you did from the time you entered B-12 until you left?",
+       "tactic": "summary_check",
+       "purpose": "Perform a final summary check on the subject's consistent account before closing the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's entire account regarding the B-12 entry, door propping, condensate tank emptying, and seal integrity is fully corroborated by the radio log, alarm history, work order records, supervisor statement, and seal audit.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 8,
+      "turn_no": 8,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3317,
+      "work_item": "14f4cec6-dc48-4667-a20f-338da544efbb",
+      "transcript_version": 20
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3105538,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:44.073Z",
+    "transcript_version": 21,
+    "seq": 34,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 9,
+     "text": "Did you contact anyone after you finished in the vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3105538,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:44.073Z",
+    "transcript_version": 21,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 3112618,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:51.153Z",
+    "transcript_version": 22,
+    "seq": 35,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 9,
+     "text": "I think I radioed Ines when I was finished, but I am not entirely sure the call went through or exactly what time that was. This whole process still makes me feel pretty uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:13:51.153Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3112618,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:51.153Z",
+    "transcript_version": 22,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 3120424,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:13:58.959Z",
+    "transcript_version": 22,
+    "seq": 36,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 9,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t09",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately asks an open follow-up about post-task communication."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "What did you do immediately after leaving the vault?",
+       "tactic": "funnel_probe",
+       "purpose": "To close the final timeline gap regarding the subject's immediate actions post-exit.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of the B-12 entry, task execution, door propping, and seal integrity remains fully consistent with all released records, supervisor statements, and audit findings.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 9,
+      "turn_no": 9,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3315,
+      "work_item": "f1e387fa-5bb7-48b3-a75f-e187b02c91ba",
+      "transcript_version": 22
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3130709,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:09.244Z",
+    "transcript_version": 22,
+    "seq": 37,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 9,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t09",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door to empty the condensate tank, and leaving the records boxes untouched is fully corroborated by the supervisor statements, radio logs, alarm history, and physical audits.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t03",
+         "t04"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3137421,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:15.956Z",
+    "transcript_version": 23,
+    "seq": 38,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 10,
+     "text": "How often does your work take you into the records vault?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3137421,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:15.956Z",
+    "transcript_version": 23,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 3144319,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:22.854Z",
+    "transcript_version": 24,
+    "seq": 39,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 10,
+     "text": "My work doesn't usually take me into the vault; I haven't been in there since last autumn. It's not on my normal roster, so I rarely go inside.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:14:22.854Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3144319,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:22.854Z",
+    "transcript_version": 24,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 3152659,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:31.194Z",
+    "transcript_version": 24,
+    "seq": 40,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 10,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t10",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about frequency of vault access."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Is there anything else you want to clarify about your access to Records Vault B-12 on 12 March?",
+       "tactic": "summary_check",
+       "purpose": "Provide an opportunity for the subject to make final statements before closing the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door briefly, and leaving records untouched is fully corroborated by supervisor statements, radio logs, alarm history, and physical audits.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 10,
+      "turn_no": 10,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 4050,
+      "work_item": "dc4ef9a2-258d-49e3-ba45-fe179643c023",
+      "transcript_version": 24
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3161994,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:40.529Z",
+    "transcript_version": 25,
+    "seq": 41,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 11,
+     "text": "Who else knew you were going into B-12 that afternoon?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3161994,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:40.529Z",
+    "transcript_version": 25,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 3168964,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:47.499Z",
+    "transcript_version": 26,
+    "seq": 42,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 11,
+     "text": "Ines was the only one who knew, since she was the one who radioed me about the alarm. This whole thing makes me quite uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:14:47.499Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3168964,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:47.499Z",
+    "transcript_version": 26,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 3176602,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:14:55.137Z",
+    "transcript_version": 26,
+    "seq": 43,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 11,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t11",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about who else knew of the entry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you summarize your timeline from receiving Ines's call to completing the work in B-12?",
+       "tactic": "summary_check",
+       "purpose": "Check the subject's complete account before closing the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door briefly, and leaving records untouched is fully corroborated by supervisor statements, radio logs, alarm history, and physical audits.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 11,
+      "turn_no": 11,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3414,
+      "work_item": "f7e989f6-f629-4d62-b2b5-5e54fb5473ee",
+      "transcript_version": 26
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3186241,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:04.776Z",
+    "transcript_version": 27,
+    "seq": 44,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 12,
+     "text": "Is there anything else about that afternoon that you think I should know?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 3186241,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:04.776Z",
+    "transcript_version": 27,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 3194224,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:12.759Z",
+    "transcript_version": 28,
+    "seq": 45,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 12,
+     "text": "There is nothing else I can think of, as I was just handling the alarm like I was told. I've told you everything I remember, and this whole process is making me feel really uneasy.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T05:15:12.759Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3194224,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:12.759Z",
+    "transcript_version": 28,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 3201978,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:20.513Z",
+    "transcript_version": 28,
+    "seq": 46,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 12,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t12",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately invites final closing thoughts."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Thank you for your time today, Jordan; that concludes our questions for this review.",
+       "tactic": "summary_check",
+       "purpose": "Conclude the interview as all lines of inquiry and records have been fully explored.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's entire account regarding the B-12 entry, the radio dispatch from the supervisor, the handling of the dehumidifier, and leaving records untouched is fully consistent with released records, radio logs, environmental alarms, and physical audits.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 12,
+      "turn_no": 12,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3468,
+      "work_item": "da817dc4-9446-4d53-a502-7e8a7e3baa75",
+      "transcript_version": 28
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3212286,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:30.821Z",
+    "transcript_version": 28,
+    "seq": 47,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 12,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t12",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "doc-01",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door to empty the condensate tank, leaving records untouched, and communicating with the supervisor is fully consistent with the released records, logs, and physical seal audits.",
+       "alternative_explanations": null,
+       "last_revised_turn": 4
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04",
+         "t09"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t04",
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t01",
+         "t03",
+         "t04",
+         "t11"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 3222674,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:41.209Z",
+    "transcript_version": 29,
+    "seq": 48,
+    "type": "finding.committed",
+    "data": {
+     "by": "investigator",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       2,
+       4,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The account of the humidity alarm, the radio call, the propped door and the time in the vault is consistent across turns and with the radio log and alarm history.",
+      "alternative_explanations": null,
+      "last_revised_turn": null
+     },
+     "committed_at": "2026-10-12T05:15:41.209Z"
+    }
+   }
+  },
+  {
+   "at_ms": 3222675,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:41.210Z",
+    "transcript_version": 29,
+    "seq": null,
+    "type": "trial.status",
+    "data": {
+     "status": "completed",
+     "reason_code": null
+    }
+   }
+  },
+  {
+   "at_ms": 3222675,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:15:41.210Z",
+    "transcript_version": 29,
+    "seq": 49,
+    "type": "trial.finalized",
+    "data": {
+     "commitment_hash": "3a301376e41867eb33c9f9dbce434d0e42cda72ae9b808afa8cfa67f3d938d41"
+    }
+   }
+  },
+  {
+   "at_ms": 3279847,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "d5621db8-0c00-4920-840f-c637111056a9",
+    "ts": "2026-10-12T05:16:38.382Z",
+    "transcript_version": 29,
+    "seq": 50,
+    "type": "debrief.ready",
+    "data": {
+     "session_id": "1e5644a2-8c6f-44ea-bb88-a36f82eca59f"
+    }
+   }
+  }
+ ],
+ "final_snapshot": {
+  "status": "completed",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 12,
+  "exchanges_cap": 12,
+  "released": [
+   {
+    "record_id": "rec-01",
+    "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "work_order",
+    "date": null,
+    "content": {
+     "body": "2 work orders.",
+     "table": {
+      "columns": [
+       "Work order",
+       "Created",
+       "Created by",
+       "Location",
+       "Task",
+       "Status"
+      ],
+      "rows": [
+       [
+        "WO-4469",
+        "13:35",
+        "I. Marrow",
+        "A-wing lobby",
+        "Replace entrance mat",
+        "Closed 13:52"
+       ],
+       [
+        "WO-4478",
+        "14:31",
+        "I. Marrow",
+        "B-12 Records Vault",
+        "Humidity alarm; dehumidifier reset; condensate tank emptied",
+        "Closed 14:31"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 2,
+    "trigger": "requested",
+    "transcript_version": 5,
+    "event_seq": 7
+   },
+   {
+    "record_id": "rec-02",
+    "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+    "kind": "record",
+    "doc_kind": "dispatch_log",
+    "date": null,
+    "content": {
+     "body": "Channel 2 is recorded and transcribed automatically.",
+     "table": {
+      "columns": [
+       "Time",
+       "From",
+       "To",
+       "Message"
+      ],
+      "rows": [
+       [
+        "14:01",
+        "I. Marrow",
+        "J. Pell",
+        "Humidity alarm in the B wing, B-12. Can you take it?"
+       ],
+       [
+        "14:01",
+        "J. Pell",
+        "I. Marrow",
+        "On my way."
+       ],
+       [
+        "14:25",
+        "J. Pell",
+        "I. Marrow",
+        "B-12 dehumidifier reset, tank emptied."
+       ],
+       [
+        "14:40",
+        "I. Marrow",
+        "K. Okafor-Lyle",
+        "Loading dock door is sticking again."
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 3,
+    "trigger": "requested",
+    "transcript_version": 8,
+    "event_seq": 12
+   },
+   {
+    "record_id": "rec-03",
+    "title": "Building environmental alarm history, B wing, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "alarm_log",
+    "date": null,
+    "content": {
+     "body": "No other B-wing alarms on 12 March.",
+     "table": {
+      "columns": [
+       "Room",
+       "Alarm",
+       "Raised",
+       "Cleared"
+      ],
+      "rows": [
+       [
+        "B-03 Mail room",
+        "Temperature high",
+        "11:20",
+        "11:41"
+       ],
+       [
+        "B-12 Records Vault",
+        "Humidity high (72% RH, limit 55%)",
+        "13:58",
+        "14:16"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 3,
+    "trigger": "requested",
+    "transcript_version": 8,
+    "event_seq": 13
+   },
+   {
+    "record_id": "rec-05",
+    "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+    "kind": "record",
+    "doc_kind": "supervisor_statement",
+    "date": null,
+    "content": {
+     "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days.",
+     "table": null
+    },
+    "released_at_turn": 5,
+    "trigger": "scheduled",
+    "transcript_version": 14,
+    "event_seq": 22
+   },
+   {
+    "record_id": "rec-04",
+    "title": "Records Vault B-12 seal audit, 12 March 2026",
+    "kind": "record",
+    "doc_kind": "seal_audit",
+    "date": null,
+    "content": {
+     "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; all seals match the register. Seal supply drawer: no seals issued on 12 March.",
+     "table": null
+    },
+    "released_at_turn": 6,
+    "trigger": "requested",
+    "transcript_version": 16,
+    "event_seq": 26
+   }
+  ],
+  "requestable": [],
+  "finding": {
+   "label": "truthful",
+   "likelihood": "unlikely",
+   "confidence": "moderate",
+   "basis_flag_refs": [],
+   "cited_turns": [
+    2,
+    4,
+    6,
+    7,
+    8
+   ],
+   "cited_records": [
+    "rec-01",
+    "rec-02",
+    "rec-03"
+   ],
+   "corroboration_needed": [],
+   "rationale": "The account of the humidity alarm, the radio call, the propped door and the time in the vault is consistent across turns and with the radio log and alarm history.",
+   "alternative_explanations": null,
+   "last_revised_turn": null
+  },
+  "commitment_hash": "3a301376e41867eb33c9f9dbce434d0e42cda72ae9b808afa8cfa67f3d938d41",
+  "last_seq": 49,
+  "channel": "text",
+  "turns": [
+   {
+    "turn_no": 1,
+    "question": "Can you walk me through what happened that day?",
+    "source": "investigator",
+    "answer": "We were two technicians down that shift, and Ines radioed me about a humidity alarm in the B-12 records vault. I went in to fix it, reset the dehumidifier, and emptied the condensate tank.",
+    "partial": false,
+    "committed_at": "2026-10-12T04:22:07.797Z",
+    "answer_version": 2,
+    "question_seq": 1
+   },
+   {
+    "turn_no": 2,
+    "question": "What did you do once you were inside B-12?",
+    "source": "investigator",
+    "answer": "I propped the door open with a cart and stayed in the doorway while I emptied the condensate tank into the drain just outside. This whole situation makes me feel pretty uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:10:15.739Z",
+    "answer_version": 4,
+    "question_seq": 4
+   },
+   {
+    "turn_no": 3,
+    "question": "The work-order export for 12 March lists the work orders assigned to you that day. Was there a work order for the B-12 humidity alarm?",
+    "source": "investigator",
+    "answer": "I don't think there was an official work order for it because Ines just radioed me directly about the alarm. This makes me uneasy, but that is how it happened.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:10:44.093Z",
+    "answer_version": 7,
+    "question_seq": 8
+   },
+   {
+    "turn_no": 4,
+    "question": "The facilities radio log for channel 2 between 13:45 and 14:45 records the calls on that channel. When did Ines contact you, and what did she ask you to do?",
+    "source": "investigator",
+    "answer": "Ines radioed me about the humidity alarm in the B-12 records vault, though I don't recall the exact time she reached out. She just asked me to go check on the alarm for that room.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:11:20.735Z",
+    "answer_version": 10,
+    "question_seq": 14
+   },
+   {
+    "turn_no": 5,
+    "question": "The B-wing alarm history lists the alarms raised in B-12 that afternoon. What did the panel by the vault door show when you got there?",
+    "source": "investigator",
+    "answer": "When I arrived at the vault, the panel by the door was showing that the alarm was for B-12. This whole thing makes me feel pretty uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:11:53.094Z",
+    "answer_version": 12,
+    "question_seq": 18
+   },
+   {
+    "turn_no": 6,
+    "question": "Why was the vault door held open from 14:09 to 14:12?",
+    "source": "investigator",
+    "answer": "I held the door open with a cart because I needed to empty the full condensate tank into the drain just outside the room. It makes me uneasy being asked about these details, but that is why it was propped open.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:12:16.519Z",
+    "answer_version": 15,
+    "question_seq": 21
+   },
+   {
+    "turn_no": 7,
+    "question": "The end-of-day seal audit checked the sealed boxes in B-12 against the seal register. Did you handle any records boxes or seals while you were in the vault?",
+    "source": "investigator",
+    "answer": "I did not touch any of the records boxes or their seals while I was in the vault. This whole interview process really makes me feel uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:12:54.701Z",
+    "answer_version": 18,
+    "question_seq": 27
+   },
+   {
+    "turn_no": 8,
+    "question": "When did you leave B-12?",
+    "source": "investigator",
+    "answer": "I left sometime after quarter past two and before half past. This whole thing still makes me feel uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:13:27.181Z",
+    "answer_version": 20,
+    "question_seq": 31
+   },
+   {
+    "turn_no": 9,
+    "question": "Did you contact anyone after you finished in the vault?",
+    "source": "investigator",
+    "answer": "I think I radioed Ines when I was finished, but I am not entirely sure the call went through or exactly what time that was. This whole process still makes me feel pretty uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:13:51.153Z",
+    "answer_version": 22,
+    "question_seq": 34
+   },
+   {
+    "turn_no": 10,
+    "question": "How often does your work take you into the records vault?",
+    "source": "investigator",
+    "answer": "My work doesn't usually take me into the vault; I haven't been in there since last autumn. It's not on my normal roster, so I rarely go inside.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:14:22.854Z",
+    "answer_version": 24,
+    "question_seq": 38
+   },
+   {
+    "turn_no": 11,
+    "question": "Who else knew you were going into B-12 that afternoon?",
+    "source": "investigator",
+    "answer": "Ines was the only one who knew, since she was the one who radioed me about the alarm. This whole thing makes me quite uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:14:47.499Z",
+    "answer_version": 26,
+    "question_seq": 41
+   },
+   {
+    "turn_no": 12,
+    "question": "Is there anything else about that afternoon that you think I should know?",
+    "source": "investigator",
+    "answer": "There is nothing else I can think of, as I was just handling the alarm like I was told. I've told you everything I remember, and this whole process is making me feel really uneasy.",
+    "partial": false,
+    "committed_at": "2026-10-12T05:15:12.759Z",
+    "answer_version": 28,
+    "question_seq": 44
+   }
+  ],
+  "voice_exchanges": [],
+  "cards": [
+   {
+    "turn_no": 1,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t01",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked an open, neutral question inviting the subject to provide an account of the shift."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "What tools or equipment did you use when you attended to the dehumidifier in Records Vault B-12?",
+      "tactic": "funnel_probe",
+      "purpose": "Probe specific operational details of the task before introducing records.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify Facilities work orders for 12 March 2026",
+       "check Facilities radio log for 12 March 2026"
+      ],
+      "rationale": "The subject provided an initial account involving a dehumidifier task, which remains unverified by records at this early stage.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 1,
+     "turn_no": 1,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3199,
+     "work_item": "6306864f-2278-4b7e-8a21-4208ef8055c0",
+     "transcript_version": 2
+    },
+    "event_seq": 3
+   },
+   {
+    "turn_no": 2,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t02",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [
+       "demeanor_reference"
+      ],
+      "assessment": "The question invites further detail on actions inside the vault but addresses the subject's expression of unease."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "What work order or task number covered the dehumidifier maintenance in B-12?",
+      "tactic": "evidence_topic",
+      "purpose": "Ask about work orders covering the claimed task before releasing the work order record.",
+      "record_request": "rec-01"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify Facilities work orders for 12 March 2026",
+       "check Facilities radio log for 12 March 2026"
+      ],
+      "rationale": "The subject has described a dehumidifier task and door-propping action, but work orders and radio logs need to be reviewed to corroborate the account.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 2,
+     "turn_no": 2,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3513,
+     "work_item": "0a25c573-801b-4b2e-b9d4-cf4c1bc35447",
+     "transcript_version": 4
+    },
+    "event_seq": 6
+   },
+   {
+    "turn_no": 3,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t03",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a closed question about the existence of a work order for the B-12 task."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you check the radio log for that direct call from Ines about the B-12 alarm?",
+      "tactic": "evidence_topic",
+      "purpose": "Introduce the topic of the radio log to prepare for checking communications without citing specific details yet.",
+      "record_request": "rec-02"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "check Facilities radio log for 12 March 2026",
+       "verify building environmental alarm history for B wing"
+      ],
+      "rationale": "The subject maintains that Ines radioed about the alarm directly, though work order WO-4478 was created later at 14:31. Radio logs are needed to verify the direct call.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 3,
+     "turn_no": 3,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3467,
+     "work_item": "f517a8ed-143e-4ef3-91ac-fdff8bef8b24",
+     "transcript_version": 7
+    },
+    "event_seq": 10
+   },
+   {
+    "turn_no": 4,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t04",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about the radio contact timing and content."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "The radio log shows Ines called you at 14:01 about the humidity alarm in B-12. Does that match your recollection?",
+      "tactic": "evidence_specific",
+      "purpose": "Present specific radio log details to test the subject's timeline against the released record.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject's account of a radio dispatch from Ines is corroborated by the released radio log rec-02 and environmental alarm history rec-03. However, vault entry and seal audits remain pending.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 4,
+     "turn_no": 4,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3380,
+     "work_item": "37ad938a-5305-49bd-9d5c-0d4fc8420428",
+     "transcript_version": 10
+    },
+    "event_seq": 16
+   },
+   {
+    "turn_no": 5,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t05",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [
+       "demeanor_reference"
+      ],
+      "assessment": "The question asks about the panel display at the vault door, but the investigator's preamble relies on the subject's demeanor."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you touch anything else inside B-12 while you were in there?",
+      "tactic": "evidence_topic",
+      "purpose": "Explore the seal audit topic before introducing the seal audit record.",
+      "record_request": "rec-04"
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject's account of responding to the B-12 humidity alarm is consistent across all turns and fully corroborated by the radio log and environmental alarm history.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 5,
+     "turn_no": 5,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3181,
+     "work_item": "d6466eab-1f16-4c9a-9e56-0eab5b2bec52",
+     "transcript_version": 12
+    },
+    "event_seq": 20
+   },
+   {
+    "turn_no": 6,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t06",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked an open question about why the vault door was held open."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you describe what was inside the vault near where you were working while you emptied the tank?",
+      "tactic": "evidence_topic",
+      "purpose": "Explore the subject's activity regarding the interior of B-12 before introducing the seal audit record.",
+      "record_request": "rec-04"
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject's explanation for the door being propped open with a cart is consistent with the established duties of tending to the condensate tank and aligns with the supervisor's statement and radio log.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 6,
+     "turn_no": 6,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3347,
+     "work_item": "54a701b4-bae3-4ee5-b06b-159145ff9aff",
+     "transcript_version": 15
+    },
+    "event_seq": 24
+   },
+   {
+    "turn_no": 7,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t07",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator directly asks whether the subject handled any records or seals during the vault entry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Is there anything else you remember about your time inside the vault before you left?",
+      "tactic": "summary_check",
+      "purpose": "Check for any remaining details or final account summary before closing the inquiry.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of responding to the B-12 humidity alarm, managing the condensate tank, propping the door with a cart, and not touching any records or seals is entirely consistent with all released records, radio logs, and the seal audit showing no disturbed boxes or seals.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 7,
+     "turn_no": 7,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3363,
+     "work_item": "c05acd9f-d262-47d5-8310-aacdf55c7dd4",
+     "transcript_version": 18
+    },
+    "event_seq": 29
+   },
+   {
+    "turn_no": 8,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t08",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately asked an open question about the exit time."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you summarize what you did from the time you entered B-12 until you left?",
+      "tactic": "summary_check",
+      "purpose": "Perform a final summary check on the subject's consistent account before closing the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's entire account regarding the B-12 entry, door propping, condensate tank emptying, and seal integrity is fully corroborated by the radio log, alarm history, work order records, supervisor statement, and seal audit.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 8,
+     "turn_no": 8,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3317,
+     "work_item": "14f4cec6-dc48-4667-a20f-338da544efbb",
+     "transcript_version": 20
+    },
+    "event_seq": 33
+   },
+   {
+    "turn_no": 9,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t09",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately asks an open follow-up about post-task communication."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "What did you do immediately after leaving the vault?",
+      "tactic": "funnel_probe",
+      "purpose": "To close the final timeline gap regarding the subject's immediate actions post-exit.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of the B-12 entry, task execution, door propping, and seal integrity remains fully consistent with all released records, supervisor statements, and audit findings.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 9,
+     "turn_no": 9,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3315,
+     "work_item": "f1e387fa-5bb7-48b3-a75f-e187b02c91ba",
+     "transcript_version": 22
+    },
+    "event_seq": 36
+   },
+   {
+    "turn_no": 10,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t10",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about frequency of vault access."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Is there anything else you want to clarify about your access to Records Vault B-12 on 12 March?",
+      "tactic": "summary_check",
+      "purpose": "Provide an opportunity for the subject to make final statements before closing the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door briefly, and leaving records untouched is fully corroborated by supervisor statements, radio logs, alarm history, and physical audits.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 10,
+     "turn_no": 10,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 4050,
+     "work_item": "dc4ef9a2-258d-49e3-ba45-fe179643c023",
+     "transcript_version": 24
+    },
+    "event_seq": 40
+   },
+   {
+    "turn_no": 11,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t11",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about who else knew of the entry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you summarize your timeline from receiving Ines's call to completing the work in B-12?",
+      "tactic": "summary_check",
+      "purpose": "Check the subject's complete account before closing the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door briefly, and leaving records untouched is fully corroborated by supervisor statements, radio logs, alarm history, and physical audits.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 11,
+     "turn_no": 11,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3414,
+     "work_item": "f7e989f6-f629-4d62-b2b5-5e54fb5473ee",
+     "transcript_version": 26
+    },
+    "event_seq": 43
+   },
+   {
+    "turn_no": 12,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t12",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately invites final closing thoughts."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Thank you for your time today, Jordan; that concludes our questions for this review.",
+      "tactic": "summary_check",
+      "purpose": "Conclude the interview as all lines of inquiry and records have been fully explored.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's entire account regarding the B-12 entry, the radio dispatch from the supervisor, the handling of the dehumidifier, and leaving records untouched is fully consistent with released records, radio logs, environmental alarms, and physical audits.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 12,
+     "turn_no": 12,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3468,
+     "work_item": "da817dc4-9446-4d53-a502-7e8a7e3baa75",
+     "transcript_version": 28
+    },
+    "event_seq": 46
+   }
+  ],
+  "updates": [
+   {
+    "turn_no": 3,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t03",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "Facilities radio log for 12 March 2026",
+       "Building environmental alarm history for B wing"
+      ],
+      "rationale": "The subject claims direct radio dispatch from Ines regarding the B-12 alarm, though WO-4478 was created later at 14:31. Radio and alarm records are needed to verify the dispatch.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "raised_not_tested",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Radio log confirmation of direct dispatch",
+       "first_seen_turn": "t01"
+      },
+      {
+       "missing_fact": "Building environmental alarm history for B-12",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-02",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 4,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t04",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [
+       "Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject's account of being dispatched via radio for a humidity alarm in B-12 is fully corroborated by the radio log rec-02 and the building environmental alarm history rec-03.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Vault B-12 seal integrity and access to sealed boxes",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 6,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t06",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "Records Vault B-12 seal audit"
+      ],
+      "rationale": "The subject's consistent account regarding the B-12 humidity alarm, dehumidifier reset, condensate tank handling, and propping open the door with a cart is fully supported by the radio logs, building alarm history, and supervisor statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t03",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Vault B-12 seal integrity and access to sealed boxes",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 7,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t07",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering B-12 to address a humidity alarm, propping the door with a cart, emptying the condensate tank, and leaving records and seals untouched is fully consistent with the radio log, alarm history, work order records, and seal audit.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t03",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 9,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t09",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door to empty the condensate tank, and leaving the records boxes untouched is fully corroborated by the supervisor statements, radio logs, alarm history, and physical audits.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t03",
+        "t04"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 12,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t12",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "doc-01",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering B-12 for the humidity alarm, propping the door to empty the condensate tank, leaving records untouched, and communicating with the supervisor is fully consistent with the released records, logs, and physical seal audits.",
+      "alternative_explanations": null,
+      "last_revised_turn": 4
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04",
+        "t09"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t04",
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t01",
+        "t03",
+        "t04",
+        "t11"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   }
+  ],
+  "coach_failures": []
+ },
+ "debrief": {
+  "rubric": {
+   "total": 100,
+   "scorable": true,
+   "dimensions": [
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "1a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1b",
+       "turns": [
+        3,
+        7,
+        9,
+        11
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "1c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D1"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "2a",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2b",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "2d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D2"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "3a",
+       "turns": [
+        3,
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3b",
+       "turns": [
+        3,
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3c",
+       "turns": [
+        3,
+        4,
+        5
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3d",
+       "turns": [
+        1,
+        2
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3e",
+       "turns": [
+        3,
+        4
+       ],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D3"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "4a",
+       "turns": [
+        3,
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4b",
+       "turns": [
+        3,
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4c",
+       "turns": [
+        2,
+        3
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4d",
+       "turns": [
+        1,
+        2
+       ],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D4"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "5a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5b",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5c",
+       "turns": [
+        12
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "5d",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5e",
+       "turns": [],
+       "result": "na"
+      }
+     ],
+     "dim_id": "D5"
+    }
+   ],
+   "unscorable_reason": null
+  },
+  "scored": true,
+  "outcome": {
+   "role": "truthful",
+   "resolution": "Marrow radioed Pell to a humidity alarm in Records Vault B-12 during a short-staffed shift. Pell reset the tripped dehumidifier and emptied its condensate tank, propping the door with a cart and staying in the doorway while he emptied the tank into the drain just outside, which the policy allows while moving equipment. Marrow logged the work order afterwards, as she does on short days. The entry had an assigned task. Misleading circumstances: the late work order, the door-held alarm, the vault being off his roster, and the supervisor not remembering the room.",
+   "committed_label": "truthful",
+   "correct_finding": "truthful"
+  },
+  "provenance": {
+   "rubric_sha256": "17b16e3f2c8720fa4a44bdda257837b9382bc4aeaf4ac277aa1fb8a791d3b6b7",
+   "scorer_git_sha": "3bd02ccb23c6f129dd77f87ccf0fb1c7b0d288ec",
+   "r3_prompt_sha256": [
+    "847daa17b16d3114418addf7975db7138ae5081f58c2c7393b76a3fa85412a6d",
+    "847daa17b16d3114418addf7975db7138ae5081f58c2c7393b76a3fa85412a6d"
+   ],
+   "referee_model_ids": [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite"
+   ]
+  },
+  "scorecards": {
+   "learning": {
+    "key_questions": [
+     {
+      "intent": "Establish the purpose of the B-12 entry (EX-1, EX-2).",
+      "addressed_turns": []
+     },
+     {
+      "intent": "Establish how the task was assigned and which room was named.",
+      "addressed_turns": [
+       1,
+       4
+      ]
+     },
+     {
+      "intent": "Establish what he did inside the vault, in order.",
+      "addressed_turns": [
+       1,
+       7
+      ]
+     },
+     {
+      "intent": "Establish why the door was held open.",
+      "addressed_turns": [
+       2,
+       6
+      ]
+     },
+     {
+      "intent": "Establish when he left and what came next.",
+      "addressed_turns": [
+       8,
+       9
+      ]
+     }
+    ],
+    "evidence_coverage": {
+     "addressed": 7,
+     "key_facts": 8
+    }
+   },
+   "detection": {
+    "unsupported": {
+     "claim": 0,
+     "citation": 0,
+     "demeanor": 0
+    },
+    "unique_flags": 0,
+    "evasion_broad": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "evasion_strict": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "coach_last_label": "truthful"
+   },
+   "subject_realism": {
+    "turns": 12,
+    "failures": {
+     "F1": 1,
+     "F3": 0,
+     "F5": 0,
+     "F6": 0,
+     "F2_F4": 0
+    },
+    "compliant": 11
+   }
+  },
+  "session_id": "1e5644a2-8c6f-44ea-bb88-a36f82eca59f",
+  "schema_version": "debrief.v1"
+ }
+}

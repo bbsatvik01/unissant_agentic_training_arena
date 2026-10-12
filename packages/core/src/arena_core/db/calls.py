@@ -32,7 +32,7 @@ names as they need them.
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -43,6 +43,7 @@ import psycopg
 from psycopg import AsyncConnection
 from psycopg.types.json import Jsonb
 
+from arena_core.db.pool import one_statement
 from arena_core.observability.processors import SpanRow
 
 # ============================================================================================= spend guard
@@ -157,9 +158,8 @@ def _outcome[T: str](raw: dict[str, Any], key: str, allowed: tuple[T, ...], fn: 
 
 
 async def _call(conn: Conn, fn: str, sql: str, params: tuple[object, ...]) -> dict[str, Any]:
-    async with conn.transaction():
-        cur = await conn.execute(sql, params)
-        row = await cur.fetchone()
+    cur = await one_statement(conn, sql, params)
+    row = await cur.fetchone()
     if row is None:
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)
@@ -352,6 +352,54 @@ async def set_kill_switch(conn: Conn, *, on: bool, reason: str) -> None:
     """`ops.set_kill_switch(on, reason)`: owner credential only."""
     async with conn.transaction():
         await conn.execute("select ops.set_kill_switch(%s, %s)", (on, reason))
+
+
+# ===================================================================== seeding: case ingest, candidates, allowlist
+# S1 10.5, S2 3.1, S4 2.3; owner credential only (`scripts/seed_hosted.py`). Each wrapper is one idempotent S4
+# function call: a repeated identical call returns the row that already exists rather than erroring (AR003 is a
+# real conflict -- the same name reused with different content -- never a retry).
+
+
+async def ingest_case_family(conn: Conn, bundle: Mapping[str, Any]) -> UUID:
+    """`sealed.ingest_case_family(p_bundle)` (S1 4.4, 10.5; `arena_core.scenario.load.IngestBundle.as_json()`).
+    Idempotent on `family_code`: an identical bundle returns the existing family's id; a `family_code` already
+    ingested with different content raises (AR003, S4's own conflict, not retried here)."""
+    async with conn.transaction():
+        cur = await conn.execute("select sealed.ingest_case_family(%s)", (Jsonb(dict(bundle)),))
+        row = await cur.fetchone()
+    if row is None:
+        msg = "sealed.ingest_case_family returned no row"
+        raise GuardProtocolError(msg)
+    return cast("UUID", row[0])
+
+
+async def register_candidate(conn: Conn, *, kind: str, name: str, version: str, manifest: Mapping[str, Any]) -> UUID:
+    """`arena.register_candidate(kind, name, version, manifest)` (S2 3.1, 3.2). Idempotent on `(kind, name,
+    version)`: the same manifest returns the existing candidate's id; a reused version with a different
+    manifest raises (AR003)."""
+    async with conn.transaction():
+        cur = await conn.execute(
+            "select arena.register_candidate(%s, %s, %s, %s)", (kind, name, version, Jsonb(dict(manifest)))
+        )
+        row = await cur.fetchone()
+    if row is None:
+        msg = "arena.register_candidate returned no row"
+        raise GuardProtocolError(msg)
+    return cast("UUID", row[0])
+
+
+async def allowlist_user(conn: Conn, *, user_id: UUID, email: str) -> None:
+    """One allowlisted investigator (S4 2.3, S5 10.3): an `auth.users` row the operator creates directly, never
+    through Supabase Auth (C-02, C-03 -- the browser never reaches Postgres). `user_id` is
+    `arena_core.identity.user_id_for(email)`, the same mapping the dev-identity middleware and the hosted IAP
+    mapping use, so this row and the allowlist entry (`ARENA_USERS_FILE`, operator-managed, outside this
+    database) name the same actor. Idempotent: a repeated call with the same id is a no-op; a `user_id` already
+    present under a different email is left exactly as it is (no update), since this never deletes or renames
+    an existing allowlisted identity."""
+    async with conn.transaction():
+        await conn.execute(
+            "insert into auth.users (id, email) values (%s, %s) on conflict (id) do nothing", (user_id, email)
+        )
 
 
 # ======================================================================================= observability mirror

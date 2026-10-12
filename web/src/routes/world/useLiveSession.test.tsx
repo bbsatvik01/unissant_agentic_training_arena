@@ -35,10 +35,14 @@ function api(overrides: Partial<ArenaApi>): ArenaApi {
     caseBrief: refuse,
     startSession: refuse,
     leaderboard: refuse,
+    tournaments: refuse,
+    tournament: refuse,
+    tournamentEvents: refuse,
     me: refuse,
     ackEx4: refuse,
     progress: refuse,
     recording: refuse,
+    speak: refuse,
     ...overrides,
   };
 }

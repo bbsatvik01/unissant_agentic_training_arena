@@ -17,6 +17,7 @@ import type {
   EvidenceRequest,
   EvidenceResult,
   FindingCommit,
+  TournamentPoll,
   TrialSnapshot,
   SessionCreate,
   TurnSubmit,
@@ -143,10 +144,19 @@ export interface ArenaApi {
   progress: () => Promise<unknown>;
   /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
   recording: (trialId: string) => Promise<unknown>;
+  /** `POST /api/tts {voice, text}`: one line's WAV audio in a prebuilt Gemini voice, and whether it is the server's
+   * silence (its fake mode) rather than speech. */
+  speak: (voice: string, text: string) => Promise<{ readonly audio: ArrayBuffer; readonly silent: boolean }>;
   /** `GET /api/me`: identity, the EX-4 acknowledgement and the KPI-1 study status. */
   me: () => Promise<Me>;
   /** `POST /api/me/ack-ex4`: store the EX-4 acknowledgement (once per user); resolves to its time. */
   ackEx4: () => Promise<string>;
+  /** `GET /api/tournaments`: the tournament list (read with `parseTournamentList`). */
+  tournaments: () => Promise<unknown>;
+  /** `GET /api/tournaments/{id}`: its state and progress counts (read with `parseTournamentStatus`). */
+  tournament: (tournamentId: string) => Promise<unknown>;
+  /** `GET /api/tournaments/{id}/events?after=`: one poll on the global ledger cursor, checked against its schema. */
+  tournamentEvents(tournamentId: string, after: number): Promise<TournamentPoll>;
   /** `GET /api/leaderboards/{tournament_id}?board=`: the published board body verbatim (WP-16), read with `parseBoard`. */
   leaderboard(tournamentId: string, board: "assistant" | "subject", label?: "original" | "corrected"): Promise<unknown>;
 }
@@ -221,6 +231,7 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       return brief;
     },
     me: () => client.me(),
+    speak: (voice, text) => client.postAudio("/api/tts", { voice, text }),
     progress: () => client.get("/api/progress"),
     recording: (trialId) => client.get(`/api/trials/${id(trialId)}/recording`),
     async ackEx4() {
@@ -228,6 +239,12 @@ export function createArenaApi(client: ApiClient): ArenaApi {
       const answer = await client.post(path);
       if (!isRecord(answer) || !isText(answer["ex4_acknowledged"])) throw new ContractError(path, "the acknowledgement");
       return answer["ex4_acknowledged"];
+    },
+    tournaments: () => client.get("/api/tournaments"),
+    tournament: (tournamentId) => client.get(`/api/tournaments/${id(tournamentId)}`),
+    async tournamentEvents(tournamentId, after) {
+      const path = `/api/tournaments/${id(tournamentId)}/events?after=${String(after)}`;
+      return checked("tournament-poll", path, await client.get(path));
     },
     async leaderboard(tournamentId, board, label) {
       return client.get(`/api/leaderboards/${id(tournamentId)}?board=${board}${label === undefined ? "" : `&label=${label}`}`);

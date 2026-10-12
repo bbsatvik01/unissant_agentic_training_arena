@@ -1,13 +1,13 @@
 /**
  * The admin console (S6 4.13), on the referee origin: the kill switch, read-only, with the owner's command beside
  * it; the budget rows (ceiling, liability, open reservations, headroom); and the tournaments, each with the one
- * transition its state allows. Reveal lists the server's preconditions and is enabled only when every one passes
+ * transition its state allows, its progress per track and block (counts only) and its open reviews. Reveal lists the server's preconditions and is enabled only when every one passes
  * (FE-ADM-2). No infra control (workers, instances, timeouts, health checks) and no ceiling editor appear here.
  * A section whose route the server does not offer yet says so.
  */
 import { useState } from "react";
 
-import type { AdminAction, AdminTournament, BudgetRow, Precondition, ValidityReview } from "../../lib/console/admin";
+import type { AdminAction, AdminTournament, BudgetRow, CompliancePacket, ProgressCount, TournamentDetail, ValidityReview } from "../../lib/console/admin";
 import { killSwitchOf, nextAction, revealAllowed, reviewable } from "../../lib/console/admin";
 import { ContentView } from "./TrainerConsole";
 
@@ -16,8 +16,8 @@ export type Section<T> = { readonly state: "loading" } | { readonly state: "miss
 interface AdminConsoleProps {
   readonly budget: Section<readonly BudgetRow[]>;
   readonly tournaments: Section<readonly AdminTournament[]>;
-  /** Preconditions by tournament id, for tournaments in scoring. */
-  readonly preconditions: Readonly<Record<string, readonly Precondition[] | null>>;
+  /** Each tournament's detail by id (progress, open reviews, reveal preconditions); absent while loading. */
+  readonly details: Readonly<Record<string, Section<TournamentDetail>>>;
   readonly reviews: Section<readonly ValidityReview[]>;
   readonly busy: string | null;
   readonly message: string | null;
@@ -25,7 +25,146 @@ interface AdminConsoleProps {
   readonly onVerdict: (review: ValidityReview, verdict: "valid" | "subject_invalid", reason: string) => void;
 }
 
-function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: number; busy: boolean; onVerdict: AdminConsoleProps["onVerdict"] }) {
+const TRACK_LABEL: Readonly<Record<ProgressCount["track"], string>> = { interactive: "Interactive", replay: "Replay", replay_corpus: "Replay corpus" };
+
+function ProgressTable({ rows }: { rows: readonly ProgressCount[] }) {
+  if (rows.length === 0) return <p className="fine">No planned trials.</p>;
+  return (
+    <table className="board progress-counts">
+      <caption className="fine">Progress by track and block: counts only</caption>
+      <thead>
+        <tr>
+          <th scope="col">Track</th>
+          <th scope="col">Block</th>
+          <th scope="col">Planned</th>
+          <th scope="col">Running</th>
+          <th scope="col">Ended</th>
+          <th scope="col">By state</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={`${r.track}-${String(r.block)}`}>
+            <td>{TRACK_LABEL[r.track]}</td>
+            <td className="mono">{r.block ?? "none"}</td>
+            <td className="mono">{r.planned}</td>
+            <td className="mono">{r.running}</td>
+            <td className="mono">{r.ended}</td>
+            <td>{r.states.length === 0 ? "none yet" : r.states.map((x) => `${x.state} ${String(x.n)}`).join(", ")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Ids({ ids }: { ids: readonly string[] }) {
+  return <span className="mono">{ids.join(", ")}</span>;
+}
+
+/** The private packet the subject was given, which compliance is judged against (S3 4.2 item 2). The facts the
+ * referee says a turn contradicts are marked. */
+function PacketView({ packet, violated }: { packet: CompliancePacket; violated: ReadonlySet<string> }) {
+  const relevant = new Set(packet.relevantActions);
+  return (
+    <div className="review-packet">
+      <h4 className="eyebrow">Private packet{packet.role === null ? "" : `: ${packet.role} role`}</h4>
+      {packet.persona === null ? null : (
+        <p>
+          <strong>{packet.persona.name}</strong>, {packet.persona.position}
+          {packet.persona.unit === null ? "" : `, ${packet.persona.unit}`}
+          {packet.persona.organization === "" ? "" : `, ${packet.persona.organization}`}
+          {packet.persona.tenureYears === null ? "" : `, ${String(packet.persona.tenureYears)} year${packet.persona.tenureYears === 1 ? "" : "s"} in post`}. <span className="fine">{packet.persona.background}</span>
+        </p>
+      )}
+      {packet.matter === null ? null : (
+        <p className="fine">
+          <strong>Matter:</strong> {packet.matter}
+        </p>
+      )}
+      {packet.objective === null ? null : (
+        <p className="fine">
+          <strong>Instruction:</strong> {packet.objective}
+        </p>
+      )}
+      {packet.facts.length === 0 ? null : (
+        <table className="board packet-facts">
+          <caption className="fine">Facts the subject holds; a contradicted fact is one the referee says a turn contradicts, a relevant action one of the subject&apos;s own actions in the matter</caption>
+          <thead>
+            <tr>
+              <th scope="col">Fact</th>
+              <th scope="col">Class</th>
+              <th scope="col">Text</th>
+              <th scope="col">Certainty</th>
+              <th scope="col">Opened by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {packet.facts.map((f) => (
+              <tr key={f.id} data-violated={violated.has(f.id) ? "true" : "false"}>
+                <td className="mono">
+                  {f.id}
+                  {violated.has(f.id) ? " (contradicted)" : ""}
+                  {relevant.has(f.id) ? " (relevant action)" : ""}
+                </td>
+                <td className="mono">{f.cls}</td>
+                <td>{f.text}</td>
+                <td>{f.certainty ?? ""}</td>
+                <td className="mono">{f.gate ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {packet.gates.length === 0 ? null : (
+        <ul className="fine">
+          {packet.gates.map((g) => (
+            <li key={g.id}>
+              <span className="mono">{g.id}</span> {g.condition} Opens <Ids ids={g.opens} />
+              {g.level === null ? "" : `; evidence level ${String(g.level)} or above`}; unlocked once any one of <Ids ids={g.records} /> is released.
+            </li>
+          ))}
+        </ul>
+      )}
+      {packet.unknown.length === 0 ? null : (
+        <ul className="fine">
+          {packet.unknown.map((u) => (
+            <li key={u.fact_id}>
+              <span className="mono">{u.fact_id}</span> {u.text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {packet.uncertainty.length === 0 ? null : (
+        <ul className="fine">
+          {packet.uncertainty.map((u) => (
+            <li key={u.id}>
+              <span className="mono">{u.id}</span> on <span className="mono">{u.fact_id}</span>
+              {u.form === null ? "" : ` (answer as ${u.form === "range" ? "a range" : u.form})`}: {u.text}
+              {u.range === null ? "" : ` Allowed answer: ${u.range}`}
+            </li>
+          ))}
+        </ul>
+      )}
+      {packet.assertions.length === 0 ? null : (
+        <ul className="fine">
+          {packet.assertions.map((a) => (
+            <li key={a.id}>
+              <span className="mono">{a.id}</span> Must never say: &quot;{a.text}&quot; (contradicts <span className="mono">{a.contradicts}</span>)
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="fine">
+        Allowed: {packet.permitted.length === 0 ? "none" : packet.permitted.join(", ")}. Forbidden: {packet.forbidden.length === 0 ? "none" : packet.forbidden.join(", ")}.
+        {packet.style.length === 0 ? "" : ` Style: ${packet.style.map((x) => `${x.axis} ${x.level}`).join(", ")}.`}
+        {packet.maxExchanges === null ? "" : ` At most ${String(packet.maxExchanges)} exchanges.`}
+      </p>
+    </div>
+  );
+}
+
+function ReviewRow({ review, n, tournament, busy, onVerdict }: { review: ValidityReview; n: number; tournament: string | null; busy: boolean; onVerdict: AdminConsoleProps["onVerdict"] }) {
   const [reason, setReason] = useState("");
   const ready = reviewable(review);
   const blocked = busy || !ready || reason.trim() === "";
@@ -33,6 +172,7 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
     <div className="console-tournament">
       <p>
         <strong>Trial {n}</strong> <span className="fine">automatic proposal: {review.proposed === null ? "none" : review.proposed.replace("_", " ")}</span>
+        {tournament === null ? null : <span className="fine"> in {tournament}</span>}
       </p>
       {review.reasons.length === 0 ? null : (
         <ul className="checks">
@@ -68,7 +208,8 @@ function ReviewRow({ review, n, busy, onVerdict }: { review: ValidityReview; n: 
             <ContentView content={r.content} />
           </div>
         ))}
-        {review.facts.length === 0 ? null : (
+        {review.packet !== null ? <PacketView packet={review.packet} violated={new Set(review.evidence.flatMap((e) => e.violated_fact_ids))} /> : null}
+        {review.packet !== null || review.facts.length === 0 ? null : (
           <ul>
             {review.facts.map((f) => (
               <li key={f.id}>
@@ -129,7 +270,7 @@ function Unavailable({ section }: { section: Section<unknown> }) {
   return null;
 }
 
-export function AdminConsole({ budget, tournaments, preconditions, reviews, busy, message, onAction, onVerdict }: AdminConsoleProps) {
+export function AdminConsole({ budget, tournaments, details, reviews, busy, message, onAction, onVerdict }: AdminConsoleProps) {
   const kill = budget.state === "ready" ? killSwitchOf(budget.value) : null;
   return (
     <main className="console-admin">
@@ -187,7 +328,11 @@ export function AdminConsole({ budget, tournaments, preconditions, reviews, busy
           <p className="fine">Blinded: the coach, its cards and its finding are not shown, so a verdict cannot depend on them. Every verdict needs a reason and cites the referee&apos;s report.</p>
           <Unavailable section={reviews} />
           {reviews.state === "ready" && reviews.value.length === 0 ? <p className="empty">No reviews waiting.</p> : null}
-          {reviews.state === "ready" ? reviews.value.map((r, i) => <ReviewRow key={r.trial_id} review={r} n={i + 1} busy={busy !== null} onVerdict={onVerdict} />) : null}
+          {reviews.state === "ready"
+            ? reviews.value.map((r, i) => (
+                <ReviewRow key={r.trial_id} review={r} n={i + 1} tournament={tournaments.state === "ready" ? (tournaments.value.find((t) => t.id === r.tournament_id)?.name ?? null) : null} busy={busy !== null} onVerdict={onVerdict} />
+              ))
+            : null}
         </div>
       </section>
       <section className="panel console-card" aria-labelledby="tour-title">
@@ -205,13 +350,23 @@ export function AdminConsole({ budget, tournaments, preconditions, reviews, busy
           {tournaments.state === "ready"
             ? tournaments.value.map((t) => {
                 const next = nextAction(t.status);
-                const pre = preconditions[t.id] ?? null;
+                const section = details[t.id] ?? { state: "loading" };
+                const detail = section.state === "ready" ? section.value : null;
+                const pre = detail?.preconditions ?? null;
                 const blocked = next?.action === "reveal" && !revealAllowed(pre);
                 return (
                   <div key={t.id} className="console-tournament">
                     <p>
                       <strong>{t.name}</strong> <span className="fine">{t.split} split, {t.status}</span>
+                      {detail?.reviewQueue === null || detail?.reviewQueue === undefined ? null : (
+                        <span className="fine">
+                          , {detail.reviewQueue === 0 ? "no reviews waiting" : `${String(detail.reviewQueue)} review${detail.reviewQueue === 1 ? "" : "s"} waiting`}
+                        </span>
+                      )}
                     </p>
+                    {section.state === "missing" ? <p className="fine">The server does not offer this tournament&apos;s detail yet.</p> : null}
+                    {section.state === "error" ? <p className="fine">This tournament&apos;s detail could not be read.</p> : null}
+                    {detail?.progress === null || detail?.progress === undefined ? null : <ProgressTable rows={detail.progress} />}
                     {next?.action === "reveal" ? (
                       <ul className="checks">
                         {pre === null ? <li>The server has not reported the reveal preconditions.</li> : null}

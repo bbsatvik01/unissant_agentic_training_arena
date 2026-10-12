@@ -68,6 +68,8 @@ export function parseRecording(raw: unknown): RecordingResult {
   errors.push(...caseErrors(raw["case"]));
   if (!isWire("snapshot", raw["snapshot"])) errors.push("snapshot: fails the snapshot wire schema");
   const events = raw["events"];
+  // A harness (tournament) trial's export also carries a replay trial's own `source_unavailable` end (C-45).
+  const frameSchema = isObject(raw["snapshot"]) && raw["snapshot"]["mode"] === "harness" ? "harness-events" : "events";
   if (!Array.isArray(events) || events.length === 0) errors.push("events: must be a non-empty list");
   else {
     let last = 0;
@@ -81,7 +83,7 @@ export function parseRecording(raw: unknown): RecordingResult {
       if (typeof at !== "number" || !Number.isFinite(at) || at < last) errors.push(`${where}: at_ms must be a number at or after the previous one`);
       else last = at;
       const frame = event["frame"];
-      if (!isWire("events", frame)) errors.push(`${where}: frame fails the events wire schema`);
+      if (!isWire(frameSchema, frame)) errors.push(`${where}: frame fails the ${frameSchema} wire schema`);
       else if (frame.scope_id !== trialId) errors.push(`${where}: frame belongs to another trial`);
     });
   }

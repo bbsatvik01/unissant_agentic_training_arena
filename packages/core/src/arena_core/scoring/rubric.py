@@ -77,6 +77,201 @@ CEILING: dict[str, dict[str, tuple[int, bool]]] = {
 }
 HIGH_CONFIDENCE_MIN_S = 2
 
+# ---------------------------------------------------------------- rubric.v1's own text (S3 2.3-2.7), canonical
+
+# The five dimensions' display names (S3 2.3-2.7 headings: "Dimension N: <name>"), the 22 checks' names, their
+# "Applicable" cell (verbatim; None for "Always") and their "Passes when" cell (verbatim), and each dimension's
+# five anchors (index 0..4, S3's "Score | Anchor" tables, reordered ascending). This is rubric.v1's content as
+# spec S3 v2.8 defines it -- the single source `arena_core.agents.rubric.canonical_rubric` reads to build the
+# `Rubric` the referee prompt renders (S2 7.3, 7.4), replacing the development placeholder (`services/referee`'s
+# former `default_dev_rubric`) now that S3 publishes it. A parser test over the spec's own markdown tables
+# (`packages/core/tests/scoring/test_rubric_spec_text.py`) asserts every dict here matches its table cell
+# verbatim, so the spec and this module cannot drift apart. `CHECK_DETERMINED_BY` is documentation only (the
+# dispatch in `question_checks`/`closure_checks` below already encodes "who judges" structurally) but is kept
+# here and checked too, so all four S3 columns stay honest in one place.
+DIMENSION_NAMES: dict[str, str] = {
+    "D1": "clarity and neutrality",
+    "D2": "response relevance",
+    "D3": "evidence-based follow-up",
+    "D4": "testing alternative explanations",
+    "D5": "supported closure",
+}
+CHECK_NAME: dict[str, str] = {
+    "1a": "No leading or suggestive question",
+    "1b": "Open or probing share",
+    "1c": "No poorly framed question",
+    "1d": "No loaded or demeanor wording",
+    "2a": "Presses evasion",
+    "2b": "Respects uncertainty",
+    "2c": "On objective",
+    "2d": "Builds on answers",
+    "3a": "Names the gap",
+    "3b": "Checkable detail",
+    "3c": "Uses released records",
+    "3d": "Account before disclosure",
+    "3e": "Raises contradictions",
+    "4a": "Invites explanation",
+    "4b": "Tests offered explanations",
+    "4c": "Discriminating question",
+    "4d": "No premature conclusion",
+    "5a": "Committed and cited",
+    "5b": "Citations hold",
+    "5c": "Content basis",
+    "5d": "Calibrated confidence",
+    "5e": "Names corroboration",
+}
+CHECK_APPLICABILITY: dict[str, str | None] = {
+    "1a": None,
+    "1b": None,
+    "1c": None,
+    "1d": None,
+    "2a": "N/A unless an answer is labeled EVA",
+    "2b": "N/A unless an answer is labeled UNC",
+    "2c": None,
+    "2d": None,
+    "3a": None,
+    "3b": None,
+    "3c": "N/A unless a record is released before the last question",
+    "3d": "N/A unless a question discloses a record's content",
+    "3e": (
+        "N/A unless R1 (or R3's R1-mode call) reports a contradiction trigger (1.3.2) before the last question "
+        "(for a turn-document pair, both the turn and the document's availability: exchange 0 for an initial "
+        "document, its release for a record)"
+    ),
+    "4a": None,
+    "4b": "N/A unless a subject turn has `innocent_explanation_offered`",
+    "4c": None,
+    "4d": None,
+    "5a": None,
+    "5b": "N/A unless 5a found citations",
+    "5c": None,
+    "5d": None,
+    "5e": "N/A unless the label is `insufficient_evidence`",
+}
+CHECK_PASSES_WHEN: dict[str, str] = {
+    "1a": "No question presupposes a contested fact or signals the wanted answer",
+    "1b": "At least 60% of questions are typed open or probing",
+    "1c": (
+        "No question is compound, has an ambiguous referent, a double negative or undefined jargon; **and** no "
+        "question's answer is labeled PFQ (automatic fail, S3-D4)"
+    ),
+    "1d": "No hostile or loaded wording; no reference to nervousness, demeanor, accent, fluency, appearance or tone",
+    "2a": (
+        "Every EVA answer is followed within the next two questions by a question that asks again for the "
+        "withheld fact in different, neutral words"
+    ),
+    "2b": "No later question demands the same unknown fact again without a new retrieval cue or new evidence",
+    "2c": (
+        "Every question concerns the investigation objective or something the subject or a released record introduced"
+    ),
+    "2d": "At least half of the questions after the first build on content in the immediately preceding answer",
+    "3a": "At least one question asks for a specific fact an earlier answer left missing (the EX-2 pattern)",
+    "3b": (
+        "At least one question asks for an unanticipated, verifiable detail: time, sequence, layout, named "
+        "person or document"
+    ),
+    "3c": "Each released record is followed within the next three questions by a question on the point it bears on",
+    "3d": "Before each such question, an earlier question asked for the subject's own account of the same point",
+    "3e": (
+        "Each reported visible contradiction (two subject turns R1 lists as a conflicting pair, or a statement "
+        "that conflicts on its face with an initial document or a released record) is raised by a later neutral "
+        "question; a contradiction of a hidden canonical fact is not something the investigator can see and "
+        "never makes 3e applicable (SG2-37)"
+    ),
+    "4a": "At least one question openly invites the subject to explain a circumstance that could look suspicious",
+    "4b": (
+        "Each innocent explanation is followed within the next three questions by a question seeking a "
+        "checkable detail that could corroborate or refute it"
+    ),
+    "4c": (
+        "At least one question seeks a detail whose answer would differ between the innocent and the culpable "
+        "account of the key event"
+    ),
+    "4d": "No question asserts or presupposes guilt or innocence before closure",
+    "5a": (
+        "A finding in the allowed form exists and its stored `cited_turns` or `cited_records` is non-empty: the "
+        "finding's own citations, adverse or corroborating, plus those of its basis flags (1.3.1, S2 4.8)"
+    ),
+    "5b": (
+        "Every citation exists (code: S2 4.4.1 `finding_citation_ok`, a committed non-partial answer, or an "
+        "initial document or released record) and supports the finding as its label and rationale state it "
+        "(referee: `citations[].supports_basis`)"
+    ),
+    "5c": (
+        "The basis (`rationale`) rests on content (statement-evidence inconsistency, contradiction, "
+        "corroboration), not on demeanor, style or evasive wording alone (EX-4)"
+    ),
+    "5d": "The likelihood term and analytic confidence respect the ceiling table below",
+    "5e": "At least one `corroboration_needed` entry names a specific record, person or timeline check",
+}
+CHECK_DETERMINED_BY: dict[str, str] = {
+    "1a": "R2/R3 per question (`not_leading`); code: pass when all are true",
+    "1b": "Code over R2/R3 types",
+    "1c": "R2/R3 per question (`well_framed`), then code override",
+    "1d": "Lexicon pre-screen, then R2/R3 per question (`no_loaded_wording`)",
+    "2a": "Code finds triggers from labels; R2/R3 judges each pair",
+    "2b": "Code finds triggers; R2/R3 judges",
+    "2c": "R2/R3 per question (`on_objective`); code: pass when all are true",
+    "2d": "R2/R3 per question (`builds_on_previous`), code computes the share (OQ-11 closed)",
+    "3a": "R2/R3",
+    "3b": "R2/R3",
+    "3c": "Code finds releases; R2/R3 judges",
+    "3d": "R2/R3",
+    "3e": "Code finds triggers; R2/R3 judges",
+    "4a": "R2/R3",
+    "4b": "Code finds triggers; R2/R3 judges",
+    "4c": "R2/R3",
+    "4d": "R2/R3",
+    "5a": "Code",
+    "5b": "Code then R2/R3 per citation",
+    "5c": "Lexicon (`demeanor_in_rationale`) then R2/R3",
+    "5d": "Code",
+    "5e": "R2/R3",
+}
+DIMENSION_ANCHORS: dict[str, tuple[str, str, str, str, str]] = {
+    "D1": (
+        "Questioning is dominated by leading, compound or closed questions and refers to the subject's demeanor "
+        '("You seem nervous...").',
+        "Three kinds of lapse; the interview leans on closed and leading questions.",
+        "Two kinds of lapse, for example several closed questions and one leading question.",
+        "One kind of lapse, for example one compound question in an otherwise clean, open interview.",
+        'Every question is a single neutral ask; most invite a narrative ("Walk me through...", "What task '
+        'required entry?"); nothing suggests an answer or comments on how the subject sounds.',
+    ),
+    "D2": (
+        "No visible connection between answers and the next question, or questions drift from the objective.",
+        "Mostly ignores answers; repeats demands the subject has said they cannot meet.",
+        "Questions often read like a prepared list that ignores what was just said.",
+        "Tracks answers well with one lapse, for example lets one evasive answer pass.",
+        "Each question picks up the last answer; a non-answer is met with a neutral rephrase of the same ask; "
+        '"I don\'t know" is accepted or helped with a cue, not hammered.',
+    ),
+    "D3": (
+        "No question uses the answers' content or the records.",
+        "Little use of evidence; records are read out as accusations.",
+        "Uses evidence sometimes; discloses a record before asking for the account, or asks only general questions.",
+        "Evidence-led with one omission, for example a contradiction left unraised.",
+        "Names what is missing, asks for checkable specifics, lets the subject commit to an account before "
+        "showing a record, and puts every inconsistency to the subject neutrally.",
+    ),
+    "D4": (
+        "Confession-seeking: every question presupposes the violation.",
+        "Treats one reading as settled for most of the interview.",
+        "Asks for explanations but never checks them, or checks them while presupposing guilt.",
+        "Tests alternatives with one lapse, for example one presupposing question.",
+        "Treats the after-hours entry as unexplained, asks the subject to explain it, then asks which panel they "
+        "touched, a detail that differs between the two accounts.",
+    ),
+    "D5": (
+        "No finding, or a confident finding with no content basis.",
+        "A finding with a citation but resting on how the subject came across.",
+        "A finding with citations that only partly support it.",
+        "Supported and cited, with one weakness, for example confidence one step too strong.",
+        '"Insufficient evidence, roughly even chance: turn 4 conflicts with the panel log; verify the Lab C '
+        'panel log and the work-order system."',
+    ),
+}
+
 
 def definition_text() -> str:
     """The canonical text the rubric definition hash covers: check IDs and wording, applicability, windows,
@@ -115,13 +310,30 @@ class RubricConfig:
     model_ids: tuple[str, ...]
 
 
-# The configured inputs. The demeanor lexicon is WP-11's `demeanor_lexicon.v1` (S2 4.4), read from the one module that
-# holds it, so a lexicon change changes this value and needs a lineage entry. The frozen referee prompts are not
-# authored yet (they arrive with the referee prompt work): empty here; the work package that adds them changes this
-# value and must append a lineage entry, or the tripwire fails.
+# The configured inputs. The demeanor lexicon is WP-11's `demeanor_lexicon.v1` (S2 4.4), read from the one module
+# that holds it, so a lexicon change changes this value and needs a lineage entry. `prompt_texts` now carries
+# rubric.v1's own published text (S3 2.3-2.7): every dimension's name and five anchors, and every check's name,
+# "Applicable" cell and "Passes when" cell -- every field `arena_core.agents.rubric.canonical_rubric` renders
+# into the referee prompt (S2 7.3; a check's name is part of its rendered `text`, Codex round 1), replacing the
+# placeholder that used to leave this empty (WP-rubric-v1); editing any of them here therefore changes this
+# value and needs a lineage entry below, same as the lexicon. The referee system/user prompt template FILES
+# (`prompts/referee/*.txt`) are a separate, still-unbound input (pre-existing gap, not introduced by this
+# change): a future work package that binds them must also append an entry.
 CONFIG = RubricConfig(
     lexicon_text=demeanor_lexicon_text(),
-    prompt_texts=(),
+    prompt_texts=(
+        *(f"dimension_name|{dim}|{name}" for dim, name in DIMENSION_NAMES.items()),
+        *(
+            f"check|{cid}|{CHECK_NAME[cid]}|{CHECK_APPLICABILITY.get(cid) or 'Always'}|{CHECK_PASSES_WHEN[cid]}"
+            for ids in CHECKS.values()
+            for cid in ids
+        ),
+        *(
+            f"anchor|{dim}|{score}|{text}"
+            for dim, anchors in DIMENSION_ANCHORS.items()
+            for score, text in enumerate(anchors)
+        ),
+    ),
     model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"),
 )
 
@@ -145,6 +357,20 @@ LINEAGE: tuple[LineageEntry, ...] = (
         supersedes="14323cee9fa5b0445fd8a11f6c706266bbfb7bd8a39856092347fb47725a5a8d",
         date="2026-10-11",
         note="demeanor_lexicon.v1 (S2 4.4) bound into the rubric hash (WP-11); referee prompts not yet authored",
+    ),
+    LineageEntry(
+        sha256="0e2f179ec7fb8c6e8b64e180a7b74bbd17a1ae2f86a1ab2c920dd5b17ec3f0c5",
+        supersedes="17b16e3f2c8720fa4a44bdda257837b9382bc4aeaf4ac277aa1fb8a791d3b6b7",
+        date="2026-10-12",
+        note=(
+            "rubric.v1's 22 checks (name, applicability and pass condition) and five dimensions' names and"
+            " anchors published verbatim from S3 2.3-2.7 (WP-rubric-v1), replacing the development placeholder"
+            " (`services/referee`'s former `default_dev_rubric`); bound into the hash via CONFIG.prompt_texts"
+            " (round 1: check and dimension names added after a Codex finding that the first cut hashed only"
+            " the applicability and pass-condition text, not the names `canonical_rubric` also renders)."
+            " Referee system/user prompt template files are still not bound (pre-existing gap, tracked"
+            " separately)."
+        ),
     ),
 )
 

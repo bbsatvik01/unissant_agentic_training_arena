@@ -28,11 +28,19 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import TrialFrame
+from arena_core.contracts.events import HarnessFrame, TournamentFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
 _FRAMES: TypeAdapter[TrialFrame] = TypeAdapter(TrialFrame)
+# A harness trial's export (D-021) also carries a replay trial's `source_unavailable` end (`HarnessFrame`).
+_HARNESS_FRAMES: TypeAdapter[HarnessFrame] = TypeAdapter(HarnessFrame)
+
+
+def _frames(viewer: Viewer | None) -> TypeAdapter[Any]:
+    return _HARNESS_FRAMES if viewer is not None and viewer.mode == "harness" else _FRAMES
+
+
 _SNAPSHOT: TypeAdapter[TrialSnapshot] = TypeAdapter(TrialSnapshot)
 
 
@@ -65,15 +73,26 @@ class StoredEvent:
 @dataclass(frozen=True)
 class Viewer:
     """The trial's owner, as the stream sees them: whether the trial has ended (debrief rows open then), and the
-    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known)."""
+    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known).
+
+    `internal_visible` is never set by a browser-facing surface (every `internal` row stays hidden from any
+    investigator or judge, S5 6.1): it exists only for the D-021 recording export of a tournament trial
+    (`arena_tournament`, WP-17), whose turn and coaching events are *all* `internal` visibility (S4 `_emit`),
+    and which the database's own `arena.trial_visible` already gated before any row reached this module (a
+    dev-split trial, or a hidden one after reveal) -- this flag reads that same database decision, not a new
+    one."""
 
     trial_ended: bool
-    mode: Literal["practice", "assessment"] = "assessment"
+    mode: Literal["practice", "assessment", "harness"] = "assessment"
+    internal_visible: bool = False
 
 
 def _visible(row: StoredEvent, viewer: Viewer) -> bool:
-    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never."""
-    return row.visibility == "live" or (row.visibility == "debrief" and viewer.trial_ended)
+    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never -- except
+    for the D-021 export viewer, which the database has already restricted to a dev or revealed tournament."""
+    if row.visibility == "internal":
+        return viewer.internal_visible
+    return row.visibility == "live" or viewer.trial_ended  # the remaining case is "debrief"
 
 
 def _question(row: StoredEvent) -> list[tuple[str, dict[str, Any], int | None]]:
@@ -165,8 +184,10 @@ _MAPPING: dict[str, Callable[[StoredEvent], list[tuple[str, dict[str, Any], int 
 }
 
 
-def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> TrialFrame:
-    return _FRAMES.validate_python(
+def _frame(
+    row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None, viewer: Viewer | None = None
+) -> TrialFrame:
+    frame: TrialFrame = _frames(viewer).validate_python(
         {
             "v": 1,
             "seq": seq,
@@ -178,6 +199,7 @@ def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | No
             "data": data,
         }
     )
+    return frame
 
 
 def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> bytes:
@@ -237,8 +259,8 @@ def _projected(rows: list[StoredEvent], viewer: Viewer) -> list[tuple[StoredEven
         if mapping is None:
             msg = f"event {row.seq}: unknown event kind {row.kind!r}"
             raise ValueError(msg)
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in mapping(row))
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in mapping(row))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
     return out
 
 
@@ -279,17 +301,23 @@ def notice_message(trial_id: str, ts: str, version: int, kind: Literal["paused",
 
 
 def recording_events(
-    rows: list[StoredEvent], mode: Literal["practice", "assessment"], start_ms: float
+    rows: list[StoredEvent],
+    mode: Literal["practice", "assessment", "harness"],
+    start_ms: float,
+    *,
+    internal_visible: bool = False,
 ) -> list[dict[str, Any]]:
     """D-021: the frames the session's owner saw live, in order, each with `at_ms` from the session start. Each
     row is projected as it arrived (no lookahead), so the hint frames are where the live stream put them, and
-    debrief-only rows (assessment coaching) stay out, as they did during the session."""
-    live = Viewer(trial_ended=False, mode=mode)
+    debrief-only rows (assessment coaching) stay out, as they did during the session. `internal_visible` is
+    the tournament export's own case (`harness` mode): every row of such a trial is `internal`, so without it
+    nothing would ever be visible (`Viewer`'s own docstring)."""
+    live = Viewer(trial_ended=False, mode=mode, internal_visible=internal_visible)
     out: list[dict[str, Any]] = []
     for row in rows:
         for _, frame in _projected([row], live):
             at = max(0, round(_epoch_ms(row.created_at) - start_ms))
-            out.append({"at_ms": at, "frame": _FRAMES.dump_python(frame, mode="json")})
+            out.append({"at_ms": at, "frame": _frames(live).dump_python(frame, mode="json")})
     return out
 
 
@@ -304,7 +332,7 @@ class TrialState:
     trial_id: str
     status: str
     reason_code: str | None
-    mode: Literal["practice", "assessment"]
+    mode: Literal["practice", "assessment", "harness"]
     exchanges_cap: int
     public_packet: Mapping[str, Any]
 
@@ -331,7 +359,7 @@ def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict
     commitment: str | None = None
     last_seq = 0
     for row, frame in _projected(rows, viewer):
-        data = _FRAMES.dump_python(frame, mode="json")["data"]
+        data = _frames(viewer).dump_python(frame, mode="json")["data"]
         last_seq = max(last_seq, row.seq) if _visible(row, viewer) else last_seq
         if frame.type == "question.accepted":
             turns[data["turn_no"]] = {
@@ -392,3 +420,150 @@ def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict
     }
     dumped: dict[str, Any] = _SNAPSHOT.dump_python(_SNAPSHOT.validate_python(body), mode="json")
     return dumped
+
+
+# ---------------------------------------------------------------- tournament scope (polled; S5 6.2, S6 4.9, 5.3)
+
+_TOURNAMENT_FRAMES: TypeAdapter[TournamentFrame] = TypeAdapter(TournamentFrame)
+# Every S4 tournament-lifecycle `ledger.append_event` type (`tournament_ledger.sql`) that becomes
+# `tournament.status`, to the state it reports.
+_TOURNAMENT_STATUS: dict[str, str] = {
+    "tournament_created": "draft",
+    "roster_frozen": "frozen",
+    "tournament_running": "running",
+    "tournament_sealed": "sealed",
+    "tournament_scoring": "scoring",
+    "tournament_revealed": "revealed",
+}
+
+
+@dataclass(frozen=True)
+class LedgerRow:
+    """One `ledger.v_events` row scoped to a tournament (S5 6.2, S6 4.9, 5.3). The caller (`arena_core.db.arena`,
+    never this module's own SQL) joins in what a tournament frame needs beyond the payload: the trial's own
+    planned position (`trial_ref`, an opaque per-tournament ordinal, `arena.planned_trials.position`), its
+    track and block, its pairing for `trial.started` (the registered assistant and subject candidate names,
+    S6 4.9's "A1 x S1"; a replay trial's subject is its corpus source's own, joined through
+    `source_planned_trial_id`), and whether the trial ever actually started (`arena.v_trials.started_at is
+    null`: a `budget_skipped` or `source_unavailable` attempt never reaches S4 `arena.start_trial`, so no
+    `trial_started` row exists for it anywhere in the ledger -- `never_started` lets `tournament_frames`
+    synthesize the one this scope's own contract still requires, S6 4.9's matrix). `trial_ref`, `track`,
+    `block`, `pairing` and `never_started` are all at their default for a tournament-level row (one with no
+    `trial_id` at all, such as `tournament_running`)."""
+
+    seq: int
+    event_type: str
+    trial_id: str | None
+    created_at: str
+    payload: Mapping[str, Any]
+    trial_ref: int | None = None
+    track: str | None = None
+    block: int | None = None
+    pairing: str | None = None
+    never_started: bool = False
+
+
+def _started(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (
+            "trial.started",
+            {
+                "trial_ref": row.trial_ref,
+                "trial_id": row.trial_id,
+                "pairing": row.pairing,
+                "track": row.track,
+                "block": row.block,
+            },
+        )
+    ]
+
+
+def _replay_turn(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [("replay.turn", {"trial_ref": row.trial_ref, "turn_no": row.payload["turn_no"]})]
+
+
+def _trial_finalized(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    """S4 `arena.finalize_trial`'s own success payload already carries `state: "completed"` next to the
+    commitment hash (`tournament_ledger.sql`'s `trial_finalized` append): a completed trial writes no
+    separate `execution_recorded` row, so this is the only place that state ever reaches the ledger, and the
+    matrix needs it exactly as it needs every other terminal state (S6 4.9)."""
+    return [
+        ("trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]}),
+        ("trial.finalized", {"trial_ref": row.trial_ref, "commitment_hash": row.payload["commitment_sha256"]}),
+    ]
+
+
+def _trial_execution(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [("trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]})]
+
+
+# Every ledger `event_type` naming a trial that still carries a tournament-scope frame (S6 5.3), keyed by
+# that name; `_tournament_frames_for` dispatches here once it knows the row's own trial is framed at all.
+_TRIAL_FRAME_BUILDERS: dict[str, Callable[[LedgerRow], list[tuple[str, dict[str, Any]]]]] = {
+    "trial_started": _started,
+    "replay_turn_copied": _replay_turn,
+    "trial_finalized": _trial_finalized,
+    "execution_recorded": _trial_execution,
+}
+# S4 never writes a real `trial_started` row for one of these (arena.start_trial's early-return and
+# arena.record_execution_failure from `planned`, S4 EF-01, EF-09): `execution_recorded` is the only row this
+# trial will ever contribute, so it is also the one row that must open the matrix cell for it.
+_NEVER_STARTED_TERMINAL_EVENT = "execution_recorded"
+
+
+def _tournament_frames_for(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    """The tournament-scope wire types and data for this row, in order (zero, one or two: a terminal row may
+    also need the `trial.started` the ledger never recorded, or carries both an execution state and a
+    finalization). Empty for a row this scope carries no frame for (S6 5.3: "no block-start frame... no
+    referee.labeled or budget.* frame") -- a trial-scope event this tournament trial also wrote
+    (`question_asked`, `evidence_released`, `subject_answered`, ...), a lifecycle or audit row with no wire
+    type (`trial_retry`, `validity_adjudicated`, `manifest_corrected`), or any event of a `replay_corpus`
+    trial, which S6 4.9 shows only as progress counts, dev split or revealed alike, never a wire frame (its
+    corpus producer run stays internal)."""
+    state = _TOURNAMENT_STATUS.get(row.event_type)
+    if state is not None:
+        return [("tournament.status", {"state": state})]
+    if row.trial_ref is None or row.track == "replay_corpus":
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
+    if row.never_started and row.event_type == _NEVER_STARTED_TERMINAL_EVENT:
+        out.extend(_started(row))
+    builder = _TRIAL_FRAME_BUILDERS.get(row.event_type)
+    if builder is not None:
+        out.extend(builder(row))
+    return out
+
+
+def tournament_frames(rows: Iterable[object], tournament_id: str, limit: int = 200) -> tuple[list[dict[str, Any]], int]:
+    """`GET /api/tournaments/{id}/events?after=` (S5 6.2, S6 4.9, 5.3): the tournament's wire frames for these
+    ledger rows (in ascending `seq` order), validated against `TournamentFrame` and dumped -- never a frame
+    object leaves this module -- at most `limit` of them. Returns the frames and the ledger `seq` to resume
+    after: the last row this call actually consumed, whether or not it produced a frame, so a filtered-out
+    row (a trial-scope event, a replay-corpus trial) is never re-read on the next poll. A row's own frames
+    (one or two) are never split across pages: a row that would push the page past `limit` is left entirely
+    for the next call, so its frames are built exactly once, on the call that has room for all of them."""
+    out: list[dict[str, Any]] = []
+    last = 0
+    for row in rows:
+        if not isinstance(row, LedgerRow):
+            msg = f"tournament_frames projects ledger rows, not {type(row).__name__}"
+            raise TypeError(msg)
+        built = _tournament_frames_for(row)
+        if built:
+            if len(out) + len(built) > limit:
+                break
+            for wire_type, data in built:
+                frame = _TOURNAMENT_FRAMES.validate_python(
+                    {
+                        "v": 1,
+                        "seq": row.seq,
+                        "scope": "tournament",
+                        "scope_id": tournament_id,
+                        "type": wire_type,
+                        "ts": row.created_at,
+                        "data": data,
+                    }
+                )
+                out.append(_TOURNAMENT_FRAMES.dump_python(frame, mode="json"))
+        last = row.seq
+    return out, last

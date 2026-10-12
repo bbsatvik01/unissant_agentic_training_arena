@@ -70,7 +70,7 @@ export function ConsoleRoute({ kind }: { kind: "review" | "admin" }) {
           onSubmit={review.send}
         />
       ) : null}
-      {allowed && kind === "admin" ? <AdminConsole budget={admin.budget} tournaments={admin.tournaments} preconditions={admin.preconditions} reviews={admin.reviews} busy={admin.busy} message={admin.message} onAction={admin.act} onVerdict={admin.decide} /> : null}
+      {allowed && kind === "admin" ? <AdminConsole budget={admin.budget} tournaments={admin.tournaments} details={admin.details} reviews={admin.reviews} busy={admin.busy} message={admin.message} onAction={admin.act} onVerdict={admin.decide} /> : null}
       <footer className="console-ex4 fine">{EX4_TEXT}</footer>
     </div>
   );

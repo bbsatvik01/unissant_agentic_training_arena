@@ -79,3 +79,12 @@
 - f77c5b0 merge UI stage 4 (trust center, debrief export, judge demo)
 - fdad8fa merge api UI routes (progress/KPI-1, EX-4 server check, /api/admin, referee bundle)
 - b141662 merge trust routes + assessment recording final snapshot
+- 79b2182 merge UI stage 5 (Gemini TTS route, inactive pending owner spend rows; hub life)
+- 6ea8e1b merge WP-17 tournament job + demo tournament CLI
+- 3bd02cc merge hosted seeding + real smoke; 2026-10-12 hosted Supabase seeded (F01-F09, A1-A3, S1-S3, dev@arena.local); FIRST REAL GEMINI CALL: gemini-3.1-flash-lite subject.answer on F01, 2 attempts, $0.0016, 1.4-1.7 s; reply quarantined G0_schema after repair (to debug)
+- b146540 merge UI stage 6 (tournament matrix poll + cell replay, admin progress + validity packet)
+- 175bd66 merge real pilot: real Gemini end to end on hosted Supabase (4 full 12-turn interviews, real debrief, recordings/real-F01.json; $0.30)
+- 344d5ff merge rubric.v1 (22 checks verbatim from S3; spec-parity test)
+- 94a693b merge DB latency fix (pool + pipelined statements; per-call 841->69 ms)
+- a5d7f8a merge tournament routes + isolation reports; local dev tournament revealed end to end
+- 988b377 merge UI stage 7 (standings wall, retried-trial fix)

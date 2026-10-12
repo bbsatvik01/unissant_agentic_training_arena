@@ -26,7 +26,14 @@ from arena_core.agents.views import (
     visible_releases_through,
 )
 from arena_core.contracts.citations import Record, Turn
-from arena_core.contracts.coaching import CoachingCard, DeepUpdate, StoredCard, StoredDeepUpdate, StoredFlag
+from arena_core.contracts.coaching import (
+    CoachingCard,
+    DeepUpdate,
+    FinalFinding,
+    StoredCard,
+    StoredDeepUpdate,
+    StoredFlag,
+)
 from arena_core.contracts.findings import CitationContext, StoredFinding, last_revised_turn, store_finding
 from arena_core.safety.demeanor import DEMEANOR_LEXICON
 from arena_core.scenario.content import content_text
@@ -142,6 +149,19 @@ def store_deep(update: DeepUpdate, inputs: CoachInputs) -> StoredDeepUpdate:
         last_revised_turn(inputs.previous_finding, update.finding, n),
     )
     return StoredDeepUpdate(**update.model_dump(exclude={"finding"}), finding=finding)
+
+
+def store_final(final: FinalFinding, inputs: CoachInputs) -> StoredFinding:
+    """S2 4.7, 4.8: `finalize_trial`'s committed finding for a harness-run trial (S5 5.3), with the same
+    code-filled basis flags and `last_revised_turn` as a card or deep update's finding, plus the final call's
+    own `alternative_explanations` (null on every earlier coaching finding, S2 4.8)."""
+    n = inputs.view.exchange
+    return store_finding(
+        final.finding,
+        _basis(final.finding.basis_flag_refs, inputs.earlier_flags),
+        last_revised_turn(inputs.previous_finding, final.finding, n),
+        alternative_explanations=list(final.alternative_explanations),
+    )
 
 
 def deep_due(manifest: Mapping[str, Any], n: int, released_this_turn: bool) -> bool:

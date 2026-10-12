@@ -17,6 +17,7 @@ from uuid import UUID
 from psycopg.types.json import Jsonb
 
 from arena_core.db.calls import Conn, GuardProtocolError
+from arena_core.db.pool import one_statement
 
 RecordOutcome = Literal["recorded", "quarantined"]
 
@@ -150,9 +151,8 @@ async def turn_context(conn: Conn, trial_id: UUID, work_item_id: UUID) -> TurnCo
     """`subject.turn_context(trial, work_item)`. Raises (AR003, as `psycopg.Error`) when the work item is not the
     trial's open `subject_answer` item at the current version."""
     fn = "subject.turn_context"
-    async with conn.transaction():
-        cur = await conn.execute("select subject.turn_context(%s, %s)::text", (trial_id, work_item_id))
-        row = await cur.fetchone()
+    cur = await one_statement(conn, "select subject.turn_context(%s, %s)::text", (trial_id, work_item_id))
+    row = await cur.fetchone()
     if row is None:
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)
@@ -180,18 +180,18 @@ async def record_subject_turn(conn: Conn, req: RecordSubjectTurn) -> RecordResul
     """`arena.record_subject_turn(trial, work_item, utterance, tag_proposal, guard_result)` (S2 6.10)."""
     fn = "arena.record_subject_turn"
     safe = _quarantine_safe(req)
-    async with conn.transaction():
-        cur = await conn.execute(
-            "select arena.record_subject_turn(%s, %s, %s, %s, %s)::text",
-            (
-                safe.trial_id,
-                safe.work_item_id,
-                safe.utterance,
-                None if safe.tag is None else Jsonb(safe.tag),
-                Jsonb(safe.guard_result),
-            ),
-        )
-        row = await cur.fetchone()
+    cur = await one_statement(
+        conn,
+        "select arena.record_subject_turn(%s, %s, %s, %s, %s)::text",
+        (
+            safe.trial_id,
+            safe.work_item_id,
+            safe.utterance,
+            None if safe.tag is None else Jsonb(safe.tag),
+            Jsonb(safe.guard_result),
+        ),
+    )
+    row = await cur.fetchone()
     if row is None:
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)

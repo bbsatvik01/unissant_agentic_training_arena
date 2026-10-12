@@ -8,12 +8,13 @@
  * `?fps` in the URL turns on frame-interval sampling (S6 10 method: requestAnimationFrame deltas), published on
  * `window.__arenaFps` for measurement, with the tier in use; `?tier=medium|low` pins a tier.
  */
+import type { Standings } from "../../lib/arena/standings";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, PCFShadowMap, PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-import { COACHES, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
+import { COACHES, HUB_CREW, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import type { CaseCard } from "../../lib/world/cases";
 import type { ShotName } from "../../lib/world/layout";
 import { nextTier, TIERS, WINDOW, type Tier } from "../../lib/world/quality";
@@ -46,6 +47,9 @@ export interface WorldCanvasProps {
   readonly scoreCards: readonly ScoreCard[] | null;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
+  /** The tournament standings on the precinct wall (null: the framed print), and opening the arena from it. */
+  readonly standings: Standings | null;
+  readonly onOpenStandings: () => void;
   readonly onArrive?: () => void;
 }
 
@@ -154,6 +158,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
     for (const coach of COACHES) preloadAvatar(coach);
     preloadAvatar(INVESTIGATOR);
     preloadAvatar(HUB_STAFF);
+    for (const p of HUB_CREW) preloadAvatar(p);
   }, [persona]);
   return (
     <Canvas
@@ -177,10 +182,13 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         reducedMotion={props.reducedMotion}
         shadows={settings.shadowMap > 0}
         present={props.place === "hub"}
+        crowd={settings.crowd}
         clock={props.clock}
         still={props.still}
         onOpenCase={props.onOpenCase}
         onFocusCase={props.onFocusCase}
+        standings={props.standings}
+        onOpenStandings={props.onOpenStandings}
       />
       <Room
         world={props.world}

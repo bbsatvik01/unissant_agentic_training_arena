@@ -1,4 +1,7 @@
-"""`arena_public` calls for the investigator path (S5 5, 6; S4 5.2-5.4, 6.3; WP-13).
+"""`arena_public` calls, shared by the investigator path (S5 5, 6; S4 5.2-5.4, 6.3; WP-13) and the tournament
+job (S5 5.3; WP-17): both processes hold the one `arena_public` credential (S5 2.2), so one class wraps every
+function and view that role may use. A harness or job call passes `actor=None` (no `arena.actor_id`, S4 2.3);
+an investigator call passes the acting user.
 
 Every call opens its own connection and transaction, sets `arena.actor_id` for that transaction (S4 2.3: an
 investigator request names its actor; a harness request never does) and runs one S4 function or one projection
@@ -16,6 +19,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -23,7 +27,8 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from arena_core.db.calls import Conn
-from arena_core.db.pool import Connector
+from arena_core.db.pool import Connector, one_statement
+from arena_core.events.projections import LedgerRow, tournament_frames
 
 EVENTS_PAGE = 200  # S4 arena.events_after: at most 200 rows per call
 
@@ -60,6 +65,18 @@ class SessionStart:
 
 
 @dataclass(frozen=True)
+class QuestionOrigin:
+    """`arena.submit_question`'s harness-only arguments (S2 8.2, SG2-09): who asked, the relay test's
+    verdict, and the relayed or rejected card's event, bundled so the wrapper takes one object instead of
+    three positional arguments. The default (every field None) is an investigator's question, which carries
+    no origin at all."""
+
+    source: str | None = None
+    relay_outcome: str | None = None
+    proposal_seq: int | None = None
+
+
+@dataclass(frozen=True)
 class EventRow:
     """One `arena.v_trial_events` row."""
 
@@ -79,6 +96,10 @@ class ArenaDb:
         self._connect = connect
         self.actor = actor
 
+    @property
+    def connector(self) -> Connector:
+        return self._connect
+
     async def _begin(self, conn: Conn) -> None:
         if self.actor is not None:
             await conn.execute("select set_config('arena.actor_id', %s, true)", (str(self.actor),))
@@ -86,9 +107,9 @@ class ArenaDb:
     async def fetch(self, query: str, params: Sequence[object] = ()) -> list[tuple[Any, ...]]:
         """Run one statement in its own transaction as this actor and return every row."""
         try:
-            async with self._connect() as conn, conn.transaction():
-                await self._begin(conn)
-                cur = await conn.execute(query, params)
+            async with self._connect() as conn:
+                actor = None if self.actor is None else str(self.actor)
+                cur = await one_statement(conn, query, params, actor=actor)
                 return list(await cur.fetchall())
         except psycopg.Error as exc:
             raise _arena_error(exc) from exc
@@ -118,9 +139,15 @@ class ArenaDb:
             (start.variant, start.mode, start.coach, start.subject, start.voice, start.key),
         )
 
-    async def submit_question(self, trial: UUID, expected_version: int, text: str, key: str) -> dict[str, Any]:
+    async def submit_question(
+        self, trial: UUID, expected_version: int, text: str, key: str, origin: QuestionOrigin | None = None
+    ) -> dict[str, Any]:
+        """S4 `arena.submit_question`: investigator calls pass no origin; harness calls name theirs
+        (`harness_fixed`, `harness_fallback` or `assistant_relay`, S2 8.2, SG2-09)."""
+        o = origin or QuestionOrigin()
         return await self.obj(
-            "select arena.submit_question(%s, %s, %s, %s)::text", (trial, expected_version, text, key)
+            "select arena.submit_question(%s, %s, %s, %s, %s, %s, %s)::text",
+            (trial, expected_version, text, key, o.source, o.relay_outcome, o.proposal_seq),
         )
 
     async def open_work_item(
@@ -156,8 +183,13 @@ class ArenaDb:
             "select arena.record_coaching_event(%s, %s, %s, %s)::text", (trial, work_item, Jsonb(payload), kind)
         )
 
-    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any]) -> dict[str, Any]:
-        return await self.obj("select arena.finalize_trial(%s, %s, %s)::text", (trial, work_item, Jsonb(finding)))
+    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any] | None) -> dict[str, Any]:
+        """`arena.finalize_trial`: `finding` is null for a corpus transcript (S2 8.6; S4 6.2 item 3). SQL
+        checks `p_final_finding is null`, so a corpus call sends an actual SQL NULL, never `Jsonb(None)`
+        (which would bind the *jsonb value* `null`, not an absent parameter, and `is not null` is true for
+        that)."""
+        param = finding if finding is None else Jsonb(finding)
+        return await self.obj("select arena.finalize_trial(%s, %s, %s)::text", (trial, work_item, param))
 
     async def record_execution_failure(self, trial: UUID, work_item: UUID, state: str, reason: str) -> dict[str, Any]:
         return await self.obj(
@@ -312,6 +344,117 @@ class ArenaDb:
             return None
         return {"body": json.loads(rows[0][0]), "label": str(rows[0][1]), "manifest_version": int(rows[0][2])}
 
+    # ------------------------------------------------------------------ tournament arena (S5 6.2, S6 4.9)
+
+    async def tournaments(self) -> list[dict[str, Any]]:
+        """`arena.v_tournaments` (S6 4.9's list, `GET /api/tournaments`): every tournament, oldest first."""
+        rows = await self.fetch(
+            "select id, name, split, status, seed, roster_sha256 from arena.v_tournaments order by created_at"
+        )
+        return [
+            {
+                "id": str(r[0]),
+                "name": str(r[1]),
+                "split": str(r[2]),
+                "status": str(r[3]),
+                "seed": int(r[4]),
+                "roster_sha256": r[5],
+            }
+            for r in rows
+        ]
+
+    async def tournament_progress(self, tournament: UUID) -> list[dict[str, Any]]:
+        """`arena.v_tournament_progress` (D9, SG3-15): per track and block, planned trials and counts by
+        execution state -- the one view a hidden tournament exposes before reveal (S6 4.9's progress table),
+        and part of a dev or revealed tournament's own `GET /api/tournaments/{id}` too."""
+        rows = await self.fetch(
+            "select track, block_no, planned, states::text from arena.v_tournament_progress"
+            " where tournament_id = %s order by track, block_no",
+            (tournament,),
+        )
+        return [
+            {"track": str(r[0]), "block": r[1], "planned": int(r[2]), "counts_by_state": json.loads(r[3])} for r in rows
+        ]
+
+    async def _tournament_trial_refs(self, tournament: UUID) -> dict[UUID, dict[str, Any]]:
+        """Every tournament trial's planned position (`trial_ref`, S5 6.2's opaque per-tournament ordinal:
+        `arena.v_planned_trials.position`, "seeded order across the tournament"), track, block, pairing and
+        whether it ever started, keyed by trial id. The pairing names the registered assistant and subject
+        candidates (S6 4.9's "A1 x S1"; `arena.v_candidates.name`, always `A{n}`/`S{n}` for the official
+        lineup): a `replay` planned trial carries no subject of its own (`arena.planned_trials`'s own track
+        shape), so its pairing names the subject of the corpus trial it replays instead
+        (`source_planned_trial_id`); a `replay_corpus` trial carries no assistant, so its pairing is `None`
+        (its caller never frames one, S6 4.9: counts only). `never_started` is `started_at is null`: a
+        `budget_skipped` or `source_unavailable` attempt never reaches `arena.start_trial`'s own update
+        (S4 EF-01, EF-09), the same signal `events.load.load_tournament_trial` already reads for the same
+        reason.
+
+        Called after the ledger read in `tournament_events` (never before it, SG3-xx): under `read
+        committed`, a row this call's own SELECT sees was committed strictly before this statement started,
+        so a trial whose `trial_started` row the earlier ledger read already returned is guaranteed to have
+        its `arena.trials`/`arena.planned_trials` rows visible here too -- reading refs first could race a
+        concurrent retry's start between the two queries and silently drop that trial's frame forever."""
+        rows = await self.fetch(
+            "select t.id, p.position, p.track, p.block_no, ac.name, coalesce(sc.name, ssc.name), t.started_at"
+            " from arena.v_trials t join arena.v_planned_trials p on p.id = t.planned_trial_id"
+            " left join arena.v_planned_trials sp on sp.id = p.source_planned_trial_id"
+            " left join arena.v_candidates ac on ac.id = p.assistant_candidate_id"
+            " left join arena.v_candidates sc on sc.id = p.subject_candidate_id"
+            " left join arena.v_candidates ssc on ssc.id = sp.subject_candidate_id"
+            " where t.tournament_id = %s",
+            (tournament,),
+        )
+        out: dict[UUID, dict[str, Any]] = {}
+        for trial_id, position, track, block_no, assistant_name, subject_name, started_at in rows:
+            both_named = assistant_name is not None and subject_name is not None
+            pairing = f"{assistant_name} x {subject_name}" if both_named else None
+            out[trial_id] = {
+                "trial_ref": int(position),
+                "track": str(track),
+                "block": block_no,
+                "pairing": pairing,
+                "never_started": started_at is None,
+            }
+        return out
+
+    async def tournament_events(
+        self, tournament: UUID, after: int, limit: int = 200
+    ) -> tuple[list[dict[str, Any]], int]:
+        """`GET /api/tournaments/{id}/events?after=` on a dev or revealed tournament (S5 6.2, S6 4.9, 5.3):
+        `ledger.v_events` after the global cursor, joined to each row's own trial (`_tournament_trial_refs`,
+        read second -- see its own docstring) and projected (`events.projections.tournament_frames`, the
+        only module that builds a frame, S5 1.2 item 2); never called for a hidden tournament before reveal
+        (the route serves counts instead, D9). The returned cursor never regresses below `after`: an empty
+        page (nothing new since the caller's own cursor) must answer that cursor back, not
+        `tournament_frames`'s own "nothing consumed yet" 0 -- a caller that trusts the advertised cursor
+        literally, rather than folding it with its previous one the way the existing client's `foldPoll`
+        does (`Math.max`), would otherwise reread the whole tournament from the start."""
+        rows = await self.fetch(
+            "select seq, event_type, trial_id::text, payload::text, created_us from ledger.v_events"
+            " where tournament_id = %s and seq > %s order by seq",
+            (tournament, after),
+        )
+        refs = await self._tournament_trial_refs(tournament)
+        ledger_rows: list[LedgerRow] = []
+        for seq, event_type, trial_id, payload_text, created_us in rows:
+            ref = refs.get(UUID(trial_id)) if trial_id is not None else None
+            ledger_rows.append(
+                LedgerRow(
+                    seq=int(seq),
+                    event_type=str(event_type),
+                    trial_id=trial_id,
+                    created_at=iso(datetime.fromtimestamp(int(created_us) / 1_000_000, tz=UTC)),
+                    payload=json.loads(payload_text),
+                    trial_ref=None if ref is None else ref["trial_ref"],
+                    track=None if ref is None else ref["track"],
+                    block=None if ref is None else ref["block"],
+                    pairing=None if ref is None else ref["pairing"],
+                    never_started=False if ref is None else ref["never_started"],
+                )
+            )
+        frames, last = tournament_frames(ledger_rows, str(tournament), limit)
+        return frames, max(after, last)
+
     # ------------------------------------------------------------------ trust center (S6 4.11)
 
     async def isolation_checks(self) -> list[dict[str, Any]]:
@@ -407,3 +550,113 @@ class ArenaDb:
 
     async def ack_card(self, trial: UUID, turn_no: int, client_valid: bool) -> bool:
         return bool(await self.value("select ops.ack_card(%s, %s::smallint, %s)", (trial, turn_no, client_valid)))
+
+    # ------------------------------------------------------------------ tournament job (S5 5.3; WP-17)
+
+    async def start_trial(self, trial: UUID) -> dict[str, Any]:
+        """S4 `arena.start_trial`: planned -> running, enforcing BKO-2's order; a replay trial whose corpus
+        source did not complete and verify `valid` comes back `{"status": "terminated", "state":
+        "source_unavailable", ...}` with no caller input (S4 derives it)."""
+        return await self.obj("select arena.start_trial(%s)::text", (trial,))
+
+    async def retry_trial(self, planned_trial: UUID) -> UUID:
+        """S4 `arena.retry_trial`: a new attempt (same seed and position) after `infra_failed`, at most 3."""
+        return UUID(str(await self.value("select arena.retry_trial(%s)", (planned_trial,))))
+
+    async def advance_replay(self, trial: UUID, work_item: UUID) -> dict[str, Any]:
+        """S4 `arena.advance_replay` (D2): copies the next sealed source turn into this replay trial."""
+        return await self.obj("select arena.advance_replay(%s, %s)::text", (trial, work_item))
+
+    async def work_item_results(self, trial: UUID) -> list[dict[str, Any]]:
+        """S4 `arena.work_item_results` (D3): every step of the trial, for the job's own resume at restart."""
+        raw = await self.value("select arena.work_item_results(%s)::text", (trial,))
+        parsed = json.loads(raw) if isinstance(raw, str) else None
+        return parsed if isinstance(parsed, list) else []
+
+    async def tournament_trial(self, trial: UUID) -> dict[str, Any] | None:
+        """`arena.v_trials` alone (no training-session join, S5 5.5): a tournament trial's own ids and
+        execution state, read by the harness, the job and the D-021 recording export (D9, SG3-15)."""
+        rows = await self.fetch(
+            "select id, kind, status, transcript_version, exchanges, max_exchanges, coaching_pending,"
+            " execution_state, variant_id, assistant_candidate_id, subject_candidate_id, planned_trial_id,"
+            " started_at from arena.v_trials where id = %s",
+            (trial,),
+        )
+        if not rows:
+            return None
+        keys = (
+            "trial_id",
+            "kind",
+            "status",
+            "transcript_version",
+            "exchanges",
+            "max_exchanges",
+            "coaching_pending",
+            "execution_state",
+            "variant_id",
+            "assistant_candidate_id",
+            "subject_candidate_id",
+            "planned_trial_id",
+            "started_at",
+        )
+        return dict(zip(keys, rows[0], strict=True))
+
+    async def released_with_titles(self, trial: UUID) -> list[dict[str, Any]]:
+        """`arena.v_released_evidence`'s `record_id`, `title` and `released_after_exchanges` (the corpus
+        harness needs the title for `replay_script.v1`'s evidence-slot question, S2 8.6; C-23)."""
+        rows = await self.fetch(
+            "select record_id, title, released_after_exchanges from arena.v_released_evidence"
+            " where trial_id = %s order by release_seq",
+            (trial,),
+        )
+        return [{"record_id": r[0], "title": r[1], "released_after_exchanges": int(r[2])} for r in rows]
+
+    async def tournament_split(self, tournament: UUID) -> str | None:
+        """`arena.v_tournaments.split` ("dev" or "hidden"), or None for an unknown id: the job's own
+        defense-in-depth check (WP-17) that it never runs a hidden tournament -- `lifecycle.open_tournament`
+        already refuses to open one this way, but that refusal is this operator tool's own convenience, not
+        a database invariant `arena.open_tournament` itself enforces (no WP-16 hidden-text scan exists
+        yet), so a tournament opened by some other path must still never reach this job's harness."""
+        rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
+        return None if not rows else str(rows[0][0])
+
+    async def planned_trials(self, tournament: UUID) -> list[dict[str, Any]]:
+        """`arena.v_planned_trials`: the frozen roster, position order (S5 5.3's "recorded seeded order")."""
+        rows = await self.fetch(
+            "select id, position, track, block_no, variant_id, assistant_candidate_id, subject_candidate_id,"
+            " repeat, source_planned_trial_id from arena.v_planned_trials where tournament_id = %s order by position",
+            (tournament,),
+        )
+        keys = (
+            "planned_trial_id",
+            "position",
+            "track",
+            "block_no",
+            "variant_id",
+            "assistant_candidate_id",
+            "subject_candidate_id",
+            "repeat",
+            "source_planned_trial_id",
+        )
+        return [dict(zip(keys, r, strict=True)) for r in rows]
+
+    async def planned_trial_attempts(self, tournament: UUID) -> dict[UUID, list[dict[str, Any]]]:
+        """Every attempt (`arena.v_trials`) of every planned trial of the tournament, newest attempt last, for
+        the job's resume check ("skips planned trials that already have an execution record", S5 5.3).
+        `status` distinguishes a never-started attempt (`planned`, where `ops.admit_unit`'s pre-check still
+        applies) from one already `running` (where only the per-call spend guard governs, S4 8.5)."""
+        rows = await self.fetch(
+            "select planned_trial_id, id, attempt, status, execution_state from arena.v_trials"
+            " where tournament_id = %s order by planned_trial_id, attempt",
+            (tournament,),
+        )
+        out: dict[UUID, list[dict[str, Any]]] = {}
+        for planned_trial_id, trial_id, attempt, status, execution_state in rows:
+            out.setdefault(planned_trial_id, []).append(
+                {"trial_id": trial_id, "attempt": attempt, "status": status, "execution_state": execution_state}
+            )
+        return out
+
+    async def admit_unit(self, bucket: str, high_cost_usd: Decimal) -> dict[str, Any]:
+        """S4 `ops.admit_unit` (8.5): admit only with 1.5 x the unit's high cost free; holds nothing."""
+        return await self.obj("select ops.admit_unit(%s, %s)::text", (bucket, high_cost_usd))

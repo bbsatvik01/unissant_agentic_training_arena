@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Mapping
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, cast
@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, AgentResult, CallContext, Message, Usage
 from arena_core.scoring.inclusion import Exec
@@ -64,22 +65,22 @@ async def _noop_tx() -> AsyncIterator[None]:
 AnswerMap = Mapping[str, list[tuple[Any, ...]] | None]
 
 
-class FakeConn:
+class FakeConn(ScriptedConnection):
     """Answers the first registered substring found in the statement text; records every call."""
 
     def __init__(self, answers: AnswerMap | None = None) -> None:
         self.answers: AnswerMap = answers or {}
         self.executed: list[tuple[str, tuple[Any, ...]]] = []
 
-    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
+    async def statement(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
         self.executed.append((query, params))
         for key, rows in self.answers.items():
             if key in query:
                 return FakeCursor(rows or [])
         return FakeCursor([])
 
-    def transaction(self) -> AsyncIterator[None]:
-        return cast("AsyncIterator[None]", _noop_tx())
+    def transaction(self) -> AbstractAsyncContextManager[None]:
+        return _noop_tx()
 
 
 def connector(conn: FakeConn) -> Connector:
@@ -221,6 +222,100 @@ def test_fetch_trial_kind_found_and_missing() -> None:
     assert run(db.fetch_trial_kind(connector(found), TRIAL)) == "interactive"
     missing = FakeConn({"from arena.trials where id": []})
     assert run(db.fetch_trial_kind(connector(missing), TRIAL)) is None
+
+
+# ---------------------------------------------------------------- tournament lifecycle (S5 5.3; WP-17)
+
+
+def test_fetch_source_trial_id_found_and_missing() -> None:
+    source = uuid4()
+    found = FakeConn({"select source_trial_id from arena.trials": [(source,)]})
+    assert run(db.fetch_source_trial_id(connector(found), TRIAL)) == str(source)
+    null = FakeConn({"select source_trial_id from arena.trials": [(None,)]})
+    assert run(db.fetch_source_trial_id(connector(null), TRIAL)) is None
+    no_row = FakeConn({"select source_trial_id from arena.trials": []})
+    assert run(db.fetch_source_trial_id(connector(no_row), TRIAL)) is None
+    no_row = FakeConn({"select source_trial_id from arena.trials": []})
+    assert run(db.fetch_source_trial_id(connector(no_row), TRIAL)) is None
+
+
+def test_fetch_block_trial_ids_found_and_empty() -> None:
+    t1, t2 = uuid4(), uuid4()
+    found = FakeConn({"join arena.blocks b": [(t1,), (t2,)]})
+    assert run(db.fetch_block_trial_ids(connector(found), TRIAL, 1)) == [str(t1), str(t2)]
+    empty = FakeConn({"join arena.blocks b": []})
+    assert run(db.fetch_block_trial_ids(connector(empty), TRIAL, 1)) == []
+
+
+def test_fetch_block_trial_ids_restricts_to_review_eligible_states() -> None:
+    """`ledger.adjudicate_validity`'s own precondition (AR001: "only completed or assistant_failed
+    interviews need subject review"): a block with a budget_skipped or infra_failed sibling must not send
+    that trial to R1/R2, or the real function call aborts the whole block's score (verified real bug,
+    Codex round 1)."""
+    conn = FakeConn({"join arena.blocks b": [(uuid4(),)]})
+    run(db.fetch_block_trial_ids(connector(conn), TRIAL, 1))
+    query = conn.executed[-1][0]
+    assert "ledger.terminal_records" in query
+    assert "'completed', 'assistant_failed'" in query
+
+
+def test_fetch_tournament_status_found_and_missing() -> None:
+    found = FakeConn({"select status from arena.tournaments": [("running",)]})
+    assert run(db.fetch_tournament_status(connector(found), TRIAL)) == "running"
+    missing = FakeConn({"select status from arena.tournaments": []})
+    assert run(db.fetch_tournament_status(connector(missing), TRIAL)) is None
+
+
+def test_seal_replay_corpus_calls_the_function_when_there_is_no_existing_seal() -> None:
+    conn = FakeConn(
+        {
+            "from ledger.corpus_seals": [],
+            "select ledger.seal_replay_corpus": [("b" * 64,)],
+        }
+    )
+    assert run(db.seal_replay_corpus(connector(conn), TRIAL)) == "b" * 64
+    assert any("select ledger.seal_replay_corpus" in q for q, _ in conn.executed)
+
+
+def test_seal_replay_corpus_returns_the_stored_seal_once_the_tournament_has_moved_on() -> None:
+    """A retry or a re-run after `close_tournament_run` reads the already-stored seal back instead of
+    calling the SQL function again, whose own precondition (`running`) no longer holds."""
+    conn = FakeConn(
+        {
+            "from ledger.corpus_seals": [("c" * 64,)],
+            "select status from arena.tournaments": [("sealed",)],
+        }
+    )
+    assert run(db.seal_replay_corpus(connector(conn), TRIAL)) == "c" * 64
+    assert not any("select ledger.seal_replay_corpus" in q for q, _ in conn.executed)
+
+
+def test_seal_replay_corpus_calls_the_function_when_an_existing_seal_row_is_somehow_still_running() -> None:
+    """Belt and suspenders: an existing seal row alone never short-circuits -- only a tournament that has
+    actually left `running` does, so a reseal mid-run (should never happen) still reaches the function,
+    which is the one place that would legitimately refuse it."""
+    conn = FakeConn(
+        {
+            "from ledger.corpus_seals": [("d" * 64,)],
+            "select status from arena.tournaments": [("running",)],
+            "select ledger.seal_replay_corpus": [("d" * 64,)],
+        }
+    )
+    assert run(db.seal_replay_corpus(connector(conn), TRIAL)) == "d" * 64
+    assert any("select ledger.seal_replay_corpus" in q for q, _ in conn.executed)
+
+
+def test_close_tournament_run_calls_the_function_while_still_running() -> None:
+    conn = FakeConn({"select status from arena.tournaments": [("running",)]})
+    run(db.close_tournament_run(connector(conn), TRIAL))
+    assert any("select arena.close_tournament_run" in q for q, _ in conn.executed)
+
+
+def test_close_tournament_run_is_a_noop_once_already_sealed_or_later() -> None:
+    for status in ("sealed", "scoring", "revealed"):
+        conn = FakeConn({"select status from arena.tournaments": [(status,)]})
+        run(db.close_tournament_run(connector(conn), TRIAL))
+        assert not any("select arena.close_tournament_run" in q for q, _ in conn.executed)
 
 
 def test_fetch_trial_data_no_trial_raises() -> None:

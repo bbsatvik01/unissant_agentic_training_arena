@@ -14,8 +14,12 @@
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
-| Hosted seed + real smoke (a79b6bd60d05a4e17, Sonnet, wt-hosted-seed) | real ingest bundles (cx.json format), make seed-hosted, real-model env, make real-smoke; no hosted/real calls by the agent | coordinator runs against hosted Supabase + Vertex |
-| WP-17 tournament (a5040005c90e1d761, Opus, wt-wp17-tourney 98447a0) | built, real-SQL integration green; fixing: event-loop bridge blocker (real Vertex), db-test contamination, replay assistant_failed scoring, kill-switch consistency, export terminal replay, demo roster version, compiled validators, single fake referee | merge |
+| Hosted seed + real smoke | MERGED; hosted seeded; first real call landed (G0_schema quarantine) | done |
+| Tourney routes + IG reports | MERGED; local dev tournament revealed, boards served | done; open: hidden-split trial export 404 |
+| Real pilot | MERGED (175bd66): real Gemini end to end, real debrief, recordings/real-F01.json, $0.30 | done |
+| DB latency | MERGED; per-call 0.84->0.07 s; real after-run pending quota reset (scratchpad/realpilot/count.py) | measure |
+| rubric.v1 | MERGED; open: referee manifest freeze path (rubric.v1.json), referee prompt files not in rubric hash | follow-up before sealed run |
+| WP-17 tournament | MERGED (demo: scripts/dev.sh tournament) | done |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
@@ -24,7 +28,8 @@
 | UI stage 2 | MERGED (f7f2a37) | done |
 | UI stage 3 (WP-20a) | MERGED (6588996) | done |
 | UI stage 4 | MERGED (f77c5b0) | done |
-| UI stage 5 (ac2a4c78d321feac9, feat/ui-stage5) | Gemini TTS via guarded, cached api route + hub ambient life | review, merge; coordinator runs first real TTS call |
+| UI stage 5 | MERGED (79b2182); TTS inactive | OWNER ASK: tts call_limits + price rows; model choice gemini-2.5-flash-tts (GA, 2.5 retiring on Vertex mid/late Oct) vs gemini-3.8-flash-lite-tts (preview, needs google-genai>=2.25) |
+| UI stage 6 | MERGED (b146540); reveal blocked on missing IG-1..3 reports and tournament read routes | tourney routes agent |
 | api UI routes + trust + recordings | MERGED | done; GAP: S3 fairness audit (style FPR, flag rates, permutation tests, negative controls) not computed by anyone yet -> assign |
 | Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role logins enabled (owner-authorized, random passwords) and .env.local.{public,subject,referee} written (0600, git-ignored); each role connects | next: advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.

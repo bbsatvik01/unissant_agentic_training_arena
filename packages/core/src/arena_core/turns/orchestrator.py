@@ -19,7 +19,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -29,16 +29,19 @@ from pydantic import BaseModel
 from arena_core.agents.coach_prompts import build_coach_prompt
 from arena_core.agents.manifests import CandidateManifest, load_prompts
 from arena_core.agents.views import CoachCall
-from arena_core.contracts.coaching import CoachingCard, DeepUpdate
-from arena_core.db.arena import ArenaDb, ArenaError
-from arena_core.providers.errors import BudgetRefusedError, ProviderError, StructuredOutputError
+from arena_core.contracts.coaching import CoachingCard, DeepUpdate, FinalFinding
+from arena_core.db.arena import ArenaDb, ArenaError, QuestionOrigin
+from arena_core.providers.errors import BudgetRefusedError, KillSwitchOnError, ProviderError, StructuredOutputError
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, CallContext, Message
 from arena_core.spend.limits import CallType, ThinkingLevel, VertexModel
-from arena_core.turns.coach import CardMeta, CoachInputs, coach_inputs, deep_due, store_card, store_deep
+from arena_core.turns.coach import CardMeta, CoachInputs, coach_inputs, deep_due, store_card, store_deep, store_final
 
 log = logging.getLogger("arena_core.turns")
 TURN_DEADLINE_S = 60.0  # S5 5.2: the app-level deadline of one turn request
+# S2 8.5 ST-4: a harness trial stops `budget_truncated` when the spend guard refuses "or the kill switch is on"
+HARNESS_BUDGET_STOPS: tuple[type[ProviderError], ...] = (BudgetRefusedError, KillSwitchOnError)
+_CALL_TYPES: dict[CoachCall, CallType] = {"card": CallType.CARD, "deep": CallType.DEEP, "final": CallType.FINAL}
 
 
 def request_key(trial: UUID, turn_no: int, kind: str, purpose: str) -> str:
@@ -136,6 +139,10 @@ class Orchestrator:
     signals: TrialSignals
     clock: Callable[[], float] = time.monotonic
     deadline_s: float = TURN_DEADLINE_S
+    # A harness-driven orchestrator (arena-tournament): the kill switch on a coach call is an ST-4 budget stop,
+    # like a spend-guard refusal. An investigator's practice turn keeps its card-failure path (the next request
+    # gets the 503 `paused`, S5 4.8).
+    harness: bool = False
 
     async def _open(self, trial: UUID, kind: str, key: str, expected_version: int | None = None) -> dict[str, Any]:
         return await self.db.open_work_item(trial, kind, key, expected_version)
@@ -145,6 +152,12 @@ class Orchestrator:
         if item["status"] != "done":
             await self.db.record_execution_failure(trial, UUID(item["work_item_id"]), state, reason)
         self.signals.notify(trial)
+
+    async def stop(self, trial: UUID, state: str, reason: str) -> None:
+        """A harness-driven trial's own execution failure (S2 8.5, S5 5.3): idempotent, like every other step
+        here, so a caller that already recorded one (a budget refusal `_coach` swallowed internally) can call
+        this again for the same `state` at no cost."""
+        await self._fail(trial, state, reason)
 
     # ------------------------------------------------------------------ one turn (S5 5.2)
 
@@ -176,10 +189,18 @@ class Orchestrator:
         self.signals.notify(trial)
         answered = await self._answer(trial, n)
         if answered.outcome == "recorded":
-            card_version = await self._coach(trial, n, "card", None)
-            if card_version is not None:
-                await self._deep(trial, n, card_version)
+            await self.coach_after_answer(trial, n)
         return {"turn_no": n, "outcome": answered.outcome}
+
+    async def coach_after_answer(self, trial: UUID, n: int) -> int | None:
+        """The card, then A1's deep update if due (S5 5.2 steps 5-5b): one turn's whole coaching sequence,
+        shared by an interactive turn and a replay trial's copied turn (`ReplayScorer`, S5 5.3), so the
+        cadence is defined once. Returns the card step's bound version, or None when nothing was stored for
+        it (a budget stop already recorded by `_coach`, or an output discarded as stale)."""
+        card_version = await self._coach(trial, n, "card", None)
+        if card_version is not None:
+            await self._deep(trial, n, card_version)
+        return card_version
 
     async def _check_requestable(self, trial: UUID, release_ids: list[str]) -> None:
         """An id off the case's requestable list is refused before the question is recorded (S5 5.4's AR005
@@ -211,7 +232,12 @@ class Orchestrator:
     # ------------------------------------------------------------------ coaching (S5 5.2; S2 4)
 
     async def _manifest(self, trial: UUID) -> tuple[CandidateManifest, str]:
+        """The trial's assistant candidate manifest, through whichever read this `db` can make: `trial()`
+        for an investigator's own training trial, `tournament_trial()` for a harness-driven one (S5 5.3;
+        `db.actor` is None on a harness-driven `ArenaDb`, so only the second ever resolves there)."""
         meta = await self.db.trial(trial)
+        if meta is None:
+            meta = await self.db.tournament_trial(trial)
         found = None if meta is None else await self.db.manifest(meta["assistant_candidate_id"])
         if found is None:
             msg = "the trial's coach manifest is not readable"
@@ -238,7 +264,7 @@ class Orchestrator:
 
     def _context(self, step: _Step) -> CallContext:
         return CallContext(
-            call_type=CallType.CARD if step.call == "card" else CallType.DEEP,
+            call_type=_CALL_TYPES[step.call],
             purpose=f"coach.{step.call}",
             step_key=step.key,
             work_item_id=step.work_item,
@@ -305,7 +331,7 @@ class Orchestrator:
         step, so the deep update binds to it on the first run and on any retry alike (a retry cannot tell the two
         outcomes apart without reading assessment coaching). A failed deep update is dropped."""
         log.warning("coach %s for turn %s failed: %s: %s", step.call, step.n, type(exc).__name__, exc)
-        if isinstance(exc, BudgetRefusedError):
+        if isinstance(exc, HARNESS_BUDGET_STOPS if self.harness else BudgetRefusedError):
             await self._fail(
                 step.trial, "budget_truncated", f"the coach {step.call} call was refused by the spend guard"
             )
@@ -351,3 +377,72 @@ class Orchestrator:
                 raise refusal(exc) from exc
             self.signals.notify(trial)
             return result
+
+    # ------------------------------------------------------------------ harness-driven trials (S2 8, S5 5.3; WP-17)
+
+    async def harness_turn(
+        self, trial: UUID, n: int, text: str, record_ids: Sequence[str], origin: QuestionOrigin
+    ) -> SubjectOutcome:
+        """One harness-driven exchange: the question with its origin (S2 8.2, SG2-09), then the turn's release
+        (always, so scheduled records apply) and the subject's answer. No coaching: `TrialPorts.ask` returns
+        nothing (harness.py), and the caller fetches the card separately with `coach_after_answer` so the
+        harness's relay-or-fallback decision reads the card content between the two (S5 5.3). This never sets
+        `arena.actor_id` (`self.db.actor` is None for a harness-driven db, S4 2.3), so it reaches tournament
+        trials only."""
+        meta = await self.db.tournament_trial(trial)
+        version = int(meta["transcript_version"]) if meta is not None else 0
+        key = request_key(trial, n, "question", "harness")
+        asked = await self.db.submit_question(trial, version, text, key, origin)
+        turn_no = int(asked["turn_no"])
+        self.signals.notify(trial)
+        item = await self._open(trial, "release", request_key(trial, turn_no, "release", "turn"))
+        await self.db.release_evidence(trial, UUID(item["work_item_id"]), list(record_ids))
+        self.signals.notify(trial)
+        return await self._answer(trial, turn_no)
+
+    async def final_and_finalize(self, trial: UUID, n_completed: int) -> bool:
+        """S2 8.5's final call then `finalize_trial`, for a harness-run trial with no investigator-supplied
+        finding (the interactive track's ST-1/ST-2 stop, and the replay track's last copied turn, S5 5.3).
+
+        One work item for both (S4 5.3 step 6 lists no separate coaching step for the final call): the model's
+        output is never durable on its own, so a crash between the call and `finalize_trial` must re-run the
+        call rather than resume from a stored card -- accepted by S5 5.1 ("the step is paid twice, which the
+        global ceiling absorbs"). `open_work_item` is checked first, so a trial already finalized (a resumed
+        job) makes no model call at all.
+
+        Returns False when the final call failed after its one repair (ST-6; the caller records
+        `assistant_failed`); True once the commitment is recorded. `BudgetRefusedError` and `KillSwitchOnError`
+        propagate (ST-4; the
+        caller maps it to a budget stop) rather than being swallowed, unlike a card's failure path, because
+        there is no `coach_unavailable` equivalent for the one committing call of a harness trial."""
+        key = request_key(trial, 0, "finalize", "harness_final")
+        item = await self._open(trial, "finalize", key)
+        if item["status"] == "done":
+            return True
+        work_item = UUID(item["work_item_id"])
+        manifest, _ = await self._manifest(trial)
+        inputs = coach_inputs(await self.db.trial_context(trial, work_item), "final", n_completed)
+        ctx = self._context(_Step("final", trial, n_completed, work_item, int(item["transcript_version"]), key))
+        try:
+            final = await self.port.run(self._call(FinalFinding, "final", inputs, manifest, ctx))
+        except HARNESS_BUDGET_STOPS:
+            raise
+        except ProviderError as exc:
+            log.warning("final call for %s failed: %s: %s", trial, type(exc).__name__, exc)
+            return False
+        stored = store_final(final.value, inputs)
+        await self.db.finalize_trial(trial, work_item, stored.model_dump(mode="json"))
+        self.signals.notify(trial)
+        return True
+
+    async def finalize_corpus(self, trial: UUID) -> None:
+        """A replay-corpus transcript's own close (S2 8.6; S4 `finalize_trial`'s `p_final_finding` is null
+        "for a corpus transcript"): no assistant and no model call, so there is no final call to make first,
+        only the commit itself -- the one step `run_corpus`'s own loop never reaches, since `CorpusPorts` has
+        no `final()` (unlike the interactive track's `TrialPorts.final`)."""
+        key = request_key(trial, 0, "finalize", "harness_corpus")
+        item = await self._open(trial, "finalize", key)
+        if item["status"] == "done":
+            return
+        await self.db.finalize_trial(trial, UUID(item["work_item_id"]), None)
+        self.signals.notify(trial)

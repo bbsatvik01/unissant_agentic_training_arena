@@ -11,6 +11,9 @@ import { speechDurationMs } from "../../lib/world/cadence";
 import type { TrialView } from "../../lib/trial/trialReducer";
 import type { WorldState } from "../../lib/world/worldState";
 import { useVoice } from "./useVoice";
+import { browserEngine } from "./voiceEngines";
+
+const ENGINE = browserEngine();
 
 class Utterance {
   text: string;
@@ -54,7 +57,7 @@ const PRACTICE = { mode: "practice", cards: [{ turn_no: 1, card: { follow_up: { 
 describe("useVoice", () => {
   it("voices a line once per pass, and again after a Replay", () => {
     const clock = { current: 1100 };
-    const props = { world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-1" };
+    const props = { world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-1", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });
@@ -73,7 +76,7 @@ describe("useVoice", () => {
   it("stays silent when a line is joined after it started (a seek into it)", () => {
     const clock = { current: 2500 };
     renderHook(() => {
-      useVoice({ world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-2" });
+      useVoice({ world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-2", engine: ENGINE });
     });
     expect(speak).not.toHaveBeenCalled();
   });
@@ -81,7 +84,7 @@ describe("useVoice", () => {
   it("reports the voice's start, boundaries and end to the mouth", () => {
     const clock = { current: 1000 };
     renderHook(() => {
-      useVoice({ world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-3" });
+      useVoice({ world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-3", engine: ENGINE });
     });
     const u = speak.mock.calls[0]?.[0];
     expect(u).toBeDefined();
@@ -94,7 +97,7 @@ describe("useVoice", () => {
 
   it("never cuts the coach's suggestion: the next line waits behind it, its mouth closed until its voice starts", () => {
     const clock = { current: 5000 };
-    const props = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-4" };
+    const props = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-4", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });
@@ -118,7 +121,7 @@ describe("useVoice", () => {
 
   it("lets a newer line supersede the dialogue being spoken", () => {
     const clock = { current: 1000 };
-    const props = { world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-5" };
+    const props = { world: world(LINE), view: null, subjectName: "Jordan Pell", clock, active: true, scope: "rec-5", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });
@@ -133,7 +136,7 @@ describe("useVoice", () => {
 
   it("keeps a coach suggestion queued behind the answer when the next question comes", () => {
     const clock = { current: 1000 };
-    const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-6" };
+    const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-6", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });

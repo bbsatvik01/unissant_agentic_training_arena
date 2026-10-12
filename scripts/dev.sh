@@ -225,10 +225,24 @@ export_run() {
     uv run --locked python -m scripts.export_run --trial "$trial" --out "$out")
 }
 
+# D-021: a small fake-model dev tournament end to end, against the already-running stack (`scripts/dev.sh up`
+# in another terminal; its caller token for arena-referee is `$RUN/tournament.token`, already in the
+# running arena-subject's and arena-referee's ARENA_LOCAL_CALLERS, S8 WP-17). The operator script holds both
+# the referee and public env files at once (setup, then the job run); a running role process never does.
+tournament() {
+  need uv
+  [[ -f "$RUN/tournament.token" ]] || die "the stack is not running; run scripts/dev.sh up in another terminal first"
+  local token; token="$(cat "$RUN/tournament.token")"
+  read_env "$ENV_DIR/.env.local" "$ENV_DIR/.env.local.referee" "$ENV_DIR/.env.local.public"
+  (cd "$ROOT" && env -i PATH="$PATH" HOME="$HOME" "${ENV_OUT[@]}" ARENA_LOCAL_CALLER_TOKEN="$token" \
+    uv run --locked python -m scripts.dev_tournament_demo "$@")
+}
+
 case "${1:-}" in
   db-up) db_up ;;
   db-down) db_down ;;
   up) up ;;
   export-run) shift; export_run "$@" ;;
-  *) die "usage: scripts/dev.sh db-up | up | export-run <trial-id> [out] | db-down" ;;
+  tournament) shift; tournament "$@" ;;
+  *) die "usage: scripts/dev.sh db-up | up | export-run <trial-id> [out] | tournament [--families F01 F02] | db-down" ;;
 esac

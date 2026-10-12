@@ -37,10 +37,10 @@ from arena_core.contracts.events import (
     CoachUpdate,
     EvidenceReleased,
     QuestionSource,
+    ReplayTrialStatus,
     Seq,
     Text600,
     Text900,
-    TrialStatus,
 )
 from arena_core.contracts.findings import StoredFinding
 
@@ -92,9 +92,10 @@ class VoiceExchange(Contract):
 
 
 class _SnapshotFields(Contract):
-    status: TrialStatus
+    # `source_unavailable` is a replay trial's own terminal state (C-45): only a harness trial's export carries it
+    status: ReplayTrialStatus
     reason_code: Annotated[str, StringConstraints(min_length=1, max_length=80)] | None
-    mode: Literal["practice", "assessment"]
+    mode: Literal["practice", "assessment", "harness"]  # WP-17: a tournament/harness-driven trial's own mode
     split: Literal["dev", "hidden"]
     exchanges_used: Exchanges
     exchanges_cap: TurnNo
@@ -108,6 +109,9 @@ class _SnapshotFields(Contract):
     def _within_cap(self) -> Self:
         if self.exchanges_used > self.exchanges_cap:
             msg = f"exchanges_used: {self.exchanges_used} exceeds exchanges_cap {self.exchanges_cap}"
+            raise ValueError(msg)
+        if self.status == "source_unavailable" and self.mode != "harness":
+            msg = "status: source_unavailable occurs only on a harness (replay) trial (C-45)"
             raise ValueError(msg)
         return self
 

@@ -28,7 +28,7 @@ from arena_core.contracts.coaching import (
 )
 from arena_core.contracts.common import wire_bytes
 from arena_core.contracts.debrief import Debrief
-from arena_core.contracts.events import ReplayPage, TournamentPoll, TrialFrame
+from arena_core.contracts.events import HarnessFrame, ReplayPage, TournamentPoll, TrialFrame
 from arena_core.contracts.findings import Finding, StoredFinding
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.contracts.review import ReviewItem, ReviewList, ReviewSubmission
@@ -67,6 +67,7 @@ STORED: Mapping[str, type[BaseModel]] = {
 # File stem -> (root type name, type). Wire shapes: the browser's types and ajv validators come from these only.
 WIRE: Mapping[str, tuple[str, Any]] = {
     "events": ("TrialFrame", TrialFrame),
+    "harness-events": ("HarnessFrame", HarnessFrame),
     "training-card": ("TrainingWireCard", TrainingWireCard),
     "tournament-card": ("TournamentWireCard", TournamentWireCard),
     "snapshot": ("TrialSnapshot", TrialSnapshot),

@@ -13,12 +13,12 @@ import pytest
 
 import arena_referee.scoring as scoring_module
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
-from arena_core.agents.rubric import Rubric
+from arena_core.agents.rubric import Rubric, canonical_rubric
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.rubric import CHECKS
 from arena_referee.mapping import TrialData
-from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, run_r2, score_trial
+from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, default_dev_rubric, run_r2, score_trial
 from arena_referee.scoring import run_r1 as _run_r1
 
 
@@ -289,6 +289,37 @@ def test_score_trial_raises_if_run_r1_ever_returns_no_validity_decision(monkeypa
         run(score_trial(fake.deps(), trial_data().trial_id, CTX))
 
 
+def test_score_corpus_trial_runs_r1_only_and_returns_its_validity_decision() -> None:
+    """S5 5.3; BKO-6: a `replay_corpus` transcript gets R1 alone (no assistant, so no R2 call at all)."""
+    fake = FakeDeps()
+    decision = run(scoring_module.score_corpus_trial(fake.deps(), trial_data().trial_id, REFEREE))
+    assert fake.calls == ["r1"]
+    assert decision.verdict == "valid"
+
+
+def test_score_corpus_trial_raises_if_run_r1_ever_returns_no_validity_decision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_run_r1(
+        _deps: ScoringDeps, _data: TrialData, _prompts: object, _purpose: str
+    ) -> tuple[RefereeSubjectReport, None]:
+        return subject_report(), None
+
+    monkeypatch.setattr(scoring_module, "run_r1", fake_run_r1)
+    fake = FakeDeps()
+    with pytest.raises(scoring_module.ScoringError, match="always returns a validity decision"):
+        run(scoring_module.score_corpus_trial(fake.deps(), trial_data().trial_id, REFEREE))
+
+
+def test_score_replay_trial_runs_r2_only_against_the_sources_report() -> None:
+    """S5 5.3; D2: a `replay` trial's R2 runs against its source's already-stored R1 report -- R1 never
+    runs again for the replay trial itself."""
+    fake = FakeDeps()
+    report = run(scoring_module.score_replay_trial(fake.deps(), trial_data().trial_id, CTX, subject_report()))
+    assert fake.calls == ["r2"]
+    assert report.schema_version == "ref_asst.v2"
+
+
 def test_run_r1_resuming_from_a_stored_report_re_derives_identical_labels() -> None:
     """A process that died after `store_labels` but before `store_judgment` (or crashed before either)
     resumes into the `stored is not None` branch; `store_labels`/`store_judgment` must still run and submit
@@ -382,3 +413,13 @@ def test_run_r2_resuming_repairs_a_missing_questioning_quality_row() -> None:
     assert fake.calls == ["r2"]  # still no second model call -- flag_support alone proves the stage is done
     assert qq_key in fake.judgments  # the missing row is repaired
     assert repaired.model_dump(mode="json") == report.model_dump(mode="json")
+
+
+def test_default_dev_rubric_is_the_canonical_published_rubric() -> None:
+    """S2 7.4: the rubric `create_app` feeds into `PromptContext` (the development fallback until the referee
+    manifest registers a `rubric.v1` file) is spec S3's real, published text -- not the old `"placeholder text
+    of {id}"` fixture every other test module here builds for itself."""
+    assert default_dev_rubric() == canonical_rubric()
+    for d in default_dev_rubric().dimensions:
+        for s in d.subchecks:
+            assert "placeholder" not in s.text

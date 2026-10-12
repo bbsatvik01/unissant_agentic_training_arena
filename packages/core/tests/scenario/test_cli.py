@@ -355,6 +355,44 @@ def test_bundle_refuses_a_codex_review_that_did_not_pass(tmp_path: Path, capsys:
     assert "cannot read" in capsys.readouterr().err
 
 
+REPORTS_DIR = SEED_DIR / "reports"
+
+
+@pytest.mark.parametrize("family_id", ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09"])
+def test_bundle_accepts_the_real_per_family_cx_report(family_id: str, capsys: pytest.CaptureFixture[str]) -> None:
+    """The committed `cases/dev/reports/<ID>.cx.json` (the authoring loop's own CX report, cases/dev/README.md)
+    is a valid `--codex` input directly: `scenario bundle` reduces it to the attestation's codex object."""
+    report_path = REPORTS_DIR / f"{family_id}.cx.json"
+    assert main(["bundle", str(SEED_DIR / f"{family_id}.json"), "--codex", str(report_path), *CORPUS]) == 0
+    bundle = json.loads(capsys.readouterr().out)
+    assert bundle["family_code"] == family_id
+    assert bundle["attestation"]["codex"] == CODEX
+
+
+def test_bundle_refuses_a_real_report_that_was_edited_to_fail(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    report = json.loads((REPORTS_DIR / "F01.cx.json").read_text(encoding="utf-8"))
+    report["cx3"] = False
+    edited = write_json(tmp_path / "F01.cx.json", report)
+    assert (
+        main(
+            [
+                "bundle",
+                str(SEED_DIR / "F01.json"),
+                "--codex",
+                str(edited),
+                "--counts",
+                "--out",
+                str(tmp_path / "b"),
+                *CORPUS,
+            ]
+        )
+        == 1
+    )
+    assert json.loads(capsys.readouterr().out) == {"CODEX.not_passed": 1}
+
+
 def test_an_unloadable_authoring_file_is_reported(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     bad = write_json(tmp_path / "authoring.json", {"spec": {}})
     out = tmp_path / "family.json"

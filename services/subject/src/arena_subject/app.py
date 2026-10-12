@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict
 
 from arena_core.config import ArenaRole, boot
 from arena_core.db import subject as db_subject
-from arena_core.db.pool import Connector, dsn_connector
+from arena_core.db.pool import Connector, PooledConnector, closing_lifespan
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
@@ -69,7 +69,7 @@ def state_from_env(env: Mapping[str, str]) -> AppState:
     """`AppState` for a real process: the S5 1.3 boot checks, the role's own DSN connector, the agent port on
     `ARENA_MODEL_MODE`'s adapter, and the local caller allowlist (S5 10.2 item 4)."""
     settings = boot(ArenaRole.SUBJECT, env)
-    connect = dsn_connector(settings.dsn)
+    connect = PooledConnector(settings.dsn)
     adapter = model_adapter(env, canned={"SubjectTurn": FAKE_SUBJECT_REPLY})
     port = AgentPort(adapter, DbSpendGuard(connect), PortOptions())
     return AppState(
@@ -105,7 +105,13 @@ def _response(outcome: AnswerOutcome) -> AnswerResponse:
 
 
 def create_app(state: AppState) -> FastAPI:
-    app = FastAPI(title="arena-subject", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        title="arena-subject",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        lifespan=lambda _app: closing_lifespan(state.connect),
+    )
 
     @app.middleware("http")
     async def _internal_policy(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:

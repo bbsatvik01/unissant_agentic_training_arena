@@ -21,7 +21,7 @@ import { Transcript } from "../components/overlay/Transcript";
 import type { ScoreCard, WallDocument } from "../components/world/moments";
 import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
-import { boardsFailure, parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
+import { parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
 import { ApiError, createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
@@ -40,8 +40,14 @@ import type { WorldState } from "../lib/world/worldState";
 import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
+import { standings } from "../lib/arena/standings";
+import { useBoards } from "./world/useBoards";
+import { useTournament, useTournamentList } from "./world/useTournament";
+import { modeBadge } from "../lib/world/badge";
+import { latestOnly } from "../lib/world/latest";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
+import { roomEngine } from "./world/voiceEngines";
 import { usePlayback } from "./world/usePlayback";
 
 const WorldCanvas = lazy(() => import("../components/world/WorldCanvas"));
@@ -80,6 +86,11 @@ export function WorldRoute() {
   const [liveCases, setLiveCases] = useState<readonly CaseCard[] | null>(null);
   const [place, setPlace] = useState<"hub" | "room">("hub");
   const placeRef = useRef(place);
+  // Every way a recording reaches the room (a file, the bundled demo run, a run from the server) takes a turn here,
+  // and only the newest turn's answer is used: choosing another run, opening a case, starting a live interview,
+  // going back to the precinct or leaving the arena before an answer arrives never lets that older answer replace
+  // what came after it.
+  const replayOrder = useRef(latestOnly());
   useEffect(() => {
     placeRef.current = place;
   });
@@ -97,54 +108,56 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
+  // The example arena (no tournament selected): boards and matrix from the bundled fixtures.
+  const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; example: TournamentState | null; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [endedTrial, setEndedTrial] = useState<EndedTrial | null>(null);
   // The judge demo (`?demo` or the precinct's Guided demo button): its step and when it began.
   const [demo, setDemo] = useState<{ step: DemoStep; startedAt: number } | null>(() => (new URLSearchParams(window.location.search).has("demo") ? { step: "precinct", startedAt: Date.now() } : null));
   // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
   const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
-  // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
-  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
-  // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
-  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`, and
-  // `&label=original` for a corrected board's original). Before reveal it shows the sealed state, never numbers
-  // (FE-LB-5); the bundled example appears only when no tournament is selected, labeled as such.
-  const openArena = () => {
+  // The selected tournament's matrix comes from the tournament poll (S6 4.9); without a selection, the list of
+  // tournaments to choose from.
+  const [tournamentId] = useState(() => new URLSearchParams(window.location.search).get("tournament"));
+  // A selected tournament is followed while the arena is open or the precinct (with its standings wall) is in view.
+  // Each opening of the arena reads the tournament and its boards again (a stopped poll restarts, a failed read is
+  // not final).
+  const [arenaRound, setArenaRound] = useState(0);
+  const tournamentLoad = useTournament(api, tournamentId, showArena || place === "hub", arenaRound);
+  const tournamentList = useTournamentList(api, showArena && tournamentId === null);
+  // A selected tournament (`?tournament=<id>`, and `&label=original` for a corrected board's original) shows its
+  // published boards: the sealed state before reveal, never numbers (FE-LB-5), read again when its poll reports the
+  // reveal. Without a selection the arena shows the bundled example boards and matrix, labeled as such.
+  const [boardLabel] = useState<"original" | null>(() => (new URLSearchParams(window.location.search).get("label") === "original" ? "original" : null));
+  const revealed = tournamentLoad.state === "ready" && tournamentLoad.tournament.state === "revealed";
+  const published = useBoards(api, tournamentId, boardLabel, showArena || place === "hub", revealed, arenaRound);
+  // Stable, so the memoized precinct (whose standings wall opens the arena) does not re-render with every frame.
+  const openArena = useCallback(() => {
+    setArenaRound((r) => r + 1);
     setShowArena(true);
     setShowProgress(false);
-  };
-  // The arena's data, read once it is first shown.
-  const arenaLoaded = arena !== null;
+  }, []);
+  // The example data, read once the arena is first shown without a selected tournament.
+  const exampleLoaded = arena !== null;
   useEffect(() => {
-    if (!showArena || arenaLoaded) return;
-    const params = new URLSearchParams(window.location.search);
-    const tournamentId = params.get("tournament");
-    const label = params.get("label") === "original" ? "original" : null;
-    type Boards = { assistant: Board | null; subject: Board | null; state: BoardsState };
-    const published: Promise<Boards | null> =
-      tournamentId === null
-        ? Promise.resolve(null)
-        : Promise.all([api.leaderboard(tournamentId, "assistant", label ?? undefined), api.leaderboard(tournamentId, "subject", label ?? undefined)]).then(
-            ([a, s]): Boards => {
-              const assistant = parseBoard(a);
-              return assistant === null ? { assistant: null, subject: null, state: { kind: "error" } } : { assistant, subject: parseBoard(s), state: { kind: "published", tournamentId, label } };
-            },
-            (e: unknown): Boards => ({ assistant: null, subject: null, state: e instanceof ApiError ? boardsFailure(e.status, e.code) : { kind: "error" } }),
-          );
-    void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
+    if (!showArena || exampleLoaded || tournamentId !== null) return;
+    void Promise.all([import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([lb, tour]) => {
       const poll: unknown = tour.default.poll;
       setArena({
-        name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
-        assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
-        subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
-        // The example matrix only without a selected tournament; a selected one has no trials to show until the
-        // tournament route is live (WP-17), never the example's.
-        tournament: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
-        boards: boards === null ? { kind: "example" } : boards.state,
+        name: lb.default.tournament.name,
+        assistant: parseBoard(lb.default.assistant),
+        subject: parseBoard(lb.default.subject),
+        example: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        boards: { kind: "example" },
       });
     });
-  }, [showArena, arenaLoaded, api]);
+  }, [showArena, exampleLoaded, tournamentId]);
+  const arenaShown = useMemo(
+    () => (tournamentId === null ? arena : published === null ? null : { name: "Tournament leaderboards", assistant: published.assistant, subject: published.subject, example: null, boards: published.state }),
+    [tournamentId, arena, published],
+  );
+  // The same board on the precinct's wall (S6 4.10), turned over when it changes (the reveal).
+  const wallStandings = useMemo(() => (arenaShown === null ? null : standings(arenaShown.assistant, arenaShown.boards)), [arenaShown]);
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -265,6 +278,7 @@ export function WorldRoute() {
       // of a recording already in hand can open again.
       const card = cases.find((c) => c.case_id === caseId) ?? (!live && active?.case_id === caseId ? active : null);
       if (card === null) return;
+      replayOrder.current();
       setActive(card);
       // With the server, the room offers a live interview (and the recorded run for F01); without it, the recorded
       // run plays straight away where there is one.
@@ -289,6 +303,7 @@ export function WorldRoute() {
   const startSession = session.start;
   const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
   const startLive = (m: "practice" | "assessment") => {
+    replayOrder.current();
     // Already live (a retry after a refused start): start now; otherwise once the mode has changed.
     if (liveCaseId !== null) {
       void startSession(m);
@@ -336,8 +351,10 @@ export function WorldRoute() {
 
   const openRecordingFile = useCallback(
     (file: File) => {
+      const current = replayOrder.current();
       void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
         ([text, { parseRecording }]) => {
+          if (!current()) return;
           let raw: unknown;
           try {
             raw = JSON.parse(text);
@@ -348,23 +365,25 @@ export function WorldRoute() {
           playRecording(raw, parseRecording);
         },
         () => {
-          setFileError("The file could not be read.");
+          if (current()) setFileError("The file could not be read.");
         },
       );
     },
     [playRecording],
   );
 
-  // One of the participant's own runs, from the server (`GET /api/trials/{id}/recording`), replayed in the room.
+  // A run from the server (`GET /api/trials/{id}/recording`): one of the participant's own, or a tournament trial
+  // chosen in the arena, replayed in the room.
   const replayTrial = useCallback(
     (trialId: string) => {
+      const current = replayOrder.current();
       setShowProgress(false);
       void Promise.all([api.recording(trialId), import("../lib/world/parseRecording")]).then(
         ([raw, { parseRecording }]) => {
-          playRecording(raw, parseRecording);
+          if (current()) playRecording(raw, parseRecording);
         },
-        () => {
-          setFileError("That run could not be loaded.");
+        (e: unknown) => {
+          if (current()) setFileError(e instanceof ApiError && e.status === 404 ? "The server does not offer this run's recording." : "That run could not be loaded.");
         },
       );
       // The ended trial's snapshot carries coaching an assessment withheld, which its recording does not (FE-DEB-4).
@@ -372,7 +391,7 @@ export function WorldRoute() {
       api.trialSnapshot(trialId).then(
         (snapshot) => {
           const ended = trialReducer(initialTrialState(), { type: "snapshot", snapshot }).view;
-          if (ended !== null) setEndedTrial({ trialId, view: ended });
+          if (ended !== null && current()) setEndedTrial({ trialId, view: ended });
         },
         () => undefined,
       );
@@ -381,16 +400,23 @@ export function WorldRoute() {
   );
   // The demo's interview: the bundled recorded run (no model call), whatever the server offers.
   const openDemoRecording = useCallback(() => {
+    const current = replayOrder.current();
     void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
       ([raw, { parseRecording }]) => {
-        playRecording(structuredClone(raw.default), parseRecording);
+        if (current()) playRecording(structuredClone(raw.default), parseRecording);
       },
       () => {
-        setFileError("The recorded run could not be loaded.");
+        if (current()) setFileError("The recorded run could not be loaded.");
       },
     );
   }, [playRecording]);
+  // Leaving the arena: a replay chosen there and still loading no longer opens the room.
+  const closeArena = () => {
+    replayOrder.current();
+    setShowArena(false);
+  };
   const backToHub = useCallback(() => {
+    replayOrder.current();
     playback.pause();
     session.stop();
     refreshMe();
@@ -444,8 +470,11 @@ export function WorldRoute() {
   // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
   const reason = composerReason(view, mode, live);
-  // Voices speak only in the room, unmuted, live or during playback at normal speed.
+  // Voices speak only in the room, unmuted, live or during playback at normal speed: Gemini voices through the server
+  // when it is there (each line cached there, so a recorded run replays for free), the browser's own otherwise.
+  const engine = useMemo(() => roomEngine(live ? api : null), [live, api]);
   useVoice({
+    engine,
     world,
     view,
     subjectName,
@@ -484,7 +513,7 @@ export function WorldRoute() {
         <div className="topbar-meta">
           {place === "room" && view !== null ? (
             <>
-              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment: coaching is saved for your debrief"}</span>
+              <span className="badge">{modeBadge(view.mode, mode === "playback" ? (recording?.snapshot.mode ?? null) : null)}</span>
               <span className="badge mono">
                 {view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>
@@ -520,7 +549,7 @@ export function WorldRoute() {
           {place === "hub" && demo === null ? (
             <button type="button" className="btn-secondary-sm" onClick={() => {
                 setDemo({ step: "precinct", startedAt: Date.now() });
-                setShowArena(false);
+                closeArena();
                 setShowProgress(false);
               }}>
               Guided demo
@@ -534,13 +563,13 @@ export function WorldRoute() {
           {place === "hub" && live && meCtl.me !== null ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
                 setShowProgress((v) => !v);
-                setShowArena(false);
+                closeArena();
               }}>
               Progress
             </button>
           ) : null}
           {place === "hub" ? (
-            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? () => { setShowArena(false); } : openArena}>
+            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? closeArena : openArena}>
               Arena
             </button>
           ) : null}
@@ -656,6 +685,8 @@ export function WorldRoute() {
                 scoreCards={scoreCards}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
+                standings={wallStandings}
+                onOpenStandings={openArena}
                 onArrive={onArrive}
               />
             </Suspense>
@@ -918,17 +949,19 @@ export function WorldRoute() {
           }}
         />
       ) : null}
-      {place === "hub" && showArena && arena !== null ? (
+      {place === "hub" && showArena && arenaShown !== null ? (
         <ArenaView
-          name={arena.name}
-          boards={arena.boards}
-          assistant={arena.assistant}
-          subject={arena.subject}
-          tournament={arena.tournament}
+          name={arenaShown.name}
+          boards={arenaShown.boards}
+          assistant={arenaShown.assistant}
+          subject={arenaShown.subject}
+          tournament={arenaShown.example ?? (tournamentLoad.state === "ready" ? tournamentLoad.tournament : EMPTY_TOURNAMENT)}
+          matrix={arenaShown.example !== null ? "example" : tournamentLoad.state === "ready" || tournamentLoad.state === "idle" ? "ready" : tournamentLoad.state}
+          tournaments={tournamentList}
+          notice={fileError}
+          onReplay={replayTrial}
           motionOff={still}
-          onClose={() => {
-            setShowArena(false);
-          }}
+          onClose={closeArena}
         />
       ) : null}
       {demoStep === null || demo === null || mustAcknowledge ? null : (

@@ -14,7 +14,15 @@ from pydantic import ValidationError
 
 from arena_core.ids import canonical_json, canonical_sha256
 from arena_core.scenario import load
-from arena_core.scenario.load import CodexReview, FamilyLoadError, IngestBundle, ingest_bundle
+from arena_core.scenario.load import (
+    CodexReview,
+    FamilyLoadError,
+    IngestBundle,
+    LegacyCodexReportError,
+    codex_review_from_report,
+    ingest_bundle,
+    is_legacy_codex_report,
+)
 from arena_core.scenario.schema import schema_enum
 
 Family = dict[str, Any]
@@ -165,6 +173,209 @@ def test_a_revision_has_its_own_code_and_names_its_predecessor(
 def test_only_a_passed_codex_review_can_be_attested(codex: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         CodexReview.model_validate({**codex, "family_sha256": "0" * 64})
+
+
+REPORTS_DIR = DEV_DIR / "reports"
+
+
+def legacy_report(family_id: str, **changes: object) -> dict[str, Any]:
+    """A copy of the real per-family CX report (`cases/dev/reports/<ID>.cx.json`), optionally mutated."""
+    report: dict[str, Any] = json.loads((REPORTS_DIR / f"{family_id}.cx.json").read_text(encoding="utf-8"))
+    report.update(changes)
+    return report
+
+
+@pytest.mark.parametrize("family_id", ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09"])
+def test_codex_review_from_report_reduces_the_real_dev_reports(family_id: str, seed: Callable[[str], Family]) -> None:
+    """S1 9.7/10.5: the committed per-family CX report reduces to the attestation's codex object and is
+    bound to the committed family file's own hash (never a stale one)."""
+    report = legacy_report(family_id)
+    assert is_legacy_codex_report(report)
+    review = codex_review_from_report(report)
+    assert review == CodexReview.model_validate({**CODEX_RESULTS, "family_sha256": report["family_sha256"]})
+    assert review.family_sha256 == canonical_sha256(seed(family_id))  # the report is not stale
+
+
+def test_a_direct_codex_review_is_not_mistaken_for_a_report() -> None:
+    assert is_legacy_codex_report({**CODEX_RESULTS, "family_sha256": "0" * 64}) is False
+
+
+@pytest.mark.parametrize("check", ["cx1", "cx4", "cx2_truthful", "cx2_deceptive", "cx3"])
+def test_codex_review_from_report_refuses_a_failed_check(check: str) -> None:
+    report = legacy_report("F01", **{check: False})
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_review_finding() -> None:
+    report = legacy_report("F01", findings=[{"code": "CX-1", "refs": ["f:01"], "note": "x"}])
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_pass_summary_that_disagrees_with_its_checks() -> None:
+    """Defense in depth: a hand-edited or stale report whose top-level `pass` no longer matches its own
+    per-check fields is refused rather than trusted on either field alone."""
+    report = legacy_report("F01", cx3=False)  # the per-check field already makes this fail
+    report["pass"] = True  # still asserted true, but disagrees with cx3
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_missing_hash() -> None:
+    report = legacy_report("F01")
+    del report["family_sha256"]
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_integer_rounds() -> None:
+    report = legacy_report("F01", rounds="one")
+    with pytest.raises(LegacyCodexReportError, match="rounds"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_malformed_hash() -> None:
+    """A `family_sha256` that is not 64 hex characters fails `CodexReview`'s own pattern; the wrapper reports
+    it as a report problem (`LegacyCodexReportError`), never a bare `pydantic.ValidationError`."""
+    report = legacy_report("F01", family_sha256="not-a-hash")
+    with pytest.raises(LegacyCodexReportError, match="malformed CX report"):
+        codex_review_from_report(report)
+
+
+@pytest.mark.parametrize("key", ["cx2_truthful", "cx2_deceptive", "cx3"])
+def test_codex_review_from_report_refuses_a_solve_sheet_that_disagrees_with_the_top_level_flag(key: str) -> None:
+    """The top-level flag alone is not trusted: a report edited so `solves.<key>.pass` is false while the
+    matching top-level field still says true (a stale or hand-edited report, never a check or solve sheet
+    changed by this function) is refused, not accepted on the passing field's word."""
+    report = legacy_report("F01")
+    report["solves"][key]["pass"] = False
+    report["solves"][key]["finding"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_missing_solves_object() -> None:
+    report = legacy_report("F01")
+    del report["solves"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_object_solves() -> None:
+    report = legacy_report("F01", solves="not an object")
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_solve_sheet_missing_its_own_pass_field() -> None:
+    report = legacy_report("F01")
+    del report["solves"]["cx3"]["pass"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_object_solve_sheet() -> None:
+    """`solves` itself is an object, but one named sheet (`solves.cx3`) is not."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"] = "not an object"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_bare_pass_true_standing_in_for_a_sheet() -> None:
+    """A sheet reduced to `{"pass": true}` -- the top-level flag's own word, with none of CX-2/CX-3's actual
+    output (`finding`, `cited_records`, `cited_answers`, `basis`, `expected`) -- is not a real solve sheet."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"] = {"pass": True}
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_finding_its_own_expected_does_not_name() -> None:
+    """The sheet's own `finding` must be named by its own `expected` (cx3's `expected` is a compound
+    "X or Y" string; `insufficient_evidence` is split from it by " or ", never treated as a mismatch)."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_accepts_cx3s_compound_expected() -> None:
+    """F01's cx3 sheet has `expected`: "deceptive or insufficient_evidence" and `finding`:
+    "insufficient_evidence" -- confirms the compound split, not a coincidental pass elsewhere."""
+    report = legacy_report("F01")
+    assert report["solves"]["cx3"]["expected"] == "deceptive or insufficient_evidence"
+    assert report["solves"]["cx3"]["finding"] == "insufficient_evidence"
+    codex_review_from_report(report)  # does not raise
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("finding", "not_a_real_finding"),
+        ("cited_records", []),
+        ("cited_records", None),
+        ("cited_answers", "A1"),
+        ("basis", ""),
+        ("basis", None),
+    ],
+)
+def test_codex_review_from_report_refuses_a_malformed_sheet_field(field: str, value: object) -> None:
+    report = legacy_report("F01")
+    report["solves"]["cx2_deceptive"][field] = value
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_finding_and_its_own_expected_moved_together() -> None:
+    """S1 9.7 fixes what each solve session's finding must be by which session it is (`EXPECTED_FINDINGS`),
+    never by the sheet's own self-reported `expected` field: a report that moves `cx2_truthful`'s `finding`
+    to `"deceptive"` and its `expected` to `"deceptive"` together, so the two still agree with each other,
+    must still be refused -- only `truthful` is ever a valid cx2_truthful finding."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = "deceptive"
+    report["solves"]["cx2_truthful"]["expected"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_truthful_added_to_cx3s_expected() -> None:
+    """`truthful` is never a valid CX-3 finding (S1 9.7: "finding is deceptive or insufficient_evidence"),
+    even if a hand-edited report's own `expected` field is widened to claim it is."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"]["finding"] = "truthful"
+    report["solves"]["cx3"]["expected"] = "truthful or deceptive or insufficient_evidence"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_string_finding_without_crashing() -> None:
+    """A `finding` that is a list or object is not hashable against the valid-literal set: refused cleanly
+    (`LegacyCodexReportError`), never an uncaught `TypeError` from the membership test itself."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_truthful"]["finding"] = ["truthful"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_accepts_cx3_with_no_citations_at_all() -> None:
+    """S1 9.7: CX-3's own pass rule is `finding is deceptive or insufficient_evidence` alone -- no citation
+    requirement, unlike CX-2's (which needs the cited records to cover a decisive-support item). An honest
+    `insufficient_evidence` sheet that cites nothing is a real, valid CX-3 pass, never refused for it."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"]["cited_records"] = []
+    report["solves"]["cx3"]["cited_answers"] = []
+    codex_review_from_report(report)  # does not raise
+
+
+def test_codex_review_from_report_still_refuses_cx2s_empty_citations() -> None:
+    """Unlike CX-3, CX-2's own pass rule needs the cited records to cover a decisive-support item (S1 9.7):
+    an empty `cited_records` is never a real CX-2 sheet."""
+    report = legacy_report("F01")
+    report["solves"]["cx2_deceptive"]["cited_records"] = []
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
 
 
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:

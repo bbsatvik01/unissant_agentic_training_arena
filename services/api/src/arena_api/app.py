@@ -23,7 +23,7 @@ from arena_api.state import PORT, ApiState
 from arena_api.subject_client import subject_client
 from arena_core.config import ArenaRole, boot
 from arena_core.db.arena import ArenaDb
-from arena_core.db.pool import dsn_connector
+from arena_core.db.pool import PooledConnector, closing_lifespan
 from arena_core.http_guard import (
     CSRF_COOKIE,
     GuardConfig,
@@ -79,7 +79,9 @@ def _facts(request: Request) -> RequestFacts:
 
 
 def create_app(state: ApiState, config: GuardConfig, *, phoenix_url: str | None = None) -> FastAPI:
-    app = FastAPI(title="arena-api", docs_url=None, redoc_url=None)
+    app = FastAPI(
+        title="arena-api", docs_url=None, redoc_url=None, lifespan=lambda _app: closing_lifespan(state.connect)
+    )
     app.state.api = state
     app.state.phoenix_url = phoenix_url
     pause = _Pause()
@@ -110,7 +112,7 @@ def state_from_env(env: Mapping[str, str]) -> ApiState:
     """The process state: boot checks, the role's DSN, the dev identity, the agent port (fake replies registered
     for `ARENA_MODEL_MODE=fake`), and the caller-token clients for arena-subject and arena-referee."""
     settings = boot(ArenaRole.API, env)
-    connect = dsn_connector(settings.dsn)
+    connect = PooledConnector(settings.dsn)
     try:
         identity = resolve_dev_user(env)
     except IdentityError as exc:

@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result
 from arena_referee import admin_db, db, isolation, reveal
 from arena_referee.routes import reveal as reveal_route
@@ -46,14 +47,14 @@ class _Cursor:
         return self.rows[0] if self.rows else None
 
 
-class Script:
+class Script(ScriptedConnection):
     """Answers each statement from `answers` (SQL fragment -> rows), in order."""
 
     def __init__(self, answers: list[tuple[str, list[tuple[Any, ...]]]]) -> None:
         self.answers = answers
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
-    async def execute(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
         self.executed.append((query, tuple(params)))
         fragment, rows = self.answers.pop(0)
         assert fragment in query, (fragment, query)

@@ -10,16 +10,25 @@ from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
 
-from arena_core.contracts.common import ByteLimit, Contract
+from arena_core.contracts.common import ByteLimit, Contract, wire_bytes
 from arena_core.contracts.referee import PER_QUESTION_SUBCHECKS
-from arena_core.contracts.rendered import rendered_overruns
+from arena_core.contracts.rendered import clean, rendered_overruns
 from arena_core.ids import read_json_text
+from arena_core.scoring.rubric import (
+    CHECK_APPLICABILITY,
+    CHECK_NAME,
+    CHECK_PASSES_WHEN,
+    CHECKS,
+    DIMENSION_ANCHORS,
+    DIMENSION_NAMES,
+)
 
 if TYPE_CHECKING:
     from arena_core.agents.manifests import PromptSet
 
 RUBRIC_FILE = "rubric.v1.json"
 MAX_SUBCHECKS = 30  # S2 7.4: at most 30 sub-checks in total
+MAX_SUBCHECK_TEXT_BYTES = 400  # RubricSubcheck.text's ByteLimit below (D11)
 
 
 class RubricSubcheck(Contract):
@@ -78,3 +87,55 @@ def manifest_rubric(prompts: PromptSet) -> Rubric | None:
     prompt = prompts.manifest.prompt
     path = rubric_path([f.path for f in prompt.files]) if prompt else None
     return parse_rubric(prompts.text(path)) if path else None
+
+
+def _subcheck_text(check_id: str) -> tuple[str, str | None]:
+    """One check's rendered `text` and `na_when` (S2 7.3, 7.4), composed from `arena_core.scoring.rubric`'s
+    canonical S3 2.3-2.7 text: the check's name, then (when it fits the 400-byte prompt cap, D11) its verbatim
+    "Applicable" cell, then its verbatim "Passes when" cell. The frozen referee prompt (`prompts/referee/
+    assistant.v1.txt`) tells the model to answer a sub-check `na` "only where the sub-check text says when it
+    does not apply", so the applicability clause is included whenever it fits -- every "N/A unless" check
+    except 3e, whose clause alone (237 characters) leaves no room beside its "Passes when" text. That omission
+    is harmless: every "N/A unless" check but 3d already has its applicability pre-filtered by a code-built
+    trigger the prompt lists separately (`arena_core.agents.triggers.derive_triggers`; `arena_referee.scoring.
+    _applicable` refuses the model's own `na` whenever code already found one), so 3d is the only check whose
+    own `na` answer is load-bearing without a trigger list, and its clause (one short sentence) always fits."""
+    name = CHECK_NAME[check_id]
+    applicability = CHECK_APPLICABILITY.get(check_id)
+    passes_when = CHECK_PASSES_WHEN[check_id]
+    na_when = applicability
+    with_applicability = f"{name}. {applicability}. {passes_when}." if applicability else f"{name}. {passes_when}."
+    text = with_applicability
+    if wire_bytes(clean(text)) > MAX_SUBCHECK_TEXT_BYTES:
+        text = f"{name}. {passes_when}."
+    if wire_bytes(clean(text)) > MAX_SUBCHECK_TEXT_BYTES:
+        msg = f"{check_id}: rubric.v1 text exceeds {MAX_SUBCHECK_TEXT_BYTES} rendered bytes even without 'Applicable'"
+        raise ValueError(msg)
+    return text, na_when
+
+
+def canonical_rubric() -> Rubric:
+    """rubric.v1 (S2 7.4): the 22 checks and five dimensions' anchors exactly as spec S3 2.3-2.7 defines them,
+    read from `arena_core.scoring.rubric`'s canonical text -- the one source that module's rubric-hash lineage
+    (S3 2.11) and this builder both read, so the published spec table and the rendered rubric cannot drift (a
+    parser test over the spec's own markdown asserts this, `test_rubric_spec_text.py`). Replaces the
+    development placeholder (`services/referee.scoring.default_dev_rubric`'s former `"placeholder text of
+    {id}"`) now that S3 publishes the real text."""
+    return Rubric.model_validate(
+        {
+            "rubric_version": "rubric.v1",
+            "dimensions": [
+                {
+                    "dim_id": dim,
+                    "name": DIMENSION_NAMES[dim],
+                    "anchors_0_to_4": list(DIMENSION_ANCHORS[dim]),
+                    "subchecks": [
+                        {"id": cid, "text": text, "na_when": na_when}
+                        for cid in ids
+                        for text, na_when in (_subcheck_text(cid),)
+                    ],
+                }
+                for dim, ids in CHECKS.items()
+            ],
+        }
+    )
