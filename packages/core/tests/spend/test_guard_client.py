@@ -58,7 +58,7 @@ class Conn(ScriptedConnection):
         self.executed.append((query, params))
         for name, answer in self.answers.items():
             if name in query:
-                if isinstance(answer, Exception):
+                if isinstance(answer, BaseException):
                     raise answer
                 if isinstance(answer, list):
                     return Cursor(answer)
@@ -406,3 +406,58 @@ def test_main_reports_a_broken_plan(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert plan.main(broken, ["--check", "--dsn-env", "OWNER"], {"OWNER": "x"}) == 1
     assert "exited 1" in capsys.readouterr().err
+
+
+class NotReleasable(psycopg.Error):
+    sqlstate = "AR001"  # S4: a dispatched hold cannot be released
+
+
+class Stalls(Conn):
+    """A connection whose `ops.mark_dispatched` never answers (the request is cancelled meanwhile)."""
+
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
+        if "ops.mark_dispatched" in query:
+            await asyncio.sleep(10)
+        return await super().statement(query, params)
+
+
+def test_a_cancelled_dispatch_still_settles_usage_unknown_on_a_fresh_connection() -> None:
+    """S5 4.10 through the real guard client: the request is cancelled during dispatch, then the port's unwind runs
+    in the same (cancelled) task: release refused, then usage_unknown. Every failed write closes its connection
+    (db.pool.one_statement), so each next write returns that checkout and takes a fresh one; and the earlier
+    cancellation never turns the refusal into a cancellation."""
+    reserved = {"outcome": "reserved", "id": str(RID), "reserved_usd": 1}
+    opened = [
+        Stalls({"ops.reserve_model_call": reserved}),
+        Conn({"ops.settle_reservation": NotReleasable("dispatched")}),
+        Conn({"ops.settle_reservation": {"outcome": "usage_unknown", "settled_usd": 1}}),
+    ]
+    pending = list(opened)
+    slot = asyncio.Semaphore(1)  # a one-connection pool: a closed checkout must be returned before the next one
+
+    @asynccontextmanager
+    async def connect() -> AsyncIterator[Any]:
+        async with asyncio.timeout(1):
+            await slot.acquire()
+        try:
+            yield pending.pop(0)
+        finally:
+            slot.release()
+
+    async def body() -> Decimal:
+        me = asyncio.current_task()
+        assert me is not None
+        async with DbSpendGuard(connect).session() as session:
+            found = await session.reserve(model_req())
+            asyncio.get_running_loop().call_later(0.05, me.cancel)
+            with pytest.raises(asyncio.CancelledError):
+                await session.dispatch(found.id)
+            with pytest.raises(NotReleasable):
+                await session.settle(found.id, "released")
+            settled = await session.settle(found.id, "usage_unknown")
+        me.uncancel()
+        return settled
+
+    assert run(body()) == Decimal(1)
+    assert [c.closed for c in opened] == [True, True, False]
+    assert opened[2].executed[-1][1] == (RID, "usage_unknown")

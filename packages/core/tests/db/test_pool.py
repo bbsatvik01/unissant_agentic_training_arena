@@ -74,13 +74,12 @@ def test_one_statement_without_an_actor_sets_none() -> None:
     assert conn.log == ["begin", "select 1", "committed"]
 
 
-def test_a_failed_statement_is_rolled_back_raised_and_the_mode_restored() -> None:
+def test_a_failed_statement_is_raised_as_it_failed_and_its_connection_closed() -> None:
     conn = Conn(fail=ValueError("refused"))
     with pytest.raises(ValueError, match="refused"):
         run(one_statement(_real(conn), "select boom"))
-    assert conn.log == ["begin", "select boom", "rolled back"]
-    assert conn.autocommit is False
-    assert conn.info.transaction_status == TransactionStatus.IDLE
+    assert conn.log == ["begin", "select boom", "rolled back"]  # closing ends the transaction, as the server does
+    assert conn.closed  # never handed back: the pool replaces it
 
 
 def test_one_statement_refuses_a_connection_inside_a_transaction() -> None:
@@ -242,27 +241,78 @@ def test_a_checkout_that_is_not_idle_is_closed_at_once_never_waited_on(status: T
     assert time.monotonic() - started < PROMPT_S
 
 
-class RollbackFails(Conn):
-    """The statement fails with `primary`; the ROLLBACK after it fails too (the connection broke meanwhile)."""
-
-    def __init__(self, primary: BaseException) -> None:
-        super().__init__(fail=primary)
-
-    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> object:
-        if query == "ROLLBACK":
-            msg = "connection lost"
-            raise psycopg.OperationalError(msg)
-        return await super().execute(query, params)
-
-
 class Refused(psycopg.Error):
     sqlstate = "AR040"
 
 
-@pytest.mark.parametrize("primary", [Refused("no identity"), asyncio.CancelledError()])
-def test_a_failed_rollback_keeps_the_statements_own_error_and_closes_the_connection(primary: BaseException) -> None:
-    conn = RollbackFails(primary)
-    with pytest.raises(type(primary)) as raised:
+def test_an_s4_refusal_keeps_its_sqlstate_and_the_connection_is_closed() -> None:
+    refusal = Refused("no identity")
+    conn = Conn(fail=refusal)
+    with pytest.raises(Refused) as raised:
         run(one_statement(_real(conn), "select boom"))
-    assert raised.value is primary
+    assert raised.value is refusal
     assert conn.closed
+
+
+class BusyOnExit(Conn):
+    """psycopg's own behaviour when a cancellation lands while the batch is on the wire: leaving the pipeline fails
+    with "cannot exit pipeline mode while busy", and that error replaces the cancellation."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = asyncio.Event()
+
+    async def statement(self, query: str, params: tuple[Any, ...] = ()) -> _Rows:
+        self.log.append(f"{query} {params}")
+        self.started.set()
+        await asyncio.sleep(10)
+        return _Rows([])
+
+    @asynccontextmanager
+    async def pipeline(self) -> AsyncIterator[None]:
+        try:
+            yield
+        except asyncio.CancelledError:
+            msg = "cannot exit pipeline mode while busy"
+            raise psycopg.OperationalError(msg) from None
+
+
+def test_a_call_cancelled_mid_pipeline_raises_the_cancellation_and_discards_its_connection() -> None:
+    conn = BusyOnExit()
+
+    async def body() -> None:
+        task = asyncio.create_task(one_statement(_real(conn), "select pg_sleep(10)"))
+        await conn.started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(body())
+    assert conn.closed
+
+
+def test_an_error_that_is_not_a_cancellation_is_raised_unchanged() -> None:
+    """Only a cancelled caller turns the pipeline's own error into a cancellation."""
+    conn = Conn(fail=psycopg.OperationalError("lost"))
+    with pytest.raises(psycopg.OperationalError, match="lost"):
+        run(one_statement(_real(conn), "select boom"))
+    assert conn.closed
+
+
+def test_an_earlier_cancellation_never_turns_a_later_error_into_a_cancellation() -> None:
+    """Cleanup after a caught cancellation runs in the same task (its cancel count stays raised): a refusal there is
+    raised as the refusal."""
+    refusal = Refused("no identity")
+
+    async def body() -> None:
+        me = asyncio.current_task()
+        assert me is not None
+        me.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.sleep(1)
+        with pytest.raises(Refused) as raised:
+            await one_statement(_real(Conn(fail=refusal)), "select boom")
+        assert raised.value is refusal
+        me.uncancel()
+
+    run(body())

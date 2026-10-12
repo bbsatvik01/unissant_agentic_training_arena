@@ -78,14 +78,36 @@ class SpendGuard(Protocol):
 
 
 class _DbSession:
-    def __init__(self, conn: calls.Conn) -> None:
-        self._conn = conn
+    """One model call's ledger writes. Each write runs on the session's connection, checked out on first use; a
+    write that fails closes its connection (`db.pool.one_statement`: a failed or interrupted call never hands its
+    connection back), so the next write (the cleanup a cancelled dispatch still owes, S5 4.10) first returns that
+    checkout, so the pool can replace it, then checks out a fresh connection instead of failing on the closed one."""
+
+    def __init__(self, connect: Connector) -> None:
+        self._connect = connect
+        self._checkout: AbstractAsyncContextManager[calls.Conn] | None = None
+        self._current: calls.Conn | None = None
+
+    async def _conn(self) -> calls.Conn:
+        if self._current is not None and self._current.closed:
+            await self.release(None)
+        if self._current is None:
+            checkout = self._connect()
+            self._current = await checkout.__aenter__()
+            self._checkout = checkout
+        return self._current
+
+    async def release(self, exc: BaseException | None) -> None:
+        """Return the current checkout, if any (with the exception the session is ending on, as `async with`)."""
+        checkout, self._checkout, self._current = self._checkout, None, None
+        if checkout is not None:
+            await checkout.__aexit__(type(exc) if exc else None, exc, exc.__traceback__ if exc else None)
 
     async def reserve(self, req: ModelCallRequest) -> Reservation:
-        return reservation_from(await calls.reserve_model_call(self._conn, req))
+        return reservation_from(await calls.reserve_model_call(await self._conn(), req))
 
     async def dispatch(self, reservation_id: UUID) -> None:
-        result = await calls.mark_dispatched(self._conn, reservation_id)
+        result = await calls.mark_dispatched(await self._conn(), reservation_id)
         if result.outcome == "refused":
             raise refusal(result.reason)
         if result.outcome != "dispatched":
@@ -93,10 +115,10 @@ class _DbSession:
             raise GuardProtocolError(msg)
 
     async def record(self, report: UsageReport) -> UsageResult:
-        return await calls.record_usage(self._conn, report)
+        return await calls.record_usage(await self._conn(), report)
 
     async def settle(self, reservation_id: UUID, outcome: SettleOutcome) -> Decimal:
-        result = await calls.settle_reservation(self._conn, reservation_id, outcome)
+        result = await calls.settle_reservation(await self._conn(), reservation_id, outcome)
         if result.outcome == "already_settled":
             msg = f"reservation {reservation_id} was already settled ({result.state})"
             raise GuardProtocolError(msg)
@@ -111,8 +133,13 @@ class DbSpendGuard:
 
     @asynccontextmanager
     async def _open(self) -> AsyncIterator[GuardSession]:
-        async with self._connect() as conn:
-            yield _DbSession(conn)
+        session = _DbSession(self._connect)
+        try:
+            yield session
+        except BaseException as exc:
+            await session.release(exc)
+            raise
+        await session.release(None)
 
     def session(self) -> AbstractAsyncContextManager[GuardSession]:
         return self._open()

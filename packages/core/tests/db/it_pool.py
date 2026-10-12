@@ -77,12 +77,15 @@ def test_one_statement_commits_a_write_and_rolls_back_a_failed_one() -> None:
             try:
                 async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None) as conn:
                     await one_statement(conn, _on("insert into public.{} values (1)", table))
-                    with pytest.raises(psycopg.errors.UniqueViolation):
-                        await one_statement(conn, _on("insert into public.{} values (1)", table))
                     assert conn.info.transaction_status == TransactionStatus.IDLE
                     assert conn.autocommit is False
+                    with pytest.raises(psycopg.errors.UniqueViolation):
+                        await one_statement(conn, _on("insert into public.{} values (1)", table))
+                    assert conn.closed  # a failed call never hands its connection back
+                async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None) as conn:
                     with pytest.raises(psycopg.errors.DivisionByZero):
                         await one_statement(conn, _on("insert into public.{} values (1 / 0)", table))
+                async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None) as conn:
                     cur = await one_statement(conn, _on("select n from public.{}", table))
                     assert await cur.fetchall() == [(1,)]
                 cur = await admin.execute(_on("select count(*) from public.{}", table))
@@ -157,7 +160,7 @@ def test_a_connection_set_to_serializable_still_reaches_s4s_refusal() -> None:
             with pytest.raises(psycopg.Error) as refused:
                 await one_statement(conn, "select ledger.require_read_committed()")
             assert refused.value.sqlstate == "AR001"
-            assert conn.info.transaction_status == TransactionStatus.IDLE
+            assert conn.closed
 
     run(body())
 
@@ -223,6 +226,39 @@ def test_a_checkout_left_while_its_statement_still_runs_is_closed_not_waited_on(
             abandoned.cancel()
             await asyncio.gather(abandoned, return_exceptions=True)  # its own outcome is not this test's concern
             async with asyncio.timeout(5), pooled() as conn:
+                cur = await one_statement(conn, "select 1")
+                assert await cur.fetchall() == [(1,)]
+        finally:
+            await pooled.close()
+
+    run(body())
+
+
+def test_a_call_cancelled_twice_mid_pipeline_raises_the_cancellation_and_its_connection_is_discarded() -> None:
+    """Seen on the hosted stack: a request cancelled while the batch is on the wire, then cancelled again during
+    psycopg's own cancel-and-drain (a client disconnect plus a timeout). psycopg then cannot leave pipeline mode and
+    raised "cannot exit pipeline mode while busy" in place of the cancellation (ArenaError XX000 upstream)."""
+
+    async def body() -> None:
+        pooled = PooledConnector(admin_dsn(), min_size=1, max_size=1)
+        try:
+            seen: list[AsyncConnection[Any]] = []
+
+            async def call() -> None:
+                async with pooled() as conn:
+                    seen.append(conn)
+                    await one_statement(conn, "select pg_sleep(5)")
+
+            task = asyncio.create_task(call())
+            await asyncio.sleep(0.3)
+            task.cancel()
+            await asyncio.sleep(0)
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            assert seen[0].closed
+            async with asyncio.timeout(5), pooled() as conn:
+                assert conn is not seen[0]
                 cur = await one_statement(conn, "select 1")
                 assert await cur.fetchall() == [(1,)]
         finally:

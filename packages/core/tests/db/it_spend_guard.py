@@ -409,11 +409,17 @@ def test_another_role_cannot_settle_or_record_on_a_reservation_it_did_not_make(a
             made = await calls.reserve_model_call(subject, req)
             assert made.reservation_id is not None
             rid = made.reservation_id
-        async with role_connector(admin_dsn, "arena_public")() as public:
-            for attempt in (calls.mark_dispatched(public, rid), calls.settle_reservation(public, rid, "released")):
+        # A refused call closes its connection (db.pool.one_statement), so each refusal gets its own.
+        public_connect = role_connector(admin_dsn, "arena_public")
+        for attempt in (
+            lambda c: calls.mark_dispatched(c, rid),
+            lambda c: calls.settle_reservation(c, rid, "released"),
+        ):
+            async with public_connect() as public:
                 with pytest.raises(psycopg.Error) as refused:
-                    await attempt
+                    await attempt(public)
                 assert refused.value.sqlstate == "AR040"
+        async with public_connect() as public:
             with pytest.raises(psycopg.Error) as no_grant:
                 await calls.settle_voice_reservation(public, rid, "released")
             assert no_grant.value.sqlstate == "42501"
@@ -586,13 +592,14 @@ def test_each_role_runs_the_whole_lifecycle_on_its_own_login_and_no_other_role_c
             )
             assert (await calls.record_usage(conn, report)).outcome == "recorded"
             for other in others:
-                async with role_connector(admin_dsn, other)() as foreign:
-                    for attempt in (
-                        calls.record_usage(foreign, dataclasses.replace(report, seq=2)),
-                        calls.settle_reservation(foreign, rid, "committed"),
-                    ):
+                # A refused call closes its connection (db.pool.one_statement), so each refusal gets its own.
+                for attempt in (
+                    lambda c: calls.record_usage(c, dataclasses.replace(report, seq=2)),
+                    lambda c: calls.settle_reservation(c, rid, "committed"),
+                ):
+                    async with role_connector(admin_dsn, other)() as foreign:
                         with pytest.raises(psycopg.Error) as refused:
-                            await attempt
+                            await attempt(foreign)
                         assert refused.value.sqlstate == "AR040"
             settled = await calls.settle_reservation(conn, rid, "committed")
             again = await calls.record_usage(conn, report)  # the same report after settlement: exists, not an error
