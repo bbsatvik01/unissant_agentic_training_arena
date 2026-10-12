@@ -641,25 +641,31 @@ select pg_temp.rv_complete((select trial from rvh4), 'rvh-4');
 select pg_temp.rv_adj((select trial from rvh3), 'valid', 'rv19-pre-adj');
 
 -- RV-19: before reveal.
+create temp table rvh3variant on commit drop as
+  select variant_id from arena.trials where id = (select trial from rvh3);
 create temp table rv19 on commit drop as select tests.as_role('arena_public', format(
   'select jsonb_build_object(%L, (select count(*) from arena.v_transcripts where trial_id = %L),'
   || ' %L, (select count(*) from arena.v_findings where trial_id = %L),'
   || ' %L, (select count(*) from arena.v_trial_events where trial_id = %L),'
   || ' %L, (select count(*) from ledger.v_adjudications where trial_id = %L),'
   || ' %L, (select payload from ledger.v_commitments where trial_id = %L),'
-  || ' %L, (select commitment_sha256 is not null from ledger.v_commitments where trial_id = %L))',
+  || ' %L, (select commitment_sha256 is not null from ledger.v_commitments where trial_id = %L),'
+  || ' %L, (select count(*) from arena.v_hidden_cases where variant_id = %L))',
   'transcripts', (select trial from rvh3), 'findings', (select trial from rvh3),
   'trial_events', (select trial from rvh3), 'adjudications', (select trial from rvh3),
-  'payload', (select trial from rvh3), 'hash_visible', (select trial from rvh3))) as r;
+  'payload', (select trial from rvh3), 'hash_visible', (select trial from rvh3),
+  'hidden_cases', (select variant_id from rvh3variant))) as r;
 select is(array[
     (select (r ->> 'transcripts') from rv19), (select (r ->> 'findings') from rv19),
     (select (r ->> 'trial_events') from rv19), (select (r ->> 'adjudications') from rv19),
-    (select (r -> 'payload') from rv19)::text, (select (r ->> 'hash_visible') from rv19)],
-  array['0', '0', '0', '0', 'null', 'true'],
+    (select (r -> 'payload') from rv19)::text, (select (r ->> 'hash_visible') from rv19),
+    (select (r ->> 'hidden_cases') from rv19)],
+  array['0', '0', '0', '0', 'null', 'true', '0'],
   'RV-19 before reveal of a hidden tournament, as arena_public: v_transcripts, v_findings, v_trial_events '
   || 'and v_adjudications return no VISIBLE rows for its trials (rvh3 already has a real adjudication row, '
   || 'proving this hides it rather than finding nothing); v_commitments.payload is null while the commitment '
-  || 'hash stays visible');
+  || 'hash stays visible; v_hidden_cases has no row for its variant either (the sealed-run gap: a revealed '
+  || 'hidden trial''s packet must not leak before reveal, per export_run/GET .../recording)');
 do $$
 begin
   alter table ledger.validity_adjudications disable trigger validity_adjudications_append_only;
@@ -693,9 +699,14 @@ select is(array[
     tests.as_role('arena_public', format('select count(*) from arena.v_findings where trial_id = %L', (select trial from rvh3)))::text,
     (tests.as_role('arena_public', format('select count(*) from arena.v_trial_events where trial_id = %L', (select trial from rvh3)))::text::integer > 0)::text,
     tests.as_role('arena_public', format('select count(*) from ledger.v_adjudications where trial_id = %L', (select trial from rvh3)))::text,
-    (tests.as_role('arena_public', format('select payload from ledger.v_commitments where trial_id = %L', (select trial from rvh3))) is not null)::text],
-  array['1', '1', 'true', '1', 'true'],
-  'RV-20 after reveal, the same views return the hidden trial''s rows (and v_commitments.payload too)');
+    (tests.as_role('arena_public', format('select payload from ledger.v_commitments where trial_id = %L', (select trial from rvh3))) is not null)::text,
+    tests.as_role('arena_public', format('select public_packet = p.packet from arena.v_hidden_cases, sealed.hidden_public_packets p'
+      || ' where v_hidden_cases.variant_id = %L and p.variant_id = %L',
+      (select variant_id from rvh3variant), (select variant_id from rvh3variant)))::text],
+  array['1', '1', 'true', '1', 'true', 'true'],
+  'RV-20 after reveal, the same views return the hidden trial''s rows (and v_commitments.payload too); '
+  || 'arena.v_hidden_cases now resolves the variant''s real packet byte for byte, closing the sealed-run '
+  || 'export gap (GET /api/trials/{id}/recording, make export-run)');
 
 -- RV-21 (SG3-01).
 create temp table rv21v1 on commit drop as select id from ledger.inclusion_manifests

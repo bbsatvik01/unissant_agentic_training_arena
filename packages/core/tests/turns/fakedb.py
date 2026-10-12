@@ -50,6 +50,10 @@ class FakeArenaDb(ArenaDb):
         self.subject_id: UUID | None = None
         self.planned_trial_id: UUID | None = None
         self.variant_id = uuid4()
+        # `public_packet` matches this, not `variant_id` directly: a test that reassigns `variant_id` (to
+        # simulate a trial on a hidden-split variant the dev case library never carries) leaves this alone,
+        # so `public_packet` still correctly reports "not a dev variant" for the new one.
+        self.dev_variant_id = self.variant_id
         self.mode = mode
         self.kind = kind  # arena.v_trials' own kind (training/interactive/replay/replay_corpus), WP-17
         self.status = "running"
@@ -80,6 +84,8 @@ class FakeArenaDb(ArenaDb):
         self.study_row: dict[str, Any] | None = None  # the actor's training.v_my_study row
         self.boards: list[dict[str, Any]] = []  # {tournament, board, label, manifest_version, body}
         self.published_fairness: dict[str, Any] | None = None
+        # arena.v_hidden_cases' shape: empty until a test simulates reveal (variant_id -> packet).
+        self.hidden_packets: dict[UUID, dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ helpers
 
@@ -425,7 +431,11 @@ class FakeArenaDb(ArenaDb):
         ]
 
     async def public_packet(self, variant: UUID) -> dict[str, Any] | None:
-        return PACKET if variant == self.variant_id else None
+        return PACKET if variant == self.dev_variant_id else None
+
+    async def hidden_packet(self, variant: UUID) -> dict[str, Any] | None:
+        """`arena.v_hidden_cases`: nothing until a test puts a row in `hidden_packets` (simulating reveal)."""
+        return self.hidden_packets.get(variant)
 
     async def study(self) -> dict[str, Any] | None:
         return self.study_row

@@ -553,6 +553,24 @@ def test_recording_route_serves_a_visible_tournament_trial() -> None:
     assert rec["snapshot"]["mode"] == "harness"
 
 
+def test_recording_route_404s_a_hidden_split_trial_before_reveal_and_serves_it_after() -> None:
+    """The sealed-run gap this closes: `db.public_packet` resolves only the dev split, so a revealed hidden
+    tournament's trial 404'd here exactly as an unknown id did. Before some trial on the variant is visible
+    (simulated: no row in `hidden_packets`, standing in for a hidden tournament that has not revealed), the
+    route still 404s -- the existence oracle S4 9.1 denies telling a genuinely unknown trial apart from one
+    that merely has not revealed yet. After reveal (a row appears, `arena.v_hidden_cases`), the same trial id
+    serves its real recording."""
+    h = Harness()
+    h.db.kind = "interactive"
+    hidden_variant = uuid4()
+    h.db.variant_id = hidden_variant
+    assert h.get(f"/api/trials/{h.trial}/recording").status_code == HTTPStatus.NOT_FOUND
+    h.db.hidden_packets[hidden_variant] = PACKET
+    rec = h.get(f"/api/trials/{h.trial}/recording").json()
+    assert rec["format"] == "arena.recording.v1"
+    assert rec["case"]["case_id"] == PACKET["case_id"]
+
+
 # ------------------------------------------------------------------ progress (S5 5.5, S6 4.8, S3 6.1)
 
 

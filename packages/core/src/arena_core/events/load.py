@@ -7,8 +7,11 @@ public packet's requestable list) and `trial_ended`'s terminal record. `load_tou
 tournament trial the same way (D-021: "every tournament trial must be exportable"; `arena_tournament`): every
 one of its turn and coaching events is `internal` visibility (S4 `_emit`), which the database's own
 `arena.trial_visible` has already restricted to a dev-split or revealed-hidden trial, so the export viewer
-marks them visible instead of hiding them a second time for no one (`Viewer.internal_visible`). `snapshot_of`
-and `recording_of` then hand everything to `events.projections`, the only code that builds frames.
+marks them visible instead of hiding them a second time for no one (`Viewer.internal_visible`). Both read a
+variant's packet through `_packet`, dev split first then the hidden split's own visibility-checked projection
+(`db.hidden_packet`, `arena.v_hidden_cases`) -- never before a hidden tournament's reveal, same rule as the
+trial's own content. `snapshot_of` and `recording_of` then hand everything to `events.projections`, the only
+code that builds frames.
 """
 
 from __future__ import annotations
@@ -110,12 +113,21 @@ def stored_events(
     return out
 
 
+async def _packet(db: ArenaDb, variant: UUID) -> dict[str, Any]:
+    """S4/S6 visibility: `variant`'s packet from the dev case library, else the hidden split's own
+    visibility-checked projection once some trial on it is visible (reveal, SCN-12), else `{}` (an
+    unexportable trial still loads with no packet; `load_recording` then answers 404, same as an unknown id,
+    no existence oracle, S4 9.1). A dev variant is never found in `hidden_packet` (`arena.v_hidden_cases`
+    selects only `sealed.hidden_public_packets` rows), so the `or` never masks a real dev packet."""
+    return await db.public_packet(variant) or await db.hidden_packet(variant) or {}
+
+
 async def load_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     """The actor's own training trial, or None (another user's or an unknown trial: no existence oracle)."""
     meta = await db.trial(trial)
     if meta is None:
         return None
-    packet = await db.public_packet(meta["variant_id"]) or {}
+    packet = await _packet(db, meta["variant_id"])
     rows, released = await db.all_events(trial), await db.released(trial)
     # Read the trial again after its events: a terminal record commits with its trial_ended event, so this read
     # is at least as new as every row above (the trial cannot end between the reads unnoticed).
@@ -149,7 +161,7 @@ async def load_tournament_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     meta = await db.tournament_trial(trial)
     if meta is None or meta["kind"] not in TOURNAMENT_KINDS:
         return None
-    packet = await db.public_packet(meta["variant_id"]) or {}
+    packet = await _packet(db, meta["variant_id"])
     rows, released = await db.all_events(trial), await db.released(trial)
     meta = await db.tournament_trial(trial) or meta
     if meta["status"] != "running" and not any(r.kind == "trial_ended" for r in rows):
@@ -240,13 +252,14 @@ async def load_recording(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
     `arena_public` caller may read (a dev-split trial, or a hidden one after reveal) regardless of the acting
     identity, so the same dev identity that exports a training trial can export a visible tournament trial
     too (`scripts/export_run.py`'s own docstring). `None` when `trial` is neither (another user's training
-    trial, or an unknown id) -- or when it names a hidden-split variant: `db.public_packet` resolves only
-    `arena.v_dev_cases` (dev split), so `load_trial`/`load_tournament_trial` fall back to an empty packet for
-    any hidden variant, revealed or not (a real gap: hidden-tournament export needs its own
-    visibility-checked packet projection, not built here). Answering 404 there too, the same as an unknown
-    id, is deliberate: a crash on `_case`'s `packet["interview_context"]` would both 500 and -- by
-    distinguishing that 500 from this route's 404 on a genuinely unknown id -- leak whether a guessed id
-    names a real hidden trial, the existence oracle S4 9.1 exists to deny."""
+    trial, or an unknown id) -- or when it names a hidden-split variant whose tournament has not yet revealed:
+    `_packet` falls back to `db.hidden_packet` (`arena.v_hidden_cases`) only once some trial on that variant
+    is `arena.trial_visible`, so a hidden trial loads with an empty packet (and so answers 404 here, below)
+    until reveal, same as `v_transcripts`/`v_trial_events`/`v_findings` already gate that trial's own
+    content. Answering 404 there too, the same as an unknown id, is deliberate: a crash on `_case`'s
+    `packet["interview_context"]` would both 500 and -- by distinguishing that 500 from this route's 404 on
+    a genuinely unknown id -- leak whether a guessed id names a real hidden trial, the existence oracle S4
+    9.1 exists to deny."""
     loaded = await load_trial(db, trial)
     if loaded is None:
         loaded = await load_tournament_trial(db, trial)
