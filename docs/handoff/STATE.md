@@ -16,7 +16,9 @@
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
 | Hosted seed + real smoke | MERGED; hosted seeded; first real call landed (G0_schema quarantine) | done |
 | Tourney routes + IG reports (Sonnet, wt-tourney-routes) | arena-api tournament list/state/events, tournament recordings, make isolation-reports running real suites, local reveal proof | merge |
-| Real pilot (ab9b20635bc93d72b, Opus, wt-real-pilot) | fix G0_schema on real replies, real-smoke green, full real 12-turn interview + debrief + recording; spend cap $3 | review, merge |
+| Real pilot | MERGED (175bd66): real Gemini end to end, real debrief, recordings/real-F01.json, $0.30 | done |
+| DB latency (ab9b20635bc93d72b, feat/db-latency) | turn POST 23-35 s vs 6 s model: connection pool per role, fewer round trips; cap $1 | merge |
+| rubric.v1 (a229d2074675e4bed, Sonnet, feat/rubric-v1) | replace placeholder sub-checks with S3's 22 checks verbatim, lineage | merge (+ maybe re-seed hosted) |
 | WP-17 tournament | MERGED (demo: scripts/dev.sh tournament) | done |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
