@@ -490,9 +490,12 @@ ROLE_TS = (ROLE_T_V1, ROLE_T)
 ROLE_DS = (ROLE_D_V1, ROLE_D)
 POLICY = {"standard": f"{SUBJECT_DIR}policy.standard.v1.txt", "skilled_deceiver": f"{SUBJECT_DIR}policy.skilled.v1.txt"}
 SUBJECT_USER = f"{SUBJECT_DIR}user.turn.v1.txt"
+REFEREE_SUBJECT_V1 = f"{REFEREE_DIR}subject.v1.txt"
+REFEREE_ASSISTANT_V1 = f"{REFEREE_DIR}assistant.v1.txt"
 REFEREE_SUBJECT = f"{REFEREE_DIR}subject.v2.txt"
 REFEREE_ASSISTANT = f"{REFEREE_DIR}assistant.v2.txt"
 REFEREE_SUBJECT_USER = f"{REFEREE_DIR}subject.user.v1.txt"
+REFEREE_ASSISTANT_USER_V1 = f"{REFEREE_DIR}assistant.user.v1.txt"
 REFEREE_ASSISTANT_USER = f"{REFEREE_DIR}assistant.user.v2.txt"
 # S2 3.4/7.4: the published rubric.v1 file (`rubric_text`), registered on the referee manifest by default.
 REFEREE_RUBRIC = f"{REFEREE_DIR}{RUBRIC_FILE}"
@@ -681,19 +684,51 @@ def subject_manifest(spec: SubjectSpec, root: Path = REPO_ROOT, release: Release
     }
 
 
-def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC) -> dict[str, Any]:
+@dataclass(frozen=True)
+class RefereeRelease:
+    """One version of the referee: its prompt files, R1's thinking level and why it changed (S2 3.3)."""
+
+    version: str
+    subject: str
+    assistant: str
+    assistant_user: str
+    subject_thinking: str
+    note: str
+
+
+REFEREE_RELEASES: tuple[RefereeRelease, ...] = (
+    RefereeRelease("1.0.0", REFEREE_SUBJECT_V1, REFEREE_ASSISTANT_V1, REFEREE_ASSISTANT_USER_V1, "LOW", "initial"),
+    RefereeRelease(
+        "1.1.0",
+        REFEREE_SUBJECT,
+        REFEREE_ASSISTANT,
+        REFEREE_ASSISTANT_USER,
+        REFEREE_SUBJECT_BUDGET[2],
+        "subject.v2 judges a statement by what the subject was given; assistant.v2 and assistant.user.v2: a"
+        " triggered sub-check is never na; R1 at MINIMAL thinking (LOW overran its output tokens).",
+    ),
+)
+
+
+def referee_manifest(
+    root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC, release: RefereeRelease = REFEREE_RELEASES[-1]
+) -> dict[str, Any]:
     """The S2 7.1 referee: J1+J2 and J3+J4 prompts, plus the published `rubric.v1` file (S2 3.4/7.4), registered
     by default so `check_referee_freeze` accepts the manifest without a `rubric=` override. Pass `rubric=None`
     to build the pre-publication shape (no rubric.v1 hashed, J4 needs a development placeholder,
     `arena_referee.scoring.default_dev_rubric`) that a few tests still exercise, or another path to register a
     fixture rubric instead."""
-    files = [REFEREE_SUBJECT, REFEREE_ASSISTANT, *([rubric] if rubric else [])]
+    files = [release.subject, release.assistant, *([rubric] if rubric else [])]
+    index = REFEREE_RELEASES.index(release)
+    parent = manifest_sha256(referee_manifest(root, rubric, REFEREE_RELEASES[index - 1])) if index else None
+    subject_budget = (*REFEREE_SUBJECT_BUDGET[:2], release.subject_thinking, *REFEREE_SUBJECT_BUDGET[3:])
     return {
-        **_base("referee", "referee", "Referee"),
+        **_base("referee", "referee", "Referee", release.version, release.note),
+        "lineage": {"parent_sha256": parent, "change_note": release.note},
         "prompt": {
             "files": _refs(files, root),
-            "assembly": {"referee_subject": [REFEREE_SUBJECT], "referee_assistant": [REFEREE_ASSISTANT]},
-            "user_templates": _refs([REFEREE_SUBJECT_USER, REFEREE_ASSISTANT_USER], root),
+            "assembly": {"referee_subject": [release.subject], "referee_assistant": [release.assistant]},
+            "user_templates": _refs([REFEREE_SUBJECT_USER, release.assistant_user], root),
             "output_schemas": _schemas(
                 ("RefereeSubjectReport", "ref_subj.v5"), ("RefereeAssistantReport", "ref_asst.v2")
             ),
@@ -702,7 +737,7 @@ def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC
         "coaching_policy": None,
         "subject_policy": None,
         "limits": {
-            "referee_subject": _limit(_FLASH_31, REFEREE_SUBJECT_BUDGET),
+            "referee_subject": _limit(_FLASH_31, subject_budget),
             "referee_assistant": _limit(_FLASH_35, REFEREE_ASSISTANT_BUDGET),
         },
     }

@@ -51,7 +51,7 @@
       },
       {
         "path": "prompts/subject/role.d.v2.txt",
-        "sha256": "67f0f1d660c2af712407a43f8f6fd5bdc3f18785aeaf4a20eb9dbdeb9b379a2e"
+        "sha256": "d5ac7668a1a79abd2c99e05be6a5e8469dc9b9029ec91999a463f22f1eecf7f9"
       },
       {
         "path": "prompts/subject/policy.skilled.v1.txt",
@@ -88,7 +88,7 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "39e0628e52ee75ab6fc5d44bee9bc2183dfd94ad58b7ac26c1ca6c21febfcade",
+  "sha256": "4d964650827e127614963342179ac8fe5a3a75b5a2ea628f20b15a4641b939c1",
   "subject_policy": {
     "policy": "skilled_deceiver"
   },
