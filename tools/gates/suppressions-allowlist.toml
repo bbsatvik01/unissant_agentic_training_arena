@@ -27,3 +27,21 @@ path = "packages/core/tests/observability/test_phoenix.py"
 marker = "nosemgrep"
 line = "import httpx  # nosemgrep: arena-no-raw-http-httpx"
 reason = "arena-no-raw-http (S5 1.1, 1.2) keeps raw HTTP clients out of code paths that bypass the agent port, the spend guard or a role's caller-token check; this import is in the test of observability/phoenix.py (already excluded from the same rule), used only to build httpx.Response/httpx.Request FIXTURES for a scripted HttpGetter fake (PhoenixSpanReader's own Protocol) -- the test never opens a real connection (verified false positive; WP-07, S5 8.4/8.6, no network export in tests)"
+
+[[allow]]
+path = "packages/core/tests/scenario/test_load.py"
+marker = "nosec"
+line = "report[\"solves\"][\"cx2_truthful\"] = {\"pass\": True}  # nosec B105 - \"pass\" is the sheet's verdict key, not a password"
+reason = "Bandit B105 matches the dict key 'pass'; it is the legacy Codex solve sheet's verdict field (a boolean), and the test builds a malformed sheet to prove it is refused. No credential exists here (verified false positive)"
+
+[[allow]]
+path = "scripts/kpi1.py"
+marker = "nosec"
+line = 'VERDICTS = {"pass": True, "fail": False, "na": None}  # nosec B105 - rating verdict words, not a password'
+reason = "Bandit B105 matches the dict key 'pass'; VERDICTS maps a rater's verdict words (pass/fail/na) to booleans for the KPI-1 rating import. No credential exists here (verified false positive)"
+
+[[allow]]
+path = "services/tournament/tests/test_main_wiring.py"
+marker = "nosec"
+line = '"ARENA_LOCAL_CALLER_TOKEN": "it-main-wiring-caller",  # nosec B105 - throwaway test caller token, no server'
+reason = "Bandit B105 matches the variable name TOKEN; the value is a placeholder caller token for an in-process wiring test with no server and no network, never a real secret (verified false positive)"

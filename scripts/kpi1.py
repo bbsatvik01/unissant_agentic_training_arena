@@ -400,7 +400,7 @@ async def report(connect: Connector, *, scorer: str, seed: int) -> dict[str, Any
 
 
 RATER_CODE = re.compile(r"^R[0-9]{2}$")
-VERDICTS = {"pass": True, "fail": False, "na": None}
+VERDICTS = {"pass": True, "fail": False, "na": None}  # nosec B105 - rating verdict words, not a password
 CHECK_IDS = tuple(c for d in DIMENSIONS for c in CHECKS[d])
 
 

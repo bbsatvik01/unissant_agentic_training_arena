@@ -64,7 +64,7 @@ GOOD_ENV = {
     "ARENA_ENV": "local",
     "ARENA_BIND_HOST": "127.0.0.1",
     "ARENA_MODEL_MODE": "fake",
-    "ARENA_LOCAL_CALLER_TOKEN": "it-main-wiring-caller",
+    "ARENA_LOCAL_CALLER_TOKEN": "it-main-wiring-caller",  # nosec B105 - throwaway test caller token, no server
 }
 
 

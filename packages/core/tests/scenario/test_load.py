@@ -287,7 +287,7 @@ def test_codex_review_from_report_refuses_a_bare_pass_true_standing_in_for_a_she
     """A sheet reduced to `{"pass": true}` -- the top-level flag's own word, with none of CX-2/CX-3's actual
     output (`finding`, `cited_records`, `cited_answers`, `basis`, `expected`) -- is not a real solve sheet."""
     report = legacy_report("F01")
-    report["solves"]["cx2_truthful"] = {"pass": True}
+    report["solves"]["cx2_truthful"] = {"pass": True}  # nosec B105 - "pass" is the sheet's verdict key, not a password
     with pytest.raises(LegacyCodexReportError, match="solves"):
         codex_review_from_report(report)
 
