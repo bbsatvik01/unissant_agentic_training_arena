@@ -9,6 +9,7 @@ idempotent at the referee (a stored seal; `arena.close_tournament_run`'s own sta
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 from uuid import UUID
@@ -24,6 +25,9 @@ SCORE_TIMEOUT_S = 90.0  # one trial's R1 and R2, each with the port's own attemp
 MAX_BLOCK_TRIALS = 18
 BLOCK_SCORE_TIMEOUT_S = SCORE_TIMEOUT_S * MAX_BLOCK_TRIALS
 LIFECYCLE_TIMEOUT_S = 10.0  # a database-only operation at the referee, no model call
+
+
+log = logging.getLogger("arena_tournament")
 
 
 class RefereeError(Exception):
@@ -59,8 +63,8 @@ class RefereeClient:
     async def _retry_once(self, call: Callable[[], Awaitable[dict[str, Any]]]) -> dict[str, Any]:
         try:
             return await call()
-        # silent-ok: the retry is the point (SG3-24); the retry's own RefereeError propagates uncaught below
-        except RefereeError:
+        except RefereeError as exc:  # SG3-24: one retry; the retry's own RefereeError propagates
+            log.warning("referee call failed (%s %s); retrying once", exc.status, exc.detail)
             return await call()
 
     async def score_trial(self, trial: UUID) -> dict[str, Any]:

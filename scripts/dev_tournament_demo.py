@@ -77,9 +77,16 @@ async def set_up_tournament(referee_dsn: str, public_dsn: str, families: Sequenc
     tournament_id = await lifecycle.create_tournament(
         referee_connect, lifecycle.TournamentSpec(name=name, split="dev", seed=seed)
     )
-    await lifecycle.add_planned_trials(referee_connect, tournament_id, rows)
-    await lifecycle.freeze_tournament(referee_connect, tournament_id)
-    await lifecycle.open_tournament(referee_connect, tournament_id, split="dev")
+    # A rerun (same name and seed, e.g. after an interrupted run) finds the tournament already past draft:
+    # only the setup steps still missing run, then the resumable job picks up where it stopped.
+    status = await db.tournament_status(tournament_id)
+    if status == "draft":
+        if not await db.planned_trials(tournament_id):
+            await lifecycle.add_planned_trials(referee_connect, tournament_id, rows)
+        await lifecycle.freeze_tournament(referee_connect, tournament_id)
+        status = "frozen"
+    if status == "frozen":
+        await lifecycle.open_tournament(referee_connect, tournament_id, split="dev")
     return tournament_id
 
 
