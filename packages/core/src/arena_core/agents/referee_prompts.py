@@ -276,8 +276,12 @@ def build_referee_assistant_prompt(
         msg = "no rubric: the referee manifest has no rubric.v1 and no development placeholder was given"
         raise ManifestMismatchError(msg)
     system = render(join_blocks(prompts.assembly("referee_assistant")), {"rubric_subchecks": rubric_subchecks(rubric)})
+    # assistant.user.v2 (referee 1.1.0) adds the line naming the triggered sub-checks; 1.0.0's v1 has no such line.
+    templates = prompts.manifest.prompt.user_templates if prompts.manifest.prompt is not None else []
+    v2 = any(t.path.endswith("/assistant.user.v2.txt") for t in templates)
+    applicable = {"applicable": ", ".join(sorted({t.subcheck_id for t in inp.triggers})) or NONE} if v2 else {}
     user = render(
-        prompts.user_template("assistant.user.v2.txt"),
+        prompts.user_template("assistant.user.v2.txt" if v2 else "assistant.user.v1.txt"),
         {
             "salt": salt,
             **case_values(inp.case),
@@ -288,7 +292,7 @@ def build_referee_assistant_prompt(
             "finding": NONE if inp.finding is None else finding_projection(inp.finding, salt),
             "finding_citations": _citation_lines(inp.citations),
             "triggers": _trigger_lines(inp.triggers),
-            "applicable": ", ".join(sorted({t.subcheck_id for t in inp.triggers})) or NONE,
+            **applicable,
         },
     )
     return Prompt(system, user, salt)

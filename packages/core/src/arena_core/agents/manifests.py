@@ -271,7 +271,10 @@ def _prompt_shape_errors(kind: str, keys: frozenset[str], prompt: PromptSpec) ->
     if set(prompt.assembly) != assemblies:
         errors.append(f"prompt.assembly: keys {sorted(prompt.assembly)} are not {sorted(assemblies)}")
     names = sorted(t.path.rsplit("/", 1)[-1] for t in prompt.user_templates)
-    if names != sorted(_CALL_SHAPE[k][1] for k in keys):
+    # Referee 1.0.0 named assistant.user.v1.txt; it still validates (and renders) as the parent of 1.1.0.
+    expected = sorted(_CALL_SHAPE[k][1] for k in keys)
+    earlier = sorted(n.replace("assistant.user.v2.txt", "assistant.user.v1.txt") for n in expected)
+    if names not in (expected, earlier):
         errors.append(f"prompt.user_templates: {names} are not the templates of {sorted(keys)}")
     schemas = sorted((s.name, s.version) for s in prompt.output_schemas)
     if schemas != sorted(_CALL_SHAPE[k][2] for k in keys):

@@ -9,6 +9,7 @@ import pytest
 
 from arena_core.agents import manifests as m
 from arena_core.agents.manifests import ManifestMismatchError, load_prompts, official_manifests, with_hash
+from arena_core.agents.referee_prompts import build_referee_assistant_prompt
 from arena_core.agents.subject_prompts import (
     SubjectPacket,
     behavior_blocks,
@@ -18,6 +19,7 @@ from arena_core.agents.subject_prompts import (
 from arena_core.agents.templates import file_sha256, read_text
 
 from . import fixtures as fx
+from .test_referee_prompts import assistant_input
 
 # The 1.0.0 manifests as registered on the hosted project (prompts/manifests/*.json before 1.1.0). Rebuilding
 # release 1.0.0 must give exactly these, and each 1.1.0 manifest names its candidate's as the parent.
@@ -263,3 +265,11 @@ def test_the_pressure_rule_never_overrides_acknowledging_an_opened_gate() -> Non
     assert "a HOLD fact whose gate has not opened" in ROLE_D_ADDED
     assert "A HOLD fact whose gate has opened is still acknowledged when asked directly" in ROLE_D_ADDED
     assert "about a HOLD or CORE fact" not in ROLE_D_ADDED
+
+
+@pytest.mark.parametrize(("index", "line_present"), [(0, False), (1, True)])
+def test_both_referee_versions_load_and_render_their_own_assistant_template(index: int, line_present: bool) -> None:
+    prompts = load_prompts(with_hash(m.referee_manifest(release=m.REFEREE_RELEASES[index])))
+    user = build_referee_assistant_prompt(assistant_input(), prompts, salt=fx.SALT).user_message
+    assert ("Sub-checks that apply in this trial, so answer pass or fail, never na: 2a, 3e" in user) is line_present
+    assert "Applicability triggers:\n2a | t02 | t03" in user
