@@ -100,3 +100,4 @@
 - a5f99fe merge voice accents (2 personas)
 - 668bec8 merge coach/subject prompts 1.1.0 + real recordings; hosted has A1-A3/S1-S3 1.1.0 registered; real dev tournament ca6c4b9b closed ($3.35), reveal blocked by 21 subject_invalid reviews
 - 2512b35 merge WP-22 live voice (gemini-3.8-live); real session pending voice quota
+- 3abaaf7 merge pipeline-cancel fix
