@@ -173,3 +173,7 @@
 ## 2026-10-12 · D-028 KPI-1 participants and session limit
 - **Decision:** owner. KPI-1 participants: P01 (owner) set order A then B, P02 (one friend) B then A; sets A = F06/F07, B = F08/F09. Per-user text sessions per day raised from 5 to 20 (ops.config, hosted) for testing and the 7-session study. The 3 stuck wt-wp08 pytest runs were stopped with owner approval.
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-029 Accept WP-28 as built; focus on demo quality
+- **Decision:** owner. The hidden-execution design (arena.harness_trial_state for the actor-less job, S4 amendment marked "WP-28 amendment") is accepted as built at cfa87c5; the coordinator's cold-Codex findings (operator-script read path, cross-tournament variant reuse) are edge cases for a local team-run demo and are not fixed. Priorities: UI smoothness and clutter-free layout, real voices (gemini-3.8-flash-lite-tts, option B), smooth interactions, coach and arena quality with real Gemini.
+- **Reversibility:** cheap.
