@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Annotated, Literal, Self
+from typing import Annotated, ClassVar, Literal, Self
 
 from pydantic import Field, StringConstraints, ValidationInfo, model_validator
 
@@ -37,6 +37,10 @@ AskedFactStatus = Literal["known", "limited", "unknown", "non_disclosable"]
 SubcheckResult = Literal["pass", "fail", "na"]
 # The five sub-checks J4 answers per question (S2 7.3 Part 2); every other rubric sub-check is answered once.
 PER_QUESTION_SUBCHECKS = frozenset({"1a", "1c", "1d", "2c", "2d"})
+# S3 2.5-2.6: the referee-judged sub-checks whose applicability is "Always" (`scoring.rubric` scores them with
+# `applicable=True` and refuses an `na`), so an `na` is a validation failure here, repaired once (S2 10), rather
+# than a report the scorer can never use.
+ALWAYS_APPLICABLE_SUBCHECKS = frozenset({"3a", "3b", "4a", "4c", "4d"})
 VisibleRecordId = Annotated[str, StringConstraints(pattern=r"^(doc|rec)-[0-9]{2}$")]
 CiteId = Annotated[str, StringConstraints(pattern=r"^(t(0[1-9]|1[0-2])|doc-0[1-4]|rec-0[1-6])$")]
 SubcheckId = Annotated[str, StringConstraints(pattern=r"^[1-5][a-e]$")]
@@ -127,6 +131,12 @@ class RefSubjContext:
 
 
 class RefereeSubjectReport(Contract):
+    # Vertex refuses this schema with HTTP 400 INVALID_ARGUMENT while its lists of objects carry maxItems/minItems
+    # (real pilot, gemini-3.1-flash-lite and gemini-3.5-flash-lite; Google documents "long array length limits" as a
+    # schema-complexity 400). The request leaves those bounds out (`providers.structured.sent_schema`); the contract
+    # keeps them and validation enforces them, with the one repair (S2 10).
+    UNBOUNDED_OBJECT_LISTS_SENT: ClassVar[bool] = True
+
     schema_version: RefSubjVersion
     turns: Annotated[list[SubjectTurnJudgment], Field(max_length=12)]
     trajectory: Trajectory
@@ -228,6 +238,10 @@ class RefAsstContext:
     citation_ids: frozenset[str]
     rubric_subcheck_ids: frozenset[str]
     transcript_turn_ids: frozenset[str]
+    # The sub-checks code knows apply in this trial beyond the always-applicable ones: each with a code-built
+    # applicability trigger in the input (S2 7.3: "Judge each listed trigger"), 5c when a finding was committed and
+    # 5e when it is insufficient_evidence (S3 2.7). `na` on one of them is refused. Empty for a rater's task.
+    applicable_subcheck_ids: frozenset[str] = frozenset()
 
 
 def _twice(field: str, got: list[str]) -> list[str]:
@@ -267,6 +281,11 @@ def assistant_judgment_errors(
         for i in lists["subchecks"] or []
         if i in PER_QUESTION_SUBCHECKS
     ]
+    errors += [
+        f"subchecks: {s.id} always applies, so answer pass or fail, never na"
+        for s in subchecks or []
+        if s.id in ALWAYS_APPLICABLE_SUBCHECKS and s.result == "na"
+    ]
     ctx = info.context
     if ctx is None:
         return errors
@@ -281,6 +300,11 @@ def assistant_judgment_errors(
     }
     errors += [e for field, got in lists.items() if got is not None for e in _exactly_once(field, got, expected[field])]
     errors += [
+        f"subchecks: {s.id} applies in this trial, so answer pass or fail, never na"
+        for s in subchecks or []
+        if s.id in ctx.applicable_subcheck_ids and s.id not in ALWAYS_APPLICABLE_SUBCHECKS and s.result == "na"
+    ]
+    errors += [
         f"subchecks[{i}].turn_ids: {t} is not a turn of this transcript"
         for i, s in enumerate(subchecks or [])
         for t in s.turn_ids
@@ -290,6 +314,12 @@ def assistant_judgment_errors(
 
 
 class RefereeAssistantReport(Contract):
+    # Vertex refuses this schema with HTTP 400 INVALID_ARGUMENT while its lists of objects carry maxItems/minItems
+    # (real pilot, gemini-3.1-flash-lite and gemini-3.5-flash-lite; Google documents "long array length limits" as a
+    # schema-complexity 400). The request leaves those bounds out (`providers.structured.sent_schema`); the contract
+    # keeps them and validation enforces them, with the one repair (S2 10).
+    UNBOUNDED_OBJECT_LISTS_SENT: ClassVar[bool] = True
+
     schema_version: RefAsstVersion
     flags: Annotated[list[FlagVerdict], Field(max_length=36)]
     followups: Annotated[list[FollowupVerdict], Field(max_length=12)]

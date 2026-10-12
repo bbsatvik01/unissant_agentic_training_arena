@@ -52,6 +52,7 @@ tmp/
 # Local stack state (scripts/dev.sh): caller tokens, pidfile, the generated allowlist.
 .run/
 
-# Run recordings (D-021, make export-run); only the committed sample is tracked.
+# Run recordings (D-021, make export-run); only the committed samples are tracked (real-F01: a real-model run).
 recordings/*
 !recordings/sample-F01.json
+!recordings/real-F01.json

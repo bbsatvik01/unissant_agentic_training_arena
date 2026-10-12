@@ -19,7 +19,7 @@ from starlette.responses import JSONResponse
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
 from arena_core.config import ArenaRole, Settings, boot
 from arena_core.contracts.common import EvasionLabel
-from arena_core.db.pool import dsn_connector
+from arena_core.db.pool import PooledConnector, closing_lifespan
 from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, evaluate_request
 from arena_core.identity import DevIdentity, resolve_dev_user
 from arena_core.providers.mode import model_adapter
@@ -113,7 +113,7 @@ def _install_d10_guard(app: FastAPI, config: GuardConfig) -> None:
 def create_app(env: dict[str, str] | None = None) -> FastAPI:
     resolved_env = dict(os.environ if env is None else env)
     settings: Settings = boot(ArenaRole.REFEREE, resolved_env)
-    connect = dsn_connector(settings.dsn)
+    connect = PooledConnector(settings.dsn)
     # ARENA_MODEL_MODE=fake: a trial-shaped, transcript-aware reply per referee schema, never a fixed one --
     # S5 10.4's zero-spend local run still has to score a real transcript end to end (see
     # arena_core.referee.fake_referee, shared with arena-tournament's own fake-mode scoring, WP-17).
@@ -122,7 +122,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     port = AgentPort(adapter, guard)
     manifest = with_hash(referee_manifest())
     prompts = load_prompts(manifest)
-    rubric = default_dev_rubric()  # S2 7.4: no rubric.v1 yet; a development placeholder only
+    rubric = default_dev_rubric()  # S2 7.4: rubric.v1's real text, not yet registered on the manifest file
     prompt_sha256 = manifest.sha256 or ""
 
     scoring_deps = db.make_scoring_deps(connect, port, prompt_sha256)
@@ -159,7 +159,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     # migration state (there is no existing single source for "the currently applied migration version" to
     # read from yet).
 
-    app = FastAPI(title="arena-referee")
+    app = FastAPI(title="arena-referee", lifespan=lambda _app: closing_lifespan(connect))
     app.state.connect = connect
     app.state.scoring_deps = scoring_deps
     app.state.debrief_deps = debrief_deps

@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from fractions import Fraction
 from typing import Any, cast
 
 import pytest
 
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.referee.leaderboard import TrialScore
 from arena_core.scoring.inclusion import RevealBlockedError
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result
@@ -49,20 +50,20 @@ async def _noop_tx() -> AsyncIterator[None]:
     yield
 
 
-class FakeConn:
+class FakeConn(ScriptedConnection):
     def __init__(self, answers: dict[str, list[tuple[Any, ...]]] | None = None) -> None:
         self.answers = answers or {}
         self.executed: list[tuple[str, tuple[Any, ...]]] = []
 
-    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
+    async def statement(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
         self.executed.append((query, params))
         for key, rows in self.answers.items():
             if key in query:
                 return FakeCursor(rows)
         return FakeCursor([])
 
-    def transaction(self) -> AsyncIterator[None]:
-        return cast("AsyncIterator[None]", _noop_tx())
+    def transaction(self) -> AbstractAsyncContextManager[None]:
+        return _noop_tx()
 
 
 def connector(conn: FakeConn) -> Connector:

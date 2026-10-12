@@ -20,7 +20,8 @@
 #   6. the spend-guard integration suite (S5 4.10, 3.6; WP-05): the agent port and the guard client against the real
 #      migrated functions, then the budget-plan apply and check (D-012). It runs last on this server because it
 #      applies ceilings, reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
-#                                                    pytest packages/core/tests/db/it_spend_guard.py
+#      Then the pooled connector and one_statement's pipelined transaction on the same database.
+#                                pytest packages/core/tests/db/it_spend_guard.py packages/core/tests/db/it_pool.py
 #   7. tournament path (WP-17): a third, fresh Supabase Postgres 17 container, migrated the same way as path 2, then
 #      the tournament job suite on it. Its own server because the suite commits a ceiling and spend rows that the
 #      spend-guard suite (which expects the migrated $0 ceiling) must never see.
@@ -253,7 +254,9 @@ spend_guard_integration() {
   supabase_up || return 1
   local dsn="$ADMIN/postgres"
   (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
-    -p no:cacheprovider -W error packages/core/tests/db/it_spend_guard.py)
+    -p no:cacheprovider -W error packages/core/tests/db/it_spend_guard.py) || return 1
+  (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
+    -p no:cacheprovider -W error packages/core/tests/db/it_pool.py)
 }
 
 step "migrations and pgTAP on plain PostgreSQL 17 with pgTAP, throwaway database with the shim (plain path)" plain_path
