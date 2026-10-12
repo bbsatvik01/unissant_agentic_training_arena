@@ -235,6 +235,11 @@ async def run_r2(
 ) -> RefereeAssistantReport:
     """R2 (or `r3_investigator`): never called until `run_r1`'s report for this trial has returned (AT-REF-1
     scheduling test) -- the caller (`score_trial`) enforces this by awaiting `run_r1` first."""
+    # Known gap (Codex round 1 on WP-rubric-v1, recorded and skipped per D-022's "rare edge case" posture): the
+    # stored-judgment key below carries no rubric or prompt fingerprint, so a trial whose R2 report was already
+    # cached before a rubric content change (this change included) is resumed from that cache and published
+    # under the new `rubric_sha256`, not re-judged against the new text. Needs a cache key or a stored fingerprint
+    # versioned by `lineage_checked_sha256()`; not attempted here (local demo, short-lived synthetic sessions).
     purpose = ASSISTANT_PURPOSE_FOR_MODE[mode]
     flag_key, qq_key = f"{data.trial_id}:{purpose}:flag_support", f"{data.trial_id}:{purpose}:questioning_quality"
     stored = await deps.get_judgment(flag_key)

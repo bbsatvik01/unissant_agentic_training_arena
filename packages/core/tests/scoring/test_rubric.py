@@ -647,6 +647,26 @@ def test_the_configured_lexicon_is_the_demeanor_lexicon_and_changing_it_changes_
     )
 
 
+def test_the_configured_rubric_hash_also_binds_check_and_dimension_names() -> None:
+    """Codex round 1 on WP-rubric-v1: a check's name and a dimension's name are rendered into the referee
+    prompt (`agents.rubric.canonical_rubric`'s `text` and dimension `name`) exactly as much as a check's
+    applicability and pass-condition text, so editing either must change `CONFIG.prompt_texts` -- not just
+    the fields the first cut hashed."""
+    base = rubric_sha256(rubric.CONFIG.lexicon_text, rubric.CONFIG.prompt_texts, rubric.CONFIG.model_ids)
+    renamed_check = tuple(
+        t.replace("Presses evasion", "Pursues evasion") if t.startswith("check|2a|") else t
+        for t in rubric.CONFIG.prompt_texts
+    )
+    assert renamed_check != rubric.CONFIG.prompt_texts  # 2a's name is literally present to rename
+    assert rubric_sha256(rubric.CONFIG.lexicon_text, renamed_check, rubric.CONFIG.model_ids) != base
+    renamed_dim = tuple(
+        t.replace("clarity and neutrality", "clarity and fairness") if t.startswith("dimension_name|D1|") else t
+        for t in rubric.CONFIG.prompt_texts
+    )
+    assert renamed_dim != rubric.CONFIG.prompt_texts  # D1's name is literally present to rename
+    assert rubric_sha256(rubric.CONFIG.lexicon_text, renamed_dim, rubric.CONFIG.model_ids) != base
+
+
 def test_the_rubric_hash_binds_the_lexicon_prompts_and_models() -> None:
     base = rubric_sha256("lexicon", ["r1", "r2"], ["m1"])
     assert base != rubric_sha256("lexicon2", ["r1", "r2"], ["m1"])

@@ -312,18 +312,19 @@ class RubricConfig:
 
 # The configured inputs. The demeanor lexicon is WP-11's `demeanor_lexicon.v1` (S2 4.4), read from the one module
 # that holds it, so a lexicon change changes this value and needs a lineage entry. `prompt_texts` now carries
-# rubric.v1's own published text (S3 2.3-2.7: every check's "Applicable" and "Passes when" cell, and every
-# dimension's five anchors) -- the content `arena_core.agents.rubric.canonical_rubric` renders into the referee
-# prompt (S2 7.3), replacing the placeholder that used to leave this empty (WP-rubric-v1); editing a check's
-# text or an anchor here therefore changes this value and needs a lineage entry below, same as the lexicon.
-# The referee system/user prompt template FILES (`prompts/referee/*.txt`) are a separate, still-unbound input
-# (pre-existing gap, not introduced by this change): a future work package that binds them must also append an
-# entry.
+# rubric.v1's own published text (S3 2.3-2.7): every dimension's name and five anchors, and every check's name,
+# "Applicable" cell and "Passes when" cell -- every field `arena_core.agents.rubric.canonical_rubric` renders
+# into the referee prompt (S2 7.3; a check's name is part of its rendered `text`, Codex round 1), replacing the
+# placeholder that used to leave this empty (WP-rubric-v1); editing any of them here therefore changes this
+# value and needs a lineage entry below, same as the lexicon. The referee system/user prompt template FILES
+# (`prompts/referee/*.txt`) are a separate, still-unbound input (pre-existing gap, not introduced by this
+# change): a future work package that binds them must also append an entry.
 CONFIG = RubricConfig(
     lexicon_text=demeanor_lexicon_text(),
     prompt_texts=(
+        *(f"dimension_name|{dim}|{name}" for dim, name in DIMENSION_NAMES.items()),
         *(
-            f"check|{cid}|{CHECK_APPLICABILITY.get(cid) or 'Always'}|{CHECK_PASSES_WHEN[cid]}"
+            f"check|{cid}|{CHECK_NAME[cid]}|{CHECK_APPLICABILITY.get(cid) or 'Always'}|{CHECK_PASSES_WHEN[cid]}"
             for ids in CHECKS.values()
             for cid in ids
         ),
@@ -358,14 +359,17 @@ LINEAGE: tuple[LineageEntry, ...] = (
         note="demeanor_lexicon.v1 (S2 4.4) bound into the rubric hash (WP-11); referee prompts not yet authored",
     ),
     LineageEntry(
-        sha256="abefa2c53373503e8b3573c8993af85ec9b8fb6fe43f4b2bb008b40b0a87a747",
+        sha256="0e2f179ec7fb8c6e8b64e180a7b74bbd17a1ae2f86a1ab2c920dd5b17ec3f0c5",
         supersedes="17b16e3f2c8720fa4a44bdda257837b9382bc4aeaf4ac277aa1fb8a791d3b6b7",
         date="2026-10-12",
         note=(
-            "rubric.v1's 22 checks and five dimensions' anchors published verbatim from S3 2.3-2.7 (WP-rubric-v1),"
-            " replacing the development placeholder (`services/referee`'s former `default_dev_rubric`); bound"
-            " into the hash via CONFIG.prompt_texts. Referee system/user prompt template files are still not"
-            " bound (pre-existing gap, tracked separately)."
+            "rubric.v1's 22 checks (name, applicability and pass condition) and five dimensions' names and"
+            " anchors published verbatim from S3 2.3-2.7 (WP-rubric-v1), replacing the development placeholder"
+            " (`services/referee`'s former `default_dev_rubric`); bound into the hash via CONFIG.prompt_texts"
+            " (round 1: check and dimension names added after a Codex finding that the first cut hashed only"
+            " the applicability and pass-condition text, not the names `canonical_rubric` also renders)."
+            " Referee system/user prompt template files are still not bound (pre-existing gap, tracked"
+            " separately)."
         ),
     ),
 )
