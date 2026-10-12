@@ -165,4 +165,20 @@ describe("useLiveSession", () => {
     expect(result.current.failedQuestion).toBeNull();
     expect(result.current.error).toBe("The request was refused as invalid.");
   });
+
+  it("ignores a second start while the first is being created", async () => {
+    let answer: (s: StartedSession) => void = () => undefined;
+    const startSession = vi.fn(() => new Promise<StartedSession>((r) => (answer = r)));
+    const { result } = renderHook(() => useLiveSession({ api: api({ startSession, trialSnapshot: () => Promise.reject(new Error("down")) }), ...OPTIONS }));
+    let first: Promise<void> = Promise.resolve();
+    act(() => {
+      first = result.current.start("practice");
+      void result.current.start("practice");
+    });
+    expect(startSession).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      answer(STARTED);
+      await first;
+    });
+  });
 });

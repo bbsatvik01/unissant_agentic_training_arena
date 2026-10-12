@@ -5,6 +5,7 @@
  * answered, how the coach read it and what the coach suggested next against the question actually asked next.
  */
 import type { CoachCard, Debrief, ScoredDebrief, SnapshotRelease } from "../contracts/generated/types";
+import { EX4_TEXT } from "../copy/ex4";
 import type { TrialView } from "../trial/trialReducer";
 
 export interface QuestionReview {
@@ -56,4 +57,26 @@ export function detectionOf(debrief: Debrief): ScoredDebrief["scorecards"]["dete
 /** "n of m", or "undefined" when there is nothing to find (a zero denominator, FE-DEB-3). */
 export function ofText(found: number, total: number): string {
   return total === 0 ? "undefined" : `${String(found)} of ${String(total)}`;
+}
+
+/** The debrief's JSON export (S6 4.7 region 6): the published `debrief.v1` document as it is, with EX-4. */
+export function debriefExport(debrief: Debrief): string {
+  return `${JSON.stringify({ ex4: EX4_TEXT, debrief }, null, 2)}\n`;
+}
+
+/** The export's file name: the session it belongs to, no date. */
+export function exportName(debrief: Debrief): string {
+  return `debrief-${debrief.session_id}.json`;
+}
+
+/** The ended trial's own state, from its snapshot after the end (which includes coaching an assessment withheld). */
+export interface EndedTrial {
+  readonly trialId: string;
+  readonly view: TrialView;
+}
+
+/** The view the debrief reviews: the ended trial's snapshot when one was read for this recording's trial (a replay of
+ * one's own run; recordings carry an assessment's coaching only there, FE-DEB-4), else the view on screen. */
+export function debriefView(onScreen: TrialView | null, ended: EndedTrial | null, recordingTrialId: string | null): TrialView | null {
+  return ended !== null && recordingTrialId === ended.trialId ? ended.view : onScreen;
 }
