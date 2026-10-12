@@ -36,7 +36,7 @@ from arena_core.events.projections import (
 from arena_core.turns.orchestrator import Orchestrator, TrialSignals
 
 from .fakedb import PACKET, T0, FakeArenaDb
-from .test_orchestrator import FINDING, Rig, run
+from .test_orchestrator import ACTOR, FINDING, Rig, run
 
 TURNS_PAST_REC_05 = 6  # rec-05 is scheduled after 5 exchanges: the sixth question releases it
 FIRST_EVENT_MS = 1000  # fakedb stamps event n at T0 + n seconds; the session started at T0
@@ -339,7 +339,7 @@ class EndsWhileLoading(FakeArenaDb):
     """The trial finalizes after its events were read and before the trial row is read again."""
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(ACTOR)  # an investigator request names its actor (S4 2.3)
         self.cut: int | None = None
 
     async def all_events(self, trial: UUID) -> list[EventRow]:

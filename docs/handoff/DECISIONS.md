@@ -173,3 +173,12 @@
 ## 2026-10-12 · D-028 KPI-1 participants and session limit
 - **Decision:** owner. KPI-1 participants: P01 (owner) set order A then B, P02 (one friend) B then A; sets A = F06/F07, B = F08/F09. Per-user text sessions per day raised from 5 to 20 (ops.config, hosted) for testing and the 7-session study. The 3 stuck wt-wp08 pytest runs were stopped with owner approval.
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-029 Accept WP-28 as built; focus on demo quality
+- **Decision:** owner. The hidden-execution design (arena.harness_trial_state for the actor-less job, S4 amendment marked "WP-28 amendment") is accepted as built at cfa87c5; the coordinator's cold-Codex findings (operator-script read path, cross-tournament variant reuse) are edge cases for a local team-run demo and are not fixed. Priorities: UI smoothness and clutter-free layout, real voices (gemini-3.8-flash-lite-tts, option B), smooth interactions, coach and arena quality with real Gemini.
+- **Reversibility:** cheap.
+
+## 2026-10-12 · D-030 Voice: Gemini 3.8 Flash TTS with designed voices; live voice; audio lip sync; coach earpiece
+- **Decision:** owner. Voices use gemini-3.8-flash-tts (GA 2026-09-22; ~$0.002 per 10 s line, cached once) with a designed voice per persona and style direction by persona only (never by role, PRB-4); no cloning of real people (synthetic-only rule, consent requirement). Optional free local fallback (Kokoro-82M) instead of browser voices. Build now: WP-22 live voice interviews (Gemini Live), lips driven from played audio, and the coach speaking its tips in an earpiece in practice mode (never in assessment, never over the subject).
+- **Correction:** gemini-2.5-flash-preview-tts shuts down 2026-11-17 and gemini-2.5-flash-tts has no listed date; the October 2.5 retirements are the text models.
+- **Reversibility:** cheap.

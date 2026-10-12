@@ -37,6 +37,16 @@ Loop = asyncio.AbstractEventLoop
 EXCHANGES = 3
 
 
+def _rig() -> Rig:
+    """The tournament job's own request shape on a HIDDEN trial before reveal (WP-28): no actor (S4 2.3), a
+    tournament trial, and every reveal-gated projection blind to it -- so each port here proves it reads
+    the trial it runs only through `arena.harness_trial_state`, never through a view that would show the real
+    job nothing."""
+    rig = Rig(harness=True)
+    rig.db.hidden_unrevealed = True
+    return rig
+
+
 def on_loop[T](fn: Callable[[Loop], T]) -> T:
     """`fn(loop)` in a worker thread while `loop` (the caller's own running loop) stays free to serve the
     port's coroutines: exactly `runner._run_interactive_trial`'s shape."""
@@ -48,27 +58,27 @@ def on_loop[T](fn: Callable[[Loop], T]) -> T:
 
 
 def test_ask_records_the_question_and_answer_on_the_happy_path() -> None:
-    rig = Rig()
+    rig = _rig()
     on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
     assert rig.kinds() == ["question_recorded", "subject_turn"]
 
 
 def test_ask_raises_subjectstoperror_on_a_quarantined_answer() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.quarantine = True
     with pytest.raises(SubjectStopError):
         on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
 
 
 def test_ask_raises_budgetstoperror_when_the_subject_call_is_budget_refused() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.subject_error = SubjectUnavailableError("budget_refused")
     with pytest.raises(BudgetStopError):
         on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
 
 
 def test_ask_raises_transientstoperror_and_stops_the_trial_on_an_infra_failure() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.subject_error = SubjectUnavailableError("subject_unavailable")
     with pytest.raises(TransientStopError):
         on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
@@ -79,7 +89,7 @@ def test_ask_raises_budgetstoperror_when_the_subjects_kill_switch_is_on() -> Non
     """ST-4 groups the kill switch with a budget refusal ("the per-call spend guard refused a reservation,
     or the kill switch is on"): a real bug (Codex round 1) had this fall through to the generic
     TurnRefusedError handler instead, recording infra_failed (ST-5, retriable) rather than budget_truncated."""
-    rig = Rig()
+    rig = _rig()
     rig.subject_error = SubjectUnavailableError("kill_switch_on")
     with pytest.raises(BudgetStopError):
         on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
@@ -87,7 +97,7 @@ def test_ask_raises_budgetstoperror_when_the_subjects_kill_switch_is_on() -> Non
 
 
 def test_card_raises_budgetstoperror_once_the_trial_is_already_budget_truncated() -> None:
-    rig = Rig()
+    rig = _rig()
     on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).ask(1, QUESTION, []))
     rig.db.execution_state = "budget_truncated"
     with pytest.raises(BudgetStopError):
@@ -95,7 +105,7 @@ def test_card_raises_budgetstoperror_once_the_trial_is_already_budget_truncated(
 
 
 def test_card_returns_the_real_follow_up_question_on_the_happy_path() -> None:
-    rig = Rig()
+    rig = _rig()
 
     def ask_then_card(loop: Loop) -> Card | None:
         asker = HarnessAsker(rig.db.trial_id, rig.orch, loop)
@@ -108,7 +118,7 @@ def test_card_returns_the_real_follow_up_question_on_the_happy_path() -> None:
 
 
 def test_final_raises_budgetstoperror_when_the_final_call_is_budget_refused() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.turn()  # one completed exchange first: PublicTrialView needs exchange >= 1
     rig.budget.ceiling_usd = Decimal(0)  # drain the budget for the final call specifically
     with pytest.raises(BudgetStopError):
@@ -117,19 +127,19 @@ def test_final_raises_budgetstoperror_when_the_final_call_is_budget_refused() ->
 
 
 def test_final_returns_true_and_commits_on_the_happy_path() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.turn()
     assert on_loop(lambda loop: HarnessAsker(rig.db.trial_id, rig.orch, loop).final()) is True
     assert rig.db.status == "finalized"
 
 
 def test_corpus_asker_release_returns_nothing_when_no_record_was_due() -> None:
-    rig = Rig()
+    rig = _rig()
     assert on_loop(lambda loop: CorpusAsker(rig.db.trial_id, rig.orch, PACKET, loop).release(1, [])) == []
 
 
 def test_corpus_asker_release_returns_the_released_record_with_its_title() -> None:
-    rig = Rig()
+    rig = _rig()
     rig.turn()
     rig.turn()  # two exchanges: rec-01 (on_request, after_exchanges=2) is now releasable
     released = on_loop(lambda loop: CorpusAsker(rig.db.trial_id, rig.orch, PACKET, loop).release(3, ["rec-01"]))
@@ -139,7 +149,7 @@ def test_corpus_asker_release_returns_the_released_record_with_its_title() -> No
 
 
 def test_corpus_asker_ask_records_the_question_with_no_releases() -> None:
-    rig = Rig()
+    rig = _rig()
     on_loop(lambda loop: CorpusAsker(rig.db.trial_id, rig.orch, PACKET, loop).ask(1, QUESTION))
     assert rig.kinds()[-2:] == ["question_recorded", "subject_turn"]
 
@@ -195,7 +205,7 @@ class PooledSubject:
 def test_every_port_call_reuses_one_pooled_connection_across_a_whole_trial(echo_server: tuple[str, int]) -> None:
     """The job builds its clients once (`main.build_runner`), so every port call must run on that one loop:
     three exchanges and a card on one pooled connection, all from the harness's worker thread."""
-    rig = Rig()
+    rig = _rig()
     pooled = PooledSubject(echo_server, rig.subject)
     orch = Orchestrator(db=rig.db, port=rig.port, subject=pooled, signals=TrialSignals())
 
@@ -220,7 +230,7 @@ def _harness_orch(rig: Rig) -> Orchestrator:
 def test_card_with_the_kill_switch_on_stops_the_trial_budget_truncated() -> None:
     """ST-4 ("the kill switch is on" -> budget_truncated), as on the subject path: never a coach_unavailable
     the harness relays past (a real gap, Codex round 2)."""
-    rig = Rig()
+    rig = _rig()
     orch = _harness_orch(rig)
     on_loop(lambda loop: HarnessAsker(rig.db.trial_id, orch, loop).ask(1, QUESTION, []))
     rig.budget.kill_switch = True
@@ -232,7 +242,7 @@ def test_card_with_the_kill_switch_on_stops_the_trial_budget_truncated() -> None
 
 def test_final_with_the_kill_switch_on_stops_the_trial_budget_truncated() -> None:
     """ST-4, not ST-6: the kill switch on the final call is a budget stop, never assistant_failed."""
-    rig = Rig()
+    rig = _rig()
     rig.turn()
     rig.budget.kill_switch = True
     with pytest.raises(BudgetStopError):

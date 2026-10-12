@@ -5,6 +5,7 @@
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
 ## Wave 2026-10-12
+- Running: UI stage 8 (ac2a4c78d321feac9, feat/ui-stage8: polish pass, gemini-3.8-flash-tts designed voices, audio lip sync, coach earpiece); coach+arena quality on real Gemini (a1baef3ba220e8b10, feat/coach-quality, cap $8); WP-22 live voice (a47192aec3a6ecc1b, feat/wp22-voice, cap $8). WP-28 merged (D-029).
 - WP-28 hidden execution (ae301e328fda27957, wt-hidden-exec cfa87c5): runs end to end, but coordinator cold Codex found 2 majors: harness_trial_state relaxes S4 invariant 6 (redo via work-item-gated trial_context, revert S4 amendment) and recording authorization by packet availability instead of trial_visible (affects main's v_hidden_cases path). In fix.
 - Merged since resume: WP-04/05/07/11/12/13/14/16/17, UI stages 1-7, api UI/trust/tournament routes, fake referee, hosted seeding, real pilot (real Gemini end to end), DB latency, rubric.v1, fairness audit, CSRF names.
 - Running: KPI-1 families F10-F13 + WP-30 study setup (aad561ea74585c0e2, Opus, wt-kpi1); pre-seal prep: referee freeze path, hidden-split export, WP-27 sealing dry run (a18fae2254d13674a, Sonnet, wt-seal-prep).

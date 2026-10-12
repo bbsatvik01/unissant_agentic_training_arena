@@ -215,25 +215,22 @@ async def _ig5(connect: Connector) -> tuple[bool, str]:
 async def _record(
     connect: Connector, evidence: IsolationEvidence, git_sha: str, reports: Mapping[str, str] | None = None
 ) -> None:
-    # Known gap (not fixed this round, Codex finding #2): each item below commits in its own transaction
-    # (`db.record_isolation_check`), not all atomically. If a write fails partway through, the NEXT read of
-    # `arena.isolation_checks` ("latest row per check_name") would fold this run's successful writes together
-    # with an EARLIER run's result for whichever item never got rewritten. A write failure does propagate to
-    # the caller (`routes.reveal._run` never swallows it), so the gap is in what a LATER read sees.
-    for item, (passed, evidence_hash) in evidence.items.items():
-        await db.record_isolation_check(
-            connect,
-            db.IsolationCheckRow(
-                check_name=db.CHECK_NAMES[item],
-                passed=passed,
-                evidence_hash=evidence_hash,
-                commit_sha=git_sha,
-                candidate_id=evidence.canary_culprit
-                if item == "IG-6" and evidence.canary_culprit != UNATTRIBUTED
-                else None,
-                report=(reports or {}).get(item),
-            ),
+    # All of a run's rows commit in one transaction (`db.record_isolation_checks`): a write failing partway
+    # leaves none of them, so a later "latest row per check_name" read never mixes two runs.
+    rows = [
+        db.IsolationCheckRow(
+            check_name=db.CHECK_NAMES[item],
+            passed=passed,
+            evidence_hash=evidence_hash,
+            commit_sha=git_sha,
+            candidate_id=evidence.canary_culprit
+            if item == "IG-6" and evidence.canary_culprit != UNATTRIBUTED
+            else None,
+            report=(reports or {}).get(item),
         )
+        for item, (passed, evidence_hash) in evidence.items.items()
+    ]
+    await db.record_isolation_checks(connect, rows)
 
 
 async def _recompute_and_record(

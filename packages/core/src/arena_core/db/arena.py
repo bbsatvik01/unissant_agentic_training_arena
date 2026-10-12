@@ -89,6 +89,28 @@ class EventRow:
     created_at: datetime
 
 
+@dataclass(frozen=True)
+class CoachEvent:
+    """One `coach_card` or `coach_unavailable` event of a running tournament trial (`arena.harness_trial_state`)."""
+
+    seq: int
+    kind: str
+    turn_no: int
+    payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class HarnessTrialState:
+    """`arena.harness_trial_state` (WP-28; S5 5.3): what the tournament job reads back of the trial it is running,
+    between its own steps, on a dev and a hidden split alike. `released` rows carry `record_id`, `title` and
+    `released_after_exchanges`, never the record's content."""
+
+    public_packet: dict[str, Any] | None  # None only if the variant has none (S4 ingest stores one per variant)
+    open_question: bool
+    released: list[dict[str, Any]]
+    coach_events: list[CoachEvent]
+
+
 class ArenaDb:
     """The `arena_public` calls one actor makes. `actor` None is a harness request (no investigator)."""
 
@@ -611,24 +633,44 @@ class ArenaDb:
         )
         return dict(zip(keys, rows[0], strict=True))
 
-    async def released_with_titles(self, trial: UUID) -> list[dict[str, Any]]:
-        """`arena.v_released_evidence`'s `record_id`, `title` and `released_after_exchanges` (the corpus
-        harness needs the title for `replay_script.v1`'s evidence-slot question, S2 8.6; C-23)."""
-        rows = await self.fetch(
-            "select record_id, title, released_after_exchanges from arena.v_released_evidence"
-            " where trial_id = %s order by release_seq",
-            (trial,),
-        )
-        return [{"record_id": r[0], "title": r[1], "released_after_exchanges": int(r[2])} for r in rows]
-
     async def tournament_split(self, tournament: UUID) -> str | None:
-        """`arena.v_tournaments.split` ("dev" or "hidden"), or None for an unknown id: the job's own
-        defense-in-depth check (WP-17) that it never runs a hidden tournament -- `lifecycle.open_tournament`
-        already refuses to open one this way, but that refusal is this operator tool's own convenience, not
-        a database invariant `arena.open_tournament` itself enforces (no WP-16 hidden-text scan exists
-        yet), so a tournament opened by some other path must still never reach this job's harness."""
+        """`arena.v_tournaments.split` ("dev" or "hidden"), or None for an unknown id: `GET
+        /api/tournaments/{id}/events` serves counts only for a hidden tournament before reveal (D9)."""
         rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
         return None if not rows else str(rows[0][0])
+
+    async def gate_rows_before_open(self, tournament: UUID) -> list[tuple[str, bool, str | None, UUID | None]]:
+        """`arena.v_isolation_checks`: the latest row per check name recorded after the tournament's roster froze
+        and before it went `running` (`check_name`, `passed`, `commit_sha`, `run_id`): the isolation gate the
+        referee's open route runs fresh for a hidden tournament between the two (S1 L9, S3 9). One gate run's rows
+        share one `run_id` (the referee writes them in one transaction). Empty for an unknown or never-opened
+        tournament, and for one opened without a gate run in that window."""
+        rows = await self.fetch(
+            "select distinct on (i.check_name) i.check_name, i.passed, i.commit_sha, i.run_id"
+            " from arena.v_isolation_checks i join arena.v_tournaments t on t.id = %s"
+            " where t.frozen_at is not null and t.running_at is not null"
+            " and i.run_at > t.frozen_at and i.run_at <= t.running_at"
+            " order by i.check_name, i.run_at desc, i.run_id",
+            (tournament,),
+        )
+        return [(str(r[0]), bool(r[1]), None if r[2] is None else str(r[2]), r[3]) for r in rows]
+
+    async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
+        """`arena.harness_trial_state` (WP-28): the job's own in-flight read of a running tournament trial -- the
+        case's public packet, whether a question is open, the released records' ids, titles and exchange counts,
+        and the coach card events -- for the harness's decisions between its steps (S2 8.2, 8.6; S5 5.3, 5.4).
+        S4 refuses it to an investigator request and to any trial not `running` (AR040, AR001): it is never a
+        recording or export read, which go through the reveal-gated projections (`arena_core.events.load`)."""
+        raw = await self.obj("select arena.harness_trial_state(%s)::text", (trial,))
+        return HarnessTrialState(
+            public_packet=None if raw["public_packet"] is None else dict(raw["public_packet"]),
+            open_question=bool(raw["open_question"]),
+            released=[dict(r) for r in raw["released"]],
+            coach_events=[
+                CoachEvent(int(e["seq"]), str(e["kind"]), int(e["turn_no"]), dict(e["payload"]))
+                for e in raw["coach_events"]
+            ],
+        )
 
     async def planned_trials(self, tournament: UUID) -> list[dict[str, Any]]:
         """`arena.v_planned_trials`: the frozen roster, position order (S5 5.3's "recorded seeded order")."""

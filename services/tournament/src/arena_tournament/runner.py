@@ -30,6 +30,7 @@ from uuid import UUID
 
 from arena_core.agents.manifests import CandidateManifest
 from arena_core.db.arena import ArenaDb
+from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS
 from arena_core.spend.rates import ModeledCall
 from arena_core.turns.harness import CorpusPorts, Execution, run_corpus, run_interactive
 from arena_core.turns.orchestrator import Orchestrator
@@ -42,13 +43,15 @@ from arena_tournament.referee_client import RefereeClient
 log = logging.getLogger("arena_tournament")
 
 
-class HiddenTournamentError(Exception):
-    """The runner's own defense-in-depth refusal (WP-17): `lifecycle.open_tournament` already refuses a
-    hidden split, but that is this operator tool's own convenience check, not a database invariant
-    `arena.open_tournament` enforces -- no WP-16 hidden-text scan exists yet, so a hidden tournament opened
-    by any other path (a future admin route, a direct SQL call) must still never reach this harness: its
-    own packet read (`arena.v_dev_cases` only) and coaching read (`v_trial_events`) are not the isolated,
-    unrevealed-content-safe reads a hidden split would need."""
+class IsolationGateNotPassedError(RuntimeError):
+    """A hidden tournament whose isolation gate (S1 L9, S3 9: the six IG items, the hidden-text scan among them)
+    did not pass, on one commit, before it went `running`. `arena.open_tournament` itself checks nothing, so the
+    job refuses to run one opened any other way than the referee's gated open route."""
+
+
+class MissingPacketError(RuntimeError):
+    """A started trial whose variant has no public packet: a data defect (S4 ingest stores one per variant), not
+    an infra failure, so the job stops instead of spending retries on it."""
 
 
 MAX_ATTEMPTS = 3  # S4 arena.retry_trial: at most 3 attempts total (2 retries after infra_failed)
@@ -85,6 +88,9 @@ class TournamentRunner:
     orchestrator: Orchestrator
     referee: RefereeClient
     manifests: dict[UUID, CandidateManifest]  # every roster candidate's manifest, by candidate id
+    # The commit this job runs (`ARENA_GIT_SHA`, the same value the referee binds its gate evidence to, S3 9):
+    # a hidden tournament runs only on the code its isolation gate passed on.
+    code_sha: str | None = None
     outcomes: dict[str, int] = field(default_factory=dict)
 
     def _count(self, state: Execution | str) -> None:
@@ -139,6 +145,8 @@ class TournamentRunner:
                 return
             try:
                 outcome = await step(trial_id)
+            except MissingPacketError:
+                raise
             except Exception as exc:
                 log.exception("planned trial %s: unexpected failure", planned_trial_id)
                 await self.orchestrator.stop(trial_id, "infra_failed", f"unexpected: {exc}")
@@ -149,19 +157,47 @@ class TournamentRunner:
             attempt["execution_state"] = "infra_failed"
             attempts.append(attempt)
 
+    async def _packet(self, trial: UUID) -> Mapping[str, Any]:
+        """The running trial's public packet (opening question, requestable records, replay topics), read once
+        the trial is `running` through `arena.harness_trial_state` (WP-28): the dev library's packet, or the
+        sealed hidden one, which no projection shows before reveal."""
+        packet = (await self.db.harness_trial_state(trial)).public_packet
+        if packet is None:
+            msg = f"trial {trial}'s variant has no public packet"
+            raise MissingPacketError(msg)
+        return packet
+
+    async def _require_gate(self, tournament: UUID) -> None:
+        """A hidden tournament runs only if, between its roster freezing and its opening, one complete gate run
+        passed every IG item on the commit this job runs (S1 L9; S3 9 binds the gate to the code version). The
+        referee writes a run's rows in one transaction under one `run_id`: the latest row of each item must come
+        from that one run, never a mix (a dev gate run writes no IG-4 row). A dev tournament has no hidden
+        corpus to scan and opens ungated."""
+        if await self.db.tournament_split(tournament) != "hidden":
+            return
+        latest = {row[0]: row[1:] for row in await self.db.gate_rows_before_open(tournament)}
+        needed = [latest.get(IG_CHECK_NAMES[item]) for item in IG_ITEMS]
+        commits = {row[1] for row in needed if row is not None}
+        runs = {row[2] for row in needed if row is not None}
+        if (
+            any(row is None or not row[0] for row in needed)
+            or not self.code_sha
+            or commits != {self.code_sha}
+            or len(runs) != 1
+            or None in runs
+        ):
+            msg = f"hidden tournament {tournament} did not pass the isolation gate before it opened; not run"
+            raise IsolationGateNotPassedError(msg)
+
     # ------------------------------------------------------------------ corpus track (S2 8.6; BKO-6)
 
     async def _run_corpus_track(self, planned: Sequence[Row], attempts_by_planned: dict[UUID, list[Attempt]]) -> None:
         for row in planned:
             attempts = attempts_by_planned[row["planned_trial_id"]]
             subject = self.manifests[row["subject_candidate_id"]]
-            public_packet = await self.db.public_packet(row["variant_id"])
-            if public_packet is None:
-                msg = f"variant {row['variant_id']} has no public packet"
-                raise RuntimeError(msg)
 
-            async def step(trial_id: UUID, packet: Mapping[str, Any] = public_packet) -> Execution:
-                outcome = await _run_corpus_trial(trial_id, self.orchestrator, packet)
+            async def step(trial_id: UUID) -> Execution:
+                outcome = await _run_corpus_trial(trial_id, self.orchestrator, await self._packet(trial_id))
                 if outcome is Execution.COMPLETED:
                     # S2 8.6: no assistant, so `run_corpus` never calls a `.final()`-style port method; the
                     # trial still needs its own close (S4 `finalize_trial`'s finding is null for a corpus
@@ -199,10 +235,6 @@ class TournamentRunner:
         for block_no, rows in group_interactive_by_block(planned):
             for row in rows:
                 attempts = attempts_by_planned[row["planned_trial_id"]]
-                public_packet = await self.db.public_packet(row["variant_id"])
-                if public_packet is None:
-                    msg = f"variant {row['variant_id']} has no public packet"
-                    raise RuntimeError(msg)
                 # This one pairing's own calls (S4 8.5's "the unit" admitted is one trial, never the whole
                 # block): checking the block's full ~18-trial cost before each trial -- a real bug, Codex
                 # round 1 -- made a later pairing come back budget_skipped even with plenty left for it
@@ -212,7 +244,8 @@ class TournamentRunner:
                     self.manifests[row["assistant_candidate_id"]], self.manifests[row["subject_candidate_id"]]
                 )
 
-                async def step(trial_id: UUID, packet: Mapping[str, Any] = public_packet) -> Execution:
+                async def step(trial_id: UUID) -> Execution:
+                    packet = await self._packet(trial_id)
                     return await _run_interactive_trial(trial_id, self.orchestrator, packet["opening_question"])
 
                 await self._run_until_terminal(row["planned_trial_id"], attempts, trial_calls, step)
@@ -226,12 +259,11 @@ class TournamentRunner:
         its own -- interactive trials refuse to start before it (S4 `arena.start_trial`) -- and because
         resuming a killed job after this phase finished is exactly "run the rest" (`run` itself calls this
         first, so a fresh `run` after a crash here just repeats the now-idempotent replay phase and moves
-        on). Both entry points (here and `run`) refuse a hidden tournament first (`HiddenTournamentError`,
-        WP-17's own defense in depth)."""
-        split = await self.db.tournament_split(tournament)
-        if split == "hidden":
-            msg = f"tournament {tournament} is split=hidden; this job never runs one (no WP-16 scan yet)"
-            raise HiddenTournamentError(msg)
+        on). A dev and a hidden tournament run the same way (WP-28): every read the harness makes of a trial
+        while it runs goes through `arena.harness_trial_state`, and a hidden tournament reaches `running` only
+        through the referee's isolation gate (S3 9; `arena_referee.isolation.open_hidden_tournament`), which
+        `_require_gate` checks again here."""
+        await self._require_gate(tournament)
         planned = await self.db.planned_trials(tournament)
         corpus = [r for r in planned if r["track"] == "replay_corpus"]
         replay = [r for r in planned if r["track"] == "replay"]
