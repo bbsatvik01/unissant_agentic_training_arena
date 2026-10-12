@@ -220,6 +220,19 @@ describe("case and session routes (S6 4.2; S5 5.5)", () => {
     await expect(createArenaApi(bad).ackEx4()).rejects.toBeInstanceOf(ContractError);
   });
 
+  it("reads the tournament list, a tournament, and its poll on the ledger cursor, checked against the poll schema", async () => {
+    const poll = { visibility: "counts", progress: [{ track: "interactive", block: 1, planned: 2, counts_by_state: {} }] };
+    const { client, calls } = fakeClient((call) => (call.path.includes("/events") ? poll : { tournaments: [] }));
+    const api = createArenaApi(client);
+    await api.tournaments();
+    await api.tournament("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f");
+    await expect(api.tournamentEvents("7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", 41)).resolves.toEqual(poll);
+    expect(calls.map((c) => c.path)).toEqual(["/api/tournaments", "/api/tournaments/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f", "/api/tournaments/7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f/events?after=41"]);
+    // A poll in another shape (a trial id in a counts response) is refused, never folded (FE-SSE-4).
+    const { client: bad } = fakeClient(() => ({ ...poll, frames: [], trial_id: "x" }));
+    await expect(createArenaApi(bad).tournamentEvents("t", 0)).rejects.toBeInstanceOf(ContractError);
+  });
+
   it("asks the speech route for a line in a voice", async () => {
     const { client, calls } = fakeClient(() => null);
     const spoken = await createArenaApi(client).speak("Kore", "Hello.");

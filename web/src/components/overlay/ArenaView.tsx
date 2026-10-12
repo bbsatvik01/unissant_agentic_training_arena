@@ -1,7 +1,8 @@
 /**
- * The arena (S6 4.9, 4.10; stage 2): the leaderboards and the tournament matrix, over the precinct. Built against
- * the WP-16 board bodies and the tournament poll shape; until `GET /api/leaderboards/{id}` and
- * `GET /api/tournaments/{id}/events` land it shows the bundled example data, labeled as such. Ranks, eligibility,
+ * The arena (S6 4.9, 4.10): the leaderboards and the tournament matrix, over the precinct. A selected tournament
+ * (`?tournament=<id>`) shows its published boards and the matrix its poll builds; any visible trial in the matrix
+ * replays in the interview room. Without a selection it lists the tournaments to choose from and shows the bundled
+ * example data, labeled as such. Ranks, eligibility,
  * intervals and states are the server's; the client draws them (rank intervals draw in at their endpoints) and never
  * re-ranks. EX-4 and the EVL-10 sentence head the view.
  */
@@ -11,6 +12,7 @@ import { EX4_TEXT } from "../../lib/copy/ex4";
 import { assistantDetails, countMatrix, subjectDetails, type DetailLine } from "../../lib/arena/details";
 import { differenceText, fprGate, metricText, otherLabelHref, rankBar, rankStatus, type Board, type BoardRow, type BoardsState } from "../../lib/arena/leaderboard";
 import { cellState, matrix, tracks, type Track, type TournamentState } from "../../lib/arena/tournament";
+import type { TournamentListing } from "../../lib/arena/tournamentPoll";
 import { Tabs } from "./Tabs";
 
 export const NOT_CERTIFICATION = "A tournament rank is not certification for real investigations.";
@@ -250,7 +252,25 @@ function SubjectBoard({ board }: { board: Board }) {
   );
 }
 
-function Matrix({ tournament, track, onTrack }: { tournament: TournamentState; track: Track | null; onTrack: (t: Track) => void }) {
+export type TournamentChoices = { readonly state: "idle" | "loading" | "missing" | "error" } | { readonly state: "ready"; readonly list: readonly TournamentListing[] };
+
+const CHOICES_NOTE: Readonly<Record<"missing" | "error", string>> = {
+  missing: "The server does not offer the tournament list yet.",
+  error: "The tournament list could not be read.",
+};
+
+/** Where the matrix's data stands: the example, the selected tournament's poll, or why there is none. */
+export type MatrixSource = "example" | "ready" | "loading" | "missing" | "error";
+
+const MATRIX_NOTE: Readonly<Record<Exclude<MatrixSource, "ready">, string>> = {
+  example: "Example data: no tournament is selected. Not a result.",
+  loading: "Reading the tournament.",
+  missing: "The server does not offer the tournament routes yet, so this tournament's trials cannot be shown.",
+  error: "The tournament could not be read. Try again later.",
+};
+
+function Matrix({ tournament, source, track, onTrack, onReplay }: { tournament: TournamentState; source: MatrixSource; track: Track | null; onTrack: (t: Track) => void; onReplay: (trialId: string) => void }) {
+  if (source !== "ready" && source !== "example") return <p className="empty">{MATRIX_NOTE[source]}</p>;
   if (tournament.visibility === "counts") {
     return (
       <table className="board">
@@ -282,14 +302,24 @@ function Matrix({ tournament, track, onTrack }: { tournament: TournamentState; t
   }
   const present = tracks(tournament);
   if (present.length === 0) return <p className="empty">No trials yet.</p>;
-  return <Tabs label="Tracks" value={track ?? present[0] ?? "interactive"} onChange={(t) => {
-    onTrack(t as Track);
-  }} tabs={present.map((t) => ({ id: t, label: TRACK_NAME[t], content: <TrackMatrix tournament={tournament} track={t} /> }))} />;
+  return (
+    <>
+      {source === "ready" ? <p className="fine">Choose a finished trial to replay it in the interview room; a running trial can be replayed once it ends.</p> : <p className="fine">{MATRIX_NOTE.example}</p>}
+      <Tabs
+        label="Tracks"
+        value={track ?? present[0] ?? "interactive"}
+        onChange={(t) => {
+          onTrack(t as Track);
+        }}
+        tabs={present.map((t) => ({ id: t, label: TRACK_NAME[t], content: <TrackMatrix tournament={tournament} track={t} onReplay={source === "ready" ? onReplay : null} /> }))}
+      />
+    </>
+  );
 }
 
 const TRACK_NAME: Readonly<Record<Track, string>> = { replay: "Replay track", interactive: "Interactive track", replay_corpus: "Replay corpus" };
 
-function TrackMatrix({ tournament, track }: { tournament: TournamentState; track: Track }) {
+function TrackMatrix({ tournament, track, onReplay }: { tournament: TournamentState; track: Track; onReplay: ((trialId: string) => void) | null }) {
   return (
     <div className="matrix" role="table" aria-label={`${TRACK_NAME[track]}: trials by pairing`}>
       {matrix(tournament, track).map((row) => (
@@ -299,9 +329,26 @@ function TrackMatrix({ tournament, track }: { tournament: TournamentState; track
           </span>
           {row.cells.map((c) => {
             const state = cellState(c);
+            const label = `Trial ${String(c.trial_ref)}${c.block === null ? "" : `, block ${String(c.block)}`}: ${state}`;
             return (
-              <span key={c.trial_ref} className="matrix-cell" role="cell" data-state={state.replaceAll(" ", "_")} title={`Trial ${String(c.trial_ref)}, block ${String(c.block)}: ${state}`}>
-                <span className="mono">#{c.trial_ref}</span> {state}
+              <span key={c.trial_ref} className="matrix-cell" role="cell" data-state={state.replaceAll(" ", "_")} title={label}>
+                {/* A running trial's recording is still growing: it replays once it has ended, whole. */}
+                {onReplay === null || state === "running" ? (
+                  <>
+                    <span className="mono">#{c.trial_ref}</span> {state}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="matrix-replay"
+                    aria-label={`Replay ${label}`}
+                    onClick={() => {
+                      onReplay(c.trial_id);
+                    }}
+                  >
+                    <span className="mono">#{c.trial_ref}</span> {state}
+                  </button>
+                )}
               </span>
             );
           })}
@@ -317,6 +364,13 @@ export function ArenaView(props: {
   readonly assistant: Board | null;
   readonly subject: Board | null;
   readonly tournament: TournamentState;
+  /** Where the matrix's data stands. */
+  readonly matrix: MatrixSource;
+  /** The tournaments to choose from when none is selected (`idle` when one is). */
+  readonly tournaments: TournamentChoices;
+  /** Why the last replay did not start, if it did not. */
+  readonly notice: string | null;
+  readonly onReplay: (trialId: string) => void;
   readonly motionOff: boolean;
   readonly onClose: () => void;
 }) {
@@ -342,7 +396,30 @@ export function ArenaView(props: {
             <strong>{corrected.heading}</strong>. <a href={corrected.href}>{corrected.text}</a>
           </p>
         )}
-        <p className="fine">{props.boards.kind === "example" ? "The tournament matrix shows example data too." : "This tournament's trials will appear here once the tournament route is live."}</p>
+        {props.boards.kind === "example" ? <p className="fine">The tournament matrix shows example data too.</p> : null}
+        {props.tournaments.state === "missing" || props.tournaments.state === "error" ? <p className="fine">{CHOICES_NOTE[props.tournaments.state]}</p> : null}
+        {props.tournaments.state === "ready" && props.tournaments.list.length === 0 ? <p className="fine">No tournaments yet.</p> : null}
+        {props.tournaments.state !== "ready" || props.tournaments.list.length === 0 ? null : (
+          <nav aria-label="Tournaments">
+            <ul className="tournament-list">
+              {props.tournaments.list.map((t) => (
+                <li key={t.id}>
+                  <a href={`?tournament=${encodeURIComponent(t.id)}`}>{t.name}</a>{" "}
+                  <span className="fine">
+                    {t.split} split, {t.status}
+                    {t.seed === null ? "" : `, seed ${String(t.seed)}`}
+                    {t.rosterHash === null ? "" : ", roster "}
+                  </span>
+                  {t.rosterHash === null ? null : (
+                    <code className="mono hash" title={t.rosterHash}>
+                      {t.rosterHash.slice(0, 12)}
+                    </code>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
       </div>
       <Tabs
         label="Arena views"
@@ -366,7 +443,20 @@ export function ArenaView(props: {
               </>
             ),
           },
-          { id: "tournament", label: "Tournament", content: <Matrix tournament={props.tournament} track={track} onTrack={setTrack} /> },
+          {
+            id: "tournament",
+            label: "Tournament",
+            content: (
+              <>
+                {props.notice === null ? null : (
+                  <p className="fine" role="alert">
+                    {props.notice}
+                  </p>
+                )}
+                <Matrix tournament={props.tournament} source={props.matrix} track={track} onTrack={setTrack} onReplay={props.onReplay} />
+              </>
+            ),
+          },
         ]}
       />
     </div>
