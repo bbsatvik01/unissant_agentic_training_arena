@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any, ClassVar, cast
 
+import psycopg
 import pytest
 from psycopg import AsyncConnection, IsolationLevel
 from psycopg.pq import TransactionStatus
@@ -193,3 +194,52 @@ def test_configure_sets_read_committed() -> None:
 
     run(pool_mod._configure(cast("AsyncConnection[Any]", Configurable())))
     assert seen == [IsolationLevel.READ_COMMITTED]
+
+
+@pytest.mark.parametrize(
+    ("isolation", "read_only", "deferrable", "begin"),
+    [
+        (IsolationLevel.READ_COMMITTED, None, None, "BEGIN ISOLATION LEVEL READ COMMITTED"),
+        (IsolationLevel.SERIALIZABLE, True, True, "BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE"),
+        (None, False, False, "BEGIN READ WRITE NOT DEFERRABLE"),
+    ],
+)
+def test_the_pipelined_begin_carries_the_connections_own_settings(
+    isolation: IsolationLevel | None, read_only: bool | None, deferrable: bool | None, begin: str
+) -> None:
+    conn = Conn()
+    conn.isolation_level, conn.read_only, conn.deferrable = isolation, read_only, deferrable
+    assert pool_mod.begin_statement(_real(conn)) == begin
+    run(one_statement(_real(conn), "select 1"))
+    assert conn.begun == [begin]
+
+
+class Stuck(Conn):
+    """A connection whose rollback never finishes (its lock held elsewhere) or fails outright."""
+
+    def __init__(self, failure: BaseException | None = None) -> None:
+        super().__init__()
+        self.failure = failure
+
+    async def rollback(self) -> None:
+        if self.failure is not None:
+            raise self.failure
+        await asyncio.sleep(10)
+
+
+@pytest.mark.parametrize("failure", [None, psycopg.OperationalError("gone")])
+def test_a_checkout_that_cannot_roll_back_promptly_closes_the_connection(
+    monkeypatch: pytest.MonkeyPatch, failure: BaseException | None
+) -> None:
+    monkeypatch.setattr(pool_mod, "CHECKOUT_CLEANUP_S", 0.05)
+    conn = Stuck(failure)
+    run(conn.execute("BEGIN"))
+    run(pool_mod._end_checkout(_real(conn)))
+    assert conn.closed
+
+
+def test_a_checkout_left_busy_closes_the_connection_without_waiting() -> None:
+    conn = Conn()
+    conn.info.transaction_status = TransactionStatus.ACTIVE
+    run(pool_mod._end_checkout(_real(conn)))
+    assert conn.closed

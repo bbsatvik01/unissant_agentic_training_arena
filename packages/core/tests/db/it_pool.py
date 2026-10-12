@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from collections.abc import Coroutine
 from typing import Any, LiteralString
 from uuid import uuid4
 
 import psycopg
 import pytest
-from psycopg import AsyncConnection, sql
+from psycopg import AsyncConnection, IsolationLevel, sql
 from psycopg.pq import TransactionStatus
 
 from arena_core.db.arena import ArenaDb, ArenaError, SessionStart
@@ -23,6 +24,7 @@ from arena_core.db.pool import PooledConnector, one_statement
 
 DSN_VAR = "ARENA_IT_ADMIN_DSN"
 ACTOR = "00000000-0000-0000-0000-0000000000aa"
+CANCEL_BOUND_S = 2.0  # well under the 5 s statement: the checkout never waits for it
 
 
 def _on(text: LiteralString, table: str) -> sql.Composed:
@@ -139,6 +141,90 @@ def test_an_s4_refusal_keeps_its_sqlstate_through_the_pooled_path() -> None:
             async with pooled() as conn:
                 assert conn.info.transaction_status == TransactionStatus.IDLE
                 assert conn.autocommit is False
+        finally:
+            await pooled.close()
+
+    run(body())
+
+
+def test_a_connection_set_to_serializable_still_reaches_s4s_refusal() -> None:
+    """The pipelined BEGIN carries the connection's own isolation level, so S4's READ COMMITTED check refuses it
+    (AR001) exactly as it did under `conn.transaction()`."""
+
+    async def body() -> None:
+        async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None) as conn:
+            await conn.set_isolation_level(IsolationLevel.SERIALIZABLE)
+            with pytest.raises(psycopg.Error) as refused:
+                await one_statement(conn, "select ledger.require_read_committed()")
+            assert refused.value.sqlstate == "AR001"
+            assert conn.info.transaction_status == TransactionStatus.IDLE
+
+    run(body())
+
+
+def test_a_read_only_connection_still_refuses_a_write() -> None:
+    table = f"it_pool_{uuid4().hex[:8]}"
+
+    async def body() -> None:
+        async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None, autocommit=True) as admin:
+            await admin.execute(_on("create table public.{} (n int)", table))
+            try:
+                async with await AsyncConnection.connect(admin_dsn(), prepare_threshold=None) as conn:
+                    await conn.set_read_only(True)
+                    with pytest.raises(psycopg.errors.ReadOnlySqlTransaction):
+                        await one_statement(conn, _on("insert into public.{} values (1)", table))
+            finally:
+                await admin.execute(_on("drop table public.{}", table))
+
+    run(body())
+
+
+def test_a_cancelled_statement_never_holds_up_its_checkout_or_the_next_one() -> None:
+    """A statement cancelled mid-flight (the agent port abandons a stalled ledger write) leaves its connection busy;
+    the checkout closes it at once instead of waiting, and the pool serves the next checkout with a fresh one."""
+
+    async def body() -> None:
+        pooled = PooledConnector(admin_dsn(), min_size=1, max_size=1)
+        try:
+
+            async def stalled() -> None:
+                async with pooled() as conn:
+                    await one_statement(conn, "select pg_sleep(5)")
+
+            task = asyncio.create_task(stalled())
+            await asyncio.sleep(0.3)
+            started = time.monotonic()
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            assert time.monotonic() - started < CANCEL_BOUND_S
+            async with asyncio.timeout(5), pooled() as conn:
+                cur = await one_statement(conn, "select 1")
+                assert await cur.fetchall() == [(1,)]
+        finally:
+            await pooled.close()
+
+    run(body())
+
+
+def test_a_checkout_left_while_its_statement_still_runs_is_closed_not_waited_on() -> None:
+    """The agent port's bounded ledger write abandons a stalled statement that may still hold the connection
+    (`providers.port._bounded_write`); leaving the checkout then must not wait for it."""
+
+    async def body() -> None:
+        pooled = PooledConnector(admin_dsn(), min_size=1, max_size=1)
+        try:
+            started = 0.0
+            async with pooled() as conn:
+                abandoned = asyncio.create_task(one_statement(conn, "select pg_sleep(5)"))
+                await asyncio.sleep(0.3)
+                started = time.monotonic()
+            assert time.monotonic() - started < CANCEL_BOUND_S
+            abandoned.cancel()
+            await asyncio.gather(abandoned, return_exceptions=True)  # its own outcome is not this test's concern
+            async with asyncio.timeout(5), pooled() as conn:
+                cur = await one_statement(conn, "select 1")
+                assert await cur.fetchall() == [(1,)]
         finally:
             await pooled.close()
 

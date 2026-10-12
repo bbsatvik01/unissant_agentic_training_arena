@@ -8,10 +8,10 @@ isolation level), with prepared statements off (S4 2.2: the pooler runs in trans
   the serving event loop. Against the hosted project a new connection costs about 0.6 s (TLS and auth) and a turn
   ran about 25 short transactions, so connecting per call was most of a turn's wall time (real pilot). A connection
   goes back to the pool exactly as `dsn_connector` would have left it closed: anything uncommitted is rolled back.
-- `one_statement` runs one statement in its own READ COMMITTED transaction (optionally as an actor) in one network
-  round trip: BEGIN, the actor's transaction-local `set_config`, the statement and COMMIT are pipelined. The server
-  sees the same statements in the same transaction as `conn.transaction()` sends them, in one round trip instead of
-  four.
+- `one_statement` runs one statement in its own transaction (optionally as an actor) in one network round trip:
+  BEGIN (with the connection's own isolation level and options, READ COMMITTED for a role), the actor's
+  transaction-local `set_config`, the statement and COMMIT are pipelined. The server sees the same statements in the
+  same transaction as `conn.transaction()` sends them, in one round trip instead of four.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any
 
+import psycopg
 from psycopg import AsyncConnection, AsyncCursor, IsolationLevel, sql
 from psycopg.pq import TransactionStatus
 from psycopg_pool import AsyncConnectionPool
@@ -61,6 +62,29 @@ _OPEN = frozenset({TransactionStatus.INTRANS, TransactionStatus.INERROR})
 def _status(conn: AsyncConnection[Any]) -> TransactionStatus:
     """Read afresh at each use (it changes with every statement)."""
     return conn.info.transaction_status
+
+
+# How long a checkout may spend rolling back what its user left open before the connection is closed instead (the
+# agent port's own cleanup allowance for an abandoned ledger write, `providers.port.CLEANUP_S`).
+CHECKOUT_CLEANUP_S = 1.0
+
+
+async def _end_checkout(conn: AsyncConnection[Any]) -> None:
+    """Leave a connection as closing a fresh one would have: nothing uncommitted survives, and the next user gets the
+    connection's own transaction mode. A connection still busy (a cancelled or abandoned statement may hold its lock)
+    or one that cannot be rolled back promptly is closed at once, never waited on; the pool then replaces it."""
+    if _status(conn) in _OPEN:
+        try:
+            async with asyncio.timeout(CHECKOUT_CLEANUP_S):
+                await conn.rollback()
+        except (TimeoutError, psycopg.Error):
+            await conn.close()
+            return
+    if _status(conn) != TransactionStatus.IDLE:
+        await conn.close()
+        return
+    if conn.autocommit:
+        await conn.set_autocommit(False)
 
 
 async def _configure(conn: AsyncConnection[Any]) -> None:
@@ -105,13 +129,7 @@ class PooledConnector:
             try:
                 yield conn
             finally:
-                # The same end state as closing a fresh connection: nothing uncommitted survives the checkout, and
-                # the next user gets the connection's own transaction mode. A connection still busy (a cancelled
-                # query) is left as it is; the pool discards it.
-                if _status(conn) in _OPEN:
-                    await conn.rollback()
-                if _status(conn) == TransactionStatus.IDLE and conn.autocommit:
-                    await conn.set_autocommit(False)
+                await _end_checkout(conn)
 
     def __call__(self) -> AbstractAsyncContextManager[AsyncConnection[Any]]:
         return self._connection()
@@ -137,12 +155,27 @@ async def closing_lifespan(connect: Connector, _app: object = None) -> AsyncIter
         await close_connector(connect)
 
 
+def begin_statement(conn: AsyncConnection[Any]) -> str:
+    """The BEGIN psycopg itself sends for this connection (`isolation_level`, `read_only`, `deferrable`), so the
+    pipelined transaction runs with exactly the settings `conn.transaction()` would use: a role connection is READ
+    COMMITTED, and a connection set to anything else still reaches S4's own refusal of it."""
+    parts = ["BEGIN"]
+    if conn.isolation_level is not None:
+        parts.append("ISOLATION LEVEL " + IsolationLevel(conn.isolation_level).name.replace("_", " "))
+    if conn.read_only is not None:
+        parts.append("READ ONLY" if conn.read_only else "READ WRITE")
+    if conn.deferrable is not None:
+        parts.append("DEFERRABLE" if conn.deferrable else "NOT DEFERRABLE")
+    return " ".join(parts)
+
+
 async def one_statement(
     conn: AsyncConnection[Any], query: str | sql.Composed, params: Sequence[object] = (), *, actor: str | None = None
 ) -> AsyncCursor[Any]:
-    """`query` in its own READ COMMITTED transaction, as `actor` when given (`set_config('arena.actor_id', ...,
-    true)`, S4 2.3), in one round trip. Returns the cursor with the statement's rows already received. Any error
-    is raised here (the transaction is rolled back first), exactly as `conn.transaction()` would raise it."""
+    """`query` in its own transaction (`begin_statement`: READ COMMITTED on a role connection), as `actor` when
+    given (`set_config('arena.actor_id', ..., true)`, S4 2.3), in one round trip. Returns the cursor with the
+    statement's rows already received. Any error is raised here (the transaction is rolled back first), exactly as
+    `conn.transaction()` would raise it."""
     if _status(conn) != TransactionStatus.IDLE:
         msg = "one_statement needs a connection outside any transaction"
         raise RuntimeError(msg)
@@ -150,7 +183,7 @@ async def one_statement(
     await conn.set_autocommit(True)  # psycopg sends no BEGIN of its own: the block below names it
     try:
         async with conn.pipeline():
-            await conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            await conn.execute(begin_statement(conn))
             if actor is not None:
                 await conn.execute("select set_config('arena.actor_id', %s, true)", (actor,))
             cur = await conn.execute(query, params)

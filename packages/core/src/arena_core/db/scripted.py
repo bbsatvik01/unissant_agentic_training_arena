@@ -16,6 +16,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
 
+from psycopg import IsolationLevel
 from psycopg.pq import TransactionStatus
 
 BEGIN = "BEGIN ISOLATION LEVEL READ COMMITTED"
@@ -30,6 +31,19 @@ class ScriptedConnection:
     """Mixin: subclasses implement `statement(query, params)` and `transaction()`."""
 
     autocommit: bool = False
+    isolation_level: IsolationLevel | None = IsolationLevel.READ_COMMITTED
+    read_only: bool | None = None
+    deferrable: bool | None = None
+    closed: bool = False
+    _begun: list[str] | None = None
+
+    @property
+    def begun(self) -> list[str]:
+        """Every BEGIN statement sent, in order."""
+        if self._begun is None:
+            self._begun = []
+        return self._begun
+
     _tx: AbstractAsyncContextManager[Any] | None = None
     _info: _Info | None = None
 
@@ -52,6 +66,9 @@ class ScriptedConnection:
     async def pipeline(self) -> AsyncIterator[None]:
         yield
 
+    async def close(self) -> None:
+        self.closed = True
+
     async def rollback(self) -> None:
         if self._tx is not None:
             await self._end(failed=True)
@@ -66,7 +83,8 @@ class ScriptedConnection:
                 await tx.__aexit__(None, None, None)
 
     async def execute(self, query: str, params: tuple[Any, ...] = ()) -> object:
-        if query == BEGIN:
+        if query.startswith("BEGIN"):
+            self.begun.append(query)
             self._tx = self.transaction()
             await self._tx.__aenter__()
             self.info.transaction_status = TransactionStatus.INTRANS
