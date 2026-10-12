@@ -37,10 +37,16 @@ describe("the cast", () => {
     for (const v of first) expect(v >= 0 && v < 1).toBe(true);
   });
 
-  it("gives every persona a distinct prebuilt Gemini voice (Vertex AI TTS, 30 voices)", () => {
+  it("gives every speaking persona its own voice catalogue key; the background staff keep distinct prebuilt voices", () => {
+    // The server's catalogue (packages/core/src/arena_core/voice/personas.json) holds each key; a Python test reads
+    // this file and checks that every key here is in it.
+    const names = ["Jordan Pell", "Mara Quell", "Avery Lindqvist", "Dana Okafor", "Rafael Strand", "Priya Halloran", "Glen Mattick", "Sami Varga", "Elise Dunmore"];
+    for (const n of names) expect(subjectPersona(n).voice.gemini).toBe(`subject:${n}`);
+    expect(COACHES.map((c) => c.voice.gemini)).toEqual(["coach:question", "coach:flags", "coach:follow_up"]);
+    expect(INVESTIGATOR.voice.gemini).toBe("investigator");
     const prebuilt = new Set(["Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe", "Callirrhoe", "Charon", "Despina", "Enceladus", "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", "Leda", "Orus", "Puck", "Pulcherrima", "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", "Zephyr", "Zubenelgenubi"]);
-    const people = [subjectPersona("Jordan Pell"), subjectPersona("Mara Quell"), subjectPersona("Avery Lindqvist"), subjectPersona("Dana Okafor"), subjectPersona("Rafael Strand"), ...COACHES, INVESTIGATOR, HUB_STAFF, ...HUB_CREW];
-    for (const p of people) expect(prebuilt.has(p.voice.gemini)).toBe(true);
-    expect(new Set(people.map((p) => p.voice.gemini)).size).toBe(people.length);
+    const staff = [HUB_STAFF, ...HUB_CREW].map((p) => p.voice.gemini);
+    for (const v of staff) expect(prebuilt.has(v)).toBe(true);
+    expect(new Set(staff).size).toBe(staff.length);
   });
 });

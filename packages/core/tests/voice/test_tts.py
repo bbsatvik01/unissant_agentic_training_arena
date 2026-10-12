@@ -21,6 +21,8 @@ from arena_core.providers.errors import ErrorKind, KillSwitchOnError, ProviderCa
 from arena_core.providers.types import Usage
 from arena_core.spend.guard import Reservation
 from arena_core.voice import tts
+from arena_core.voice.catalogue import PERSONAS, Speaker
+from arena_core.voice.prebuilt import PREBUILT_VOICES
 
 ACTOR = uuid4()
 RESERVATION = UUID(int=1)
@@ -86,17 +88,19 @@ class Synth:
     def __init__(self, *outcomes: tts.SpeechAudio | BaseException) -> None:
         self.outcomes = list(outcomes)
         self.calls: list[tuple[str, str]] = []
+        self.styles: list[str | None] = []
 
-    async def synthesize(self, text: str, voice: str) -> tts.SpeechAudio:
-        self.calls.append((text, voice))
+    async def synthesize(self, text: str, speaker: Speaker) -> tts.SpeechAudio:
+        self.calls.append((text, speaker.voice))
+        self.styles.append(speaker.style)
         outcome = self.outcomes[min(len(self.calls), len(self.outcomes)) - 1]
         await asyncio.sleep(0)
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
 
-    def request_bytes(self, text: str, voice: str) -> int:
-        return MEASURED + len(text) + len(voice)
+    def request_bytes(self, text: str, speaker: Speaker) -> int:
+        return MEASURED + len(text) + len(speaker.voice)
 
 
 AUDIO = tts.SpeechAudio(
@@ -108,21 +112,31 @@ def kinds(log: list[Any]) -> list[str]:
     return [entry[0] for entry in log]
 
 
-def test_only_prebuilt_voices_and_lines_of_one_to_900_characters() -> None:
-    assert tts.check_line("  Hello.  ", "Kore") == "Hello."
-    assert len(tts.PREBUILT_VOICES) == PREBUILT_COUNT
-    for text, voice in (("Hi", "Bad"), ("", "Kore"), ("   ", "Kore"), ("x" * 901, "Kore")):
+KORE = Speaker("Kore", None)
+
+
+def test_only_catalogue_voices_and_lines_of_one_to_900_characters() -> None:
+    assert tts.check_line("  Hello.  ", "Kore") == ("Hello.", KORE)
+    assert len(PREBUILT_VOICES) == PREBUILT_COUNT
+    for text, voice in (("Hi", "Bad"), ("", "Kore"), ("   ", "Kore"), ("x" * 901, "Kore"), ("Hi", "subject:Nobody")):
         with pytest.raises(tts.LineRefusedError):
             tts.check_line(text, voice)
-    assert tts.check_line("x" * 900, "Kore") == "x" * 900
+    assert tts.check_line("x" * 900, "Kore") == ("x" * 900, KORE)
+    # A persona speaks with its own voice and style: its prebuilt fallback until a designed voice is stored.
+    persona = PERSONAS["subject:Jordan Pell"]
+    assert tts.check_line("Hi.", "subject:Jordan Pell") == (
+        "Hi.",
+        Speaker(persona.voice_id or persona.prebuilt, persona.style),
+    )
 
 
-def test_the_cache_key_names_model_voice_and_text() -> None:
-    key = tts.line_key("m", "Kore", "Hello.")
+def test_the_cache_key_names_model_voice_style_and_text() -> None:
+    key = tts.line_key("m", KORE, "Hello.")
     assert len(key) == SHA256_HEX
-    assert key != tts.line_key("m", "Puck", "Hello.")
-    assert key != tts.line_key("m2", "Kore", "Hello.")
-    assert key != tts.line_key("m", "Kore", "Hello")
+    assert key != tts.line_key("m", Speaker("Puck", None), "Hello.")
+    assert key != tts.line_key("m", Speaker("Kore", "calm"), "Hello.")
+    assert key != tts.line_key("m2", KORE, "Hello.")
+    assert key != tts.line_key("m", KORE, "Hello")
 
 
 def test_wav_bytes_wrap_mono_16_bit_pcm() -> None:
@@ -225,8 +239,8 @@ def test_a_failed_send_is_recorded_settled_by_the_port_rule_and_not_cached(
 
 def test_a_send_past_its_time_settles_usage_unknown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     class Slow(Synth):
-        async def synthesize(self, text: str, voice: str) -> tts.SpeechAudio:
-            del text, voice
+        async def synthesize(self, text: str, speaker: Speaker) -> tts.SpeechAudio:
+            del text, speaker
             await asyncio.sleep(1)
             return AUDIO
 
@@ -250,11 +264,14 @@ def test_a_refused_reservation_sends_nothing(tmp_path: Path) -> None:
 
 def test_the_vertex_client_is_wrapped_with_its_usage_as_audio_out() -> None:
     class Sender:
-        async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]:
-            del text, voice
+        async def synthesize(self, text: str, voice: str, style: str | None) -> tuple[bytes, int, Usage | None]:
+            del text, voice, style
             return b"\x00\x00", VERTEX_RATE, Usage(input_tokens=5, output_tokens=40)
 
-    audio = run(tts.VertexSynth(Sender(), lambda text, voice: len(text) + len(voice)).synthesize("Hi.", "Kore"))
+    def measure(text: str, voice: str, style: str | None) -> int:
+        return len(text) + len(voice) + len(style or "")
+
+    audio = run(tts.VertexSynth(Sender(), measure).synthesize("Hi.", KORE))
     assert audio.usage == tts.SpeechUsage(input_tokens=5, audio_output_tokens=40)
     assert audio.sample_rate == VERTEX_RATE
 
@@ -287,12 +304,16 @@ def test_one_line_asked_for_twice_at_once_is_paid_for_once(tmp_path: Path) -> No
 
 def test_the_vertex_measure_is_used_for_the_reservation() -> None:
     class Sender:
-        async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]:
-            del text, voice
+        async def synthesize(self, text: str, voice: str, style: str | None) -> tuple[bytes, int, Usage | None]:
+            del text, voice, style
             return b"", VERTEX_RATE, None
 
-    synth = tts.VertexSynth(Sender(), lambda text, voice: len(text) * 100 + len(voice))
-    assert synth.request_bytes("ab", "Kore") == MEASURED_AB
+    def measure(text: str, voice: str, style: str | None) -> int:
+        return len(text) * 100 + len(voice) + len(style or "")
+
+    synth = tts.VertexSynth(Sender(), measure)
+    assert synth.request_bytes("ab", KORE) == MEASURED_AB
+    assert synth.request_bytes("ab", Speaker("Kore", "xy")) == MEASURED_AB + 2
 
 
 def test_a_refusal_at_dispatch_releases_the_hold_and_sends_nothing(tmp_path: Path) -> None:
@@ -303,3 +324,13 @@ def test_a_refusal_at_dispatch_releases_the_hold_and_sends_nothing(tmp_path: Pat
     assert kinds(guard.log) == ["reserve", "dispatch", "settle"]
     assert guard.log[-1] == ("settle", "released")
     assert synth.calls == []
+
+
+def test_a_persona_line_is_sent_with_its_voice_and_style_and_cached_apart_from_its_plain_voice(tmp_path: Path) -> None:
+    guard, synth = Guard(), Synth(AUDIO)
+    service = tts.TtsService(synth, guard, tmp_path)
+    persona = PERSONAS["coach:question"]
+    run(service.speak("Ask about the door.", "coach:question", ACTOR))
+    assert synth.calls == [("Ask about the door.", persona.voice_id or persona.prebuilt)]
+    assert synth.styles == [persona.style]
+    assert service.cached("Ask about the door.", persona.prebuilt) is None

@@ -47,6 +47,13 @@ LIMITS = {  # call type: (input_limit_bytes, output_limit_including_thinking)
     "referee": (160000, 4000),
     "generate": (12000, 40000),
     "validate": (20000, 4000),
+    # Stage 8 (owner-approved real voices): one spoken line through gemini-3.8-flash-tts. Input: a 900-character line
+    # and its 120-character style at up to 12 escaped bytes a character plus the request JSON; output: 80 s of audio
+    # at 25 tokens a second.
+    "tts": (14000, 2000),
+    # One designed voice (scripts/design_voices.py): a description of at most 400 characters at up to 12 escaped
+    # bytes each plus the request JSON; output: the voice sample (about 1,100 audio tokens per Google's example).
+    "voice_design": (6000, 4000),
 }
 
 
@@ -313,6 +320,12 @@ if __name__ == "__main__" and "--plan-json" not in __import__("sys").argv:
 # envelope uses the undiscounted list rate until the project's credit treatment is verified; promotional
 # savings are upside only (R5-02).
 LIABILITY_PRICES = dict(PRICES, **{"3.8-flash": (1.50, 7.50)})
+# gemini-3.8-flash-tts (global): $0.50 per 1M text tokens in and $9.00 per 1M audio tokens out through 2026-12-31,
+# doubling to $1.00 and $18.00 on 2027-01-01 (Gemini pricing page, checked 2026-10-12). The envelope uses the higher
+# 2027 list rate from today, so no reservation falls short when the price rises. Designing a voice bills at the same
+# rates (text in for the description, audio out for the sample the Voices API returns). Not in PRICES: no
+# research-time unit (block, replay, corpus) makes a speech call.
+LIABILITY_PRICES["3.8-flash-tts"] = (1.00, 18.00)
 RETRY_FACTOR = 1.15        # average extra spend from repairs and transient retries
 ADMIT_FACTOR = 1.5         # soft completeness rule: start a unit only if 1.5 x its high cost remains
 

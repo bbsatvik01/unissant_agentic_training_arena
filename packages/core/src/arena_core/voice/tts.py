@@ -1,5 +1,6 @@
-"""Spoken lines for the room (stage 5): one line of text in one prebuilt Gemini voice, synthesized once and cached on
-disk by (model, voice, text), so a line is paid for once and a recorded run replays for free (D-021).
+"""Spoken lines for the room (stages 5 and 8): one line of text in one voice of the catalogue (a persona's designed
+voice with its delivery style, ``arena_core.voice.catalogue``, or a prebuilt Gemini voice), synthesized once and cached
+on disk by (model, voice, style, text), so a line is paid for once and a recorded run replays for free (D-021).
 
 A synthesis that is not cached goes through the spend guard exactly like a model call: reserve on the request's
 measured bytes (call kind ``tts``, purpose ``tts``, bucket ``global``), mark dispatched, send once (no retries: a
@@ -31,59 +32,24 @@ from arena_core.db.calls import ModelCallRequest, UsageReport, UsageStatus
 from arena_core.providers.errors import ProviderCallError
 from arena_core.providers.types import Usage
 from arena_core.spend.guard import GuardSession, SpendGuard
+from arena_core.voice.catalogue import Speaker, speaker_for
 
-#: The model (S5 3.2 extension, stage 5): Gemini 2.5 Flash TTS, GA on Vertex AI, served by the pinned SDK.
-TTS_MODEL = "gemini-2.5-flash-tts"
+#: The model (stage 8, owner-approved real voices): Gemini 3.8 Flash TTS on Vertex AI in the global location, priced
+#: in ops.model_prices and limited by ops.call_limits['tts'] (migration 20261012000200).
+TTS_MODEL = "gemini-3.8-flash-tts"
 #: The call kind and purpose label its reservations carry (an ``ops.call_limits`` row must name the kind).
 TTS_CALL_KIND = "tts"
 TTS_PURPOSE = "tts"
 BUDGET_BUCKET = "global"
 #: The longest line the room voices: a subject answer's maxLength (events.schema.json SubjectAnswer).
 MAX_LINE_CHARS = 900
-#: Vertex returns 16-bit mono PCM at 24 kHz for this model.
+#: The model's 16-bit mono PCM rate (it answers with a WAV file at this rate; the provider reads its samples).
 SAMPLE_RATE = 24_000
 #: Fake mode reads at the room's cadence (web/src/lib/world/cadence.ts CHARS_PER_SECOND), at a low sample rate.
 FAKE_CHARS_PER_SECOND = 15
 FAKE_SAMPLE_RATE = 8_000
 #: One send's limit; a line that takes longer falls back to the browser's voice.
 SEND_TIMEOUT_S = 60.0
-
-#: The 30 prebuilt voices (Vertex AI "Generate speech with Gemini TTS", checked 2026-10-11): the only names a line
-#: may ask for.
-PREBUILT_VOICES = frozenset(
-    {
-        "Achernar",
-        "Achird",
-        "Algenib",
-        "Algieba",
-        "Alnilam",
-        "Aoede",
-        "Autonoe",
-        "Callirrhoe",
-        "Charon",
-        "Despina",
-        "Enceladus",
-        "Erinome",
-        "Fenrir",
-        "Gacrux",
-        "Iapetus",
-        "Kore",
-        "Laomedeia",
-        "Leda",
-        "Orus",
-        "Puck",
-        "Pulcherrima",
-        "Rasalgethi",
-        "Sadachbia",
-        "Sadaltager",
-        "Schedar",
-        "Sulafat",
-        "Umbriel",
-        "Vindemiatrix",
-        "Zephyr",
-        "Zubenelgenubi",
-    }
-)
 
 
 class LineRefusedError(ValueError):
@@ -108,25 +74,25 @@ class SpeechAudio:
 class FakeSpeech:
     """Silence of the line's reading length: zero spend, no network (ARENA_MODEL_MODE=fake)."""
 
-    async def synthesize(self, text: str, voice: str) -> SpeechAudio:
-        del voice
+    async def synthesize(self, text: str, speaker: Speaker) -> SpeechAudio:
+        del speaker
         seconds = max(0.5, len(text) / FAKE_CHARS_PER_SECOND)
         return SpeechAudio(pcm=bytes(int(seconds * FAKE_SAMPLE_RATE) * 2), sample_rate=FAKE_SAMPLE_RATE, usage=None)
 
-    def request_bytes(self, text: str, voice: str) -> int:
-        return len(f"{voice}{text}".encode())
+    def request_bytes(self, text: str, speaker: Speaker) -> int:
+        return len(f"{speaker.voice}{speaker.style or ''}{text}".encode())
 
 
 class SpeechSender(Protocol):
     """The Vertex speech client's shape (``arena_core.providers.vertex.VertexSpeech``)."""
 
-    async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]: ...
+    async def synthesize(self, text: str, voice: str, style: str | None) -> tuple[bytes, int, Usage | None]: ...
 
 
 class SpeechSynth(Protocol):
-    async def synthesize(self, text: str, voice: str) -> SpeechAudio: ...
+    async def synthesize(self, text: str, speaker: Speaker) -> SpeechAudio: ...
 
-    def request_bytes(self, text: str, voice: str) -> int:
+    def request_bytes(self, text: str, speaker: Speaker) -> int:
         """The byte length of the request a line sends: what its reservation is measured on."""
         ...
 
@@ -135,15 +101,15 @@ class VertexSynth:
     """The Vertex client as a ``SpeechSynth``: its usage as prompt tokens in and audio tokens out, its request measured
     as the body the SDK transmits."""
 
-    def __init__(self, sender: SpeechSender, measure: Callable[[str, str], int]) -> None:
+    def __init__(self, sender: SpeechSender, measure: Callable[[str, str, str | None], int]) -> None:
         self._sender = sender
         self._measure = measure
 
-    def request_bytes(self, text: str, voice: str) -> int:
-        return self._measure(text, voice)
+    def request_bytes(self, text: str, speaker: Speaker) -> int:
+        return self._measure(text, speaker.voice, speaker.style)
 
-    async def synthesize(self, text: str, voice: str) -> SpeechAudio:
-        pcm, rate, usage = await self._sender.synthesize(text, voice)
+    async def synthesize(self, text: str, speaker: Speaker) -> SpeechAudio:
+        pcm, rate, usage = await self._sender.synthesize(text, speaker.voice, speaker.style)
         billed = None if usage is None else SpeechUsage(usage.input_tokens, usage.output_tokens)
         return SpeechAudio(pcm=pcm, sample_rate=rate, usage=billed)
 
@@ -159,21 +125,23 @@ def wav_bytes(pcm: bytes, sample_rate: int) -> bytes:
     return out.getvalue()
 
 
-def check_line(text: str, voice: str) -> str:
-    """The text to speak, trimmed; refuses an unknown voice and empty or overlong text."""
-    if voice not in PREBUILT_VOICES:
+def check_line(text: str, voice: str) -> tuple[str, Speaker]:
+    """The text to speak, trimmed, and who speaks it; refuses an unknown voice and empty or overlong text."""
+    speaker = speaker_for(voice)
+    if speaker is None:
         msg = "unknown voice"
         raise LineRefusedError(msg)
     line = text.strip()
     if not line or len(line) > MAX_LINE_CHARS:
         msg = f"a line is 1 to {MAX_LINE_CHARS} characters"
         raise LineRefusedError(msg)
-    return line
+    return line, speaker
 
 
-def line_key(model: str, voice: str, text: str) -> str:
-    """The cache key and the reservation's identity: sha256 of model, voice and text."""
-    return hashlib.sha256(f"{model}\n{voice}\n{text}".encode()).hexdigest()
+def line_key(model: str, speaker: Speaker, text: str) -> str:
+    """The cache key and the reservation's identity: sha256 of model, voice, style and text (a new designed voice or
+    style is a new line, never the old audio)."""
+    return hashlib.sha256(f"{model}\n{speaker.voice}\n{speaker.style or ''}\n{text}".encode()).hexdigest()
 
 
 class TtsService:
@@ -200,7 +168,8 @@ class TtsService:
 
     def cached(self, text: str, voice: str) -> bytes | None:
         """The line's audio when it was synthesized before (free), else None."""
-        path = self._path(line_key(self._model, voice, check_line(text, voice)))
+        line, speaker = check_line(text, voice)
+        path = self._path(line_key(self._model, speaker, line))
         return path.read_bytes() if path.is_file() else None
 
     def _store(self, key: str, audio: bytes) -> None:
@@ -213,8 +182,8 @@ class TtsService:
     async def speak(self, text: str, voice: str, actor: UUID | None) -> bytes:
         """The line's WAV audio: from the cache, or synthesized once (through the guard unless in fake mode). Fake
         silence is never cached, so a later run against Vertex never serves it."""
-        line = check_line(text, voice)
-        key = line_key(self._model, voice, line)
+        line, speaker = check_line(text, voice)
+        key = line_key(self._model, speaker, line)
         path = self._path(key)
         if path.is_file():
             return path.read_bytes()
@@ -223,14 +192,14 @@ class TtsService:
             if path.is_file():
                 return path.read_bytes()
             if self._guard is None:
-                audio = await self._synth.synthesize(line, voice)
+                audio = await self._synth.synthesize(line, speaker)
                 return wav_bytes(audio.pcm, audio.sample_rate)
-            audio = await self._paid(self._guard, line, voice, key, actor)
+            audio = await self._paid(self._guard, line, speaker, key, actor)
             out = wav_bytes(audio.pcm, audio.sample_rate)
             self._store(key, out)
             return out
 
-    async def _paid(self, guard: SpendGuard, line: str, voice: str, key: str, actor: UUID | None) -> SpeechAudio:
+    async def _paid(self, guard: SpendGuard, line: str, speaker: Speaker, key: str, actor: UUID | None) -> SpeechAudio:
         # Each paid attempt is its own reservation: a line whose attempt failed can be tried again later.
         request = ModelCallRequest(
             key=f"tts:{key[:40]}:{uuid4().hex[:16]}",
@@ -240,7 +209,7 @@ class TtsService:
             purpose=TTS_PURPOSE,
             trial_id=None,
             actor_user_id=actor,
-            input_bytes=self._synth.request_bytes(line, voice),
+            input_bytes=self._synth.request_bytes(line, speaker),
         )
         async with guard.session() as session:
             reservation = await session.reserve(request)
@@ -254,7 +223,7 @@ class TtsService:
             started = time.monotonic()
             try:
                 async with asyncio.timeout(SEND_TIMEOUT_S):
-                    audio = await self._synth.synthesize(line, voice)
+                    audio = await self._synth.synthesize(line, speaker)
             except TimeoutError:
                 # The request left and may have been billed: no usage is readable, the hold stays charged.
                 await self._record(session, reservation.id, None, "timeout", started)

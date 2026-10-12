@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Shared core: boot checks, config, the deterministic scenario engine (S1), the agent port and the spend-guard client (S5 3, 4); the turn orchestrator, event store and observability land in later work packages (S5 1)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "google-genai==2.24.0",
+  "google-genai==2.25.0",
   "httpx==0.28.1",
   "jsonschema==4.26.0",
   "numpy==2.5.3",

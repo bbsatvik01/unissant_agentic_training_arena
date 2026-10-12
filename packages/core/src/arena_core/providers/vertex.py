@@ -18,10 +18,15 @@ else Application Default Credentials. API keys are never used (D-001, boot check
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import importlib
+import io
 import json
+import wave
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 import google.auth
 import httpx
@@ -35,7 +40,7 @@ from google.genai import types as gtypes
 from arena_core.config import ALLOWED_GCP_PROJECT
 from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError, kind_for_status
 from arena_core.providers.types import ModelRequest, RawCompletion, Usage
-from arena_core.spend.limits import ThinkingLevel
+from arena_core.spend.limits import LIMITS, CallType, ThinkingLevel
 
 # The SDK and transport modules this adapter consumes, named for the adapter's own tests: no other module imports
 # google.genai (S5 1.2 item 2 rule c) or a raw HTTP client (semgrep arena-no-raw-http), so the tests build SDK
@@ -254,16 +259,18 @@ def vertex_adapter(env: Mapping[str, str], *, location: str = TEXT_LOCATION) -> 
 
 SPEECH_LOCATION = "global"
 SPEECH_SAMPLE_RATE = 24_000
-SPEECH_MAX_OUTPUT_TOKENS = 2_000  # 25 audio tokens a second: 80 s, past the longest line's reading time (60 s)
+# 25 audio tokens a second: 80 s, past the longest line's reading time (60 s). The `tts` call limit's output tokens
+# (ops.call_limits, cost_model.LIMITS), so a reservation prices exactly the output this request allows.
+SPEECH_MAX_OUTPUT_TOKENS = LIMITS[CallType.TTS].output_tokens
+_PCM_SAMPLE_WIDTH = 2
 
 
 def build_speech_config(voice: str, timeout_s: float) -> gtypes.GenerateContentConfig:
-    """Audio out in one prebuilt voice, labelled, one attempt, bounded output."""
+    """Audio out in one voice (a prebuilt name or a designed voice id, both in ``voiceConfig.voice`` for the Gemini 3.8
+    TTS models), labelled, one attempt, bounded output; no sampling parameters (the 3.8 TTS models reject them)."""
     return gtypes.GenerateContentConfig(
         response_modalities=["AUDIO"],
-        speech_config=gtypes.SpeechConfig(
-            voice_config=gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name=voice))
-        ),
+        speech_config=gtypes.SpeechConfig(voice_config=gtypes.VoiceConfig(voice=voice)),
         max_output_tokens=SPEECH_MAX_OUTPUT_TOKENS,
         labels={"app": "unissant-arena"},
         automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
@@ -271,24 +278,33 @@ def build_speech_config(voice: str, timeout_s: float) -> gtypes.GenerateContentC
     )
 
 
-def speech_request_body(text: str, voice: str) -> dict[str, object]:
-    """The Vertex `generateContent` JSON body google-genai 2.24.0 sends for one spoken line, field for field (the
+def speech_part(text: str, style: str | None) -> gtypes.Part:
+    """The line as a verbatim transcript, with its delivery style as structured metadata (the 3.8 TTS models speak
+    any direction written into the text aloud)."""
+    return gtypes.Part(text=text, speech_metadata=None if style is None else gtypes.SpeechMetadata(style=style))
+
+
+def speech_request_body(text: str, voice: str, style: str | None = None) -> dict[str, object]:
+    """The Vertex `generateContent` JSON body the pinned google-genai sends for one spoken line, field for field (the
     speech tests compare it with the body the pinned SDK actually puts on the wire)."""
+    part: dict[str, object] = {"text": text}
+    if style is not None:
+        part["speechMetadata"] = {"style": style}
     return {
-        "contents": [{"parts": [{"text": text}], "role": "user"}],
+        "contents": [{"parts": [part], "role": "user"}],
         "labels": {"app": "unissant-arena"},
         "generationConfig": {
             "maxOutputTokens": SPEECH_MAX_OUTPUT_TOKENS,
             "responseModalities": ["AUDIO"],
-            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voice_name": voice}}},
+            "speechConfig": {"voiceConfig": {"voice": voice}},
         },
     }
 
 
-def speech_request_bytes(text: str, voice: str) -> int:
+def speech_request_bytes(text: str, voice: str, style: str | None = None) -> int:
     """The exact byte length of that body as transmitted (``json.dumps`` defaults, so every non-ASCII character costs
     its escape): what a line's reservation is measured on (S5 3.2, D11)."""
-    return len(json.dumps(speech_request_body(text, voice)).encode("ascii"))
+    return len(json.dumps(speech_request_body(text, voice, style)).encode("ascii"))
 
 
 def speech_from(resp: gtypes.GenerateContentResponse) -> tuple[bytes, Usage | None]:
@@ -309,16 +325,36 @@ def speech_from(resp: gtypes.GenerateContentResponse) -> tuple[bytes, Usage | No
     return audio, usage
 
 
+def pcm_from(audio: bytes) -> tuple[bytes, int]:
+    """The reply's 16-bit mono PCM and its sample rate. The Gemini 3.8 TTS models answer a unary request with a
+    complete WAV file (16-bit mono PCM, 24 kHz, standard RIFF header); earlier models answered headerless PCM at
+    24 kHz. Either way the caller gets the samples and writes its own WAV, so a cached line is always one well-formed
+    file. A WAV in another sample format, or a damaged one, is a malformed reply."""
+    if audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
+        return audio, SPEECH_SAMPLE_RATE
+    try:
+        with wave.open(io.BytesIO(audio), "rb") as w:
+            if w.getsampwidth() != _PCM_SAMPLE_WIDTH or w.getnchannels() != 1:
+                raise ProviderCallError(
+                    ErrorKind.TRANSIENT,
+                    f"WAV of {w.getnchannels()} channel(s) at {8 * w.getsampwidth()} bits",
+                    maybe_billed=True,
+                )
+            return w.readframes(w.getnframes()), w.getframerate()
+    except (wave.Error, EOFError) as exc:
+        raise ProviderCallError(ErrorKind.TRANSIENT, f"malformed WAV: {exc}", maybe_billed=True) from exc
+
+
 @dataclass(frozen=True)
 class VertexSpeech:
-    """Gemini TTS on Vertex AI (``arena_core.voice.tts.TTS_MODEL``): 16-bit mono PCM at 24 kHz."""
+    """Gemini TTS on Vertex AI (``arena_core.voice.tts.TTS_MODEL``): 16-bit mono PCM and its rate (24 kHz)."""
 
     client: VertexClient
     model: str
     timeout_s: float = 60.0
 
-    async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]:
-        contents: list[gtypes.ContentUnion] = [gtypes.Content(role="user", parts=[gtypes.Part(text=text)])]
+    async def synthesize(self, text: str, voice: str, style: str | None = None) -> tuple[bytes, int, Usage | None]:
+        contents: list[gtypes.ContentUnion] = [gtypes.Content(role="user", parts=[speech_part(text, style)])]
         try:
             resp = await self.client.aio.models.generate_content(
                 model=self.model, contents=contents, config=build_speech_config(voice, self.timeout_s)
@@ -339,10 +375,101 @@ class VertexSpeech:
                 ErrorKind.TRANSIENT, f"malformed response: {type(exc).__name__}", maybe_billed=True
             ) from exc
         audio, usage = speech_from(resp)
-        return audio, SPEECH_SAMPLE_RATE, usage
+        try:
+            pcm, rate = pcm_from(audio)
+        except ProviderCallError as exc:
+            raise ProviderCallError(exc.kind, str(exc), usage=usage, maybe_billed=True) from exc
+        return pcm, rate, usage
 
 
 def vertex_speech(env: Mapping[str, str], model: str) -> VertexSpeech:
     """The runtime speech client: project from ARENA_GCP_PROJECT (D-015), credentials per S5 10.2, global location."""
     project = env.get("ARENA_GCP_PROJECT", "")
     return VertexSpeech(build_vertex_client(project, SPEECH_LOCATION, vertex_credentials(env)), model)
+
+
+# ============================================================================================== voice design
+# Stage 8: one designed voice per persona (scripts/design_voices.py), stored in the arena project through the Voices
+# API (``voices.create``, type prompted, store true). Billed like speech: the description as text in, the voice sample
+# as audio out. Synthetic characters only: this module never creates a replicated voice.
+
+VOICE_DESIGN_TIMEOUT_S = 60.0
+# The Voices API client google-genai generates (2.25.0+) raises its own error types.
+VOICES_ERRORS = importlib.import_module("google.genai._gaos.errors")
+
+
+@dataclass(frozen=True)
+class DesignedVoice:
+    voice_id: str
+    sample: bytes  # the sample audio as returned (WAV or 16-bit PCM), for an audition
+    usage: Usage | None
+
+
+def voice_design_body(description: str, display_name: str, gender: str, language_code: str) -> dict[str, object]:
+    """The CreateVoice request, as JSON: what a design is reserved on (its bytes bound its text tokens, D11)."""
+    return {
+        "store": True,
+        "voice": {
+            "type": "prompted",
+            "display_name": display_name,
+            "gender": gender,
+            "language_code": language_code,
+            "prompted": {"input": description},
+        },
+    }
+
+
+def voice_design_bytes(description: str, display_name: str, gender: str, language_code: str) -> int:
+    return len(json.dumps(voice_design_body(description, display_name, gender, language_code)).encode("ascii"))
+
+
+class _VoicesApi(Protocol):
+    async def create(self, *, voice: object, store: bool | None = None) -> object: ...
+
+
+def _int_or_none(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+@dataclass(frozen=True)
+class VertexVoiceDesigner:
+    """Creates one stored, prompted voice in the arena project."""
+
+    voices: _VoicesApi
+
+    async def design(self, description: str, display_name: str, gender: str, language_code: str) -> DesignedVoice:
+        body = voice_design_body(description, display_name, gender, language_code)
+        try:
+            async with asyncio.timeout(VOICE_DESIGN_TIMEOUT_S):
+                out = await self.voices.create(voice=body["voice"], store=True)
+        except VOICES_ERRORS.GenAiError as exc:
+            # The generated Voices client's HTTP error: a non-200 was not billed.
+            raise ProviderCallError(
+                kind_for_status(exc.status_code), f"HTTP {exc.status_code}", status=exc.status_code
+            ) from exc
+        except (httpx.TimeoutException, TimeoutError) as exc:
+            raise ProviderCallError(ErrorKind.TRANSIENT, "timeout", maybe_billed=True) from exc
+        except (httpx.HTTPError, VOICES_ERRORS.NoResponseError, ValueError) as exc:
+            raise ProviderCallError(
+                ErrorKind.TRANSIENT, f"voice design failed: {type(exc).__name__}", maybe_billed=True
+            ) from exc
+        usage_obj = getattr(out, "usage", None)
+        tokens_in = _int_or_none(getattr(usage_obj, "total_input_tokens", None))
+        tokens_out = _int_or_none(getattr(usage_obj, "total_output_tokens", None))
+        usage = (
+            None if tokens_in is None or tokens_out is None else Usage(input_tokens=tokens_in, output_tokens=tokens_out)
+        )
+        voice_id = getattr(out, "id", None)
+        if not isinstance(voice_id, str) or not voice_id.startswith("voice_"):
+            raise ProviderCallError(ErrorKind.EMPTY, "no stored voice id in the reply", usage=usage, maybe_billed=True)
+        sample_obj = getattr(out, "sample_audio", None)
+        raw = getattr(sample_obj, "data", None)
+        sample = base64.b64decode(raw) if isinstance(raw, str) else raw if isinstance(raw, bytes) else b""
+        return DesignedVoice(voice_id=voice_id, sample=sample, usage=usage)
+
+
+def vertex_voice_designer(env: Mapping[str, str]) -> VertexVoiceDesigner:
+    """The Voices API on the arena project (D-015), global location, credentials per S5 10.2."""
+    project = env.get("ARENA_GCP_PROJECT", "")
+    client = build_vertex_client(project, SPEECH_LOCATION, vertex_credentials(env))
+    return VertexVoiceDesigner(cast("_VoicesApi", client.aio.voices))
