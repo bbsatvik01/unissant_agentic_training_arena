@@ -56,6 +56,9 @@ import type {
 } from "../contracts/generated/types";
 
 export type ServerStatus = TrialSnapshot["status"];
+/** The interview room's own modes. A harness (tournament) trial has no investigator; the room shows it the
+ * way it shows an assessment, coaching held back until the trial ends. */
+export type RoomMode = "practice" | "assessment";
 
 export type RoomStatus =
   | "connecting"
@@ -104,7 +107,7 @@ export interface TrialView {
   readonly status: Exclude<RoomStatus, "connecting">;
   readonly serverStatus: ServerStatus;
   readonly reasonCode: string | null;
-  readonly mode: TrialSnapshot["mode"];
+  readonly mode: RoomMode;
   readonly channel: TrialSnapshot["channel"];
   readonly split: TrialSnapshot["split"];
   readonly exchangesUsed: number;
@@ -171,6 +174,7 @@ const TERMINAL: ReadonlySet<ServerStatus> = new Set([
   "infra_failed",
   "budget_skipped",
   "budget_truncated",
+  "source_unavailable",
 ]);
 
 const COACHING: ReadonlySet<TrialFrame["type"]> = new Set(["coach.working", "coach.card", "coach.update", "coach.failed"]);
@@ -520,7 +524,7 @@ function derive(state: TrialState): TrialState {
     status,
     serverStatus,
     reasonCode,
-    mode: snapshot.mode,
+    mode: snapshot.mode === "harness" ? "assessment" : snapshot.mode,
     channel: snapshot.channel,
     split: snapshot.split,
     exchangesUsed,
