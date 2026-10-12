@@ -15,6 +15,8 @@ interface DemoGuideProps {
   readonly recordingLoaded: boolean;
   /** The step cannot move on yet (a live interview reaches the debrief by finishing it). */
   readonly nextDisabled: boolean;
+  /** The loaded recording has no published debrief: the interview step goes on to the arena. */
+  readonly noDebrief: boolean;
   readonly canLive: boolean;
   readonly onNext: () => void;
   readonly onBack: (() => void) | null;
@@ -87,6 +89,7 @@ export function DemoGuide(props: DemoGuideProps) {
               e.target.value = "";
             }}
           />
+          {props.noDebrief ? <p className="fine">This recording has no published debrief; the demo goes on to the arena.</p> : null}
           {props.error === null ? null : (
             <p className="fine" role="alert">
               {props.error}
@@ -106,7 +109,7 @@ export function DemoGuide(props: DemoGuideProps) {
           </button>
         )}
         <button type="button" className="btn-primary" disabled={!last && props.nextDisabled} onClick={last ? props.onClose : props.onNext}>
-          {last ? "Finish" : step === "precinct" ? "Open the interview room" : step === "interview" ? "Go to the debrief" : "Go to the arena"}
+          {last ? "Finish" : step === "precinct" ? "Open the interview room" : step === "interview" && !props.noDebrief ? "Go to the debrief" : "Go to the arena"}
         </button>
       </footer>
     </aside>

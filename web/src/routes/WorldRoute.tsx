@@ -912,6 +912,7 @@ export function WorldRoute() {
           startedAt={demo.startedAt}
           recordingLoaded={mode === "playback" && recording !== null}
           nextDisabled={demoStep === "interview" && !(mode === "playback" && recording !== null)}
+          noDebrief={mode === "playback" && recording !== null && recording.debrief === null}
           canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id) && (session.phase === "idle" || session.phase === "error")}
           error={fileError}
           onClose={() => {
@@ -941,10 +942,11 @@ export function WorldRoute() {
             if (demoStep === "precinct") {
               openDemoRecording();
               setDemo({ ...demo, step: "interview" });
-            } else if (demoStep === "interview") {
+            } else if (demoStep === "interview" && mode === "playback" && recording !== null && recording.debrief !== null) {
               // To the debrief wall: the recorded run jumps to its end, where the debrief goes up.
-              if (mode === "playback" && recording !== null) playback.seekTo(playback.duration);
-            } else if (demoStep === "debrief") {
+              playback.seekTo(playback.duration);
+            } else if (demoStep === "debrief" || (demoStep === "interview" && mode === "playback" && recording?.debrief === null)) {
+              // A recording without a published debrief goes on to the arena.
               backToHub();
               openArena();
               setDemo({ ...demo, step: "arena" });

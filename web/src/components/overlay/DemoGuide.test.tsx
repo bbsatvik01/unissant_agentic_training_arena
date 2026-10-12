@@ -15,6 +15,7 @@ function props(over: Partial<Parameters<typeof DemoGuide>[0]> = {}): Parameters<
     startedAt: Date.now(),
     recordingLoaded: false,
     nextDisabled: false,
+    noDebrief: false,
     error: null,
     canLive: false,
     onNext: vi.fn(),
@@ -53,6 +54,14 @@ describe("DemoGuide", () => {
     fireEvent.click(screen.getByRole("button", { name: "Finish" }));
     expect(p.onClose).toHaveBeenCalled();
     expect(screen.getByText(/0:0\d \/ 4:00/)).toBeTruthy();
+  });
+
+  it("goes on to the arena from a recording without a debrief", () => {
+    const p = props({ noDebrief: true, recordingLoaded: true });
+    render(<DemoGuide {...p} />);
+    expect(screen.getByText("This recording has no published debrief; the demo goes on to the arena.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Go to the arena" }));
+    expect(p.onNext).toHaveBeenCalled();
   });
 
   it("says when a recording file was refused, in the room", () => {
