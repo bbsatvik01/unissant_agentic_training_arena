@@ -80,3 +80,4 @@
 - fdad8fa merge api UI routes (progress/KPI-1, EX-4 server check, /api/admin, referee bundle)
 - b141662 merge trust routes + assessment recording final snapshot
 - 79b2182 merge UI stage 5 (Gemini TTS route, inactive pending owner spend rows; hub life)
+- 6ea8e1b merge WP-17 tournament job + demo tournament CLI
