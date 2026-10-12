@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Literal
 
+from arena_core.agents.templates import read_text as read_prompt_text
 from arena_core.contracts.adapter import ContradictionTrigger, SubjectLabel
 from arena_core.contracts.citations import Record, Turn, finding_citation_ok
 from arena_core.contracts.common import turn_no
@@ -310,15 +311,27 @@ class RubricConfig:
     model_ids: tuple[str, ...]
 
 
+# The referee's own prompt template FILES (S2 7.2, 7.3): R3 (7.5) runs the same prompts in investigator mode, so
+# there is no separate R3 template to bind. Read by repository-relative path (`arena_core.agents.templates`,
+# the same reader a candidate manifest hashes a prompt file with) so a template edit changes this tuple's text
+# the same way a canonical_rubric() edit does. Fixed, sorted order: the path is itself part of the bound text
+# (`referee_prompt_file|{path}|...`), so this tuple's own order cannot hide a renamed-but-identical-content file.
+REFEREE_PROMPT_DIR = "prompts/referee/"
+REFEREE_PROMPT_FILES: tuple[str, ...] = tuple(
+    sorted(
+        f"{REFEREE_PROMPT_DIR}{name}"
+        for name in ("assistant.user.v1.txt", "assistant.v1.txt", "subject.user.v1.txt", "subject.v1.txt")
+    )
+)
+
 # The configured inputs. The demeanor lexicon is WP-11's `demeanor_lexicon.v1` (S2 4.4), read from the one module
-# that holds it, so a lexicon change changes this value and needs a lineage entry. `prompt_texts` now carries
+# that holds it, so a lexicon change changes this value and needs a lineage entry. `prompt_texts` carries
 # rubric.v1's own published text (S3 2.3-2.7): every dimension's name and five anchors, and every check's name,
 # "Applicable" cell and "Passes when" cell -- every field `arena_core.agents.rubric.canonical_rubric` renders
 # into the referee prompt (S2 7.3; a check's name is part of its rendered `text`, Codex round 1), replacing the
-# placeholder that used to leave this empty (WP-rubric-v1); editing any of them here therefore changes this
-# value and needs a lineage entry below, same as the lexicon. The referee system/user prompt template FILES
-# (`prompts/referee/*.txt`) are a separate, still-unbound input (pre-existing gap, not introduced by this
-# change): a future work package that binds them must also append an entry.
+# placeholder that used to leave this empty (WP-rubric-v1) -- plus the referee's own prompt template files
+# above (S2 7.2, 7.3), closing the gap earlier lineage entries tracked ("still-unbound input"). Editing any of
+# these, including a byte in a referee prompt file, therefore changes this value and needs a lineage entry below.
 CONFIG = RubricConfig(
     lexicon_text=demeanor_lexicon_text(),
     prompt_texts=(
@@ -333,6 +346,7 @@ CONFIG = RubricConfig(
             for dim, anchors in DIMENSION_ANCHORS.items()
             for score, text in enumerate(anchors)
         ),
+        *(f"referee_prompt_file|{path}|{read_prompt_text(path)}" for path in REFEREE_PROMPT_FILES),
     ),
     model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"),
 )
@@ -370,6 +384,21 @@ LINEAGE: tuple[LineageEntry, ...] = (
             " the applicability and pass-condition text, not the names `canonical_rubric` also renders)."
             " Referee system/user prompt template files are still not bound (pre-existing gap, tracked"
             " separately)."
+        ),
+    ),
+    LineageEntry(
+        sha256="a2eb8ba8a38a423728c2ea5599d0ca384019cf8469b48b06c363e6ed05966ac7",
+        supersedes="0e2f179ec7fb8c6e8b64e180a7b74bbd17a1ae2f86a1ab2c920dd5b17ec3f0c5",
+        date="2026-10-12",
+        note=(
+            "the referee's own prompt template files (prompts/referee/assistant.v1.txt, assistant.user.v1.txt,"
+            " subject.v1.txt, subject.user.v1.txt) bound into CONFIG.prompt_texts by repository-relative path"
+            " and verbatim content (S2 7.2, 7.3), closing the gap the previous entry tracked separately; R3"
+            " (S2 7.5) runs the same files in investigator mode, so no second template set exists to bind."
+            " Also: the referee manifest now registers the published rubric.v1 file by default"
+            " (`manifests.referee_manifest`, S2 3.4/7.4), so `check_referee_freeze` accepts it without a"
+            " `rubric=` override -- a manifest-registration change, not a rubric-hash input, but recorded here"
+            " alongside the prompt-file binding since both close the sealed-run referee-freeze gap together."
         ),
     ),
 )

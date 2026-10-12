@@ -29,7 +29,7 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
-from arena_core.agents.rubric import RUBRIC_FILE, parse_rubric, rubric_path
+from arena_core.agents.rubric import RUBRIC_FILE, parse_rubric, rubric_path, rubric_text
 from arena_core.agents.templates import REPO_ROOT, TemplateError, check_rel_path, file_sha256, read_text
 from arena_core.contracts.coaching import CoachingCard, DeepUpdate, FinalFinding
 from arena_core.contracts.common import Contract, Sha256
@@ -484,6 +484,8 @@ REFEREE_SUBJECT = f"{REFEREE_DIR}subject.v1.txt"
 REFEREE_ASSISTANT = f"{REFEREE_DIR}assistant.v1.txt"
 REFEREE_SUBJECT_USER = f"{REFEREE_DIR}subject.user.v1.txt"
 REFEREE_ASSISTANT_USER = f"{REFEREE_DIR}assistant.user.v1.txt"
+# S2 3.4/7.4: the published rubric.v1 file (`rubric_text`), registered on the referee manifest by default.
+REFEREE_RUBRIC = f"{REFEREE_DIR}{RUBRIC_FILE}"
 
 
 # S2 2 per call kind: (input tokens, output tokens incl. thinking, thinking level, attempt timeout ms, deadline ms).
@@ -605,8 +607,12 @@ def subject_manifest(
     }
 
 
-def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = None) -> dict[str, Any]:
-    """The S2 7.1 referee: J1+J2 and J3+J4 prompts, plus the `rubric.v1` file once spec S3 publishes it (S2 7.4)."""
+def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC) -> dict[str, Any]:
+    """The S2 7.1 referee: J1+J2 and J3+J4 prompts, plus the published `rubric.v1` file (S2 3.4/7.4), registered
+    by default so `check_referee_freeze` accepts the manifest without a `rubric=` override. Pass `rubric=None`
+    to build the pre-publication shape (no rubric.v1 hashed, J4 needs a development placeholder,
+    `arena_referee.scoring.default_dev_rubric`) that a few tests still exercise, or another path to register a
+    fixture rubric instead."""
     files = [REFEREE_SUBJECT, REFEREE_ASSISTANT, *([rubric] if rubric else [])]
     return {
         **_base("referee", "referee", "Referee"),
@@ -659,7 +665,8 @@ def committed_manifest(candidate_id: str, root: Path = REPO_ROOT) -> CandidateMa
 
 
 def main(argv: Sequence[str], root: Path = REPO_ROOT) -> int:
-    """`check`: the committed manifests equal the ones the prompt files give; `write`: regenerate them."""
+    """`check`: the committed manifests and `rubric.v1.json` equal what the prompt files and `canonical_rubric`
+    give; `write`: regenerate them."""
     if list(argv) not in (["check"], ["write"]):
         sys.stderr.write("usage: python -m arena_core.agents.manifests check|write\n")
         return 2
@@ -672,6 +679,15 @@ def main(argv: Sequence[str], root: Path = REPO_ROOT) -> int:
             path.write_text(text, encoding="utf-8")
         elif not path.is_file() or path.read_text(encoding="utf-8") != text:
             stale.append(candidate_id)
+    # S2 3.4/7.4: the committed rubric.v1 the default referee manifest registers must itself be exactly
+    # `canonical_rubric()`'s text, never hand-edited out of step with spec S3's published checks and anchors.
+    rubric_file_path = root / REFEREE_RUBRIC
+    rubric_file_text = rubric_text()
+    if argv[0] == "write":
+        rubric_file_path.parent.mkdir(parents=True, exist_ok=True)
+        rubric_file_path.write_text(rubric_file_text, encoding="utf-8")
+    elif not rubric_file_path.is_file() or rubric_file_path.read_text(encoding="utf-8") != rubric_file_text:
+        stale.append("referee rubric.v1")
     if stale:
         sys.stderr.write(f"stale manifests {stale}: a prompt changed; bump the version and run `write`\n")
         return 1

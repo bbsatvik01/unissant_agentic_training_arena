@@ -36,6 +36,7 @@ arena_public,schema,training,USAGE,allow
 arena_public,view,arena.v_candidates,SELECT,allow
 arena_public,view,arena.v_dev_cases,SELECT,allow
 arena_public,view,arena.v_findings,SELECT,allow
+arena_public,view,arena.v_hidden_cases,SELECT,allow
 arena_public,view,arena.v_isolation_checks,SELECT,allow
 arena_public,view,arena.v_leaderboards,SELECT,allow
 arena_public,view,arena.v_planned_trials,SELECT,allow
@@ -146,6 +147,7 @@ arena_referee,table+view,ledger.*,SELECT,allow
 arena_referee,table+view,training.*,SELECT,allow
 arena_referee,table+view,ops.*,SELECT,allow
 arena_referee,view,arena.v_findings,SELECT,deny
+arena_referee,view,arena.v_hidden_cases,SELECT,deny
 arena_referee,view,arena.v_released_evidence,SELECT,deny
 arena_referee,view,arena.v_transcripts,SELECT,deny
 arena_referee,view,arena.v_trial_events,SELECT,deny

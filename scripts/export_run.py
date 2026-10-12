@@ -7,12 +7,11 @@ A tournament trial (no training session, no debrief) exports the same way throug
 (D-021: "every tournament trial must be exportable"; `arena_tournament`, WP-17) -- `arena.trial_visible`
 already restricts which ones an `arena_public` caller may read (a dev-split trial, or a hidden one after
 reveal) regardless of the acting identity, so the same dev identity that exports a training trial can export
-a visible DEV-split tournament trial too, today: `ArenaDb.public_packet` reads only `arena.v_dev_cases`
-(dev split only), so a hidden-split variant's packet is never found there, revealed or not -- `None` (the
-same as an unknown trial) for that case, not D-021's "every tournament trial must be exportable" for it yet
-(a real, separate gap: hidden-tournament export needs its own visibility-checked packet projection,
-tracked, not built here). `scripts/dev.sh export-run <trial>` builds the environment from `.env.local` and
-`.env.local.public`.
+a visible dev-split OR revealed hidden-split tournament trial (`ArenaDb.hidden_packet`, `arena.v_hidden_cases`:
+the hidden split's own visibility-checked packet projection, gated the same way as the trial's own content).
+`None` for a trial that is neither (another user's training trial, an unknown id, or a hidden-split trial
+whose tournament has not yet revealed). `scripts/dev.sh export-run <trial>` builds the environment from
+`.env.local` and `.env.local.public`.
 """
 
 from __future__ import annotations
@@ -56,8 +55,7 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     if recording is None:
         sys.stderr.write(
             f"export-run: trial {args.trial} is not one of the acting user's trials, a dev-split tournament "
-            "trial, or a revealed dev-split one (a hidden-split tournament trial's recording is not yet "
-            "supported, revealed or not)\n"
+            "trial, or a revealed hidden-split one\n"
         )
         return 1
     args.out.parent.mkdir(parents=True, exist_ok=True)

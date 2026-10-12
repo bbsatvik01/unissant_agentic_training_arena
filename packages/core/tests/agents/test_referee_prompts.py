@@ -41,7 +41,10 @@ from arena_core.contracts.review import MAX_TRIGGERS, TriggerEntry
 from . import fixtures as fx
 from .test_coach_prompts import _models
 
-REFEREE = load(with_hash(referee_manifest()))
+# rubric=None: unlike the default (which now registers the published rubric.v1), this module's tests exercise
+# the development-placeholder pathway (PLACEHOLDER_RUBRIC, dev_rubric=...) that a manifest without one still
+# needs; test_rubric_canonical.py and test_manifests.py cover the default, rubric-registered manifest.
+REFEREE = load(with_hash(referee_manifest(rubric=None)))
 
 SUBCHECKS = {
     "D1": ["1a", "1b", "1c", "1d"],

@@ -640,26 +640,41 @@ select pg_temp.rv_complete((select trial from rvh4), 'rvh-4');
 -- entirely, since there would be nothing underneath to leak.
 select pg_temp.rv_adj((select trial from rvh3), 'valid', 'rv19-pre-adj');
 
+-- The variant's real hidden packet, read as the harness's own (superuser) role, never as arena_public:
+-- arena_public holds no grant on schema sealed at all (RR-01..15), so a query that named
+-- sealed.hidden_public_packets INSIDE a tests.as_role('arena_public', ...) string -- as an earlier version of
+-- RV-20 did -- fails with "permission denied for schema sealed" there, not a defect in arena.v_hidden_cases
+-- itself (the view may read it, owner-rights; the querying role naming it directly may not, S4 9.1). Fetched
+-- once, before reveal, so RV-20 compares arena_public's post-reveal read against a value that could not
+-- itself have been influenced by the reveal this test is proving.
 -- RV-19: before reveal.
+create temp table rvh3variant on commit drop as
+  select variant_id from arena.trials where id = (select trial from rvh3);
+create temp table rvh3expected on commit drop as
+  select packet from sealed.hidden_public_packets where variant_id = (select variant_id from rvh3variant);
 create temp table rv19 on commit drop as select tests.as_role('arena_public', format(
   'select jsonb_build_object(%L, (select count(*) from arena.v_transcripts where trial_id = %L),'
   || ' %L, (select count(*) from arena.v_findings where trial_id = %L),'
   || ' %L, (select count(*) from arena.v_trial_events where trial_id = %L),'
   || ' %L, (select count(*) from ledger.v_adjudications where trial_id = %L),'
   || ' %L, (select payload from ledger.v_commitments where trial_id = %L),'
-  || ' %L, (select commitment_sha256 is not null from ledger.v_commitments where trial_id = %L))',
+  || ' %L, (select commitment_sha256 is not null from ledger.v_commitments where trial_id = %L),'
+  || ' %L, (select count(*) from arena.v_hidden_cases where variant_id = %L))',
   'transcripts', (select trial from rvh3), 'findings', (select trial from rvh3),
   'trial_events', (select trial from rvh3), 'adjudications', (select trial from rvh3),
-  'payload', (select trial from rvh3), 'hash_visible', (select trial from rvh3))) as r;
+  'payload', (select trial from rvh3), 'hash_visible', (select trial from rvh3),
+  'hidden_cases', (select variant_id from rvh3variant))) as r;
 select is(array[
     (select (r ->> 'transcripts') from rv19), (select (r ->> 'findings') from rv19),
     (select (r ->> 'trial_events') from rv19), (select (r ->> 'adjudications') from rv19),
-    (select (r -> 'payload') from rv19)::text, (select (r ->> 'hash_visible') from rv19)],
-  array['0', '0', '0', '0', 'null', 'true'],
+    (select (r -> 'payload') from rv19)::text, (select (r ->> 'hash_visible') from rv19),
+    (select (r ->> 'hidden_cases') from rv19)],
+  array['0', '0', '0', '0', 'null', 'true', '0'],
   'RV-19 before reveal of a hidden tournament, as arena_public: v_transcripts, v_findings, v_trial_events '
   || 'and v_adjudications return no VISIBLE rows for its trials (rvh3 already has a real adjudication row, '
   || 'proving this hides it rather than finding nothing); v_commitments.payload is null while the commitment '
-  || 'hash stays visible');
+  || 'hash stays visible; v_hidden_cases has no row for its variant either (the sealed-run gap: a revealed '
+  || 'hidden trial''s packet must not leak before reveal, per export_run/GET .../recording)');
 do $$
 begin
   alter table ledger.validity_adjudications disable trigger validity_adjudications_append_only;
@@ -693,9 +708,13 @@ select is(array[
     tests.as_role('arena_public', format('select count(*) from arena.v_findings where trial_id = %L', (select trial from rvh3)))::text,
     (tests.as_role('arena_public', format('select count(*) from arena.v_trial_events where trial_id = %L', (select trial from rvh3)))::text::integer > 0)::text,
     tests.as_role('arena_public', format('select count(*) from ledger.v_adjudications where trial_id = %L', (select trial from rvh3)))::text,
-    (tests.as_role('arena_public', format('select payload from ledger.v_commitments where trial_id = %L', (select trial from rvh3))) is not null)::text],
-  array['1', '1', 'true', '1', 'true'],
-  'RV-20 after reveal, the same views return the hidden trial''s rows (and v_commitments.payload too)');
+    (tests.as_role('arena_public', format('select payload from ledger.v_commitments where trial_id = %L', (select trial from rvh3))) is not null)::text,
+    (tests.as_role('arena_public', format('select public_packet from arena.v_hidden_cases where variant_id = %L',
+      (select variant_id from rvh3variant)))::text = (select packet::text from rvh3expected))::text],
+  array['1', '1', 'true', '1', 'true', 'true'],
+  'RV-20 after reveal, the same views return the hidden trial''s rows (and v_commitments.payload too); '
+  || 'arena.v_hidden_cases now resolves the variant''s real packet byte for byte, closing the sealed-run '
+  || 'export gap (GET /api/trials/{id}/recording, make export-run)');
 
 -- RV-21 (SG3-01).
 create temp table rv21v1 on commit drop as select id from ledger.inclusion_manifests

@@ -1,11 +1,15 @@
 """Spec S3's `rubric.v1` as S2 7.4 fixes its form, and the one way the referee reads it: from the verified bytes of
 the file its manifest hashes (`manifest_rubric`), so the rubric rendered into J4's prompt is the one the manifest
-hash certifies (S2 3.2, 7.4). Spec S3 owns the content; until it publishes the file, J4 runs on a development
-placeholder and the referee manifest cannot freeze (`manifests.check_referee_freeze`).
+hash certifies (S2 3.2, 7.4). Spec S3 owns the content; `canonical_rubric` builds it from S3's own published text
+and `rubric_text` is its committed form -- `prompts/referee/rubric.v1.json` (`manifests.referee_manifest`'s
+default `rubric=`, S2 3.4/7.4) -- so a manifest built with no override freezes on the real rubric, never a
+placeholder. `referee_manifest(rubric=None)` still builds the pre-publication shape a few tests exercise, where
+J4 runs on a development placeholder and the manifest cannot freeze (`manifests.check_referee_freeze`).
 """
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import Field, StringConstraints, model_validator
@@ -139,3 +143,12 @@ def canonical_rubric() -> Rubric:
             ],
         }
     )
+
+
+def rubric_text() -> str:
+    """The committed form of `prompts/referee/rubric.v1.json` (S2 7.4): `canonical_rubric()` as pretty, sorted-key
+    JSON with a final newline -- the same style a candidate manifest's committed file uses
+    (`manifests.manifest_text`), so the file a referee manifest hashes by default is always exactly what
+    `canonical_rubric()` builds, never hand-edited out of step with it. `manifests.main` (`check`/`write`)
+    verifies and regenerates it the same way it does `prompts/manifests/*.json`."""
+    return json.dumps(canonical_rubric().model_dump(mode="json"), indent=2, sort_keys=True) + "\n"

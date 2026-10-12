@@ -27,9 +27,10 @@ from arena_referee.mapping import (
 REPO = Path(__file__).resolve().parents[3]
 F01_FILE = json.loads((REPO / "cases/dev/F01.json").read_text(encoding="utf-8"))
 TRUTHFUL = F01_FILE["variants"]["truthful"]
-# The referee manifest, computed fresh from the committed prompt files (S2 3.3); no rubric.v1 yet (S2 7.4), so
-# the assistant prompt needs a development placeholder, as `test_referee_prompts.py` uses.
-REFEREE = load_prompts(with_hash(referee_manifest(REPO)))
+# rubric=None: computed fresh from the committed prompt files (S2 3.3), explicitly built without rubric.v1
+# (unlike the default, which now registers the published one, S2 3.4/7.4) so the assistant prompt needs a
+# development placeholder (`_dev_rubric` below), as `test_referee_prompts.py` uses.
+REFEREE = load_prompts(with_hash(referee_manifest(REPO, rubric=None)))
 
 
 def _card(turn_no: int) -> dict[str, Any]:

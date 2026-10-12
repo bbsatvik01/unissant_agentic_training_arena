@@ -87,6 +87,32 @@ def test_register_candidate_refuses_a_missing_row() -> None:
         run(calls.register_candidate(c(_Conn([])), kind="assistant", name="A1", version="1.0.0", manifest={}))
 
 
+def test_seal_hidden_split_sends_the_sampler_record_as_one_jsonb_argument_and_returns_the_hash() -> None:
+    conn = _Conn([("a" * 64,)])
+    record = {"seed": 1, "n": 2, "assignment": [], "max_phi": 0.1}
+    result = run(calls.seal_hidden_split(c(conn), record))
+    assert result == "a" * 64
+    assert conn.transactions == 1
+    [(query, params)] = conn.executed
+    assert "sealed.seal_hidden_split" in query
+    assert len(params) == 1
+    assert isinstance(params[0], Jsonb)
+
+
+def test_seal_hidden_split_refuses_a_missing_row() -> None:
+    with pytest.raises(GuardProtocolError):
+        run(calls.seal_hidden_split(c(_Conn([])), {}))
+
+
+def test_verify_hidden_seal_returns_the_boolean_row() -> None:
+    assert run(calls.verify_hidden_seal(c(_Conn([(True,)])))) is True
+    assert run(calls.verify_hidden_seal(c(_Conn([(False,)])))) is False
+
+
+def test_verify_hidden_seal_is_false_rather_than_an_error_with_no_row() -> None:
+    assert run(calls.verify_hidden_seal(c(_Conn([])))) is False
+
+
 def test_allowlist_user_inserts_the_id_and_email_once_and_commits() -> None:
     conn = _Conn()
     uid = uuid4()

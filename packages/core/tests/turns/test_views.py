@@ -16,6 +16,7 @@ from arena_core.events.load import (
     RECORDING_FORMAT,
     LoadedTrial,
     TrialMeta,
+    load_recording,
     load_tournament_trial,
     load_trial,
     recording_of,
@@ -251,6 +252,32 @@ def test_load_tournament_trial_is_none_for_a_training_kind() -> None:
     rig = Rig()
     rig.turn()
     assert run(load_tournament_trial(rig.db, rig.db.trial_id)) is None
+
+
+def test_a_hidden_split_trials_packet_and_recording_are_empty_before_reveal_and_real_after() -> None:
+    """S4/S6 visibility, the sealed-run gap: `GET /api/trials/{id}/recording` and `make export-run` 404'd on
+    every hidden-split trial, revealed or not, because `db.public_packet` (the dev split) never finds one
+    and nothing fell back to the hidden split's own visibility-checked projection (`db.hidden_packet`,
+    `arena.v_hidden_cases`). Before some trial on the variant is visible (never simulated here: `hidden_packets`
+    starts empty, standing in for a hidden tournament that has not revealed), the packet is empty and
+    `load_recording` answers None, same as an unknown id; once the projection would resolve it (reveal), the
+    real packet loads and the recording builds."""
+    rig = Rig()
+    rig.db.kind = "interactive"
+    rig.turn()
+    hidden_variant = uuid4()
+    rig.db.variant_id = hidden_variant  # no longer the fake's one dev-split packet
+    before = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert before is not None
+    assert before.packet == {}
+    assert run(load_recording(rig.db, rig.db.trial_id)) is None
+    rig.db.hidden_packets[hidden_variant] = PACKET  # simulate reveal: the hidden projection now resolves
+    after = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert after is not None
+    assert after.packet == PACKET
+    recording = run(load_recording(rig.db, rig.db.trial_id))
+    assert recording is not None
+    assert recording["case"]["case_id"] == PACKET["case_id"]
 
 
 def test_load_tournament_trial_anchors_a_never_started_attempts_playback_to_its_own_event() -> None:

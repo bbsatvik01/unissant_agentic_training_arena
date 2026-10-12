@@ -275,6 +275,16 @@ class ArenaDb:
         rows = await self.fetch("select public_packet::text from arena.v_dev_cases where variant_id = %s", (variant,))
         return json.loads(rows[0][0]) if rows else None
 
+    async def hidden_packet(self, variant: UUID) -> dict[str, Any] | None:
+        """S4/S6 visibility: `variant`'s hidden-split public packet (`sealed.hidden_public_packets`), readable
+        through `arena.v_hidden_cases` only once some trial on it is `arena.trial_visible` -- a revealed hidden
+        tournament, never before (SCN-12). `events.load`'s shared packet resolution falls back to this only
+        when `public_packet` (the dev split) finds nothing, so a dev variant is never looked up twice."""
+        rows = await self.fetch(
+            "select public_packet::text from arena.v_hidden_cases where variant_id = %s", (variant,)
+        )
+        return json.loads(rows[0][0]) if rows else None
+
     async def study(self) -> dict[str, Any] | None:
         """`training.v_my_study`: the actor's KPI-1 participant state, None for a non-participant."""
         rows = await self.fetch(
