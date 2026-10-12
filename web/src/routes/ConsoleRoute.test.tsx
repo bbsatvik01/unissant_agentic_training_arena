@@ -19,6 +19,14 @@ afterEach(() => {
 const ARENA_ME = { user_id: "u1", display_name: "Local investigator", roles: ["admin", "investigator", "trainer"], ex4_acknowledged: null, study: null, csrf_token: "tok" };
 const CONSOLE_ME = { user_id: "u1", display_name: "Rater", roles: ["admin", "trainer"], csrf_token: "tok" };
 
+/** A non-2xx answer for one route. */
+class Refusal {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {}
+}
+
 /** POST bodies by route, as sent. */
 const sentBodies = new Map<string, unknown>();
 
@@ -32,6 +40,7 @@ function serve(routes: Record<string, unknown>) {
     if (typeof init?.body === "string") sentBodies.set(key, JSON.parse(init.body));
     const body = routes[key];
     if (body === undefined) return Promise.resolve(new Response(JSON.stringify({ code: "not_found" }), { status: 404, headers: { "Content-Type": "application/json" } }));
+    if (body instanceof Refusal) return Promise.resolve(new Response(JSON.stringify(body.body), { status: body.status, headers: { "Content-Type": "application/json" } }));
     return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
   });
   vi.stubGlobal("fetch", fetchStub);
@@ -125,6 +134,17 @@ describe("ConsoleRoute", () => {
     const budget = screen.getByRole("region", { name: "Budget" });
     expect(within(budget).getByText("$75.00")).toBeTruthy();
     expect(calls.some((c) => c.startsWith("POST"))).toBe(false);
+  });
+
+  it("shows the server's reason when it refuses a lifecycle action", async () => {
+    serve({
+      "GET /api/me": CONSOLE_ME,
+      "GET /api/admin/tournaments": [{ id: "t1", name: "dev-1", split: "dev", status: "sealed" }],
+      "POST /api/admin/tournaments/t1/scoring": new Refusal(409, { detail: "isolation gate has never recorded IG-1 for this commit" }),
+    });
+    render(<ConsoleRoute kind="admin" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Begin scoring" }));
+    expect(await screen.findByText("The server refused the action; the tournament is unchanged. Reason: isolation gate has never recorded IG-1 for this commit")).toBeTruthy();
   });
 
   it("records a blinded validity verdict with its reason, report and key; no verdict without the evidence", async () => {

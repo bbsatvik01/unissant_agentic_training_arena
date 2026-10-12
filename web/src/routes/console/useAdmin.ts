@@ -14,6 +14,14 @@ function failed(e: unknown): Section<never> {
   return e instanceof ApiError && e.status === 404 ? { state: "missing" } : { state: "error" };
 }
 
+/** What the admin reads when a POST fails: a missing route, or the refusal with the server's own reason (the
+ * referee's `detail`, for example which reveal check is not met), cut to a readable length. */
+function refusal(e: unknown, refused: string): string {
+  if (e instanceof ApiError && e.status === 404) return "The server does not offer this action yet.";
+  const reason = e instanceof ApiError ? e.code : null;
+  return reason === null || reason === "" ? refused : `${refused} Reason: ${reason.length > 300 ? `${reason.slice(0, 300)}...` : reason}`;
+}
+
 export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments" | "adminTournament" | "adminAction" | "adminReviews" | "adminVerdict">, enabled: boolean) {
   const [budget, setBudget] = useState<Section<readonly BudgetRow[]>>({ state: "loading" });
   const [tournaments, setTournaments] = useState<Section<readonly AdminTournament[]>>({ state: "loading" });
@@ -85,7 +93,7 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         },
         (e: unknown) => {
           setBusy(null);
-          setMessage(e instanceof ApiError && e.status === 404 ? "The server does not offer this action yet." : "The server refused the action; the tournament is unchanged.");
+          setMessage(refusal(e, "The server refused the action; the tournament is unchanged."));
         },
       );
     },
@@ -114,7 +122,7 @@ export function useAdmin(api: Pick<ConsoleApi, "adminBudget" | "adminTournaments
         },
         (e: unknown) => {
           setBusy(null);
-          setMessage(e instanceof ApiError && e.status === 404 ? "The server does not offer this action yet." : "The server refused the verdict.");
+          setMessage(refusal(e, "The server refused the verdict."));
         },
       );
     },
