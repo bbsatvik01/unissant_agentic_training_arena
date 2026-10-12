@@ -87,3 +87,4 @@
 - 344d5ff merge rubric.v1 (22 checks verbatim from S3; spec-parity test)
 - 94a693b merge DB latency fix (pool + pipelined statements; per-call 841->69 ms)
 - a5d7f8a merge tournament routes + isolation reports; local dev tournament revealed end to end
+- 988b377 merge UI stage 7 (standings wall, retried-trial fix)
