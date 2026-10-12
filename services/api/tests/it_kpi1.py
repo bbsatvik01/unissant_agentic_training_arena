@@ -84,8 +84,13 @@ async def _login(dsn: str, role: str) -> str:
     return make_conninfo(dsn, user=role, password=password)
 
 
-async def _probe(debrief: DebriefCall) -> None:
-    await debrief(uuid4())
+async def _probe(debrief: DebriefCall) -> int:
+    """The referee's answer to a debrief for an unknown session: 404 once it serves, 503 while unreachable."""
+    try:
+        await debrief(uuid4())
+    except RefereeError as exc:
+        return exc.status
+    return HTTPStatus.OK
 
 
 def _free_port() -> int:
@@ -134,11 +139,8 @@ def world(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, str]]:
             out = process.stdout.read() if process.stdout else ""
             msg = f"arena-referee exited early ({process.returncode}):\n{out}"
             raise RuntimeError(msg)
-        try:
-            run(_probe(probe))
-        except RefereeError as exc:
-            if exc.status == HTTPStatus.NOT_FOUND:  # serving: an unknown session is a 404
-                break
+        if run(_probe(probe)) == HTTPStatus.NOT_FOUND:  # serving: an unknown session is a 404
+            break
         if time.monotonic() > deadline:
             process.terminate()
             msg = "arena-referee never became ready"
