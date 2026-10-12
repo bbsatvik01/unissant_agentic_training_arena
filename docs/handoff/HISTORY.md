@@ -79,3 +79,4 @@
 - f77c5b0 merge UI stage 4 (trust center, debrief export, judge demo)
 - fdad8fa merge api UI routes (progress/KPI-1, EX-4 server check, /api/admin, referee bundle)
 - b141662 merge trust routes + assessment recording final snapshot
+- 79b2182 merge UI stage 5 (Gemini TTS route, inactive pending owner spend rows; hub life)
