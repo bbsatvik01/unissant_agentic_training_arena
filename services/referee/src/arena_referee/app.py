@@ -122,7 +122,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     port = AgentPort(adapter, guard)
     manifest = with_hash(referee_manifest())
     prompts = load_prompts(manifest)
-    rubric = default_dev_rubric()  # S2 7.4: no rubric.v1 yet; a development placeholder only
+    rubric = default_dev_rubric()  # S2 7.4: rubric.v1's real text, not yet registered on the manifest file
     prompt_sha256 = manifest.sha256 or ""
 
     scoring_deps = db.make_scoring_deps(connect, port, prompt_sha256)

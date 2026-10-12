@@ -20,7 +20,7 @@ from arena_core.agents.referee_prompts import (
     build_referee_subject_prompt,
     empty_subject_report,
 )
-from arena_core.agents.rubric import Rubric, manifest_rubric
+from arena_core.agents.rubric import Rubric, canonical_rubric, manifest_rubric
 from arena_core.contracts.adapter import adapt_subject_report
 from arena_core.contracts.common import turn_id
 from arena_core.contracts.referee import (
@@ -32,7 +32,6 @@ from arena_core.contracts.referee import (
 )
 from arena_core.providers.types import AgentCall, CallContext, Message
 from arena_core.referee.pipeline import ValidityDecision, decide_validity, independent_label_rows
-from arena_core.scoring.rubric import CHECKS
 from arena_core.spend.limits import REFEREE_COMBINATIONS, CallType
 from arena_referee.mapping import TrialData, build_assistant_input, build_subject_input, build_triggers
 
@@ -45,39 +44,20 @@ ASSISTANT_PURPOSE_FOR_MODE: dict[AssistantMode, Literal["referee_assistant", "r3
     "investigator": "r3_investigator",
 }
 
-_DIMENSION_NAMES = {
-    "D1": "clarity and neutrality",
-    "D2": "response relevance",
-    "D3": "evidence-based follow-up",
-    "D4": "testing alternative explanations",
-    "D5": "supported closure",
-}
-
 
 def default_dev_rubric() -> Rubric:
-    """S2 7.4: "until spec S3 publishes rubric.v1, J4 runs against a placeholder rubric in development only;
-    the referee manifest cannot freeze without the real rubric.v1 hash." Every sub-check of every dimension
-    (`scoring.rubric.CHECKS`), so the referee can run and score end to end before S3 ships the real one."""
-    return Rubric.model_validate(
-        {
-            "rubric_version": "rubric.v1",
-            "dimensions": [
-                {
-                    "dim_id": dim,
-                    "name": _DIMENSION_NAMES[dim],
-                    "anchors_0_to_4": [f"anchor {k}" for k in range(5)],
-                    "subchecks": [{"id": s, "text": f"placeholder text of {s}", "na_when": None} for s in ids],
-                }
-                for dim, ids in CHECKS.items()
-            ],
-        }
-    )
+    """S2 7.4: the referee manifest has no `rubric.v1` file registered yet, so J3/J4 render rubric.v1's real,
+    published text (`arena_core.agents.rubric.canonical_rubric`, spec S3 2.3-2.7) as a development rubric
+    rather than a manifest-hashed one; the manifest still cannot freeze without that file
+    (`manifests.check_referee_freeze`), but the content the model sees is the real rubric, not a placeholder."""
+    return canonical_rubric()
 
 
 @dataclass(frozen=True, kw_only=True)
 class PromptContext:
-    """The manifest's rendered prompts and, until spec S3 publishes `rubric.v1`, the development placeholder
-    rubric (S2 7.4); `referee_assistant` and `r3_investigator` both render from it."""
+    """The manifest's rendered prompts and, until spec S3's `rubric.v1` file is registered on the referee
+    manifest, the development rubric (S2 7.4, `default_dev_rubric`); `referee_assistant` and `r3_investigator`
+    both render from it."""
 
     prompts: PromptSet
     rubric: Rubric | None
@@ -174,7 +154,7 @@ def assistant_agent_call(
     inp: RefereeAssistantInput, prompts: PromptSet, rubric: Rubric | None, trial_id: str, purpose: Purpose
 ) -> AgentCall[RefereeAssistantReport]:
     prompt = build_referee_assistant_prompt(inp, prompts, dev_rubric=rubric)
-    # The rubric the prompt rendered: the manifest's rubric.v1 when it hashes one, else the development placeholder
+    # The rubric the prompt rendered: the manifest's rubric.v1 when it hashes one, else the development rubric
     # (the builder refuses any other combination), so the validation context always matches the prompt.
     rendered = manifest_rubric(prompts) or rubric
     model, thinking = REFEREE_COMBINATIONS[purpose]

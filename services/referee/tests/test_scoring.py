@@ -13,12 +13,12 @@ import pytest
 
 import arena_referee.scoring as scoring_module
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
-from arena_core.agents.rubric import Rubric
+from arena_core.agents.rubric import Rubric, canonical_rubric
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.rubric import CHECKS
 from arena_referee.mapping import TrialData
-from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, run_r2, score_trial
+from arena_referee.scoring import PromptContext, ScoreResult, ScoringDeps, default_dev_rubric, run_r2, score_trial
 from arena_referee.scoring import run_r1 as _run_r1
 
 
@@ -413,3 +413,13 @@ def test_run_r2_resuming_repairs_a_missing_questioning_quality_row() -> None:
     assert fake.calls == ["r2"]  # still no second model call -- flag_support alone proves the stage is done
     assert qq_key in fake.judgments  # the missing row is repaired
     assert repaired.model_dump(mode="json") == report.model_dump(mode="json")
+
+
+def test_default_dev_rubric_is_the_canonical_published_rubric() -> None:
+    """S2 7.4: the rubric `create_app` feeds into `PromptContext` (the development fallback until the referee
+    manifest registers a `rubric.v1` file) is spec S3's real, published text -- not the old `"placeholder text
+    of {id}"` fixture every other test module here builds for itself."""
+    assert default_dev_rubric() == canonical_rubric()
+    for d in default_dev_rubric().dimensions:
+        for s in d.subchecks:
+            assert "placeholder" not in s.text
