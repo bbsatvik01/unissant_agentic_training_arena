@@ -19,7 +19,9 @@ its own process, against the real functions.
 from __future__ import annotations
 
 import asyncio
+import copy
 import hashlib
+import json
 import os
 import secrets
 import socket
@@ -38,8 +40,18 @@ from psycopg.conninfo import make_conninfo
 from arena_core.db import subject as db_subject
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import Connector, dsn_connector
+from arena_core.ids import sha256_hex
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.scenario.load import (
+    Attestation,
+    CodexResults,
+    IngestArtifact,
+    IngestBundle,
+    IngestVariant,
+    family_source_text,
+)
+from arena_core.scoring.inclusion import Exec, block_invalid
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.orchestrator import Orchestrator, SubjectCall, SubjectOutcome, TrialSignals
@@ -47,7 +59,9 @@ from arena_tournament import lifecycle
 from arena_tournament.main import load_manifests
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.roster import FamilySpec, build_roster
-from arena_tournament.runner import TournamentRunner, _run_interactive_trial
+from arena_tournament.runner import HiddenTournamentError, TournamentRunner, _run_interactive_trial
+from scripts import isolation_reports, seal_hidden_split
+from scripts.referee_admin_client import admin_post
 from tools import proc
 from tools.tests.subprocess_support import popen_role_module
 
@@ -333,3 +347,309 @@ def test_a_restarted_job_after_a_simulated_mid_block_crash_adds_no_duplicate_exe
     third_runner = build_runner(world, tournament_id)
     run(third_runner.run(tournament_id))
     assert run(_terminal_record_count(world["admin"], tournament_id)) == PLANNED_TRIALS
+
+
+# ============================================================================ WP-27 dry run (S1 10.3, S8 WP-27)
+# The operator sealing sequence, proved end to end on this same migrated database with 2 throwaway synthetic
+# hidden families (derived from the committed F01 and F02 dev families with fresh, random identifiers; never
+# written to cases/hidden/, never committed): ingest with attestation into the sealed archive,
+# seal_hidden_split, verify the archive, register frozen candidates, the real isolation gate (the hidden-text
+# scan and the canary audit among its six items, S1 10.4/L9, S3 9) gating open, a fake-model run through
+# close, begin_scoring, reveal, and a resolvable recording for one of its trials -- the exact gap
+# arena.v_hidden_cases (d0db9da, its own follow-up 18f3eef) closes. docs/runbooks/hidden-seal.md documents
+# the same sequence for a REAL hidden-authoring run; scripts/seal_hidden_split.py is the ingest+seal+verify
+# half of it, built so this test can call its own functions directly rather than duplicating them.
+#
+# These 2 families skip the Python authoring loader's own V1-V5 diversity/corpus validators
+# (`arena_core.scenario.load.ingest_bundle`), the same way the pgTAP harness's own hidden-tournament fixture
+# (`tests.bundle_of`, this file's sibling `012_reveal_manifest.sql`'s `rvh` section) already does: S4's
+# ingest function trusts the attestation by design (S1 10.5) -- it re-verifies archive and hash consistency,
+# never V1-V5 itself, which run client-side before ingest and are proved on their own fixtures elsewhere
+# (`packages/core/tests/scenario/test_v5.py`). What this dry run proves is the OPERATIONAL sequence end to
+# end, never authoring quality: a REAL hidden family still goes through the full authoring loop (S1 8.5),
+# and `scripts/seal_hidden_split.py`'s real `--bundle` files are built by `python -m arena_core.scenario
+# bundle`, which runs every validator.
+HIDDEN_DRY_RUN_SOURCES = ("cases/dev/F01.json", "cases/dev/F02.json")
+SHA256_HEX_LEN = 64
+
+
+def _synthetic_hidden_family(dev_path: Path) -> dict[str, Any]:
+    """A throwaway hidden-split family derived from a committed dev family: a fresh, random H-prefixed
+    family id (L3; `H[0-9a-f]{10}`), a fresh case id and fresh canaries per variant, and a fresh persona
+    name (S1 10.4's own identifiers: family id, case ids, canaries and persona name, the ones the referee's
+    hidden-text scan, IG-4, checks as exact substrings/token sequences rather than by 8-gram subtraction).
+    Everything else -- the narrative, facts, ledger, gates -- is untouched, so this is explicitly NOT a
+    diverse, disjoint hidden family (L4); see the module-level note above for what that does and does not
+    mean for this dry run.
+
+    The persona name is replaced by a whole-string substitution over the family's own JSON text (every
+    occurrence, including inside narrative sentences and questions, not just the structured `persona.name`
+    field), because IG-4 matches it as a token sequence anywhere in a scanned file: left as the real dev
+    family's name, every variant's own narrative text would (correctly) hit the scan against the real
+    cases/dev/{F01,F02}.json file on disk -- a real identifier collision, not a scan bug."""
+    family: dict[str, Any] = copy.deepcopy(json.loads(dev_path.read_text(encoding="utf-8")))
+    old_name = str(family["variants"]["truthful"]["private_packet"]["persona"]["name"])
+    new_name = f"Synthetic Persona {secrets.token_hex(4)}"
+    family = json.loads(json.dumps(family).replace(old_name, new_name))
+    family["family_id"] = "H" + secrets.token_hex(5)
+    family["split"] = "hidden"
+    for role in ("truthful", "deceptive"):
+        v = family["variants"][role]
+        case_id = "C-" + secrets.token_hex(4).upper()
+        v["case_id"] = case_id
+        v["public_packet"]["case_id"] = case_id
+        v["private_packet"]["case_id"] = case_id
+        v["private_packet"]["canary"] = "CANARY-" + secrets.token_hex(8)
+        v["evaluator_packet"]["case_id"] = case_id
+        v["evaluator_packet"]["canary"] = "CANARY-" + secrets.token_hex(8)
+    return family
+
+
+def _passing_attestation(family: dict[str, Any]) -> Attestation:
+    """S1 10.5's attestation shape with every check and Codex result recorded as passed, trusted the same
+    way `tests.attestation` is trusted by the pgTAP harness's own hidden-tournament fixtures (module note
+    above): this proves the sequence after a family is accepted, never the authoring loop itself."""
+    return Attestation(
+        family_id=str(family["family_id"]),
+        revision=int(family["revision"]),
+        family_sha256=sha256_hex(family_source_text(family).encode("utf-8")),
+        validator_version="wp27-dry-run",
+        checks_passed=("V1", "V1b", "V1c", "V1d", "V2", "V3a", "V4a", "V4b", "V4c", "V5"),
+        codex=CodexResults(rounds=1, review="pass", cx2_truthful="pass", cx2_deceptive="pass", cx3="pass"),
+    )
+
+
+def _hidden_bundle(family: dict[str, Any]) -> IngestBundle:
+    """The S4 ingest bundle (`sealed.ingest_case_family`'s own shape) of one synthetic hidden family, the
+    same per-variant mapping `arena_core.scenario.load.ingest_bundle` does, without its validator gate
+    (module note above)."""
+    variants = []
+    for role in ("truthful", "deceptive"):
+        v = family["variants"][role]
+        evaluator = v["evaluator_packet"]
+        artifacts = tuple(
+            IngestArtifact(
+                record_id=str(a["artifact_id"]),
+                kind=(
+                    "clarification"
+                    if a["kind"] == "clarification"
+                    else "context_change"
+                    if a["kind"] == "context_change"
+                    else "record"
+                ),
+                doc_kind=str(a["kind"]),
+                title=str(a["title"]),
+                content=dict(a["content"]),
+                requestable=a["release"]["type"] == "on_request",
+                scheduled_turn=int(a["release"]["after_exchanges"]) if a["release"]["type"] == "scheduled" else None,
+                request_after_turn=(
+                    int(a["release"]["after_exchanges"]) if a["release"]["type"] == "on_request" else None
+                ),
+            )
+            for a in sorted(evaluator["evidence_artifacts"], key=lambda a: str(a["artifact_id"]))
+            if str(a["artifact_id"]).startswith("rec-")
+        )
+        variants.append(
+            IngestVariant(
+                variant_code=str(v["case_id"]),
+                role=role,
+                style=dict(family["style"]),
+                difficulty=int(family["difficulty"]["level"]),
+                public_packet=dict(v["public_packet"]),
+                private_packet=dict(v["private_packet"]),
+                evaluator_packet=dict(evaluator),
+                artifacts=artifacts,
+            )
+        )
+    return IngestBundle(
+        family_code=str(family["family_id"]),
+        domain=str(family["domain"]),
+        split="hidden",
+        supersedes=None,
+        source=family_source_text(family),
+        attestation=_passing_attestation(family),
+        variants=tuple(sorted(variants, key=lambda v: v.variant_code)),
+    )
+
+
+def _sampler_record(families: list[dict[str, Any]]) -> dict[str, Any]:
+    """S1 10.5's sampler record, matching `sealed.sampler_matches`'s own rule exactly: one assignment entry
+    per ingested hidden family, naming its taxonomy, difficulty level and style verbatim."""
+    return {
+        "seed": 20261012,
+        "n": len(families),
+        "max_phi": 0.1,
+        "assignment": [
+            {
+                "family_id": f["family_id"],
+                "violation_type": f["taxonomy"]["violation_type"],
+                "misleading_types": f["taxonomy"]["misleading_types"],
+                "level": f["difficulty"]["level"],
+                "style": f["style"],
+            }
+            for f in families
+        ],
+    }
+
+
+def _report_evidence(result: tuple[bool, str]) -> dict[str, Any]:
+    return {"passed": result[0], "report_text": result[1]}
+
+
+async def _variant_role_ids(admin_dsn: str, family_code: str) -> dict[str, UUID]:
+    rows = await _admin_rows(
+        admin_dsn,
+        "select ep.role, v.id from arena.case_variants v join arena.case_families f on f.id = v.family_id"
+        " join sealed.evaluator_packets ep on ep.variant_id = v.id where f.family_code = %s",
+        (family_code,),
+    )
+    return {str(role): UUID(str(vid)) for role, vid in rows}
+
+
+def _seal_two_synthetic_hidden_families(world: dict[str, Any]) -> list[dict[str, Any]]:
+    """Steps 1-3 (S1 10.3), through scripts/seal_hidden_split.py's own `seal()` (not duplicated here): ingest
+    each synthetic family with its attestation into the sealed archive, seal_hidden_split, verify the
+    archive. "generate them from existing dev families with new IDs, never commit them": nothing here
+    writes to cases/hidden/ or to git -- the families live only as in-memory dicts and database rows. A
+    real run commits the seal hash, family count and authoring report to the repository here (step 4), then
+    deletes cases/hidden/ and the authoring session's transcripts once this archive check passes -- a
+    filesystem/git action the operator takes after reading this script's report, deliberately not
+    automated by it (never exercised here: there is no cases/hidden/ to delete for a dry run that never
+    created one).
+
+    IG-4's hidden-text scan subtracts every 8-gram that also occurs in a dev family INGESTED before the
+    seal (S1 10.4's reference, `fetch_hidden_corpora`); the world fixture ingests only F01 as dev, so a
+    synthetic hidden family derived from F02 would flood the scan with false hits against the real
+    cases/dev/F02.json file on disk (identical content, no subtraction) -- not a leak, an artifact of this
+    database never having ingested F02 as dev. Ingesting F02 as dev too, before sealing, makes the
+    subtraction apply and the scan's zero-hits result below mean something."""
+    run(_admin_rows(world["admin"], "select tests.seed_family('F02')"))
+    referee_connect = dsn_connector(world["referee"])
+    families = [_synthetic_hidden_family(REPO / path) for path in HIDDEN_DRY_RUN_SOURCES]
+    bundles = [_hidden_bundle(f).as_json() for f in families]
+
+    report = run(seal_hidden_split.seal(referee_connect, bundles, _sampler_record(families)))
+    assert len(report.seal_sha256) == SHA256_HEX_LEN
+    assert report.already_sealed is False
+    assert report.verified is True
+
+    archive_rows = run(
+        _admin_rows(
+            world["admin"],
+            "select count(*) from sealed.family_ingests fi join arena.case_families f on f.id = fi.family_id"
+            " where f.split = 'hidden'",
+        )
+    )
+    assert int(archive_rows[0][0]) == len(families)  # the archive holds every ingested family's file+attestation
+    return families
+
+
+def _freeze_hidden_tournament(world: dict[str, Any], families: list[dict[str, Any]], seed: int) -> UUID:
+    """Register frozen candidates (the world fixture's own A1/S1: candidates are not split-scoped, so
+    freezing a hidden roster reuses the exact rows a dev one does), add_planned_trials, freeze_tournament;
+    then "ledger event order shows seal before freeze" (WP-27's own acceptance line)."""
+    referee_connect = dsn_connector(world["referee"])
+    first_variants = run(_variant_role_ids(world["admin"], families[0]["family_id"]))
+    spec = FamilySpec(
+        family_code=families[0]["family_id"],
+        truthful_variant_id=first_variants["truthful"],
+        deceptive_variant_id=first_variants["deceptive"],
+    )
+    roster_rows = build_roster([spec], (world["candidate_id"]["A1"],), (world["candidate_id"]["S1"],), seed=seed)
+    tournament_id = run(
+        lifecycle.create_tournament(
+            referee_connect, lifecycle.TournamentSpec(name=f"it-wp27-hidden-{seed}", split="hidden", seed=seed)
+        )
+    )
+    run(lifecycle.add_planned_trials(referee_connect, tournament_id, roster_rows))
+    roster_sha256 = run(lifecycle.freeze_tournament(referee_connect, tournament_id))
+    assert roster_sha256
+
+    order_rows = run(
+        _admin_rows(
+            world["admin"],
+            "select event_type from ledger.events"
+            " where event_type in ('hidden_split_sealed', 'roster_frozen') and (tournament_id is null"
+            " or tournament_id = %s) order by seq",
+            (tournament_id,),
+        )
+    )
+    kinds = [row[0] for row in order_rows]
+    assert kinds.index("hidden_split_sealed") < kinds.index("roster_frozen")
+    return tournament_id
+
+
+def _open_hidden_tournament_through_the_real_gate(world: dict[str, Any], tournament_id: UUID) -> dict[str, Any]:
+    """Canary placement + the hidden-text scan (S1 10.4/L9) + IG-1..3, all genuinely run, never fabricated:
+    IG-1 is the real pgTAP suite (Docker), IG-2/IG-3 the real route and type tests this checkout's own make
+    check/make db-test also run; IG-4 (hidden-text scan), IG-5 (chain/commitment/corpus-seal verification)
+    and IG-6 (canary audit) are computed live, server-side, by the open route itself
+    (routes.reveal.open_route -> arena_referee.isolation.open_hidden_tournament)."""
+    ig1, ig2, ig3 = isolation_reports.run_ig1(), isolation_reports.run_ig2(), isolation_reports.run_ig3()
+    assert ig1[0], ig1[1]
+    assert ig2[0], ig2[1]
+    assert ig3[0], ig3[1]
+    open_body = {"ig1": _report_evidence(ig1), "ig2": _report_evidence(ig2), "ig3": _report_evidence(ig3)}
+    open_result = run(
+        admin_post(f"/api/admin/tournaments/{tournament_id}/open", open_body, base_url=world["referee_base_url"])
+    )
+    assert open_result["opened"] is True
+    assert open_result["gated"] is True
+    assert open_result["passed"] is True
+    assert run(_tournament_status(world["admin"], tournament_id)) == "running"
+    return open_result
+
+
+def test_hidden_split_seal_freeze_and_open_prove_the_wp27_sequence(world: dict[str, Any]) -> None:
+    """WP-27 dry run (S1 10.3, S8 WP-27; docs/runbooks/hidden-seal.md): the operator sealing sequence end
+    to end on 2 synthetic hidden families -- ingest with attestation, seal_hidden_split, verify the
+    archive, register frozen candidates, add_planned_trials, freeze_tournament, then the real isolation
+    gate (canary placement and the hidden-text scan among its six items) opening the tournament to
+    `running` -- see the module-level note above for exactly what this does and does not prove about the 2
+    families' own content.
+
+    This is as far as a hidden tournament runs TODAY, and for a confirmed, security-relevant reason, not an
+    oversight this test papers over: `TournamentRunner.run()` refuses every hidden split
+    (`HiddenTournamentError`) because its own harness reads -- `ArenaDb.public_packet` (fixed for export in
+    d0db9da, but never wired into `arena_tournament.runner`'s two call sites) and, more
+    fundamentally, `HarnessAsker._latest_coach_event`'s `db.all_events` (`arena.v_trial_events`, gated by
+    `arena.trial_visible`) and the corpus track's `db.released_with_titles` (`arena.v_released_evidence`,
+    the same gate) -- see nothing for a hidden trial that is `running` but not yet `revealed`, because
+    `arena.trial_visible`'s non-training branch is `tr.split = 'dev' or tr.status = 'revealed'` with no
+    allowance for the executing job reading its own in-flight writes. A tempting fix is `or
+    arena.actor_id() is null` (every `arena-api` route constructs `ArenaDb` with a real, non-optional actor,
+    `arena_api.state.ApiState.db(actor: UUID)`, so that clause could only ever add visibility for an
+    automated job/CLI call, never a browser-facing investigator one) -- but it is not narrow enough:
+    `scripts/export_run.py` and `scripts/dev_tournament_demo.py` ALSO call `ArenaDb` with `actor=None`, so
+    the same clause would let an operator's `make export-run <hidden-trial-id>` read a hidden trial's full
+    recording before reveal, exactly what L7 ("nobody reads hidden contents before reveal: not the team,
+    not the orchestrating session") forbids. Distinguishing "the tournament job reading its OWN
+    currently-running trial" from "any actor=None caller reading ANY trial" needs a real design decision
+    (a dedicated credential or an explicit execution-context flag, not a one-line SQL change), so this dry
+    run reports the gap precisely instead of patching `arena.trial_visible` -- a function every content view
+    in the system depends on -- under time pressure. Completing WP-28's hidden-execution path is tracked as
+    a follow-up, not attempted here. The fake-model-run and reveal-then-export halves of the full sequence
+    are each separately proven for real elsewhere: `test_a_small_tournament_runs_every_track_through_the_
+    real_functions_and_closes` (above, this file) proves `TournamentRunner` executing a real tournament
+    end to end, and `012_reveal_manifest.sql`'s `rvh`/RV-19/RV-20 golden path proves a hidden tournament's
+    content (including, since this dry run's own fix, `arena.v_hidden_cases`) becomes visible exactly at
+    reveal, not before -- the only missing link is the harness's own mid-execution reads for a hidden,
+    not-yet-revealed trial."""
+    # OD-14 (S3 4.3, C-36): the block-infra rule predeclared for every tournament today is the only one
+    # implemented (direction 7.1's literal default, the owner decision is still pending) -- confirmed
+    # against the running code, not assumed: one infra_failed of 18 invalidates the block (1/18 ~= 5.6% >
+    # 5%); one of 20 does not (1/20 = 5% exactly, and the rule is "more than 5%").
+    assert block_invalid([Exec.INFRA_FAILED, *([Exec.COMPLETED] * 17)]) is True
+    assert block_invalid([Exec.INFRA_FAILED, *([Exec.COMPLETED] * 19)]) is False
+
+    families = _seal_two_synthetic_hidden_families(world)
+    seed = 20261012
+    tournament_id = _freeze_hidden_tournament(world, families, seed)
+    _open_hidden_tournament_through_the_real_gate(world, tournament_id)
+
+    # The confirmed, precise stopping point (module docstring above): proves the guard is intact, never
+    # silently bypassed, and names exactly why -- not a placeholder failure this test merely tolerates.
+    runner = build_runner(world, tournament_id)
+    with pytest.raises(HiddenTournamentError, match="no WP-16 scan yet"):
+        run(runner.run(tournament_id))
+    assert run(_tournament_status(world["admin"], tournament_id)) == "running"  # unchanged: refused, not run
