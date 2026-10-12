@@ -15,6 +15,7 @@
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
 | Hosted seed + real smoke | MERGED; hosted seeded; first real call landed (G0_schema quarantine) | done |
+| Tourney routes + IG reports (Sonnet, wt-tourney-routes) | arena-api tournament list/state/events, tournament recordings, make isolation-reports running real suites, local reveal proof | merge |
 | Real pilot (ab9b20635bc93d72b, Opus, wt-real-pilot) | fix G0_schema on real replies, real-smoke green, full real 12-turn interview + debrief + recording; spend cap $3 | review, merge |
 | WP-17 tournament | MERGED (demo: scripts/dev.sh tournament) | done |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
@@ -26,6 +27,7 @@
 | UI stage 3 (WP-20a) | MERGED (6588996) | done |
 | UI stage 4 | MERGED (f77c5b0) | done |
 | UI stage 5 | MERGED (79b2182); TTS inactive | OWNER ASK: tts call_limits + price rows; model choice gemini-2.5-flash-tts (GA, 2.5 retiring on Vertex mid/late Oct) vs gemini-3.8-flash-lite-tts (preview, needs google-genai>=2.25) |
+| UI stage 6 | MERGED (b146540); reveal blocked on missing IG-1..3 reports and tournament read routes | tourney routes agent |
 | api UI routes + trust + recordings | MERGED | done; GAP: S3 fairness audit (style FPR, flag rates, permutation tests, negative controls) not computed by anyone yet -> assign |
 | Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role logins enabled (owner-authorized, random passwords) and .env.local.{public,subject,referee} written (0600, git-ignored); each role connects | next: advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
