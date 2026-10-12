@@ -68,3 +68,15 @@ export function debriefExport(debrief: Debrief): string {
 export function exportName(debrief: Debrief): string {
   return `debrief-${debrief.session_id}.json`;
 }
+
+/** The ended trial's own state, from its snapshot after the end (which includes coaching an assessment withheld). */
+export interface EndedTrial {
+  readonly trialId: string;
+  readonly view: TrialView;
+}
+
+/** The view the debrief reviews: the ended trial's snapshot when one was read for this recording's trial (a replay of
+ * one's own run; recordings carry an assessment's coaching only there, FE-DEB-4), else the view on screen. */
+export function debriefView(onScreen: TrialView | null, ended: EndedTrial | null, recordingTrialId: string | null): TrialView | null {
+  return ended !== null && recordingTrialId === ended.trialId ? ended.view : onScreen;
+}

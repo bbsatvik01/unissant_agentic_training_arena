@@ -28,10 +28,11 @@ import type { Debrief } from "../lib/contracts/generated/types";
 import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
-import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
+import { initialTrialState, trialReducer, type RoomStatus, type TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
 import { followRoom, type DemoStep } from "../lib/demo/demo";
 import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
+import { debriefView, type EndedTrial } from "../lib/world/debrief";
 import { draftAfterSend } from "../lib/world/live";
 import type { RecordingResult } from "../lib/world/parseRecording";
 import type { CaseDocument, Recording } from "../lib/world/recording";
@@ -94,6 +95,7 @@ export function WorldRoute() {
   const [rightOpen, setRightOpen] = useState(true);
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
+  const [endedTrial, setEndedTrial] = useState<EndedTrial | null>(null);
   // The judge demo (`?demo` or the precinct's Guided demo button): its step and when it began.
   const [demo, setDemo] = useState<{ step: DemoStep; startedAt: number } | null>(() => (new URLSearchParams(window.location.search).has("demo") ? { step: "precinct", startedAt: Date.now() } : null));
   // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
@@ -350,6 +352,15 @@ export function WorldRoute() {
         () => {
           setFileError("That run could not be loaded.");
         },
+      );
+      // The ended trial's snapshot carries coaching an assessment withheld, which its recording does not (FE-DEB-4).
+      setEndedTrial(null);
+      api.trialSnapshot(trialId).then(
+        (snapshot) => {
+          const ended = trialReducer(initialTrialState(), { type: "snapshot", snapshot }).view;
+          if (ended !== null) setEndedTrial({ trialId, view: ended });
+        },
+        () => undefined,
       );
     },
     [api, playRecording],
@@ -649,7 +660,7 @@ export function WorldRoute() {
           {showDebrief && debrief !== null ? (
             <DebriefScene
               debrief={debrief}
-              view={view}
+              view={mode === "playback" ? debriefView(view, endedTrial, recording?.trial_id ?? null) : view}
               documents={documents}
               reducedMotion={still}
               onClose={() => {
@@ -952,12 +963,7 @@ export function WorldRoute() {
               setDemo({ ...demo, step: "arena" });
             }
           }}
-          onRecorded={() => {
-            if (mode === "playback" && recording?.case.case_id === RECORDED_CASE_ID) {
-              playback.seekTo(0);
-              playback.play();
-            } else openDemoRecording();
-          }}
+          onRecorded={openDemoRecording}
           onFile={openRecordingFile}
           onLive={() => {
             startLive("practice");
