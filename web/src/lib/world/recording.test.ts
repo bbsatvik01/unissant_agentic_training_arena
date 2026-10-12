@@ -83,11 +83,35 @@ describe("parseRecording refuses a broken recording whole", () => {
     expect(parseRecording(null)).toEqual({ ok: false, errors: ["recording: not an object"] });
   });
 
+  it("reads the end-of-trial snapshot, and refuses one that fails the schema or is still running", () => {
+    expect(load().final_snapshot).toBe(null);
+    const ended = { ...structuredClone(raw.snapshot), status: "completed" };
+    const withFinal = { ...(structuredClone(raw) as unknown as Record<string, unknown>), final_snapshot: ended };
+    const result = parseRecording(withFinal);
+    expect(result.ok && result.recording.final_snapshot?.status).toBe("completed");
+    expect(broken((r) => (r["final_snapshot"] = { status: "completed" }))).toContain("final_snapshot: fails the snapshot wire schema");
+    expect(broken((r) => (r["final_snapshot"] = structuredClone(raw.snapshot)))).toContain("final_snapshot: the trial had not ended");
+  });
+
   it("accepts a recording without a debrief", () => {
     const copy = structuredClone(raw) as unknown as Record<string, unknown>;
     delete copy["debrief"];
     const result = parseRecording(copy);
     expect(result.ok && result.recording.debrief).toBe(null);
+  });
+});
+
+describe("the end-of-trial snapshot", () => {
+  it("is folded in only once playback reaches the end", () => {
+    const rec = load();
+    const final = { ...structuredClone(rec.snapshot), status: "completed" as const, last_seq: 10_000 };
+    const ended: Recording = { ...rec, final_snapshot: final };
+    const middle = seek(ended, startCursor(ended), ended.events[1]?.at_ms ?? 0);
+    expect(middle.state.snapshot?.last_seq).not.toBe(10_000);
+    const end = seek(ended, startCursor(ended), ended.durationMs);
+    expect(end.state.snapshot?.last_seq).toBe(10_000);
+    expect(end.state.snapshot?.status).toBe("completed");
+    expect(seek(rec, startCursor(rec), rec.durationMs).state.snapshot?.last_seq).toBe(rec.snapshot.last_seq);
   });
 });
 

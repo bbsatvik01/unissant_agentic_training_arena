@@ -127,4 +127,5 @@ def state_from_env(env: Mapping[str, str]) -> ApiState:
         coach_name=env.get("ARENA_TRAINING_COACH", "A1"),
         subject_name=env.get("ARENA_TRAINING_SUBJECT", "S1"),
         case_draw_seed=env.get("ARENA_CASE_DRAW_SEED", "0"),
+        planned_n=int(env.get("ARENA_PLANNED_N", "30")),
     )

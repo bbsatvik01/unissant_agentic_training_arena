@@ -430,6 +430,23 @@ class FakeArenaDb(ArenaDb):
         top = max(rows, key=lambda b: b["manifest_version"])
         return {"body": top["body"], "label": top["label"], "manifest_version": top["manifest_version"]}
 
+    async def isolation_checks(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "check": "hidden_text_scan",
+                "candidate": "A1",
+                "passed": True,
+                "run_at": "2026-10-12T00:00:00.000Z",
+                "commit_sha": "c" * 40,
+            }
+        ]
+
+    async def revealed_commitments(self) -> list[dict[str, Any]]:
+        return []
+
+    async def budget_view(self) -> dict[str, Any]:
+        return {"ceiling_usd": "0.000000", "spent_usd": "0", "open_usd": "0", "by_purpose": []}
+
     async def public_config(self) -> dict[str, Any]:
         return {"paused": self.paused, "text_sessions_per_user_day": 5, "voice_sessions_per_user_day": 1}
 
