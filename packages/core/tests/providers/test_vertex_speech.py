@@ -362,6 +362,8 @@ def test_a_timeout_or_broken_reply_may_have_been_billed_and_a_reply_without_an_i
         design(designer_with(lambda _request: httpx.Response(200, json={"usage": REPLY["usage"]}))[0])
     assert empty.value.kind == ErrorKind.EMPTY
     assert empty.value.usage is not None
+    garbled = {"id": "voice_g", "sample_audio": {"mime_type": "audio/wav", "data": "not base64!"}}
+    assert design(designer_with(lambda _request: httpx.Response(200, json=garbled))[0]).sample == b""
     bare = design(designer_with(lambda _request: httpx.Response(200, json={"id": "voice_x"}))[0])
     assert (bare.sample, bare.usage) == (b"", None)
 

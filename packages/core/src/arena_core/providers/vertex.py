@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -39,6 +40,8 @@ from arena_core.config import ALLOWED_GCP_PROJECT
 from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError, kind_for_status
 from arena_core.providers.types import ModelRequest, RawCompletion, Usage
 from arena_core.spend.limits import LIMITS, CallType, ThinkingLevel
+
+log = logging.getLogger("arena_core.providers.vertex")
 
 # The SDK and transport modules this adapter consumes, named for the adapter's own tests: no other module imports
 # google.genai (S5 1.2 item 2 rule c) or a raw HTTP client (semgrep arena-no-raw-http), so the tests build SDK
@@ -531,7 +534,9 @@ def designed_voice_from(data: object) -> DesignedVoice:
         if isinstance(raw, str):
             try:
                 sample = base64.b64decode(raw, validate=True)
-            except ValueError:
+            except ValueError as exc:
+                # The voice is stored and usable; only its audition sample is unreadable, so it is reported, not fatal.
+                log.warning("voice %s: unreadable sample audio (%s)", voice_id, exc)
                 sample = b""
     return DesignedVoice(voice_id=voice_id, sample=sample, sample_mime=mime, usage=usage)
 
