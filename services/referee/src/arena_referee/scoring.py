@@ -20,7 +20,7 @@ from arena_core.agents.referee_prompts import (
     build_referee_subject_prompt,
     empty_subject_report,
 )
-from arena_core.agents.rubric import Rubric
+from arena_core.agents.rubric import Rubric, manifest_rubric
 from arena_core.contracts.adapter import adapt_subject_report
 from arena_core.contracts.common import turn_id
 from arena_core.contracts.referee import (
@@ -174,6 +174,9 @@ def assistant_agent_call(
     inp: RefereeAssistantInput, prompts: PromptSet, rubric: Rubric | None, trial_id: str, purpose: Purpose
 ) -> AgentCall[RefereeAssistantReport]:
     prompt = build_referee_assistant_prompt(inp, prompts, dev_rubric=rubric)
+    # The rubric the prompt rendered: the manifest's rubric.v1 when it hashes one, else the development placeholder
+    # (the builder refuses any other combination), so the validation context always matches the prompt.
+    rendered = manifest_rubric(prompts) or rubric
     model, thinking = REFEREE_COMBINATIONS[purpose]
     return AgentCall(
         model=model,
@@ -188,7 +191,7 @@ def assistant_agent_call(
             trial_id=UUID(trial_id),
             data_class="evaluator",
         ),
-        validation_context=_assistant_context(inp, rubric) if rubric is not None else None,
+        validation_context=_assistant_context(inp, rendered) if rendered is not None else None,
         salt=prompt.salt,
     )
 

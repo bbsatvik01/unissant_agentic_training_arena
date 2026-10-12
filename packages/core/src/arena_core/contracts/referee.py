@@ -282,7 +282,7 @@ def assistant_judgment_errors(
         if i in PER_QUESTION_SUBCHECKS
     ]
     errors += [
-        f"subchecks: {s.id} always applies; answer pass or fail, never na"
+        f"subchecks: {s.id} always applies, so answer pass or fail, never na"
         for s in subchecks or []
         if s.id in ALWAYS_APPLICABLE_SUBCHECKS and s.result == "na"
     ]
@@ -300,7 +300,7 @@ def assistant_judgment_errors(
     }
     errors += [e for field, got in lists.items() if got is not None for e in _exactly_once(field, got, expected[field])]
     errors += [
-        f"subchecks: {s.id} applies in this trial; answer pass or fail, never na"
+        f"subchecks: {s.id} applies in this trial, so answer pass or fail, never na"
         for s in subchecks or []
         if s.id in ctx.applicable_subcheck_ids and s.id not in ALWAYS_APPLICABLE_SUBCHECKS and s.result == "na"
     ]

@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from arena_core.agents.repair import output_errors
 from arena_core.contracts.referee import (
     RefAsstContext,
     RefereeAssistantReport,
@@ -242,8 +243,25 @@ def test_an_always_applicable_subcheck_is_never_answered_na(check: str) -> None:
     answered = [*_asst()["subchecks"], {"id": check, "result": "pass", "turn_ids": []}]
     RefereeAssistantReport.model_validate(_asst(subchecks=answered), context=ctx)
     na = [*_asst()["subchecks"], {"id": check, "result": "na", "turn_ids": []}]
-    with pytest.raises(ValidationError, match=rf"subchecks: {check} always applies"):
+    with pytest.raises(ValidationError, match=rf"subchecks: {check} always applies, so answer pass or fail, never na"):
         RefereeAssistantReport.model_validate(_asst(subchecks=na), context=ctx)
+
+
+def test_every_na_refusal_is_one_whole_repair_item() -> None:
+    # S2 10: the repair turn carries at most 10 `field.path: message` items; a refusal split into fragments would
+    # crowd the others out of the one repair.
+    ids = ["3a", "3b", "4a", "4c", "4d", "3c", "5c"]
+    ctx = dataclasses.replace(
+        ASST_CTX,
+        rubric_subcheck_ids=ASST_CTX.rubric_subcheck_ids | set(ids),
+        applicable_subcheck_ids=frozenset({"3c", "5c"}),
+    )
+    na = [*_asst()["subchecks"], *({"id": i, "result": "na", "turn_ids": []} for i in ids)]
+    value, items = output_errors(RefereeAssistantReport, json.dumps(_asst(subchecks=na)), ctx)
+    assert value is None
+    assert len(items) == len(ids)
+    assert all(item.startswith("subchecks: ") and item.endswith("never na") for item in items)
+    assert {item.split()[1] for item in items} == set(ids)
 
 
 def test_a_subcheck_with_a_listed_trigger_is_never_answered_na() -> None:
@@ -254,7 +272,7 @@ def test_a_subcheck_with_a_listed_trigger_is_never_answered_na() -> None:
         ASST_CTX, rubric_subcheck_ids=ASST_CTX.rubric_subcheck_ids | {"3c"}, applicable_subcheck_ids=frozenset({"3c"})
     )
     na = [*_asst()["subchecks"], {"id": "3c", "result": "na", "turn_ids": []}]
-    with pytest.raises(ValidationError, match="subchecks: 3c applies in this trial; answer pass or fail, never na"):
+    with pytest.raises(ValidationError, match="subchecks: 3c applies in this trial, so answer pass or fail, never na"):
         RefereeAssistantReport.model_validate(_asst(subchecks=na), context=ctx)
     untriggered = dataclasses.replace(ctx, applicable_subcheck_ids=frozenset())
     RefereeAssistantReport.model_validate(_asst(subchecks=na), context=untriggered)

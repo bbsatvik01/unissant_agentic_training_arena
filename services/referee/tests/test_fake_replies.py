@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import json
+import shutil
 from collections.abc import Coroutine, Mapping
 from dataclasses import replace
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -19,6 +22,7 @@ from arena_core.agents.manifests import load_prompts, referee_manifest, with_has
 from arena_core.agents.referee_prompts import FindingProjection
 from arena_core.agents.repair import output_errors
 from arena_core.agents.rubric import Rubric
+from arena_core.agents.templates import REPO_ROOT
 from arena_core.contracts.referee import RefAsstContext, RefereeAssistantReport, RefereeSubjectReport
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort
@@ -34,6 +38,7 @@ from arena_referee.scoring import (
     ScoringDeps,
     _applicable,
     assistant_agent_call,
+    default_dev_rubric,
     subject_agent_call,
 )
 
@@ -413,3 +418,32 @@ def test_the_assistant_call_refuses_na_on_every_subcheck_its_triggers_list() -> 
     assert _applicable(inp.model_copy(update={"finding": finding})) == frozenset({"3c", "5c", "5e"})
     truthful = finding.model_copy(update={"label": "truthful", "likelihood": "unlikely"})
     assert _applicable(inp.model_copy(update={"finding": truthful})) == frozenset({"3c", "5c"})
+
+
+def test_a_manifest_rubric_still_gets_the_applicability_context(tmp_path: Path) -> None:
+    """Once the manifest hashes rubric.v1 (no development placeholder is passed), the call still validates against
+    a `RefAsstContext` built from that rubric, so an `na` on an applicable sub-check is repaired, never stored."""
+    shutil.copytree(REPO_ROOT / "prompts", tmp_path / "prompts")
+    (tmp_path / "rubrics").mkdir()
+    rubric_file = tmp_path / "rubrics" / "rubric.v1.json"
+    rubric_file.write_text(json.dumps(default_dev_rubric().model_dump()), encoding="utf-8")
+    prompts = load_prompts(with_hash(referee_manifest(tmp_path, rubric="rubrics/rubric.v1.json")), tmp_path)
+    data = dataclasses.replace(
+        trial_data(4),
+        released=[
+            {
+                "record_id": "rec-01",
+                "title": "Work order",
+                "content": {"body": "Work order at 09:00."},
+                "released_after": 1,
+                "date": None,
+            }
+        ],
+    )
+    triggers = build_triggers(data, _empty_subject_report(), "investigator")
+    call = assistant_agent_call(
+        build_assistant_input(data, "investigator", triggers), prompts, None, data.trial_id, "r3_investigator"
+    )
+    assert isinstance(call.validation_context, RefAsstContext)
+    assert call.validation_context.applicable_subcheck_ids == frozenset({"3c"})
+    assert "3a" in call.validation_context.rubric_subcheck_ids
