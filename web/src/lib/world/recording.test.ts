@@ -101,6 +101,20 @@ describe("parseRecording refuses a broken recording whole", () => {
   });
 });
 
+describe("the end-of-trial snapshot", () => {
+  it("is folded in only once playback reaches the end", () => {
+    const rec = load();
+    const final = { ...structuredClone(rec.snapshot), status: "completed" as const, last_seq: 10_000 };
+    const ended: Recording = { ...rec, final_snapshot: final };
+    const middle = seek(ended, startCursor(ended), ended.events[1]?.at_ms ?? 0);
+    expect(middle.state.snapshot?.last_seq).not.toBe(10_000);
+    const end = seek(ended, startCursor(ended), ended.durationMs);
+    expect(end.state.snapshot?.last_seq).toBe(10_000);
+    expect(end.state.snapshot?.status).toBe("completed");
+    expect(seek(rec, startCursor(rec), rec.durationMs).state.snapshot?.last_seq).toBe(rec.snapshot.last_seq);
+  });
+});
+
 describe("playback cursor", () => {
   it("starts at the snapshot, with its arrival at time 0", () => {
     const rec = load();

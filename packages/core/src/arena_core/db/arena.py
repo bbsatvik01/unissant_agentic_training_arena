@@ -315,10 +315,13 @@ class ArenaDb:
     # ------------------------------------------------------------------ trust center (S6 4.11)
 
     async def isolation_checks(self) -> list[dict[str, Any]]:
-        """`arena.v_isolation_checks`: check, candidate, pass or fail, run time and commit (never the evidence)."""
+        """`arena.v_isolation_checks`: the latest run per check and candidate (S6 4.11): check, candidate, pass or
+        fail, run time and commit (never the evidence)."""
         rows = await self.fetch(
-            "select check_name, candidate_name, passed, run_at, commit_sha from arena.v_isolation_checks"
-            " order by run_at desc, check_name"
+            "select check_name, candidate_name, passed, run_at, commit_sha from"
+            " (select distinct on (check_name, candidate_id) check_name, candidate_name, passed, run_at, commit_sha"
+            "  from arena.v_isolation_checks order by check_name, candidate_id, run_at desc) latest"
+            " order by check_name, candidate_name"
         )
         return [
             {"check": r[0], "candidate": r[1], "passed": bool(r[2]), "run_at": iso(r[3]), "commit_sha": r[4]}
@@ -329,20 +332,21 @@ class ArenaDb:
         """The commitments of revealed tournaments' trials with their payload and the revealed nonce (S4 6:
         public after reveal), each trial named by an opaque per-tournament ordinal (`trial_ref`, S5 6.2)."""
         rows = await self.fetch(
-            "select t.tournament_id, row_number() over (partition by t.tournament_id order by t.id),"
+            "select t.tournament_id, x.name, row_number() over (partition by t.tournament_id order by t.id),"
             " c.commitment_sha256, c.payload_text, n.nonce_hex"
             " from ledger.v_commitments c join arena.v_trials t on t.id = c.trial_id"
             " join arena.v_tournaments x on x.id = t.tournament_id and x.status = 'revealed'"
             " left join ledger.v_revealed_nonces n on n.trial_id = c.trial_id"
-            " where c.payload_text is not null order by t.tournament_id, 2"
+            " where c.payload_text is not null order by x.name, 3"
         )
         out = []
-        for tournament, ref, commitment, payload_text, nonce in rows:
+        for tournament, name, ref, commitment, payload_text, nonce in rows:
             payload = json.loads(payload_text)
             out.append(
                 {
                     "tournament_id": str(tournament),
-                    "trial_ref": int(ref),
+                    # Unique across tournaments: the tournament's name and the trial's ordinal in it.
+                    "trial_ref": f"{name} #{int(ref)}",
                     "commitment_sha256": commitment,
                     "transcript_sha256": payload.get("transcript_sha256"),
                     "evidence_sha256": payload.get("evidence_sha256"),
@@ -367,7 +371,7 @@ class ArenaDb:
             "ceiling_usd": str(ceiling),
             "spent_usd": str(liability - held),
             "open_usd": str(held),
-            "by_purpose": [{"purpose": p, "calls": int(n), "cost_usd": str(c)} for p, n, c in purposes],
+            "by_purpose": [{"purpose": p, "calls": int(n), "spent_usd": str(c)} for p, n, c in purposes],
         }
 
     async def public_config(self) -> dict[str, Any]:

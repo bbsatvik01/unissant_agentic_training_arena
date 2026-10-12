@@ -4,6 +4,7 @@ import csv from "../../../../supabase/tests/fixtures/capability_matrix.csv?raw";
 import { parseTrustBudget } from "./budget";
 import { csvFields, parseCapabilities } from "./capability";
 import { commitmentOf, hexBytes, verifyCommitment } from "./commitment";
+import { parseCommitments, parseIsolation } from "./sections";
 
 const NONCE = "00".repeat(31) + "01";
 const PAYLOAD = '{"label": "truthful", "trial_id": "t-1"}';
@@ -107,5 +108,28 @@ describe("fairness and calibration", () => {
       { instrument: "EVL-7 D2", statistic: "QWK", value: null, threshold: 0.6, met: false },
     ]);
     expect(parseCalibration({})).toBe(null);
+  });
+});
+
+describe("the arena-api trust responses as served (GET /api/trust/{section})", () => {
+  it("parse through the page's readers", () => {
+    const budget = parseTrustBudget({
+      ceiling_usd: "74.000000",
+      spent_usd: "2.25",
+      open_usd: "1.25",
+      by_purpose: [{ purpose: "coach.card", calls: 4, spent_usd: "0.20" }],
+      planned_n: 30,
+    });
+    expect(budget?.byPurpose).toEqual([{ purpose: "coach.card", spent: "$0.20" }]);
+    expect(budget?.plannedCases).toBe(30);
+    const runs = parseIsolation({ checks: [{ check: "hidden_text_scan", candidate: "A1", passed: true, run_at: "2026-10-12T00:00:00.000Z", commit_sha: "c".repeat(40) }] });
+    expect(runs?.[0]?.passed).toBe(true);
+    const rows = parseCommitments({
+      commitments: [
+        { tournament_id: "t1", trial_ref: "dev-1 #1", commitment_sha256: "x".repeat(64), transcript_sha256: "t".repeat(64), evidence_sha256: "e".repeat(64), payload_text: "{}", nonce: "n".repeat(64) },
+        { tournament_id: "t2", trial_ref: "dev-2 #1", commitment_sha256: "y".repeat(64), transcript_sha256: null, evidence_sha256: null, payload_text: "{}", nonce: null },
+      ],
+    });
+    expect(rows?.map((r) => r.trial)).toEqual(["dev-1 #1", "dev-2 #1"]);
   });
 });

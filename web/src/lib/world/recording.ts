@@ -113,6 +113,11 @@ export function seek(recording: Recording, cursor: PlaybackCursor, t: number): P
     arrivals = noteArrival(arrivals, event.frame, event.at_ms);
     next += 1;
   }
+  // At the end, the end-of-trial snapshot: in assessment mode it brings the coaching the session withheld
+  // (FE-DEB-4); the reducer keeps whichever snapshot is newer, so a practice run ends as it played.
+  if (next >= recording.events.length && recording.final_snapshot !== null) {
+    state = trialReducer(state, { type: "snapshot", snapshot: recording.final_snapshot });
+  }
   return { t: target, next, state, arrivals };
 }
 
