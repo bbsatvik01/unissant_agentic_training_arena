@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import raw from "../../fixtures/recordings/F01-truthful.json";
 import { parseRecording } from "./parseRecording";
-import { detectionOf, ofText, questionReview } from "./debrief";
+import { debriefView, detectionOf, ofText, questionReview } from "./debrief";
 import { seek, startCursor } from "./recording";
 
 describe("debrief data", () => {
@@ -30,5 +30,12 @@ describe("debrief data", () => {
     expect(detectionOf({ ...(rec.debrief as object), scored: false } as never)).toBe(null);
     expect(ofText(1, 3)).toBe("1 of 3");
     expect(ofText(0, 0)).toBe("undefined");
+  });
+
+  it("reviews the ended trial's own snapshot when one was read for this recording, else the view on screen (FE-DEB-4)", () => {
+    const ended = { trialId: "t-1", view: { ...view, cards: [] } };
+    expect(debriefView(view, ended, "t-1")).toBe(ended.view);
+    expect(debriefView(view, ended, "t-2")).toBe(view);
+    expect(debriefView(view, null, "t-1")).toBe(view);
   });
 });

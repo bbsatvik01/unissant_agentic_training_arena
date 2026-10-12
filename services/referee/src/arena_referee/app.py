@@ -24,6 +24,7 @@ from arena_core.http_guard import GuardConfig, GuardRefusalError, RequestFacts, 
 from arena_core.identity import DevIdentity, resolve_dev_user
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort
+from arena_core.referee.fake_referee import FAKE_REFEREE_REPLIES
 from arena_core.scoring.rubric import lineage_checked_sha256
 from arena_core.spend.guard import DbSpendGuard
 from arena_referee import db
@@ -103,7 +104,10 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     resolved_env = dict(os.environ if env is None else env)
     settings: Settings = boot(ArenaRole.REFEREE, resolved_env)
     connect = dsn_connector(settings.dsn)
-    adapter = model_adapter(resolved_env)
+    # ARENA_MODEL_MODE=fake: a trial-shaped, transcript-aware reply per referee schema, never a fixed one --
+    # S5 10.4's zero-spend local run still has to score a real transcript end to end (see
+    # arena_core.referee.fake_referee, shared with arena-tournament's own fake-mode scoring, WP-17).
+    adapter = model_adapter(resolved_env, canned=FAKE_REFEREE_REPLIES)
     guard = DbSpendGuard(connect)
     port = AgentPort(adapter, guard)
     manifest = with_hash(referee_manifest())

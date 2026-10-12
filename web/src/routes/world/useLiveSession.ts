@@ -106,6 +106,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const worldKey = useRef("");
   const debriefAsked = useRef(false);
   const generation = useRef(0);
+  const starting = useRef(false);
   const options = useRef({ subjectName, reducedMotion, paused });
   useEffect(() => {
     options.current = { subjectName, reducedMotion, paused };
@@ -164,12 +165,16 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
 
   const start = useCallback(
     async (mode: "practice" | "assessment") => {
-      if (caseId === null || controller.current !== null) return;
+      // One start at a time: a second click while the session is being created is ignored.
+      if (caseId === null || controller.current !== null || starting.current) return;
+      starting.current = true;
       const run = generation.current;
       setPhase("starting");
       setError(null);
       try {
-        const started = await api.startSession({ case_id: caseId, mode, voice: false, idem_key: crypto.randomUUID() });
+        const started = await api.startSession({ case_id: caseId, mode, voice: false, idem_key: crypto.randomUUID() }).finally(() => {
+          starting.current = false;
+        });
         if (generation.current !== run) return;
         rememberSession(started);
         await attach(started, run);

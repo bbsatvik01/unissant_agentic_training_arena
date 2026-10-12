@@ -9,6 +9,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import type { CoachCard, Debrief } from "../../lib/contracts/generated/types";
 import { EX4_EVASION_SENTENCE, EX4_TEXT } from "../../lib/copy/ex4";
@@ -16,7 +17,7 @@ import { contentText } from "../../lib/contracts/quote";
 import { LABELS } from "../../lib/copy/finding";
 import { anchorFor, checkName, RUBRIC } from "../../lib/copy/rubric";
 import type { TrialView } from "../../lib/trial/trialReducer";
-import { detectionOf, ofText, questionReview } from "../../lib/world/debrief";
+import { debriefExport, detectionOf, exportName, ofText, questionReview } from "../../lib/world/debrief";
 import type { CaseDocument } from "../../lib/world/recording";
 import { Flag, recordMap } from "./CoachPanel";
 import { Tabs } from "./Tabs";
@@ -111,11 +112,11 @@ function VoiceExchanges({ view }: { view: TrialView }) {
   );
 }
 
-function Questions({ view, documents }: { view: TrialView | null; documents: readonly CaseDocument[] }) {
+function Questions({ view, documents, expanded = false }: { view: TrialView | null; documents: readonly CaseDocument[]; expanded?: boolean }) {
   if (view !== null && view.turns.length === 0 && view.voiceExchanges.length > 0) return <VoiceExchanges view={view} />;
   if (view === null || view.turns.length === 0) return <p className="empty">No questions were asked.</p>;
   const records = recordMap(documents, view.released);
-  return <Review view={view} records={records} />;
+  return <Review view={view} records={records} expanded={expanded} />;
 }
 
 /** The answer with the cited quote marked, when the quote is in it. */
@@ -131,7 +132,7 @@ function Answer({ text, quote }: { text: string; quote: string | null }) {
   );
 }
 
-function Review({ view, records }: { view: TrialView; records: ReadonlyMap<string, { title: string; text: string }> }) {
+function Review({ view, records, expanded }: { view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; expanded: boolean }) {
   const [cited, setCited] = useState<{ turn: number; quote: string } | null>(null);
   // A citation chip moves focus to its turn and marks the quote there (S6 9: keyboard reachable, visible target).
   const onCite = (turn: number, quote: string) => {
@@ -165,7 +166,7 @@ function Review({ view, records }: { view: TrialView; records: ReadonlyMap<strin
           {r.answerCategory === null ? null : <p className="fine">Answer: {words(r.answerCategory)}</p>}
           {r.card === null || r.card.flags.length === 0 ? null : <FlagList card={r.card} view={view} records={records} onCite={onCite} />}
           {r.released.map((rel) => (
-            <details key={rel.record_id} className="release-marker">
+            <details key={rel.record_id} className="release-marker" open={expanded}>
               <summary>
                 Released after this turn: <span className="mono">{rel.record_id}</span> {rel.title}
               </summary>
@@ -261,6 +262,7 @@ function Learning({ debrief }: { debrief: Debrief }) {
 export function DebriefScene({ debrief, view, documents, reducedMotion, onClose }: { debrief: Debrief; view: TrialView | null; documents: readonly CaseDocument[]; reducedMotion: boolean; onClose: () => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("scores");
+  const [printing, setPrinting] = useState(false);
   useGSAP(
     () => {
       root.current?.querySelectorAll<HTMLElement>("[data-count]").forEach((el, i) => {
@@ -290,9 +292,45 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
     <div className="debrief debrief-scene" ref={root} role="dialog" aria-labelledby="debrief-title">
       <header className="panel-head">
         <h2 id="debrief-title">Debrief</h2>
-        <button type="button" className="btn-secondary-sm" onClick={onClose}>
-          Close
-        </button>
+        <div className="debrief-actions">
+          <button
+            type="button"
+            className="btn-secondary-sm"
+            onClick={() => {
+              const url = URL.createObjectURL(new Blob([debriefExport(debrief)], { type: "application/json" }));
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = exportName(debrief);
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download JSON
+          </button>
+          <button
+            type="button"
+            className="btn-secondary-sm"
+            onClick={() => {
+              // The print view holds all four views under the EX-4 header; it exists only while printing.
+              flushSync(() => {
+                setPrinting(true);
+              });
+              const root = document.documentElement;
+              root.classList.add("printing-debrief");
+              try {
+                window.print();
+              } finally {
+                root.classList.remove("printing-debrief");
+                setPrinting(false);
+              }
+            }}
+          >
+            Print
+          </button>
+          <button type="button" className="btn-secondary-sm" onClick={onClose}>
+            Close
+          </button>
+        </div>
       </header>
       <div className="debrief-intro">
         <p className="fine">{EX4_TEXT}</p>
@@ -312,6 +350,24 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
           { id: "learning", label: "Learning", content: <Learning debrief={debrief} /> },
         ]}
       />
+      {printing ? (
+        <div className="debrief-print" data-print="true">
+          <p>{EX4_TEXT}</p>
+          <h1>Debrief</h1>
+          <p>
+            The subject&apos;s role: {debrief.outcome.role}. Case outcome: {word(debrief.outcome.correct_finding)}. Your finding: {word(debrief.outcome.committed_label)}.
+          </p>
+          <p>{debrief.outcome.resolution}</p>
+          <h2>Scores</h2>
+          <Scores debrief={debrief} />
+          <h2>{debrief.scored ? "Questions" : "Exchanges"}</h2>
+          <Questions view={view} documents={documents} expanded />
+          <h2>Detection</h2>
+          <Detection debrief={debrief} />
+          <h2>Learning</h2>
+          <Learning debrief={debrief} />
+        </div>
+      ) : null}
     </div>
   );
 }
