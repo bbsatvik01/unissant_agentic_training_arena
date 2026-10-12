@@ -170,7 +170,10 @@ async def run_smoke(
     try:
         started = await public.start_session(start)
     except ArenaError as exc:
-        msg = f"start_session refused: {exc.code} {exc.message}"
+        # exc.message falls back to the raw psycopg message when the error never reached the server (S4
+        # 2.3's _arena_error): for a malformed ARENA_PUBLIC_DSN that is the connection string itself, password
+        # included. exc.code (the SQLSTATE) is always safe; the free-text detail is not carried further.
+        msg = f"start_session refused: {exc.code}"
         raise SmokeError(msg) from exc
     trial_id = UUID(str(started["trial_id"]))
 
@@ -188,6 +191,18 @@ async def run_smoke(
     started_at = time.monotonic()
     turn = await orchestrator.run_turn(trial_id, question, [], 0, secrets.token_hex(16))
     elapsed_ms = (time.monotonic() - started_at) * 1000
+
+    # run_turn returns normally, never raising, for a budget refusal, a kill-switch pause or a quarantined
+    # reply (Orchestrator._answer) and for a coach call the orchestrator itself could not store
+    # (Orchestrator._coach): "outcome": "recorded" with at least one call on each port is the only shape that
+    # means a real subject call and a real coach card both actually happened; anything else is reported as a
+    # failure, never as a smoke test that silently proved nothing.
+    if turn["outcome"] != "recorded" or not subject_port.calls or not coach_port.calls:
+        msg = (
+            f"no real coach-card-and-subject-call round trip: outcome={turn['outcome']!r}, "
+            f"{len(subject_port.calls)} subject call(s), {len(coach_port.calls)} coach call(s)"
+        )
+        raise SmokeError(msg)
 
     return {
         "trial_id": str(trial_id),
@@ -214,7 +229,13 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
             run_smoke(resolved, family=args.family, coach_name=coach, subject_name=subject, question=args.question)
         )
     except (SmokeError, IdentityError, ArenaError, psycopg.Error) as exc:
-        sys.stderr.write(f"real_smoke: {type(exc).__name__}: {exc}\n")
+        # SmokeError and IdentityError are raised by this script itself, from family/candidate names, an
+        # email or a users-file path, never a DSN: safe to print in full. A bare ArenaError or psycopg.Error
+        # (a malformed ARENA_PUBLIC_DSN or ARENA_SUBJECT_DSN failing to connect before start_session, inside
+        # dev_variant's or registered_candidate's own lookup) is not: its message can echo the connection
+        # string verbatim, password included, so only its type name is printed.
+        detail = str(exc) if isinstance(exc, SmokeError | IdentityError) else "(detail withheld: it can echo a DSN)"
+        sys.stderr.write(f"real_smoke: {type(exc).__name__}: {detail}\n")
         return 1
     sys.stdout.write(json.dumps(result, sort_keys=True) + "\n")
     return 0

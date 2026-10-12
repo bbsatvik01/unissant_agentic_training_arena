@@ -243,6 +243,46 @@ def test_codex_review_from_report_refuses_a_malformed_hash() -> None:
         codex_review_from_report(report)
 
 
+@pytest.mark.parametrize("key", ["cx2_truthful", "cx2_deceptive", "cx3"])
+def test_codex_review_from_report_refuses_a_solve_sheet_that_disagrees_with_the_top_level_flag(key: str) -> None:
+    """The top-level flag alone is not trusted: a report edited so `solves.<key>.pass` is false while the
+    matching top-level field still says true (a stale or hand-edited report, never a check or solve sheet
+    changed by this function) is refused, not accepted on the passing field's word."""
+    report = legacy_report("F01")
+    report["solves"][key]["pass"] = False
+    report["solves"][key]["finding"] = "deceptive"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_missing_solves_object() -> None:
+    report = legacy_report("F01")
+    del report["solves"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_object_solves() -> None:
+    report = legacy_report("F01", solves="not an object")
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_solve_sheet_missing_its_own_pass_field() -> None:
+    report = legacy_report("F01")
+    del report["solves"]["cx3"]["pass"]
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_object_solve_sheet() -> None:
+    """`solves` itself is an object, but one named sheet (`solves.cx3`) is not."""
+    report = legacy_report("F01")
+    report["solves"]["cx3"] = "not an object"
+    with pytest.raises(LegacyCodexReportError, match="solves"):
+        codex_review_from_report(report)
+
+
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:
     """S1 8.5 step 3: the validators and the Codex review pass on the same family-file hash."""
     reviewed = seed("F01")

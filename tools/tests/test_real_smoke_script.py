@@ -10,12 +10,15 @@ import asyncio
 import json
 from collections.abc import Coroutine, Mapping
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, NoReturn, cast
 from uuid import UUID, uuid4
 
 import pytest
 from pydantic import BaseModel, Field
 
+from arena_core.contracts.subject import SubjectTurn
+from arena_core.db.arena import ArenaError, SessionStart
 from arena_core.db.pool import Connector
 from arena_core.identity import DevIdentity
 from arena_core.providers.fake import FakeAdapter
@@ -120,6 +123,34 @@ def test_real_subject_call_wraps_an_answer_error_as_subject_unavailable(monkeypa
     assert caught.value.code == "budget_refused"
 
 
+def test_run_smoke_never_embeds_an_arena_errors_free_text_in_the_smoke_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`ArenaError.message` falls back to the raw psycopg message when a connection error never reached the
+    server (a malformed DSN, S4 2.3's `_arena_error`) -- password included. `run_smoke` wraps a refused
+    `start_session` into a `SmokeError`; this proves that wrap carries only the safe SQLSTATE (`exc.code`),
+    never `exc.message`, even when the database layer hands it an unsafe one."""
+    unsafe = "connection failed: password=s3cr3t-in-the-clear"
+    actor = UUID(int=7)
+
+    class _RefusingDb(FakeArenaDb):
+        async def start_session(self, _start: SessionStart) -> dict[str, Any]:
+            raise ArenaError("AR040", unsafe)
+
+    refusing = _RefusingDb(actor)
+
+    monkeypatch.setattr(real_smoke, "resolve_dev_user", lambda _env: DevIdentity(actor, "x@test", "X", frozenset()))
+    monkeypatch.setattr(real_smoke, "dsn_connector", lambda _dsn: lambda: None)
+    monkeypatch.setattr(real_smoke, "ArenaDb", lambda _connect, _actor: refusing)
+
+    env = {"ARENA_MODEL_MODE": "fake", "ARENA_PUBLIC_DSN": "x", "ARENA_SUBJECT_DSN": "y"}
+    with pytest.raises(real_smoke.SmokeError) as caught:
+        run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
+    assert "AR040" in str(caught.value)
+    assert unsafe not in str(caught.value)
+    assert "s3cr3t-in-the-clear" not in str(caught.value)
+
+
 def test_run_smoke_builds_the_report_end_to_end_against_a_fake_db(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every line of `run_smoke` runs for real: variant and candidate lookup, `start_session`, both ports, one
     real `Orchestrator.run_turn` (a real coach card through a real `AgentPort` + `FakeAdapter` + in-memory
@@ -135,10 +166,26 @@ def test_run_smoke_builds_the_report_end_to_end_against_a_fake_db(monkeypatch: p
     def fake_guard(_connect: object) -> RunBudget:
         return RunBudget(Decimal(100))
 
-    def fake_subject_call(_connect: object, _port: object, _actor: UUID | None) -> SubjectCall:
+    def fake_subject_call(_connect: object, port: AgentPort, _actor: UUID | None) -> SubjectCall:
         async def call(_trial: UUID, work_item: UUID, _step_actor: UUID | None) -> SubjectOutcome:
-            # FakeArenaDb's own transcript needs a real recorded answer (not just a canned outcome) for the
-            # coach step that follows to read a turn with a non-null answer.
+            # A real call through the real subject_port (its FakeAdapter is configured for SubjectTurn by
+            # run_smoke itself), so subject_port.calls is non-empty exactly as a real answer() call would
+            # leave it; FakeArenaDb's own transcript then needs a real recorded answer (not just a canned
+            # outcome) for the coach step that follows to read a turn with a non-null answer.
+            subject_call = AgentCall(
+                model=VertexModel.FLASH_LITE_31,
+                thinking=ThinkingLevel.MINIMAL,
+                system="s",
+                messages=(Message("user", "hello"),),
+                schema=SubjectTurn,
+                context=CallContext(
+                    call_type=CallType.SUBJECT,
+                    purpose="subject.answer",
+                    step_key=str(work_item),
+                    data_class="subject_private",
+                ),
+            )
+            await port.run(subject_call)
             return db.record_answer(work_item)
 
         return call
@@ -155,11 +202,39 @@ def test_run_smoke_builds_the_report_end_to_end_against_a_fake_db(monkeypatch: p
     assert result["trial_id"] == str(db.trial_id)
     assert result["outcome"] == "recorded"
     assert result["turn_no"] == 1
-    assert result["subject"] == []  # the faked subject call never touches subject_port
+    assert len(result["subject"]) == 1  # the real subject call, through the real port and FakeAdapter
+    assert result["subject"][0]["purpose"] == "subject.answer"
     assert len(result["coach"]) == 1  # the real coach card, through the real port and FakeAdapter
     assert result["coach"][0]["purpose"] == "coach.card"
     assert result["coach"][0]["cost_usd"] == "0.000000"
     assert isinstance(result["elapsed_ms"], float)
+
+
+def test_run_smoke_refuses_to_report_success_when_the_subject_call_never_happened(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`Orchestrator.run_turn` returns normally, with `outcome` other than `"recorded"` and no coach step run,
+    for a budget-refused, kill-switch-paused or quarantined subject reply (`Orchestrator._answer`): a smoke
+    test that called `run_turn` and got a clean return is not the same thing as one real subject call and one
+    real coach card. `run_smoke` must refuse this as a failure, never report it as success."""
+    actor = UUID(int=7)
+    db = FakeArenaDb(actor)
+
+    def fake_subject_call(_connect: object, _port: object, _actor: UUID | None) -> SubjectCall:
+        async def call(_trial: UUID, _work_item: UUID, _step_actor: UUID | None) -> SubjectOutcome:
+            raise SubjectUnavailableError("budget_refused")
+
+        return call
+
+    monkeypatch.setattr(real_smoke, "resolve_dev_user", lambda _env: DevIdentity(actor, "x@test", "X", frozenset()))
+    monkeypatch.setattr(real_smoke, "dsn_connector", lambda _dsn: lambda: None)
+    monkeypatch.setattr(real_smoke, "ArenaDb", lambda _connect, _actor: db)
+    monkeypatch.setattr(real_smoke, "DbSpendGuard", lambda _connect: RunBudget(Decimal(100)))
+    monkeypatch.setattr(real_smoke, "real_subject_call", fake_subject_call)
+
+    env = {"ARENA_MODEL_MODE": "fake", "ARENA_PUBLIC_DSN": "x", "ARENA_SUBJECT_DSN": "y"}
+    with pytest.raises(real_smoke.SmokeError, match="0 subject call"):
+        run(real_smoke.run_smoke(env, family="F01", coach_name="A1", subject_name="S1", question="Why?"))
 
 
 def _call(purpose: str, step_key: str = "k" * 10) -> AgentCall[Reply]:
@@ -205,6 +280,28 @@ def test_recording_port_keeps_one_entry_per_call() -> None:
 def test_main_refuses_without_either_dsn(capsys: pytest.CaptureFixture[str]) -> None:
     assert real_smoke.main(["--family", "F01"], {}) == 1
     assert "ARENA_PUBLIC_DSN" in capsys.readouterr().err
+
+
+def test_main_never_echoes_a_malformed_dsns_own_password(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A real psycopg connection attempt (dev_variant's own ArenaDb.fetch), not mocked: libpq's parser quotes a
+    malformed connection string back whole, password included, on a stray quote or bad percent-encoding. The
+    real identity resolution runs too (a real ARENA_USERS_FILE), so this exercises `main` end to end short of
+    an actual server."""
+    secret = "s3c" + "r3t"  # not a real credential; split so it is never one password-shaped literal
+    malformed = "'postgresql://x:" + secret + "@owner-host:5/postgres'"  # the quotes break libpq's parser
+    users_file = tmp_path / "users.toml"
+    users_file.write_text('[[users]]\nemail = "x@test.local"\ndisplay_name = "X"\nroles = ["investigator"]\n')
+    env = {
+        "ARENA_PUBLIC_DSN": malformed,
+        "ARENA_SUBJECT_DSN": malformed,
+        "ARENA_DEV_USER": "x@test.local",
+        "ARENA_USERS_FILE": str(users_file),
+    }
+    assert real_smoke.main(["--family", "F01"], env) == 1
+    captured = capsys.readouterr()
+    assert secret not in captured.out + captured.err
+    assert malformed not in captured.out + captured.err
+    assert "detail withheld" in captured.err
 
 
 def test_main_uses_training_env_defaults_when_no_flag_is_given(monkeypatch: pytest.MonkeyPatch) -> None:

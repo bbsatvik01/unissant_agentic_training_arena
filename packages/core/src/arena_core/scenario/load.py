@@ -133,6 +133,8 @@ class IngestBundle(_Model):
 
 
 LEGACY_REPORT_CHECKS: tuple[str, ...] = ("cx1", "cx4", "cx2_truthful", "cx2_deceptive", "cx3")
+# S1 9.7: the three solve sheets with a nested basis (cx1 and cx4 are the review session, one verdict, no sheet).
+LEGACY_SOLVE_KEYS: tuple[str, ...] = ("cx2_truthful", "cx2_deceptive", "cx3")
 
 
 class LegacyCodexReportError(ValueError):
@@ -150,12 +152,30 @@ def is_legacy_codex_report(raw: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(raw, dict) and "solves" in raw and "cx1" in raw
 
 
+def _solve_mismatches(report: Mapping[str, Any]) -> list[str]:
+    """Where `report["solves"]` (S1 9.7's per-sheet basis, kept for audit) disagrees with the top-level flag
+    `codex_review_from_report` would otherwise trust alone: a report edited (or corrupted) so one says pass
+    and the other does not is refused on either disagreement, never resolved in the passing field's favor."""
+    solves = report.get("solves")
+    if not isinstance(solves, Mapping):
+        return [f"solves is not an object: {solves!r}"]
+    problems = []
+    for key in LEGACY_SOLVE_KEYS:
+        sheet = solves.get(key)
+        if not isinstance(sheet, Mapping):
+            problems.append(f"solves.{key} is not an object: {sheet!r}")
+        elif sheet.get("pass") is not True:
+            problems.append(f"solves.{key}.pass is {sheet.get('pass')!r}, not true")
+    return problems
+
+
 def codex_review_from_report(report: Mapping[str, Any]) -> CodexReview:
     """The attestation's `codex` object (S1 10.5), reduced from the authoring loop's full per-family CX
     report (S1 9.7: one review session for CX-1 and CX-4, one solve session each for CX-2 truthful, CX-2
-    deceptive and CX-3). Refuses (never coerces) a report whose `pass` summary disagrees with its checks, that
-    does not record every check as a real pass, or that carries a review finding — exactly what `ingest_bundle`
-    would refuse from a passed-looking review that was not, so a stale or hand-edited report is never ingested.
+    deceptive and CX-3). Refuses (never coerces) a report whose `pass` summary disagrees with its checks or
+    with its own nested solve sheets, that does not record every check as a real pass, or that carries a
+    review finding — exactly what `ingest_bundle` would refuse from a passed-looking review that was not, so
+    a stale or hand-edited report is never ingested.
 
     The report predates per-round tracking (S1 8.5 step 4: a seed is discarded after 5 failed rounds), so a
     report with no `rounds` field is recorded as round 1; `CodexReview` only bounds the field to 1-5, and S4
@@ -164,11 +184,12 @@ def codex_review_from_report(report: Mapping[str, Any]) -> CodexReview:
     failed = [check for check in LEGACY_REPORT_CHECKS if report.get(check) is not True]
     findings = report.get("findings")
     overall = report.get("pass")
-    if failed or findings or overall is not True:
+    solve_problems = _solve_mismatches(report)
+    if failed or findings or overall is not True or solve_problems:
         family = report.get("family", "?")
         message = (
             f"{family}: the CX report does not record a clean pass "
-            f"(failed={failed}, findings={findings!r}, pass={overall!r})"
+            f"(failed={failed}, findings={findings!r}, pass={overall!r}, solves={solve_problems})"
         )
         raise LegacyCodexReportError(message)
     if "family_sha256" not in report:

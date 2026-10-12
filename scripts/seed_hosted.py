@@ -159,7 +159,15 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     try:
         result = asyncio.run(seed(dsn_connector(dsn), email=args.email, bundles=bundles, manifests=manifests))
     except (psycopg.Error, SeedError, calls.GuardProtocolError) as exc:
-        sys.stderr.write(f"seed_hosted: FAIL: {type(exc).__name__}: {exc}\n")
+        # psycopg's own message can echo a malformed ARENA_OWNER_DSN verbatim, password included (a quoted or
+        # badly percent-encoded DSN makes libpq's parser quote the whole connection string back): printed only
+        # for SeedError, which this process raises itself from file and roster problems, never from a DSN.
+        detail = (
+            str(exc)
+            if isinstance(exc, SeedError)
+            else "connection or guard error (detail withheld: it can echo ARENA_OWNER_DSN)"
+        )
+        sys.stderr.write(f"seed_hosted: FAIL: {type(exc).__name__}: {detail}\n")
         return 1
     sys.stdout.write(json.dumps(result, sort_keys=True) + "\n")
     return 0

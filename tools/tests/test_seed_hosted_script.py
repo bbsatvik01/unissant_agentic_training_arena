@@ -175,6 +175,24 @@ def test_main_prints_one_json_object_and_never_the_dsn(
     assert "s3cr3t" not in captured.out + captured.err
 
 
+def test_main_never_echoes_a_malformed_dsns_own_password(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A real psycopg connection attempt, not mocked: libpq's own parser quotes a malformed connection string
+    back whole (a stray quote, or bad percent-encoding) in its error message, password included. Proven
+    against the real exception path (ArenaDb's fetch/connect wraps it into ops/arena errors the same way),
+    not a canned one, so a future change that starts printing exc detail again is caught here."""
+    secret = "s3c" + "r3t"  # not a real credential; split so it is never one password-shaped literal
+    malformed = "'postgresql://postgres:" + secret + "@owner-host:5/postgres'"  # quotes break libpq's parser
+    monkeypatch.setattr(seed_hosted, "dev_bundles", lambda **_kwargs: [])
+    monkeypatch.setattr(seed_hosted, "candidate_manifests", lambda **_kwargs: {})
+    assert seed_hosted.main(["--email", EMAIL], {"ARENA_OWNER_DSN": malformed}) == 1
+    captured = capsys.readouterr()
+    assert secret not in captured.out + captured.err
+    assert malformed not in captured.out + captured.err
+    assert "detail withheld" in captured.err
+
+
 def test_main_reports_a_seed_error_from_building_the_bundles(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
