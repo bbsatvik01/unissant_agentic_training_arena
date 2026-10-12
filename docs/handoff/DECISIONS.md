@@ -182,3 +182,7 @@
 - **Decision:** owner. Voices use gemini-3.8-flash-tts (GA 2026-09-22; ~$0.002 per 10 s line, cached once) with a designed voice per persona and style direction by persona only (never by role, PRB-4); no cloning of real people (synthetic-only rule, consent requirement). Optional free local fallback (Kokoro-82M) instead of browser voices. Build now: WP-22 live voice interviews (Gemini Live), lips driven from played audio, and the coach speaking its tips in an earpiece in practice mode (never in assessment, never over the subject).
 - **Correction:** gemini-2.5-flash-preview-tts shuts down 2026-11-17 and gemini-2.5-flash-tts has no listed date; the October 2.5 retirements are the text models.
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-031 Voice limit 10/day; accept referee proposals for the dev practice tournament
+- **Decision:** owner. ops.config voice_sessions_per_user_day 2 -> 10 on hosted (voice_sessions_total stays 8). For the dev practice tournament ca6c4b9b only, the pending validity reviews are settled by accepting the referee's proposals; sealed tournaments keep human review.
+- **Reversibility:** cheap.

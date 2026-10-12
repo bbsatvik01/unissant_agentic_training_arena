@@ -102,3 +102,4 @@
 - 2512b35 merge WP-22 live voice (gemini-3.8-live); real session pending voice quota
 - 3abaaf7 merge pipeline-cancel fix
 - e8fca14 merge referee robustness + subjects 1.2.0; hosted: S1-S3 1.2.0 registered (coaches 1.1.0); local real tournament 9c713e54 published both boards (invalid-proposal rate 21/36 -> 6/17)
+- 2026-10-12 hosted: voice_sessions_per_user_day 2 -> 10 (owner, D-031)
