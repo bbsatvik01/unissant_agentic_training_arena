@@ -96,6 +96,10 @@ export class CaptureEdges {
  * stored when the answer ends). */
 export function voiceShownCount(state: VoiceState, fallback: number): number {
   const used = state.exchangeCount?.used ?? fallback;
-  const answering = state.connection === "open" && (state.openUtterance !== null || state.audible !== null);
+  // The answer has started (its utterance is open, or its caption is up) and its window is not stored yet: the
+  // `exchange` frame that stores it clears the captions, and its `exchange_count` follows, so the same exchange is
+  // never counted twice; audio still playing after that is already counted.
+  const started = state.openUtterance !== null || state.captions.some((c) => c.role === "subject");
+  const answering = state.connection === "open" && started;
   return Math.min(EXCHANGE_CAP, used + (answering ? 1 : 0));
 }
