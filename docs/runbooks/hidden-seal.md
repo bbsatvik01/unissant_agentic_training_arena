@@ -162,8 +162,9 @@ is the "publish the seal hash" half of S1 10.3 step 3 (the hash itself; the ledg
 
 1. Run the job: `python -m arena_tournament run <id>` (`arena_tournament.main.run_tournament`). It runs a
    hidden tournament exactly as a dev one: corpus transcripts, the corpus seal, replay trials, interactive blocks
-   with their scoring calls, then close. It first refuses a hidden tournament whose isolation gate (all six IG
-   items, one commit) did not pass before it went `running` (`IsolationGateNotPassedError`). The job installs no
+   with their scoring calls, then close. Set `ARENA_GIT_SHA` to the checkout's commit (`git rev-parse HEAD`, the
+   value the referee runs with): the job first refuses a hidden tournament unless all six IG items passed, on
+   that commit, after the roster froze and before it went `running` (`IsolationGateNotPassedError`). The job installs no
    tracing pipeline today, so it exports no span anywhere; S5 8.5's mirror-only hidden traces arrive with the
    tracing wiring, not here.
 2. `POST /api/admin/tournaments/{id}/scoring` (`begin_scoring`), then `POST /api/admin/tournaments/{id}/reveal`.

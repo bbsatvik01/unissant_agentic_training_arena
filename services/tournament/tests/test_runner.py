@@ -92,12 +92,13 @@ class _FakeOrchestrator:
         self.stopped.append((trial, state, reason))
 
 
-def _runner_with(db: _FakeDb, orchestrator: _FakeOrchestrator) -> TournamentRunner:
+def _runner_with(db: _FakeDb, orchestrator: _FakeOrchestrator, code_sha: str | None = "a" * 40) -> TournamentRunner:
     return TournamentRunner(
         db=cast("ArenaDb", db),
         orchestrator=cast("Orchestrator", orchestrator),
         referee=cast("RefereeClient", object()),
         manifests={},
+        code_sha=code_sha,
     )
 
 
@@ -238,6 +239,7 @@ def test_a_hidden_tournament_whose_gate_passed_before_it_opened_runs() -> None:
         [(name, name != IG_CHECK_NAMES["IG-4"], sha) for name, _, sha in PASSED_GATE],  # the hidden-text scan failed
         [*PASSED_GATE[:-1], (IG_CHECK_NAMES["IG-6"], True, "b" * 40)],  # items from two different commits
         [(name, True, None) for name, _, _ in PASSED_GATE],  # no commit recorded
+        [(name, True, "b" * 40) for name, _, _ in PASSED_GATE],  # a complete gate, but on another commit
     ],
 )
 def test_a_hidden_tournament_without_a_passing_gate_before_it_opened_is_refused_before_any_trial(
@@ -432,3 +434,10 @@ def test_a_missing_packet_stops_the_job_and_is_never_recorded_as_an_infra_failur
         run(runner.run(uuid4()))
     assert orch.stopped == []
     assert db.retry_calls == []
+
+
+def test_a_hidden_tournament_is_refused_when_the_job_does_not_know_its_own_commit() -> None:
+    """With no `ARENA_GIT_SHA` the job cannot tell that the gate passed on the code it runs (S3 9): refused."""
+    db = _FakeDb(split="hidden", gate=PASSED_GATE)
+    with pytest.raises(IsolationGateNotPassedError):
+        run(_runner_with(db, _FakeOrchestrator(), code_sha=None).run_replay_track_prerequisite(uuid4()))

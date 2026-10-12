@@ -88,6 +88,9 @@ class TournamentRunner:
     orchestrator: Orchestrator
     referee: RefereeClient
     manifests: dict[UUID, CandidateManifest]  # every roster candidate's manifest, by candidate id
+    # The commit this job runs (`ARENA_GIT_SHA`, the same value the referee binds its gate evidence to, S3 9):
+    # a hidden tournament runs only on the code its isolation gate passed on.
+    code_sha: str | None = None
     outcomes: dict[str, int] = field(default_factory=dict)
 
     def _count(self, state: Execution | str) -> None:
@@ -165,14 +168,15 @@ class TournamentRunner:
         return packet
 
     async def _require_gate(self, tournament: UUID) -> None:
-        """A hidden tournament runs only if every IG item's latest check before it opened passed, all on one
-        commit (S1 L9, S3 9); a dev tournament has no hidden corpus to scan and opens ungated."""
+        """A hidden tournament runs only if, between its roster freezing and its opening, every IG item's latest
+        check passed, all on the commit this job runs (S1 L9; S3 9 binds the gate to the code version); a dev
+        tournament has no hidden corpus to scan and opens ungated."""
         if await self.db.tournament_split(tournament) != "hidden":
             return
         latest = {name: (passed, sha) for name, passed, sha in await self.db.gate_rows_before_open(tournament)}
         needed = [latest.get(IG_CHECK_NAMES[item]) for item in IG_ITEMS]
         commits = {row[1] for row in needed if row is not None}
-        if any(row is None or not row[0] for row in needed) or len(commits) != 1 or None in commits:
+        if any(row is None or not row[0] for row in needed) or not self.code_sha or commits != {self.code_sha}:
             msg = f"hidden tournament {tournament} did not pass the isolation gate before it opened; not run"
             raise IsolationGateNotPassedError(msg)
 

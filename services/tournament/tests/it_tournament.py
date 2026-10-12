@@ -64,7 +64,7 @@ from arena_tournament import lifecycle
 from arena_tournament.main import load_manifests
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.roster import FamilySpec, build_roster
-from arena_tournament.runner import TournamentRunner, _run_interactive_trial
+from arena_tournament.runner import IsolationGateNotPassedError, TournamentRunner, _run_interactive_trial
 from scripts import export_run, isolation_reports, seal_hidden_split
 from scripts.referee_admin_client import admin_post
 from tools import proc
@@ -82,6 +82,7 @@ PLANNED_TRIALS = 6
 REFEREE_READY_TIMEOUT_S = 20.0
 INVESTIGATOR = UUID("00000000-0000-0000-0000-00000000000a")  # tests.users() user A
 API_BASE = "http://127.0.0.1:8080"
+REFEREE_GIT_SHA = "f" * 40  # the referee's and the job's commit (the isolation gate binds to it, S3 9)
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -155,7 +156,7 @@ def _referee_env(world: dict[str, Any], scratch_port: int) -> dict[str, str]:
         "ARENA_USERS_FILE": str(world["users_path"]),
         "ARENA_DEV_USER": ADMIN_EMAIL,
         "ARENA_REFEREE_PORT": str(scratch_port),
-        "ARENA_GIT_SHA": "f" * 40,  # fixture value only: create_app refuses to boot without one (S3 9)
+        "ARENA_GIT_SHA": REFEREE_GIT_SHA,  # fixture value only: create_app refuses to boot without one (S3 9)
     }
 
 
@@ -265,7 +266,9 @@ def build_runner(world: dict[str, Any], tournament_id: UUID) -> TournamentRunner
     )
     referee = RefereeClient(CALLER_CREDENTIAL, base_url=world["referee_base_url"])
     manifests = run(load_manifests(db, tournament_id))  # the real WP-17 wiring (arena_tournament.main)
-    return TournamentRunner(db=db, orchestrator=orchestrator, referee=referee, manifests=manifests)
+    return TournamentRunner(
+        db=db, orchestrator=orchestrator, referee=referee, manifests=manifests, code_sha=REFEREE_GIT_SHA
+    )
 
 
 def _one_family_roster(world: dict[str, Any], seed: int) -> list[Any]:
@@ -684,6 +687,19 @@ def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_af
     tournament_id = _freeze_hidden_tournament(world, families, seed)
     _open_hidden_tournament_through_the_real_gate(world, tournament_id)
     run(_admin_rows(world["admin"], "select tests.users()"))
+
+    # The job runs it only on the commit its gate passed on (S3 9)...
+    foreign = build_runner(world, tournament_id)
+    foreign.code_sha = "e" * 40
+    with pytest.raises(IsolationGateNotPassedError):
+        run(foreign.run(tournament_id))
+    # ...and never a hidden tournament opened without a gate run after its own roster froze: the gate rows above
+    # predate this second roster, and `arena.open_tournament` itself checks nothing.
+    ungated = _freeze_hidden_tournament(world, families, seed + 1)
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (ungated,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, ungated).run(ungated))
+    assert run(_terminal_record_count(world["admin"], ungated)) == 0
 
     summary = run(build_runner(world, tournament_id).run(tournament_id))
     assert summary.closed

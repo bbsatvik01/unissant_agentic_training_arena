@@ -640,13 +640,15 @@ class ArenaDb:
         return None if not rows else str(rows[0][0])
 
     async def gate_rows_before_open(self, tournament: UUID) -> list[tuple[str, bool, str | None]]:
-        """`arena.v_isolation_checks`: the latest row per check name recorded before the tournament went
-        `running` (`check_name`, `passed`, `commit_sha`), the isolation gate the referee's open route runs fresh
-        for a hidden tournament (S1 L9, S3 9). Empty for an unknown or never-opened tournament."""
+        """`arena.v_isolation_checks`: the latest row per check name recorded after the tournament's roster froze
+        and before it went `running` (`check_name`, `passed`, `commit_sha`): the isolation gate the referee's
+        open route runs fresh for a hidden tournament between the two (S1 L9, S3 9). Empty for an unknown or
+        never-opened tournament, and for one opened without a gate run in that window."""
         rows = await self.fetch(
             "select distinct on (i.check_name) i.check_name, i.passed, i.commit_sha"
             " from arena.v_isolation_checks i join arena.v_tournaments t on t.id = %s"
-            " where t.running_at is not null and i.run_at <= t.running_at"
+            " where t.frozen_at is not null and t.running_at is not null"
+            " and i.run_at > t.frozen_at and i.run_at <= t.running_at"
             " order by i.check_name, i.run_at desc",
             (tournament,),
         )
