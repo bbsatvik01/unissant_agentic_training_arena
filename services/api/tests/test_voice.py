@@ -387,3 +387,18 @@ def test_the_snapshot_of_a_voice_session_is_the_voice_branch_with_the_stored_win
         assert text["voice_exchanges"] == []
 
     serve(test)
+
+
+def test_audio_faster_than_fifteen_frames_a_second_closes_4400_at_the_edge() -> None:
+    leg = Leg(close_after=10**6)
+
+    async def test(h: Harness) -> None:
+        ticket = await h.mint()
+        async with h.connect(ticket) as ws:
+            for _ in range(p.AUDIO_RATE_MAX_FRAMES + 1):
+                await ws.send(b"\x00\x00" * 1600)
+            assert await closed_with(ws) == p.PROTOCOL
+
+    serve(test, leg)
+    assert leg.closed_by_api == p.PROTOCOL
+    assert len(leg.got) == 1 + p.AUDIO_RATE_MAX_FRAMES  # start and the frames the window allows

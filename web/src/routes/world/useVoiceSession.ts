@@ -70,6 +70,9 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
   const socket = useRef<WebSocket | null>(null);
   const audio = useRef<VoiceAudio | null>(null);
   const edges = useRef(new CaptureEdges());
+  /** The server's first frame arrived: the Live session is open, so microphone audio is now sent (before it, the
+   * audio would only queue up behind the session's opening). */
+  const ready = useRef(false);
 
   const set = useCallback((next: VoiceState) => {
     stateRef.current = next;
@@ -102,7 +105,7 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
           if (edge !== null) dispatch(edge);
           setCaptureAboveFloor(level > CAPTURE_FLOOR);
           const ws = socket.current;
-          if (ws !== null && ws.readyState === WebSocket.OPEN && stateRef.current.connection === "open") ws.send(pcm);
+          if (ready.current && ws !== null && ws.readyState === WebSocket.OPEN && stateRef.current.connection === "open") ws.send(pcm);
         },
         onPlayback: (utterance) => {
           dispatch({ type: "playback", utterance });
@@ -124,6 +127,7 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
       teardown();
       return;
     }
+    ready.current = false;
     const ws = new WebSocket(socketUrl(), [ticket]);
     ws.binaryType = "arraybuffer";
     socket.current = ws;
@@ -131,6 +135,7 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
       dispatch({ type: "socket_open" });
     };
     ws.onmessage = (e: MessageEvent<string | ArrayBuffer>) => {
+      ready.current = true;
       if (typeof e.data === "string") {
         let parsed: unknown;
         try {

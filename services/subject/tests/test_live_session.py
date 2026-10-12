@@ -563,3 +563,25 @@ def test_a_manifest_this_checkout_cannot_load_closes_4401_and_releases_the_hold(
     assert relay.closed == p.REFUSED
     assert live.connections == []
     assert store.log[-2:] == [("close", "4401"), ("settle", "released")]
+
+
+def test_audio_that_waited_while_live_opened_is_forwarded_whole_not_refused_as_a_burst() -> None:
+    store = Store()
+    backlog = 100  # 10 s of frames the relay delivered while the session was opening
+
+    async def script(relay: Relay, conn: FakeLiveConnection) -> None:
+        await until(lambda: len(conn.audio_in) == backlog)
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+
+    s, relay, live = session(store)
+    for _ in range(backlog):
+        relay.inbound.put_nowait(b"\x00\x01" * 1600)
+
+    async def go() -> None:
+        task = asyncio.create_task(s.run())
+        await until(lambda: bool(live.connections))
+        await script(relay, live.connections[0])
+        await task
+
+    run(go())
+    assert relay.closed == p.NORMAL

@@ -130,7 +130,8 @@ class VoiceRelay:
                 control = p.parse_browser_text(str(message.get("text") or ""))
                 async with self._lock:
                     await self._leg.send(p.frame(control.kind))
-        except p.ProtocolViolationError:
+        except p.ProtocolViolationError as exc:
+            log.info("voice: browser protocol violation: %s", exc)
             self.code = p.PROTOCOL
             with contextlib.suppress(ConnectionClosed):
                 await self._leg.close(p.PROTOCOL)

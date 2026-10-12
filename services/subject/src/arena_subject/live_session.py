@@ -136,7 +136,6 @@ class VoiceSession:
     _held_bytes: int = 0
     _pending_update: bool = False
     _used: int = 0
-    _rate: p.AudioRate = field(default_factory=p.AudioRate)
     _started: float = 0.0
     _last_activity: float = 0.0
     _warned: bool = False
@@ -177,6 +176,7 @@ class VoiceSession:
         if start is None:
             self.end(p.PROTOCOL)
             return
+        opening = time.monotonic()
         try:
             self._opened = await self.store.open(start)
         except VoiceOpenRefusedError as exc:
@@ -207,6 +207,7 @@ class VoiceSession:
             async with self.backend.connect(setup) as live:
                 self._live = live
                 self._started = self._last_activity = self.clock()
+                log.info("voice session open in %.2f s", time.monotonic() - opening)
                 await self.relay.send_text(p.frame("exchange_count", used=self._used, cap=p.EXCHANGE_CAP))
                 await self._loops(live)
         except Exception:
@@ -231,7 +232,8 @@ class VoiceSession:
     async def _guarded(self, loop: Awaitable[None]) -> None:
         try:
             await loop
-        except p.ProtocolViolationError:
+        except p.ProtocolViolationError as exc:
+            log.info("voice protocol violation: %s", exc)
             self.end(p.PROTOCOL)
         except RelayClosedError as exc:
             self.end(exc.code)
@@ -261,8 +263,9 @@ class VoiceSession:
         while True:
             message = await self.relay.receive()
             if isinstance(message, bytes):
+                # Size only: the rate is enforced on arrival at arena-api's edge. Frames that waited here while
+                # Live was opening arrive back to back, which is not the browser's rate.
                 p.check_browser_audio(message)
-                self._rate.admit(self.clock())
                 async with self._lock:
                     if not self._holding:
                         await live.send_audio(message)
