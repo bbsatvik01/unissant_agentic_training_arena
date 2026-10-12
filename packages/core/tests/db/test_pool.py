@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import AsyncIterator, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any, ClassVar, cast
@@ -16,6 +17,8 @@ from psycopg.pq import TransactionStatus
 from arena_core.db import pool as pool_mod
 from arena_core.db.pool import PooledConnector, close_connector, closing_lifespan, dsn_connector, one_statement
 from arena_core.db.scripted import BEGIN, ScriptedConnection
+
+PROMPT_S = 1.0  # far below the stuck rollback's 10 s
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -94,6 +97,7 @@ class FakePool:
         self.dsn, self.kwargs = dsn, kwargs
         self.opened = self.closed = 0
         self.conn = Conn()
+        self.served: list[Conn] = []
         FakePool.created.append(self)
 
     async def open(self) -> None:
@@ -106,6 +110,10 @@ class FakePool:
     def connection(self) -> AbstractAsyncContextManager[Conn]:
         @asynccontextmanager
         async def checkout() -> AsyncIterator[Conn]:
+            if self.conn.closed:  # the pool replaces a connection that came back closed
+                self.conn = Conn()
+            if not self.served or self.served[-1] is not self.conn:
+                self.served.append(self.conn)
             yield self.conn
 
         return checkout()
@@ -153,7 +161,10 @@ def test_a_checkout_leaves_nothing_uncommitted_and_the_connection_mode_restored(
             assert conn.autocommit is False
 
     run(body())
-    assert fake_pool[0].conn.log == ["begin", "insert", "rolled back"]
+    first, second = fake_pool[0].served
+    assert first.closed  # closed, which the server rolls back; never committed
+    assert first.log == ["begin", "insert", "rolled back"]
+    assert not second.closed
 
 
 def test_close_closes_the_pool_and_a_later_use_opens_a_new_one(fake_pool: list[FakePool]) -> None:
@@ -215,31 +226,43 @@ def test_the_pipelined_begin_carries_the_connections_own_settings(
 
 
 class Stuck(Conn):
-    """A connection whose rollback never finishes (its lock held elsewhere) or fails outright."""
-
-    def __init__(self, failure: BaseException | None = None) -> None:
-        super().__init__()
-        self.failure = failure
+    """A connection whose rollback would never finish (its lock held elsewhere)."""
 
     async def rollback(self) -> None:
-        if self.failure is not None:
-            raise self.failure
         await asyncio.sleep(10)
 
 
-@pytest.mark.parametrize("failure", [None, psycopg.OperationalError("gone")])
-def test_a_checkout_that_cannot_roll_back_promptly_closes_the_connection(
-    monkeypatch: pytest.MonkeyPatch, failure: BaseException | None
-) -> None:
-    monkeypatch.setattr(pool_mod, "CHECKOUT_CLEANUP_S", 0.05)
-    conn = Stuck(failure)
-    run(conn.execute("BEGIN"))
+@pytest.mark.parametrize("status", [TransactionStatus.INTRANS, TransactionStatus.INERROR, TransactionStatus.ACTIVE])
+def test_a_checkout_that_is_not_idle_is_closed_at_once_never_waited_on(status: TransactionStatus) -> None:
+    conn = Stuck()
+    conn.info.transaction_status = status
+    started = time.monotonic()
     run(pool_mod._end_checkout(_real(conn)))
     assert conn.closed
+    assert time.monotonic() - started < PROMPT_S
 
 
-def test_a_checkout_left_busy_closes_the_connection_without_waiting() -> None:
-    conn = Conn()
-    conn.info.transaction_status = TransactionStatus.ACTIVE
-    run(pool_mod._end_checkout(_real(conn)))
+class RollbackFails(Conn):
+    """The statement fails with `primary`; the ROLLBACK after it fails too (the connection broke meanwhile)."""
+
+    def __init__(self, primary: BaseException) -> None:
+        super().__init__(fail=primary)
+
+    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> object:
+        if query == "ROLLBACK":
+            msg = "connection lost"
+            raise psycopg.OperationalError(msg)
+        return await super().execute(query, params)
+
+
+class Refused(psycopg.Error):
+    sqlstate = "AR040"
+
+
+@pytest.mark.parametrize("primary", [Refused("no identity"), asyncio.CancelledError()])
+def test_a_failed_rollback_keeps_the_statements_own_error_and_closes_the_connection(primary: BaseException) -> None:
+    conn = RollbackFails(primary)
+    with pytest.raises(type(primary)) as raised:
+        run(one_statement(_real(conn), "select boom"))
+    assert raised.value is primary
     assert conn.closed

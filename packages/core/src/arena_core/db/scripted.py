@@ -67,6 +67,9 @@ class ScriptedConnection:
         yield
 
     async def close(self) -> None:
+        """Closing a connection ends any open transaction as the server does: rolled back."""
+        if self._tx is not None:
+            await self._end(failed=True)
         self.closed = True
 
     async def rollback(self) -> None:

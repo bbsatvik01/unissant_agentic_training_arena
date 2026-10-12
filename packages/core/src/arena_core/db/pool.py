@@ -17,6 +17,7 @@ isolation level), with prepared statements off (S4 2.2: the pooler runs in trans
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any
@@ -27,6 +28,7 @@ from psycopg.pq import TransactionStatus
 from psycopg_pool import AsyncConnectionPool
 
 CONNECT_TIMEOUT_S = 5
+log = logging.getLogger(__name__)
 Connector = Callable[[], AbstractAsyncContextManager[AsyncConnection[Any]]]
 
 # Sized for one role process serving one or two investigators (S5 10; D-016): a turn holds at most a few connections
@@ -64,22 +66,11 @@ def _status(conn: AsyncConnection[Any]) -> TransactionStatus:
     return conn.info.transaction_status
 
 
-# How long a checkout may spend rolling back what its user left open before the connection is closed instead (the
-# agent port's own cleanup allowance for an abandoned ledger write, `providers.port.CLEANUP_S`).
-CHECKOUT_CLEANUP_S = 1.0
-
-
 async def _end_checkout(conn: AsyncConnection[Any]) -> None:
-    """Leave a connection as closing a fresh one would have: nothing uncommitted survives, and the next user gets the
-    connection's own transaction mode. A connection still busy (a cancelled or abandoned statement may hold its lock)
-    or one that cannot be rolled back promptly is closed at once, never waited on; the pool then replaces it."""
-    if _status(conn) in _OPEN:
-        try:
-            async with asyncio.timeout(CHECKOUT_CLEANUP_S):
-                await conn.rollback()
-        except (TimeoutError, psycopg.Error):
-            await conn.close()
-            return
+    """Leave a connection as closing a fresh one would have. A connection that is not idle (a transaction its user
+    left open, or a statement still running: a cancelled or abandoned one may hold its lock) is closed at once,
+    which the server rolls back; nothing here waits on it, and the pool replaces it. An idle one gets its own
+    transaction mode back."""
     if _status(conn) != TransactionStatus.IDLE:
         await conn.close()
         return
@@ -190,7 +181,16 @@ async def one_statement(
             await conn.execute("COMMIT")
     except BaseException:
         if _status(conn) in _OPEN:
-            await conn.execute("ROLLBACK")
+            try:
+                await conn.execute("ROLLBACK")
+            except psycopg.Error as rollback_error:
+                log.warning(
+                    "rollback after a failed statement failed (%s); closing the connection",
+                    type(rollback_error).__name__,
+                )
+                # The statement's own error (its SQLSTATE) is what the caller maps, as `conn.transaction()` keeps
+                # it; a connection that cannot even roll back is closed, which the server rolls back.
+                await conn.close()
         raise
     finally:
         if _status(conn) == TransactionStatus.IDLE:
