@@ -71,6 +71,14 @@ describe("overlay", () => {
     expect(screen.getByText("Coaching is saved for your debrief.")).toBeTruthy();
   });
 
+  it("shows the coach listening while the subject answers, instead of the empty placeholder", () => {
+    const base = viewOf(new LogBuilder("practice").ask());
+    const view = { ...base, status: "subject_answering" as const, coachReading: null };
+    render(<CoachPanel view={view} released={[]} documents={[]} onCite={() => undefined} onUseQuestion={null} />);
+    expect(screen.getByRole("status").textContent).toBe("Coach is listening to the answer");
+    expect(screen.queryByText("The coach reviews each answer and suggests a follow-up.")).toBeNull();
+  });
+
   it("marks a flag whose quote is not in the cited answer", () => {
     const view = viewOf(new LogBuilder("practice").ask());
     expect(view.cards).toHaveLength(1);

@@ -8,6 +8,7 @@
 import type { ArenaApi } from "../../lib/api/arena";
 import { createGeminiEngine, type AudioPort, type Playing, type VoiceEngine } from "../../lib/voice/gemini";
 import { fitRate, pickVoice, utteranceSettings } from "../../lib/voice/tts";
+import { analyserSource, audioMouth } from "../../lib/world/audioLips";
 
 function synth(): SpeechSynthesis | null {
   return typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
@@ -55,7 +56,19 @@ export const RESUME_WAIT_MS = 1000;
 interface WebClip {
   readonly duration: number;
   readonly buffer: AudioBuffer;
+  /** Who speaks it (the voice catalogue key): the mouth it drives, and whether it is the coach's earpiece aside. */
+  readonly voice: string;
 }
+
+/** The coach speaks in the investigator's earpiece (stage 8): its catalogue keys. */
+export function isEarpiece(voice: string): boolean {
+  return voice.startsWith("coach:");
+}
+
+/** How the earpiece sounds: a small speaker's band (300-3400 Hz), close to one ear (to the right), quieter. */
+export const EARPIECE = { lowCutHz: 300, highCutHz: 3400, pan: 0.7, gain: 0.55 } as const;
+/** The analyser that lips read: small enough to be cheap, fine enough for the speech bands. */
+const LIPS_FFT = 512;
 
 /** The speech route and Web Audio: a line's WAV fetched once per (voice, text) in this page, decoded, played. */
 export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
@@ -95,7 +108,7 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
             if (silent) return null;
             const c = ctx();
             const buffer = await c.decodeAudioData(audio);
-            return (await running(c)) ? { duration: buffer.duration, buffer } : null;
+            return (await running(c)) ? { duration: buffer.duration, buffer, voice } : null;
           },
           () => null,
         );
@@ -108,14 +121,36 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
       const source = c.createBufferSource();
       source.buffer = clip.buffer;
       const gain = c.createGain();
-      gain.gain.value = volume;
-      source.connect(gain).connect(c.destination);
+      // The mouth follows this clip's sound while it plays (lips from audio); the text timing is the fallback.
+      const analyser = c.createAnalyser();
+      analyser.fftSize = LIPS_FFT;
+      analyser.smoothingTimeConstant = 0.5;
+      let tail: AudioNode = source;
+      if (isEarpiece(clip.voice)) {
+        const low = c.createBiquadFilter();
+        low.type = "highpass";
+        low.frequency.value = EARPIECE.lowCutHz;
+        const high = c.createBiquadFilter();
+        high.type = "lowpass";
+        high.frequency.value = EARPIECE.highCutHz;
+        const pan = c.createStereoPanner();
+        pan.pan.value = EARPIECE.pan;
+        tail = tail.connect(low).connect(high).connect(pan);
+        gain.gain.value = volume * EARPIECE.gain;
+      } else gain.gain.value = volume;
+      tail.connect(analyser);
+      tail.connect(gain).connect(c.destination);
+      const detach = audioMouth.attach(clip.voice, analyserSource(analyser));
       const started = c.currentTime;
-      source.onended = onended;
+      source.onended = () => {
+        detach();
+        onended();
+      };
       source.start();
       return {
         stop: () => {
           source.onended = null;
+          detach();
           source.stop();
         },
         elapsed: () => c.currentTime - started,

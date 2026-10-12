@@ -171,8 +171,14 @@ export function CoachPanel({ view, released, documents, onCite, onUseQuestion }:
         </p>
       )}
       {failed !== undefined && (newest === undefined || failed.turn_no > newest.turn_no) ? <p className="empty">Coaching for this turn was not available.</p> : null}
+      {/* While the subject answers, the coach is listening: the wait reads as work in progress, not an empty panel. */}
+      {view.coachReading === null && view.status === "subject_answering" ? (
+        <p className="loading" role="status">
+          Coach is listening to the answer
+        </p>
+      ) : null}
       {newest === undefined ? (
-        view.coachReading === null ? <p className="empty">The coach reviews each answer and suggests a follow-up.</p> : null
+        view.coachReading === null && view.status !== "subject_answering" ? <p className="empty">The coach reviews each answer and suggests a follow-up.</p> : null
       ) : (
         <article aria-labelledby="card-title">
           <h3 id="card-title" className="card-title">

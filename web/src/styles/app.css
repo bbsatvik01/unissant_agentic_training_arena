@@ -1830,3 +1830,126 @@ td {
     transform: none;
   }
 }
+
+/* The coach's earpiece (stage 8): a small dot that glows while the coach is speaking in the investigator's ear. */
+.earpiece {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.earpiece-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--arena-hairline-strong, #a1a1a1);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.earpiece[aria-pressed="true"] .earpiece-dot {
+  background: var(--arena-ink, #171717);
+}
+
+.earpiece[data-speaking="true"] .earpiece-dot {
+  background: var(--arena-link, #0070f3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--arena-link, #0070f3) 22%, transparent);
+  animation: earpiece-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes earpiece-pulse {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--arena-link, #0070f3) 10%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .earpiece[data-speaking="true"] .earpiece-dot {
+    animation: none;
+  }
+}
+
+/* Stage 8 declutter. A side panel's own Hide button sits over its header's right end: keep the header clear of it. */
+.side .panel-head {
+  padding-right: 72px;
+}
+
+.brand .eyebrow {
+  white-space: nowrap;
+}
+
+.topbar-meta {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.topbar-meta .badge {
+  white-space: nowrap;
+}
+
+.more-menu {
+  position: relative;
+}
+
+.more-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--arena-canvas);
+  border-radius: var(--arena-radius-md);
+  box-shadow: var(--arena-shadow-card), 0 0 0 1px var(--arena-hairline);
+  z-index: 5;
+  animation: more-in var(--arena-motion-fast, 140ms) var(--arena-ease-standard, ease-out);
+}
+
+.more-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--arena-radius-sm, 6px);
+  background: none;
+  color: var(--arena-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.more-item:hover,
+.more-item:focus-visible {
+  background: var(--arena-canvas-soft, #fafafa);
+}
+
+@keyframes more-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-list {
+    animation: none;
+  }
+}
+
+/* Narrow screens: the bar's controls wrap onto further rows instead of running off the edge, and the statuses
+   wrap with them. */
+@media (max-width: 900px) {
+  .topbar {
+    height: auto;
+    min-height: 48px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .topbar-meta {
+    flex-wrap: wrap;
+  }
+}
