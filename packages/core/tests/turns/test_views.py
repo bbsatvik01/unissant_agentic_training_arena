@@ -244,3 +244,12 @@ def test_a_trial_that_ends_while_it_is_loaded_is_read_again() -> None:
     assert snap["status"] == "completed"
     assert snap["commitment_hash"] == "c" * 64
     assert snap["finding"] is not None
+
+
+def test_an_assessment_recording_carries_the_withheld_coaching_in_its_final_snapshot() -> None:
+    rig = _played(3, mode="assessment")
+    rec = recording_of(_loaded(rig.db), None)
+    assert [c["turn_no"] for c in rec["final_snapshot"]["cards"]] == [1, 2, 3]
+    assert rec["final_snapshot"]["status"] == "completed"
+    running = _played(1, finish=False)
+    assert recording_of(_loaded(running.db), None)["final_snapshot"] is None

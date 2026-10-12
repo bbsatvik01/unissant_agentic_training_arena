@@ -49,6 +49,8 @@ export interface Recording {
   readonly snapshot: TrialSnapshot;
   readonly events: readonly RecordedEvent[];
   readonly debrief: Debrief | null;
+  /** The trial's end-of-trial snapshot (null while it ran): in assessment mode, the withheld coaching (FE-DEB-4). */
+  readonly final_snapshot: TrialSnapshot | null;
   /** The time of the last event plus a short tail, so the last signature moment plays out (`END_TAIL_MS`). */
   readonly durationMs: number;
 }

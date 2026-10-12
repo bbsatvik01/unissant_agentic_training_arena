@@ -83,6 +83,16 @@ describe("parseRecording refuses a broken recording whole", () => {
     expect(parseRecording(null)).toEqual({ ok: false, errors: ["recording: not an object"] });
   });
 
+  it("reads the end-of-trial snapshot, and refuses one that fails the schema or is still running", () => {
+    expect(load().final_snapshot).toBe(null);
+    const ended = { ...structuredClone(raw.snapshot), status: "completed" };
+    const withFinal = { ...(structuredClone(raw) as unknown as Record<string, unknown>), final_snapshot: ended };
+    const result = parseRecording(withFinal);
+    expect(result.ok && result.recording.final_snapshot?.status).toBe("completed");
+    expect(broken((r) => (r["final_snapshot"] = { status: "completed" }))).toContain("final_snapshot: fails the snapshot wire schema");
+    expect(broken((r) => (r["final_snapshot"] = structuredClone(raw.snapshot)))).toContain("final_snapshot: the trial had not ended");
+  });
+
   it("accepts a recording without a debrief", () => {
     const copy = structuredClone(raw) as unknown as Record<string, unknown>;
     delete copy["debrief"];
