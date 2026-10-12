@@ -941,7 +941,7 @@ export function WorldRoute() {
                       documents={documents}
                       released={view?.released ?? []}
                       requestable={view?.requestable ?? []}
-                      exchangesUsed={view?.exchangesUsed ?? 0}
+                      exchangesUsed={isVoice ? (voice.state.exchangeCount?.used ?? 0) : (view?.exchangesUsed ?? 0)}
                       freshId={freshId}
                       onRequest={canAct ? (id) => void session.request(id) : null}
                     />

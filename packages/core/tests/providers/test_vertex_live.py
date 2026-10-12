@@ -8,7 +8,6 @@ from collections.abc import AsyncIterator, Coroutine
 from typing import Any
 
 import pytest
-from google.genai import types as gtypes
 
 from arena_core.providers import vertex
 from arena_core.providers.vertex import events_of, live_config, live_usage
@@ -20,6 +19,8 @@ from arena_core.voice.live import (
     LiveTurnComplete,
     LiveUsage,
 )
+
+gtypes: Any = vertex.SDK_TYPES  # the adapter module stays the only importer of google.genai (check_roles)
 
 SETUP = {
     "system_instruction": "You are speaking as Jordan Pell.",

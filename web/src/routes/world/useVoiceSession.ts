@@ -73,6 +73,8 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
   /** The server's first frame arrived: the Live session is open, so microphone audio is now sent (before it, the
    * audio would only queue up behind the session's opening). */
   const ready = useRef(false);
+  /** Bumped on a new trial and on every connect: callbacks of an older socket or microphone are ignored. */
+  const generation = useRef(0);
 
   const set = useCallback((next: VoiceState) => {
     stateRef.current = next;
@@ -82,7 +84,27 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
     set(voiceReducer(stateRef.current, event));
   }, [set]);
 
-  // A new trial starts from its own stored transcript.
+  // A new trial (or leaving the room) hangs up the old session and starts clean.
+  useEffect(() => {
+    generation.current += 1;
+    return () => {
+      generation.current += 1;
+      const ws = socket.current;
+      if (ws !== null && ws.readyState === WebSocket.OPEN) ws.send(controlFrame({ type: "stop" }));
+      ws?.close(1000);
+      socket.current = null;
+      audio.current?.close();
+      audio.current = null;
+      edges.current = new CaptureEdges();
+      ready.current = false;
+      // The next trial starts clean; its stored transcript arrives with its snapshot (below).
+      set(initialVoiceState("live"));
+      setError(null);
+      setCaptureAboveFloor(false);
+    };
+  }, [trialId, set]);
+
+  // The trial's stored transcript, before the socket opens (the snapshot's voice branch, S5 7.7).
   useEffect(() => {
     if (stateRef.current.connection === "idle") set(initial());
   }, [initial, set]);
@@ -96,11 +118,15 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
 
   const connect = useCallback(async () => {
     if (trialId === null) return;
+    generation.current += 1;
+    const gen = generation.current;
+    const mine = () => generation.current === gen;
     setError(null);
     let opened: VoiceAudio;
     try {
       opened = await openVoiceAudio({
         onFrame: (pcm, level) => {
+          if (!mine()) return;
           const edge = edges.current.next(level, performance.now());
           if (edge !== null) dispatch(edge);
           setCaptureAboveFloor(level > CAPTURE_FLOOR);
@@ -108,13 +134,19 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
           if (ready.current && ws !== null && ws.readyState === WebSocket.OPEN && stateRef.current.connection === "open") ws.send(pcm);
         },
         onPlayback: (utterance) => {
+          if (!mine()) return;
           dispatch({ type: "playback", utterance });
           if (utterance === null && stateRef.current.connection === "ended") teardown();
         },
       });
     } catch (e) {
+      if (!mine()) return;
       setError(e instanceof MicrophoneRefusedError ? "The microphone is not available. Allow it in the browser and try again." : "Voice could not start.");
       dispatch({ type: "ended", key: "error" });
+      return;
+    }
+    if (!mine()) {
+      opened.close();
       return;
     }
     audio.current = opened;
@@ -122,19 +154,23 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
     try {
       ticket = await api.mintVoiceTicket(trialId);
     } catch {
+      if (!mine()) return;
       setError("Voice is not available for this interview right now (the daily voice limit, or another voice session is open).");
       dispatch({ type: "ended", key: "unavailable" });
       teardown();
       return;
     }
+    if (!mine()) return;
     ready.current = false;
     const ws = new WebSocket(socketUrl(), [ticket]);
     ws.binaryType = "arraybuffer";
     socket.current = ws;
     ws.onopen = () => {
+      if (!mine()) return;
       dispatch({ type: "socket_open" });
     };
     ws.onmessage = (e: MessageEvent<string | ArrayBuffer>) => {
+      if (!mine()) return;
       ready.current = true;
       if (typeof e.data === "string") {
         let parsed: unknown;
@@ -153,6 +189,7 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
       if (utterance !== null) audio.current?.play(utterance, e.data);
     };
     ws.onclose = (e) => {
+      if (!mine()) return;
       const player = audio.current;
       player?.stopCapture();
       edges.current = new CaptureEdges();
@@ -205,15 +242,6 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
       detachInvestigator();
     };
   }, [live]);
-
-  // Leaving the room (or a new trial) hangs up.
-  useEffect(
-    () => () => {
-      socket.current?.close(1000);
-      audio.current?.close();
-    },
-    [trialId],
-  );
 
   return { state, captureAboveFloor, error, open, decline, consent, stop, interrupt, reconnect };
 }

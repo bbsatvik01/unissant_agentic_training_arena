@@ -5,6 +5,8 @@
  * mouth on the same frame. Playback progress stays in the page (D7).
  */
 
+import { PlaybackLedger, type PlaybackReport } from "../../lib/voice/playbackLedger";
+
 export interface VoiceAudioHooks {
   /** One 100 ms PCM16 frame from the microphone, with its RMS level. */
   readonly onFrame: (pcm: ArrayBuffer, level: number) => void;
@@ -70,10 +72,10 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
   analyser.fftSize = 512;
   const samples = new Float32Array(analyser.fftSize);
   player.connect(analyser).connect(playback.destination);
-  let busy = false;
-  player.port.onmessage = (e: MessageEvent<{ type: "playing"; utterance: number } | { type: "drained" }>) => {
-    busy = e.data.type === "playing";
-    hooks.onPlayback(e.data.type === "playing" ? e.data.utterance : null);
+  const ledger = new PlaybackLedger();
+  player.port.onmessage = (e: MessageEvent<PlaybackReport>) => {
+    const audible = ledger.report(e.data);
+    if (audible !== undefined) hooks.onPlayback(audible);
   };
 
   let captureOn = true;
@@ -90,13 +92,13 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
       const ints = new Int16Array(pcm);
       const floats = new Float32Array(ints.length);
       for (let i = 0; i < ints.length; i += 1) floats[i] = (ints[i] ?? 0) / 0x8000;
-      busy = true;
+      ledger.post();
       player.port.postMessage({ type: "chunk", utterance, samples: floats }, [floats.buffer]);
     },
     flush() {
       player.port.postMessage({ type: "flush" });
     },
-    busy: () => busy,
+    busy: () => ledger.busy,
     playbackLevel: () => rms(analyser, samples),
     micLevel: () => micLevel,
     stopCapture,

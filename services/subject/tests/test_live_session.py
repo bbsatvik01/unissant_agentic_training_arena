@@ -64,7 +64,16 @@ def context(released: list[str] | None = None, exchanges: int = 0) -> dict[str, 
         "public_packet": v["public_packet"],
         "subject_manifest": committed_manifest("S1").model_dump(mode="json"),
         "released_evidence": [{"record_id": r} for r in released or []],
-        "voice_exchanges": [{"exchange_no": i + 1, "lines": []} for i in range(exchanges)],
+        "voice_exchanges": [
+            {
+                "exchange_no": i + 1,
+                "lines": [
+                    {"role": "investigator", "text": f"Earlier question {i + 1}?", "partial": False},
+                    {"role": "subject", "text": f"Earlier answer {i + 1}.", "partial": False},
+                ],
+            }
+            for i in range(exchanges)
+        ],
         "kill_switch": False,
         "spend_usd": 0,
         "shutoff_usd": 2.26,
@@ -585,3 +594,59 @@ def test_audio_that_waited_while_live_opened_is_forwarded_whole_not_refused_as_a
 
     run(go())
     assert relay.closed == p.NORMAL
+
+
+def test_the_twelfth_exchange_records_the_final_usage_before_it_closes() -> None:
+    store = Store(exchanges=11)
+
+    async def script(relay: Relay, conn: FakeLiveConnection) -> None:
+        del relay
+        exchange(conn, "Last question?", "Last answer.")  # its usage report follows its turn_complete
+
+    relay, _ = run(_drive(store, script))
+    assert relay.closed == p.EXCHANGE_CAP_REACHED
+    assert len(store.usage) == 1
+    assert store.log[-1] == ("settle", "committed")
+
+
+def test_a_reconnect_carries_the_stored_conversation_into_the_new_live_session() -> None:
+    store = Store(exchanges=2, release_on_store={3: ["rec-02"]})
+
+    async def script(relay: Relay, conn: FakeLiveConnection) -> None:
+        exchange(conn, "And now?", "Now I recall.")
+        await until(lambda: bool(conn.instructions))
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+
+    _, live = run(_drive(store, script))
+    instruction = str(live.setups[0]["system_instruction"])
+    earlier = instruction.split("EARLIER IN THIS INTERVIEW", 1)[1]
+    assert "Investigator: Earlier question 1?" in earlier
+    assert earlier.index("You: Earlier answer 1.") < earlier.index("Investigator: Earlier question 2?")
+    # The update after a release keeps the earlier conversation (it replaces the instruction).
+    assert "You: Earlier answer 2." in live.connections[0].instructions[0]
+    assert store.stored[0][0] == store.exchanges + 1
+
+
+def test_speech_with_no_usage_report_settles_usage_unknown_and_a_late_report_settles_committed() -> None:
+    store = Store()
+
+    async def spoken(relay: Relay, conn: FakeLiveConnection) -> None:
+        conn.push(LiveTranscript("investigator", "Where were you?", finished=True))
+        await until(lambda: bool(relay.frames("transcription")))
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+
+    run(_drive(store, spoken))
+    assert store.log[-1] == ("settle", "usage_unknown")
+
+    late = Store()
+
+    async def reported(relay: Relay, conn: FakeLiveConnection) -> None:
+        conn.push(LiveTranscript("investigator", "Where were you?", finished=True))
+        await until(lambda: bool(relay.frames("transcription")))
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+        await asyncio.sleep(0.1)
+        conn.push(LiveUsage(text_in=50, audio_in=40, text_out=0, audio_out=0, thinking=0))
+
+    run(_drive(late, reported))
+    assert len(late.usage) == 1
+    assert late.log[-1] == ("settle", "committed")
