@@ -42,6 +42,7 @@ POLL_S = 0.005
 AUDIO_OUT_TOKENS = 40
 TWO = 2
 FRAMES_PER_S = 10
+PER_S = 25
 
 
 def gate_line(instruction: str) -> str:
@@ -671,3 +672,19 @@ def test_an_estimate_that_cannot_be_recorded_settles_usage_unknown() -> None:
 
     run(_drive(store, listened))
     assert store.log[-1] == ("settle", "usage_unknown")
+
+
+def test_audio_produced_during_the_closing_wait_is_still_metered() -> None:
+    store = Store()
+
+    async def script(relay: Relay, conn: FakeLiveConnection) -> None:
+        conn.push(LiveTranscript("investigator", "Where?", finished=True))
+        conn.push(LiveAudio(b"\x00\x01" * 24_000))  # one second of answer
+        await until(lambda: bool(relay.frames("utterance_start")))
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+        await asyncio.sleep(0.1)
+        conn.push(LiveAudio(b"\x00\x01" * 24_000))  # one more second while the close waits for a report
+
+    run(_drive(store, script))
+    assert [u.audio_output_tokens for u in store.usage] == [2 * PER_S]
+    assert store.log[-1] == ("settle", "committed")

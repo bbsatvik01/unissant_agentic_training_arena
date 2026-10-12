@@ -38,7 +38,8 @@ class LiveMeter:
         self._in_bytes = 0
         self._out_bytes = 0
         self._speech = False
-        self._context = 0
+        self._context_text = 0
+        self._context_audio = 0
         self._failed = False
         self.spend_usd = 0.0
 
@@ -81,10 +82,13 @@ class LiveMeter:
     async def record(self, usage: LiveUsage) -> bool:
         """Record one Live report; True when the session must stop (shutoff or overrun)."""
         report = self._report(usage.text_in, usage.audio_in, usage.text_out, usage.audio_out, usage.thinking)
+        shutoff = await self._send(report)
+        # Cleared only once the receipt is written: a close during the write still estimates what it covered.
         self._in_bytes = self._out_bytes = 0
         self._speech = False
-        self._context = usage.text_in + usage.audio_in + usage.text_out + usage.audio_out
-        return await self._send(report)
+        self._context_text = usage.text_in + usage.text_out
+        self._context_audio = usage.audio_in + usage.audio_out
+        return shutoff
 
     async def close_out(self) -> None:
         """At the close: one estimated receipt for what no report covered (see the module note)."""
@@ -92,8 +96,8 @@ class LiveMeter:
             return
         produced = self._out_bytes > 0
         report = self._report(
-            text_in=self._context if produced else 0,
-            audio_in=audio_tokens(self._in_bytes, INPUT_SAMPLE_RATE),
+            text_in=self._context_text if produced else 0,
+            audio_in=audio_tokens(self._in_bytes, INPUT_SAMPLE_RATE) + (self._context_audio if produced else 0),
             text_out=0,
             audio_out=audio_tokens(self._out_bytes, OUTPUT_SAMPLE_RATE),
             thinking=0,

@@ -353,8 +353,10 @@ class VoiceSession:
         async for event in live.events():
             if self._done.is_set():
                 # Terminal: only a usage report still matters (it settles what was billed); nothing more is relayed.
-                if isinstance(event, LiveUsage) and self._meter is not None:
+                if self._meter is not None and isinstance(event, LiveUsage):
                     await self._meter.record(event)
+                elif self._meter is not None and isinstance(event, LiveAudio):
+                    self._meter.audio_out(len(event.data))  # produced (and billed) though no longer relayed
                 if self._meter is None or not self._meter.awaiting_report:
                     return
                 continue
