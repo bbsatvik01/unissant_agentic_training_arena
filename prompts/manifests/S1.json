@@ -14,8 +14,8 @@
     }
   },
   "lineage": {
-    "change_note": "style.v2: anxious affect said aloud at most once and no repeated remarks about feelings; varied fillers.",
-    "parent_sha256": "8329b11072e871e94dbad163a9115337dc97f65e9204f0242b9ff2cac4026d1a"
+    "change_note": "role.d.v2: a HOLD or CORE fact is never denied, claimed forgotten or explained away under pressure; a permitted behavior or a short non-answer instead. role.t.v2: nothing is said not to exist or not to have happened, and no method described, beyond the ledger.",
+    "parent_sha256": "846a16a53bda69af6569d605a436ef1696f085c898dacdcd2b2ad047ddb8854a"
   },
   "manifest_version": "manifest.v1",
   "model": {
@@ -27,15 +27,15 @@
     "assembly": {
       "live": [
         "prompts/subject/live.v1.txt",
-        "prompts/subject/role.t.v1.txt",
-        "prompts/subject/role.d.v1.txt",
+        "prompts/subject/role.t.v2.txt",
+        "prompts/subject/role.d.v2.txt",
         "prompts/subject/policy.standard.v1.txt",
         "prompts/subject/style.v2.txt"
       ],
       "subject": [
         "prompts/subject/system.v1.txt",
-        "prompts/subject/role.t.v1.txt",
-        "prompts/subject/role.d.v1.txt",
+        "prompts/subject/role.t.v2.txt",
+        "prompts/subject/role.d.v2.txt",
         "prompts/subject/policy.standard.v1.txt",
         "prompts/subject/style.v2.txt"
       ]
@@ -46,12 +46,12 @@
         "sha256": "57f555bec237e1239e6ecfce53e977375286a7145522181fd0ee24f26a822d40"
       },
       {
-        "path": "prompts/subject/role.t.v1.txt",
-        "sha256": "9304d355c1cd018996de71c24c01189689940b60d28d10ea0b2c4e567119dd37"
+        "path": "prompts/subject/role.t.v2.txt",
+        "sha256": "501254f2be8fa33809d6d397967363b2e9bd1c2edb444722b47993f5e0b93689"
       },
       {
-        "path": "prompts/subject/role.d.v1.txt",
-        "sha256": "abdd7568e69b6fb72baa62934ea7d63983f64bc4543a23314c1dbb9a247a2680"
+        "path": "prompts/subject/role.d.v2.txt",
+        "sha256": "d5ac7668a1a79abd2c99e05be6a5e8469dc9b9029ec91999a463f22f1eecf7f9"
       },
       {
         "path": "prompts/subject/policy.standard.v1.txt",
@@ -88,11 +88,11 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "846a16a53bda69af6569d605a436ef1696f085c898dacdcd2b2ad047ddb8854a",
+  "sha256": "b3f911f8a666f8939c0cb58b20d40877e3a9d6e002cff500ae8f6dc9b557c0ac",
   "subject_policy": {
     "policy": "standard"
   },
   "tools": [],
   "transport": "in_process",
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

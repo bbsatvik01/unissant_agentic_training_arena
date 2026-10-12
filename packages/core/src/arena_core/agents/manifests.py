@@ -258,7 +258,7 @@ _CALL_SHAPE: dict[str, tuple[str, str, tuple[str, str]]] = {
     "final": ("final", "user.final.v1.txt", ("FinalFinding", "final.v1")),
     "subject": ("subject", "user.turn.v1.txt", ("SubjectTurn", "subject.v1")),
     "referee_subject": ("referee_subject", "subject.user.v1.txt", ("RefereeSubjectReport", "ref_subj.v5")),
-    "referee_assistant": ("referee_assistant", "assistant.user.v1.txt", ("RefereeAssistantReport", "ref_asst.v2")),
+    "referee_assistant": ("referee_assistant", "assistant.user.v2.txt", ("RefereeAssistantReport", "ref_asst.v2")),
 }
 # Subjects also render the Live instruction from their own assembly (S2 9.3).
 _EXTRA_ASSEMBLY = {"subject": frozenset({"live"})}
@@ -271,7 +271,10 @@ def _prompt_shape_errors(kind: str, keys: frozenset[str], prompt: PromptSpec) ->
     if set(prompt.assembly) != assemblies:
         errors.append(f"prompt.assembly: keys {sorted(prompt.assembly)} are not {sorted(assemblies)}")
     names = sorted(t.path.rsplit("/", 1)[-1] for t in prompt.user_templates)
-    if names != sorted(_CALL_SHAPE[k][1] for k in keys):
+    # Referee 1.0.0 named assistant.user.v1.txt; it still validates (and renders) as the parent of 1.1.0.
+    expected = sorted(_CALL_SHAPE[k][1] for k in keys)
+    earlier = sorted(n.replace("assistant.user.v2.txt", "assistant.user.v1.txt") for n in expected)
+    if names not in (expected, earlier):
         errors.append(f"prompt.user_templates: {names} are not the templates of {sorted(keys)}")
     schemas = sorted((s.name, s.version) for s in prompt.output_schemas)
     if schemas != sorted(_CALL_SHAPE[k][2] for k in keys):
@@ -365,8 +368,9 @@ _ALLOWED: dict[str, dict[str, str]] = {
     "card": {_FLASH_35: "MINIMAL", _FLASH_31: "MINIMAL"},
     "deep": {_FLASH_35: "MINIMAL"},
     "final": {_FLASH_35: "MINIMAL", _FLASH_31: "MINIMAL"},
-    # S2 3.1, 7.1: R1 on gemini-3.1-flash-lite at LOW, R2 on gemini-3.5-flash-lite at MINIMAL.
-    "referee_subject": {_FLASH_31: "LOW"},
+    # S2 3.1, 7.1: R1 on gemini-3.1-flash-lite, R2 on gemini-3.5-flash-lite, both at MINIMAL (R1 was LOW in S2;
+    # see REFEREE_SUBJECT_BUDGET).
+    "referee_subject": {_FLASH_31: "MINIMAL"},
     "referee_assistant": {_FLASH_35: "MINIMAL"},
 }
 
@@ -476,18 +480,26 @@ USER_DEEP = f"{COACH_DIR}user.deep.v1.txt"
 USER_FINAL = f"{COACH_DIR}user.final.v1.txt"
 SUBJECT_SYSTEM = f"{SUBJECT_DIR}system.v1.txt"
 SUBJECT_LIVE = f"{SUBJECT_DIR}live.v1.txt"
-ROLE_T = f"{SUBJECT_DIR}role.t.v1.txt"
-ROLE_D = f"{SUBJECT_DIR}role.d.v1.txt"
+ROLE_T_V1 = f"{SUBJECT_DIR}role.t.v1.txt"
+ROLE_T = f"{SUBJECT_DIR}role.t.v2.txt"
+ROLE_D_V1 = f"{SUBJECT_DIR}role.d.v1.txt"
+ROLE_D = f"{SUBJECT_DIR}role.d.v2.txt"
 STYLE_V1 = f"{SUBJECT_DIR}style.v1.txt"
 STYLE = f"{SUBJECT_DIR}style.v2.txt"
 # Every style table a registered subject version may name (the subject builder renders the manifest's own).
 STYLES = (STYLE_V1, STYLE)
+# Every role block T and D a registered subject version may name.
+ROLE_TS = (ROLE_T_V1, ROLE_T)
+ROLE_DS = (ROLE_D_V1, ROLE_D)
 POLICY = {"standard": f"{SUBJECT_DIR}policy.standard.v1.txt", "skilled_deceiver": f"{SUBJECT_DIR}policy.skilled.v1.txt"}
 SUBJECT_USER = f"{SUBJECT_DIR}user.turn.v1.txt"
-REFEREE_SUBJECT = f"{REFEREE_DIR}subject.v1.txt"
-REFEREE_ASSISTANT = f"{REFEREE_DIR}assistant.v1.txt"
+REFEREE_SUBJECT_V1 = f"{REFEREE_DIR}subject.v1.txt"
+REFEREE_ASSISTANT_V1 = f"{REFEREE_DIR}assistant.v1.txt"
+REFEREE_SUBJECT = f"{REFEREE_DIR}subject.v2.txt"
+REFEREE_ASSISTANT = f"{REFEREE_DIR}assistant.v2.txt"
 REFEREE_SUBJECT_USER = f"{REFEREE_DIR}subject.user.v1.txt"
-REFEREE_ASSISTANT_USER = f"{REFEREE_DIR}assistant.user.v1.txt"
+REFEREE_ASSISTANT_USER_V1 = f"{REFEREE_DIR}assistant.user.v1.txt"
+REFEREE_ASSISTANT_USER = f"{REFEREE_DIR}assistant.user.v2.txt"
 # S2 3.4/7.4: the published rubric.v1 file (`rubric_text`), registered on the referee manifest by default.
 REFEREE_RUBRIC = f"{REFEREE_DIR}{RUBRIC_FILE}"
 
@@ -497,7 +509,9 @@ CARD_BUDGET = (128_000, 1_600, "MINIMAL", 6_000, 12_000)
 DEEP_BUDGET = (128_000, 3_000, "MINIMAL", 10_000, 20_000)
 FINAL_BUDGET = (128_000, 3_000, "MINIMAL", 15_000, 30_000)
 SUBJECT_BUDGET = (80_000, 1_600, "MINIMAL", 8_000, 20_000)
-REFEREE_SUBJECT_BUDGET = (160_000, 4_000, "LOW", 30_000, 90_000)
+# MINIMAL, not S2's LOW: at LOW the 12-turn R1 report ran out of its 4,000 output tokens in 30 of 71 real calls
+# (thinking averaged 2,378 tokens on those); at MINIMAL it used 1,400-2,900 (real pilot, 2026-10-12).
+REFEREE_SUBJECT_BUDGET = (160_000, 4_000, "MINIMAL", 30_000, 90_000)
 REFEREE_ASSISTANT_BUDGET = (160_000, 4_000, "MINIMAL", 30_000, 90_000)
 
 
@@ -523,30 +537,56 @@ def _schemas(*keys: tuple[str, str]) -> list[dict[str, str]]:
 
 @dataclass(frozen=True)
 class Release:
-    """One version of the official coaches and subjects: the shared files that changed and why (S2 3.3: a new
-    prompt is a new version whose `lineage.parent_sha256` names the version it replaces)."""
+    """One version of the official coaches and subjects: the shared files and why they changed (S2 3.3: a new
+    prompt is a new version whose `lineage.parent_sha256` names the version it replaces). A candidate whose files
+    did not change keeps its version, and so its manifest."""
 
-    version: str
+    coach_version: str
+    subject_version: str
     common: str
     style: str
+    role_t: str
+    role_d: str
     coach_note: str
     subject_note: str
 
 
-INITIAL = Release("1.0.0", COMMON_V1, STYLE_V1, "initial", "initial")
-CURRENT = Release(
-    "1.1.0",
-    COMMON,
-    STYLE,
+_COACH_1_1_NOTE = (
     "common.v2: an unexplained 'do not remember' about a point the subject could answer is possible_evasion and is"
     " flagged; neutrality issues are the investigator's own wording only; follow-ups never repeat a question and"
-    " stay a question at the last exchange.",
-    "style.v2: anxious affect said aloud at most once and no repeated remarks about feelings; varied fillers.",
+    " stay a question at the last exchange."
 )
+INITIAL = Release("1.0.0", "1.0.0", COMMON_V1, STYLE_V1, ROLE_T_V1, ROLE_D_V1, "initial", "initial")
+RELEASES: tuple[Release, ...] = (
+    INITIAL,
+    Release(
+        "1.1.0",
+        "1.1.0",
+        COMMON,
+        STYLE,
+        ROLE_T_V1,
+        ROLE_D_V1,
+        _COACH_1_1_NOTE,
+        "style.v2: anxious affect said aloud at most once and no repeated remarks about feelings; varied fillers.",
+    ),
+    Release(
+        "1.1.0",
+        "1.2.0",
+        COMMON,
+        STYLE,
+        ROLE_T,
+        ROLE_D,
+        _COACH_1_1_NOTE,
+        "role.d.v2: a HOLD or CORE fact is never denied, claimed forgotten or explained away under pressure; a"
+        " permitted behavior or a short non-answer instead. role.t.v2: nothing is said not to exist or not to have"
+        " happened, and no method described, beyond the ledger.",
+    ),
+)
+CURRENT = RELEASES[-1]
 
 
 def _base(
-    candidate_id: str, kind: str, display_name: str, version: str = INITIAL.version, note: str = "initial"
+    candidate_id: str, kind: str, display_name: str, version: str = "1.0.0", note: str = "initial"
 ) -> dict[str, Any]:
     return {
         "manifest_version": "manifest.v1",
@@ -598,7 +638,7 @@ def assistant_manifest(spec: CoachSpec, root: Path = REPO_ROOT, release: Release
         schemas.insert(1, ("DeepUpdate", "deep.v1"))
         limits["deep"] = _limit(model_id, DEEP_BUDGET)
     return {
-        **_base(candidate_id, "assistant", display_name, release.version, release.coach_note),
+        **_base(candidate_id, "assistant", display_name, release.coach_version, release.coach_note),
         "prompt": {
             "files": _refs(files, root),
             "assembly": assembly,
@@ -631,9 +671,9 @@ def subject_manifest(spec: SubjectSpec, root: Path = REPO_ROOT, release: Release
     """An S2 6.5 subject: base, role blocks T and D, its policy block and the style table; the Live instruction
     (S2 9.3) renders from the same blocks. The builder picks the role block by the packet's role."""
     candidate_id, display_name, model_id, policy = spec.candidate_id, spec.display_name, spec.model_id, spec.policy
-    behavior = [ROLE_T, ROLE_D, POLICY[policy], release.style]
+    behavior = [release.role_t, release.role_d, POLICY[policy], release.style]
     return {
-        **_base(candidate_id, "subject", display_name, release.version, release.subject_note),
+        **_base(candidate_id, "subject", display_name, release.subject_version, release.subject_note),
         "prompt": {
             "files": _refs([SUBJECT_SYSTEM, *behavior, SUBJECT_LIVE], root),
             "assembly": {"subject": [SUBJECT_SYSTEM, *behavior], "live": [SUBJECT_LIVE, *behavior]},
@@ -647,19 +687,51 @@ def subject_manifest(spec: SubjectSpec, root: Path = REPO_ROOT, release: Release
     }
 
 
-def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC) -> dict[str, Any]:
+@dataclass(frozen=True)
+class RefereeRelease:
+    """One version of the referee: its prompt files, R1's thinking level and why it changed (S2 3.3)."""
+
+    version: str
+    subject: str
+    assistant: str
+    assistant_user: str
+    subject_thinking: str
+    note: str
+
+
+REFEREE_RELEASES: tuple[RefereeRelease, ...] = (
+    RefereeRelease("1.0.0", REFEREE_SUBJECT_V1, REFEREE_ASSISTANT_V1, REFEREE_ASSISTANT_USER_V1, "LOW", "initial"),
+    RefereeRelease(
+        "1.1.0",
+        REFEREE_SUBJECT,
+        REFEREE_ASSISTANT,
+        REFEREE_ASSISTANT_USER,
+        REFEREE_SUBJECT_BUDGET[2],
+        "subject.v2 judges a statement by what the subject was given; assistant.v2 and assistant.user.v2: a"
+        " triggered sub-check is never na; R1 at MINIMAL thinking (LOW overran its output tokens).",
+    ),
+)
+
+
+def referee_manifest(
+    root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC, release: RefereeRelease = REFEREE_RELEASES[-1]
+) -> dict[str, Any]:
     """The S2 7.1 referee: J1+J2 and J3+J4 prompts, plus the published `rubric.v1` file (S2 3.4/7.4), registered
     by default so `check_referee_freeze` accepts the manifest without a `rubric=` override. Pass `rubric=None`
     to build the pre-publication shape (no rubric.v1 hashed, J4 needs a development placeholder,
     `arena_referee.scoring.default_dev_rubric`) that a few tests still exercise, or another path to register a
     fixture rubric instead."""
-    files = [REFEREE_SUBJECT, REFEREE_ASSISTANT, *([rubric] if rubric else [])]
+    files = [release.subject, release.assistant, *([rubric] if rubric else [])]
+    index = REFEREE_RELEASES.index(release)
+    parent = manifest_sha256(referee_manifest(root, rubric, REFEREE_RELEASES[index - 1])) if index else None
+    subject_budget = (*REFEREE_SUBJECT_BUDGET[:2], release.subject_thinking, *REFEREE_SUBJECT_BUDGET[3:])
     return {
-        **_base("referee", "referee", "Referee"),
+        **_base("referee", "referee", "Referee", release.version, release.note),
+        "lineage": {"parent_sha256": parent, "change_note": release.note},
         "prompt": {
             "files": _refs(files, root),
-            "assembly": {"referee_subject": [REFEREE_SUBJECT], "referee_assistant": [REFEREE_ASSISTANT]},
-            "user_templates": _refs([REFEREE_SUBJECT_USER, REFEREE_ASSISTANT_USER], root),
+            "assembly": {"referee_subject": [release.subject], "referee_assistant": [release.assistant]},
+            "user_templates": _refs([REFEREE_SUBJECT_USER, release.assistant_user], root),
             "output_schemas": _schemas(
                 ("RefereeSubjectReport", "ref_subj.v5"), ("RefereeAssistantReport", "ref_asst.v2")
             ),
@@ -668,7 +740,7 @@ def referee_manifest(root: Path = REPO_ROOT, rubric: str | None = REFEREE_RUBRIC
         "coaching_policy": None,
         "subject_policy": None,
         "limits": {
-            "referee_subject": _limit(_FLASH_31, REFEREE_SUBJECT_BUDGET),
+            "referee_subject": _limit(_FLASH_31, subject_budget),
             "referee_assistant": _limit(_FLASH_35, REFEREE_ASSISTANT_BUDGET),
         },
     }
@@ -680,13 +752,19 @@ def with_hash(raw: Mapping[str, Any]) -> CandidateManifest:
 
 
 def official_manifests(root: Path = REPO_ROOT, release: Release = CURRENT) -> dict[str, CandidateManifest]:
-    """The official roster of S2 5.3 and 6.5 at `release`, each with its `sha256` filled in. A release after the
-    initial one names, in `lineage.parent_sha256`, the same candidate's initial manifest (S2 3.3)."""
+    """The official roster of S2 5.3 and 6.5 at `release`, each with its `sha256` filled in. A candidate whose
+    version changed from the previous release names that release's manifest in `lineage.parent_sha256`; one whose
+    version did not keeps the previous lineage (S2 3.3)."""
     raw = _official_raw(root, release)
-    if release != INITIAL:
-        parents = {m["candidate_id"]: with_hash(m).sha256 for m in _official_raw(root, INITIAL)}
+    index = RELEASES.index(release)
+    if index:
+        earlier = official_manifests(root, RELEASES[index - 1])
         for m in raw:
-            m["lineage"]["parent_sha256"] = parents[m["candidate_id"]]
+            prev = earlier[m["candidate_id"]]
+            if prev.version == m["version"]:
+                m["lineage"] = prev.lineage.model_dump(mode="json")
+            else:
+                m["lineage"]["parent_sha256"] = prev.sha256
     return {m.candidate_id: m for m in map(with_hash, raw)}
 
 

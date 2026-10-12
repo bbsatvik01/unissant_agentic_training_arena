@@ -29,8 +29,8 @@ from pydantic import Field, StringConstraints, model_validator
 from arena_core.agents.coach_prompts import Prompt
 from arena_core.agents.manifests import (
     POLICY,
-    ROLE_D,
-    ROLE_T,
+    ROLE_DS,
+    ROLE_TS,
     STYLES,
     SUBJECT_LIVE,
     SUBJECT_SYSTEM,
@@ -235,9 +235,9 @@ ALLOWED_PREFIX = "- Allowed behaviors: "
 def role_block(packet: SubjectPacket, prompts: PromptSet) -> str:
     """Role block T, or role block D with only the packet's permitted behaviors listed (S2 6.4)."""
     if packet.role == "truthful":
-        return prompts.text(ROLE_T)
+        return prompts.text(_named_block(prompts, 1, ROLE_TS, "role block T"))
     permitted = [b for b in PERMITTED_ORDER if b in packet.permitted_behaviors]
-    text = render(prompts.text(ROLE_D), {"permitted_behaviors_rendered": ", ".join(permitted)})
+    text = render(prompts.text(role_d_file(prompts)), {"permitted_behaviors_rendered": ", ".join(permitted)})
     dropped = set(PERMITTED_ORDER) - set(permitted)
     out = []
     for line in text.split("\n"):
@@ -262,15 +262,36 @@ def policy_block(packet: SubjectPacket, prompts: PromptSet) -> str:
     return prompts.text(POLICY[policy.policy])
 
 
+def _subject_block(prompts: PromptSet, position: int) -> str:
+    """The file at `position` of the manifest's own subject assembly ("" if there is none)."""
+    prompt = prompts.manifest.prompt
+    blocks = prompt.assembly.get("subject", []) if prompt is not None else []
+    return blocks[position] if -len(blocks) <= position < len(blocks) else ""
+
+
 def style_file(prompts: PromptSet) -> str:
     """The style table the manifest's own subject assembly names (its last block): a registered 1.0.0 subject keeps
     rendering `style.v1`, a 1.1.0 subject `style.v2` (S2 3.3). Any other file there is refused."""
-    prompt = prompts.manifest.prompt
-    named = prompt.assembly.get("subject", [""])[-1] if prompt is not None else ""
+    named = _subject_block(prompts, -1)
     if named not in STYLES:
         msg = f"manifest {prompts.manifest.candidate_id}: {named!r} is not a style table"
         raise ManifestMismatchError(msg)
     return named
+
+
+def _named_block(prompts: PromptSet, position: int, allowed: tuple[str, ...], what: str) -> str:
+    """The file at `position` of the manifest's own subject assembly, refused unless it is one of `allowed`."""
+    named = _subject_block(prompts, position)
+    if named not in allowed:
+        msg = f"manifest {prompts.manifest.candidate_id}: {named!r} is not a {what}"
+        raise ManifestMismatchError(msg)
+    return named
+
+
+def role_d_file(prompts: PromptSet) -> str:
+    """Role block D as the manifest's own subject assembly names it (its third block): `role.d.v1` up to subject
+    1.1.0, `role.d.v2` from 1.2.0 (S2 3.3); role block T likewise (its second block). Any other file is refused."""
+    return _named_block(prompts, 2, ROLE_DS, "role block D")
 
 
 def style_block(style: Style, prompts: PromptSet) -> str:
@@ -391,10 +412,12 @@ def _check(packet: SubjectPacket, prompts: PromptSet, key: Literal["subject", "l
         msg = f"manifest {manifest.candidate_id} is not a subject"
         raise TemplateError(msg)
     base = SUBJECT_SYSTEM if key == "subject" else SUBJECT_LIVE
-    # Both assemblies must name the style table the subject assembly names: the one `style_block` renders.
-    named = manifest.prompt.assembly.get("subject", [""])[-1]
-    style = named if named in STYLES else STYLES[-1]
-    expected = [base, ROLE_T, ROLE_D, POLICY[manifest.subject_policy.policy], style]
+    # Both assemblies must name the role blocks and style table the subject assembly names: the ones rendered.
+    named_t, named_d, named_style = _subject_block(prompts, 1), _subject_block(prompts, 2), _subject_block(prompts, -1)
+    role_t = named_t if named_t in ROLE_TS else ROLE_TS[-1]
+    role_d = named_d if named_d in ROLE_DS else ROLE_DS[-1]
+    style = named_style if named_style in STYLES else STYLES[-1]
+    expected = [base, role_t, role_d, POLICY[manifest.subject_policy.policy], style]
     if manifest.prompt.assembly.get(key) != expected:
         msg = f"manifest {manifest.candidate_id}: {key} assembly is not {expected}"
         raise ManifestMismatchError(msg)

@@ -101,8 +101,9 @@ DEFAULT_TIMING: dict[CallType, CallTiming] = {
 # purpose its level (R1 and r3_subject LOW; R2 and r3_investigator MINIMAL), so each purpose has one combination.
 THINKING: dict[CallType, frozenset[ThinkingLevel]] = {t: frozenset({ThinkingLevel.MINIMAL}) for t in CallType}
 REFEREE_COMBINATIONS: dict[str, tuple[VertexModel, ThinkingLevel]] = {
-    "referee_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.LOW),
-    "r3_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.LOW),
+    # MINIMAL, not S2's LOW: at LOW the R1 report overran its output tokens on long transcripts (manifests.py).
+    "referee_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.MINIMAL),
+    "r3_subject": (VertexModel.FLASH_LITE_31, ThinkingLevel.MINIMAL),
     "referee_assistant": (VertexModel.FLASH_LITE_35, ThinkingLevel.MINIMAL),
     "r3_investigator": (VertexModel.FLASH_LITE_35, ThinkingLevel.MINIMAL),
 }

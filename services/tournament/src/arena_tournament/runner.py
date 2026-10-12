@@ -38,7 +38,7 @@ from arena_core.turns.replay import ReplayScorer
 from arena_tournament import admission
 from arena_tournament.blocks import group_interactive_by_block
 from arena_tournament.harness_asker import CorpusAsker, HarnessAsker
-from arena_tournament.referee_client import RefereeClient
+from arena_tournament.referee_client import RefereeClient, RefereeError
 
 log = logging.getLogger("arena_tournament")
 
@@ -229,9 +229,22 @@ class TournamentRunner:
 
     # ------------------------------------------------------------------ interactive track (S2 8; direction 7.2)
 
+    async def _score_block(self, tournament: UUID, block_no: int) -> bool:
+        """One block's scoring; a referee failure (e.g. a referee reply that failed its schema twice) is logged and
+        reported, never raised: the trials are recorded, and scoring resumes where it stopped on the next try."""
+        try:
+            await self.referee.score_block(tournament, block_no)
+        except RefereeError as exc:
+            log.warning("block %d scoring failed at the referee (HTTP %d); it is retried", block_no, exc.status)
+            return False
+        return True
+
     async def _run_interactive_track(
         self, tournament: UUID, planned: Sequence[Row], attempts_by_planned: dict[UUID, list[Attempt]]
-    ) -> None:
+    ) -> list[int]:
+        """Every block's trials, each block scored after its last trial; returns the blocks still unscored after
+        one more try at the end (a rerun of the job scores them, since every trial is then terminal)."""
+        unscored: list[int] = []
         for block_no, rows in group_interactive_by_block(planned):
             for row in rows:
                 attempts = attempts_by_planned[row["planned_trial_id"]]
@@ -249,7 +262,9 @@ class TournamentRunner:
                     return await _run_interactive_trial(trial_id, self.orchestrator, packet["opening_question"])
 
                 await self._run_until_terminal(row["planned_trial_id"], attempts, trial_calls, step)
-            await self.referee.score_block(tournament, block_no)
+            if not await self._score_block(tournament, block_no):
+                unscored.append(block_no)
+        return [block_no for block_no in unscored if not await self._score_block(tournament, block_no)]
 
     # ------------------------------------------------------------------ the whole run
 
@@ -280,6 +295,9 @@ class TournamentRunner:
         await self.run_replay_track_prerequisite(tournament)
         planned = await self.db.planned_trials(tournament)
         attempts_by_planned = await self.db.planned_trial_attempts(tournament)
-        await self._run_interactive_track(tournament, planned, attempts_by_planned)
+        unscored = await self._run_interactive_track(tournament, planned, attempts_by_planned)
+        if unscored:
+            log.warning("blocks %s are not scored yet; the run stays open: run the job again to score them", unscored)
+            return RunSummary(tournament, dict(self.outcomes), False)
         await self.referee.close(tournament)
         return RunSummary(tournament, dict(self.outcomes), True)

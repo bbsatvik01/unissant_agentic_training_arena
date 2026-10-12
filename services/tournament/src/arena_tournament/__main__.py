@@ -17,6 +17,12 @@ RUN_ARGV_LEN = 2  # "run" plus the tournament id
 
 def _run(tournament_id: str) -> int:
     summary = asyncio.run(run_tournament(os.environ, UUID(tournament_id)))
+    if not summary.closed:
+        sys.stdout.write(
+            f"arena-tournament: tournament {summary.tournament_id} not closed (a block is not scored yet: run it"
+            f" again); outcomes {summary.outcomes}\n"
+        )
+        return 1
     sys.stdout.write(f"arena-tournament: tournament {summary.tournament_id} closed; outcomes {summary.outcomes}\n")
     return 0
 

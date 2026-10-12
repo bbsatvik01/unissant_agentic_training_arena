@@ -179,9 +179,11 @@ def test_at_ref_1_trigger_and_citation_blocks_hold_ids_only() -> None:
     prompt = _r2(assistant_input())
     user = prompt.user_message
     citations = user.split("Finding citations:\n", 1)[1].split("\n\nApplicability triggers:", 1)[0]
-    triggers = user.split("Applicability triggers:\n", 1)[1].split("\n\nAssess every flag", 1)[0]
+    triggers = user.split("Applicability triggers:\n", 1)[1].split("\n\nSub-checks that apply in this trial", 1)[0]
     assert citations.splitlines() == ["t01", "t02", "doc-01"]
     assert triggers.splitlines() == ["2a | t02 | t03", "3e | t03, rec-01 | none"]
+    applicable = "Sub-checks that apply in this trial, so answer pass or fail, never na: 2a, 3e"
+    assert f"\n\n{applicable}\n\nAssess every flag" in user
     token = re.compile(r"^(?:[1-5][a-e]|t(0[1-9]|1[0-2])|doc-0[1-4]|rec-0[1-6]|none)$")
     for word in re.split(r"[\s|,]+", f"{citations}\n{triggers}"):
         assert not word or token.match(word), word
@@ -324,7 +326,7 @@ def test_every_trigger_s3_can_produce_renders_losslessly() -> None:
     ]
     assert len(triggers) == MAX_TRIGGERS
     user = _r2(assistant_input().model_copy(update={"triggers": triggers})).user_message
-    block = user.split("Applicability triggers:\n", 1)[1].split("\n\nAssess every flag", 1)[0]
+    block = user.split("Applicability triggers:\n", 1)[1].split("\n\nSub-checks that apply in this trial", 1)[0]
     assert len(block.splitlines()) == MAX_TRIGGERS
     assert "3e | t11, t12 | none" in block
     assert "3e | t12, rec-06 | none" in block
