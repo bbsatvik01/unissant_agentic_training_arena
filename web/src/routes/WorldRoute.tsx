@@ -5,9 +5,10 @@
  * or a recorded run (the bundled F01 recording or an exported file). Without the API the hub falls back to the
  * bundled case list and recordings only.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArenaView } from "../components/overlay/ArenaView";
+import { DemoGuide } from "../components/overlay/DemoGuide";
 import { Onboarding } from "../components/overlay/Onboarding";
 import { ProgressView } from "../components/overlay/ProgressView";
 import { CoachPanel } from "../components/overlay/CoachPanel";
@@ -27,9 +28,11 @@ import type { Debrief } from "../lib/contracts/generated/types";
 import { isWire } from "../lib/contracts/validate";
 import { EX4_TEXT } from "../lib/copy/ex4";
 import { draftToFinding } from "../lib/copy/finding";
-import type { RoomStatus, TrialView } from "../lib/trial/trialReducer";
+import { initialTrialState, trialReducer, type RoomStatus, type TrialView } from "../lib/trial/trialReducer";
 import { CASES, RECORDED_CASE_ID, type CaseCard } from "../lib/world/cases";
+import { followRoom, type DemoStep } from "../lib/demo/demo";
 import { allowedModes, nextStepText, stepLabel } from "../lib/study/study";
+import { debriefView, type EndedTrial } from "../lib/world/debrief";
 import { draftAfterSend } from "../lib/world/live";
 import type { RecordingResult } from "../lib/world/parseRecording";
 import type { CaseDocument, Recording } from "../lib/world/recording";
@@ -76,6 +79,10 @@ export function WorldRoute() {
   const api = useMemo(() => createArenaApi(createApiClient()), []);
   const [liveCases, setLiveCases] = useState<readonly CaseCard[] | null>(null);
   const [place, setPlace] = useState<"hub" | "room">("hub");
+  const placeRef = useRef(place);
+  useEffect(() => {
+    placeRef.current = place;
+  });
   const [active, setActive] = useState<CaseCard | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [load, setLoad] = useState<Load>({ state: "none" });
@@ -92,6 +99,9 @@ export function WorldRoute() {
   const [rightOpen, setRightOpen] = useState(true);
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; tournament: TournamentState; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
+  const [endedTrial, setEndedTrial] = useState<EndedTrial | null>(null);
+  // The judge demo (`?demo` or the precinct's Guided demo button): its step and when it began.
+  const [demo, setDemo] = useState<{ step: DemoStep; startedAt: number } | null>(() => (new URLSearchParams(window.location.search).has("demo") ? { step: "precinct", startedAt: Date.now() } : null));
   // An address naming a tournament (`?tournament=<id>`, as the corrected and original links do) opens the arena.
   const [showArena, setShowArena] = useState(() => new URLSearchParams(window.location.search).has("tournament"));
   // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
@@ -210,9 +220,18 @@ export function WorldRoute() {
     };
   }, [load.state]);
 
-  // Once the camera has landed in the room and the recording is ready, a recorded run plays (never in the precinct).
+  // Once the camera has landed in the room and the recording is ready, a recorded run plays (never in the precinct),
+  // once per recording: a later camera move never restarts it, nor undoes a seek to its debrief.
+  const autoplayed = useRef<Recording | null>(null);
   useEffect(() => {
-    if (arrived && place === "room" && mode === "playback" && recording !== null) play();
+    // Leaving the room forgets it, so the next visit plays the run again.
+    if (place !== "room") {
+      autoplayed.current = null;
+      return;
+    }
+    if (!arrived || mode !== "playback" || recording === null || autoplayed.current === recording) return;
+    autoplayed.current = recording;
+    play();
   }, [arrived, place, mode, recording, play]);
 
   // The live brief: the case's initial documents for the wall and the evidence list.
@@ -264,10 +283,26 @@ export function WorldRoute() {
     setMode("playback");
   };
 
+  // A live start waits for the render in which the session hook holds this case (coming from playback, the hook's
+  // case is null until the mode changes), then starts once.
+  const pendingStart = useRef<"practice" | "assessment" | null>(null);
+  const startSession = session.start;
+  const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
   const startLive = (m: "practice" | "assessment") => {
+    // Already live (a retry after a refused start): start now; otherwise once the mode has changed.
+    if (liveCaseId !== null) {
+      void startSession(m);
+      return;
+    }
+    pendingStart.current = m;
     setMode("live");
-    void session.start(m);
   };
+  useEffect(() => {
+    const m = pendingStart.current;
+    if (m === null || liveCaseId === null) return;
+    pendingStart.current = null;
+    void startSession(m);
+  }, [liveCaseId, startSession]);
 
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   // A checked recording plays in the room the same way whether it came from a file or the server.
@@ -292,7 +327,8 @@ export function WorldRoute() {
     });
     setLoad({ state: "ready", recording: result.recording });
     setMode("playback");
-    setArrived(false);
+    // Already in the room (a recording replaced there), the camera has landed: keep it so the new run plays.
+    setArrived((a) => (placeRef.current === "room" ? a : false));
     setDebriefClosed(false);
     setCite(null);
     setPlace("room");
@@ -331,9 +367,29 @@ export function WorldRoute() {
           setFileError("That run could not be loaded.");
         },
       );
+      // The ended trial's snapshot carries coaching an assessment withheld, which its recording does not (FE-DEB-4).
+      setEndedTrial(null);
+      api.trialSnapshot(trialId).then(
+        (snapshot) => {
+          const ended = trialReducer(initialTrialState(), { type: "snapshot", snapshot }).view;
+          if (ended !== null) setEndedTrial({ trialId, view: ended });
+        },
+        () => undefined,
+      );
     },
     [api, playRecording],
   );
+  // The demo's interview: the bundled recorded run (no model call), whatever the server offers.
+  const openDemoRecording = useCallback(() => {
+    void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
+      ([raw, { parseRecording }]) => {
+        playRecording(structuredClone(raw.default), parseRecording);
+      },
+      () => {
+        setFileError("The recorded run could not be loaded.");
+      },
+    );
+  }, [playRecording]);
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
@@ -375,6 +431,8 @@ export function WorldRoute() {
   const debrief: Debrief | null = liveFeed ? liveDebrief : (recording?.debrief ?? null);
   const debriefReady = liveFeed ? debrief !== null : world?.debriefReady === true && debrief !== null;
   const showDebrief = place === "room" && debriefReady && !debriefClosed;
+  // The demo's interview step moves on to the debrief by itself once the debrief is up.
+  const demoStep: DemoStep | null = demo === null ? null : followRoom(demo.step, place === "room" && debriefReady);
   // The debrief scene's score cards on the wall: the document's total and five dimension scores, as they are.
   const scoreCards: readonly ScoreCard[] | null = useMemo(() => {
     if (!showDebrief || debrief === null || !debrief.scored || debrief.rubric.total === null) return null;
@@ -417,7 +475,7 @@ export function WorldRoute() {
   })();
 
   return (
-    <div className="app" data-place={place} data-paused={paused ? "true" : "false"}>
+    <div className="app" data-place={place} data-paused={paused ? "true" : "false"} data-demo={demo === null ? "false" : "true"}>
       <header className="topbar">
         <div className="brand">
           <span className="eyebrow">Training arena</span>
@@ -458,6 +516,20 @@ export function WorldRoute() {
               }}>
               Ground rule
             </button>
+          ) : null}
+          {place === "hub" && demo === null ? (
+            <button type="button" className="btn-secondary-sm" onClick={() => {
+                setDemo({ step: "precinct", startedAt: Date.now() });
+                setShowArena(false);
+                setShowProgress(false);
+              }}>
+              Guided demo
+            </button>
+          ) : null}
+          {place === "hub" ? (
+            <a className="btn-secondary-sm" href="/trust/methodology">
+              Trust center
+            </a>
           ) : null}
           {place === "hub" && live && meCtl.me !== null ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
@@ -602,7 +674,7 @@ export function WorldRoute() {
           {showDebrief && debrief !== null ? (
             <DebriefScene
               debrief={debrief}
-              view={view}
+              view={mode === "playback" ? debriefView(view, endedTrial, recording?.trial_id ?? null) : view}
               documents={documents}
               reducedMotion={still}
               onClose={() => {
@@ -859,6 +931,61 @@ export function WorldRoute() {
           }}
         />
       ) : null}
+      {demoStep === null || demo === null || mustAcknowledge ? null : (
+        <DemoGuide
+          step={demoStep}
+          startedAt={demo.startedAt}
+          recordingLoaded={mode === "playback" && recording !== null}
+          nextDisabled={demoStep === "interview" && !(mode === "playback" && recording !== null)}
+          noDebrief={mode === "playback" && recording !== null && recording.debrief === null}
+          canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id) && (session.phase === "idle" || session.phase === "error")}
+          error={fileError}
+          onClose={() => {
+            setDemo(null);
+          }}
+          onBack={demoStep === "precinct" ? null : () => {
+            if (demoStep === "interview") {
+              backToHub();
+              setDemo({ ...demo, step: "precinct" });
+            } else if (demoStep === "debrief") {
+              // Watch the run again from the start: a recorded run rewinds; a finished live interview replays as its
+              // own recording.
+              const trialId = session.session?.trial_id ?? null;
+              if (mode === "live" && trialId !== null) {
+                replayTrial(trialId);
+              } else {
+                playback.seekTo(0);
+                playback.play();
+              }
+            } else {
+              setShowArena(false);
+              openDemoRecording();
+              setDemo({ ...demo, step: "interview" });
+            }
+          }}
+          onNext={() => {
+            if (demoStep === "precinct") {
+              openDemoRecording();
+              setDemo({ ...demo, step: "interview" });
+            } else if (demoStep === "interview" && mode === "playback" && recording !== null && recording.debrief !== null) {
+              // To the debrief wall: the recorded run jumps to its end, where the debrief goes up; a camera landing
+              // after this must not start the run over.
+              autoplayed.current = recording;
+              playback.seekTo(playback.duration);
+            } else if (demoStep === "debrief" || (demoStep === "interview" && mode === "playback" && recording?.debrief === null)) {
+              // A recording without a published debrief goes on to the arena.
+              backToHub();
+              openArena();
+              setDemo({ ...demo, step: "arena" });
+            }
+          }}
+          onRecorded={openDemoRecording}
+          onFile={openRecordingFile}
+          onLive={() => {
+            startLive("practice");
+          }}
+/>
+      )}
       <footer className="ex4">{EX4_TEXT}</footer>
     </div>
   );

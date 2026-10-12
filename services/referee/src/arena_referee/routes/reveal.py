@@ -1,4 +1,4 @@
-"""`/admin/tournaments/{id}/reveal`, `/admin/tournaments/{id}/corrections`, `/admin/tournaments/{id}/leaderboard`
+"""`/api/admin/tournaments/{id}/reveal`, `.../corrections`, `.../leaderboard`
 (S3 4.4, 5.5-5.6; S4 6; WP-16): the operator's own reveal and correction actions, each followed by the
 leaderboard they publish, and a read of that published board. Reveal and corrections need an `admin`
 identity (`require_admin_role`); the leaderboard read is open to `admin` or `trainer`
@@ -18,23 +18,25 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from arena_core.identity import DevIdentity
 from arena_core.scoring.inclusion import RevealBlockedError
 from arena_referee import db
-from arena_referee.identity_dep import require_admin_role, require_console_role
+from arena_referee.identity_dep import require_admin_role
 from arena_referee.isolation import (
     GateNotRunError,
     fetch_fresh_dev_isolation_result,
     fetch_fresh_isolation_result,
     open_hidden_tournament,
+    open_hidden_with_recorded_reports,
 )
 from arena_referee.reveal import (
     PublishConfig,
     PublishContext,
     ScoringIncompleteError,
+    publish_existing,
     reveal_and_publish,
     seal_correction_and_publish,
 )
 from arena_referee.routes.admin import isolation_gate_request
 
-router = APIRouter(prefix="/admin/tournaments")
+router = APIRouter(prefix="/api/admin/tournaments")
 
 # AR020 (a precondition of reveal itself, e.g. the wrong tournament status or an unresolved review) and
 # AR021 (a seal, commitment or ledger-chain verification failure) are both "reveal is blocked", not a
@@ -42,7 +44,7 @@ router = APIRouter(prefix="/admin/tournaments")
 _BLOCKED_SQLSTATES = frozenset({"AR020", "AR021"})
 
 
-async def _publish_context(request: Request, tournament_id: UUID) -> PublishContext:
+async def publish_context(request: Request, tournament_id: UUID) -> PublishContext:
     """Built fresh for this call: the fixed `PublishConfig` from app startup, plus the isolation result
     RECOMPUTED fresh for the running commit against the tournament's now-completed data (Codex finding #1:
     reading back whatever a prior `/open` call happened to cache would publish a leaderboard bound to
@@ -89,11 +91,23 @@ async def _run(coro: Coroutine[Any, Any, db.RevealResult], action: str) -> dict[
     return _as_json(result)
 
 
+async def run_publish(
+    request: Request, tournament_id: UUID, ctx: PublishContext, manifest_version: int
+) -> dict[str, object]:
+    """Publish the boards of an existing manifest version of a revealed tournament (S5 5.5): version 1 through
+    `ledger.reveal`, which returns it again (RV-15), a later one by reading that sealed corrected manifest; never a
+    new seal. Boards are inserted unless they exist (`unique(manifest_id, board)`), so a repeat is a no-op."""
+    connect = request.app.state.connect
+    if manifest_version == 1:
+        return await _run(reveal_and_publish(connect, str(tournament_id), ctx), "publish")
+    return await _run(publish_existing(connect, str(tournament_id), manifest_version, ctx), "publish")
+
+
 @router.post("/{tournament_id}/reveal")
 async def reveal_route(
     tournament_id: UUID, request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
-    ctx = await _publish_context(request, tournament_id)
+    ctx = await publish_context(request, tournament_id)
     return await _run(reveal_and_publish(request.app.state.connect, str(tournament_id), ctx), "reveal")
 
 
@@ -101,7 +115,7 @@ async def reveal_route(
 async def correction_route(
     tournament_id: UUID, request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
-    ctx = await _publish_context(request, tournament_id)
+    ctx = await publish_context(request, tournament_id)
     return await _run(seal_correction_and_publish(request.app.state.connect, str(tournament_id), ctx), "correction")
 
 
@@ -109,7 +123,7 @@ async def correction_route(
 async def leaderboard_route(
     tournament_id: UUID,
     request: Request,
-    _identity: Annotated[DevIdentity, Depends(require_console_role)],
+    _identity: Annotated[DevIdentity, Depends(require_admin_role)],
     label: Literal["original", "corrected"] = "original",
     board: Literal["assistant", "subject"] = "assistant",
 ) -> dict[str, object]:
@@ -133,7 +147,7 @@ async def open_route(
     `sealed.verify_hidden_seal()` is unconditionally false before hidden authoring ever happens, so gating a
     dev tournament's open the same way would refuse it forever (Codex finding #4). A dev tournament opens
     directly, no gate, no body. `body` (hidden only) is IG-1/2/3's report evidence, exactly
-    `/admin/isolation-gate/run`'s shape."""
+    `/api/admin/isolation-gate/run`'s shape."""
     connect = request.app.state.connect
     try:
         split = await db.fetch_tournament_split(connect, str(tournament_id))
@@ -151,11 +165,12 @@ async def open_route(
         msg = "the referee app was not configured with ARENA_GIT_SHA"
         raise RuntimeError(msg)
     try:
-        gate_request = isolation_gate_request(body or {}, git_sha)
+        if body is None:  # the console sends no body: the suite reports recorded for this commit, as recorded
+            result = await open_hidden_with_recorded_reports(connect, str(tournament_id), git_sha)
+        else:
+            result = await open_hidden_tournament(connect, str(tournament_id), isolation_gate_request(body, git_sha))
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    try:
-        result = await open_hidden_tournament(connect, str(tournament_id), gate_request)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except psycopg.Error as exc:

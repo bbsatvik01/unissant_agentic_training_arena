@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from arena_referee.routes import admin, console, debrief, reveal, review, score, tournament
+from arena_referee.routes import admin, console, debrief, reveal, review, score, tournament, tournaments
 
 router = APIRouter()
 router.include_router(console.router)
@@ -17,5 +17,6 @@ router.include_router(debrief.router)
 router.include_router(tournament.router)
 router.include_router(admin.router)
 router.include_router(reveal.router)
+router.include_router(tournaments.router)
 
 __all__ = ["router"]

@@ -776,6 +776,18 @@ async def fetch_leaderboard(
     return cast("Mapping[str, Any] | None", row[0] if row else None)
 
 
+async def fetch_manifest(connect: Connector, tournament_id: str, version: int) -> RevealResult | None:
+    """One sealed inclusion manifest of a tournament by version (`ledger.inclusion_manifests`)."""
+    async with connect() as conn:
+        cur = await conn.execute(
+            "select id, manifest_sha256, version from ledger.inclusion_manifests"
+            " where tournament_id = %s and version = %s",
+            (UUID(tournament_id), version),
+        )
+        row = await cur.fetchone()
+    return None if row is None else RevealResult(str(row[0]), str(row[1]), int(row[2]))
+
+
 async def open_tournament(connect: Connector, tournament_id: str) -> None:
     """`arena.open_tournament` (S4): `frozen` -> `running`. For a hidden-split tournament, called only
     after the isolation gate passes (`arena_referee.isolation.open_hidden_tournament`, S1 L9); a dev-split

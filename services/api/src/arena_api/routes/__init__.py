@@ -5,10 +5,22 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from arena_api.routes import cases, debrief, evidence, findings, leaderboards, me, sessions, sse, telemetry, turns
+from arena_api.routes import (
+    cases,
+    debrief,
+    evidence,
+    findings,
+    leaderboards,
+    me,
+    progress,
+    sessions,
+    sse,
+    telemetry,
+    turns,
+)
 
 router = APIRouter()
-for module in (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards):
+for module in (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards, progress):
     router.include_router(module.router)
 
 __all__ = ["router"]

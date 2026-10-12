@@ -167,6 +167,19 @@ async def reveal_and_publish(connect: Connector, tournament_id: str, ctx: Publis
     return result
 
 
+async def publish_existing(
+    connect: Connector, tournament_id: str, manifest_version: int, ctx: PublishContext
+) -> db.RevealResult:
+    """The boards of an already sealed corrected manifest (version > 1), labeled `corrected`; nothing is sealed."""
+    found = await db.fetch_manifest(connect, tournament_id, manifest_version)
+    if found is None:
+        msg = f"tournament {tournament_id} has no manifest version {manifest_version}"
+        raise LookupError(msg)
+    inputs = await _gather(connect, tournament_id)
+    await _publish(connect, inputs, found, "corrected", ctx)
+    return found
+
+
 async def seal_correction_and_publish(connect: Connector, tournament_id: str, ctx: PublishContext) -> db.RevealResult:
     """S4 6, S3 4.4's correction rule: `seal_corrected_manifest`, then the "corrected" board on the new
     version next to the unchanged original (AC-S3-4.3, FX-M03).

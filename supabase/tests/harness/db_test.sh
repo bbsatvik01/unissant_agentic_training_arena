@@ -157,7 +157,8 @@ subject_integration() {
   supabase_up || return 1
   local dsn="$ADMIN/postgres"
   (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
-    -p no:cacheprovider -W error services/api/tests/it_api.py services/subject/tests/it_answer.py)
+    -p no:cacheprovider -W error services/api/tests/it_api.py services/referee/tests/it_admin.py \
+    services/subject/tests/it_answer.py)
 }
 
 # Runs last: `start` replaces ADMIN, which the steps on the Supabase path's server read.

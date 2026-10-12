@@ -72,6 +72,10 @@ class FakeArenaDb(ArenaDb):
         self.overtake_bound_steps = False  # a step bound to an earlier version is refused AR002
         self.manifest_missing = False
         self.tournaments: dict[UUID, str] = {}
+        self.more_sessions: list[dict[str, Any]] = []
+        self.study_row: dict[str, Any] | None = (
+            None  # the actor's training.v_my_study row  # further sessions of the actor (progress tests)
+        )
         self.boards: list[dict[str, Any]] = []  # {tournament, board, label, manifest_version, body}
 
     # ------------------------------------------------------------------ helpers
@@ -419,7 +423,7 @@ class FakeArenaDb(ArenaDb):
         return PACKET if variant == self.variant_id else None
 
     async def study(self) -> dict[str, Any] | None:
-        return None
+        return self.study_row
 
     async def dev_cases(self) -> list[dict[str, Any]]:
         return [
@@ -444,7 +448,8 @@ class FakeArenaDb(ArenaDb):
                 "status": self.status,
                 "exchanges": self.exchanges,
                 "variant_id": self.variant_id,
-            }
+            },
+            *self.more_sessions,
         ]
 
     async def candidate(self, kind: str, name: str) -> tuple[UUID, dict[str, Any]] | None:
