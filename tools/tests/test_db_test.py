@@ -39,7 +39,8 @@ TOURNAMENT_PORT = "55002"  # the stub's port for the tournament path's container
 # image), pgtap-plain, pgtap-supabase (the Supabase path's run), pgtap-tournament (the tournament path's
 # run), uv (the cost-parity run), it-subject (the subject suite's pytest run), it-tournament (the tournament
 # job suite's pytest run), it-spend (the spend-guard suite's pytest run), it-seed-hosted (the seed_hosted
-# integration suite's pytest run), it-real-smoke (the real_smoke integration suite's pytest run), fixture. A
+# integration suite's pytest run), it-real-smoke (the real_smoke integration suite's pytest run), it-kpi1 (the
+# KPI-1 study suite's pytest run), fixture. A
 # pytest run under uv also logs "uv-dsn <last argument> <ARENA_IT_ADMIN_DSN>", so a proof can tell which
 # server each suite ran on.
 STUB = """
@@ -85,6 +86,7 @@ if tool == "uv":
     spend_it = any("it_spend_guard.py" in a for a in args)
     seed_it = any("it_seed_hosted.py" in a for a in args)
     realsmoke_it = any("it_real_smoke.py" in a for a in args)
+    kpi1_it = any("it_kpi1.py" in a for a in args)
     sys.exit(
         1
         if (
@@ -94,6 +96,7 @@ if tool == "uv":
             or ("it-spend" in fail and spend_it)
             or ("it-seed-hosted" in fail and seed_it)
             or ("it-real-smoke" in fail and realsmoke_it)
+            or ("it-kpi1" in fail and kpi1_it)
         )
         else 0
     )
@@ -241,6 +244,22 @@ def test_all_steps_pass(repo: Path) -> None:
     assert any("scripts.budget_plan" in line for line in log[seed_it[0] : realsmoke_it[0]])
 
 
+def test_the_kpi1_suite_runs_last_on_the_seed_hosted_server(repo: Path) -> None:
+    code, out = run(repo)
+    assert code == 0, out
+    log = calls(repo)
+    realsmoke_it = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_real_smoke.py")]
+    kpi1_it = [i for i, line in enumerate(log) if line.endswith("services/api/tests/it_kpi1.py")]
+    assert len(kpi1_it) == 1, log
+    assert realsmoke_it[0] < kpi1_it[0]  # last on that server: it writes the case sets
+    assert "-W error" in log[kpi1_it[0]]
+    dsns = {line.split()[1]: line.split()[2] for line in log if line.startswith("uv-dsn ")}
+    assert dsns["services/api/tests/it_kpi1.py"] == dsns["packages/core/tests/db/it_seed_hosted.py"]
+    seed_removed = [i for i, line in enumerate(log) if line.startswith("docker rm -f -v arena-db-test-seed-")]
+    assert seed_removed
+    assert kpi1_it[0] < seed_removed[-1]
+
+
 def test_every_server_binds_loopback_and_a_docker_picked_port_and_is_removed(repo: Path) -> None:
     run(repo)
     runs = [line for line in calls(repo) if line.startswith("docker run ")]
@@ -277,6 +296,7 @@ def test_an_existing_plain_image_is_reused(repo: Path, monkeypatch: pytest.Monke
         ("run-seed", "seed_hosted and real_smoke integration suites"),
         ("it-seed-hosted", "seed_hosted and real_smoke integration suites"),
         ("it-real-smoke", "seed_hosted and real_smoke integration suites"),
+        ("it-kpi1", "seed_hosted and real_smoke integration suites"),
     ],
 )
 def test_a_failing_step_fails_db_test_and_the_other_steps_still_run(

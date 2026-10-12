@@ -41,6 +41,8 @@
 #      only two things a real call needs beyond what seed_hosted.py itself provisions -- then the real_smoke
 #      integration suite, in ARENA_MODEL_MODE=fake (zero spend): one subject call and one coach card through
 #      the real agent port and spend guard.                pytest packages/core/tests/db/it_real_smoke.py
+#      Then the KPI-1 study suite on that database (scripts/kpi1.py setup and report, two participants through
+#      the whole protocol, debriefs from a real arena-referee subprocess in fake mode). pytest services/api/tests/it_kpi1.py
 # Every step runs; the script exits 1 if any failed. Needs docker, psql, python3 and uv.
 set -euo pipefail
 # The URIs below fully name each disposable server: no libpq environment variable may redirect them (PGHOSTADDR
@@ -225,6 +227,14 @@ seed_hosted_integration() {
       packages/core/tests/db/it_real_smoke.py) || rc=1
     rm -f "$users_toml"
   fi
+  # Then the KPI-1 study end to end on the same database (S3 6.1, WP-30): scripts/kpi1.py setup as arena_referee,
+  # two participants through pre-tests, practice and post-tests via arena-api in process, every debrief
+  # published by a real arena-referee subprocess in fake mode, GET /api/progress and the report. Last on this
+  # server: it writes the case sets, which remove F06-F09 from every user's practice draw.
+  if [[ $rc -eq 0 ]]; then
+    (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
+      -p no:cacheprovider -W error services/api/tests/it_kpi1.py) || rc=1
+  fi
   remove "$name"
   return $rc
 }
@@ -269,7 +279,7 @@ step "spend-guard integration suite on the migrated database (agent port, guard 
   spend_guard_integration
 step "tournament job integration suite on its own freshly migrated Supabase container (roster through close, a real arena-referee subprocess, WP-17)" \
   tournament_path
-SEED_HOSTED_LABEL="seed_hosted and real_smoke integration suites on their own migrated database (real case ingest, candidate registration, allowlist, then one real-shaped subject call and coach card in fake mode)"
+SEED_HOSTED_LABEL="seed_hosted and real_smoke integration suites on their own migrated database (real case ingest, candidate registration, allowlist, then one real-shaped subject call and coach card in fake mode, then the KPI-1 study end to end)"
 step "$SEED_HOSTED_LABEL" seed_hosted_integration
 cleanup
 
