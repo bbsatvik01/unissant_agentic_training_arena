@@ -21,7 +21,7 @@ import { Transcript } from "../components/overlay/Transcript";
 import type { ScoreCard, WallDocument } from "../components/world/moments";
 import { RUBRIC } from "../lib/copy/rubric";
 import { createArenaApi } from "../lib/api/arena";
-import { boardsFailure, parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
+import { parseBoard, type Board, type BoardsState } from "../lib/arena/leaderboard";
 import { EMPTY_TOURNAMENT, foldPoll, type TournamentState } from "../lib/arena/tournament";
 import { ApiError, createApiClient } from "../lib/api/client";
 import type { Debrief } from "../lib/contracts/generated/types";
@@ -40,6 +40,7 @@ import type { WorldState } from "../lib/world/worldState";
 import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
+import { useBoards } from "./world/useBoards";
 import { useTournament, useTournamentList } from "./world/useTournament";
 import { latestOnly } from "../lib/world/latest";
 import { useMotionPrefs } from "./world/useMotionPrefs";
@@ -100,6 +101,7 @@ export function WorldRoute() {
   const [showPet, setShowPet] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  // The example arena (no tournament selected): boards and matrix from the bundled fixtures.
   const [arena, setArena] = useState<{ assistant: Board | null; subject: Board | null; example: TournamentState | null; name: string; boards: BoardsState } | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [endedTrial, setEndedTrial] = useState<EndedTrial | null>(null);
@@ -112,45 +114,32 @@ export function WorldRoute() {
   const [tournamentId] = useState(() => new URLSearchParams(window.location.search).get("tournament"));
   const tournamentLoad = useTournament(api, tournamentId, showArena);
   const tournamentList = useTournamentList(api, showArena && tournamentId === null);
-  // The arena's data: the bundled examples until the leaderboard and tournament routes land (WP-16, WP-17).
-  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`) from the
-  // server; without one, or when the server has none, it shows the bundled example data, labeled as such.
-  // The arena reads the published boards of the tournament named in the address (`?tournament=<id>`, and
-  // `&label=original` for a corrected board's original). Before reveal it shows the sealed state, never numbers
-  // (FE-LB-5); the bundled example appears only when no tournament is selected, labeled as such.
+  // A selected tournament (`?tournament=<id>`, and `&label=original` for a corrected board's original) shows its
+  // published boards: the sealed state before reveal, never numbers (FE-LB-5), read again when its poll reports the
+  // reveal. Without a selection the arena shows the bundled example boards and matrix, labeled as such.
+  const [boardLabel] = useState<"original" | null>(() => (new URLSearchParams(window.location.search).get("label") === "original" ? "original" : null));
+  const revealed = tournamentLoad.state === "ready" && tournamentLoad.tournament.state === "revealed";
+  const published = useBoards(api, tournamentId, boardLabel, showArena, revealed);
   const openArena = () => {
     setShowArena(true);
     setShowProgress(false);
   };
-  // The arena's data, read once it is first shown.
-  const arenaLoaded = arena !== null;
+  // The example data, read once the arena is first shown without a selected tournament.
+  const exampleLoaded = arena !== null;
   useEffect(() => {
-    if (!showArena || arenaLoaded) return;
-    const params = new URLSearchParams(window.location.search);
-    const label = params.get("label") === "original" ? "original" : null;
-    type Boards = { assistant: Board | null; subject: Board | null; state: BoardsState };
-    const published: Promise<Boards | null> =
-      tournamentId === null
-        ? Promise.resolve(null)
-        : Promise.all([api.leaderboard(tournamentId, "assistant", label ?? undefined), api.leaderboard(tournamentId, "subject", label ?? undefined)]).then(
-            ([a, s]): Boards => {
-              const assistant = parseBoard(a);
-              return assistant === null ? { assistant: null, subject: null, state: { kind: "error" } } : { assistant, subject: parseBoard(s), state: { kind: "published", tournamentId, label } };
-            },
-            (e: unknown): Boards => ({ assistant: null, subject: null, state: e instanceof ApiError ? boardsFailure(e.status, e.code) : { kind: "error" } }),
-          );
-    void Promise.all([published, import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([boards, lb, tour]) => {
+    if (!showArena || exampleLoaded || tournamentId !== null) return;
+    void Promise.all([import("../fixtures/leaderboard.example.json"), import("../fixtures/tournament.example.json")]).then(([lb, tour]) => {
       const poll: unknown = tour.default.poll;
       setArena({
-        name: boards === null ? lb.default.tournament.name : "Tournament leaderboards",
-        assistant: boards === null ? parseBoard(lb.default.assistant) : boards.assistant,
-        subject: boards === null ? parseBoard(lb.default.subject) : boards.subject,
-        // The example matrix only without a selected tournament; a selected one shows its own poll, never the example.
-        example: boards === null && isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : null,
-        boards: boards === null ? { kind: "example" } : boards.state,
+        name: lb.default.tournament.name,
+        assistant: parseBoard(lb.default.assistant),
+        subject: parseBoard(lb.default.subject),
+        example: isWire("tournament-poll", poll) ? foldPoll(EMPTY_TOURNAMENT, poll) : EMPTY_TOURNAMENT,
+        boards: { kind: "example" },
       });
     });
-  }, [showArena, arenaLoaded, api, tournamentId]);
+  }, [showArena, exampleLoaded, tournamentId]);
+  const arenaShown = tournamentId === null ? arena : published === null ? null : { name: "Tournament leaderboards", assistant: published.assistant, subject: published.subject, example: null, boards: published.state };
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -310,6 +299,10 @@ export function WorldRoute() {
     void startSession(m);
   }, [liveCaseId, startSession]);
 
+  // Every way a recording reaches the room (a file, the bundled demo run, a run from the server) takes a turn here,
+  // and only the newest turn's answer is used: choosing another run, or leaving the arena, before an answer arrives
+  // never lets that older answer replace what came after it.
+  const replayOrder = useRef(latestOnly());
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   // A checked recording plays in the room the same way whether it came from a file or the server.
   const playRecording = useCallback((raw: unknown, parse: (v: unknown) => RecordingResult) => {
@@ -342,8 +335,10 @@ export function WorldRoute() {
 
   const openRecordingFile = useCallback(
     (file: File) => {
+      const current = replayOrder.current();
       void Promise.all([file.text(), import("../lib/world/parseRecording")]).then(
         ([text, { parseRecording }]) => {
+          if (!current()) return;
           let raw: unknown;
           try {
             raw = JSON.parse(text);
@@ -354,7 +349,7 @@ export function WorldRoute() {
           playRecording(raw, parseRecording);
         },
         () => {
-          setFileError("The file could not be read.");
+          if (current()) setFileError("The file could not be read.");
         },
       );
     },
@@ -362,9 +357,7 @@ export function WorldRoute() {
   );
 
   // A run from the server (`GET /api/trials/{id}/recording`): one of the participant's own, or a tournament trial
-  // chosen in the arena, replayed in the room. Only the newest choice's answers are used: choosing another run
-  // before the first arrives never lets the first replace it.
-  const replayOrder = useRef(latestOnly());
+  // chosen in the arena, replayed in the room.
   const replayTrial = useCallback(
     (trialId: string) => {
       const current = replayOrder.current();
@@ -391,15 +384,21 @@ export function WorldRoute() {
   );
   // The demo's interview: the bundled recorded run (no model call), whatever the server offers.
   const openDemoRecording = useCallback(() => {
+    const current = replayOrder.current();
     void Promise.all([import("../fixtures/recordings/F01-truthful.json"), import("../lib/world/parseRecording")]).then(
       ([raw, { parseRecording }]) => {
-        playRecording(structuredClone(raw.default), parseRecording);
+        if (current()) playRecording(structuredClone(raw.default), parseRecording);
       },
       () => {
-        setFileError("The recorded run could not be loaded.");
+        if (current()) setFileError("The recorded run could not be loaded.");
       },
     );
   }, [playRecording]);
+  // Leaving the arena: a replay chosen there and still loading no longer opens the room.
+  const closeArena = () => {
+    replayOrder.current();
+    setShowArena(false);
+  };
   const backToHub = useCallback(() => {
     playback.pause();
     session.stop();
@@ -533,7 +532,7 @@ export function WorldRoute() {
           {place === "hub" && demo === null ? (
             <button type="button" className="btn-secondary-sm" onClick={() => {
                 setDemo({ step: "precinct", startedAt: Date.now() });
-                setShowArena(false);
+                closeArena();
                 setShowProgress(false);
               }}>
               Guided demo
@@ -547,13 +546,13 @@ export function WorldRoute() {
           {place === "hub" && live && meCtl.me !== null ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={showProgress} onClick={() => {
                 setShowProgress((v) => !v);
-                setShowArena(false);
+                closeArena();
               }}>
               Progress
             </button>
           ) : null}
           {place === "hub" ? (
-            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? () => { setShowArena(false); } : openArena}>
+            <button type="button" className="btn-secondary-sm" aria-pressed={showArena} onClick={showArena ? closeArena : openArena}>
               Arena
             </button>
           ) : null}
@@ -931,21 +930,19 @@ export function WorldRoute() {
           }}
         />
       ) : null}
-      {place === "hub" && showArena && arena !== null ? (
+      {place === "hub" && showArena && arenaShown !== null ? (
         <ArenaView
-          name={arena.name}
-          boards={arena.boards}
-          assistant={arena.assistant}
-          subject={arena.subject}
-          tournament={arena.example ?? (tournamentLoad.state === "ready" ? tournamentLoad.tournament : EMPTY_TOURNAMENT)}
-          matrix={arena.example !== null ? "example" : tournamentLoad.state === "ready" || tournamentLoad.state === "idle" ? "ready" : tournamentLoad.state}
+          name={arenaShown.name}
+          boards={arenaShown.boards}
+          assistant={arenaShown.assistant}
+          subject={arenaShown.subject}
+          tournament={arenaShown.example ?? (tournamentLoad.state === "ready" ? tournamentLoad.tournament : EMPTY_TOURNAMENT)}
+          matrix={arenaShown.example !== null ? "example" : tournamentLoad.state === "ready" || tournamentLoad.state === "idle" ? "ready" : tournamentLoad.state}
           tournaments={tournamentList}
           notice={fileError}
           onReplay={replayTrial}
           motionOff={still}
-          onClose={() => {
-            setShowArena(false);
-          }}
+          onClose={closeArena}
         />
       ) : null}
       {demoStep === null || demo === null || mustAcknowledge ? null : (
