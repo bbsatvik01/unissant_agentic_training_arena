@@ -31,25 +31,28 @@ export function useBoards(api: Pick<ArenaApi, "leaderboard">, tournamentId: stri
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const read = (tries: number) => {
+      // A failure (a refused read, or a board in another shape): a transient one keeps the boards already shown
+      // (the wall neither drops nor turns over again) and is tried again; a definite answer (sealed, missing)
+      // replaces them, and is tried again only for a revealed tournament whose board has not appeared yet.
+      const failed = (state: BoardsState) => {
+        setHeld((h) => (state.kind === "error" && h !== null && h.key === key && h.boards.state.kind === "published" ? h : { key, boards: { assistant: null, subject: null, state } }));
+        const again = state.kind === "error" || (revealed && (state.kind === "sealed" || state.kind === "missing"));
+        if (again && tries + 1 < REVEAL_TRIES) {
+          timer = setTimeout(() => {
+            read(tries + 1);
+          }, RETRY_MS);
+        }
+      };
       Promise.all([leaderboard(tournamentId, "assistant", label ?? undefined), leaderboard(tournamentId, "subject", label ?? undefined)]).then(
         ([a, s]) => {
           if (cancelled) return;
           const assistant = parseBoard(a);
-          setHeld({ key, boards: assistant === null ? { assistant: null, subject: null, state: { kind: "error" } } : { assistant, subject: parseBoard(s), state: { kind: "published", tournamentId, label } } });
+          const subject = parseBoard(s);
+          if (assistant === null || subject === null) failed({ kind: "error" });
+          else setHeld({ key, boards: { assistant, subject, state: { kind: "published", tournamentId, label } } });
         },
         (e: unknown) => {
-          if (cancelled) return;
-          const state = e instanceof ApiError ? boardsFailure(e.status, e.code) : ({ kind: "error" } as const);
-          // A transient failure on a re-read keeps the boards already shown (the wall does not drop and turn over
-          // again); a definite answer (sealed, missing) replaces them.
-          setHeld((h) => (state.kind === "error" && h !== null && h.key === key && h.boards.state.kind === "published" ? h : { key, boards: { assistant: null, subject: null, state } }));
-          // A failed read is tried again; so is a revealed tournament's board that has not appeared yet.
-          const again = state.kind === "error" || (revealed && (state.kind === "sealed" || state.kind === "missing"));
-          if (again && tries + 1 < REVEAL_TRIES) {
-            timer = setTimeout(() => {
-              read(tries + 1);
-            }, RETRY_MS);
-          }
+          if (!cancelled) failed(e instanceof ApiError ? boardsFailure(e.status, e.code) : { kind: "error" });
         },
       );
     };

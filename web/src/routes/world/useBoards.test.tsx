@@ -87,4 +87,26 @@ describe("useBoards", () => {
     await act(() => vi.advanceTimersByTimeAsync(0));
     expect(result.current).toBe(shown);
   });
+
+  it("treats a board in another shape as a failed read: kept boards, tried again, then recovered", async () => {
+    vi.useFakeTimers();
+    let answers: [unknown, unknown] = [boards.assistant, boards.subject];
+    const leaderboard = vi.fn((_t: string, board: "assistant" | "subject") => Promise.resolve(board === "assistant" ? answers[0] : answers[1]));
+    const api = { leaderboard };
+    const { result, rerender } = renderHook(({ round }: { round: number }) => useBoards(api, "t", null, true, false, round), { initialProps: { round: 0 } });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    const shown = result.current;
+    for (const [round, bad] of [[1, [{ nope: 1 }, boards.subject]], [2, [boards.assistant, { nope: 1 }]]] as [number, [unknown, unknown]][]) {
+      answers = bad;
+      rerender({ round });
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(result.current).toBe(shown);
+    }
+    const calls = leaderboard.mock.calls.length;
+    answers = [boards.assistant, boards.subject];
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(leaderboard.mock.calls.length).toBeGreaterThan(calls);
+    expect(result.current?.state.kind).toBe("published");
+    expect(result.current?.subject).not.toBeNull();
+  });
 });
