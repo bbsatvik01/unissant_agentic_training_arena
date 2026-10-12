@@ -21,6 +21,7 @@ from arena_tournament import admission
 from arena_tournament import runner as runner_module
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.runner import MAX_ATTEMPTS, Attempt, HiddenTournamentError, TournamentRunner
+from packages.core.tests.turns.test_orchestrator import Rig
 
 
 def run[T](aw: Awaitable[T]) -> T:
@@ -249,3 +250,114 @@ def test_replay_track_scores_every_trial_that_needs_review(
     row = {"planned_trial_id": planned_id, "assistant_candidate_id": assistant_id}
     run(runner._run_replay_track([row], {planned_id: attempts}))
     assert referee.scored == ([attempts[0]["trial_id"]] if scored else [])
+
+
+def test_an_interactive_trial_runs_end_to_end_through_the_harness_on_the_runners_loop() -> None:
+    """`_run_interactive_trial`: the harness loop in a worker thread, every port call on this loop (the
+    orchestrator double's own fake database), through to the final call and its commitment."""
+    rig = Rig()
+    rig.db.kind = "interactive"
+    assert run(runner_module._run_interactive_trial(rig.db.trial_id, rig.orch, "What happened?")) is Execution.COMPLETED
+    assert rig.db.status == "finalized"
+
+
+class _TrackDb(_FakeDb):
+    def __init__(self, rows: list[dict[str, Any]], packet: dict[str, Any] | None) -> None:
+        super().__init__()
+        self.rows = rows
+        self.packet = packet
+        self.attempts = {r["planned_trial_id"]: _attempts(None) for r in rows}
+
+    async def public_packet(self, _variant: UUID) -> dict[str, Any] | None:
+        return self.packet
+
+    async def planned_trials(self, _tournament: UUID) -> list[dict[str, Any]]:
+        return self.rows
+
+    async def planned_trial_attempts(self, _tournament: UUID) -> dict[UUID, list[dict[str, Any]]]:
+        return self.attempts
+
+
+class _TrackOrchestrator(_FakeOrchestrator):
+    def __init__(self) -> None:
+        super().__init__()
+        self.finalized: list[UUID] = []
+
+    async def finalize_corpus(self, trial: UUID) -> None:
+        self.finalized.append(trial)
+
+
+class _TrackReferee(_FakeReferee):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[str] = []
+
+    async def score_block(self, _tournament: UUID, block_no: int) -> None:
+        self.calls.append(f"block:{block_no}")
+
+    async def corpus_seal(self, _tournament: UUID) -> None:
+        self.calls.append("seal")
+
+    async def close(self, _tournament: UUID) -> None:
+        self.calls.append("close")
+
+
+def _track_runner(
+    monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, Any]], packet: dict[str, Any] | None, outcome: Execution
+) -> tuple[TournamentRunner, _TrackDb, _TrackOrchestrator, _TrackReferee]:
+    async def trial(*_args: object) -> Execution:
+        return outcome
+
+    monkeypatch.setattr(runner_module, "_run_corpus_trial", trial)
+    monkeypatch.setattr(runner_module, "_run_interactive_trial", trial)
+    monkeypatch.setattr(admission, "corpus_trial_calls", lambda _m: [])
+    monkeypatch.setattr(admission, "interactive_trial_calls", lambda _a, _s: [])
+    db, orch, referee = _TrackDb(rows, packet), _TrackOrchestrator(), _TrackReferee()
+    runner = _runner_with(db, orch)
+    runner.orchestrator = cast("Orchestrator", orch)
+    runner.referee = cast("RefereeClient", referee)
+    runner.manifests = {cid: cast("CandidateManifest", object()) for r in rows for cid in (r["a"], r["s"])}
+    for r in rows:
+        r["assistant_candidate_id"], r["subject_candidate_id"] = r["a"], r["s"]
+    return runner, db, orch, referee
+
+
+def _row(track: str, block_no: int | None = None) -> dict[str, Any]:
+    return {
+        "planned_trial_id": uuid4(),
+        "track": track,
+        "variant_id": uuid4(),
+        "block_no": block_no,
+        "position": 1,
+        "a": uuid4(),
+        "s": uuid4(),
+    }
+
+
+def test_run_finalizes_and_scores_a_completed_corpus_transcript_seals_scores_each_block_and_closes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [_row("replay_corpus"), _row("interactive", 1)]
+    runner, db, orch, referee = _track_runner(monkeypatch, rows, {"opening_question": "Why?"}, Execution.COMPLETED)
+    summary = run(runner.run(uuid4()))
+    corpus_trial = db.attempts[rows[0]["planned_trial_id"]][0]["trial_id"]
+    assert orch.finalized == [corpus_trial]
+    assert referee.scored == [corpus_trial]
+    assert referee.calls == ["seal", "block:1", "close"]
+    assert summary.closed
+    assert summary.outcomes == {"completed": 2}
+
+
+def test_a_corpus_transcript_that_did_not_complete_is_neither_finalized_nor_scored(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner, _db, orch, referee = _track_runner(monkeypatch, [_row("replay_corpus")], {}, Execution.SUBJECT_QUARANTINED)
+    run(runner.run_replay_track_prerequisite(uuid4()))
+    assert (orch.finalized, referee.scored, referee.calls) == ([], [], ["seal"])
+
+
+@pytest.mark.parametrize("track", ["replay_corpus", "interactive"])
+def test_a_variant_with_no_public_packet_is_refused(monkeypatch: pytest.MonkeyPatch, track: str) -> None:
+    runner, *_ = _track_runner(monkeypatch, [_row(track, 1)], None, Execution.COMPLETED)
+    with pytest.raises(RuntimeError, match="no public packet"):
+        run(runner.run(uuid4()))

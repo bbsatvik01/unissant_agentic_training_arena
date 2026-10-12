@@ -13,6 +13,7 @@ import pytest
 
 from arena_core.agents.manifests import CandidateManifest
 from arena_tournament import lifecycle
+from arena_tournament.runner import RunSummary
 from scripts import dev_tournament_demo as demo
 
 
@@ -105,3 +106,56 @@ def test_a_rerun_runs_only_the_setup_steps_still_missing(
 
     asyncio.run(demo.set_up_tournament("postgresql://r@127.0.0.1:1/x", "postgresql://p@127.0.0.1:1/x", ["F01"], 7))
     assert [c for c in calls if c not in ("register_candidate", "create_tournament")] == expected
+
+
+def test_main_refuses_without_both_dsns(capsys: pytest.CaptureFixture[str]) -> None:
+    assert demo.main([], env={"ARENA_PUBLIC_DSN": "postgresql://p@127.0.0.1:1/x"}) == 1
+    assert "needs ARENA_REFEREE_DSN and ARENA_PUBLIC_DSN" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("closed", [True, False])
+def test_main_runs_the_job_with_only_the_tournament_roles_env(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], *, closed: bool
+) -> None:
+    """The job gets the tournament role's own boot contract (S5 1.3), never the operator's referee DSN."""
+    tournament, trial = uuid4(), uuid4()
+    seen: dict[str, Any] = {}
+
+    async def set_up(_ref: str, _pub: str, families: Sequence[str], seed: int) -> UUID:
+        seen.update(families=list(families), seed=seed)
+        return tournament
+
+    async def run_tournament(env: dict[str, str], tid: UUID) -> RunSummary:
+        seen.update(env=env, tid=tid)
+        return RunSummary(tid, {"completed": 6}, closed)
+
+    class _Db:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def planned_trials(self, _t: UUID) -> list[dict[str, Any]]:
+            return [{"planned_trial_id": "p1"}, {"planned_trial_id": "p2"}]
+
+        async def planned_trial_attempts(self, _t: UUID) -> dict[str, list[dict[str, Any]]]:
+            return {"p2": [{"trial_id": str(trial)}]}
+
+    monkeypatch.setattr(demo, "set_up_tournament", set_up)
+    monkeypatch.setattr(demo, "run_tournament", run_tournament)
+    monkeypatch.setattr(demo, "ArenaDb", _Db)
+    env = {
+        "ARENA_REFEREE_DSN": "postgresql://r@127.0.0.1:1/x",
+        "ARENA_PUBLIC_DSN": "postgresql://p@127.0.0.1:1/x",
+        "ARENA_GCP_PROJECT": "cna-guardian",
+        "ARENA_ROLE": "referee",
+    }
+    seed = 3
+    assert demo.main(["--families", "F02", "--seed", str(seed)], env=env) == (0 if closed else 1)
+    assert seen["families"] == ["F02"]
+    assert seen["seed"] == seed
+    assert seen["tid"] == tournament
+    assert seen["env"] == {
+        "ARENA_ROLE": "tournament",
+        "ARENA_GCP_PROJECT": "cna-guardian",
+        "ARENA_PUBLIC_DSN": "postgresql://p@127.0.0.1:1/x",
+    }
+    assert f"scripts/dev.sh export-run {trial}" in capsys.readouterr().out
