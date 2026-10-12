@@ -968,7 +968,9 @@ export function WorldRoute() {
               openDemoRecording();
               setDemo({ ...demo, step: "interview" });
             } else if (demoStep === "interview" && mode === "playback" && recording !== null && recording.debrief !== null) {
-              // To the debrief wall: the recorded run jumps to its end, where the debrief goes up.
+              // To the debrief wall: the recorded run jumps to its end, where the debrief goes up; a camera landing
+              // after this must not start the run over.
+              autoplayed.current = recording;
               playback.seekTo(playback.duration);
             } else if (demoStep === "debrief" || (demoStep === "interview" && mode === "playback" && recording?.debrief === null)) {
               // A recording without a published debrief goes on to the arena.
