@@ -22,6 +22,8 @@ interface DemoGuideProps {
   readonly onRecorded: () => void;
   readonly onFile: (file: File) => void;
   readonly onLive: () => void;
+  /** A recording file that was refused or could not be read, in words. */
+  readonly error: string | null;
 }
 
 function useElapsed(startedAt: number): number {
@@ -85,6 +87,11 @@ export function DemoGuide(props: DemoGuideProps) {
               e.target.value = "";
             }}
           />
+          {props.error === null ? null : (
+            <p className="fine" role="alert">
+              {props.error}
+            </p>
+          )}
           {props.canLive ? (
             <button type="button" className="btn-secondary-sm" onClick={props.onLive}>
               Interview live instead

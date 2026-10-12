@@ -112,11 +112,11 @@ function VoiceExchanges({ view }: { view: TrialView }) {
   );
 }
 
-function Questions({ view, documents }: { view: TrialView | null; documents: readonly CaseDocument[] }) {
+function Questions({ view, documents, expanded = false }: { view: TrialView | null; documents: readonly CaseDocument[]; expanded?: boolean }) {
   if (view !== null && view.turns.length === 0 && view.voiceExchanges.length > 0) return <VoiceExchanges view={view} />;
   if (view === null || view.turns.length === 0) return <p className="empty">No questions were asked.</p>;
   const records = recordMap(documents, view.released);
-  return <Review view={view} records={records} />;
+  return <Review view={view} records={records} expanded={expanded} />;
 }
 
 /** The answer with the cited quote marked, when the quote is in it. */
@@ -132,7 +132,7 @@ function Answer({ text, quote }: { text: string; quote: string | null }) {
   );
 }
 
-function Review({ view, records }: { view: TrialView; records: ReadonlyMap<string, { title: string; text: string }> }) {
+function Review({ view, records, expanded }: { view: TrialView; records: ReadonlyMap<string, { title: string; text: string }>; expanded: boolean }) {
   const [cited, setCited] = useState<{ turn: number; quote: string } | null>(null);
   // A citation chip moves focus to its turn and marks the quote there (S6 9: keyboard reachable, visible target).
   const onCite = (turn: number, quote: string) => {
@@ -166,7 +166,7 @@ function Review({ view, records }: { view: TrialView; records: ReadonlyMap<strin
           {r.answerCategory === null ? null : <p className="fine">Answer: {words(r.answerCategory)}</p>}
           {r.card === null || r.card.flags.length === 0 ? null : <FlagList card={r.card} view={view} records={records} onCite={onCite} />}
           {r.released.map((rel) => (
-            <details key={rel.record_id} className="release-marker">
+            <details key={rel.record_id} className="release-marker" open={expanded}>
               <summary>
                 Released after this turn: <span className="mono">{rel.record_id}</span> {rel.title}
               </summary>
@@ -361,7 +361,7 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
           <h2>Scores</h2>
           <Scores debrief={debrief} />
           <h2>{debrief.scored ? "Questions" : "Exchanges"}</h2>
-          <Questions view={view} documents={documents} />
+          <Questions view={view} documents={documents} expanded />
           <h2>Detection</h2>
           <Detection debrief={debrief} />
           <h2>Learning</h2>

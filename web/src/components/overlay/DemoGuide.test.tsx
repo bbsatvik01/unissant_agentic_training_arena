@@ -15,6 +15,7 @@ function props(over: Partial<Parameters<typeof DemoGuide>[0]> = {}): Parameters<
     startedAt: Date.now(),
     recordingLoaded: false,
     nextDisabled: false,
+    error: null,
     canLive: false,
     onNext: vi.fn(),
     onBack: vi.fn(),
@@ -52,6 +53,11 @@ describe("DemoGuide", () => {
     fireEvent.click(screen.getByRole("button", { name: "Finish" }));
     expect(p.onClose).toHaveBeenCalled();
     expect(screen.getByText(/0:0\d \/ 4:00/)).toBeTruthy();
+  });
+
+  it("says when a recording file was refused, in the room", () => {
+    render(<DemoGuide {...props({ error: "The recording was refused: not a recording" })} />);
+    expect(screen.getByRole("alert").textContent).toBe("The recording was refused: not a recording");
   });
 
   it("passes a chosen recording file on", () => {

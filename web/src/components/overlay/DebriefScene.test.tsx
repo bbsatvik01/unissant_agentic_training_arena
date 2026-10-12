@@ -118,8 +118,12 @@ describe("DebriefScene", () => {
   it("prints all four views under the EX-4 header, and only while printing", () => {
     show();
     let printed = "";
+    let openMarkers = false;
     const print = vi.spyOn(window, "print").mockImplementation(() => {
       printed = document.documentElement.classList.contains("printing-debrief") ? (document.querySelector(".debrief-print")?.textContent ?? "") : "";
+      // Released records print open, so their content is on paper.
+      const markers = document.querySelectorAll<HTMLDetailsElement>(".debrief-print .release-marker");
+      openMarkers = markers.length > 0 && [...markers].every((d) => d.open);
     });
     expect(document.querySelector(".debrief-print")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Print" }));
@@ -127,6 +131,7 @@ describe("DebriefScene", () => {
     expect(printed.startsWith(EX4_TEXT)).toBe(true);
     for (const heading of ["Scores", "Questions", "Detection", "Learning"]) expect(printed).toContain(heading);
     expect(printed).toContain("1 of 2 labeled events");
+    expect(openMarkers).toBe(true);
     expect(document.querySelector(".debrief-print")).toBeNull();
     expect(document.documentElement.classList.contains("printing-debrief")).toBe(false);
     print.mockRestore();

@@ -912,7 +912,8 @@ export function WorldRoute() {
           startedAt={demo.startedAt}
           recordingLoaded={mode === "playback" && recording !== null}
           nextDisabled={demoStep === "interview" && !(mode === "playback" && recording !== null)}
-          canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id)}
+          canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id) && (session.phase === "idle" || session.phase === "error")}
+          error={fileError}
           onClose={() => {
             setDemo(null);
           }}
