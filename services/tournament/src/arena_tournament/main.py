@@ -56,7 +56,9 @@ def build_runner(env: Mapping[str, str]) -> TournamentRunner:
     caller = env.get(LOCAL_CALLER_VAR, "")
     orchestrator = Orchestrator(db=db, port=port, subject=subject_client(caller), signals=TrialSignals(), harness=True)
     referee = RefereeClient(caller)
-    return TournamentRunner(db=db, orchestrator=orchestrator, referee=referee, manifests={})
+    return TournamentRunner(
+        db=db, orchestrator=orchestrator, referee=referee, manifests={}, code_sha=env.get("ARENA_GIT_SHA") or None
+    )
 
 
 async def run_tournament(env: Mapping[str, str], tournament: UUID) -> RunSummary:

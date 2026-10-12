@@ -27,19 +27,23 @@ import secrets
 import socket
 import time
 from collections.abc import Coroutine, Iterator
+from decimal import Decimal
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired  # the role-process helper does the one reviewed Popen call
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
 from psycopg import AsyncConnection, sql
 from psycopg.conninfo import make_conninfo
 
+from arena_api.app import create_app, guard_config
+from arena_api.state import ApiState
 from arena_core.db import subject as db_subject
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import Connector, dsn_connector
+from arena_core.identity import DevIdentity
 from arena_core.ids import sha256_hex
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
@@ -52,15 +56,17 @@ from arena_core.scenario.load import (
     family_source_text,
 )
 from arena_core.scoring.inclusion import Exec, block_invalid
+from arena_core.scoring.ranking import DEV_IG_ITEMS, IG_CHECK_NAMES, IG_ITEMS
 from arena_core.spend.guard import DbSpendGuard
+from arena_core.spend.memory import RunBudget
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.orchestrator import Orchestrator, SubjectCall, SubjectOutcome, TrialSignals
 from arena_tournament import lifecycle
 from arena_tournament.main import load_manifests
 from arena_tournament.referee_client import RefereeClient
 from arena_tournament.roster import FamilySpec, build_roster
-from arena_tournament.runner import HiddenTournamentError, TournamentRunner, _run_interactive_trial
-from scripts import isolation_reports, seal_hidden_split
+from arena_tournament.runner import IsolationGateNotPassedError, TournamentRunner, _run_interactive_trial
+from scripts import export_run, isolation_reports, seal_hidden_split
 from scripts.referee_admin_client import admin_post
 from tools import proc
 from tools.tests.subprocess_support import popen_role_module
@@ -75,6 +81,9 @@ ADMIN_EMAIL = "admin@example.test"
 # accepts: one assistant, one subject, one family -- every track covered once).
 PLANNED_TRIALS = 6
 REFEREE_READY_TIMEOUT_S = 20.0
+INVESTIGATOR = UUID("00000000-0000-0000-0000-00000000000a")  # tests.users() user A
+API_BASE = "http://127.0.0.1:8080"
+REFEREE_GIT_SHA = "f" * 40  # the referee's and the job's commit (the isolation gate binds to it, S3 9)
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -148,7 +157,7 @@ def _referee_env(world: dict[str, Any], scratch_port: int) -> dict[str, str]:
         "ARENA_USERS_FILE": str(world["users_path"]),
         "ARENA_DEV_USER": ADMIN_EMAIL,
         "ARENA_REFEREE_PORT": str(scratch_port),
-        "ARENA_GIT_SHA": "f" * 40,  # fixture value only: create_app refuses to boot without one (S3 9)
+        "ARENA_GIT_SHA": REFEREE_GIT_SHA,  # fixture value only: create_app refuses to boot without one (S3 9)
     }
 
 
@@ -258,7 +267,9 @@ def build_runner(world: dict[str, Any], tournament_id: UUID) -> TournamentRunner
     )
     referee = RefereeClient(CALLER_CREDENTIAL, base_url=world["referee_base_url"])
     manifests = run(load_manifests(db, tournament_id))  # the real WP-17 wiring (arena_tournament.main)
-    return TournamentRunner(db=db, orchestrator=orchestrator, referee=referee, manifests=manifests)
+    return TournamentRunner(
+        db=db, orchestrator=orchestrator, referee=referee, manifests=manifests, code_sha=REFEREE_GIT_SHA
+    )
 
 
 def _one_family_roster(world: dict[str, Any], seed: int) -> list[Any]:
@@ -600,41 +611,137 @@ def _open_hidden_tournament_through_the_real_gate(world: dict[str, Any], tournam
     return open_result
 
 
-def test_hidden_split_seal_freeze_and_open_prove_the_wp27_sequence(world: dict[str, Any]) -> None:
-    """WP-27 dry run (S1 10.3, S8 WP-27; docs/runbooks/hidden-seal.md): the operator sealing sequence end
-    to end on 2 synthetic hidden families -- ingest with attestation, seal_hidden_split, verify the
-    archive, register frozen candidates, add_planned_trials, freeze_tournament, then the real isolation
-    gate (canary placement and the hidden-text scan among its six items) opening the tournament to
-    `running` -- see the module-level note above for exactly what this does and does not prove about the 2
-    families' own content.
+async def _hidden_trials(admin_dsn: str, tournament_id: UUID) -> list[UUID]:
+    rows = await _admin_rows(
+        admin_dsn, "select id from arena.trials where tournament_id = %s order by id", (tournament_id,)
+    )
+    return [UUID(str(r[0])) for r in rows]
 
-    This is as far as a hidden tournament runs TODAY, and for a confirmed, security-relevant reason, not an
-    oversight this test papers over: `TournamentRunner.run()` refuses every hidden split
-    (`HiddenTournamentError`) because its own harness reads -- `ArenaDb.public_packet` (fixed for export in
-    d0db9da, but never wired into `arena_tournament.runner`'s two call sites) and, more
-    fundamentally, `HarnessAsker._latest_coach_event`'s `db.all_events` (`arena.v_trial_events`, gated by
-    `arena.trial_visible`) and the corpus track's `db.released_with_titles` (`arena.v_released_evidence`,
-    the same gate) -- see nothing for a hidden trial that is `running` but not yet `revealed`, because
-    `arena.trial_visible`'s non-training branch is `tr.split = 'dev' or tr.status = 'revealed'` with no
-    allowance for the executing job reading its own in-flight writes. A tempting fix is `or
-    arena.actor_id() is null` (every `arena-api` route constructs `ArenaDb` with a real, non-optional actor,
-    `arena_api.state.ApiState.db(actor: UUID)`, so that clause could only ever add visibility for an
-    automated job/CLI call, never a browser-facing investigator one) -- but it is not narrow enough:
-    `scripts/export_run.py` and `scripts/dev_tournament_demo.py` ALSO call `ArenaDb` with `actor=None`, so
-    the same clause would let an operator's `make export-run <hidden-trial-id>` read a hidden trial's full
-    recording before reveal, exactly what L7 ("nobody reads hidden contents before reveal: not the team,
-    not the orchestrating session") forbids. Distinguishing "the tournament job reading its OWN
-    currently-running trial" from "any actor=None caller reading ANY trial" needs a real design decision
-    (a dedicated credential or an explicit execution-context flag, not a one-line SQL change), so this dry
-    run reports the gap precisely instead of patching `arena.trial_visible` -- a function every content view
-    in the system depends on -- under time pressure. Completing WP-28's hidden-execution path is tracked as
-    a follow-up, not attempted here. The fake-model-run and reveal-then-export halves of the full sequence
-    are each separately proven for real elsewhere: `test_a_small_tournament_runs_every_track_through_the_
-    real_functions_and_closes` (above, this file) proves `TournamentRunner` executing a real tournament
-    end to end, and `012_reveal_manifest.sql`'s `rvh`/RV-19/RV-20 golden path proves a hidden tournament's
-    content (including, since this dry run's own fix, `arena.v_hidden_cases`) becomes visible exactly at
-    reveal, not before -- the only missing link is the harness's own mid-execution reads for a hidden,
-    not-yet-revealed trial."""
+
+async def _public_view_rows(public_dsn: str, trial: UUID) -> list[int]:
+    """What `arena_public` with no actor (the job's own credential, `dev_tournament_demo`'s, an export run as
+    one) sees of a trial through every reveal-gated projection a recording or export reads."""
+    query = (
+        "select (select count(*) from arena.v_transcripts where trial_id = %(t)s),"
+        " (select count(*) from arena.v_released_evidence where trial_id = %(t)s),"
+        " (select count(*) from arena.v_trial_events where trial_id = %(t)s),"
+        " (select count(*) from arena.v_findings where trial_id = %(t)s),"
+        " (select count(*) from ledger.v_commitments where trial_id = %(t)s and payload is not null),"
+        " (select count(*) from arena.v_hidden_cases h join arena.v_trials v on v.variant_id = h.variant_id"
+        "   where v.id = %(t)s)"
+    )
+    async with await AsyncConnection.connect(public_dsn) as conn:
+        cur = await conn.execute(query, {"t": trial})
+        row = await cur.fetchone()
+    assert row is not None
+    return [int(v) for v in row]
+
+
+async def _no_debrief(_session: UUID) -> dict[str, Any]:
+    return {}
+
+
+async def _api_recording_status(world: dict[str, Any], trial: UUID) -> int:
+    """`GET /api/trials/{id}/recording` through the real arena-api app (`create_app`) on the `arena_public`
+    login, as an allowlisted investigator: 404 for a hidden trial before reveal (no existence oracle), 200
+    after."""
+    port = AgentPort(FakeAdapter(canned=FAKE_COACH_REPLIES), RunBudget(Decimal(1)), PortOptions(sleep=_no_sleep))
+    who = DevIdentity(user_id=INVESTIGATOR, email="a@example.test", display_name="A", roles=frozenset({"investigator"}))
+    state = ApiState(
+        connect=dsn_connector(world["public"]),
+        identity=who,
+        port=port,
+        subject=_subject(dsn_connector(world["subject"])),
+        debrief=_no_debrief,
+    )
+    app = create_app(state, guard_config({}))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=API_BASE) as client:
+        resp = await client.get(f"/api/trials/{trial}/recording")
+    return resp.status_code
+
+
+async def _record_gate_run(admin_dsn: str, failed: dict[str, bool], items: tuple[str, ...] = IG_ITEMS) -> None:
+    """One isolation gate run's rows in one transaction under one `run_id`, the shape
+    `arena_referee.db.record_isolation_checks` writes, every item passing unless `failed` says otherwise."""
+    run_id = str(uuid4())
+    async with await AsyncConnection.connect(admin_dsn) as conn:
+        for item in items:
+            await conn.execute(
+                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values"
+                " (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text, 'run_id', %s::text))",
+                (IG_CHECK_NAMES[item], failed.get(item, True), REFEREE_GIT_SHA, run_id),
+            )
+        await conn.commit()
+
+
+async def _record_gate_runs_at_one_instant(admin_dsn: str) -> None:
+    """A hidden run failing IG-5 and a passing dev run whose rows carry the SAME `run_at` (written in one admin
+    transaction, so `now()` is shared): only the run id distinguishes them. The ids are fixed so a tie on
+    `run_at` resolves to the dev run's passing IG-5 (`order by ..., run_id`): six passing rows, from two runs."""
+    hidden_run, dev_run = "ffffffff-ffff-4fff-bfff-ffffffffffff", "00000000-0000-4000-8000-000000000001"
+    rows = [(IG_CHECK_NAMES[item], item != "IG-5", hidden_run) for item in IG_ITEMS]
+    rows += [(IG_CHECK_NAMES[item], True, dev_run) for item in DEV_IG_ITEMS]
+    async with await AsyncConnection.connect(admin_dsn) as conn:
+        for name, passed, run_id in rows:
+            await conn.execute(
+                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values"
+                " (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text, 'run_id', %s::text))",
+                (name, passed, REFEREE_GIT_SHA, run_id),
+            )
+        await conn.commit()
+
+
+def _assert_the_job_refuses_every_hidden_run_without_one_passing_gate(
+    world: dict[str, Any], families: list[dict[str, Any]], tournament_id: UUID, seed: int
+) -> None:
+    """S1 L9, S3 9: `arena.open_tournament` checks nothing itself; the job runs a hidden tournament only after one
+    complete gate run passed, on its own commit, between the roster freezing and the opening."""
+    # The job runs it only on the commit its gate passed on (S3 9)...
+    foreign = build_runner(world, tournament_id)
+    foreign.code_sha = "e" * 40
+    with pytest.raises(IsolationGateNotPassedError):
+        run(foreign.run(tournament_id))
+    # ...and never a hidden tournament opened without a gate run after its own roster froze: the gate rows above
+    # predate this second roster, and `arena.open_tournament` itself checks nothing.
+    ungated = _freeze_hidden_tournament(world, families, seed + 1)
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (ungated,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, ungated).run(ungated))
+    assert run(_terminal_record_count(world["admin"], ungated)) == 0
+    # ...nor one whose latest passing rows come from two runs: a hidden gate run failing IG-5, then a passing dev
+    # gate run (which writes no IG-4 row), each in its own transaction as the referee writes them, on this commit.
+    mixed = _freeze_hidden_tournament(world, families, seed + 2)
+    run(_record_gate_run(world["admin"], {"IG-5": False}))
+    run(_record_gate_run(world["admin"], {}, items=DEV_IG_ITEMS))
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (mixed,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, mixed).run(mixed))
+    assert run(_terminal_record_count(world["admin"], mixed)) == 0
+    # The same two runs committed at one instant (a microsecond tie): the run ids still tell them apart.
+    tied = _freeze_hidden_tournament(world, families, seed + 3)
+    run(_record_gate_runs_at_one_instant(world["admin"]))
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (tied,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, tied).run(tied))
+    assert run(_terminal_record_count(world["admin"], tied)) == 0
+
+
+def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_after_reveal(
+    world: dict[str, Any],
+) -> None:
+    """WP-27 + WP-28 (S1 10.3, S5 5.3, S8 WP-27/WP-28; docs/runbooks/hidden-seal.md): the whole operator
+    sequence on 2 synthetic hidden families -- ingest with attestation, seal_hidden_split, verify the archive,
+    register frozen candidates, add_planned_trials, freeze_tournament, the real isolation gate (canary
+    placement and the hidden-text scan among its six items) opening the tournament to `running` -- then the
+    real `TournamentRunner` on the fake model port through every track (corpus, corpus seal, replay,
+    interactive block scoring, close), `begin_scoring`, reveal, and each trial's recording -- see the
+    module-level note above for exactly what this does and does not prove about the 2 families' own content.
+
+    The job reads each running trial it executes through `arena.harness_trial_state` (WP-28; the one read
+    that sees a running hidden trial's own writes), never the reveal-gated projections. Those stay closed to
+    every `arena_public` caller until reveal: before it, every projection a recording or export reads shows
+    each hidden trial nothing (no actor, as the job or `dev_tournament_demo` call it), `make export-run`'s
+    own loader answers None and the recording route 404; after reveal, all of them resolve."""
     # OD-14 (S3 4.3, C-36): the block-infra rule predeclared for every tournament today is the only one
     # implemented (direction 7.1's literal default, the owner decision is still pending) -- confirmed
     # against the running code, not assumed: one infra_failed of 18 invalidates the block (1/18 ~= 5.6% >
@@ -646,10 +753,47 @@ def test_hidden_split_seal_freeze_and_open_prove_the_wp27_sequence(world: dict[s
     seed = 20261012
     tournament_id = _freeze_hidden_tournament(world, families, seed)
     _open_hidden_tournament_through_the_real_gate(world, tournament_id)
+    run(_admin_rows(world["admin"], "select tests.users()"))
 
-    # The confirmed, precise stopping point (module docstring above): proves the guard is intact, never
-    # silently bypassed, and names exactly why -- not a placeholder failure this test merely tolerates.
-    runner = build_runner(world, tournament_id)
-    with pytest.raises(HiddenTournamentError, match="no WP-16 scan yet"):
-        run(runner.run(tournament_id))
-    assert run(_tournament_status(world["admin"], tournament_id)) == "running"  # unchanged: refused, not run
+    _assert_the_job_refuses_every_hidden_run_without_one_passing_gate(world, families, tournament_id, seed)
+
+    summary = run(build_runner(world, tournament_id).run(tournament_id))
+    assert summary.closed
+    assert summary.outcomes == {"completed": PLANNED_TRIALS}
+    assert run(_tournament_status(world["admin"], tournament_id)) == "sealed"
+    assert run(_terminal_record_count(world["admin"], tournament_id)) == PLANNED_TRIALS
+    trials = run(_hidden_trials(world["admin"], tournament_id))
+    assert len(trials) == PLANNED_TRIALS
+    # The job saw its own running hidden trials' cards (`arena.harness_trial_state`): it relayed proposals,
+    # which it could not have done reading the reveal-gated `arena.v_trial_events` (every card a fallback).
+    relayed = run(
+        _admin_rows(
+            world["admin"],
+            "select count(*) from arena.turns u join arena.trials t on t.id = u.trial_id"
+            " where t.tournament_id = %s and u.question_source = 'assistant_relay'",
+            (tournament_id,),
+        )
+    )
+    assert int(relayed[0][0]) > 0
+
+    # Before reveal: nothing of any hidden trial through any projection, the export loader or the route.
+    blind = ArenaDb(dsn_connector(world["public"]), actor=None)
+    for trial in trials:
+        assert run(_public_view_rows(world["public"], trial)) == [0, 0, 0, 0, 0, 0]
+        assert run(export_run.export_from(blind, trial)) is None
+    assert run(_api_recording_status(world, trials[0])) == httpx.codes.NOT_FOUND
+
+    base_url = world["referee_base_url"]
+    run(admin_post(f"/api/admin/tournaments/{tournament_id}/scoring", {}, base_url=base_url))
+    revealed = run(admin_post(f"/api/admin/tournaments/{tournament_id}/reveal", {}, base_url=base_url))
+    assert revealed["manifest_version"] == 1
+    assert run(_tournament_status(world["admin"], tournament_id)) == "revealed"
+
+    # After reveal: every hidden trial's recording resolves, with its sealed packet and its own events.
+    for trial in trials:
+        transcripts, *_ = run(_public_view_rows(world["public"], trial))
+        assert transcripts > 0
+        recording = run(export_run.export_from(blind, trial))
+        assert recording is not None
+        assert recording["events"]
+    assert run(_api_recording_status(world, trials[0])) == httpx.codes.OK

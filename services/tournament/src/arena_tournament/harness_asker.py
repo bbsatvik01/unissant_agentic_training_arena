@@ -25,7 +25,7 @@ from typing import Any
 from uuid import UUID
 
 from arena_core.contracts.coaching import StoredCard
-from arena_core.db.arena import ArenaDb, EventRow, QuestionOrigin
+from arena_core.db.arena import ArenaDb, CoachEvent, QuestionOrigin
 from arena_core.scenario.relay import ReleasedRecord
 from arena_core.turns.harness import (
     BudgetStopError,
@@ -79,14 +79,17 @@ async def _budget_stopped(db: ArenaDb, trial: UUID) -> bool:
     return meta is not None and meta["execution_state"] == "budget_truncated"
 
 
-async def _latest_coach_event(db: ArenaDb, trial: UUID, n: int) -> EventRow | None:
+async def _latest_coach_event(db: ArenaDb, trial: UUID, n: int) -> CoachEvent | None:
     """The turn's `coach_card` or `coach_unavailable` event, read back so the harness can decide what to
-    relay: `coach_after_answer` itself returns only a version, never the card content (S5 5.2)."""
-    matching = [e for e in await db.all_events(trial) if e.turn_no == n and e.kind in COACH_EVENT_KINDS]
+    relay: `coach_after_answer` itself returns only a version, never the card content (S5 5.2). Read through
+    `arena.harness_trial_state` (WP-28), the job's own in-flight read, which sees a running hidden trial's
+    events before reveal; the reveal-gated `arena.v_trial_events` would show it nothing."""
+    events = (await db.harness_trial_state(trial)).coach_events
+    matching = [e for e in events if e.turn_no == n and e.kind in COACH_EVENT_KINDS]
     return matching[-1] if matching else None
 
 
-def _card_from_event(event: EventRow) -> Card | None:
+def _card_from_event(event: CoachEvent) -> Card | None:
     if event.kind == "coach_unavailable":
         return None
     stored = StoredCard.model_validate(event.payload)
@@ -163,7 +166,7 @@ class CorpusAsker(CorpusPorts):
         return record_id  # unreachable on a validated case (S1 V1c); a safe fallback, never a crash
 
     def _date(self, record_id: str) -> str | None:
-        """The public packet's own optional record date (S2 8.6; not one of `released_with_titles`'s
+        """The public packet's own optional record date (S2 8.6; not one of `arena.harness_trial_state`'s released
         columns, so this always reads the packet, unlike `_title`'s released-row shortcut)."""
         for row in self.public_packet.get("requestable_records", []):
             if row["record_id"] == record_id:
@@ -177,7 +180,8 @@ class CorpusAsker(CorpusPorts):
         released_ids = [row["record_id"] for row in result["released"]]
         if not released_ids:
             return []
-        titles = {row["record_id"]: row["title"] for row in self._run(db.released_with_titles(self.trial))}
+        state = self._run(db.harness_trial_state(self.trial))
+        titles = {row["record_id"]: row["title"] for row in state.released}
         return [ReleasedRecord(rid, n - 1, self._title(rid, titles), self._date(rid)) for rid in released_ids]
 
     def ask(self, n: int, question: HarnessQuestion) -> None:

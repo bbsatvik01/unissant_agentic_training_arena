@@ -52,8 +52,11 @@ class Rig:
         budget: Decimal = Decimal(100),
         mode: str = "practice",
         guard: RunBudget | None = None,
+        harness: bool = False,
     ) -> None:
-        self.db = FakeArenaDb(ACTOR, mode=mode)
+        # `harness`: the tournament job's own request shape (S4 2.3: no actor) on a tournament trial (WP-17, WP-28);
+        # otherwise an investigator's training trial.
+        self.db = FakeArenaDb(None, mode=mode, kind="interactive") if harness else FakeArenaDb(ACTOR, mode=mode)
         self.adapter = FakeAdapter(script=list(script or []), canned=FAKE_COACH_REPLIES)
         self.budget = guard if guard is not None else RunBudget(budget)
         self.port = AgentPort(self.adapter, self.budget, PortOptions(sleep=_no_sleep))
@@ -503,3 +506,64 @@ def test_a_turn_interrupted_after_its_card_resumes_the_deep_update_once(mode: st
     run(rig.orch.run_turn(rig.db.trial_id, "What did you do in B-12?", [], rig.db.version - 2, key))
     assert rig.kinds().count("coach_card") == TURNS_BEFORE_DEEP
     assert rig.kinds().count("coach_deep") == 1
+
+
+# ------------------------------------------------------------------ the job's own reads of a hidden trial (WP-28)
+
+
+def _hidden_harness_rig() -> Rig:
+    """The tournament job (no actor) on a running hidden trial before reveal: every reveal-gated projection the
+    fake models (`arena.trial_visible`) is blind to it, as the real views are."""
+    rig = Rig(harness=True)
+    rig.db.hidden_unrevealed = True
+    return rig
+
+
+def test_a_harness_request_on_a_hidden_trial_sees_its_own_release_for_the_deep_update() -> None:
+    """S2 4.4.1: A1's deep update is due on a release after exchange n - 1. Turn 4 is not a third exchange, so
+    only the release between turns 3 and 4 makes it due, and the job sees that release only through
+    `arena.harness_trial_state` (WP-28): `arena.v_released_evidence` shows a hidden trial nothing before reveal."""
+    rig = _hidden_harness_rig()
+    for _ in range(TURNS_BEFORE_DEEP):
+        rig.turn()
+    run(rig.orch.request_evidence(rig.db.trial_id, ["rec-02"], str(uuid4())))
+    rig.turn()
+    deeps = [e.turn_no for e in rig.db.events if e.kind == "coach_deep"]
+    assert deeps == [TURNS_BEFORE_DEEP, TURNS_BEFORE_DEEP + 1]
+    assert "harness_trial_state" in rig.db.calls
+
+
+def test_a_harness_request_on_a_hidden_trial_sees_its_own_open_question() -> None:
+    """S5 5.4: a between-turns release is refused while a question is open; the job reads that open question
+    through `arena.harness_trial_state` (WP-28), never the reveal-gated `arena.v_transcripts`."""
+    rig = _hidden_harness_rig()
+    run(rig.db.submit_question(rig.db.trial_id, 0, "What did you do in B-12?", str(uuid4())))
+    with pytest.raises(TurnRefusedError) as exc_info:
+        run(rig.orch.request_evidence(rig.db.trial_id, [], str(uuid4())))
+    assert (exc_info.value.status, exc_info.value.code) == (409, "turn_in_progress")
+
+
+def test_an_investigator_request_keeps_reading_its_own_trial_through_the_projections() -> None:
+    """The investigator path is unchanged: its own training trial's releases and open question come from the
+    projections (`arena.v_released_evidence`, `arena.v_transcripts`), never the job's function, which S4 refuses
+    to any request with an actor (AR040)."""
+    rig = Rig()
+    for _ in range(TURNS_BEFORE_DEEP):
+        rig.turn()
+    run(rig.orch.request_evidence(rig.db.trial_id, ["rec-02"], str(uuid4())))
+    rig.turn()
+    assert [e.turn_no for e in rig.db.events if e.kind == "coach_deep"] == [TURNS_BEFORE_DEEP, TURNS_BEFORE_DEEP + 1]
+    assert "harness_trial_state" not in rig.db.calls
+
+
+def test_a_resumed_between_turns_release_answers_its_stored_result_while_a_later_question_is_open() -> None:
+    """A job killed after question 1 committed and before its answer (corpus track) restarts from exchange 1: the
+    release it already made answers its stored result (S4 2.3 item 4) rather than 409, so the resume reaches the
+    open question's own retry; a NEW release while the question is open is still refused (S5 5.4)."""
+    rig = _hidden_harness_rig()
+    first = run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:1"))
+    run(rig.db.submit_question(rig.db.trial_id, rig.db.version, "What did you do in B-12?", str(uuid4())))
+    assert run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:1")) == first
+    with pytest.raises(TurnRefusedError) as exc_info:
+        run(rig.orch.request_evidence(rig.db.trial_id, [], "corpus:2"))
+    assert exc_info.value.code == "turn_in_progress"

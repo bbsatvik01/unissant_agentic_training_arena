@@ -19,7 +19,15 @@ from uuid import UUID, uuid4
 from psycopg import AsyncConnection
 
 from arena_core.agents.manifests import committed_manifest
-from arena_core.db.arena import ArenaDb, ArenaError, EventRow, QuestionOrigin, SessionStart
+from arena_core.db.arena import (
+    ArenaDb,
+    ArenaError,
+    CoachEvent,
+    EventRow,
+    HarnessTrialState,
+    QuestionOrigin,
+    SessionStart,
+)
 from arena_core.turns.orchestrator import SubjectOutcome
 
 REPO = Path(__file__).resolve().parents[4]
@@ -86,6 +94,10 @@ class FakeArenaDb(ArenaDb):
         self.published_fairness: dict[str, Any] | None = None
         # arena.v_hidden_cases' shape: empty until a test simulates reveal (variant_id -> packet).
         self.hidden_packets: dict[UUID, dict[str, Any]] = {}
+        # A hidden tournament's trial before reveal (WP-28): every reveal-gated projection read
+        # (`arena.trial_visible`: v_trial_events, v_transcripts, v_released_evidence, the dev case library)
+        # sees nothing of it, so a harness that still reads through one fails here as it would for real.
+        self.hidden_unrevealed = False
 
     # ------------------------------------------------------------------ helpers
 
@@ -360,6 +372,8 @@ class FakeArenaDb(ArenaDb):
 
     async def trial_events(self, trial: UUID, after: int, limit: int = 200) -> list[EventRow]:
         assert trial == self.trial_id
+        if self.hidden_unrevealed:
+            return []
         ended = self.status != "running"
         rows = [e for e in self.events if e.seq > after and (e.visibility == "live" or ended)]
         return rows[:limit]
@@ -412,26 +426,47 @@ class FakeArenaDb(ArenaDb):
 
     async def open_question(self, trial: UUID) -> bool:
         assert trial == self.trial_id
+        if self.hidden_unrevealed:
+            return False
         return any(t["answer"] is None for t in self.turns.values())
 
     async def released(self, trial: UUID) -> list[dict[str, Any]]:
         assert trial == self.trial_id
+        if self.hidden_unrevealed:
+            return []
         return [
             {"record_id": r["record_id"], "released_after_exchanges": r["after_exchanges"], "content": r["content"]}
             for r in self.releases
         ]
 
-    async def released_with_titles(self, trial: UUID) -> list[dict[str, Any]]:
-        """`arena.v_released_evidence`'s shape (S2 8.6; C-23): title alongside every released record, used
-        by the replay-corpus harness ports (WP-17, `CorpusAsker.release`)."""
+    async def work_item_results(self, trial: UUID) -> list[dict[str, Any]]:
+        """`arena.work_item_results` (D3): every step of the trial with its key, kind and status."""
         assert trial == self.trial_id
-        return [
-            {"record_id": r["record_id"], "title": r["title"], "released_after_exchanges": r["after_exchanges"]}
-            for r in self.releases
-        ]
+        return [dict(item) for item in self.items.values()]
+
+    async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
+        """`arena.harness_trial_state` (WP-28): a harness request (no actor) on a running tournament trial only
+        (AR040 otherwise, AR001 once it is not running); hidden or not, it reads the trial's own state."""
+        self._check("harness_trial_state")
+        if trial != self.trial_id or self.kind == "training" or self.actor is not None:
+            raise ArenaError("AR040", "this request may not act on this trial")
+        self._running()
+        return HarnessTrialState(
+            public_packet=PACKET,
+            open_question=any(t["answer"] is None for t in self.turns.values()),
+            released=[
+                {"record_id": r["record_id"], "title": r["title"], "released_after_exchanges": r["after_exchanges"]}
+                for r in self.releases
+            ],
+            coach_events=[
+                CoachEvent(e.seq, e.kind, e.turn_no, e.payload)
+                for e in self.events
+                if e.kind in ("coach_card", "coach_unavailable")
+            ],
+        )
 
     async def public_packet(self, variant: UUID) -> dict[str, Any] | None:
-        return PACKET if variant == self.dev_variant_id else None
+        return PACKET if variant == self.dev_variant_id and not self.hidden_unrevealed else None
 
     async def hidden_packet(self, variant: UUID) -> dict[str, Any] | None:
         """`arena.v_hidden_cases`: nothing until a test puts a row in `hidden_packets` (simulating reveal)."""

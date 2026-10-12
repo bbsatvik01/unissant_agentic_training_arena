@@ -12,7 +12,7 @@ SQL, so a reviewer can check it against the schema directly.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Literal, cast
@@ -27,7 +27,7 @@ from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.inclusion import Exec, RevealBlockedError
 from arena_core.scoring.kpi import LatencyRow
-from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
+from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
 from arena_referee.mapping import TrialData
@@ -568,14 +568,7 @@ async def seal_corrected_manifest(connect: Connector, tournament_id: str) -> Rev
 
 # ---------------------------------------------------------------- isolation gate (S3 9, WP-16)
 
-CHECK_NAMES: Mapping[str, str] = {
-    "IG-1": "ig1_privilege_tests",
-    "IG-2": "ig2_route_tests",
-    "IG-3": "ig3_assistant_context",
-    "IG-4": "ig4_hidden_text_scan",
-    "IG-5": "ig5_commitment_verification",
-    "IG-6": "ig6_canary_audit",
-}
+CHECK_NAMES: Mapping[str, str] = IG_CHECK_NAMES
 _IG_ITEM_BY_CHECK_NAME = {v: k for k, v in CHECK_NAMES.items()}
 
 
@@ -589,23 +582,37 @@ class IsolationCheckRow:
     report: str | None = None  # IG-4's sanitized scan report (paths, counts, hidden field paths; never text)
 
 
+_INSERT_ISOLATION_CHECK = (
+    "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values (%s, %s, %s, %s)"
+)
+
+
+def _isolation_check_params(row: IsolationCheckRow, run_id: UUID) -> tuple[object, ...]:
+    return (
+        UUID(row.candidate_id) if row.candidate_id else None,
+        row.check_name,
+        row.passed,
+        Jsonb(
+            {"hash": row.evidence_hash, "commit_sha": row.commit_sha, "run_id": str(run_id)}
+            | ({"report": row.report} if row.report is not None else {})
+        ),
+    )
+
+
 async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> None:
     """`arena.isolation_checks` (S4 4.1, S3 9): append-only, one row per item per run. `candidate_id` is set
     only for IG-6's canary attribution (FX-I02); every other item's row carries none."""
-    async with connect() as conn:
-        await one_statement(
-            conn,
-            "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values (%s, %s, %s, %s)",
-            (
-                UUID(row.candidate_id) if row.candidate_id else None,
-                row.check_name,
-                row.passed,
-                Jsonb(
-                    {"hash": row.evidence_hash, "commit_sha": row.commit_sha}
-                    | ({"report": row.report} if row.report is not None else {})
-                ),
-            ),
-        )
+    await record_isolation_checks(connect, [row])
+
+
+async def record_isolation_checks(connect: Connector, rows: Sequence[IsolationCheckRow]) -> None:
+    """One gate run's rows in ONE transaction, under one fresh `evidence.run_id`: all of them commit or none
+    does, and the tournament job's check before a hidden run (`arena.v_isolation_checks.run_id`) can tell one
+    complete run from rows of two."""
+    run_id = uuid4()
+    async with connect() as conn, conn.transaction():
+        for row in rows:
+            await conn.execute(_INSERT_ISOLATION_CHECK, _isolation_check_params(row, run_id))
 
 
 async def fetch_isolation_result(connect: Connector, commit_sha: str) -> IsolationResult:
