@@ -92,3 +92,4 @@
 - 247d4a5 merge CSRF names + leaderboard display names + fairness violations on rows
 - 6479e85 merge KPI-1 study tooling + runbook (sets A=F06/F07, B=F08/F09)
 - fa4224f merge seal prep (freeze path, hidden export, seal dry run); migration 20261012000100 to apply on hosted
+- 2026-10-12 hosted: applied 20261012000100_hidden_case_visibility (additive view)
