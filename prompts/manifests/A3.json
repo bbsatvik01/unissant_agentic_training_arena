@@ -27,8 +27,8 @@
     }
   },
   "lineage": {
-    "change_note": "initial",
-    "parent_sha256": null
+    "change_note": "common.v2: an unexplained 'do not remember' about a point the subject could answer is possible_evasion and is flagged; neutrality issues are the investigator's own wording only; follow-ups never repeat a question and stay a question at the last exchange.",
+    "parent_sha256": "589b8725e897f515e6b38b993a9fea983f08b6ad47d57191316a150fa26196a4"
   },
   "manifest_version": "manifest.v1",
   "model": {
@@ -39,19 +39,19 @@
   "prompt": {
     "assembly": {
       "card": [
-        "prompts/coach/common.v1.txt",
+        "prompts/coach/common.v2.txt",
         "prompts/coach/a3.strategy.v1.txt"
       ],
       "final": [
-        "prompts/coach/common.v1.txt",
+        "prompts/coach/common.v2.txt",
         "prompts/coach/a3.strategy.v1.txt",
         "prompts/coach/final.v1.txt"
       ]
     },
     "files": [
       {
-        "path": "prompts/coach/common.v1.txt",
-        "sha256": "7824b0e20a1eb3a682f11f2460d996867ab1b8239588f20b20311a61457c09ba"
+        "path": "prompts/coach/common.v2.txt",
+        "sha256": "4ba2f285eefb93aea30dfab937fb06a9f342ad37af756103a5546db950e7a9b0"
       },
       {
         "path": "prompts/coach/a3.strategy.v1.txt",
@@ -93,11 +93,11 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "589b8725e897f515e6b38b993a9fea983f08b6ad47d57191316a150fa26196a4",
+  "sha256": "e1d060c75b462f9263421b90d7ce7206376ec002c2fc4a0f9404cb17c20ee203",
   "subject_policy": null,
   "tools": [
     "record_request"
   ],
   "transport": "in_process",
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

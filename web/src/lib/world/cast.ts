@@ -26,7 +26,8 @@ export interface Persona {
   /** Mean ms between blinks. */
   readonly blinkMs: number;
   /**
-   * Voice for the text-to-speech seam: the prebuilt Gemini TTS voice (stage 5), and for the browser's own speech
+   * Voice for the text-to-speech seam: the server's voice catalogue key (stage 8: `subject:<name>`, `coach:<desk>`,
+   * `investigator`; a designed voice with its delivery style) or a prebuilt Gemini voice name, and for the browser's own speech
    * synthesis (the fallback) pitch and rate multipliers, a timbre, and the system voices to prefer, in order (matched
    * by name prefix).
    */
@@ -34,11 +35,15 @@ export interface Persona {
 }
 
 const SUBJECTS: Readonly<Record<string, Persona>> = {
-  "Jordan Pell": { avatar: "Male_Adult_05", clips: "m", lean: 0.05, headTilt: 0.03, gesture: 0.55, saccadeMs: 1800, blinkMs: 3800, voice: { pitch: 0.95, rate: 1.0, timbre: "warm baritone", prefer: ["Reed", "Daniel", "Rocko", "Google UK English Male"], gemini: "Algieba" } },
-  "Mara Quell": { avatar: "Female_Adult_14", clips: "f", lean: 0.02, headTilt: -0.04, gesture: 0.35, saccadeMs: 2400, blinkMs: 4200, voice: { pitch: 1.05, rate: 0.95, timbre: "measured alto", prefer: ["Moira", "Shelley", "Samantha", "Google UK English Female"], gemini: "Gacrux" } },
-  "Avery Lindqvist": { avatar: "Male_Adult_08", clips: "m", lean: 0.08, headTilt: 0.0, gesture: 0.7, saccadeMs: 1400, blinkMs: 3400, voice: { pitch: 1.0, rate: 1.08, timbre: "bright tenor", prefer: ["Eddy", "Rishi", "Daniel", "Google US English"], gemini: "Puck" } },
-  "Dana Okafor": { avatar: "Female_Adult_07", clips: "f", lean: 0.04, headTilt: 0.05, gesture: 0.6, saccadeMs: 2000, blinkMs: 3600, voice: { pitch: 1.1, rate: 1.02, timbre: "clear mezzo", prefer: ["Tessa", "Flo", "Samantha", "Google US English"], gemini: "Sulafat" } },
-  "Rafael Strand": { avatar: "Male_Adult_12", clips: "m", lean: 0.0, headTilt: -0.02, gesture: 0.4, saccadeMs: 2600, blinkMs: 4600, voice: { pitch: 0.9, rate: 0.94, timbre: "low and even", prefer: ["Rocko", "Daniel", "Reed", "Google UK English Male"], gemini: "Orus" } },
+  "Jordan Pell": { avatar: "Male_Adult_05", clips: "m", lean: 0.05, headTilt: 0.03, gesture: 0.55, saccadeMs: 1800, blinkMs: 3800, voice: { pitch: 0.95, rate: 1.0, timbre: "warm baritone", prefer: ["Reed", "Daniel", "Rocko", "Google UK English Male"], gemini: "subject:Jordan Pell" } },
+  "Mara Quell": { avatar: "Female_Adult_14", clips: "f", lean: 0.02, headTilt: -0.04, gesture: 0.35, saccadeMs: 2400, blinkMs: 4200, voice: { pitch: 1.05, rate: 0.95, timbre: "measured alto", prefer: ["Moira", "Shelley", "Samantha", "Google UK English Female"], gemini: "subject:Mara Quell" } },
+  "Avery Lindqvist": { avatar: "Male_Adult_08", clips: "m", lean: 0.08, headTilt: 0.0, gesture: 0.7, saccadeMs: 1400, blinkMs: 3400, voice: { pitch: 1.0, rate: 1.08, timbre: "bright tenor", prefer: ["Eddy", "Rishi", "Daniel", "Google US English"], gemini: "subject:Avery Lindqvist" } },
+  "Dana Okafor": { avatar: "Female_Adult_07", clips: "f", lean: 0.04, headTilt: 0.05, gesture: 0.6, saccadeMs: 2000, blinkMs: 3600, voice: { pitch: 1.1, rate: 1.02, timbre: "clear mezzo", prefer: ["Tessa", "Flo", "Samantha", "Google US English"], gemini: "subject:Dana Okafor" } },
+  "Rafael Strand": { avatar: "Male_Adult_12", clips: "m", lean: 0.0, headTilt: -0.02, gesture: 0.4, saccadeMs: 2600, blinkMs: 4600, voice: { pitch: 0.9, rate: 0.94, timbre: "low and even", prefer: ["Rocko", "Daniel", "Reed", "Google UK English Male"], gemini: "subject:Rafael Strand" } },
+  "Priya Halloran": { avatar: "Female_Adult_14", clips: "f", lean: 0.03, headTilt: 0.02, gesture: 0.45, saccadeMs: 2100, blinkMs: 3900, voice: { pitch: 1.08, rate: 1.0, timbre: "clear and direct", prefer: ["Samantha", "Tessa", "Google US English"], gemini: "subject:Priya Halloran" } },
+  "Glen Mattick": { avatar: "Male_Adult_12", clips: "m", lean: 0.06, headTilt: 0.03, gesture: 0.65, saccadeMs: 1900, blinkMs: 3700, voice: { pitch: 0.88, rate: 0.98, timbre: "friendly gravel", prefer: ["Grandpa", "Rocko", "Daniel", "Google UK English Male"], gemini: "subject:Glen Mattick" } },
+  "Sami Varga": { avatar: "Male_Adult_08", clips: "m", lean: 0.02, headTilt: -0.02, gesture: 0.4, saccadeMs: 2300, blinkMs: 4100, voice: { pitch: 1.02, rate: 0.97, timbre: "calm tenor", prefer: ["Eddy", "Rishi", "Daniel", "Google US English"], gemini: "subject:Sami Varga" } },
+  "Elise Dunmore": { avatar: "Female_Adult_07", clips: "f", lean: 0.05, headTilt: 0.04, gesture: 0.55, saccadeMs: 1800, blinkMs: 3500, voice: { pitch: 1.12, rate: 1.03, timbre: "bright and composed", prefer: ["Flo", "Karen", "Samantha", "Google UK English Female"], gemini: "subject:Elise Dunmore" } },
 };
 
 /** The subject persona for a display name; an unknown subject gets the first persona's build. */
@@ -48,13 +53,13 @@ export function subjectPersona(displayName: string): Persona {
 
 /** The three coaches at their desks, left to right: question, flags, follow-up. */
 export const COACHES: readonly (Persona & { readonly name: string; readonly desk: "question" | "flags" | "follow_up" })[] = [
-  { name: "Question desk", desk: "question", avatar: "Business_Female_01", clips: "f", lean: 0.12, headTilt: 0.02, gesture: 0.5, saccadeMs: 1600, blinkMs: 3600, voice: { pitch: 1.05, rate: 1.0, timbre: "crisp", prefer: ["Shelley", "Samantha", "Google US English"], gemini: "Erinome" } },
-  { name: "Flags desk", desk: "flags", avatar: "Business_Male_04", clips: "m", lean: 0.06, headTilt: -0.03, gesture: 0.35, saccadeMs: 2200, blinkMs: 4400, voice: { pitch: 0.88, rate: 0.92, timbre: "gravelly", prefer: ["Grandpa", "Daniel", "Google UK English Male"], gemini: "Algenib" } },
-  { name: "Follow-up desk", desk: "follow_up", avatar: "Business_Female_02", clips: "f", lean: 0.1, headTilt: 0.04, gesture: 0.6, saccadeMs: 1500, blinkMs: 3200, voice: { pitch: 1.12, rate: 1.05, timbre: "light", prefer: ["Karen", "Sandy", "Samantha", "Google UK English Female"], gemini: "Autonoe" } },
+  { name: "Question desk", desk: "question", avatar: "Business_Female_01", clips: "f", lean: 0.12, headTilt: 0.02, gesture: 0.5, saccadeMs: 1600, blinkMs: 3600, voice: { pitch: 1.05, rate: 1.0, timbre: "crisp", prefer: ["Shelley", "Samantha", "Google US English"], gemini: "coach:question" } },
+  { name: "Flags desk", desk: "flags", avatar: "Business_Male_04", clips: "m", lean: 0.06, headTilt: -0.03, gesture: 0.35, saccadeMs: 2200, blinkMs: 4400, voice: { pitch: 0.88, rate: 0.92, timbre: "gravelly", prefer: ["Grandpa", "Daniel", "Google UK English Male"], gemini: "coach:flags" } },
+  { name: "Follow-up desk", desk: "follow_up", avatar: "Business_Female_02", clips: "f", lean: 0.1, headTilt: 0.04, gesture: 0.6, saccadeMs: 1500, blinkMs: 3200, voice: { pitch: 1.12, rate: 1.05, timbre: "light", prefer: ["Karen", "Sandy", "Samantha", "Google UK English Female"], gemini: "coach:follow_up" } },
 ];
 
 /** The investigator's body, seen from behind in the over-the-shoulder shot (the trainee's own seat). */
-export const INVESTIGATOR: Persona = { avatar: "Business_Male_02", clips: "m", lean: 0.1, headTilt: 0, gesture: 0.45, saccadeMs: 2000, blinkMs: 4000, voice: { pitch: 1, rate: 1, timbre: "the trainee's own", prefer: ["Daniel", "Reed", "Google UK English Male"], gemini: "Iapetus" } };
+export const INVESTIGATOR: Persona = { avatar: "Business_Male_02", clips: "m", lean: 0.1, headTilt: 0, gesture: 0.45, saccadeMs: 2000, blinkMs: 4000, voice: { pitch: 1, rate: 1, timbre: "the trainee's own", prefer: ["Daniel", "Reed", "Google UK English Male"], gemini: "investigator" } };
 
 /** A detective working at a desk in the precinct (background life in the hub). */
 export const HUB_STAFF: Persona = { avatar: "Business_Male_06", clips: "m", lean: 0.12, headTilt: 0.02, gesture: 0.3, saccadeMs: 2600, blinkMs: 4200, voice: { pitch: 0.95, rate: 1, timbre: "background", prefer: ["Reed", "Daniel"], gemini: "Schedar" } };

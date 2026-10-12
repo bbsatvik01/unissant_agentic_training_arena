@@ -36,8 +36,8 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
-import { liveMouth, mouthFromLevel, type VoiceRole } from "../../lib/voice/liveMouth";
 import { speechSync } from "../../lib/voice/speechSync";
+import { audioMouth, mouthSource } from "../../lib/world/audioLips";
 import { seeded, seedOf, type Persona } from "../../lib/world/cast";
 import type { Vec3 } from "../../lib/world/layout";
 import { beatTimes, VISEMES, visemeTrack, visemeWeightsAt, type VisemeKey, type VisemeSpan } from "../../lib/world/visemes";
@@ -58,8 +58,6 @@ interface AvatarProps {
   readonly clock: RefObject<number>;
   readonly still: boolean;
   readonly shadows: boolean;
-  /** Which live voice this figure speaks with (subject or investigator), so its mouth follows that audio. */
-  readonly voiceRole?: VoiceRole;
 }
 
 /** Which texture files each avatar ships beside its `avatar.glb`. */
@@ -138,8 +136,6 @@ export interface FrameContext {
   readonly gaze: Vec3;
   readonly clock: RefObject<number>;
   readonly random: () => number;
-  /** The live voice level this figure's mouth follows while it speaks (WP-22 `liveMouth`), or null. */
-  readonly voiceLevel?: (() => number | null) | undefined;
 }
 
 export interface IdleState {
@@ -185,7 +181,7 @@ export function choosePose(actions: readonly AnimationAction[], thinking: boolea
 
 /** One frame of the avatar's layers (clips, posture, work poses, gaze, speech, eyes). Mutates the rig in place. */
 export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: number): void {
-  const { rig, mixer, scene, track, beats, actions: acts, thinking, still, pose, speech, persona, gaze, clock, random, voiceLevel } = ctx;
+  const { rig, mixer, scene, track, beats, actions: acts, thinking, still, pose, speech, persona, gaze, clock, random } = ctx;
   // The layers below add rotations to bones the clips also drive. Restore last frame's animated pose first, so the
   // additions never accumulate (a paused mixer does not rewrite them), then let the clips advance and capture the
   // fresh animated pose.
@@ -259,22 +255,18 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   // Speech beats: a small nod and a hand lift on stressed words.
   let mouthOpen = 0;
   const weights: Partial<Record<VisemeKey, number>> = {};
-  const level = pose === "speaking" ? (voiceLevel?.() ?? null) : null;
-  if (level !== null) {
-    // Live voice: the mouth follows the audio's amplitude (liveMouth), never the text.
-    const shape = mouthFromLevel(level, t);
-    if (still) mouthOpen = level > 0 ? 0.5 : 0;
-    else {
-      mouthOpen = shape.jaw;
-      weights.aa = shape.aa;
-      weights.O = shape.O;
-    }
-  } else if (pose === "speaking" && speech !== null) {
-    // The mouth follows the voice when one is speaking the line, else the text cadence (speechSync).
+  // The mouth follows the audio being played for this persona when there is some (lips from audio; also a coach's
+  // earpiece aside, which has no text line on stage), else the voice's reported position on the text timeline, else
+  // the text cadence (speechSync).
+  const textSpeaking = pose === "speaking" && speech !== null;
+  const audio = still ? null : audioMouth.weightsFor(persona.voice.gemini);
+  const source = mouthSource(audio, textSpeaking, still);
+  if (source === "audio" && audio !== null) Object.assign(weights, audio);
+  if (textSpeaking) {
     const elapsed = speechSync.elapsedFor(speech, clock.current);
-    if (still) mouthOpen = 0.5;
+    if (source === "still") mouthOpen = 0.5;
     else {
-      Object.assign(weights, visemeWeightsAt(track, elapsed));
+      if (source === "text") Object.assign(weights, visemeWeightsAt(track, elapsed));
       let beat = 0;
       for (const b of beats) beat = Math.max(beat, easeBeat((elapsed - b) / 1000));
       rotateWorld(head, right, beat * 0.06 * persona.gesture);
@@ -324,7 +316,7 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   }
 }
 
-export function Avatar({ persona, name, position, facing, pose, speech = null, gaze, clock, still, shadows, voiceRole }: AvatarProps) {
+export function Avatar({ persona, name, position, facing, pose, speech = null, gaze, clock, still, shadows }: AvatarProps) {
   const gltf = useLoader(GLTFLoader, `/avatars/${persona.avatar}/avatar.glb`);
   const textures = useLoader(TextureLoader, textureUrls(persona.avatar));
   const clipJson = useLoader(
@@ -430,8 +422,7 @@ export function Avatar({ persona, name, position, facing, pose, speech = null, g
   }, [rig, mixer, scene, track, beats]);
 
   useFrame((frame, delta) => {
-    const voiceLevel = voiceRole === undefined ? undefined : () => liveMouth.level(voiceRole);
-    stepAvatar({ ...live.current, actions: actions.current, thinking, still, pose, speech, persona, gaze, clock, random, voiceLevel }, state.current, frame.clock.elapsedTime, delta);
+    stepAvatar({ ...live.current, actions: actions.current, thinking, still, pose, speech, persona, gaze, clock, random }, state.current, frame.clock.elapsedTime, delta);
   });
 
   return (

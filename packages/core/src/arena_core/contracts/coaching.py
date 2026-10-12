@@ -191,6 +191,11 @@ class CoachingCard(Contract):
     @model_validator(mode="after")
     def _rules(self, info: ValidationInfo) -> Self:
         errors, own_refs = _card_errors(self.turn_id, self.flags, self.finding)
+        follow_up = self.follow_up.question.rstrip()
+        if not follow_up.endswith("?") or follow_up.count("?") != 1:
+            # S2 5.2 rule 8, checked on the model's own card only (stored cards are never re-judged): a closing
+            # remark such as "Thank you, that concludes our questions." gets the one repair (S2 10).
+            errors.append("follow_up.question: one question ending in a question mark, never a statement or thanks")
         ctx = _context(info)
         if ctx is not None:
             if turn_no(self.turn_id) != ctx.current_turn:

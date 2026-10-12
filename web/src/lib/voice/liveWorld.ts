@@ -42,7 +42,7 @@ export function liveVoiceView(voice: VoiceState, captureAboveFloor: boolean): Li
 }
 
 function line(turn: number, text: string): Speech {
-  // The mouth follows the audio amplitude (liveMouth), so the line's own timing never moves it.
+  // The mouth follows the Live audio (audioMouth), so the line's own timing never moves it.
   return { turn, text: text === "" ? "..." : text, startedAt: 0 };
 }
 

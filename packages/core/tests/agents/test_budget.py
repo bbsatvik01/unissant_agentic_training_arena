@@ -93,7 +93,7 @@ def test_an_expanding_answer_is_refused() -> None:
         # Within every raw cap (200 characters, 1,200 wire bytes) but 3,600 characters once NFKC unfolds them.
         (("finding", "rationale"), "\ufdfa" * 200, "longer than 600 characters as rendered"),
         (("flags", 0, "missing_fact"), "\ufdfa" * 30, "longer than 120 characters as rendered"),
-        (("follow_up", "question"), "\ufdfa" * 100, "longer than 300 characters as rendered"),
+        (("follow_up", "question"), "\ufdfa" * 99 + "?", "longer than 300 characters as rendered"),
         # Within every raw cap (33 characters, 198 wire bytes) and 594 characters as rendered, but 3,564 wire bytes
         # once NFKC unfolds each character into 18 Arabic letters.
         (("finding", "rationale"), "\ufdfa" * 33, "longer than 1200 bytes as rendered (D11)"),

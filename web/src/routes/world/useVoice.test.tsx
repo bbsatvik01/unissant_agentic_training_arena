@@ -3,7 +3,7 @@
  * Voices (stage 2): a line is voiced when it starts live, once per pass; Replay or a seek back voices it again; the
  * voice's start, boundaries and end drive the mouth through speechSync.
  */
-import { cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { speechSync } from "../../lib/voice/speechSync";
@@ -102,18 +102,20 @@ describe("useVoice", () => {
       useVoice(p);
     }, { initialProps: props });
     const coach = speak.mock.calls[0]?.[0];
-    expect(coach?.text).toBe("Suggested follow-up: What time did you leave?");
+    expect(coach?.text).toBe("Try asking: What time did you leave?");
     coach?.onstart?.();
     cancel.mockReset();
     const question = { turn: 2, text: "What time did you leave B-12?", startedAt: 5800 };
     clock.current = 5850;
     rerender({ ...props, world: world(null, question, false) });
     expect(cancel).not.toHaveBeenCalled();
-    const queued = speak.mock.calls[1]?.[0];
-    expect(queued?.text).toBe(question.text);
+    // Held until the coach is done (not in the voice's queue), its mouth closed meanwhile.
+    expect(speak).toHaveBeenCalledTimes(1);
     expect(speechSync.activeFor(question, 7000)).toBe(true);
     expect(speechSync.elapsedFor(question, 7000)).toBeLessThan(0);
     coach?.onend?.();
+    const queued = speak.mock.calls[1]?.[0];
+    expect(queued?.text).toBe(question.text);
     clock.current = 9000;
     queued?.onstart?.();
     expect(speechSync.elapsedFor(question, 9100)).toBe(100);
@@ -134,27 +136,115 @@ describe("useVoice", () => {
     expect(speak).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps a coach suggestion queued behind the answer when the next question comes", () => {
+  it("says the coach's suggestion only after the answer, and keeps it ahead of the next question", () => {
     const clock = { current: 1000 };
     const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-6", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });
-    speak.mock.calls[0]?.[0].onstart?.();
+    const answer = speak.mock.calls[0]?.[0];
+    answer?.onstart?.();
     clock.current = 1200;
     rerender({ ...props, world: world(LINE, null, true) });
-    expect(speak.mock.calls[1]?.[0].text).toBe("Suggested follow-up: What time did you leave?");
+    // The answer is still being spoken: the aside waits for it.
+    expect(speak).toHaveBeenCalledTimes(1);
+    answer?.onend?.();
+    expect(speak.mock.calls[1]?.[0].text).toBe("Try asking: What time did you leave?");
+    speak.mock.calls[1]?.[0].onstart?.();
     cancel.mockReset();
     const question = { turn: 2, text: "What time did you leave B-12?", startedAt: 1400 };
     clock.current = 1450;
     rerender({ ...props, world: world(null, question, false) });
     expect(cancel).not.toHaveBeenCalled();
-    expect(speak.mock.calls[2]?.[0].text).toBe(question.text);
-    // Once the coach has spoken, dialogue supersedes dialogue again.
+    expect(speak).toHaveBeenCalledTimes(2);
+    // Once the coach has spoken, the held question speaks, and dialogue supersedes dialogue again.
     speak.mock.calls[1]?.[0].onend?.();
+    expect(speak.mock.calls[2]?.[0].text).toBe(question.text);
     const next = { turn: 3, text: "And then?", startedAt: 3000 };
     clock.current = 3050;
     rerender({ ...props, world: world(null, next, false) });
     expect(cancel).toHaveBeenCalled();
+  });
+
+  it("says the card in the earpiece only in practice and with the earpiece on, and reports while it speaks", () => {
+    const clock = { current: 5000 };
+    const base = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, engine: ENGINE };
+    const muted = renderHook(() => useVoice({ ...base, scope: "rec-7", earpiece: false }));
+    expect(speak).not.toHaveBeenCalled();
+    expect(muted.result.current.coachSpeaking).toBe(false);
+    const assessment = { ...PRACTICE, mode: "assessment" } as unknown as TrialView;
+    renderHook(() => useVoice({ ...base, view: assessment, scope: "rec-8" }));
+    expect(speak).not.toHaveBeenCalled();
+    const on = renderHook(() => useVoice({ ...base, scope: "rec-9" }));
+    const aside = speak.mock.calls[0]?.[0];
+    expect(aside?.volume).toBe(0.8);
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(on.result.current.coachSpeaking).toBe(true);
+    act(() => {
+      aside?.onend?.();
+    });
+    expect(on.result.current.coachSpeaking).toBe(false);
+  });
+
+  it("stops an aside being said when the earpiece is muted, and the indicator with it", () => {
+    const clock = { current: 5000 };
+    const props = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-10", engine: ENGINE, earpiece: true };
+    const { result, rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
+    const aside = speak.mock.calls[0]?.[0];
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(result.current.coachSpeaking).toBe(true);
+    cancel.mockReset();
+    rerender({ ...props, earpiece: false });
+    expect(cancel).toHaveBeenCalled();
+    rerender({ ...props, earpiece: true });
+    expect(result.current.coachSpeaking).toBe(false);
+    // The cancelled aside's late callbacks change nothing.
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(result.current.coachSpeaking).toBe(false);
+  });
+
+  it("never cuts the subject's answer to mute the earpiece, and a muted aside is never said after it", () => {
+    const clock = { current: 1000 };
+    const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-11", engine: ENGINE, earpiece: true };
+    const { rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
+    const answer = speak.mock.calls[0]?.[0];
+    answer?.onstart?.();
+    clock.current = 1200;
+    rerender({ ...props, world: world(LINE, null, true) });
+    cancel.mockReset();
+    rerender({ ...props, world: world(LINE, null, true), earpiece: false });
+    expect(cancel).not.toHaveBeenCalled();
+    answer?.onend?.();
+    expect(speak).toHaveBeenCalledTimes(1);
+  });
+
+  it("muting the earpiece cancels the aside and lets the question held behind it speak", () => {
+    const clock = { current: 5000 };
+    const props = { world: world(null, null, true), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-12", engine: ENGINE, earpiece: true };
+    const { result, rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
+    const aside = speak.mock.calls[0]?.[0];
+    act(() => {
+      aside?.onstart?.();
+    });
+    const question = { turn: 2, text: "Where did you go next?", startedAt: 5800 };
+    clock.current = 5850;
+    rerender({ ...props, world: world(null, question, false) });
+    expect(speak).toHaveBeenCalledTimes(1);
+    cancel.mockReset();
+    rerender({ ...props, world: world(null, question, false), earpiece: false });
+    expect(cancel).toHaveBeenCalled();
+    expect(speak.mock.calls[1]?.[0].text).toBe(question.text);
+    expect(result.current.coachSpeaking).toBe(false);
+    // The cancelled aside's late start changes nothing.
+    act(() => {
+      aside?.onstart?.();
+    });
+    expect(result.current.coachSpeaking).toBe(false);
   });
 });

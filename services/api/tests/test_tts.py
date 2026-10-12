@@ -16,17 +16,18 @@ from starlette.requests import Request
 from arena_api.routes import tts as route
 from arena_core.providers.errors import KillSwitchOnError
 from arena_core.voice import tts
+from arena_core.voice.catalogue import Speaker
 from services.api.tests.test_app import Harness
 
 
 class Refusing:
-    async def synthesize(self, text: str, voice: str) -> tts.SpeechAudio:
-        del text, voice
+    async def synthesize(self, text: str, speaker: Speaker) -> tts.SpeechAudio:
+        del text, speaker
         msg = "kill switch"
         raise KillSwitchOnError(msg)
 
-    def request_bytes(self, text: str, voice: str) -> int:
-        return len(text) + len(voice)
+    def request_bytes(self, text: str, speaker: Speaker) -> int:
+        return len(text) + len(speaker.voice) + len(speaker.style or "")
 
 
 def harness(tmp_path: Path, synth: tts.SpeechSynth | None = None) -> Harness:
@@ -52,6 +53,7 @@ def test_a_line_comes_back_as_wav_audio_flagged_as_silence_in_fake_mode(tmp_path
     "body",
     [
         {"voice": "Robot", "text": "Hi."},
+        {"voice": "subject:Nobody", "text": "Hi."},
         {"voice": "Kore", "text": "x" * 901},
         {"voice": "Kore", "text": ""},
         {"voice": "Kore", "text": "Hi.", "style": "angry"},
@@ -106,3 +108,8 @@ def test_vertex_mode_builds_the_paid_service_behind_the_guard(tmp_path: Path, mo
     assert not service.silent
     assert seen == [tts.TTS_MODEL]
     assert route.service(Request({"type": "http", "app": h.app})) is service
+
+
+def test_a_persona_key_is_spoken_in_its_catalogue_voice(tmp_path: Path) -> None:
+    r = harness(tmp_path).post("/api/tts", {"voice": "subject:Jordan Pell", "text": "I was at the depot."})
+    assert r.status_code == HTTPStatus.OK, r.text

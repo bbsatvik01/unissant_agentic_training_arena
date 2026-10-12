@@ -1,6 +1,6 @@
 """Per-call-type limits, allowlists and the attempt rule (S5 3.3, 3.4; S2 2), parity-tested against cost_model.py.
 
-The byte and token limits equal `docs/research/synthesis/cost_model.py` `LIMITS` for the five runtime call types and
+The byte and token limits equal `docs/research/synthesis/cost_model.py` `LIMITS` for the seven runtime call types and
 S4's `ops.call_limits` seeds; `portrait` (absent from `LIMITS`) holds S5 3.3's initial values. `ATTEMPTS` equals
 `cost_model.ATTEMPTS`. A parity test compares them with the script's own output (S5 4.9). The database stays the
 authority for every amount: the port sends sizes, never dollars.
@@ -26,6 +26,8 @@ class CallType(StrEnum):
     FINAL = "final"
     REFEREE = "referee"
     PORTRAIT = "portrait"
+    TTS = "tts"
+    VOICE_DESIGN = "voice_design"
 
 
 class VertexModel(StrEnum):
@@ -62,6 +64,15 @@ LIMITS: dict[CallType, CallLimits] = {
     # Initial values, tuned in the dev pilot (S5 3.3). The image model is named by the day-1 lookup (UI direction
     # 1.2); until it joins VertexModel, this allowlist and ops.model_prices, no portrait call passes policy.
     CallType.PORTRAIT: CallLimits(2_000, 2_000, 60.0, frozenset()),
+    # One spoken line (stage 8, arena_core.voice.tts): the speech service reserves on the guard itself and never goes
+    # through the text port, so no text model is allowed here. Input: a 900-character line (MAX_LINE_CHARS) and its
+    # 120-character style, every character of which may cost a 12-byte surrogate-pair escape, plus the request's
+    # JSON; output: 80 s of audio at 25 tokens a second (cost_model.LIMITS['tts']).
+    CallType.TTS: CallLimits(14_000, 2_000, 60.0, frozenset()),
+    # One designed voice (stage 8, scripts/design_voices.py), reserved on the guard by the script itself: a
+    # 400-character description at up to 12 escaped bytes each plus the request JSON; output: the model's hard
+    # output-token limit (16,384), since CreateVoice takes no output cap (the sample is about 1,100 tokens).
+    CallType.VOICE_DESIGN: CallLimits(6_000, 16_384, 60.0, frozenset()),
 }
 
 
@@ -81,6 +92,8 @@ DEFAULT_TIMING: dict[CallType, CallTiming] = {
     CallType.FINAL: CallTiming(15.0, 30.0),
     CallType.REFEREE: CallTiming(30.0, 90.0),
     CallType.PORTRAIT: CallTiming(60.0, 120.0),
+    CallType.TTS: CallTiming(60.0, 60.0),
+    CallType.VOICE_DESIGN: CallTiming(60.0, 60.0),
 }
 
 # S5 3.3 / S2 1, 2: thinking is MINIMAL on every call type except the referee. The referee's rows pair model and
@@ -103,4 +116,6 @@ PURPOSES: dict[CallType, frozenset[str]] = {
     CallType.FINAL: frozenset({"coach.final", "experiment.latency"}),
     CallType.REFEREE: REFEREE_PURPOSES,
     CallType.PORTRAIT: frozenset({"portrait.image"}),
+    CallType.TTS: frozenset({"tts"}),
+    CallType.VOICE_DESIGN: frozenset({"voice_design"}),
 }

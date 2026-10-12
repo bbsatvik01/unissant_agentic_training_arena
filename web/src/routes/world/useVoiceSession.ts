@@ -2,7 +2,7 @@
  * A live voice session in the room (S6 3.3, 6.2; WP-22; lift target: gokbase `useVoiceSession.ts`). The pure voice
  * machine (`lib/voice/voiceMachine`) holds the state; this hook is its I/O: the consent gate before the microphone,
  * the ticket (`POST /api/voice/tickets`), the same-origin WebSocket with the ticket as its only subprotocol, the
- * microphone frames and capture edges, the playback queue and its reports, and the mouths (`liveMouth`). The close
+ * microphone frames and capture edges, the playback queue and its reports, and the mouths (the room's audio lip sync, `audioMouth`). The close
  * code is the only terminal signal; a transport drop offers "Reconnect", which mints a new ticket and opens a new
  * voice session that keeps only the stored transcript.
  */
@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ArenaApi } from "../../lib/api/arena";
 import type { VoiceExchange } from "../../lib/contracts/generated/types";
-import { liveMouth } from "../../lib/voice/liveMouth";
+import { analyserSource, audioMouth } from "../../lib/world/audioLips";
 import { CAPTURE_FLOOR, CaptureEdges } from "../../lib/voice/liveWorld";
 import {
   audioUtterance,
@@ -48,6 +48,8 @@ interface Options {
   readonly trialId: string | null;
   /** The snapshot's stored windows (the reload view, S5 7.7). */
   readonly exchanges: readonly VoiceExchange[];
+  /** The speakers' lip-sync keys (`Persona.voice.gemini`): the Live audio drives their mouths through `audioMouth`. */
+  readonly voices: { readonly subject: string; readonly investigator: string };
 }
 
 export function toEntries(exchanges: readonly VoiceExchange[]): ExchangeEntry[] {
@@ -58,7 +60,7 @@ function socketUrl(): string {
   return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/voice/ws`;
 }
 
-export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceControls {
+export function useVoiceSession({ api, trialId, exchanges, voices }: Options): VoiceControls {
   const initial = useCallback(() => {
     const entries = toEntries(exchanges);
     return initialVoiceState("live", entries, { used: entries.length, cap: 12 });
@@ -244,14 +246,15 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
   // The mouths follow the live audio while a session is connected.
   const live = state.connection === "open" || state.connection === "draining";
   useEffect(() => {
-    if (!live) return;
-    const detachSubject = liveMouth.attach("subject", () => audio.current?.playbackLevel() ?? 0);
-    const detachInvestigator = liveMouth.attach("investigator", () => audio.current?.micLevel() ?? 0);
+    const player = audio.current;
+    if (!live || player === null) return;
+    const detachSubject = audioMouth.attach(voices.subject, analyserSource(player.playbackAnalyser));
+    const detachInvestigator = audioMouth.attach(voices.investigator, analyserSource(player.micAnalyser));
     return () => {
       detachSubject();
       detachInvestigator();
     };
-  }, [live]);
+  }, [live, voices.subject, voices.investigator]);
 
   return { state, captureAboveFloor, error, open, decline, consent, stop, interrupt, reconnect };
 }

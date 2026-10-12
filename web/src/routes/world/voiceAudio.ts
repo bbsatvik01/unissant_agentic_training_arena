@@ -21,10 +21,10 @@ export interface VoiceAudio {
   readonly flush: () => void;
   /** Whether a chunk is queued or playing. */
   readonly busy: () => boolean;
-  /** The subject's playback amplitude now (0-1). */
-  readonly playbackLevel: () => number;
-  /** The microphone's level from the last frame (0-1). */
-  readonly micLevel: () => number;
+  /** The analyser after the playback worklet (the subject's lips, `audioMouth`) and the microphone's (the
+   * investigator's lips). */
+  readonly playbackAnalyser: AnalyserNode;
+  readonly micAnalyser: AnalyserNode;
   /** Stop the microphone (capture ends, playback goes on). */
   readonly stopCapture: () => void;
   /** Stop everything. */
@@ -32,13 +32,6 @@ export interface VoiceAudio {
 }
 
 export class MicrophoneRefusedError extends Error {}
-
-function rms(analyser: AnalyserNode, buffer: Float32Array<ArrayBuffer>): number {
-  analyser.getFloatTimeDomainData(buffer);
-  let sum = 0;
-  for (const s of buffer) sum += s * s;
-  return Math.sqrt(sum / buffer.length);
-}
 
 /** Open the microphone (the browser asks for permission here, after the consent screen) and both contexts. */
 export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio> {
@@ -56,21 +49,21 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
   // Chrome may start a context suspended until a gesture; the consent click was one.
   await Promise.all([capture.resume(), playback.resume()]);
 
-  let micLevel = 0;
   const source = capture.createMediaStreamSource(stream);
+  const micAnalyser = capture.createAnalyser();
+  micAnalyser.fftSize = 512;
+  source.connect(micAnalyser);
   const tap = new AudioWorkletNode(capture, "arena-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
   const mute = capture.createGain();
   mute.gain.value = 0;
   source.connect(tap).connect(mute).connect(capture.destination);
   tap.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; level: number }>) => {
-    micLevel = e.data.level;
     hooks.onFrame(e.data.pcm, e.data.level);
   };
 
   const player = new AudioWorkletNode(playback, "arena-playback", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
   const analyser = playback.createAnalyser();
   analyser.fftSize = 512;
-  const samples = new Float32Array(analyser.fftSize);
   player.connect(analyser).connect(playback.destination);
   const ledger = new PlaybackLedger();
   player.port.onmessage = (e: MessageEvent<PlaybackReport>) => {
@@ -83,7 +76,6 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
     if (!captureOn) return;
     captureOn = false;
     tap.port.onmessage = null;
-    micLevel = 0;
     for (const track of stream.getTracks()) track.stop();
     void capture.close().catch(() => undefined);
   };
@@ -99,8 +91,8 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
       player.port.postMessage({ type: "flush" });
     },
     busy: () => ledger.busy,
-    playbackLevel: () => rms(analyser, samples),
-    micLevel: () => micLevel,
+    playbackAnalyser: analyser,
+    micAnalyser,
     stopCapture,
     close() {
       stopCapture();

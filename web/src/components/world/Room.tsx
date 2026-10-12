@@ -219,7 +219,6 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
             facing={Math.PI}
             pose={world.investigator.speech === null ? "listening" : "speaking"}
             speech={world.investigator.speech}
-            voiceRole="investigator"
             gaze={inRoom([SUBJECT_SEAT[0], 1.2, SUBJECT_SEAT[2]])}
             clock={clock}
             still={still}
@@ -237,7 +236,6 @@ export function Room({ world, documents, subjectName, clock, still, reducedMotio
             facing={0}
             pose={world?.subject.pose ?? "idle"}
             speech={world?.subject.speech ?? null}
-            voiceRole="subject"
             gaze={inRoom(INVESTIGATOR_EYES)}
             clock={clock}
             still={still}

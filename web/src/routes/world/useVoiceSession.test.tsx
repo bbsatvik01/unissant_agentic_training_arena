@@ -9,10 +9,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ArenaApi } from "../../lib/api/arena";
 import type { VoiceExchange } from "../../lib/contracts/generated/types";
+import { audioMouth } from "../../lib/world/audioLips";
 import { useVoiceSession } from "./useVoiceSession";
 import type { VoiceAudio, VoiceAudioHooks } from "./voiceAudio";
 
 const audio = vi.hoisted(() => ({ hooks: [] as VoiceAudioHooks[], closed: 0, played: [] as number[] }));
+
+function analyser(): AnalyserNode {
+  return { context: { sampleRate: 24_000 }, fftSize: 512, getByteFrequencyData: () => undefined } as unknown as AnalyserNode;
+}
 
 vi.mock("./voiceAudio", () => ({
   MicrophoneRefusedError: class extends Error {},
@@ -24,8 +29,8 @@ vi.mock("./voiceAudio", () => ({
       },
       flush: () => undefined,
       busy: () => false,
-      playbackLevel: () => 0,
-      micLevel: () => 0,
+      playbackAnalyser: analyser(),
+      micAnalyser: analyser(),
       stopCapture: () => undefined,
       close: () => {
         audio.closed += 1;
@@ -79,6 +84,7 @@ afterEach(() => {
 
 const TICKET = "a".repeat(64);
 const NONE: readonly VoiceExchange[] = [];
+const VOICES = { subject: "subject:Jordan Pell", investigator: "investigator" };
 
 function api(): ArenaApi {
   return { mintVoiceTicket: vi.fn(() => Promise.resolve(TICKET)) } as unknown as ArenaApi;
@@ -86,7 +92,7 @@ function api(): ArenaApi {
 
 describe("useVoiceSession", () => {
   it("connects with the ticket as subprotocol, sends audio only after the first server frame, and ends on the close code", async () => {
-    const { result } = renderHook(() => useVoiceSession({ api: api(), trialId: "t1", exchanges: NONE }));
+    const { result } = renderHook(() => useVoiceSession({ api: api(), trialId: "t1", exchanges: NONE, voices: VOICES }));
     act(() => {
       result.current.open();
     });
@@ -118,6 +124,9 @@ describe("useVoiceSession", () => {
     });
     expect(ws.sent).toEqual([pcm]);
     expect(audio.played).toEqual([1]);
+    // The Live audio drives both speakers' lips through the room's audio lip sync while connected.
+    expect(audioMouth.active(VOICES.subject)).toBe(true);
+    expect(audioMouth.active(VOICES.investigator)).toBe(true);
     expect(result.current.state.transcript).toHaveLength(1);
     act(() => {
       result.current.stop();
@@ -129,10 +138,11 @@ describe("useVoiceSession", () => {
     expect(result.current.state.status).toBe("ended");
     expect(result.current.state.endedKey).toBe("normal");
     expect(audio.closed).toBe(1);
+    expect(audioMouth.active(VOICES.subject)).toBe(false);
   });
 
   it("starts a new trial clean and ignores the old socket's late frames", async () => {
-    const { result, rerender } = renderHook(({ trialId }: { trialId: string }) => useVoiceSession({ api: api(), trialId, exchanges: NONE }), { initialProps: { trialId: "t1" } });
+    const { result, rerender } = renderHook(({ trialId }: { trialId: string }) => useVoiceSession({ api: api(), trialId, exchanges: NONE, voices: VOICES }), { initialProps: { trialId: "t1" } });
     act(() => {
       result.current.open();
       result.current.consent();
@@ -162,7 +172,7 @@ describe("useVoiceSession", () => {
   it("offers reconnect after a drop and opens a new socket with a new ticket", async () => {
     const minted = vi.fn(() => Promise.resolve(TICKET));
     const mint = { mintVoiceTicket: minted } as unknown as ArenaApi;
-    const { result } = renderHook(() => useVoiceSession({ api: mint, trialId: "t1", exchanges: NONE }));
+    const { result } = renderHook(() => useVoiceSession({ api: mint, trialId: "t1", exchanges: NONE, voices: VOICES }));
     act(() => {
       result.current.open();
       result.current.consent();
@@ -190,7 +200,7 @@ describe("useVoiceSession hang up while connecting", () => {
   it("cancels a pending ticket: no socket opens and the microphone is closed", async () => {
     let release: (t: string) => void = () => undefined;
     const pending = { mintVoiceTicket: vi.fn(() => new Promise<string>((r) => (release = r))) } as unknown as ArenaApi;
-    const { result } = renderHook(() => useVoiceSession({ api: pending, trialId: "t1", exchanges: NONE }));
+    const { result } = renderHook(() => useVoiceSession({ api: pending, trialId: "t1", exchanges: NONE, voices: VOICES }));
     act(() => {
       result.current.open();
       result.current.consent();

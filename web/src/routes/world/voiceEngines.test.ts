@@ -6,7 +6,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { browserEngine, RESUME_WAIT_MS, roomEngine, webAudioPort } from "./voiceEngines";
+import { audioMouth } from "../../lib/world/audioLips";
+import { browserEngine, EARPIECE, isEarpiece, RESUME_WAIT_MS, roomEngine, webAudioPort } from "./voiceEngines";
 
 class Utterance {
   text: string;
@@ -38,10 +39,31 @@ class FakeContext {
   });
   decodeAudioData = vi.fn(() => Promise.resolve({ duration: 2.5 } as AudioBuffer));
   destination = {};
+  sampleRate = 24_000;
   gainNode = { gain: { value: 1 }, connect: vi.fn((d: unknown) => d) };
-  source = { buffer: null as unknown, connect: vi.fn(() => this.gainNode), start: vi.fn(), stop: vi.fn(), onended: null as (() => void) | null };
+  /** Every node made, in order, with what it connected to. */
+  made: { kind: string; node: Record<string, unknown> }[] = [];
+  node(kind: string, extra: Record<string, unknown> = {}) {
+    const n: Record<string, unknown> = { kind, ...extra, connected: [] as unknown[] };
+    n["connect"] = vi.fn((d: unknown) => {
+      (n["connected"] as unknown[]).push(d);
+      return d;
+    });
+    this.made.push({ kind, node: n });
+    return n;
+  }
+  source = this.node("source", { buffer: null as unknown, start: vi.fn(), stop: vi.fn(), onended: null as (() => void) | null }) as unknown as {
+    buffer: unknown;
+    connect: (d: unknown) => unknown;
+    start: () => void;
+    stop: () => void;
+    onended: (() => void) | null;
+  };
   createBufferSource = () => this.source;
   createGain = () => this.gainNode;
+  createAnalyser = () => this.node("analyser", { fftSize: 2048, smoothingTimeConstant: 0.8, context: this, getByteFrequencyData: vi.fn((into: Uint8Array) => into.fill(200)) });
+  createBiquadFilter = () => this.node("biquad", { type: "", frequency: { value: 0 } });
+  createStereoPanner = () => this.node("panner", { pan: { value: 0 } });
 }
 
 let lastContext: FakeContext | null = null;
@@ -119,6 +141,37 @@ describe("webAudioPort", () => {
     playing.stop();
     expect(lastContext?.source.stop).toHaveBeenCalled();
     expect(lastContext?.source.onended).toBeNull();
+  });
+
+  it("drives the speaker's mouth from the playing clip, and plays the coach as a quiet earpiece aside to one side", async () => {
+    const api = { speak: vi.fn(() => Promise.resolve({ audio: new ArrayBuffer(8), silent: false })) };
+    const port = webAudioPort(api);
+    const subject = await port.fetchClip("subject:Jordan Pell", "Hi.");
+    if (subject === null) throw new Error("no clip");
+    expect(audioMouth.weightsFor("subject:Jordan Pell")).toBeNull();
+    const playing = port.play(subject, 1, vi.fn());
+    expect(audioMouth.weightsFor("subject:Jordan Pell")?.aa ?? 0).toBeGreaterThan(0);
+    expect(lastContext?.made.filter((m) => m.kind === "biquad")).toHaveLength(0);
+    expect(lastContext?.gainNode.gain.value).toBe(1);
+    lastContext?.source.onended?.();
+    expect(audioMouth.weightsFor("subject:Jordan Pell")).toBeNull();
+    playing.stop();
+
+    const coach = await port.fetchClip("coach:follow_up", "Ask about the door.");
+    if (coach === null) throw new Error("no clip");
+    const aside = port.play(coach, 0.8, vi.fn());
+    const kinds = lastContext?.made.map((m) => m.kind) ?? [];
+    expect(kinds.filter((k) => k === "biquad")).toHaveLength(2);
+    const [lo, hi] = (lastContext?.made.filter((m) => m.kind === "biquad") ?? []).map((m) => m.node as { type: string; frequency: { value: number } });
+    expect([lo?.type, lo?.frequency.value, hi?.type, hi?.frequency.value]).toEqual(["highpass", EARPIECE.lowCutHz, "lowpass", EARPIECE.highCutHz]);
+    const pan = lastContext?.made.find((m) => m.kind === "panner")?.node as { pan: { value: number } } | undefined;
+    expect(pan?.pan.value).toBe(EARPIECE.pan);
+    expect(lastContext?.gainNode.gain.value).toBeCloseTo(0.8 * EARPIECE.gain);
+    expect(audioMouth.active("coach:follow_up")).toBe(true);
+    aside.stop();
+    expect(audioMouth.active("coach:follow_up")).toBe(false);
+    expect(isEarpiece("coach:question")).toBe(true);
+    expect(isEarpiece("subject:Jordan Pell")).toBe(false);
   });
 
   it("gives no clip when the browser keeps audio suspended past the wait, and unlocks audio on the first gesture", async () => {

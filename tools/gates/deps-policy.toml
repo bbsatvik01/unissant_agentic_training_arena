@@ -30,7 +30,7 @@ banned_extras = []
 # its request and usage shapes (labels, thinking_level, HttpRetryOptions, usage_metadata); bumped deliberately,
 # behind the port tests.
 [python.exact]
-google-genai = "2.24.0"
+google-genai = "2.25.0"
 
 [node]
 # xlsx: GHSA-4r6h-8v6p-xvw6, no fixed release on npm (kept from TechnoMile for WP-18's web tree).

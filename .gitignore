@@ -56,3 +56,6 @@ tmp/
 recordings/*
 !recordings/sample-F01.json
 !recordings/real-F01.json
+!recordings/real-F01-deceptive-coached.json
+!recordings/real-F02-truthful-coached.json
+!recordings/real-F03-truthful-coached.json

@@ -14,8 +14,8 @@
     }
   },
   "lineage": {
-    "change_note": "initial",
-    "parent_sha256": null
+    "change_note": "style.v2: anxious affect said aloud at most once and no repeated remarks about feelings; varied fillers.",
+    "parent_sha256": "79552cf3edae7ea1f1bb71209d42ca8ace63a9360f951765b42e88a3d91525c5"
   },
   "manifest_version": "manifest.v1",
   "model": {
@@ -30,14 +30,14 @@
         "prompts/subject/role.t.v1.txt",
         "prompts/subject/role.d.v1.txt",
         "prompts/subject/policy.standard.v1.txt",
-        "prompts/subject/style.v1.txt"
+        "prompts/subject/style.v2.txt"
       ],
       "subject": [
         "prompts/subject/system.v1.txt",
         "prompts/subject/role.t.v1.txt",
         "prompts/subject/role.d.v1.txt",
         "prompts/subject/policy.standard.v1.txt",
-        "prompts/subject/style.v1.txt"
+        "prompts/subject/style.v2.txt"
       ]
     },
     "files": [
@@ -58,8 +58,8 @@
         "sha256": "b150f3018639c8e5612b149ebc4052fca4cd5b89dfea6f7ad5c8c440127c426c"
       },
       {
-        "path": "prompts/subject/style.v1.txt",
-        "sha256": "fa09089921ec7baec9cfc8ab4b0e9bac96ab96c976a2deb93ddfc5ea641c9f7c"
+        "path": "prompts/subject/style.v2.txt",
+        "sha256": "285ac3defbd39161c5513d1868097d80d33bca506c5d57dcbd8b90b8c84b31e2"
       },
       {
         "path": "prompts/subject/live.v1.txt",
@@ -88,11 +88,11 @@
     "seed_rule": "sha256(trial:turn:purpose:attempt)[:4]",
     "temperature": null
   },
-  "sha256": "79552cf3edae7ea1f1bb71209d42ca8ace63a9360f951765b42e88a3d91525c5",
+  "sha256": "3f7e19b433b6c8c32bb29536acb025b2e859d6e820028f86715c0ba449526a32",
   "subject_policy": {
     "policy": "standard"
   },
   "tools": [],
   "transport": "in_process",
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

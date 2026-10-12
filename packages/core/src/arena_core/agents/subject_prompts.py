@@ -31,7 +31,7 @@ from arena_core.agents.manifests import (
     POLICY,
     ROLE_D,
     ROLE_T,
-    STYLE,
+    STYLES,
     SUBJECT_LIVE,
     SUBJECT_SYSTEM,
     ManifestMismatchError,
@@ -262,10 +262,21 @@ def policy_block(packet: SubjectPacket, prompts: PromptSet) -> str:
     return prompts.text(POLICY[policy.policy])
 
 
+def style_file(prompts: PromptSet) -> str:
+    """The style table the manifest's own subject assembly names (its last block): a registered 1.0.0 subject keeps
+    rendering `style.v1`, a 1.1.0 subject `style.v2` (S2 3.3). Any other file there is refused."""
+    prompt = prompts.manifest.prompt
+    named = prompt.assembly.get("subject", [""])[-1] if prompt is not None else ""
+    if named not in STYLES:
+        msg = f"manifest {prompts.manifest.candidate_id}: {named!r} is not a style table"
+        raise ManifestMismatchError(msg)
+    return named
+
+
 def style_block(style: Style, prompts: PromptSet) -> str:
     """S2 6.6: a heading, one line per axis, the closing line."""
     table: dict[str, str] = {}
-    for line in prompts.text(STYLE).splitlines():
+    for line in prompts.text(style_file(prompts)).splitlines():
         key, _, value = line.partition(": ")
         table[key] = value
     lines = [table["heading"]]
@@ -380,7 +391,10 @@ def _check(packet: SubjectPacket, prompts: PromptSet, key: Literal["subject", "l
         msg = f"manifest {manifest.candidate_id} is not a subject"
         raise TemplateError(msg)
     base = SUBJECT_SYSTEM if key == "subject" else SUBJECT_LIVE
-    expected = [base, ROLE_T, ROLE_D, POLICY[manifest.subject_policy.policy], STYLE]
+    # Both assemblies must name the style table the subject assembly names: the one `style_block` renders.
+    named = manifest.prompt.assembly.get("subject", [""])[-1]
+    style = named if named in STYLES else STYLES[-1]
+    expected = [base, ROLE_T, ROLE_D, POLICY[manifest.subject_policy.policy], style]
     if manifest.prompt.assembly.get(key) != expected:
         msg = f"manifest {manifest.candidate_id}: {key} assembly is not {expected}"
         raise ManifestMismatchError(msg)

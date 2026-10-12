@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import re
 
-from arena_core.agents.manifests import committed_manifest, manifest_sha256
+from arena_core.agents.manifests import INITIAL, manifest_sha256, official_manifests
 from arena_core.agents.templates import REPO_ROOT
 from arena_core.ids import canonical_json
 
@@ -29,8 +29,10 @@ def test_the_canonical_json_fixture_matches_python() -> None:
     assert "\\u0001" in fixture
 
 
-def test_the_a1_manifest_and_its_hash_are_the_committed_ones() -> None:
-    a1 = committed_manifest("A1")
+def test_the_a1_manifest_and_its_hash_are_the_official_1_0_0_ones() -> None:
+    """The fixture is the official A1 as release 1.0.0 builds it (the row registered on the hosted project); the
+    1.1.0 manifest differs only in prompt files, version and lineage, which the same hash rule covers."""
+    a1 = official_manifests(release=INITIAL)["A1"]
     literals = _literals()
     assert canonical_json(a1.model_dump(mode="json", exclude={"frozen_at"})) in literals
     assert a1.sha256 == manifest_sha256(a1)

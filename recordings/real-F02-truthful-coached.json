@@ -1,0 +1,4348 @@
+{
+ "format": "arena.recording.v1",
+ "trial_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+ "case": {
+  "case_id": "C-K9TB2ZQF",
+  "title": "After-hours entry with a double count",
+  "objective": "Establish whether anyone entered the Halvern Street Annex with Mara Quell on her single badge swipe at 19:42 on 10 March 2026, and if so who, where they went and whether the entry followed the after-hours rules.",
+  "domain": "facility_access",
+  "difficulty_level": 1,
+  "subject": {
+   "display_name": "Mara Quell",
+   "position": "Records Clerk"
+  },
+  "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+  "initial_documents": [
+   {
+    "doc_id": "doc-01",
+    "kind": "sensor_metadata",
+    "title": "Tailgate alert, east staff door, 10 March 2026",
+    "content": {
+     "body": "Alert reviewed by Security Operations on 11 March at 08:15 and referred for interview.",
+     "table": {
+      "rows": [
+       [
+        "19:42:31",
+        "East staff door reader",
+        "Badge 22107 (M. Quell), access granted"
+       ],
+       [
+        "19:42:33",
+        "East-door tailgate sensor",
+        "Count 2 on one swipe, tailgate alert raised"
+       ]
+      ],
+      "columns": [
+       "Time",
+       "Device",
+       "Event"
+      ]
+     }
+    }
+   },
+   {
+    "doc_id": "doc-02",
+    "kind": "policy_excerpt",
+    "title": "After-hours access rules (Facility Security Standard 3.1)",
+    "content": {
+     "body": "Staff may enter after hours with their own badge, including to collect personal items. Visitors must be registered with the security desk at least 24 hours in advance and must be escorted at all times. Staff must not admit any other person on their own badge swipe."
+    }
+   },
+   {
+    "doc_id": "doc-03",
+    "kind": "camera_status",
+    "title": "Building camera status, 10 March 2026",
+    "content": {
+     "body": "East staff door camera offline 18:00-22:00 (power isolated by Facilities for ticket FM-2207). Lobby camera: live view only, no recording kept. Elevator cameras store trip metadata with a person count; no images are kept."
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "status": "running",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 0,
+  "exchanges_cap": 12,
+  "released": [],
+  "requestable": [
+   {
+    "record_id": "rec-01",
+    "kind": "visitor_register",
+    "title": "Security desk visitor register, 10 March 2026",
+    "description": "Visitors registered with the security desk for 10 March 2026, day and after hours.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-02",
+    "kind": "camera_metadata",
+    "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+    "description": "Trip records from elevator car 2: time, floors and the in-car camera's person count. No images are retained.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-03",
+    "kind": "door_log",
+    "title": "Records floor (floor 3) door log, 10 March 2026",
+    "description": "Badge and exit-button events at the floor-3 records door, with how long the door stayed open.",
+    "requestable_after_exchanges": 2,
+    "date": null
+   },
+   {
+    "record_id": "rec-04",
+    "kind": "witness_statement",
+    "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+    "description": "Written statement from the night custodian on duty in the floor-1 lobby on 10 March.",
+    "requestable_after_exchanges": 4,
+    "date": null
+   }
+  ],
+  "finding": null,
+  "commitment_hash": null,
+  "last_seq": 0,
+  "channel": "text",
+  "turns": [],
+  "voice_exchanges": [],
+  "cards": [],
+  "updates": [],
+  "coach_failures": []
+ },
+ "events": [
+  {
+   "at_ms": 271,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:06.967Z",
+    "transcript_version": 1,
+    "seq": 1,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 1,
+     "text": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 271,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:06.967Z",
+    "transcript_version": 1,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 5299,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:11.995Z",
+    "transcript_version": 2,
+    "seq": 2,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 1,
+     "text": "Well, I returned to the Halvern Street Annex on the evening of March 10th because I had left some important medication in my desk drawer. My partner, Evan, drove me there, but he stayed in the car while I went in alone. I badged into the east staff door a little before quarter to eight, then proceeded to the records floor. I was only inside for around eight, maybe just before or just after, before leaving again.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:11.995Z"
+    }
+   }
+  },
+  {
+   "at_ms": 5299,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:11.995Z",
+    "transcript_version": 2,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 1
+    }
+   }
+  },
+  {
+   "at_ms": 8230,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:14.926Z",
+    "transcript_version": 2,
+    "seq": 3,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 1,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t01",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asked a clear, open-ended question about the subject's actions on the evening in question."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Could you walk me through your exact movements after you entered through the east staff door, including which areas you visited inside the annex?",
+       "tactic": "funnel_probe",
+       "purpose": "Establish the subject's full account of her movements inside the building before presenting any records.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+        "check records floor door log for 10 March 2026",
+        "check security desk visitor register for 10 March 2026"
+       ],
+       "rationale": "The subject provided an initial account stating she entered alone to retrieve medication while her partner waited in the car, but further details on her movements and corroborating records are needed.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 1,
+      "turn_no": 1,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2542,
+      "work_item": "ad70d30a-19bc-47c9-acb5-7f632f80920e",
+      "transcript_version": 2
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 9039,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:15.735Z",
+    "transcript_version": 3,
+    "seq": 4,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 2,
+     "text": "When you swiped in at the east staff door at 19:42, was anyone else with you or near the door?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 9039,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:15.735Z",
+    "transcript_version": 3,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 11070,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:17.766Z",
+    "transcript_version": 4,
+    "seq": 5,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 2,
+     "text": "Well, um, I entered the east staff door by myself as I mentioned. It was pouring that evening, and I recall that Bram, the custodian, was cleaning near the elevators when I came in. No one else was with me or near the door when I swiped in.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:17.766Z"
+    }
+   }
+  },
+  {
+   "at_ms": 11070,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:17.766Z",
+    "transcript_version": 4,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 2
+    }
+   }
+  },
+  {
+   "at_ms": 13590,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:20.286Z",
+    "transcript_version": 4,
+    "seq": 6,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 2,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t02",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a direct closed question about whether anyone accompanied the subject through the door."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you see anyone else inside the building after you entered through the east staff door?",
+       "tactic": "funnel_probe",
+       "purpose": "Explore the subject's account of inside movements further before introducing records.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2
+       ],
+       "cited_records": [],
+       "corroboration_needed": [
+        "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+        "check records floor door log for 10 March 2026",
+        "check security desk visitor register for 10 March 2026"
+       ],
+       "rationale": "The subject maintains she entered alone to retrieve medication, but sensor metadata indicates a tailgate alert count of two, requiring further corroboration of her movements.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 2,
+      "turn_no": 2,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2147,
+      "work_item": "da59acd8-ed89-4f03-bb4c-21478c853fa8",
+      "transcript_version": 4
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 14696,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:21.392Z",
+    "transcript_version": 5,
+    "seq": 7,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-01",
+     "title": "Security desk visitor register, 10 March 2026",
+     "kind": "record",
+     "doc_kind": "visitor_register",
+     "date": null,
+     "content": {
+      "body": "After-hours visitors registered: none. Day visitors: 6, all signed out by 17:30.",
+      "table": null
+     },
+     "released_at_turn": 2,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 15142,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:21.838Z",
+    "transcript_version": 6,
+    "seq": 8,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 3,
+     "text": "The security desk visitor register for 10 March lists the visitors registered that day. Did you arrange for anyone to visit the building that evening?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 15142,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:21.838Z",
+    "transcript_version": 6,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 17177,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:23.873Z",
+    "transcript_version": 7,
+    "seq": 9,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 3,
+     "text": "No, I certainly did not. As I said, I only returned to collect my personal medication, and I was there entirely on my own. I mean, I have no reason to arrange for any visitors that evening.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:23.873Z"
+    }
+   }
+  },
+  {
+   "at_ms": 17177,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:23.873Z",
+    "transcript_version": 7,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 3
+    }
+   }
+  },
+  {
+   "at_ms": 20115,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:26.811Z",
+    "transcript_version": 7,
+    "seq": 10,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 3,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t03",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a closed question about arranging a visitor."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you check Elevator car 2 trip records for 10 March between 19:00 and 21:00 to see if another person used the elevator around the time of your entry?",
+       "tactic": "evidence_topic",
+       "purpose": "Introduce the elevator trip record topic to verify movement inside the building without mentioning the record details yet.",
+       "record_request": "rec-02"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+        "check records floor door log for 10 March 2026"
+       ],
+       "rationale": "The subject maintains she was alone, and the visitor register confirms no registered visitors, but the tailgate sensor still indicates a second person entered on her swipe.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 3,
+      "turn_no": 3,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2569,
+      "work_item": "20ba0807-bdda-46c7-9b16-f962de0342dc",
+      "transcript_version": 7
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 23166,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:29.862Z",
+    "transcript_version": 7,
+    "seq": 11,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 3,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t03",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        3
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+        "check records floor (floor 3) door log for 10 March 2026"
+       ],
+       "rationale": "The subject maintains she entered alone to retrieve medication, and the visitor log shows no registered visitors, but the tailgate sensor indicates a second person entered on her swipe.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Identity of the second person indicated by the tailgate sensor at the east staff door",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-02",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 23754,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:30.450Z",
+    "transcript_version": 8,
+    "seq": 12,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 4,
+     "text": "Where did you go after you came through the east door, and how did you get there?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 23754,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:30.450Z",
+    "transcript_version": 8,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 23902,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:30.598Z",
+    "transcript_version": 9,
+    "seq": 13,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-05",
+     "title": "Facilities notice FM-2207 (open since 2 March 2026)",
+     "kind": "context_change",
+     "doc_kind": "context_change",
+     "date": null,
+     "content": {
+      "body": "East staff door tailgate sensor: false double counts reported in wet weather; umbrellas and bags can register as a second person. Replacement sensor on order.",
+      "table": null
+     },
+     "released_at_turn": 3,
+     "trigger": "scheduled"
+    }
+   }
+  },
+  {
+   "at_ms": 26071,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:32.767Z",
+    "transcript_version": 10,
+    "seq": 14,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 4,
+     "text": "Well, after entering the east staff door, I headed straight for the elevators. I mean, Bram was nearby, but I walked past him to reach the elevators to go up to the records floor. Once I arrived, I simply badged in to get to my desk.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:32.767Z"
+    }
+   }
+  },
+  {
+   "at_ms": 26071,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:32.767Z",
+    "transcript_version": 10,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 4
+    }
+   }
+  },
+  {
+   "at_ms": 28919,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:35.615Z",
+    "transcript_version": 10,
+    "seq": 15,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 4,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t04",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about the subject's movement after entry."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you use the elevator to go up to the records floor, and did anyone join you in the car?",
+       "tactic": "evidence_topic",
+       "purpose": "Probe about the elevator trip before presenting the elevator trip records.",
+       "record_request": "rec-02"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+        "check records floor door log for 10 March 2026"
+       ],
+       "rationale": "The subject maintains she went to the records floor alone, consistent with her earlier statements, but elevator logs and floor logs are needed to verify her movement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 4,
+      "turn_no": 4,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2414,
+      "work_item": "bbacbf8e-c80e-44fd-9efd-9ba4e116526f",
+      "transcript_version": 10
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 32279,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:38.975Z",
+    "transcript_version": 10,
+    "seq": 16,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 4,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t04",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "low",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4
+       ],
+       "cited_records": [
+        "rec-01"
+       ],
+       "corroboration_needed": [
+        "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+        "check records floor door log for 10 March 2026"
+       ],
+       "rationale": "The subject maintains she went to the records floor alone, but elevator records and floor logs are still needed to corroborate her movement and address the tailgate sensor reading.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-05",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Identity of the second person indicated by the tailgate sensor at the east staff door",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-02",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 33142,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:39.838Z",
+    "transcript_version": 11,
+    "seq": 17,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-02",
+     "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+     "kind": "record",
+     "doc_kind": "camera_metadata",
+     "date": null,
+     "content": {
+      "body": "Person count from the in-car camera; images are not retained.",
+      "table": {
+       "columns": [
+        "Time",
+        "From floor",
+        "To floor",
+        "Persons"
+       ],
+       "rows": [
+        [
+         "19:43:05",
+         "1",
+         "3",
+         "1"
+        ],
+        [
+         "19:58:40",
+         "3",
+         "1",
+         "1"
+        ],
+        [
+         "20:31:12",
+         "1",
+         "2",
+         "1"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 4,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 33571,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:40.267Z",
+    "transcript_version": 12,
+    "seq": 18,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 5,
+     "text": "The trip records for elevator car 2 between 19:00 and 21:00 show the floors and a person count for each trip. Which elevator trips did you take that evening, and who was in the car with you?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 33571,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:40.267Z",
+    "transcript_version": 12,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 35778,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:42.474Z",
+    "transcript_version": 13,
+    "seq": 19,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 5,
+     "text": "Well, I took the elevator to the records floor once I had reached the lobby, and then I took it back down to the ground floor after I retrieved my things. I was the only person in the elevator during both of those trips. Um, as I said before, I went into the building entirely by myself.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:42.474Z"
+    }
+   }
+  },
+  {
+   "at_ms": 35778,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:42.474Z",
+    "transcript_version": 13,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 5
+    }
+   }
+  },
+  {
+   "at_ms": 38647,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:45.343Z",
+    "transcript_version": 13,
+    "seq": 20,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 5,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t05",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately presented the topic of the elevator trip records to test the subject's account of movement."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "The records floor door log shows your badge was used to access the third floor at 19:43, which matches your timeline. Were you carrying an umbrella or a large bag when you swiped through the east staff door?",
+       "tactic": "evidence_topic",
+       "purpose": "Introduce the topic of the records floor door log and explore the potential innocent explanation for the tailgate sensor count.",
+       "record_request": "rec-03"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02"
+       ],
+       "corroboration_needed": [
+        "check records floor door log for 10 March 2026"
+       ],
+       "rationale": "The subject's account of traveling alone is consistent with the elevator trip record showing a person count of one, but the records floor door log is needed to fully verify her movement inside the building.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 5,
+      "turn_no": 5,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2410,
+      "work_item": "c91a5008-7a64-408b-9b70-28b8ee4083ea",
+      "transcript_version": 13
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 42355,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:49.051Z",
+    "transcript_version": 13,
+    "seq": 21,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 5,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t05",
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "check records floor door log for 10 March 2026",
+        "review statement from night custodian Bram Hollis"
+       ],
+       "rationale": "The subject maintains she entered and used the elevator alone, which aligns with the single-person elevator count, but the initial tailgate sensor count of two and the wet weather sensor issue require further verification of her internal movements.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Identity or explanation of the second person count indicated by the tailgate sensor at the east staff door",
+        "first_seen_turn": "t01"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-03",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 43309,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:50.005Z",
+    "transcript_version": 14,
+    "seq": 22,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-03",
+     "title": "Records floor (floor 3) door log, 10 March 2026",
+     "kind": "record",
+     "doc_kind": "door_log",
+     "date": null,
+     "content": {
+      "body": "No other floor-3 records-door events between 18:00 and 22:00.",
+      "table": {
+       "columns": [
+        "Time",
+        "Event",
+        "Credential",
+        "Open (s)"
+       ],
+       "rows": [
+        [
+         "19:44:02",
+         "Badge, access granted",
+         "Badge 22107 (M. Quell)",
+         "4"
+        ],
+        [
+         "19:57:30",
+         "Exit button",
+         "-",
+         "3"
+        ]
+       ]
+      }
+     },
+     "released_at_turn": 5,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 43748,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:50.444Z",
+    "transcript_version": 15,
+    "seq": 23,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 6,
+     "text": "The floor-3 records door log shows the badge and exit-button events and how long the door stayed open. What did you do on floor 3, and how long were you there?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 43748,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:50.444Z",
+    "transcript_version": 15,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 45858,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:52.554Z",
+    "transcript_version": 16,
+    "seq": 24,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 6,
+     "text": "Well, upon reaching the third floor, I proceeded directly to my desk to retrieve my medication. I mean, I did not have any other business to attend to while I was there. I was only inside for a few minutes, around eight, maybe just before or just after, before leaving.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:23:52.554Z"
+    }
+   }
+  },
+  {
+   "at_ms": 45858,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:52.554Z",
+    "transcript_version": 16,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 6
+    }
+   }
+  },
+  {
+   "at_ms": 48712,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:55.408Z",
+    "transcript_version": 16,
+    "seq": 25,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 6,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t06",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks an open question about the activities and duration on floor 3 based on the released records."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Did you see or speak to anyone else while you were on the third floor?",
+       "tactic": "funnel_probe",
+       "purpose": "Probe for any possible interactions on the records floor during the visit.",
+       "record_request": "rec-04"
+      },
+      "finding": {
+       "label": "insufficient_evidence",
+       "likelihood": "roughly_even_chance",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "review statement from night custodian Bram Hollis"
+       ],
+       "rationale": "The subject's account of visiting the third floor briefly alone aligns with the elevator and door logs, but the initial tailgate sensor count of two remains unexplained.",
+       "alternative_explanations": null,
+       "last_revised_turn": 1
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 6,
+      "turn_no": 6,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2412,
+      "work_item": "19a14901-85ae-4ab6-bd04-39ff0137dda6",
+      "transcript_version": 16
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 51998,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:58.694Z",
+    "transcript_version": 16,
+    "seq": 26,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 6,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t06",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-05"
+       ],
+       "corroboration_needed": [
+        "statement from night custodian Bram Hollis"
+       ],
+       "rationale": "The subject's account of entering alone is corroborated by the single-person elevator trip and the single-person floor-3 door log, while the tailgate sensor alert is accounted for by the known false double-count issue in wet weather.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "not_yet_raised",
+        "turn_ids": []
+       }
+      ],
+      "open_gaps": [
+       {
+        "missing_fact": "Custodian Bram Hollis's account of seeing the subject enter or be near the elevators",
+        "first_seen_turn": "t02"
+       }
+      ],
+      "disclosure_plan": {
+       "record_id": "rec-04",
+       "step": "evidence_topic"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 52940,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:23:59.636Z",
+    "transcript_version": 17,
+    "seq": 27,
+    "type": "evidence.released",
+    "data": {
+     "record_id": "rec-04",
+     "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+     "kind": "record",
+     "doc_kind": "witness_statement",
+     "date": null,
+     "content": {
+      "body": "Around quarter to eight Mara came in from the east door on her own. She had a wet umbrella and said she'd forgotten something upstairs. I didn't see her leave; I was in the mail room by then.",
+      "table": null
+     },
+     "released_at_turn": 6,
+     "trigger": "requested"
+    }
+   }
+  },
+  {
+   "at_ms": 53367,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:00.063Z",
+    "transcript_version": 18,
+    "seq": 28,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 7,
+     "text": "The night custodian on duty in the floor-1 lobby gave a written statement. Did you see or speak to anyone in the lobby when you arrived or left?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 53367,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:00.063Z",
+    "transcript_version": 18,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 55855,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:02.551Z",
+    "transcript_version": 19,
+    "seq": 29,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 7,
+     "text": "Well, I remember seeing Bram, the custodian, who was cleaning near the elevators when I arrived. I mean, other than him, I did not see or speak to anyone else while I was in the lobby. That was the only person I encountered there, um, at either time.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:02.551Z"
+    }
+   }
+  },
+  {
+   "at_ms": 55855,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:02.551Z",
+    "transcript_version": 19,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 7
+    }
+   }
+  },
+  {
+   "at_ms": 60271,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:06.967Z",
+    "transcript_version": 19,
+    "seq": 30,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 7,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t07",
+      "question": {
+       "question_type": "probing",
+       "neutrality_issues": [],
+       "assessment": "The investigator probes about encounters in the lobby, following up on the custodian's statement."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Bram Hollis mentioned that you came in with a wet umbrella and said you had forgotten something upstairs. Do you recall speaking with him about that?",
+       "tactic": "evidence_source_vague",
+       "purpose": "Mention the source of information vaguely to check consistency without full disclosure yet.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account remains consistent across all turns and is fully corroborated by elevator logs, door logs, and the custodian's statement placing her alone.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 7,
+      "turn_no": 7,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3977,
+      "work_item": "3710c4ae-2d0d-4003-817e-e03a89c4e785",
+      "transcript_version": 19
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 63348,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:10.044Z",
+    "transcript_version": 19,
+    "seq": 31,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 7,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t07",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of entering alone, taking the elevator, and visiting the third floor is fully consistent with the visitor register, elevator trip records, floor-3 door logs, and the custodian's statement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02",
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 63981,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:10.677Z",
+    "transcript_version": 20,
+    "seq": 32,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 8,
+     "text": "Why did you come to the building after hours that evening?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 63981,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:10.677Z",
+    "transcript_version": 20,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 66024,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:12.720Z",
+    "transcript_version": 21,
+    "seq": 33,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 8,
+     "text": "Well, I returned that evening because I had left my medication in my desk drawer when I went home at five. I needed to retrieve it, so I just went back for that purpose. It is a personal matter, so I prefer not to discuss the specific details of the medication itself.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:12.720Z"
+    }
+   }
+  },
+  {
+   "at_ms": 66024,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:12.720Z",
+    "transcript_version": 21,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 8
+    }
+   }
+  },
+  {
+   "at_ms": 68752,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:15.448Z",
+    "transcript_version": 21,
+    "seq": 34,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 8,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t08",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately invites the subject to explain the purpose of her after-hours visit."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you confirm what time you left the building after retrieving your medication?",
+       "tactic": "funnel_probe",
+       "purpose": "To close the final timeline gap regarding the exact departure time from the building.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "moderate",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's consistent explanation regarding retrieving medication is fully corroborated by the visitor register, elevator logs, door logs, and the custodian's statement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 8,
+      "turn_no": 8,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2306,
+      "work_item": "4d85b488-eebe-4ba8-a77b-34cf0e4acf54",
+      "transcript_version": 21
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 69612,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:16.308Z",
+    "transcript_version": 22,
+    "seq": 35,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 9,
+     "text": "When did you leave, and which door did you use?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 69612,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:16.308Z",
+    "transcript_version": 22,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 71764,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:18.460Z",
+    "transcript_version": 23,
+    "seq": 36,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 9,
+     "text": "Well, I finished up and left right after I grabbed my medication from my desk. I left around eight, maybe just before or just after, as I mentioned before. I mean, I simply walked out through the same east staff door I had used to enter.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:18.460Z"
+    }
+   }
+  },
+  {
+   "at_ms": 71764,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:18.460Z",
+    "transcript_version": 23,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 9
+    }
+   }
+  },
+  {
+   "at_ms": 74776,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:21.472Z",
+    "transcript_version": 23,
+    "seq": 37,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 9,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t09",
+      "question": {
+       "question_type": "closed",
+       "neutrality_issues": [],
+       "assessment": "The investigator asks a clear, direct closed question about departure time and exit door."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Mara, you mentioned your partner Evan drove you and waited in the car; did anyone else see you arrive or depart?",
+       "tactic": "funnel_probe",
+       "purpose": "Verify remaining peripheral details of the arrival and departure.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account of her arrival, time inside, retrieval of items, and departure matches the sensor data, elevator logs, door logs, and the custodian's statement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 9,
+      "turn_no": 9,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2591,
+      "work_item": "e79bd438-1f09-46c7-9c13-1b13929bb0eb",
+      "transcript_version": 23
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 77959,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:24.655Z",
+    "transcript_version": 23,
+    "seq": 38,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 9,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t09",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's consistent account regarding her arrival, elevator trips, floor-3 access, and departure is fully corroborated by all available released records and sensor metadata.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02",
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 78596,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:25.292Z",
+    "transcript_version": 24,
+    "seq": 39,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 10,
+     "text": "What do you understand the rule to be about admitting another person on your own badge swipe?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 78596,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:25.292Z",
+    "transcript_version": 24,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 80569,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:27.265Z",
+    "transcript_version": 25,
+    "seq": 40,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 10,
+     "text": "Well, I mean, I am not really sure what the official rule is regarding that. I just know that I went in by myself when I badged in. I have never attempted to bring anyone else inside with me, so I have not had a reason to look into it.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:27.265Z"
+    }
+   }
+  },
+  {
+   "at_ms": 80569,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:27.265Z",
+    "transcript_version": 25,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 10
+    }
+   }
+  },
+  {
+   "at_ms": 83441,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:30.137Z",
+    "transcript_version": 25,
+    "seq": 41,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 10,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t10",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately asks the subject about her understanding of the after-hours access rule."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Can you confirm whether you are familiar with Facility Security Standard 3.1 regarding after-hours visitor and badge policies?",
+       "tactic": "evidence_topic",
+       "purpose": "Transition to testing the subject's familiarity with the specific facility security rules before introducing the formal excerpt.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account remains entirely consistent across the interview and is fully supported by all physical records, logs, and witness statements.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": false,
+      "card_seq": 10,
+      "turn_no": 10,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2445,
+      "work_item": "dcfcb32f-ead8-41ea-8a61-ea378d7514c1",
+      "transcript_version": 25
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 84278,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:30.974Z",
+    "transcript_version": 26,
+    "seq": 42,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 11,
+     "text": "Is there anyone who could confirm what you did that evening?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 84278,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:30.974Z",
+    "transcript_version": 26,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 86382,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:33.078Z",
+    "transcript_version": 27,
+    "seq": 43,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 11,
+     "text": "Well, um, I suppose Evan could confirm that he drove me to the building, since he stayed in the car the whole time I was inside. Also, Bram the custodian was there in the lobby near the elevators, so he saw me when I arrived, at least. I mean, I really only saw those two individuals that evening.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:33.078Z"
+    }
+   }
+  },
+  {
+   "at_ms": 86382,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:33.078Z",
+    "transcript_version": 27,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 11
+    }
+   }
+  },
+  {
+   "at_ms": 89116,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:35.812Z",
+    "transcript_version": 27,
+    "seq": 44,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 11,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t11",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately asks an open question to identify corroborating witnesses or sources."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Is there anything else you would like to add before we conclude our review?",
+       "tactic": "summary_check",
+       "purpose": "Provide the subject a final opportunity to summarize or add any closing remarks before closing the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's consistent account matches all security logs, visitor registers, elevator records, and custodian statements, leaving no evidence of concealment.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 11,
+      "turn_no": 11,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 2312,
+      "work_item": "877bda8c-6543-4340-9fb1-055d6eeee25d",
+      "transcript_version": 27
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 89976,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:36.672Z",
+    "transcript_version": 28,
+    "seq": 45,
+    "type": "question.accepted",
+    "data": {
+     "turn_no": 12,
+     "text": "Is there anything else about that evening that you think I should know?",
+     "source": "investigator",
+     "channel": "text"
+    }
+   }
+  },
+  {
+   "at_ms": 89976,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:36.672Z",
+    "transcript_version": 28,
+    "seq": null,
+    "type": "subject.thinking",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 92101,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:38.797Z",
+    "transcript_version": 29,
+    "seq": 46,
+    "type": "subject.answer",
+    "data": {
+     "turn_no": 12,
+     "text": "Well, I mean, I have already told you everything I remember about that night. It was just a short trip to grab my things because it was pouring out, and then I left. I really do not have any other information to provide regarding my visit.",
+     "channel": "text",
+     "partial": false,
+     "committed_at": "2026-10-12T19:24:38.797Z"
+    }
+   }
+  },
+  {
+   "at_ms": 92101,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:38.797Z",
+    "transcript_version": 29,
+    "seq": null,
+    "type": "coach.working",
+    "data": {
+     "turn_no": 12
+    }
+   }
+  },
+  {
+   "at_ms": 96495,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:43.191Z",
+    "transcript_version": 29,
+    "seq": 47,
+    "type": "coach.card",
+    "data": {
+     "turn_no": 12,
+     "card": {
+      "schema_version": "card.v1",
+      "turn_id": "t12",
+      "question": {
+       "question_type": "open",
+       "neutrality_issues": [],
+       "assessment": "The investigator appropriately offers a final open opportunity for any additional details."
+      },
+      "answer_category": "responsive",
+      "flags": [],
+      "follow_up": {
+       "question": "Is there anything else you remember about that evening that you have not yet mentioned?",
+       "tactic": "summary_check",
+       "purpose": "Conclude the interview.",
+       "record_request": null
+      },
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-02",
+        "rec-01",
+        "rec-02",
+        "rec-03",
+        "rec-04",
+        "rec-05"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account has remained entirely consistent across all twelve exchanges and aligns completely with all released security records, visitor logs, elevator tracking data, and the custodian's statement.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "boundary_notice": false,
+      "commit_requested": true,
+      "card_seq": 12,
+      "turn_no": 12,
+      "validation": {
+       "valid": true,
+       "flags": {},
+       "demeanor_in_rationale": false
+      },
+      "latency_ms": 3965,
+      "work_item": "54a5bcb8-6921-47c9-8321-5b57c68d9315",
+      "transcript_version": 29
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 102059,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:48.755Z",
+    "transcript_version": 29,
+    "seq": 48,
+    "type": "coach.update",
+    "data": {
+     "turn_no": 12,
+     "update": {
+      "schema_version": "deep.v1",
+      "as_of_turn": "t12",
+      "finding": {
+       "label": "truthful",
+       "likelihood": "unlikely",
+       "confidence": "high",
+       "basis_flag_refs": [],
+       "cited_turns": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+       ],
+       "cited_records": [
+        "doc-01",
+        "doc-02",
+        "doc-03",
+        "rec-01",
+        "rec-02",
+        "rec-03"
+       ],
+       "corroboration_needed": [],
+       "rationale": "The subject's account remains consistent throughout the entire interview and is fully corroborated by records, sensor data, and witness statements, rendering concealment unlikely.",
+       "alternative_explanations": null,
+       "last_revised_turn": 6
+      },
+      "evidence_coverage": [
+       {
+        "record_id": "rec-01",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t03"
+        ]
+       },
+       {
+        "record_id": "rec-05",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02"
+        ]
+       },
+       {
+        "record_id": "rec-02",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t05"
+        ]
+       },
+       {
+        "record_id": "rec-03",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t06"
+        ]
+       },
+       {
+        "record_id": "rec-04",
+        "status": "consistent_with_account",
+        "turn_ids": [
+         "t02",
+         "t07"
+        ]
+       }
+      ],
+      "open_gaps": [],
+      "disclosure_plan": {
+       "record_id": null,
+       "step": "hold"
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 103155,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:49.851Z",
+    "transcript_version": 30,
+    "seq": 49,
+    "type": "finding.committed",
+    "data": {
+     "by": "investigator",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account has remained entirely consistent across all twelve exchanges and aligns completely with all released security records, visitor logs, elevator tracking data, and the custodian's statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": null
+     },
+     "committed_at": "2026-10-12T19:24:49.851Z"
+    }
+   }
+  },
+  {
+   "at_ms": 103156,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:49.852Z",
+    "transcript_version": 30,
+    "seq": null,
+    "type": "trial.status",
+    "data": {
+     "status": "completed",
+     "reason_code": null
+    }
+   }
+  },
+  {
+   "at_ms": 103156,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:24:49.852Z",
+    "transcript_version": 30,
+    "seq": 50,
+    "type": "trial.finalized",
+    "data": {
+     "commitment_hash": "280506852a62021239e347a0d02a2d903c57b5192479eda217e9e9653cb9552f"
+    }
+   }
+  },
+  {
+   "at_ms": 118014,
+   "frame": {
+    "v": 1,
+    "scope": "trial",
+    "scope_id": "b87d8cb0-b5d2-49b4-b045-cd00fc45abdb",
+    "ts": "2026-10-12T19:25:04.710Z",
+    "transcript_version": 30,
+    "seq": 51,
+    "type": "debrief.ready",
+    "data": {
+     "session_id": "03bc6cac-ccff-412d-ac9a-c0a8d4ebc2f9"
+    }
+   }
+  }
+ ],
+ "final_snapshot": {
+  "status": "completed",
+  "reason_code": null,
+  "mode": "practice",
+  "split": "dev",
+  "exchanges_used": 12,
+  "exchanges_cap": 12,
+  "released": [
+   {
+    "record_id": "rec-01",
+    "title": "Security desk visitor register, 10 March 2026",
+    "kind": "record",
+    "doc_kind": "visitor_register",
+    "date": null,
+    "content": {
+     "body": "After-hours visitors registered: none. Day visitors: 6, all signed out by 17:30.",
+     "table": null
+    },
+    "released_at_turn": 2,
+    "trigger": "requested",
+    "transcript_version": 5,
+    "event_seq": 7
+   },
+   {
+    "record_id": "rec-05",
+    "title": "Facilities notice FM-2207 (open since 2 March 2026)",
+    "kind": "context_change",
+    "doc_kind": "context_change",
+    "date": null,
+    "content": {
+     "body": "East staff door tailgate sensor: false double counts reported in wet weather; umbrellas and bags can register as a second person. Replacement sensor on order.",
+     "table": null
+    },
+    "released_at_turn": 3,
+    "trigger": "scheduled",
+    "transcript_version": 9,
+    "event_seq": 13
+   },
+   {
+    "record_id": "rec-02",
+    "title": "Elevator car 2 trip records, 10 March 2026, 19:00-21:00",
+    "kind": "record",
+    "doc_kind": "camera_metadata",
+    "date": null,
+    "content": {
+     "body": "Person count from the in-car camera; images are not retained.",
+     "table": {
+      "columns": [
+       "Time",
+       "From floor",
+       "To floor",
+       "Persons"
+      ],
+      "rows": [
+       [
+        "19:43:05",
+        "1",
+        "3",
+        "1"
+       ],
+       [
+        "19:58:40",
+        "3",
+        "1",
+        "1"
+       ],
+       [
+        "20:31:12",
+        "1",
+        "2",
+        "1"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 4,
+    "trigger": "requested",
+    "transcript_version": 11,
+    "event_seq": 17
+   },
+   {
+    "record_id": "rec-03",
+    "title": "Records floor (floor 3) door log, 10 March 2026",
+    "kind": "record",
+    "doc_kind": "door_log",
+    "date": null,
+    "content": {
+     "body": "No other floor-3 records-door events between 18:00 and 22:00.",
+     "table": {
+      "columns": [
+       "Time",
+       "Event",
+       "Credential",
+       "Open (s)"
+      ],
+      "rows": [
+       [
+        "19:44:02",
+        "Badge, access granted",
+        "Badge 22107 (M. Quell)",
+        "4"
+       ],
+       [
+        "19:57:30",
+        "Exit button",
+        "-",
+        "3"
+       ]
+      ]
+     }
+    },
+    "released_at_turn": 5,
+    "trigger": "requested",
+    "transcript_version": 14,
+    "event_seq": 22
+   },
+   {
+    "record_id": "rec-04",
+    "title": "Statement, Bram Hollis, night custodian (12 March 2026)",
+    "kind": "record",
+    "doc_kind": "witness_statement",
+    "date": null,
+    "content": {
+     "body": "Around quarter to eight Mara came in from the east door on her own. She had a wet umbrella and said she'd forgotten something upstairs. I didn't see her leave; I was in the mail room by then.",
+     "table": null
+    },
+    "released_at_turn": 6,
+    "trigger": "requested",
+    "transcript_version": 17,
+    "event_seq": 27
+   }
+  ],
+  "requestable": [],
+  "finding": {
+   "label": "truthful",
+   "likelihood": "unlikely",
+   "confidence": "high",
+   "basis_flag_refs": [],
+   "cited_turns": [
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "cited_records": [
+    "doc-02",
+    "rec-01",
+    "rec-02",
+    "rec-03",
+    "rec-04",
+    "rec-05"
+   ],
+   "corroboration_needed": [],
+   "rationale": "The subject's account has remained entirely consistent across all twelve exchanges and aligns completely with all released security records, visitor logs, elevator tracking data, and the custodian's statement.",
+   "alternative_explanations": null,
+   "last_revised_turn": null
+  },
+  "commitment_hash": "280506852a62021239e347a0d02a2d903c57b5192479eda217e9e9653cb9552f",
+  "last_seq": 50,
+  "channel": "text",
+  "turns": [
+   {
+    "turn_no": 1,
+    "question": "Can you describe, in your own words, what you did at the Halvern Street Annex on the evening of 10 March 2026?",
+    "source": "investigator",
+    "answer": "Well, I returned to the Halvern Street Annex on the evening of March 10th because I had left some important medication in my desk drawer. My partner, Evan, drove me there, but he stayed in the car while I went in alone. I badged into the east staff door a little before quarter to eight, then proceeded to the records floor. I was only inside for around eight, maybe just before or just after, before leaving again.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:11.995Z",
+    "answer_version": 2,
+    "question_seq": 1
+   },
+   {
+    "turn_no": 2,
+    "question": "When you swiped in at the east staff door at 19:42, was anyone else with you or near the door?",
+    "source": "investigator",
+    "answer": "Well, um, I entered the east staff door by myself as I mentioned. It was pouring that evening, and I recall that Bram, the custodian, was cleaning near the elevators when I came in. No one else was with me or near the door when I swiped in.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:17.766Z",
+    "answer_version": 4,
+    "question_seq": 4
+   },
+   {
+    "turn_no": 3,
+    "question": "The security desk visitor register for 10 March lists the visitors registered that day. Did you arrange for anyone to visit the building that evening?",
+    "source": "investigator",
+    "answer": "No, I certainly did not. As I said, I only returned to collect my personal medication, and I was there entirely on my own. I mean, I have no reason to arrange for any visitors that evening.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:23.873Z",
+    "answer_version": 7,
+    "question_seq": 8
+   },
+   {
+    "turn_no": 4,
+    "question": "Where did you go after you came through the east door, and how did you get there?",
+    "source": "investigator",
+    "answer": "Well, after entering the east staff door, I headed straight for the elevators. I mean, Bram was nearby, but I walked past him to reach the elevators to go up to the records floor. Once I arrived, I simply badged in to get to my desk.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:32.767Z",
+    "answer_version": 10,
+    "question_seq": 12
+   },
+   {
+    "turn_no": 5,
+    "question": "The trip records for elevator car 2 between 19:00 and 21:00 show the floors and a person count for each trip. Which elevator trips did you take that evening, and who was in the car with you?",
+    "source": "investigator",
+    "answer": "Well, I took the elevator to the records floor once I had reached the lobby, and then I took it back down to the ground floor after I retrieved my things. I was the only person in the elevator during both of those trips. Um, as I said before, I went into the building entirely by myself.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:42.474Z",
+    "answer_version": 13,
+    "question_seq": 18
+   },
+   {
+    "turn_no": 6,
+    "question": "The floor-3 records door log shows the badge and exit-button events and how long the door stayed open. What did you do on floor 3, and how long were you there?",
+    "source": "investigator",
+    "answer": "Well, upon reaching the third floor, I proceeded directly to my desk to retrieve my medication. I mean, I did not have any other business to attend to while I was there. I was only inside for a few minutes, around eight, maybe just before or just after, before leaving.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:23:52.554Z",
+    "answer_version": 16,
+    "question_seq": 23
+   },
+   {
+    "turn_no": 7,
+    "question": "The night custodian on duty in the floor-1 lobby gave a written statement. Did you see or speak to anyone in the lobby when you arrived or left?",
+    "source": "investigator",
+    "answer": "Well, I remember seeing Bram, the custodian, who was cleaning near the elevators when I arrived. I mean, other than him, I did not see or speak to anyone else while I was in the lobby. That was the only person I encountered there, um, at either time.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:02.551Z",
+    "answer_version": 19,
+    "question_seq": 28
+   },
+   {
+    "turn_no": 8,
+    "question": "Why did you come to the building after hours that evening?",
+    "source": "investigator",
+    "answer": "Well, I returned that evening because I had left my medication in my desk drawer when I went home at five. I needed to retrieve it, so I just went back for that purpose. It is a personal matter, so I prefer not to discuss the specific details of the medication itself.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:12.720Z",
+    "answer_version": 21,
+    "question_seq": 32
+   },
+   {
+    "turn_no": 9,
+    "question": "When did you leave, and which door did you use?",
+    "source": "investigator",
+    "answer": "Well, I finished up and left right after I grabbed my medication from my desk. I left around eight, maybe just before or just after, as I mentioned before. I mean, I simply walked out through the same east staff door I had used to enter.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:18.460Z",
+    "answer_version": 23,
+    "question_seq": 35
+   },
+   {
+    "turn_no": 10,
+    "question": "What do you understand the rule to be about admitting another person on your own badge swipe?",
+    "source": "investigator",
+    "answer": "Well, I mean, I am not really sure what the official rule is regarding that. I just know that I went in by myself when I badged in. I have never attempted to bring anyone else inside with me, so I have not had a reason to look into it.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:27.265Z",
+    "answer_version": 25,
+    "question_seq": 39
+   },
+   {
+    "turn_no": 11,
+    "question": "Is there anyone who could confirm what you did that evening?",
+    "source": "investigator",
+    "answer": "Well, um, I suppose Evan could confirm that he drove me to the building, since he stayed in the car the whole time I was inside. Also, Bram the custodian was there in the lobby near the elevators, so he saw me when I arrived, at least. I mean, I really only saw those two individuals that evening.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:33.078Z",
+    "answer_version": 27,
+    "question_seq": 42
+   },
+   {
+    "turn_no": 12,
+    "question": "Is there anything else about that evening that you think I should know?",
+    "source": "investigator",
+    "answer": "Well, I mean, I have already told you everything I remember about that night. It was just a short trip to grab my things because it was pouring out, and then I left. I really do not have any other information to provide regarding my visit.",
+    "partial": false,
+    "committed_at": "2026-10-12T19:24:38.797Z",
+    "answer_version": 29,
+    "question_seq": 45
+   }
+  ],
+  "voice_exchanges": [],
+  "cards": [
+   {
+    "turn_no": 1,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t01",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asked a clear, open-ended question about the subject's actions on the evening in question."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Could you walk me through your exact movements after you entered through the east staff door, including which areas you visited inside the annex?",
+      "tactic": "funnel_probe",
+      "purpose": "Establish the subject's full account of her movements inside the building before presenting any records.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+       "check records floor door log for 10 March 2026",
+       "check security desk visitor register for 10 March 2026"
+      ],
+      "rationale": "The subject provided an initial account stating she entered alone to retrieve medication while her partner waited in the car, but further details on her movements and corroborating records are needed.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 1,
+     "turn_no": 1,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2542,
+     "work_item": "ad70d30a-19bc-47c9-acb5-7f632f80920e",
+     "transcript_version": 2
+    },
+    "event_seq": 3
+   },
+   {
+    "turn_no": 2,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t02",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a direct closed question about whether anyone accompanied the subject through the door."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you see anyone else inside the building after you entered through the east staff door?",
+      "tactic": "funnel_probe",
+      "purpose": "Explore the subject's account of inside movements further before introducing records.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2
+      ],
+      "cited_records": [],
+      "corroboration_needed": [
+       "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+       "check records floor door log for 10 March 2026",
+       "check security desk visitor register for 10 March 2026"
+      ],
+      "rationale": "The subject maintains she entered alone to retrieve medication, but sensor metadata indicates a tailgate alert count of two, requiring further corroboration of her movements.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 2,
+     "turn_no": 2,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2147,
+     "work_item": "da59acd8-ed89-4f03-bb4c-21478c853fa8",
+     "transcript_version": 4
+    },
+    "event_seq": 6
+   },
+   {
+    "turn_no": 3,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t03",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a closed question about arranging a visitor."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you check Elevator car 2 trip records for 10 March between 19:00 and 21:00 to see if another person used the elevator around the time of your entry?",
+      "tactic": "evidence_topic",
+      "purpose": "Introduce the elevator trip record topic to verify movement inside the building without mentioning the record details yet.",
+      "record_request": "rec-02"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "verify elevator trip records for 19:00-21:00 on 10 March 2026",
+       "check records floor door log for 10 March 2026"
+      ],
+      "rationale": "The subject maintains she was alone, and the visitor register confirms no registered visitors, but the tailgate sensor still indicates a second person entered on her swipe.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 3,
+     "turn_no": 3,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2569,
+     "work_item": "20ba0807-bdda-46c7-9b16-f962de0342dc",
+     "transcript_version": 7
+    },
+    "event_seq": 10
+   },
+   {
+    "turn_no": 4,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t04",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about the subject's movement after entry."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you use the elevator to go up to the records floor, and did anyone join you in the car?",
+      "tactic": "evidence_topic",
+      "purpose": "Probe about the elevator trip before presenting the elevator trip records.",
+      "record_request": "rec-02"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+       "check records floor door log for 10 March 2026"
+      ],
+      "rationale": "The subject maintains she went to the records floor alone, consistent with her earlier statements, but elevator logs and floor logs are needed to verify her movement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 4,
+     "turn_no": 4,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2414,
+     "work_item": "bbacbf8e-c80e-44fd-9efd-9ba4e116526f",
+     "transcript_version": 10
+    },
+    "event_seq": 15
+   },
+   {
+    "turn_no": 5,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t05",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately presented the topic of the elevator trip records to test the subject's account of movement."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "The records floor door log shows your badge was used to access the third floor at 19:43, which matches your timeline. Were you carrying an umbrella or a large bag when you swiped through the east staff door?",
+      "tactic": "evidence_topic",
+      "purpose": "Introduce the topic of the records floor door log and explore the potential innocent explanation for the tailgate sensor count.",
+      "record_request": "rec-03"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02"
+      ],
+      "corroboration_needed": [
+       "check records floor door log for 10 March 2026"
+      ],
+      "rationale": "The subject's account of traveling alone is consistent with the elevator trip record showing a person count of one, but the records floor door log is needed to fully verify her movement inside the building.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 5,
+     "turn_no": 5,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2410,
+     "work_item": "c91a5008-7a64-408b-9b70-28b8ee4083ea",
+     "transcript_version": 13
+    },
+    "event_seq": 20
+   },
+   {
+    "turn_no": 6,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t06",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks an open question about the activities and duration on floor 3 based on the released records."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Did you see or speak to anyone else while you were on the third floor?",
+      "tactic": "funnel_probe",
+      "purpose": "Probe for any possible interactions on the records floor during the visit.",
+      "record_request": "rec-04"
+     },
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "review statement from night custodian Bram Hollis"
+      ],
+      "rationale": "The subject's account of visiting the third floor briefly alone aligns with the elevator and door logs, but the initial tailgate sensor count of two remains unexplained.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 6,
+     "turn_no": 6,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2412,
+     "work_item": "19a14901-85ae-4ab6-bd04-39ff0137dda6",
+     "transcript_version": 16
+    },
+    "event_seq": 25
+   },
+   {
+    "turn_no": 7,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t07",
+     "question": {
+      "question_type": "probing",
+      "neutrality_issues": [],
+      "assessment": "The investigator probes about encounters in the lobby, following up on the custodian's statement."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Bram Hollis mentioned that you came in with a wet umbrella and said you had forgotten something upstairs. Do you recall speaking with him about that?",
+      "tactic": "evidence_source_vague",
+      "purpose": "Mention the source of information vaguely to check consistency without full disclosure yet.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account remains consistent across all turns and is fully corroborated by elevator logs, door logs, and the custodian's statement placing her alone.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 7,
+     "turn_no": 7,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3977,
+     "work_item": "3710c4ae-2d0d-4003-817e-e03a89c4e785",
+     "transcript_version": 19
+    },
+    "event_seq": 30
+   },
+   {
+    "turn_no": 8,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t08",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately invites the subject to explain the purpose of her after-hours visit."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you confirm what time you left the building after retrieving your medication?",
+      "tactic": "funnel_probe",
+      "purpose": "To close the final timeline gap regarding the exact departure time from the building.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's consistent explanation regarding retrieving medication is fully corroborated by the visitor register, elevator logs, door logs, and the custodian's statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 8,
+     "turn_no": 8,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2306,
+     "work_item": "4d85b488-eebe-4ba8-a77b-34cf0e4acf54",
+     "transcript_version": 21
+    },
+    "event_seq": 34
+   },
+   {
+    "turn_no": 9,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t09",
+     "question": {
+      "question_type": "closed",
+      "neutrality_issues": [],
+      "assessment": "The investigator asks a clear, direct closed question about departure time and exit door."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Mara, you mentioned your partner Evan drove you and waited in the car; did anyone else see you arrive or depart?",
+      "tactic": "funnel_probe",
+      "purpose": "Verify remaining peripheral details of the arrival and departure.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of her arrival, time inside, retrieval of items, and departure matches the sensor data, elevator logs, door logs, and the custodian's statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 9,
+     "turn_no": 9,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2591,
+     "work_item": "e79bd438-1f09-46c7-9c13-1b13929bb0eb",
+     "transcript_version": 23
+    },
+    "event_seq": 37
+   },
+   {
+    "turn_no": 10,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t10",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately asks the subject about her understanding of the after-hours access rule."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Can you confirm whether you are familiar with Facility Security Standard 3.1 regarding after-hours visitor and badge policies?",
+      "tactic": "evidence_topic",
+      "purpose": "Transition to testing the subject's familiarity with the specific facility security rules before introducing the formal excerpt.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account remains entirely consistent across the interview and is fully supported by all physical records, logs, and witness statements.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": false,
+     "card_seq": 10,
+     "turn_no": 10,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2445,
+     "work_item": "dcfcb32f-ead8-41ea-8a61-ea378d7514c1",
+     "transcript_version": 25
+    },
+    "event_seq": 41
+   },
+   {
+    "turn_no": 11,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t11",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately asks an open question to identify corroborating witnesses or sources."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Is there anything else you would like to add before we conclude our review?",
+      "tactic": "summary_check",
+      "purpose": "Provide the subject a final opportunity to summarize or add any closing remarks before closing the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's consistent account matches all security logs, visitor registers, elevator records, and custodian statements, leaving no evidence of concealment.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 11,
+     "turn_no": 11,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 2312,
+     "work_item": "877bda8c-6543-4340-9fb1-055d6eeee25d",
+     "transcript_version": 27
+    },
+    "event_seq": 44
+   },
+   {
+    "turn_no": 12,
+    "card": {
+     "schema_version": "card.v1",
+     "turn_id": "t12",
+     "question": {
+      "question_type": "open",
+      "neutrality_issues": [],
+      "assessment": "The investigator appropriately offers a final open opportunity for any additional details."
+     },
+     "answer_category": "responsive",
+     "flags": [],
+     "follow_up": {
+      "question": "Is there anything else you remember about that evening that you have not yet mentioned?",
+      "tactic": "summary_check",
+      "purpose": "Conclude the interview.",
+      "record_request": null
+     },
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-02",
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account has remained entirely consistent across all twelve exchanges and aligns completely with all released security records, visitor logs, elevator tracking data, and the custodian's statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "boundary_notice": false,
+     "commit_requested": true,
+     "card_seq": 12,
+     "turn_no": 12,
+     "validation": {
+      "valid": true,
+      "flags": {},
+      "demeanor_in_rationale": false
+     },
+     "latency_ms": 3965,
+     "work_item": "54a5bcb8-6921-47c9-8321-5b57c68d9315",
+     "transcript_version": 29
+    },
+    "event_seq": 47
+   }
+  ],
+  "updates": [
+   {
+    "turn_no": 3,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t03",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       3
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+       "check records floor (floor 3) door log for 10 March 2026"
+      ],
+      "rationale": "The subject maintains she entered alone to retrieve medication, and the visitor log shows no registered visitors, but the tailgate sensor indicates a second person entered on her swipe.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Identity of the second person indicated by the tailgate sensor at the east staff door",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-02",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 4,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t04",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "low",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4
+      ],
+      "cited_records": [
+       "rec-01"
+      ],
+      "corroboration_needed": [
+       "verify elevator car 2 trip records for 10 March 2026, 19:00-21:00",
+       "check records floor door log for 10 March 2026"
+      ],
+      "rationale": "The subject maintains she went to the records floor alone, but elevator records and floor logs are still needed to corroborate her movement and address the tailgate sensor reading.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-05",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Identity of the second person indicated by the tailgate sensor at the east staff door",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-02",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 5,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t05",
+     "finding": {
+      "label": "insufficient_evidence",
+      "likelihood": "roughly_even_chance",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "check records floor door log for 10 March 2026",
+       "review statement from night custodian Bram Hollis"
+      ],
+      "rationale": "The subject maintains she entered and used the elevator alone, which aligns with the single-person elevator count, but the initial tailgate sensor count of two and the wet weather sensor issue require further verification of her internal movements.",
+      "alternative_explanations": null,
+      "last_revised_turn": 1
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Identity or explanation of the second person count indicated by the tailgate sensor at the east staff door",
+       "first_seen_turn": "t01"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-03",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 6,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t06",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-05"
+      ],
+      "corroboration_needed": [
+       "statement from night custodian Bram Hollis"
+      ],
+      "rationale": "The subject's account of entering alone is corroborated by the single-person elevator trip and the single-person floor-3 door log, while the tailgate sensor alert is accounted for by the known false double-count issue in wet weather.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "not_yet_raised",
+       "turn_ids": []
+      }
+     ],
+     "open_gaps": [
+      {
+       "missing_fact": "Custodian Bram Hollis's account of seeing the subject enter or be near the elevators",
+       "first_seen_turn": "t02"
+      }
+     ],
+     "disclosure_plan": {
+      "record_id": "rec-04",
+      "step": "evidence_topic"
+     }
+    }
+   },
+   {
+    "turn_no": 7,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t07",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "moderate",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account of entering alone, taking the elevator, and visiting the third floor is fully consistent with the visitor register, elevator trip records, floor-3 door logs, and the custodian's statement.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02",
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 9,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t09",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "rec-01",
+       "rec-02",
+       "rec-03",
+       "rec-04",
+       "rec-05"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's consistent account regarding her arrival, elevator trips, floor-3 access, and departure is fully corroborated by all available released records and sensor metadata.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02",
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   },
+   {
+    "turn_no": 12,
+    "update": {
+     "schema_version": "deep.v1",
+     "as_of_turn": "t12",
+     "finding": {
+      "label": "truthful",
+      "likelihood": "unlikely",
+      "confidence": "high",
+      "basis_flag_refs": [],
+      "cited_turns": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ],
+      "cited_records": [
+       "doc-01",
+       "doc-02",
+       "doc-03",
+       "rec-01",
+       "rec-02",
+       "rec-03"
+      ],
+      "corroboration_needed": [],
+      "rationale": "The subject's account remains consistent throughout the entire interview and is fully corroborated by records, sensor data, and witness statements, rendering concealment unlikely.",
+      "alternative_explanations": null,
+      "last_revised_turn": 6
+     },
+     "evidence_coverage": [
+      {
+       "record_id": "rec-01",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t03"
+       ]
+      },
+      {
+       "record_id": "rec-05",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02"
+       ]
+      },
+      {
+       "record_id": "rec-02",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t05"
+       ]
+      },
+      {
+       "record_id": "rec-03",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t06"
+       ]
+      },
+      {
+       "record_id": "rec-04",
+       "status": "consistent_with_account",
+       "turn_ids": [
+        "t02",
+        "t07"
+       ]
+      }
+     ],
+     "open_gaps": [],
+     "disclosure_plan": {
+      "record_id": null,
+      "step": "hold"
+     }
+    }
+   }
+  ],
+  "coach_failures": []
+ },
+ "debrief": {
+  "rubric": {
+   "total": 95,
+   "scorable": true,
+   "dimensions": [
+    {
+     "score": 3,
+     "checks": [
+      {
+       "id": "1a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1b",
+       "turns": [
+        2,
+        3,
+        5,
+        7,
+        9
+       ],
+       "result": "fail"
+      },
+      {
+       "id": "1c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "1d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D1"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "2a",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2b",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "2c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "2d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D2"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "3a",
+       "turns": [
+        4
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3b",
+       "turns": [
+        5
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3c",
+       "turns": [
+        3,
+        4,
+        5,
+        6
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3d",
+       "turns": [
+        3,
+        5,
+        6,
+        7
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "3e",
+       "turns": [],
+       "result": "na"
+      }
+     ],
+     "dim_id": "D3"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "4a",
+       "turns": [
+        2
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4b",
+       "turns": [],
+       "result": "na"
+      },
+      {
+       "id": "4c",
+       "turns": [
+        5
+       ],
+       "result": "pass"
+      },
+      {
+       "id": "4d",
+       "turns": [],
+       "result": "pass"
+      }
+     ],
+     "dim_id": "D4"
+    },
+    {
+     "score": 4,
+     "checks": [
+      {
+       "id": "5a",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5b",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5c",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5d",
+       "turns": [],
+       "result": "pass"
+      },
+      {
+       "id": "5e",
+       "turns": [],
+       "result": "na"
+      }
+     ],
+     "dim_id": "D5"
+    }
+   ],
+   "unscorable_reason": null
+  },
+  "scored": true,
+  "outcome": {
+   "role": "truthful",
+   "resolution": "Quell came back after hours in heavy rain to collect medication she had left in her desk. She entered alone; her partner waited in the car. Her wet umbrella produced a second count on the tailgate sensor, a known wet-weather fault (FM-2207), and the east-door camera was off for the same maintenance. She may decline to say what the medication is for: a legitimate privacy boundary, not evasion.",
+   "committed_label": "truthful",
+   "correct_finding": "truthful"
+  },
+  "provenance": {
+   "rubric_sha256": "a2eb8ba8a38a423728c2ea5599d0ca384019cf8469b48b06c363e6ed05966ac7",
+   "scorer_git_sha": "29cd1c57fc7d3a99706813e0f74617efdb6ef0df",
+   "r3_prompt_sha256": [
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c",
+    "d1fefa83b1bd552531d1658a6803f509bcd776442c4a480532de28db4e8e0e8c"
+   ],
+   "referee_model_ids": [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite"
+   ]
+  },
+  "scorecards": {
+   "learning": {
+    "key_questions": [
+     {
+      "intent": "Establish why she returned after hours.",
+      "addressed_turns": [
+       8
+      ]
+     },
+     {
+      "intent": "Establish who was with her at the door.",
+      "addressed_turns": [
+       1,
+       2
+      ]
+     },
+     {
+      "intent": "Establish where she went inside and with whom.",
+      "addressed_turns": [
+       1,
+       5
+      ]
+     },
+     {
+      "intent": "Establish where the person who drove her was.",
+      "addressed_turns": [
+       1,
+       2
+      ]
+     },
+     {
+      "intent": "Establish when and how she left.",
+      "addressed_turns": [
+       1,
+       6,
+       9
+      ]
+     }
+    ],
+    "evidence_coverage": {
+     "addressed": 6,
+     "key_facts": 6
+    }
+   },
+   "detection": {
+    "unsupported": {
+     "claim": 0,
+     "citation": 0,
+     "demeanor": 0
+    },
+    "unique_flags": 0,
+    "evasion_broad": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "evasion_strict": {
+     "tp": 0,
+     "flags": 0,
+     "events": 0
+    },
+    "coach_last_label": "truthful"
+   },
+   "subject_realism": {
+    "turns": 12,
+    "failures": {
+     "F1": 0,
+     "F3": 0,
+     "F5": 0,
+     "F6": 0,
+     "F2_F4": 0
+    },
+    "compliant": 12
+   }
+  },
+  "session_id": "03bc6cac-ccff-412d-ac9a-c0a8d4ebc2f9",
+  "schema_version": "debrief.v1"
+ }
+}
