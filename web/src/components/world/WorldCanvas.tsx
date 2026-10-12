@@ -8,6 +8,7 @@
  * `?fps` in the URL turns on frame-interval sampling (S6 10 method: requestAnimationFrame deltas), published on
  * `window.__arenaFps` for measurement, with the tier in use; `?tier=medium|low` pins a tier.
  */
+import type { Standings } from "../../lib/arena/standings";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, PCFShadowMap, PMREMGenerator } from "three";
@@ -46,6 +47,9 @@ export interface WorldCanvasProps {
   readonly scoreCards: readonly ScoreCard[] | null;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
+  /** The tournament standings on the precinct wall (null: the framed print), and opening the arena from it. */
+  readonly standings: Standings | null;
+  readonly onOpenStandings: () => void;
   readonly onArrive?: () => void;
 }
 
@@ -183,6 +187,8 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         still={props.still}
         onOpenCase={props.onOpenCase}
         onFocusCase={props.onFocusCase}
+        standings={props.standings}
+        onOpenStandings={props.onOpenStandings}
       />
       <Room
         world={props.world}

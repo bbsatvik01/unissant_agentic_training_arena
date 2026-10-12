@@ -5,6 +5,7 @@
  */
 import { CanvasTexture, SRGBColorSpace } from "three";
 
+import type { Standings } from "../../lib/arena/standings";
 import { PALETTE } from "../../lib/world/palette";
 
 const SANS = "Inter, system-ui, -apple-system, sans-serif";
@@ -166,5 +167,53 @@ export function scoreCardTexture(label: string, title: string, score: string): C
   });
   ctx.font = `600 96px ${SANS}`;
   ctx.fillText(score, 28, 286);
+  return texture(el);
+}
+
+/** The standings board on the precinct wall (S6 4.10): a mesh-gradient band, the heading and note, then each ranked
+ * coach's rank, name and detail, and the ineligible apart. 2.4 x 1.3 metres at about 500 px per metre. */
+export function standingsTexture(s: Standings): CanvasTexture {
+  const w = 1200;
+  const h = 650;
+  const [el, ctx] = canvas(w, h);
+  ctx.fillStyle = PALETTE.canvas;
+  ctx.fillRect(0, 0, w, h);
+  const band = ctx.createLinearGradient(0, 0, w, 0);
+  PALETTE.mesh.forEach((c, i) => {
+    band.addColorStop(i / (PALETTE.mesh.length - 1), c);
+  });
+  ctx.fillStyle = band;
+  ctx.fillRect(0, 0, w, 14);
+  ctx.fillStyle = PALETTE.mute;
+  ctx.font = `400 26px ${MONO}`;
+  ctx.fillText("TOURNAMENT", 56, 78);
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = `600 76px ${SANS}`;
+  ctx.fillText(s.heading, 56, 160);
+  ctx.fillStyle = PALETTE.body;
+  ctx.font = `400 32px ${SANS}`;
+  for (const [i, line] of wrap(ctx, s.note, w - 112, 2).entries()) ctx.fillText(line, 56, 214 + i * 40);
+  let y = 330;
+  for (const row of s.rows.slice(0, 3)) {
+    ctx.fillStyle = PALETTE.hairline;
+    ctx.fillRect(56, y - 54, w - 112, 2);
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = `600 64px ${MONO}`;
+    ctx.fillText(row.rank, 56, y);
+    ctx.font = `600 50px ${SANS}`;
+    ctx.fillText(wrap(ctx, row.name, 560, 1)[0] ?? "", 160, y);
+    ctx.fillStyle = PALETTE.body;
+    ctx.font = `400 38px ${MONO}`;
+    ctx.textAlign = "right";
+    ctx.fillText(row.detail, w - 56, y);
+    ctx.textAlign = "left";
+    y += 96;
+  }
+  ctx.fillStyle = PALETTE.mute;
+  ctx.font = `400 30px ${SANS}`;
+  for (const line of s.excluded.slice(0, 1)) {
+    ctx.fillText(wrap(ctx, `Not ranked: ${line}`, w - 112, 1)[0] ?? "", 56, y);
+    y += 40;
+  }
   return texture(el);
 }

@@ -40,6 +40,7 @@ import type { WorldState } from "../lib/world/worldState";
 import { REFUSED_TEXT, useLiveSession } from "./world/useLiveSession";
 import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
+import { standings } from "../lib/arena/standings";
 import { useBoards } from "./world/useBoards";
 import { useTournament, useTournamentList } from "./world/useTournament";
 import { latestOnly } from "../lib/world/latest";
@@ -117,18 +118,20 @@ export function WorldRoute() {
   // The selected tournament's matrix comes from the tournament poll (S6 4.9); without a selection, the list of
   // tournaments to choose from.
   const [tournamentId] = useState(() => new URLSearchParams(window.location.search).get("tournament"));
-  const tournamentLoad = useTournament(api, tournamentId, showArena);
+  // A selected tournament is followed while the arena is open or the precinct (with its standings wall) is in view.
+  const tournamentLoad = useTournament(api, tournamentId, showArena || place === "hub");
   const tournamentList = useTournamentList(api, showArena && tournamentId === null);
   // A selected tournament (`?tournament=<id>`, and `&label=original` for a corrected board's original) shows its
   // published boards: the sealed state before reveal, never numbers (FE-LB-5), read again when its poll reports the
   // reveal. Without a selection the arena shows the bundled example boards and matrix, labeled as such.
   const [boardLabel] = useState<"original" | null>(() => (new URLSearchParams(window.location.search).get("label") === "original" ? "original" : null));
   const revealed = tournamentLoad.state === "ready" && tournamentLoad.tournament.state === "revealed";
-  const published = useBoards(api, tournamentId, boardLabel, showArena, revealed);
-  const openArena = () => {
+  const published = useBoards(api, tournamentId, boardLabel, showArena || place === "hub", revealed);
+  // Stable, so the memoized precinct (whose standings wall opens the arena) does not re-render with every frame.
+  const openArena = useCallback(() => {
     setShowArena(true);
     setShowProgress(false);
-  };
+  }, []);
   // The example data, read once the arena is first shown without a selected tournament.
   const exampleLoaded = arena !== null;
   useEffect(() => {
@@ -144,7 +147,12 @@ export function WorldRoute() {
       });
     });
   }, [showArena, exampleLoaded, tournamentId]);
-  const arenaShown = tournamentId === null ? arena : published === null ? null : { name: "Tournament leaderboards", assistant: published.assistant, subject: published.subject, example: null, boards: published.state };
+  const arenaShown = useMemo(
+    () => (tournamentId === null ? arena : published === null ? null : { name: "Tournament leaderboards", assistant: published.assistant, subject: published.subject, example: null, boards: published.state }),
+    [tournamentId, arena, published],
+  );
+  // The same board on the precinct's wall (S6 4.10), turned over when it changes (the reveal).
+  const wallStandings = useMemo(() => (arenaShown === null ? null : standings(arenaShown.assistant, arenaShown.boards)), [arenaShown]);
   const [sound, setSound] = useState(() => {
     try {
       return window.localStorage.getItem("arena.sound") !== "0";
@@ -672,6 +680,8 @@ export function WorldRoute() {
                 scoreCards={scoreCards}
                 onOpenCase={openCase}
                 onFocusCase={setFocused}
+                standings={wallStandings}
+                onOpenStandings={openArena}
                 onArrive={onArrive}
               />
             </Suspense>
