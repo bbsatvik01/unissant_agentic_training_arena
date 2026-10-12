@@ -28,11 +28,19 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import TrialFrame
+from arena_core.contracts.events import HarnessFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
 _FRAMES: TypeAdapter[TrialFrame] = TypeAdapter(TrialFrame)
+# A harness trial's export (D-021) also carries a replay trial's `source_unavailable` end (`HarnessFrame`).
+_HARNESS_FRAMES: TypeAdapter[HarnessFrame] = TypeAdapter(HarnessFrame)
+
+
+def _frames(viewer: Viewer | None) -> TypeAdapter[Any]:
+    return _HARNESS_FRAMES if viewer is not None and viewer.mode == "harness" else _FRAMES
+
+
 _SNAPSHOT: TypeAdapter[TrialSnapshot] = TypeAdapter(TrialSnapshot)
 
 
@@ -65,15 +73,26 @@ class StoredEvent:
 @dataclass(frozen=True)
 class Viewer:
     """The trial's owner, as the stream sees them: whether the trial has ended (debrief rows open then), and the
-    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known)."""
+    session's mode (`coach.working` is a practice-only frame, S5 6.2; withheld unless the mode is known).
+
+    `internal_visible` is never set by a browser-facing surface (every `internal` row stays hidden from any
+    investigator or judge, S5 6.1): it exists only for the D-021 recording export of a tournament trial
+    (`arena_tournament`, WP-17), whose turn and coaching events are *all* `internal` visibility (S4 `_emit`),
+    and which the database's own `arena.trial_visible` already gated before any row reached this module (a
+    dev-split trial, or a hidden one after reveal) -- this flag reads that same database decision, not a new
+    one."""
 
     trial_ended: bool
-    mode: Literal["practice", "assessment"] = "assessment"
+    mode: Literal["practice", "assessment", "harness"] = "assessment"
+    internal_visible: bool = False
 
 
 def _visible(row: StoredEvent, viewer: Viewer) -> bool:
-    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never."""
-    return row.visibility == "live" or (row.visibility == "debrief" and viewer.trial_ended)
+    """S5 6.1-6.2: `live` rows always, `debrief` rows after the trial ended, `internal` rows never -- except
+    for the D-021 export viewer, which the database has already restricted to a dev or revealed tournament."""
+    if row.visibility == "internal":
+        return viewer.internal_visible
+    return row.visibility == "live" or viewer.trial_ended  # the remaining case is "debrief"
 
 
 def _question(row: StoredEvent) -> list[tuple[str, dict[str, Any], int | None]]:
@@ -165,8 +184,10 @@ _MAPPING: dict[str, Callable[[StoredEvent], list[tuple[str, dict[str, Any], int 
 }
 
 
-def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> TrialFrame:
-    return _FRAMES.validate_python(
+def _frame(
+    row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None, viewer: Viewer | None = None
+) -> TrialFrame:
+    frame: TrialFrame = _frames(viewer).validate_python(
         {
             "v": 1,
             "seq": seq,
@@ -178,6 +199,7 @@ def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | No
             "data": data,
         }
     )
+    return frame
 
 
 def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> bytes:
@@ -237,8 +259,8 @@ def _projected(rows: list[StoredEvent], viewer: Viewer) -> list[tuple[StoredEven
         if mapping is None:
             msg = f"event {row.seq}: unknown event kind {row.kind!r}"
             raise ValueError(msg)
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in mapping(row))
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in mapping(row))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
     return out
 
 
@@ -279,17 +301,23 @@ def notice_message(trial_id: str, ts: str, version: int, kind: Literal["paused",
 
 
 def recording_events(
-    rows: list[StoredEvent], mode: Literal["practice", "assessment"], start_ms: float
+    rows: list[StoredEvent],
+    mode: Literal["practice", "assessment", "harness"],
+    start_ms: float,
+    *,
+    internal_visible: bool = False,
 ) -> list[dict[str, Any]]:
     """D-021: the frames the session's owner saw live, in order, each with `at_ms` from the session start. Each
     row is projected as it arrived (no lookahead), so the hint frames are where the live stream put them, and
-    debrief-only rows (assessment coaching) stay out, as they did during the session."""
-    live = Viewer(trial_ended=False, mode=mode)
+    debrief-only rows (assessment coaching) stay out, as they did during the session. `internal_visible` is
+    the tournament export's own case (`harness` mode): every row of such a trial is `internal`, so without it
+    nothing would ever be visible (`Viewer`'s own docstring)."""
+    live = Viewer(trial_ended=False, mode=mode, internal_visible=internal_visible)
     out: list[dict[str, Any]] = []
     for row in rows:
         for _, frame in _projected([row], live):
             at = max(0, round(_epoch_ms(row.created_at) - start_ms))
-            out.append({"at_ms": at, "frame": _FRAMES.dump_python(frame, mode="json")})
+            out.append({"at_ms": at, "frame": _frames(live).dump_python(frame, mode="json")})
     return out
 
 
@@ -304,7 +332,7 @@ class TrialState:
     trial_id: str
     status: str
     reason_code: str | None
-    mode: Literal["practice", "assessment"]
+    mode: Literal["practice", "assessment", "harness"]
     exchanges_cap: int
     public_packet: Mapping[str, Any]
 
@@ -331,7 +359,7 @@ def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict
     commitment: str | None = None
     last_seq = 0
     for row, frame in _projected(rows, viewer):
-        data = _FRAMES.dump_python(frame, mode="json")["data"]
+        data = _frames(viewer).dump_python(frame, mode="json")["data"]
         last_seq = max(last_seq, row.seq) if _visible(row, viewer) else last_seq
         if frame.type == "question.accepted":
             turns[data["turn_no"]] = {

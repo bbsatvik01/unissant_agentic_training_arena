@@ -1,15 +1,20 @@
-"""Reading one trial for the projection: snapshot, stream rows and the D-021 recording (S5 6.2; WP-13).
+"""Reading one trial for the projection: snapshot, stream rows and the D-021 recording (S5 6.2; WP-13, WP-17).
 
-`load_trial` reads the actor's own trial through the `arena_public` views and turns its event rows into the
-projection's `StoredEvent`s, joining what a frame needs beyond the payload: an evidence event's release (the
-exchanges it was released after, whether it was requested or scheduled, and its date, from the public packet's
-requestable list) and `trial_ended`'s terminal record. `snapshot_of` and `recording_of` then hand everything to
-`events.projections`, the only code that builds frames.
+`load_trial` reads the actor's own training trial through the `arena_public` views and turns its event rows
+into the projection's `StoredEvent`s, joining what a frame needs beyond the payload: an evidence event's
+release (the exchanges it was released after, whether it was requested or scheduled, and its date, from the
+public packet's requestable list) and `trial_ended`'s terminal record. `load_tournament_trial` reads a
+tournament trial the same way (D-021: "every tournament trial must be exportable"; `arena_tournament`): every
+one of its turn and coaching events is `internal` visibility (S4 `_emit`), which the database's own
+`arena.trial_visible` has already restricted to a dev-split or revealed-hidden trial, so the export viewer
+marks them visible instead of hiding them a second time for no one (`Viewer.internal_visible`). `snapshot_of`
+and `recording_of` then hand everything to `events.projections`, the only code that builds frames.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -25,13 +30,14 @@ from arena_core.events.projections import (
 )
 
 RECORDING_FORMAT = "arena.recording.v1"
-Mode = Literal["practice", "assessment"]
+Mode = Literal["practice", "assessment", "harness"]
+TOURNAMENT_KINDS = frozenset({"interactive", "replay", "replay_corpus"})
 
 
 @dataclass(frozen=True)
 class LoadedTrial:
     trial_id: UUID
-    session_id: UUID
+    session_id: UUID | None  # None: a tournament trial (no training session, D-021)
     mode: Mode
     status: str  # S6 status (C-45)
     reason_code: str | None
@@ -40,6 +46,7 @@ class LoadedTrial:
     started_ms: float
     packet: dict[str, Any]
     events: list[StoredEvent]
+    internal_visible: bool = False
 
     @property
     def ended(self) -> bool:
@@ -47,7 +54,7 @@ class LoadedTrial:
 
     @property
     def viewer(self) -> Viewer:
-        return Viewer(trial_ended=self.ended, mode=self.mode)
+        return Viewer(trial_ended=self.ended, mode=self.mode, internal_visible=self.internal_visible)
 
     def state(self, *, opening: bool = False) -> TrialState:
         return TrialState(
@@ -60,12 +67,17 @@ class LoadedTrial:
         )
 
 
+@dataclass(frozen=True)
+class TrialMeta:
+    """The trial-level facts `stored_events` folds into every row, bundled under the arg-count lint."""
+
+    trial_id: UUID
+    kind: str  # "training", or a tournament trial's own kind (interactive, replay, replay_corpus)
+    execution_state: str | None
+
+
 def stored_events(
-    trial: UUID,
-    rows: list[EventRow],
-    packet: dict[str, Any],
-    released: list[dict[str, Any]],
-    execution_state: str | None,
+    meta: TrialMeta, rows: list[EventRow], packet: dict[str, Any], released: list[dict[str, Any]]
 ) -> list[StoredEvent]:
     requestable = {r["record_id"]: r for r in packet.get("requestable_records", [])}
     after = {r["record_id"]: int(r["released_after_exchanges"]) for r in released}
@@ -82,8 +94,8 @@ def stored_events(
             )
         out.append(
             StoredEvent(
-                trial_id=str(trial),
-                trial_kind="training",
+                trial_id=str(meta.trial_id),
+                trial_kind=meta.kind,
                 seq=row.seq,
                 kind=row.kind,
                 visibility=cast("Literal['live', 'debrief', 'internal']", row.visibility),
@@ -92,7 +104,7 @@ def stored_events(
                 payload=row.payload,
                 created_at=iso(row.created_at),
                 release=release,
-                terminal_state=execution_state if row.kind == "trial_ended" else None,
+                terminal_state=meta.execution_state if row.kind == "trial_ended" else None,
             )
         )
     return out
@@ -111,7 +123,7 @@ async def load_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
     if meta["status"] != "running" and not any(r.kind == "trial_ended" for r in rows):
         # The trial ended between the reads: read its rows again, now that the end has committed.
         rows, released = await db.all_events(trial), await db.released(trial)
-    events = stored_events(trial, rows, packet, released, meta["execution_state"])
+    events = stored_events(TrialMeta(trial, "training", meta["execution_state"]), rows, packet, released)
     status = s6_status(str(meta["status"]), meta["execution_state"])
     ended = [e for e in events if e.kind == "trial_ended"]
     reason = ended[-1].payload.get("reason") if ended and status not in ("running", "completed") else None
@@ -126,6 +138,48 @@ async def load_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
         started_ms=meta["started_at"].timestamp() * 1000,
         packet=packet,
         events=events,
+    )
+
+
+async def load_tournament_trial(db: ArenaDb, trial: UUID) -> LoadedTrial | None:
+    """A tournament trial (interactive, replay or replay_corpus), for the D-021 recording export
+    (`arena_tournament`'s job holds no session; a harness-driven trial has none). None for an unknown trial,
+    or a training one (`load_trial` owns those): no existence oracle beyond what `arena.v_trials` already
+    shows an `arena_public` caller (S4 9.1)."""
+    meta = await db.tournament_trial(trial)
+    if meta is None or meta["kind"] not in TOURNAMENT_KINDS:
+        return None
+    packet = await db.public_packet(meta["variant_id"]) or {}
+    rows, released = await db.all_events(trial), await db.released(trial)
+    meta = await db.tournament_trial(trial) or meta
+    if meta["status"] != "running" and not any(r.kind == "trial_ended" for r in rows):
+        rows, released = await db.all_events(trial), await db.released(trial)
+    events = stored_events(TrialMeta(trial, str(meta["kind"]), meta["execution_state"]), rows, packet, released)
+    status = s6_status(str(meta["status"]), meta["execution_state"])
+    ended = [e for e in events if e.kind == "trial_ended"]
+    reason = ended[-1].payload.get("reason") if ended and status not in ("running", "completed") else None
+    started_at = meta["started_at"]
+    if started_at is not None:
+        started_ms = started_at.timestamp() * 1000
+    elif rows:
+        # A never-started attempt (budget_skipped, source_unavailable: S4 EF-05..EF-11) has no started_at,
+        # but its own stop still writes a trial_ended row; anchoring playback to Unix epoch instead of that
+        # row's own time (a real bug, Codex round 1) put every offset ~56 years into the future.
+        started_ms = min(r.created_at for r in rows).timestamp() * 1000
+    else:
+        started_ms = datetime.now(UTC).timestamp() * 1000
+    return LoadedTrial(
+        trial_id=trial,
+        session_id=None,
+        mode="harness",
+        status=status,
+        reason_code=None if reason is None else str(reason),
+        exchanges_cap=int(meta["max_exchanges"]),
+        transcript_version=int(meta["transcript_version"]),
+        started_ms=started_ms,
+        packet=packet,
+        events=events,
+        internal_visible=True,
     )
 
 
@@ -160,12 +214,17 @@ def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str
         "format": RECORDING_FORMAT,
         "trial_id": str(trial.trial_id),
         "case": _case(trial.packet),
-        "snapshot": snapshot(trial.state(opening=True), [], Viewer(trial_ended=False, mode=trial.mode)),
-        "events": recording_events(trial.events, trial.mode, trial.started_ms),
+        "snapshot": snapshot(
+            trial.state(opening=True),
+            [],
+            Viewer(trial_ended=False, mode=trial.mode, internal_visible=trial.internal_visible),
+        ),
+        "events": recording_events(trial.events, trial.mode, trial.started_ms, internal_visible=trial.internal_visible),
         # The trial's terminal state as its owner reads it after the end (S5 6.2): in assessment mode the coaching
         # withheld during the session is here, so a recording played from disk can show it (FE-DEB-4).
         # Built without the debrief_ready row, so the snapshot's last_seq stays below it and the player keeps that
-        # frame (a snapshot supersedes every frame at or below its last_seq).
+        # frame (a snapshot supersedes every frame at or below its last_seq). `trial.viewer` carries a harness
+        # trial's internal visibility too.
         "final_snapshot": (
             snapshot(trial.state(), [e for e in trial.events if e.kind != "debrief_ready"], trial.viewer)
             if trial.ended

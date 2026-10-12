@@ -319,6 +319,39 @@ def test_a_missing_coach_manifest_is_500() -> None:
     assert exc_info.value.code == "no_manifest"
 
 
+class _TrainingQueryMisses(FakeArenaDb):
+    """`trial()` always misses, like a harness-driven `ArenaDb` (`db.actor` is None, S4 2.3): `_manifest`'s
+    fallback to `tournament_trial()` is the only way it ever resolves a manifest there (WP-17)."""
+
+    async def trial(self, _trial: UUID) -> dict[str, Any] | None:
+        return None
+
+
+async def _never_called(_trial: UUID, _work_item: UUID, _actor: UUID | None) -> SubjectOutcome:
+    msg = "never reached: _manifest makes no subject call"
+    raise AssertionError(msg)
+
+
+def test_manifest_falls_back_to_tournament_trial_when_the_training_query_misses() -> None:
+    db = _TrainingQueryMisses(kind="interactive")
+    port = AgentPort(FakeAdapter(canned=FAKE_COACH_REPLIES), RunBudget(Decimal(100)), PortOptions(sleep=_no_sleep))
+    orch = Orchestrator(db=db, port=port, subject=_never_called, signals=TrialSignals())
+    manifest, sha = run(orch._manifest(db.trial_id))
+    assert manifest.candidate_id == COACH.candidate_id
+    assert sha == COACH.sha256
+
+
+def test_finalize_corpus_commits_with_no_finding_and_is_idempotent() -> None:
+    """S2 8.6; S4 `finalize_trial`'s `p_final_finding` is null for a corpus transcript: no assistant, no
+    model call, and a repeated call (a resumed job) makes no second commit."""
+    rig = Rig()
+    run(rig.orch.finalize_corpus(rig.db.trial_id))
+    assert rig.db.status == "finalized"
+    assert rig.db.finding is None
+    run(rig.orch.finalize_corpus(rig.db.trial_id))  # idempotent: the work item is already done
+    assert rig.db.status == "finalized"
+
+
 def test_request_key_is_sha256_of_trial_turn_kind_purpose() -> None:
     trial = uuid4()
     assert (

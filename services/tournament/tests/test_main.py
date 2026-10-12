@@ -1,12 +1,19 @@
 """S5 1.4 for `python -m arena_tournament`: the boot checks run as a real process, and `main()` in process.
 
 The refusal cases are shared with the other three roles (tools/tests/subprocess_support.py), so every
-role proves the same S5 1.3 refusals against its own entry point.
+role proves the same S5 1.3 refusals against its own entry point. `run <id>`'s own dispatch (S5 5.3;
+WP-17) is proven here with `run_tournament` stubbed (a real run is it_tournament.py's job, against a real
+database); this file only proves `__main__.main`'s own argv wiring.
 """
+
+from collections.abc import Mapping
+from uuid import UUID, uuid4
 
 import pytest
 
+import arena_tournament.__main__ as tournament_main
 from arena_tournament.__main__ import main
+from arena_tournament.runner import RunSummary
 from tools.tests.subprocess_support import good_env, refusal_cases, run_role_module, with_overrides
 
 ROLE = "tournament"
@@ -46,3 +53,31 @@ def test_main_exits_1_in_process_on_a_refusal(monkeypatch: pytest.MonkeyPatch) -
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 1
+
+
+def test_main_run_dispatches_to_run_tournament_and_prints_the_summary(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tournament_id = uuid4()
+    seen: list[tuple[Mapping[str, str], UUID]] = []
+
+    async def fake_run_tournament(env: Mapping[str, str], tid: UUID) -> RunSummary:
+        seen.append((env, tid))
+        return RunSummary(tournament_id=tid, outcomes={"completed": 6}, closed=True)
+
+    monkeypatch.setattr("os.environ", dict(GOOD_ENV))
+    monkeypatch.setattr(tournament_main, "run_tournament", fake_run_tournament)
+    assert main(["run", str(tournament_id)]) == 0
+    out = capsys.readouterr().out
+    assert f"tournament {tournament_id} closed" in out
+    assert "outcomes {'completed': 6}" in out
+    assert seen == [(dict(GOOD_ENV), tournament_id)]
+
+
+USAGE_EXIT = 2  # __main__.main's own usage-error return code
+
+
+@pytest.mark.parametrize("bad_argv", [["run"], ["run", str(uuid4()), "extra"], ["serve", str(uuid4())], ["bogus"]])
+def test_main_usage_for_an_unrecognized_argv_shape(bad_argv: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(bad_argv) == USAGE_EXIT
+    assert "usage: python -m arena_tournament" in capsys.readouterr().err

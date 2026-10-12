@@ -66,4 +66,9 @@ async def get_recording(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)
     """D-021: the trial's full event history as `arena.recording.v1`, through the same projection and
     visibility rules as the live stream."""
     trial = await owned(db, trial_id)
+    # `owned` only ever loads a training trial (`load_trial`), which always has a session (D-021's tournament
+    # path, `load_tournament_trial`, is this route's investigator-only sibling; it never reaches here).
+    if trial.session_id is None:
+        msg = f"training trial {trial_id} was loaded without a session id"
+        raise RuntimeError(msg)
     return recording_of(trial, await db.debrief(trial.session_id))

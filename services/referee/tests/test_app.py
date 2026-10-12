@@ -36,6 +36,7 @@ from arena_referee.routes import admin as admin_route
 from arena_referee.routes import debrief as debrief_route
 from arena_referee.routes import reveal as reveal_route
 from arena_referee.routes import score as score_route
+from arena_referee.routes import tournament as tournament_route
 from arena_referee.routes import tournaments as tournaments_route
 from arena_referee.scoring import ScoreResult
 
@@ -418,12 +419,132 @@ def test_score_route_rejects_an_unknown_trial_before_scoring(tmp_path: Path, mon
     assert resp.status_code == NOT_FOUND
 
 
-def test_score_route_refuses_a_non_interactive_trial(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """S5 5.3: corpus and replay trials have a different call shape and are WP-16/WP-17's to wire; this
-    route refuses them with a clear error rather than silently mis-scoring them."""
+def test_score_route_scores_a_corpus_trial_with_r1_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """S5 5.3 (WP-17): a `replay_corpus` transcript gets R1 and its initial validity verdict, never R2."""
+
+    async def fake_score_corpus_trial(_deps: object, _trial_id: str, _prompts: object) -> ValidityDecision:
+        return ValidityDecision(verdict="valid", deciding_turns=(), auto_recordable=True, reason="clean")
 
     async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
         return "replay_corpus"
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_corpus_trial", fake_score_corpus_trial)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"verdict": "valid", "auto_recordable": True}
+
+
+def test_score_route_scores_a_replay_trial_with_r2_against_the_sources_r1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S5 5.3; D2 (WP-17): a `replay` trial gets R2 only, against its source corpus transcript's stored R1
+    report (never a fresh R1 call)."""
+    seen_reports: list[RefereeSubjectReport] = []
+
+    async def fake_score_replay_trial(
+        _deps: object, _trial_id: str, _ctx: object, source_report: RefereeSubjectReport
+    ) -> RefereeAssistantReport:
+        seen_reports.append(source_report)
+        return _fake_assistant_report()
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay"
+
+    async def fake_source_report(_request: object, _trial_id: UUID) -> RefereeSubjectReport:
+        return _fake_subject_report()
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_replay_trial", fake_score_replay_trial)
+    monkeypatch.setattr(score_route, "_source_subject_report", fake_source_report)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"verdict": None, "auto_recordable": False}
+    assert seen_reports == [_fake_subject_report()]
+
+
+def test_source_subject_report_422s_when_the_replay_trial_has_no_source_yet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The real `_source_subject_report` this time (not faked), through the route end to end."""
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay"
+
+    async def fake_fetch_source_trial_id(_connect: object, _trial_id: str) -> None:
+        return None
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    monkeypatch.setattr(db, "fetch_source_trial_id", fake_fetch_source_trial_id)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == UNPROCESSABLE
+    assert "has no source_trial_id yet" in resp.json()["detail"]
+
+
+def test_source_subject_report_422s_when_the_sources_r1_is_not_stored_yet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_id = str(uuid4())
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay"
+
+    async def fake_fetch_source_trial_id(_connect: object, _trial_id: str) -> str:
+        return source_id
+
+    async def fake_get_judgment(_connect: object, _key: str) -> None:
+        return None
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    monkeypatch.setattr(db, "fetch_source_trial_id", fake_fetch_source_trial_id)
+    monkeypatch.setattr(db, "get_judgment", fake_get_judgment)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == UNPROCESSABLE
+    assert "has no stored R1 report yet" in resp.json()["detail"]
+
+
+def test_source_subject_report_parses_the_stored_judgment_for_a_real_r2_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_id = str(uuid4())
+    seen_reports: list[RefereeSubjectReport] = []
+
+    async def fake_score_replay_trial(
+        _deps: object, _trial_id: str, _ctx: object, source_report: RefereeSubjectReport
+    ) -> RefereeAssistantReport:
+        seen_reports.append(source_report)
+        return _fake_assistant_report()
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "replay"
+
+    async def fake_fetch_source_trial_id(_connect: object, _trial_id: str) -> str:
+        return source_id
+
+    async def fake_get_judgment(_connect: object, key: str) -> dict[str, Any]:
+        assert key == f"{source_id}:referee_subject"
+        return {"report": _fake_subject_report().model_dump(mode="json")}
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(score_route, "score_replay_trial", fake_score_replay_trial)
+    monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
+    monkeypatch.setattr(db, "fetch_source_trial_id", fake_fetch_source_trial_id)
+    monkeypatch.setattr(db, "get_judgment", fake_get_judgment)
+    resp = run(_post(app, f"/internal/trials/{uuid4()}/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert seen_reports == [_fake_subject_report()]
+
+
+def test_score_route_rejects_an_unrecognized_trial_kind(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A trial kind the route does not know (never training, interactive, replay_corpus or replay) is
+    refused with a clear error rather than silently mis-scored."""
+
+    async def fake_fetch_trial_kind(_connect: object, _trial_id: str) -> str:
+        return "training"
 
     app = make_app(tmp_path)
     monkeypatch.setattr(db, "fetch_trial_kind", fake_fetch_trial_kind)
@@ -480,6 +601,85 @@ def _fake_assistant_report() -> RefereeAssistantReport:
     return RefereeAssistantReport.model_validate(
         {"schema_version": "ref_asst.v2", "flags": [], "followups": [], "citations": [], "subchecks": []}
     )
+
+
+# ---------------------------------------------------------------- tournament routes (WP-17; S5 5.3, 5.5)
+
+
+def test_score_block_route_scores_every_trial_in_the_block(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    trial_ids = [str(uuid4()), str(uuid4())]
+
+    async def fake_fetch_block_trial_ids(_connect: object, _tournament_id: str, _block_no: int) -> list[str]:
+        return trial_ids
+
+    async def fake_score_trial(_deps: object, _trial_id: str, _ctx: object) -> ScoreResult:
+        return ScoreResult(
+            subject_report=_fake_subject_report(),
+            assistant_report=_fake_assistant_report(),
+            validity=ValidityDecision(verdict="valid", deciding_turns=(), auto_recordable=True, reason="clean"),
+        )
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "fetch_block_trial_ids", fake_fetch_block_trial_ids)
+    monkeypatch.setattr(tournament_route, "score_trial", fake_score_trial)
+    resp = run(_post(app, f"/internal/tournaments/{uuid4()}/blocks/1/score", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {
+        "block_no": 1,
+        "scored": [{"trial_id": t, "verdict": "valid"} for t in trial_ids],
+    }
+
+
+def test_corpus_seal_route_returns_the_stored_seal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_seal_replay_corpus(_connect: object, _tournament_id: str) -> str:
+        return "a" * 64
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "seal_replay_corpus", fake_seal_replay_corpus)
+    resp = run(_post(app, f"/internal/tournaments/{uuid4()}/corpus-seal", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"corpus_sha256": "a" * 64}
+
+
+def test_corpus_seal_route_maps_a_sql_error_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_seal_replay_corpus(_connect: object, _tournament_id: str) -> str:
+        exc = psycopg.Error("the replay corpus is sealed while the tournament runs")
+        exc.sqlstate = "AR001"
+        raise exc
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "seal_replay_corpus", fake_seal_replay_corpus)
+    resp = run(_post(app, f"/internal/tournaments/{uuid4()}/corpus-seal", headers=_caller_headers()))
+    assert resp.status_code == CONFLICT
+    assert resp.json()["detail"] == "AR001: the replay corpus is sealed while the tournament runs"
+
+
+def test_close_route_returns_sealed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    async def fake_close_tournament_run(_connect: object, tournament_id: str) -> None:
+        calls.append(tournament_id)
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "close_tournament_run", fake_close_tournament_run)
+    tournament_id = str(uuid4())
+    resp = run(_post(app, f"/internal/tournaments/{tournament_id}/close", headers=_caller_headers()))
+    assert resp.status_code == httpx.codes.OK
+    assert resp.json() == {"status": "sealed"}
+    assert calls == [tournament_id]
+
+
+def test_close_route_maps_a_sql_error_to_409(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_close_tournament_run(_connect: object, _tournament_id: str) -> None:
+        exc = psycopg.Error("not every planned trial has an execution record yet")
+        exc.sqlstate = "AR001"
+        raise exc
+
+    app = make_app(tmp_path)
+    monkeypatch.setattr(db, "close_tournament_run", fake_close_tournament_run)
+    resp = run(_post(app, f"/internal/tournaments/{uuid4()}/close", headers=_caller_headers()))
+    assert resp.status_code == CONFLICT
+    assert resp.json()["detail"] == "AR001: not every planned trial has an execution record yet"
 
 
 # ---------------------------------------------------------------- reveal, corrections, isolation gate (WP-16)

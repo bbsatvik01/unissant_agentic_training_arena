@@ -46,15 +46,24 @@ def _label_set_sha256() -> str:
 REFEREE_PORT = 8082  # S5 10.1
 _BROWSER_ORIGINS_VAR = "ARENA_BROWSER_ORIGINS"
 _LOCAL_CALLERS_VAR = "ARENA_LOCAL_CALLERS"
+_PORT_VAR = "ARENA_REFEREE_PORT"
 
 
-def _default_origins() -> frozenset[str]:
-    return frozenset({f"http://127.0.0.1:{REFEREE_PORT}", f"http://localhost:{REFEREE_PORT}"})
+def port(env: dict[str, str]) -> int:
+    """`REFEREE_PORT` (S5 10.1), overridable so an integration test can run a real referee subprocess on a
+    scratch port instead of the fixed one `scripts/dev.sh` always binds -- never set outside a test:
+    nothing in production or `scripts/dev.sh` names this variable, so every real run still gets 8082."""
+    return int(env.get(_PORT_VAR, str(REFEREE_PORT)))
+
+
+def _default_origins(env: dict[str, str]) -> frozenset[str]:
+    bound = port(env)
+    return frozenset({f"http://127.0.0.1:{bound}", f"http://localhost:{bound}"})
 
 
 def _browser_origins(env: dict[str, str]) -> frozenset[str]:
     raw = env.get(_BROWSER_ORIGINS_VAR, "").strip()
-    return frozenset(o.strip() for o in raw.split(",") if o.strip()) if raw else _default_origins()
+    return frozenset(o.strip() for o in raw.split(",") if o.strip()) if raw else _default_origins(env)
 
 
 def _caller_hashes(env: dict[str, str]) -> frozenset[str]:
@@ -66,7 +75,8 @@ def _caller_hashes(env: dict[str, str]) -> frozenset[str]:
 
 
 def _guard_config(env: dict[str, str]) -> GuardConfig:
-    allowed_hosts = frozenset({f"127.0.0.1:{REFEREE_PORT}", f"localhost:{REFEREE_PORT}"})
+    bound = port(env)
+    allowed_hosts = frozenset({f"127.0.0.1:{bound}", f"localhost:{bound}"})
     callers = _caller_hashes(env)
     return GuardConfig(
         allowed_hosts=allowed_hosts, allowed_origins=_browser_origins(env), internal_caller_hashes=lambda _p: callers

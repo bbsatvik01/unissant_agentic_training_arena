@@ -289,6 +289,37 @@ def test_score_trial_raises_if_run_r1_ever_returns_no_validity_decision(monkeypa
         run(score_trial(fake.deps(), trial_data().trial_id, CTX))
 
 
+def test_score_corpus_trial_runs_r1_only_and_returns_its_validity_decision() -> None:
+    """S5 5.3; BKO-6: a `replay_corpus` transcript gets R1 alone (no assistant, so no R2 call at all)."""
+    fake = FakeDeps()
+    decision = run(scoring_module.score_corpus_trial(fake.deps(), trial_data().trial_id, REFEREE))
+    assert fake.calls == ["r1"]
+    assert decision.verdict == "valid"
+
+
+def test_score_corpus_trial_raises_if_run_r1_ever_returns_no_validity_decision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_run_r1(
+        _deps: ScoringDeps, _data: TrialData, _prompts: object, _purpose: str
+    ) -> tuple[RefereeSubjectReport, None]:
+        return subject_report(), None
+
+    monkeypatch.setattr(scoring_module, "run_r1", fake_run_r1)
+    fake = FakeDeps()
+    with pytest.raises(scoring_module.ScoringError, match="always returns a validity decision"):
+        run(scoring_module.score_corpus_trial(fake.deps(), trial_data().trial_id, REFEREE))
+
+
+def test_score_replay_trial_runs_r2_only_against_the_sources_report() -> None:
+    """S5 5.3; D2: a `replay` trial's R2 runs against its source's already-stored R1 report -- R1 never
+    runs again for the replay trial itself."""
+    fake = FakeDeps()
+    report = run(scoring_module.score_replay_trial(fake.deps(), trial_data().trial_id, CTX, subject_report()))
+    assert fake.calls == ["r2"]
+    assert report.schema_version == "ref_asst.v2"
+
+
 def test_run_r1_resuming_from_a_stored_report_re_derives_identical_labels() -> None:
     """A process that died after `store_labels` but before `store_judgment` (or crashed before either)
     resumes into the `stored is not None` branch; `store_labels`/`store_judgment` must still run and submit

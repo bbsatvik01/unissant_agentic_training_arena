@@ -182,3 +182,52 @@ describe("arrivals", () => {
     expect(arrivalKey({ ...base, type: "coach.failed", data: { turn_no: 2, reason: "timeout" } } as never)).toBe("coach.failed:2");
   });
 });
+
+describe("a harness (tournament) trial's recording (D-021, WP-17)", () => {
+  function harness(change?: (r: Record<string, unknown>) => void): Record<string, unknown> {
+    const copy = structuredClone(raw) as unknown as Record<string, unknown>;
+    (copy["snapshot"] as Record<string, unknown>)["mode"] = "harness";
+    copy["debrief"] = null;
+    copy["events"] = (copy["events"] as { frame: { type: string } }[]).filter((e) => e.frame.type !== "debrief.ready");
+    change?.(copy);
+    return copy;
+  }
+
+  function sourceUnavailable(r: Record<string, unknown>): void {
+    const first = (r["events"] as { frame: Record<string, unknown> }[])[0];
+    const frame = {
+      ...first?.frame,
+      seq: 1,
+      type: "trial.status",
+      transcript_version: 0,
+      data: { status: "source_unavailable", reason_code: "source_unavailable" },
+    };
+    r["events"] = [{ at_ms: 0, frame }];
+  }
+
+  it("plays with its recorded coaching visible: no investigator, no debrief to save it for", () => {
+    const result = parseRecording(harness());
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const end = seek(result.recording, startCursor(result.recording), result.recording.durationMs);
+    const view = end.state.view;
+    expect(view?.status).toBe("ended");
+    expect(view?.mode).toBe("practice");
+    expect(view?.cards.map((c) => c.turn_no)).toEqual(view?.turns.map((t) => t.turn_no));
+    expect(view?.runningFinding).not.toBeNull();
+  });
+
+  it("accepts a replay trial that ended source_unavailable and plays it to its end", () => {
+    const result = parseRecording(harness(sourceUnavailable));
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const end = seek(result.recording, startCursor(result.recording), result.recording.durationMs);
+    expect(end.state.view?.status).toBe("ended");
+    expect(end.state.view?.serverStatus).toBe("source_unavailable");
+  });
+
+  it("refuses source_unavailable in a training recording (C-45: never a training state)", () => {
+    const copy = structuredClone(raw) as unknown as Record<string, unknown>;
+    copy["debrief"] = null;
+    sourceUnavailable(copy);
+    expect(parseRecording(copy).ok).toBe(false);
+  });
+});

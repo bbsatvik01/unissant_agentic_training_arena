@@ -46,16 +46,19 @@ rules:
     languages: [python]
     severity: ERROR
     message: >-
-      httpx outside the agent port, the api's subject/referee clients, and the two WP-12 test files that
-      drive arena-subject's own app directly (in-process ASGI transport, or a real request to the
-      subprocess that same test starts and owns). Use the port for model calls and the role clients for
-      internal routes.
+      httpx outside the agent port, the api's and the tournament job's subject/referee clients, and the
+      test files that drive a role's own app or a real subprocess directly (in-process ASGI transport, or
+      a real request to a subprocess that same test starts and owns). Use the port for model calls and the
+      role clients for internal routes.
     paths:
       exclude:
         - "/packages/core/src/arena_core/providers/"
         - "/packages/core/src/arena_core/observability/phoenix.py"
         - "/services/api/src/arena_api/subject_client.py"
         - "/services/api/src/arena_api/referee_client.py"
+        # the tournament job's own caller-token client for arena-referee's internal scoring and
+        # run-closing routes (S5 5.3, 5.5; C-42), the same role-client shape as arena-api's pair above.
+        - "/services/tournament/src/arena_tournament/referee_client.py"
         # httpx.ASGITransport drives the FastAPI app in process (no socket, no network, the same technique
         # FastAPI's own docs recommend over starlette.testclient, which this repo avoids because its newer
         # releases deprecate plain httpx).
@@ -70,12 +73,22 @@ rules:
         # file, never a role importing a real HTTP client at runtime; the rule's target (bypassing the
         # spend guard, the caller-token check or tracing) does not apply to an in-process test transport.
         - "/services/referee/tests/test_app.py"
+        # arena-referee's own `python -m arena_referee` process test (WP-17): the same one-httpx.post-to-a-
+        # real-subprocess-it-starts-and-owns shape as arena-subject's test_main.py above.
+        - "/services/referee/tests/test_main.py"
         # arena-api's route tests (httpx.ASGITransport into the app object in process, the referee's technique) and
         # its client tests (httpx.MockTransport: the two caller-token clients against a scripted handler, no socket).
         - "/services/api/tests/test_app.py"
         - "/services/api/tests/test_clients.py"
+        # the tournament job's own client test (WP-17): httpx.MockTransport against a scripted handler, the
+        # same no-socket shape as arena-api's test_clients.py above.
+        - "/services/tournament/tests/test_referee_client.py"
         # arena-api's integration suite under make db-test: the same in-process ASGI transport into the app object.
         - "/services/api/tests/it_api.py"
+        # the tournament job's integration suite under make db-test (WP-17): a real `python -m
+        # arena_referee` subprocess this test starts and owns (role isolation, S5 1.2 item 2, forbids
+        # importing arena_referee.app in process here), polled for readiness the same way.
+        - "/services/tournament/tests/it_tournament.py"
     pattern-either:
       - pattern: import httpx
       - pattern: import httpx2

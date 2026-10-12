@@ -2052,6 +2052,2147 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
       }
     ]
   },
+  "harness-events": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://unissant-arena.invalid/contracts/harness-events.schema.json",
+    "title": "HarnessFrame",
+    "$defs": {
+      "CardValidation": {
+        "additionalProperties": false,
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "flags": {
+            "additionalProperties": false,
+            "maxProperties": 3,
+            "patternProperties": {
+              "^t(0[1-9]|1[0-2])\\.f[1-3]$": {
+                "$ref": "#/$defs/FlagCheck"
+              }
+            },
+            "type": "object"
+          },
+          "demeanor_in_rationale": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "flags",
+          "demeanor_in_rationale"
+        ],
+        "title": "CardValidation",
+        "type": "object"
+      },
+      "CoachCard": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "card": {
+            "$ref": "#/$defs/TrainingWireCard"
+          }
+        },
+        "required": [
+          "turn_no",
+          "card"
+        ],
+        "title": "CoachCard",
+        "type": "object"
+      },
+      "CoachCardFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "coach.card",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/CoachCard"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "CoachCardFrame",
+        "type": "object"
+      },
+      "CoachFailed": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "timeout",
+              "repair_failed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_no",
+          "reason"
+        ],
+        "title": "CoachFailed",
+        "type": "object"
+      },
+      "CoachFailedFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "coach.failed",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/CoachFailed"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "CoachFailedFrame",
+        "type": "object"
+      },
+      "CoachUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "update": {
+            "$ref": "#/$defs/StoredDeepUpdate"
+          }
+        },
+        "required": [
+          "turn_no",
+          "update"
+        ],
+        "title": "CoachUpdate",
+        "type": "object"
+      },
+      "CoachUpdateFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "coach.update",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/CoachUpdate"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "CoachUpdateFrame",
+        "type": "object"
+      },
+      "CoachWorkingFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "type": "null"
+          },
+          "type": {
+            "const": "coach.working",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/TurnRef"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "CoachWorkingFrame",
+        "type": "object"
+      },
+      "Content": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "table": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TableContent"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "Content",
+        "type": "object"
+      },
+      "CoverageEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "pattern": "^rec-0[1-6]$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_yet_raised",
+              "raised_not_tested",
+              "consistent_with_account",
+              "conflicts_with_account",
+              "explained_innocently"
+            ],
+            "type": "string"
+          },
+          "turn_ids": {
+            "items": {
+              "pattern": "^t(0[1-9]|1[0-2])$",
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "record_id",
+          "status",
+          "turn_ids"
+        ],
+        "title": "CoverageEntry",
+        "type": "object"
+      },
+      "DebriefReady": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "DebriefReady",
+        "type": "object"
+      },
+      "DebriefReadyFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "debrief.ready",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/DebriefReady"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "DebriefReadyFrame",
+        "type": "object"
+      },
+      "DisclosurePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "anyOf": [
+              {
+                "pattern": "^rec-0[1-6]$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "step": {
+            "enum": [
+              "hold",
+              "evidence_topic",
+              "evidence_source_vague",
+              "evidence_specific"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "step"
+        ],
+        "title": "DisclosurePlan",
+        "type": "object"
+      },
+      "EvidenceReleased": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "pattern": "^rec-0[1-6]$",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 5,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "record",
+              "clarification",
+              "context_change"
+            ],
+            "type": "string"
+          },
+          "doc_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "access_exception_report",
+                  "badge_log",
+                  "door_log",
+                  "sensor_metadata",
+                  "camera_metadata",
+                  "camera_status",
+                  "alarm_log",
+                  "monitor_alert",
+                  "dispatch_log",
+                  "work_order",
+                  "staffing_note",
+                  "visitor_register",
+                  "lockbox_log",
+                  "credential_record",
+                  "access_change_notice",
+                  "incident_ticket",
+                  "seal_audit",
+                  "witness_statement",
+                  "supervisor_statement",
+                  "email",
+                  "policy_excerpt",
+                  "procedure_excerpt",
+                  "facilities_notice",
+                  "clarification",
+                  "context_change"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "$ref": "#/$defs/Content"
+          },
+          "released_at_turn": {
+            "maximum": 12,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "trigger": {
+            "enum": [
+              "scheduled",
+              "requested"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "title",
+          "kind",
+          "doc_kind",
+          "date",
+          "content",
+          "released_at_turn",
+          "trigger"
+        ],
+        "title": "EvidenceReleased",
+        "type": "object"
+      },
+      "EvidenceReleasedFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "evidence.released",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/EvidenceReleased"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "EvidenceReleasedFrame",
+        "type": "object"
+      },
+      "FindingCommitted": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "maxItems": 0,
+                      "type": "array"
+                    },
+                    "last_revised_turn": {
+                      "type": "null"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "by": {
+                  "enum": [
+                    "assistant"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "last_revised_turn": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "by": {
+                  "const": "assistant"
+                },
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "by": {
+            "enum": [
+              "investigator",
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "finding": {
+            "$ref": "#/$defs/StoredFinding"
+          },
+          "committed_at": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "by",
+          "finding",
+          "committed_at"
+        ],
+        "title": "FindingCommitted",
+        "type": "object"
+      },
+      "FindingCommittedFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "finding.committed",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/FindingCommitted"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "FindingCommittedFrame",
+        "type": "object"
+      },
+      "FlagCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "citation_ok": {
+            "type": "boolean"
+          },
+          "demeanor_based": {
+            "type": "boolean"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "citation_ok",
+          "demeanor_based",
+          "duplicate"
+        ],
+        "title": "FlagCheck",
+        "type": "object"
+      },
+      "FollowUp": {
+        "additionalProperties": false,
+        "properties": {
+          "question": {
+            "maxBytes": 600,
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tactic": {
+            "enum": [
+              "account_first_open",
+              "funnel_probe",
+              "evidence_topic",
+              "evidence_source_vague",
+              "evidence_specific",
+              "unanticipated_detail",
+              "reverse_order",
+              "verifiable_detail",
+              "clarify_contradiction",
+              "alternative_explanation",
+              "corroboration_request",
+              "summary_check"
+            ],
+            "type": "string"
+          },
+          "purpose": {
+            "maxBytes": 320,
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "record_request": {
+            "anyOf": [
+              {
+                "pattern": "^rec-0[1-6]$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "question",
+          "tactic",
+          "purpose",
+          "record_request"
+        ],
+        "title": "FollowUp",
+        "type": "object"
+      },
+      "Notice": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "paused",
+              "quota"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "Notice",
+        "type": "object"
+      },
+      "NoticeFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "type": "null"
+          },
+          "type": {
+            "const": "notice",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/Notice"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "NoticeFrame",
+        "type": "object"
+      },
+      "OpenGap": {
+        "additionalProperties": false,
+        "properties": {
+          "missing_fact": {
+            "maxBytes": 240,
+            "maxLength": 120,
+            "minLength": 3,
+            "type": "string"
+          },
+          "first_seen_turn": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "missing_fact",
+          "first_seen_turn"
+        ],
+        "title": "OpenGap",
+        "type": "object"
+      },
+      "Question": {
+        "additionalProperties": false,
+        "properties": {
+          "question_type": {
+            "enum": [
+              "open",
+              "probing",
+              "closed",
+              "leading",
+              "suggestive",
+              "compound",
+              "forced_choice",
+              "opinion"
+            ],
+            "type": "string"
+          },
+          "neutrality_issues": {
+            "items": {
+              "enum": [
+                "presupposes_fact",
+                "accusatory_wording",
+                "demeanor_reference",
+                "multiple_questions",
+                "limits_options",
+                "solicits_opinion",
+                "emotionally_loaded",
+                "pressure_or_inducement"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "assessment": {
+            "description": "One sentence on the question",
+            "maxBytes": 320,
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "question_type",
+          "neutrality_issues",
+          "assessment"
+        ],
+        "title": "Question",
+        "type": "object"
+      },
+      "QuestionAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "text": {
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "investigator",
+              "harness_fixed",
+              "harness_fallback",
+              "assistant_relay"
+            ],
+            "type": "string"
+          },
+          "channel": {
+            "const": "text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_no",
+          "text",
+          "source",
+          "channel"
+        ],
+        "title": "QuestionAccepted",
+        "type": "object"
+      },
+      "QuestionAcceptedFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "question.accepted",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/QuestionAccepted"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "QuestionAcceptedFrame",
+        "type": "object"
+      },
+      "ReplayTrialStatusData": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "running",
+              "completed",
+              "subject_quarantined",
+              "assistant_failed",
+              "infra_failed",
+              "budget_skipped",
+              "budget_truncated",
+              "source_unavailable"
+            ],
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "reason_code"
+        ],
+        "title": "ReplayTrialStatusData",
+        "type": "object"
+      },
+      "ReplayTrialStatusFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "trial.status",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/ReplayTrialStatusData"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "ReplayTrialStatusFrame",
+        "type": "object"
+      },
+      "StoredDeepUpdate": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "deep.v1"
+            ],
+            "type": "string"
+          },
+          "as_of_turn": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "finding": {
+            "$ref": "#/$defs/StoredFinding"
+          },
+          "evidence_coverage": {
+            "items": {
+              "$ref": "#/$defs/CoverageEntry"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "open_gaps": {
+            "items": {
+              "$ref": "#/$defs/OpenGap"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "disclosure_plan": {
+            "$ref": "#/$defs/DisclosurePlan"
+          }
+        },
+        "required": [
+          "schema_version",
+          "as_of_turn",
+          "finding",
+          "evidence_coverage",
+          "open_gaps",
+          "disclosure_plan"
+        ],
+        "title": "StoredDeepUpdate",
+        "type": "object"
+      },
+      "StoredFinding": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "deceptive"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "likely",
+                    "very_likely",
+                    "almost_certain"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "truthful"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "likelihood": {
+                  "enum": [
+                    "almost_no_chance",
+                    "very_unlikely",
+                    "unlikely"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "label": {
+                  "enum": [
+                    "insufficient_evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "corroboration_needed": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "label": {
+            "enum": [
+              "deceptive",
+              "truthful",
+              "insufficient_evidence"
+            ],
+            "type": "string"
+          },
+          "likelihood": {
+            "enum": [
+              "almost_no_chance",
+              "very_unlikely",
+              "unlikely",
+              "roughly_even_chance",
+              "likely",
+              "very_likely",
+              "almost_certain"
+            ],
+            "type": "string"
+          },
+          "confidence": {
+            "enum": [
+              "low",
+              "moderate",
+              "high"
+            ],
+            "type": "string"
+          },
+          "basis_flag_refs": {
+            "items": {
+              "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "cited_turns": {
+            "items": {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "maxItems": 12,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "cited_records": {
+            "items": {
+              "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "corroboration_needed": {
+            "items": {
+              "maxBytes": 240,
+              "maxLength": 120,
+              "minLength": 3,
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "rationale": {
+            "maxBytes": 1200,
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "alternative_explanations": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxBytes": 320,
+                  "maxLength": 160,
+                  "minLength": 3,
+                  "type": "string"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_revised_turn": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "likelihood",
+          "confidence",
+          "basis_flag_refs",
+          "cited_turns",
+          "cited_records",
+          "corroboration_needed",
+          "rationale",
+          "alternative_explanations",
+          "last_revised_turn"
+        ],
+        "title": "StoredFinding",
+        "type": "object"
+      },
+      "StoredFlag": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "missing_fact": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "gap",
+                    "non_responsive",
+                    "possible_evasion"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "missing_fact": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_turn_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "contradiction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "else": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "null"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "evidence_conflict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "conflict_record_quote": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "gap",
+              "non_responsive",
+              "possible_evasion",
+              "contradiction",
+              "evidence_conflict"
+            ],
+            "type": "string"
+          },
+          "turn_id": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "quote": {
+            "description": "Exact span of the subject's answer in turn_id",
+            "maxBytes": 400,
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "missing_fact": {
+            "anyOf": [
+              {
+                "maxBytes": 240,
+                "maxLength": 120,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflict_turn_id": {
+            "anyOf": [
+              {
+                "pattern": "^t(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflict_quote": {
+            "anyOf": [
+              {
+                "maxBytes": 400,
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflict_record_id": {
+            "anyOf": [
+              {
+                "pattern": "^(doc-0[1-4]|rec-0[1-6])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflict_record_quote": {
+            "anyOf": [
+              {
+                "maxBytes": 400,
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flag_ref": {
+            "pattern": "^t(0[1-9]|1[0-2])\\.f[1-3]$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "turn_id",
+          "quote",
+          "missing_fact",
+          "conflict_turn_id",
+          "conflict_quote",
+          "conflict_record_id",
+          "conflict_record_quote",
+          "flag_ref"
+        ],
+        "title": "StoredFlag",
+        "type": "object"
+      },
+      "SubjectAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "text": {
+            "maxBytes": 1800,
+            "maxLength": 900,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "const": "text",
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "committed_at": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_no",
+          "text",
+          "channel",
+          "partial",
+          "committed_at"
+        ],
+        "title": "SubjectAnswer",
+        "type": "object"
+      },
+      "SubjectAnswerFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "subject.answer",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/SubjectAnswer"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "SubjectAnswerFrame",
+        "type": "object"
+      },
+      "SubjectThinkingFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "type": "null"
+          },
+          "type": {
+            "const": "subject.thinking",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/TurnRef"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "SubjectThinkingFrame",
+        "type": "object"
+      },
+      "TableContent": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[^|\\r\\n]+$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "maxLength": 200,
+                "pattern": "^[^|\\r\\n]*$",
+                "type": "string"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "type": "array"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "columns",
+          "rows"
+        ],
+        "title": "TableContent",
+        "type": "object"
+      },
+      "TrainingWireCard": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "properties": {
+              "finding": {
+                "properties": {
+                  "last_revised_turn": {
+                    "type": "integer"
+                  },
+                  "alternative_explanations": {
+                    "type": "null"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "label": {
+                      "const": "deceptive"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "finding": {
+                  "properties": {
+                    "basis_flag_refs": {
+                      "minItems": 1,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "card.v1"
+            ],
+            "type": "string"
+          },
+          "turn_id": {
+            "pattern": "^t(0[1-9]|1[0-2])$",
+            "type": "string"
+          },
+          "question": {
+            "$ref": "#/$defs/Question"
+          },
+          "answer_category": {
+            "enum": [
+              "responsive",
+              "non_responsive",
+              "contradiction",
+              "explicit_uncertainty",
+              "possible_evasion"
+            ],
+            "type": "string"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/$defs/StoredFlag"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "follow_up": {
+            "$ref": "#/$defs/FollowUp"
+          },
+          "finding": {
+            "$ref": "#/$defs/StoredFinding"
+          },
+          "boundary_notice": {
+            "type": "boolean"
+          },
+          "commit_requested": {
+            "type": "boolean"
+          },
+          "card_seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "validation": {
+            "$ref": "#/$defs/CardValidation"
+          },
+          "latency_ms": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "work_item": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema_version",
+          "turn_id",
+          "question",
+          "answer_category",
+          "flags",
+          "follow_up",
+          "finding",
+          "boundary_notice",
+          "commit_requested",
+          "card_seq",
+          "turn_no",
+          "validation",
+          "latency_ms",
+          "work_item",
+          "transcript_version"
+        ],
+        "title": "TrainingWireCard",
+        "type": "object"
+      },
+      "TrialFinalized": {
+        "additionalProperties": false,
+        "properties": {
+          "commitment_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commitment_hash"
+        ],
+        "title": "TrialFinalized",
+        "type": "object"
+      },
+      "TrialFinalizedFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": {
+            "const": "trial.finalized",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/TrialFinalized"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "TrialFinalizedFrame",
+        "type": "object"
+      },
+      "TrialStatusData": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "running",
+              "completed",
+              "subject_quarantined",
+              "assistant_failed",
+              "infra_failed",
+              "budget_skipped",
+              "budget_truncated"
+            ],
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "reason_code"
+        ],
+        "title": "TrialStatusData",
+        "type": "object"
+      },
+      "TrialStatusFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "v": {
+            "const": 1,
+            "type": "integer"
+          },
+          "scope": {
+            "const": "trial",
+            "type": "string"
+          },
+          "scope_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "type": "string"
+          },
+          "ts": {
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "type": "string"
+          },
+          "transcript_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "trial.status",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/$defs/TrialStatusData"
+          }
+        },
+        "required": [
+          "v",
+          "scope",
+          "scope_id",
+          "ts",
+          "transcript_version",
+          "seq",
+          "type",
+          "data"
+        ],
+        "title": "TrialStatusFrame",
+        "type": "object"
+      },
+      "TurnRef": {
+        "additionalProperties": false,
+        "properties": {
+          "turn_no": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_no"
+        ],
+        "title": "TurnRef",
+        "type": "object"
+      }
+    },
+    "anyOf": [
+      {
+        "$ref": "#/$defs/QuestionAcceptedFrame"
+      },
+      {
+        "$ref": "#/$defs/SubjectThinkingFrame"
+      },
+      {
+        "$ref": "#/$defs/EvidenceReleasedFrame"
+      },
+      {
+        "$ref": "#/$defs/SubjectAnswerFrame"
+      },
+      {
+        "$ref": "#/$defs/CoachWorkingFrame"
+      },
+      {
+        "$ref": "#/$defs/CoachCardFrame"
+      },
+      {
+        "$ref": "#/$defs/CoachUpdateFrame"
+      },
+      {
+        "$ref": "#/$defs/CoachFailedFrame"
+      },
+      {
+        "$ref": "#/$defs/FindingCommittedFrame"
+      },
+      {
+        "$ref": "#/$defs/TrialStatusFrame"
+      },
+      {
+        "$ref": "#/$defs/TrialFinalizedFrame"
+      },
+      {
+        "$ref": "#/$defs/DebriefReadyFrame"
+      },
+      {
+        "$ref": "#/$defs/NoticeFrame"
+      },
+      {
+        "$ref": "#/$defs/ReplayTrialStatusFrame"
+      }
+    ]
+  },
   "training-card": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://unissant-arena.invalid/contracts/training-card.schema.json",
@@ -4629,7 +6770,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "assistant_failed",
               "infra_failed",
               "budget_skipped",
-              "budget_truncated"
+              "budget_truncated",
+              "source_unavailable"
             ],
             "type": "string"
           },
@@ -4648,7 +6790,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "mode": {
             "enum": [
               "practice",
-              "assessment"
+              "assessment",
+              "harness"
             ],
             "type": "string"
           },
@@ -4965,7 +7108,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "assistant_failed",
               "infra_failed",
               "budget_skipped",
-              "budget_truncated"
+              "budget_truncated",
+              "source_unavailable"
             ],
             "type": "string"
           },
@@ -4984,7 +7128,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
           "mode": {
             "enum": [
               "practice",
-              "assessment"
+              "assessment",
+              "harness"
             ],
             "type": "string"
           },

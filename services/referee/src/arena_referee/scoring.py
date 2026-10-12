@@ -269,3 +269,24 @@ async def score_trial(deps: ScoringDeps, trial_id: str, ctx: PromptContext) -> S
         msg = "referee_subject always returns a validity decision"
         raise ScoringError(msg)
     return ScoreResult(subject_report=subject_report, assistant_report=assistant_report, validity=decision)
+
+
+async def score_corpus_trial(deps: ScoringDeps, trial_id: str, prompts: PromptSet) -> ValidityDecision:
+    """R1 on a `replay_corpus` transcript, with its initial validity verdict (S5 5.3; BKO-6). No R2: a
+    corpus trial has no assistant."""
+    data = await deps.fetch_trial_data(trial_id)
+    _report, decision = await run_r1(deps, data, prompts, "referee_subject")
+    if decision is None:
+        msg = "referee_subject always returns a validity decision"
+        raise ScoringError(msg)
+    return decision
+
+
+async def score_replay_trial(
+    deps: ScoringDeps, trial_id: str, ctx: PromptContext, source_subject_report: RefereeSubjectReport
+) -> RefereeAssistantReport:
+    """R2 on a `replay` trial, against its source corpus transcript's already-stored R1 report (S5 5.3; D2):
+    the labels transfer unchanged, since the replay trial's turns are copies of the source's, so R1 never
+    runs again for this trial."""
+    data = await deps.fetch_trial_data(trial_id)
+    return await run_r2(deps, data, ctx, source_subject_report, "assistant")
