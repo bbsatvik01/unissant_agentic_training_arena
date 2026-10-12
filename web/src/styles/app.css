@@ -1716,15 +1716,17 @@ td {
   display: flex;
   gap: var(--arena-space-2);
 }
+/* Printing a debrief (its Print button sets html.printing-debrief): only the print view shows. Ordinary printing
+   of any other page is untouched. */
 @media print {
-  body * {
+  html.printing-debrief body * {
     visibility: hidden;
   }
-  .debrief-print,
-  .debrief-print * {
+  html.printing-debrief .debrief-print,
+  html.printing-debrief .debrief-print * {
     visibility: visible;
   }
-  .debrief-print {
+  html.printing-debrief .debrief-print {
     position: absolute;
     inset: 0 auto auto 0;
     width: 100%;
@@ -1732,15 +1734,15 @@ td {
     background: #fff;
     color: #000;
   }
-  .debrief-print h1,
-  .debrief-print h2 {
+  html.printing-debrief .debrief-print h1,
+  html.printing-debrief .debrief-print h2 {
     break-after: avoid;
   }
-  html,
-  body,
-  #root,
-  .app,
-  .debrief-scene {
+  html.printing-debrief,
+  html.printing-debrief body,
+  html.printing-debrief #root,
+  html.printing-debrief .app,
+  html.printing-debrief .debrief-scene {
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;

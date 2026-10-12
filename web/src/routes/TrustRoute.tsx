@@ -13,6 +13,7 @@ import { createTrustApi, type TrustSection } from "../lib/api/trust";
 import { parseTrustBudget } from "../lib/trust/budget";
 import { parseCapabilities } from "../lib/trust/capability";
 import { verifyCommitment } from "../lib/trust/commitment";
+import { parseCalibration, parseFairness } from "../lib/trust/fairness";
 import { parseCommitments, parseIsolation, phoenixUrl } from "../lib/trust/sections";
 
 const MATRIX = parseCapabilities(csv);
@@ -39,15 +40,14 @@ function useSection<T>(read: (s: TrustSection) => Promise<unknown>, section: Tru
   return load;
 }
 
-const anything = (v: unknown): unknown => v;
-
 export function TrustRoute() {
   const params = useParams();
   const section: SectionId = SECTIONS.find(([id]) => id === params["section"])?.[0] ?? "methodology";
   const api = useMemo(() => createTrustApi(createApiClient()), []);
   const isolation = useSection(api.section, "isolation", section === "isolation", parseIsolation);
   const commitments = useSection(api.section, "commitments", section === "commitments", parseCommitments);
-  const fairness = useSection(api.section, "fairness", section === "fairness", anything);
+  const fairness = useSection(api.section, "fairness", section === "fairness", parseFairness);
+  const calibration = useSection(api.section, "methodology", section === "methodology", parseCalibration);
   const budget = useSection(api.section, "budget", section === "budget", parseTrustBudget);
   const [phoenix, setPhoenix] = useState<string | null>(null);
   useEffect(() => {
@@ -63,5 +63,5 @@ export function TrustRoute() {
       cancelled = true;
     };
   }, [api, section]);
-  return <TrustPage section={section} matrix={MATRIX} isolation={isolation} commitments={commitments} fairness={fairness} budget={budget} phoenix={phoenix} verify={verifyCommitment} />;
+  return <TrustPage section={section} matrix={MATRIX} isolation={isolation} commitments={commitments} fairness={fairness} calibration={calibration} budget={budget} phoenix={phoenix} verify={verifyCommitment} />;
 }

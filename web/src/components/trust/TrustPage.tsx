@@ -11,6 +11,7 @@ import type { Capability } from "../../lib/trust/capability";
 import type { CommitmentRow, IsolationRun } from "../../lib/trust/sections";
 import type { TrustBudget } from "../../lib/trust/budget";
 import type { Verdict } from "../../lib/trust/commitment";
+import { pText, type CalibrationRow, type Fairness as FairnessData } from "../../lib/trust/fairness";
 import { CAP_USD, TARGET_USD } from "../../lib/trust/budget";
 import { EX4_TEXT } from "../../lib/copy/ex4";
 import { METRICS } from "../../lib/copy/metrics";
@@ -192,7 +193,7 @@ function Commitments({ rows, verify }: { rows: Load<readonly CommitmentRow[]>; v
   return (
     <>
       <Card title="Commitments">
-        <p>When a trial ends, the finding is hashed with a secret 32-byte nonce: commitment = sha256(nonce followed by the finding&apos;s stored text). The hash is published at once; the nonce and the text are published at reveal, so anyone can recompute the hash and see that no finding changed after the fact.</p>
+        <p>When a trial ends, its commitment payload (the finding together with the hashes of the transcript and the released evidence) is hashed with a secret 32-byte nonce: commitment = sha256(nonce followed by the payload text). The hash is published at once; the nonce and the payload text are published at reveal, so anyone can recompute the hash and see that nothing changed after the fact.</p>
         <Unavailable load={rows} />
         {rows.state === "ready" && rows.value.length === 0 ? <p className="empty">No commitments published.</p> : null}
         {rows.state === "ready" && rows.value.length > 0 ? (
@@ -201,7 +202,7 @@ function Commitments({ rows, verify }: { rows: Load<readonly CommitmentRow[]>; v
               <tr>
                 <th scope="col">Trial</th>
                 <th scope="col">Commitment</th>
-                <th scope="col">Transcript hash</th>
+                <th scope="col">Inputs</th>
                 <th scope="col">Check</th>
               </tr>
             </thead>
@@ -210,7 +211,23 @@ function Commitments({ rows, verify }: { rows: Load<readonly CommitmentRow[]>; v
                 <tr key={r.trial}>
                   <td className="mono">{r.trial}</td>
                   <td className="mono hash">{r.commitment}</td>
-                  <td className="mono">{r.transcriptSha?.slice(0, 16) ?? ""}</td>
+                  <td>
+                    <details>
+                      <summary className="fine">Hashes and reveal</summary>
+                      <dl className="commit-inputs">
+                        <dt>Transcript hash</dt>
+                        <dd className="mono hash">{r.transcriptSha ?? "not published"}</dd>
+                        <dt>Evidence hash</dt>
+                        <dd className="mono hash">{r.evidenceSha ?? "not published"}</dd>
+                        <dt>Nonce</dt>
+                        <dd className="mono hash">{r.nonce ?? "after reveal"}</dd>
+                        <dt>Payload text</dt>
+                        <dd>
+                          <code className="mono hash">{r.payloadText ?? "after reveal"}</code>
+                        </dd>
+                      </dl>
+                    </details>
+                  </td>
                   <td>
                     <RowVerify row={r} verify={verify} />
                   </td>
@@ -228,17 +245,115 @@ function Commitments({ rows, verify }: { rows: Load<readonly CommitmentRow[]>; v
   );
 }
 
-function Fairness({ load }: { load: Load<unknown> }) {
+function Fairness({ load }: { load: Load<FairnessData> }) {
   return (
     <Card title="Fairness audit">
       <p>Each case variant has a communication style, assigned by design independently of whether the subject is truthful. The audit compares each coach&apos;s false-positive rate and flag rate across styles, counts flags and findings that rest on demeanor rather than content (any count above zero is shown next to the rank), and tests the differences by permutation. Negative controls (recorded demeanor-driven coaching on the same content in two styles) show that the audit catches demeanor-based outputs. With this sample size a non-significant result means &quot;not detected&quot;, never &quot;no bias&quot;.</p>
       <Unavailable load={load} />
-      {load.state === "ready" ? <p className="fine">Results are published with the revealed tournament&apos;s leaderboards.</p> : null}
+      {load.state === "ready" ? (
+        <>
+          <p>{load.value.negativeControlsCaught === null ? "Negative controls: not reported." : load.value.negativeControlsCaught ? "Negative controls: the audit flagged them, as it must." : "Negative controls: the audit did not flag them; it cannot be relied on."}</p>
+          {load.value.styleRates.length === 0 ? null : (
+            <table className="board">
+              <caption className="fine">False-positive rate by communication style</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Coach</th>
+                  <th scope="col">Style</th>
+                  <th scope="col">False-positive rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {load.value.styleRates.map((r) => (
+                  <tr key={`${r.candidate}-${r.style}`}>
+                    <td className="mono">{r.candidate}</td>
+                    <td>{r.style}</td>
+                    <td>{r.fpr}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {load.value.demeanor.length === 0 ? null : (
+            <table className="board">
+              <caption className="fine">Outputs resting on demeanor (any count above zero is a violation)</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Coach</th>
+                  <th scope="col">Flags</th>
+                  <th scope="col">Findings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {load.value.demeanor.map((r) => (
+                  <tr key={r.candidate}>
+                    <td className="mono">{r.candidate}</td>
+                    <td>{r.flags}</td>
+                    <td>{r.findings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {load.value.tests.length === 0 ? null : (
+            <table className="board">
+              <caption className="fine">Permutation tests (10,000 permutations, Holm-corrected)</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Coach</th>
+                  <th scope="col">Test</th>
+                  <th scope="col">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {load.value.tests.map((t) => (
+                  <tr key={`${t.candidate}-${t.test}`}>
+                    <td className="mono">{t.candidate}</td>
+                    <td className="mono">{t.test}</td>
+                    <td>
+                      {pText(t.pValue)}; {t.significant ? "significant after correction" : "not detected at this sample size"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      ) : null}
     </Card>
   );
 }
 
-function Methodology() {
+function Calibration({ load }: { load: Load<readonly CalibrationRow[]> }) {
+  if (load.state === "loading") return <p className="fine">Loading the calibration results.</p>;
+  if (load.state !== "ready" || load.value.length === 0) return <p className="fine">Calibration results: not yet published.</p>;
+  return (
+    <table className="board">
+      <thead>
+        <tr>
+          <th scope="col">Instrument</th>
+          <th scope="col">Statistic</th>
+          <th scope="col">Value</th>
+          <th scope="col">Threshold</th>
+          <th scope="col">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        {load.value.map((r) => (
+          <tr key={`${r.instrument}-${r.statistic}`}>
+            <td>{r.instrument}</td>
+            <td>{r.statistic}</td>
+            <td className="mono">{r.value === null ? "uninformative sample" : r.value.toFixed(2)}</td>
+            <td className="mono">at least {r.threshold.toFixed(2)}</td>
+            <td>{r.met ? "met" : "not met"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Methodology({ calibration }: { calibration: Load<readonly CalibrationRow[]> }) {
   return (
     <>
       <Card title="What is measured">
@@ -291,6 +406,7 @@ function Methodology() {
       </Card>
       <Card title="How scores are checked">
         <p>The referee&apos;s scores are compared with blinded human raters, who fill the same yes/no checks and never enter a score themselves. A dimension is accepted when quadratic-weighted kappa is at least 0.60 and Gwet&apos;s AC2 at least 0.70; labels and flag support need kappa at least 0.60 and AC1 at least 0.70. Results are published with the calibration report.</p>
+        <Calibration load={calibration} />
       </Card>
       <Card title="NIST AI RMF, Measure function">
         <ul>
@@ -361,7 +477,8 @@ export interface TrustPageProps {
   readonly matrix: readonly Capability[];
   readonly isolation: Load<readonly IsolationRun[]>;
   readonly commitments: Load<readonly CommitmentRow[]>;
-  readonly fairness: Load<unknown>;
+  readonly fairness: Load<FairnessData>;
+  readonly calibration: Load<readonly CalibrationRow[]>;
   readonly budget: Load<TrustBudget>;
   readonly phoenix: string | null;
   readonly verify: (nonce: string, payload: string, commitment: string) => Promise<Verdict>;
@@ -388,7 +505,7 @@ export function TrustPage(props: TrustPageProps) {
       {props.section === "isolation" ? <Isolation matrix={props.matrix} runs={props.isolation} /> : null}
       {props.section === "commitments" ? <Commitments rows={props.commitments} verify={props.verify} /> : null}
       {props.section === "fairness" ? <Fairness load={props.fairness} /> : null}
-      {props.section === "methodology" ? <Methodology /> : null}
+      {props.section === "methodology" ? <Methodology calibration={props.calibration} /> : null}
       {props.section === "budget" ? <Budget load={props.budget} /> : null}
       {props.section === "observability" ? <Observability phoenix={props.phoenix} /> : null}
     </div>

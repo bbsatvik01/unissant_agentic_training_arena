@@ -1,7 +1,8 @@
 /**
  * The judge demo's guide card (stage 4): the step, what to say, what to point at, elapsed time against about four
  * minutes, and the step's controls. The interview step offers the recorded run first (no model call), a recording
- * file, and a live interview only when one can start; "Skip to the debrief" keeps the demo on time.
+ * file, and a live interview only when one can start; "Go to the debrief" jumps a recorded run to its debrief wall,
+ * which keeps the demo on time.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -12,6 +13,8 @@ interface DemoGuideProps {
   readonly startedAt: number;
   /** The interview step: a recorded run is playing or loaded. */
   readonly recordingLoaded: boolean;
+  /** The step cannot move on yet (a live interview reaches the debrief by finishing it). */
+  readonly nextDisabled: boolean;
   readonly canLive: boolean;
   readonly onNext: () => void;
   readonly onBack: (() => void) | null;
@@ -19,7 +22,6 @@ interface DemoGuideProps {
   readonly onRecorded: () => void;
   readonly onFile: (file: File) => void;
   readonly onLive: () => void;
-  readonly onSkip: (() => void) | null;
 }
 
 function useElapsed(startedAt: number): number {
@@ -88,11 +90,6 @@ export function DemoGuide(props: DemoGuideProps) {
               Interview live instead
             </button>
           ) : null}
-          {props.onSkip === null ? null : (
-            <button type="button" className="btn-secondary-sm" onClick={props.onSkip}>
-              Skip to the debrief
-            </button>
-          )}
         </div>
       ) : null}
       <footer className="demo-foot">
@@ -101,7 +98,7 @@ export function DemoGuide(props: DemoGuideProps) {
             Back
           </button>
         )}
-        <button type="button" className="btn-primary" onClick={last ? props.onClose : props.onNext}>
+        <button type="button" className="btn-primary" disabled={!last && props.nextDisabled} onClick={last ? props.onClose : props.onNext}>
           {last ? "Finish" : step === "precinct" ? "Open the interview room" : step === "interview" ? "Go to the debrief" : "Go to the arena"}
         </button>
       </footer>

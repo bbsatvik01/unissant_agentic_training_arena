@@ -5,7 +5,7 @@
  * or a recorded run (the bundled F01 recording or an exported file). Without the API the hub falls back to the
  * bundled case list and recordings only.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArenaView } from "../components/overlay/ArenaView";
 import { DemoGuide } from "../components/overlay/DemoGuide";
@@ -268,10 +268,21 @@ export function WorldRoute() {
     setMode("playback");
   };
 
+  // A live start waits for the render in which the session hook holds this case (coming from playback, the hook's
+  // case is null until the mode changes), then starts once.
+  const pendingStart = useRef<"practice" | "assessment" | null>(null);
   const startLive = (m: "practice" | "assessment") => {
+    pendingStart.current = m;
     setMode("live");
-    void session.start(m);
   };
+  const startSession = session.start;
+  const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
+  useEffect(() => {
+    const m = pendingStart.current;
+    if (m === null || liveCaseId === null) return;
+    pendingStart.current = null;
+    void startSession(m);
+  }, [liveCaseId, startSession]);
 
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   // A checked recording plays in the room the same way whether it came from a file or the server.
@@ -895,6 +906,7 @@ export function WorldRoute() {
           step={demoStep}
           startedAt={demo.startedAt}
           recordingLoaded={mode === "playback" && recording !== null}
+          nextDisabled={demoStep === "interview" && !(mode === "playback" && recording !== null)}
           canLive={canStartLive && active !== null && cases.some((c) => c.case_id === active.case_id)}
           onClose={() => {
             setDemo(null);
@@ -917,7 +929,10 @@ export function WorldRoute() {
             if (demoStep === "precinct") {
               openDemoRecording();
               setDemo({ ...demo, step: "interview" });
-            } else if (demoStep === "interview" || demoStep === "debrief") {
+            } else if (demoStep === "interview") {
+              // To the debrief wall: the recorded run jumps to its end, where the debrief goes up.
+              if (mode === "playback" && recording !== null) playback.seekTo(playback.duration);
+            } else if (demoStep === "debrief") {
               backToHub();
               openArena();
               setDemo({ ...demo, step: "arena" });
@@ -933,10 +948,7 @@ export function WorldRoute() {
           onLive={() => {
             startLive("practice");
           }}
-          onSkip={mode === "playback" && recording !== null && !debriefReady ? () => {
-            playback.seekTo(playback.duration);
-          } : null}
-        />
+/>
       )}
       <footer className="ex4">{EX4_TEXT}</footer>
     </div>

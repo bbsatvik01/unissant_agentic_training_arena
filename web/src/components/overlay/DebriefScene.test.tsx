@@ -119,7 +119,7 @@ describe("DebriefScene", () => {
     show();
     let printed = "";
     const print = vi.spyOn(window, "print").mockImplementation(() => {
-      printed = document.querySelector(".debrief-print")?.textContent ?? "";
+      printed = document.documentElement.classList.contains("printing-debrief") ? (document.querySelector(".debrief-print")?.textContent ?? "") : "";
     });
     expect(document.querySelector(".debrief-print")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Print" }));
@@ -128,6 +128,7 @@ describe("DebriefScene", () => {
     for (const heading of ["Scores", "Questions", "Detection", "Learning"]) expect(printed).toContain(heading);
     expect(printed).toContain("1 of 2 labeled events");
     expect(document.querySelector(".debrief-print")).toBeNull();
+    expect(document.documentElement.classList.contains("printing-debrief")).toBe(false);
     print.mockRestore();
   });
 

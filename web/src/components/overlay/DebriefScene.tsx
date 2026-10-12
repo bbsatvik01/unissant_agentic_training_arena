@@ -315,8 +315,14 @@ export function DebriefScene({ debrief, view, documents, reducedMotion, onClose 
               flushSync(() => {
                 setPrinting(true);
               });
-              window.print();
-              setPrinting(false);
+              const root = document.documentElement;
+              root.classList.add("printing-debrief");
+              try {
+                window.print();
+              } finally {
+                root.classList.remove("printing-debrief");
+                setPrinting(false);
+              }
             }}
           >
             Print

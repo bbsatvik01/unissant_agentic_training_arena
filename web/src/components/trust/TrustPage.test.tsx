@@ -25,6 +25,7 @@ const base: TrustPageProps = {
   isolation: { state: "missing" },
   commitments: { state: "missing" },
   fairness: { state: "missing" },
+  calibration: { state: "missing" },
   budget: { state: "missing" },
   phoenix: null,
   verify: verifyCommitment,
@@ -75,8 +76,33 @@ describe("TrustPage", () => {
     const payload = "{}";
     const commitment = (await commitmentOf(nonce, payload)) ?? "";
     render(<TrustPage {...base} section="commitments" commitments={{ state: "ready", value: [{ trial: "#1", commitment, transcriptSha: null, evidenceSha: null, payloadText: payload, nonce }, { trial: "#2", commitment, transcriptSha: null, evidenceSha: null, payloadText: null, nonce: null }] }} />);
-    expect(screen.getByText("after reveal")).toBeTruthy();
+    expect(screen.getAllByText("after reveal").length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Verify in browser" })[0] as HTMLElement);
     expect(await screen.findByText("match")).toBeTruthy();
+  });
+
+  it("renders the fairness audit as published, and calibration with an uninformative sample as not met", () => {
+    const { unmount } = render(
+      <TrustPage
+        {...base}
+        section="fairness"
+        fairness={{ state: "ready", value: { styleRates: [{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%" }], demeanor: [{ candidate: "A2", flags: 3, findings: 0 }], tests: [{ candidate: "A1", test: "FA-5a", pValue: 0.2, significant: false }], negativeControlsCaught: true } }}
+      />,
+    );
+    expect(screen.getByText("0%, interval 0%-40%")).toBeTruthy();
+    expect(screen.getByText("Negative controls: the audit flagged them, as it must.")).toBeTruthy();
+    expect(screen.getByText("p = 0.200; not detected at this sample size")).toBeTruthy();
+    unmount();
+    render(<TrustPage {...base} calibration={{ state: "ready", value: [{ instrument: "EVL-7 D2", statistic: "QWK", value: null, threshold: 0.6, met: false }] }} />);
+    expect(screen.getByText("uninformative sample")).toBeTruthy();
+    expect(screen.getByText("not met")).toBeTruthy();
+  });
+
+  it("shows a published row's full hashes, nonce and payload for copying", () => {
+    render(<TrustPage {...base} section="commitments" commitments={{ state: "ready", value: [{ trial: "#1", commitment: "c".repeat(64), transcriptSha: "t".repeat(64), evidenceSha: "e".repeat(64), payloadText: '{"label": "truthful"}', nonce: "ab".repeat(32) }] }} />);
+    expect(screen.getByText("t".repeat(64))).toBeTruthy();
+    expect(screen.getByText("e".repeat(64))).toBeTruthy();
+    expect(screen.getByText("ab".repeat(32))).toBeTruthy();
+    expect(screen.getByText('{"label": "truthful"}')).toBeTruthy();
   });
 });

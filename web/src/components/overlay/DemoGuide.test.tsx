@@ -14,6 +14,7 @@ function props(over: Partial<Parameters<typeof DemoGuide>[0]> = {}): Parameters<
     step: "interview",
     startedAt: Date.now(),
     recordingLoaded: false,
+    nextDisabled: false,
     canLive: false,
     onNext: vi.fn(),
     onBack: vi.fn(),
@@ -21,7 +22,6 @@ function props(over: Partial<Parameters<typeof DemoGuide>[0]> = {}): Parameters<
     onRecorded: vi.fn(),
     onFile: vi.fn(),
     onLive: vi.fn(),
-    onSkip: null,
     ...over,
   };
 }
@@ -33,15 +33,13 @@ describe("DemoGuide", () => {
     expect(screen.getByText(DEMO_COPY.interview.title)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Play the recorded run" }).className).toBe("btn-primary");
     expect(screen.queryByRole("button", { name: "Interview live instead" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Skip to the debrief" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Play the recorded run" }));
     expect(p.onRecorded).toHaveBeenCalled();
-    const skip = vi.fn();
-    rerender(<DemoGuide {...p} canLive onSkip={skip} />);
+    rerender(<DemoGuide {...p} canLive nextDisabled />);
     fireEvent.click(screen.getByRole("button", { name: "Interview live instead" }));
-    fireEvent.click(screen.getByRole("button", { name: "Skip to the debrief" }));
     expect(p.onLive).toHaveBeenCalled();
-    expect(skip).toHaveBeenCalled();
+    // A live interview reaches the debrief by finishing it.
+    expect(screen.getByRole("button", { name: "Go to the debrief" }).hasAttribute("disabled")).toBe(true);
   });
 
   it("names the next place and finishes on the arena", () => {

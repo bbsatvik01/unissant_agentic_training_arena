@@ -77,3 +77,32 @@ describe("trust sections", () => {
     expect(phoenixUrl({ phoenix_url: null })).toBe(null);
   });
 });
+
+describe("fairness and calibration", () => {
+  it("reads the audit's figures as published", async () => {
+    const { parseFairness, pText } = await import("./fairness");
+    const f = parseFairness({
+      style_fpr: [{ candidate: "A1", style: "terse", point: { num: 0, den: 5, value: 0 }, interval: { lo: 0, hi: 0.4 } }, { style: "x" }],
+      demeanor: [{ candidate: "A2", flags: 3, findings: 1 }],
+      tests: [{ candidate: "A1", test: "FA-5a", p_value: 0.0004, significant_after_holm: true }],
+      negative_controls: { caught: true },
+    });
+    expect(f?.styleRates).toEqual([{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%" }]);
+    expect(f?.demeanor).toEqual([{ candidate: "A2", flags: 3, findings: 1 }]);
+    expect(f?.tests[0]).toMatchObject({ test: "FA-5a", significant: true });
+    expect(f?.negativeControlsCaught).toBe(true);
+    expect(parseFairness({})?.negativeControlsCaught).toBe(null);
+    expect(parseFairness(null)).toBe(null);
+    expect(pText(0.0004)).toBe("p < 0.001");
+    expect(pText(0.0312)).toBe("p = 0.031");
+  });
+
+  it("reads calibration against its thresholds, an uninformative sample as not met", async () => {
+    const { parseCalibration } = await import("./fairness");
+    expect(parseCalibration({ calibration: [{ instrument: "EVL-7 D1", statistic: "QWK", value: 0.72, threshold: 0.6 }, { instrument: "EVL-7 D2", statistic: "QWK", value: null, threshold: 0.6 }, { statistic: "x" }] })).toEqual([
+      { instrument: "EVL-7 D1", statistic: "QWK", value: 0.72, threshold: 0.6, met: true },
+      { instrument: "EVL-7 D2", statistic: "QWK", value: null, threshold: 0.6, met: false },
+    ]);
+    expect(parseCalibration({})).toBe(null);
+  });
+});
