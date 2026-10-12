@@ -91,3 +91,4 @@
 - 063bb84 merge fairness audit FA-1..FA-6 (published at reveal, trust page)
 - 247d4a5 merge CSRF names + leaderboard display names + fairness violations on rows
 - 6479e85 merge KPI-1 study tooling + runbook (sets A=F06/F07, B=F08/F09)
+- fa4224f merge seal prep (freeze path, hidden export, seal dry run); migration 20261012000100 to apply on hosted
