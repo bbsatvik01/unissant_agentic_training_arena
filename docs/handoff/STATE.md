@@ -5,6 +5,7 @@
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
 ## Wave 2026-10-12
+- WP-28 hidden execution (ae301e328fda27957, wt-hidden-exec cfa87c5): runs end to end, but coordinator cold Codex found 2 majors: harness_trial_state relaxes S4 invariant 6 (redo via work-item-gated trial_context, revert S4 amendment) and recording authorization by packet availability instead of trial_visible (affects main's v_hidden_cases path). In fix.
 - Merged since resume: WP-04/05/07/11/12/13/14/16/17, UI stages 1-7, api UI/trust/tournament routes, fake referee, hosted seeding, real pilot (real Gemini end to end), DB latency, rubric.v1, fairness audit, CSRF names.
 - Running: KPI-1 families F10-F13 + WP-30 study setup (aad561ea74585c0e2, Opus, wt-kpi1); pre-seal prep: referee freeze path, hidden-split export, WP-27 sealing dry run (a18fae2254d13674a, Sonnet, wt-seal-prep).
 - Owner asks pending: stop 3 stuck wt-wp08 pytest runs (PIDs 11578, 85825, 93252); raise per-user daily text sessions 5 -> 20 while testing; Gemini TTS rows + model (recommend gemini-3.8-flash-lite-tts with google-genai bump); calibration raters Oct 15-18.
