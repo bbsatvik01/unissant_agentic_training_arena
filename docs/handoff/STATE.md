@@ -4,6 +4,12 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## Wave 2026-10-12
+- Merged since resume: WP-04/05/07/11/12/13/14/16/17, UI stages 1-7, api UI/trust/tournament routes, fake referee, hosted seeding, real pilot (real Gemini end to end), DB latency, rubric.v1, fairness audit, CSRF names.
+- Running: KPI-1 families F10-F13 + WP-30 study setup (aad561ea74585c0e2, Opus, wt-kpi1); pre-seal prep: referee freeze path, hidden-split export, WP-27 sealing dry run (a18fae2254d13674a, Sonnet, wt-seal-prep).
+- Owner asks pending: stop 3 stuck wt-wp08 pytest runs (PIDs 11578, 85825, 93252); raise per-user daily text sessions 5 -> 20 while testing; Gemini TTS rows + model (recommend gemini-3.8-flash-lite-tts with google-genai bump); calibration raters Oct 15-18.
+- Next: WP-06 probes + WP-22 voice, WP-24 slice integration, WP-25a calibration, dev pilot, WP-27 hidden authoring + seal, sealed run, KPI-1 Oct 24.
+
 ## RESUMED 2026-10-11 (owner: full speed, simple, UI is the centerpiece D-020, record runs D-021, Codex gates sparingly)
 | Item | State | Next |
 | --- | --- | --- |
