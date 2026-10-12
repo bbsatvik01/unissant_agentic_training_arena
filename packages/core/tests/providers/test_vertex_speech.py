@@ -277,10 +277,16 @@ def designer_with(handler: Handler) -> tuple[vertex.VertexVoiceDesigner, list[An
 
 
 CREDS = Creds()
+# The CreateVoice reply as Google's REST reference prints it (snake_case).
 REPLY = {
     "id": "voice_abc",
-    "sampleAudio": {"mimeType": "audio/l16; rate=24000", "data": "UklGRg=="},
-    "usage": {"totalInputTokens": 220, "totalOutputTokens": 1100},
+    "sample_audio": {"mime_type": "audio/l16; rate=24000", "data": "UklGRg=="},
+    "usage": {"total_input_tokens": 220, "total_output_tokens": 1100},
+}
+CAMEL_REPLY = {
+    "id": "voice_abc",
+    "sampleAudio": {"mimeType": "audio/wav", "data": "UklGRg=="},
+    "usage": {"totalInputTokens": 3, "totalOutputTokens": 4},
 }
 
 
@@ -310,6 +316,12 @@ def test_a_designed_voice_is_one_post_of_the_measured_bytes_and_reads_its_id_sam
             "prompted": {"input": "A clerk in her forties."},
         },
     }
+    camel = design(designer_with(lambda _request: httpx.Response(200, json=CAMEL_REPLY))[0])
+    assert (camel.sample, camel.sample_mime, camel.usage) == (
+        b"RIFF",
+        "audio/wav",
+        Usage(input_tokens=3, output_tokens=4),
+    )
     accented, sent2 = designer_with(lambda _request: httpx.Response(200, json=REPLY))
     design(accented, 'Une voix \u00e9l\u00e9gante \U0001f600 \\ "q"')
     assert len(sent2[0].content) == vertex.voice_design_bytes(

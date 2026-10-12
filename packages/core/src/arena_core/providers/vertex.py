@@ -464,6 +464,12 @@ def _count(obj: Mapping[str, object], *names: str) -> int | None:
     return None
 
 
+def _field(obj: Mapping[str, object], snake: str, camel: str) -> object:
+    """A reply field by its REST name (snake_case, as Google's CreateVoice reference prints it) or its JSON-mapping
+    camelCase twin."""
+    return obj[snake] if snake in obj else obj.get(camel)
+
+
 def designed_voice_from(data: object) -> DesignedVoice:
     """The CreateVoice reply: the stored voice id, its sample and the billed usage (input and output tokens); a reply
     without a stored id is empty (with its usage)."""
@@ -472,18 +478,18 @@ def designed_voice_from(data: object) -> DesignedVoice:
     raw_usage = data.get("usage")
     usage = None
     if isinstance(raw_usage, dict):
-        tokens_in = _count(raw_usage, "totalInputTokens", "promptTokenCount", "inputTokens")
-        tokens_out = _count(raw_usage, "totalOutputTokens", "candidatesTokenCount", "outputTokens")
+        tokens_in = _count(raw_usage, "total_input_tokens", "totalInputTokens")
+        tokens_out = _count(raw_usage, "total_output_tokens", "totalOutputTokens")
         if tokens_in is not None and tokens_out is not None:
             usage = Usage(input_tokens=tokens_in, output_tokens=tokens_out)
     voice_id = data.get("id")
     if not isinstance(voice_id, str) or not voice_id.startswith("voice_"):
         raise ProviderCallError(ErrorKind.EMPTY, "no stored voice id in the reply", usage=usage, maybe_billed=True)
-    sample_obj = data.get("sampleAudio")
+    sample_obj = _field(data, "sample_audio", "sampleAudio")
     sample, mime = b"", ""
     if isinstance(sample_obj, dict):
         raw = sample_obj.get("data")
-        mime_raw = sample_obj.get("mimeType")
+        mime_raw = _field(sample_obj, "mime_type", "mimeType")
         mime = mime_raw if isinstance(mime_raw, str) else ""
         if isinstance(raw, str):
             try:

@@ -97,6 +97,15 @@ export function createAudioMouth(): AudioMouth {
   };
 }
 
+/** Where a face's mouth comes from this frame: the audio being played for it (even when no text line is on stage,
+ * as for a coach's earpiece aside), else the text line's timeline, else nothing; with motion stopped, a speaking face
+ * holds a still marker and a silent one stays closed. */
+export function mouthSource(audio: Weights | null, textSpeaking: boolean, still: boolean): "audio" | "text" | "still" | "none" {
+  if (still) return textSpeaking ? "still" : "none";
+  if (audio !== null) return "audio";
+  return textSpeaking ? "text" : "none";
+}
+
 /** A Web Audio analyser as a spectrum source. */
 export function analyserSource(analyser: AnalyserNode): SpectrumSource {
   return { sampleRate: analyser.context.sampleRate, fftSize: analyser.fftSize, read: (into) => { analyser.getByteFrequencyData(into); } };

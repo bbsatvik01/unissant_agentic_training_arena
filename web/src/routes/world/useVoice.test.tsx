@@ -134,16 +134,21 @@ describe("useVoice", () => {
     expect(speak).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps a coach suggestion queued behind the answer when the next question comes", () => {
+  it("says the coach's suggestion only after the answer, and keeps it ahead of the next question", () => {
     const clock = { current: 1000 };
     const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-6", engine: ENGINE };
     const { rerender } = renderHook((p: typeof props) => {
       useVoice(p);
     }, { initialProps: props });
-    speak.mock.calls[0]?.[0].onstart?.();
+    const answer = speak.mock.calls[0]?.[0];
+    answer?.onstart?.();
     clock.current = 1200;
     rerender({ ...props, world: world(LINE, null, true) });
+    // The answer is still being spoken: the aside waits for it.
+    expect(speak).toHaveBeenCalledTimes(1);
+    answer?.onend?.();
     expect(speak.mock.calls[1]?.[0].text).toBe("Try asking: What time did you leave?");
+    speak.mock.calls[1]?.[0].onstart?.();
     cancel.mockReset();
     const question = { turn: 2, text: "What time did you leave B-12?", startedAt: 1400 };
     clock.current = 1450;
@@ -201,16 +206,18 @@ describe("useVoice", () => {
     expect(result.current.coachSpeaking).toBe(false);
   });
 
-  it("never cuts the subject's answer to mute the earpiece: the aside queued behind it is left to finish", () => {
+  it("never cuts the subject's answer to mute the earpiece, and a muted aside is never said after it", () => {
     const clock = { current: 1000 };
     const props = { world: world(LINE), view: PRACTICE, subjectName: "Jordan Pell", clock, active: true, scope: "rec-11", engine: ENGINE, earpiece: true };
     const { rerender } = renderHook((p: typeof props) => useVoice(p), { initialProps: props });
-    speak.mock.calls[0]?.[0].onstart?.();
+    const answer = speak.mock.calls[0]?.[0];
+    answer?.onstart?.();
     clock.current = 1200;
     rerender({ ...props, world: world(LINE, null, true) });
-    expect(speak.mock.calls[1]?.[0].text).toBe("Try asking: What time did you leave?");
     cancel.mockReset();
     rerender({ ...props, world: world(LINE, null, true), earpiece: false });
     expect(cancel).not.toHaveBeenCalled();
+    answer?.onend?.();
+    expect(speak).toHaveBeenCalledTimes(1);
   });
 });

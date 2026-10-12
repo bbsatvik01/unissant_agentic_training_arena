@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bandLevels, createAudioMouth, mouthFromBands, type SpectrumSource } from "./audioLips";
+import { bandLevels, createAudioMouth, mouthFromBands, mouthSource, type SpectrumSource } from "./audioLips";
 
 const RATE = 24_000;
 const FFT = 512; // 256 bins of 46.875 Hz
@@ -55,5 +55,14 @@ describe("lips from the played audio", () => {
     expect(mouth.active("k")).toBe(true);
     second();
     expect(mouth.active("k")).toBe(false);
+  });
+
+  it("takes the mouth from playing audio even without a text line, the text otherwise, nothing when still and silent", () => {
+    expect(mouthSource({ aa: 0.4 }, false, false)).toBe("audio");
+    expect(mouthSource({ aa: 0.4 }, true, false)).toBe("audio");
+    expect(mouthSource(null, true, false)).toBe("text");
+    expect(mouthSource(null, false, false)).toBe("none");
+    expect(mouthSource({ aa: 0.4 }, true, true)).toBe("still");
+    expect(mouthSource({ aa: 0.4 }, false, true)).toBe("none");
   });
 });

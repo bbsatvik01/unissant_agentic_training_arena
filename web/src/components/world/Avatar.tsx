@@ -37,7 +37,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import { speechSync } from "../../lib/voice/speechSync";
-import { audioMouth } from "../../lib/world/audioLips";
+import { audioMouth, mouthSource } from "../../lib/world/audioLips";
 import { seeded, seedOf, type Persona } from "../../lib/world/cast";
 import type { Vec3 } from "../../lib/world/layout";
 import { beatTimes, VISEMES, visemeTrack, visemeWeightsAt, type VisemeKey, type VisemeSpan } from "../../lib/world/visemes";
@@ -255,13 +255,18 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   // Speech beats: a small nod and a hand lift on stressed words.
   let mouthOpen = 0;
   const weights: Partial<Record<VisemeKey, number>> = {};
-  if (pose === "speaking" && speech !== null) {
-    // The mouth follows the audio being played for this persona when there is some (lips from audio), else the
-    // voice's reported position on the text timeline, else the text cadence (speechSync).
+  // The mouth follows the audio being played for this persona when there is some (lips from audio; also a coach's
+  // earpiece aside, which has no text line on stage), else the voice's reported position on the text timeline, else
+  // the text cadence (speechSync).
+  const textSpeaking = pose === "speaking" && speech !== null;
+  const audio = still ? null : audioMouth.weightsFor(persona.voice.gemini);
+  const source = mouthSource(audio, textSpeaking, still);
+  if (source === "audio" && audio !== null) Object.assign(weights, audio);
+  if (textSpeaking) {
     const elapsed = speechSync.elapsedFor(speech, clock.current);
-    if (still) mouthOpen = 0.5;
+    if (source === "still") mouthOpen = 0.5;
     else {
-      Object.assign(weights, audioMouth.weightsFor(persona.voice.gemini) ?? visemeWeightsAt(track, elapsed));
+      if (source === "text") Object.assign(weights, visemeWeightsAt(track, elapsed));
       let beat = 0;
       for (const b of beats) beat = Math.max(beat, easeBeat((elapsed - b) / 1000));
       rotateWorld(head, right, beat * 0.06 * persona.gesture);

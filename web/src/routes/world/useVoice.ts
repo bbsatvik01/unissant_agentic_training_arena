@@ -51,6 +51,16 @@ interface Memory {
   generation: number;
   /** Tells the hook whether the coach's earpiece aside is being said. */
   onCoach: (speaking: boolean) => void;
+  /** The earpiece toggle as it is now (read when a waiting aside would start). */
+  earpiece: boolean;
+  /** Asides waiting for the dialogue to finish: one goes to the voice only when no dialogue speaks or waits. */
+  asides: (() => void)[];
+}
+
+/** Hand the waiting asides to the voice once no dialogue speaks or waits, if the earpiece is still on. */
+function flushAsides(memory: Memory): void {
+  if (!memory.earpiece) memory.asides = [];
+  while (memory.dialoguePending === 0 && memory.asides.length > 0) memory.asides.shift()?.();
 }
 
 /** Speak `text` through the engine; a dialogue line reports its voice to `speechSync` (queued until it starts, so its
@@ -82,6 +92,7 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
           if (kind === "coach") memory.coachPending = Math.max(0, memory.coachPending - 1);
           else memory.dialoguePending = Math.max(0, memory.dialoguePending - 1);
         }
+        if (kind === "dialogue") flushAsides(memory);
         if (memory.speaking?.token === token) memory.speaking = null;
         if (kind === "coach") memory.onCoach(false);
         if (line !== null) speechSync.end(line, epoch);
@@ -98,6 +109,7 @@ function silence(engine: VoiceEngine, memory: Memory): void {
   memory.speaking = null;
   memory.coachPending = 0;
   memory.dialoguePending = 0;
+  memory.asides = [];
   memory.onCoach(false);
 }
 
@@ -115,7 +127,7 @@ function noteClock(engine: VoiceEngine, memory: Memory, now: number): void {
 
 export function useVoice({ world, view, subjectName, clock, active, scope, engine, earpiece = true }: Options): { readonly coachSpeaking: boolean } {
   const [coachSpeaking, setCoachSpeaking] = useState(false);
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking });
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking, earpiece, asides: [] });
   useEffect(() => {
     forget(engine, memory.current);
     memory.current.lastClock = 0;
@@ -155,7 +167,7 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
   }, [active, subject, question, subjectName, clock, engine]);
 
   // The coach in the investigator's earpiece (stage 8): as it hands a new card over it says the suggested follow-up
-  // quietly, in its own voice, after the answer (the engine's queue: it never talks over the subject). Practice
+  // quietly, in its own voice, after the answer (it waits for the dialogue: it never talks over the subject). Practice
   // only, never in an assessment; muted with the earpiece toggle. A card that arrives muted is not said later.
   const newest = view?.mode === "practice" ? (view.cards.at(-1) ?? null) : null;
   const handing = world?.coaches.some((c) => c.pose === "handing") ?? false;
@@ -165,13 +177,21 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
     if (!active || !handing || newest === null || m.cards.has(newest.turn_no)) return;
     m.cards.add(newest.turn_no);
     if (!earpiece) return;
-    speak(engine, m, "coach", COACH, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock);
+    // Said after the answer: it waits while any dialogue speaks or waits, and is dropped if the earpiece is muted
+    // before its turn.
+    m.asides.push(() => {
+      speak(engine, m, "coach", COACH, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock);
+    });
+    flushAsides(m);
   }, [newest, handing, active, clock, engine, earpiece]);
   // Muting the earpiece stops an aside being said, when no dialogue is speaking or waiting behind it (the engine's
   // cancel drops its whole queue, and an answer is never cut for the earpiece); otherwise the aside finishes.
   useEffect(() => {
     const m = memory.current;
-    if (earpiece || m.coachPending === 0 || m.dialoguePending > 0) return;
+    m.earpiece = earpiece;
+    if (earpiece) return;
+    m.asides = [];
+    if (m.coachPending === 0 || m.dialoguePending > 0) return;
     silence(engine, m);
   }, [earpiece, engine]);
   return { coachSpeaking: coachSpeaking && active && earpiece };
