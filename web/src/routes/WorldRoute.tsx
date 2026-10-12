@@ -79,6 +79,10 @@ export function WorldRoute() {
   const api = useMemo(() => createArenaApi(createApiClient()), []);
   const [liveCases, setLiveCases] = useState<readonly CaseCard[] | null>(null);
   const [place, setPlace] = useState<"hub" | "room">("hub");
+  const placeRef = useRef(place);
+  useEffect(() => {
+    placeRef.current = place;
+  });
   const [active, setActive] = useState<CaseCard | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [load, setLoad] = useState<Load>({ state: "none" });
@@ -216,9 +220,18 @@ export function WorldRoute() {
     };
   }, [load.state]);
 
-  // Once the camera has landed in the room and the recording is ready, a recorded run plays (never in the precinct).
+  // Once the camera has landed in the room and the recording is ready, a recorded run plays (never in the precinct),
+  // once per recording: a later camera move never restarts it, nor undoes a seek to its debrief.
+  const autoplayed = useRef<Recording | null>(null);
   useEffect(() => {
-    if (arrived && place === "room" && mode === "playback" && recording !== null) play();
+    // Leaving the room forgets it, so the next visit plays the run again.
+    if (place !== "room") {
+      autoplayed.current = null;
+      return;
+    }
+    if (!arrived || mode !== "playback" || recording === null || autoplayed.current === recording) return;
+    autoplayed.current = recording;
+    play();
   }, [arrived, place, mode, recording, play]);
 
   // The live brief: the case's initial documents for the wall and the evidence list.
@@ -314,7 +327,8 @@ export function WorldRoute() {
     });
     setLoad({ state: "ready", recording: result.recording });
     setMode("playback");
-    setArrived(false);
+    // Already in the room (a recording replaced there), the camera has landed: keep it so the new run plays.
+    setArrived((a) => (placeRef.current === "room" ? a : false));
     setDebriefClosed(false);
     setCite(null);
     setPlace("room");
