@@ -1951,6 +1951,8 @@ td {
 
   .topbar-meta {
     flex-wrap: wrap;
+  }
+}
 
 /* Voice pill bar and consent (S6 3.3, 6.2; WP-22): docked at the bottom of the room, never a takeover. */
 .voice-bar {
