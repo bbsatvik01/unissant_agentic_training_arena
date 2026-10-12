@@ -9,7 +9,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group } from "three";
 
-import type { Standings } from "../../lib/arena/standings";
+import { standingsKey, type Standings } from "../../lib/arena/standings";
 import type { Vec3 } from "../../lib/world/layout";
 import { standingsTexture } from "./textures";
 
@@ -28,7 +28,9 @@ export function flipAt(t: number): number {
 }
 
 export function StandingsBoard({ standings, position, rotation, still, onOpen }: { standings: Standings; position: Vec3; rotation: number; still: boolean; onOpen: () => void }) {
-  const map = useMemo(() => standingsTexture(standings), [standings]);
+  // Keyed on what the board says, so a re-read of the same board neither redraws nor turns it over.
+  const key = standingsKey(standings);
+  const map = useMemo(() => standingsTexture(JSON.parse(key) as Standings), [key]);
   useEffect(
     () => () => {
       map.dispose();
@@ -41,7 +43,7 @@ export function StandingsBoard({ standings, position, rotation, still, onOpen }:
   const [hover, setHover] = useState(false);
   useEffect(() => {
     flipFrom.current = -1;
-  }, [standings]);
+  }, [key]);
   useFrame(({ clock }) => {
     const g = turn.current;
     if (g === null) return;

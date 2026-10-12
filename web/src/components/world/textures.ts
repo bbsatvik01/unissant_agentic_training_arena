@@ -5,7 +5,7 @@
  */
 import { CanvasTexture, SRGBColorSpace } from "three";
 
-import type { Standings } from "../../lib/arena/standings";
+import { standingsLayout, type Standings } from "../../lib/arena/standings";
 import { PALETTE } from "../../lib/world/palette";
 
 const SANS = "Inter, system-ui, -apple-system, sans-serif";
@@ -193,27 +193,21 @@ export function standingsTexture(s: Standings): CanvasTexture {
   ctx.fillStyle = PALETTE.body;
   ctx.font = `400 32px ${SANS}`;
   for (const [i, line] of wrap(ctx, s.note, w - 112, 2).entries()) ctx.fillText(line, 56, 214 + i * 40);
-  let y = 330;
-  for (const row of s.rows.slice(0, 3)) {
-    ctx.fillStyle = PALETTE.hairline;
-    ctx.fillRect(56, y - 54, w - 112, 2);
-    ctx.fillStyle = PALETTE.ink;
-    ctx.font = `600 64px ${MONO}`;
-    ctx.fillText(row.rank, 56, y);
-    ctx.font = `600 50px ${SANS}`;
-    ctx.fillText(wrap(ctx, row.name, 560, 1)[0] ?? "", 160, y);
-    ctx.fillStyle = PALETTE.body;
-    ctx.font = `400 38px ${MONO}`;
-    ctx.textAlign = "right";
-    ctx.fillText(row.detail, w - 56, y);
-    ctx.textAlign = "left";
-    y += 96;
-  }
-  ctx.fillStyle = PALETTE.mute;
-  ctx.font = `400 30px ${SANS}`;
-  for (const line of s.excluded.slice(0, 1)) {
-    ctx.fillText(wrap(ctx, `Not ranked: ${line}`, w - 112, 1)[0] ?? "", 56, y);
-    y += 40;
+  for (const line of standingsLayout(s, 250, h - 24)) {
+    if (line.kind === "row") {
+      ctx.fillStyle = PALETTE.hairline;
+      ctx.fillRect(56, line.y - line.size * 1.25, w - 112, 2);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.font = `600 ${String(line.size)}px ${MONO}`;
+      ctx.fillText(line.rank, 56, line.y);
+      ctx.font = `600 ${String(line.size)}px ${SANS}`;
+      ctx.fillText(wrap(ctx, line.name, w - 200, 1)[0] ?? "", 56 + line.size * 1.8, line.y);
+    } else {
+      const indented = line.kind !== "excluded";
+      ctx.fillStyle = line.kind === "detail" ? PALETTE.body : PALETTE.mute;
+      ctx.font = `400 ${String(line.size)}px ${line.kind === "detail" ? MONO : SANS}`;
+      ctx.fillText(wrap(ctx, line.text, w - 112 - (indented ? 100 : 0), 1)[0] ?? "", indented ? 156 : 56, line.y);
+    }
   }
   return texture(el);
 }
