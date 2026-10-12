@@ -58,29 +58,20 @@ async def _family_specs(db: ArenaDb, codes: Sequence[str]) -> list[FamilySpec]:
     return specs
 
 
-async def _candidate_ids(db: ArenaDb, kind: str, names: Sequence[str]) -> tuple[UUID, ...]:
-    ids: list[UUID] = []
-    for name in names:
-        found = await db.candidate(kind, name)
-        if found is None:
-            msg = f"candidate {name} ({kind}) is not registered"
-            raise RuntimeError(msg)
-        ids.append(found[0])
-    return tuple(ids)
-
-
 async def set_up_tournament(referee_dsn: str, public_dsn: str, families: Sequence[str], seed: int) -> UUID:
     referee_connect = dsn_connector(referee_dsn)
     # S2 3.3; S5 3.3 (a real gap, Codex round 1): refuses to freeze an unequal-budget, unofficial or
     # exhibition-transport roster -- the one check WP-20a's future admin route will also need, but today
     # this CLI is the only caller of freeze_tournament at all, so this is where it belongs.
-    check_roster([committed_manifest(name) for name in (*OFFICIAL_ASSISTANTS, *OFFICIAL_SUBJECTS)])
-    for name in (*OFFICIAL_ASSISTANTS, *OFFICIAL_SUBJECTS):
-        await lifecycle.register_candidate(referee_connect, committed_manifest(name))
+    manifests = {name: committed_manifest(name) for name in (*OFFICIAL_ASSISTANTS, *OFFICIAL_SUBJECTS)}
+    check_roster(list(manifests.values()))
+    # The roster names the exact (kind, name, version) rows check_roster just validated: register_candidate
+    # returns that row's id (idempotent), never a newest-version lookup that could pick an unchecked manifest.
+    ids = {name: await lifecycle.register_candidate(referee_connect, m) for name, m in manifests.items()}
     db = ArenaDb(dsn_connector(public_dsn), actor=None)
     specs = await _family_specs(db, families)
-    assistants = await _candidate_ids(db, "assistant", OFFICIAL_ASSISTANTS)
-    subjects = await _candidate_ids(db, "subject", OFFICIAL_SUBJECTS)
+    assistants = tuple(ids[name] for name in OFFICIAL_ASSISTANTS)
+    subjects = tuple(ids[name] for name in OFFICIAL_SUBJECTS)
     rows = build_roster(specs, assistants, subjects, seed=seed)
     name = f"dev-demo-{'-'.join(families)}-{seed}"
     tournament_id = await lifecycle.create_tournament(
