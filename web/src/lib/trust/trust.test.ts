@@ -87,7 +87,10 @@ describe("fairness and calibration", () => {
       tests: [{ candidate: "A1", test: "FA-5a", p_value: 0.0004, significant_after_holm: true }],
       negative_controls: { caught: true },
     });
-    expect(f?.styleRates).toEqual([{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%" }]);
+    expect(f?.styleRates).toEqual([{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%", families: null }]);
+    const small = parseFairness({ style_fpr: [{ candidate: "A1", style: "anxious", point: { num: 0, den: 3, value: 0 }, families: 3, bound: { bound: 0.632, kind: "zero-event", families: 3, failed: 0 } }], flag_rates: [{ candidate: "A1", style: "terse", role: "truthful", point: { num: 1, den: 10, value: 0.1 }, interval: { lo: 0, hi: 0.3 } }] });
+    expect(small?.styleRates[0]?.fpr).toBe("0%; 0 of 3 families failed; one-sided 95% bound 63.2%");
+    expect(small?.flagRates).toEqual([{ candidate: "A1", style: "terse", role: "truthful", rate: "10%, interval 0%-30%" }]);
     expect(f?.demeanor).toEqual([{ candidate: "A2", flags: 3, findings: 1 }]);
     expect(f?.tests[0]).toMatchObject({ test: "FA-5a", significant: true });
     expect(f?.negativeControlsCaught).toBe(true);

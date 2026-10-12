@@ -86,10 +86,11 @@ describe("TrustPage", () => {
       <TrustPage
         {...base}
         section="fairness"
-        fairness={{ state: "ready", value: { styleRates: [{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%" }], demeanor: [{ candidate: "A2", flags: 3, findings: 0 }], tests: [{ candidate: "A1", test: "FA-5a", pValue: 0.2, significant: false }], negativeControlsCaught: true } }}
+        fairness={{ state: "ready", value: { styleRates: [{ candidate: "A1", style: "terse", fpr: "0%, interval 0%-40%", families: 6 }], flagRates: [{ candidate: "A1", style: "terse", role: "truthful", rate: "10%, interval 0%-30%" }], demeanor: [{ candidate: "A2", flags: 3, findings: 0 }], tests: [{ candidate: "A1", test: "FA-5a", pValue: 0.2, significant: false }], negativeControlsCaught: true } }}
       />,
     );
     expect(screen.getByText("0%, interval 0%-40%")).toBeTruthy();
+    expect(screen.getByText("10%, interval 0%-30%")).toBeTruthy();
     expect(screen.getByText("Negative controls: the audit flagged them, as it must.")).toBeTruthy();
     expect(screen.getByText("p = 0.200; not detected at this sample size")).toBeTruthy();
     unmount();

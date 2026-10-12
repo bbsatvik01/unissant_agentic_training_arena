@@ -271,12 +271,17 @@ export function WorldRoute() {
   // A live start waits for the render in which the session hook holds this case (coming from playback, the hook's
   // case is null until the mode changes), then starts once.
   const pendingStart = useRef<"practice" | "assessment" | null>(null);
+  const startSession = session.start;
+  const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
   const startLive = (m: "practice" | "assessment") => {
+    // Already live (a retry after a refused start): start now; otherwise once the mode has changed.
+    if (liveCaseId !== null) {
+      void startSession(m);
+      return;
+    }
     pendingStart.current = m;
     setMode("live");
   };
-  const startSession = session.start;
-  const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
   useEffect(() => {
     const m = pendingStart.current;
     if (m === null || liveCaseId === null) return;
@@ -916,9 +921,15 @@ export function WorldRoute() {
               backToHub();
               setDemo({ ...demo, step: "precinct" });
             } else if (demoStep === "debrief") {
-              // Watch the run again from the start.
-              playback.seekTo(0);
-              playback.play();
+              // Watch the run again from the start: a recorded run rewinds; a finished live interview replays as its
+              // own recording.
+              const trialId = session.session?.trial_id ?? null;
+              if (mode === "live" && trialId !== null) {
+                replayTrial(trialId);
+              } else {
+                playback.seekTo(0);
+                playback.play();
+              }
             } else {
               setShowArena(false);
               openDemoRecording();

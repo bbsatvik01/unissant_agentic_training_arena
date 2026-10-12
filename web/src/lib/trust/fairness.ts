@@ -10,7 +10,16 @@ import { metricText, metricView } from "../arena/leaderboard";
 export interface StyleRate {
   readonly candidate: string;
   readonly style: string;
+  /** The rate with its interval, or with the published family-level bound when the stratum is small. */
   readonly fpr: string;
+  readonly families: number | null;
+}
+
+export interface FlagRate {
+  readonly candidate: string;
+  readonly style: string;
+  readonly role: string;
+  readonly rate: string;
 }
 
 export interface DemeanorCount {
@@ -28,6 +37,7 @@ export interface PermutationTest {
 
 export interface Fairness {
   readonly styleRates: readonly StyleRate[];
+  readonly flagRates: readonly FlagRate[];
   readonly demeanor: readonly DemeanorCount[];
   readonly tests: readonly PermutationTest[];
   /** FA-6: whether the audit caught the demeanor-driven negative controls; null when not reported. */
@@ -58,7 +68,19 @@ const num = (v: unknown): number | null => (typeof v === "number" && Number.isFi
 /** `GET /api/trust/fairness`; null when not one. */
 export function parseFairness(v: unknown): Fairness | null {
   if (!isRecord(v)) return null;
-  const styleRates = list(v["style_fpr"]).flatMap((r) => (typeof r["candidate"] === "string" && typeof r["style"] === "string" ? [{ candidate: r["candidate"], style: r["style"], fpr: metricText(metricView({ point: r["point"], interval: r["interval"] }) ?? undefined) }] : []));
+  const styleRates = list(v["style_fpr"]).flatMap((r) => {
+    if (typeof r["candidate"] !== "string" || typeof r["style"] !== "string") return [];
+    const m = metricView({ point: r["point"], interval: r["interval"] });
+    const families = num(r["families"]);
+    const b = isRecord(r["bound"]) ? r["bound"] : null;
+    const bound = b === null ? null : num(b["bound"]);
+    // FA-1: fewer than five families publish the exact family-level bound with the counts instead of an interval.
+    const fpr = m !== null && m.interval === null && m.point !== null && bound !== null ? `${String(Math.round(m.point * 100))}%; ${String(num(b?.["failed"]) ?? 0)} of ${String(families ?? num(b?.["families"]) ?? 0)} families failed; one-sided 95% bound ${(bound * 100).toFixed(1)}%` : metricText(m ?? undefined);
+    return [{ candidate: r["candidate"], style: r["style"], fpr, families }];
+  });
+  const flagRates = list(v["flag_rates"]).flatMap((r) =>
+    typeof r["candidate"] === "string" && typeof r["style"] === "string" && typeof r["role"] === "string" ? [{ candidate: r["candidate"], style: r["style"], role: r["role"], rate: metricText(metricView({ point: r["point"], interval: r["interval"] }) ?? undefined) }] : [],
+  );
   const demeanor = list(v["demeanor"]).flatMap((r) => {
     const flags = num(r["flags"]);
     const findings = num(r["findings"]);
@@ -69,7 +91,7 @@ export function parseFairness(v: unknown): Fairness | null {
     return typeof r["candidate"] === "string" && typeof r["test"] === "string" && p !== null ? [{ candidate: r["candidate"], test: r["test"], pValue: p, significant: r["significant_after_holm"] === true }] : [];
   });
   const nc = isRecord(v["negative_controls"]) ? v["negative_controls"]["caught"] : undefined;
-  return { styleRates, demeanor, tests, negativeControlsCaught: typeof nc === "boolean" ? nc : null };
+  return { styleRates, flagRates, demeanor, tests, negativeControlsCaught: typeof nc === "boolean" ? nc : null };
 }
 
 /** The calibration rows in `GET /api/trust/methodology` (`calibration: [...]`); null when none are published. */

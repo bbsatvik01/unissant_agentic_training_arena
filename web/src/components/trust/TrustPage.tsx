@@ -261,6 +261,7 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
                   <th scope="col">Coach</th>
                   <th scope="col">Style</th>
                   <th scope="col">False-positive rate</th>
+                  <th scope="col">Families</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,6 +270,30 @@ function Fairness({ load }: { load: Load<FairnessData> }) {
                     <td className="mono">{r.candidate}</td>
                     <td>{r.style}</td>
                     <td>{r.fpr}</td>
+                    <td className="mono">{r.families ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {load.value.flagRates.length === 0 ? null : (
+            <table className="board">
+              <caption className="fine">Flags per subject turn by style and role</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Coach</th>
+                  <th scope="col">Style</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Flag rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {load.value.flagRates.map((r) => (
+                  <tr key={`${r.candidate}-${r.style}-${r.role}`}>
+                    <td className="mono">{r.candidate}</td>
+                    <td>{r.style}</td>
+                    <td>{r.role}</td>
+                    <td>{r.rate}</td>
                   </tr>
                 ))}
               </tbody>
