@@ -85,3 +85,4 @@
 - b146540 merge UI stage 6 (tournament matrix poll + cell replay, admin progress + validity packet)
 - 175bd66 merge real pilot: real Gemini end to end on hosted Supabase (4 full 12-turn interviews, real debrief, recordings/real-F01.json; $0.30)
 - 344d5ff merge rubric.v1 (22 checks verbatim from S3; spec-parity test)
+- 94a693b merge DB latency fix (pool + pipelined statements; per-call 841->69 ms)
