@@ -14,7 +14,8 @@
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
-| Hosted seed + real smoke (a79b6bd60d05a4e17, Sonnet, wt-hosted-seed) | real ingest bundles (cx.json format), make seed-hosted, real-model env, make real-smoke; no hosted/real calls by the agent | coordinator runs against hosted Supabase + Vertex |
+| Hosted seed + real smoke | MERGED; hosted seeded; first real call landed (G0_schema quarantine) | done |
+| Real pilot (ab9b20635bc93d72b, Opus, wt-real-pilot) | fix G0_schema on real replies, real-smoke green, full real 12-turn interview + debrief + recording; spend cap $3 | review, merge |
 | WP-17 tournament | MERGED (demo: scripts/dev.sh tournament) | done |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
