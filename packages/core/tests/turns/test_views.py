@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from arena_core.db.arena import EventRow
 from arena_core.events.load import (
@@ -24,10 +25,12 @@ from arena_core.events.load import (
 from arena_core.events.projections import (
     MAX_DELTA_BYTES,
     StoredEvent,
+    TrialState,
     Viewer,
     live_deltas,
     notice_message,
     s6_status,
+    snapshot,
 )
 from arena_core.turns.orchestrator import Orchestrator, TrialSignals
 
@@ -211,6 +214,29 @@ def test_a_harness_trials_recording_and_snapshot_validate_against_the_real_contr
     assert snapshot_of(loaded)["mode"] == "harness"
     recording = recording_of(loaded, None)
     assert recording["snapshot"]["mode"] == "harness"
+
+
+def test_a_source_unavailable_replay_trials_recording_and_snapshot_validate() -> None:
+    """D-021: every tournament trial is exportable, including a replay trial that ended `source_unavailable`
+    (S4 `start_trial`; never a training state, so the training-only `TrialStatus` enum must not be the one
+    a harness export validates against)."""
+    rig = Rig()
+    rig.db.kind = "replay"
+    rig.db.started_at = None
+    run(rig.orch.stop(rig.db.trial_id, "source_unavailable", "the source transcript is not completed and valid"))
+    loaded = run(load_tournament_trial(rig.db, rig.db.trial_id))
+    assert loaded is not None
+    assert snapshot_of(loaded)["status"] == "source_unavailable"
+    recording = recording_of(loaded, None)
+    ended = [e["frame"]["data"] for e in recording["events"] if e["frame"]["type"] == "trial.status"]
+    assert [d["status"] for d in ended] == ["source_unavailable"]
+
+
+def test_a_training_snapshot_never_carries_source_unavailable() -> None:
+    """C-45: `source_unavailable` occurs only on replay trials, which no browser owns."""
+    state = TrialState(str(uuid4()), "source_unavailable", None, "practice", 12, PACKET)
+    with pytest.raises(ValidationError, match="source_unavailable"):
+        snapshot(state, [], Viewer(trial_ended=True, mode="practice"))
 
 
 def test_load_tournament_trial_is_none_for_an_unknown_trial() -> None:

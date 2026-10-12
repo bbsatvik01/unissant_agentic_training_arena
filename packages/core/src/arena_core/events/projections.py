@@ -28,11 +28,21 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import TrialFrame
+from arena_core.contracts.events import ReplayTrialStatusFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
 _FRAMES: TypeAdapter[TrialFrame] = TypeAdapter(TrialFrame)
+# A harness trial's export (D-021) also carries a replay trial's `source_unavailable` end (C-45: never on a
+# browser's live stream, so the live `TrialFrame` union keeps its training-only `trial.status`).
+HarnessFrame = TrialFrame | ReplayTrialStatusFrame
+_HARNESS_FRAMES: TypeAdapter[HarnessFrame] = TypeAdapter(HarnessFrame)
+
+
+def _frames(viewer: Viewer | None) -> TypeAdapter[Any]:
+    return _HARNESS_FRAMES if viewer is not None and viewer.mode == "harness" else _FRAMES
+
+
 _SNAPSHOT: TypeAdapter[TrialSnapshot] = TypeAdapter(TrialSnapshot)
 
 
@@ -176,8 +186,10 @@ _MAPPING: dict[str, Callable[[StoredEvent], list[tuple[str, dict[str, Any], int 
 }
 
 
-def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> TrialFrame:
-    return _FRAMES.validate_python(
+def _frame(
+    row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None, viewer: Viewer | None = None
+) -> TrialFrame:
+    frame: TrialFrame = _frames(viewer).validate_python(
         {
             "v": 1,
             "seq": seq,
@@ -189,6 +201,7 @@ def _frame(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | No
             "data": data,
         }
     )
+    return frame
 
 
 def _message(row: StoredEvent, wire_type: str, data: dict[str, Any], seq: int | None) -> bytes:
@@ -248,8 +261,8 @@ def _projected(rows: list[StoredEvent], viewer: Viewer) -> list[tuple[StoredEven
         if mapping is None:
             msg = f"event {row.seq}: unknown event kind {row.kind!r}"
             raise ValueError(msg)
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in mapping(row))
-        out.extend((row, _frame(row, t, d, s)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in mapping(row))
+        out.extend((row, _frame(row, t, d, s, viewer)) for t, d, s in _hints(row, visible[i + 1 :], viewer))
     return out
 
 
@@ -306,7 +319,7 @@ def recording_events(
     for row in rows:
         for _, frame in _projected([row], live):
             at = max(0, round(_epoch_ms(row.created_at) - start_ms))
-            out.append({"at_ms": at, "frame": _FRAMES.dump_python(frame, mode="json")})
+            out.append({"at_ms": at, "frame": _frames(live).dump_python(frame, mode="json")})
     return out
 
 
@@ -348,7 +361,7 @@ def snapshot(state: TrialState, rows: list[StoredEvent], viewer: Viewer) -> dict
     commitment: str | None = None
     last_seq = 0
     for row, frame in _projected(rows, viewer):
-        data = _FRAMES.dump_python(frame, mode="json")["data"]
+        data = _frames(viewer).dump_python(frame, mode="json")["data"]
         last_seq = max(last_seq, row.seq) if _visible(row, viewer) else last_seq
         if frame.type == "question.accepted":
             turns[data["turn_no"]] = {

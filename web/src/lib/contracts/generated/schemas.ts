@@ -4629,7 +4629,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "assistant_failed",
               "infra_failed",
               "budget_skipped",
-              "budget_truncated"
+              "budget_truncated",
+              "source_unavailable"
             ],
             "type": "string"
           },
@@ -4966,7 +4967,8 @@ export const WIRE_SCHEMAS: Readonly<Record<string, AnySchemaObject>> = {
               "assistant_failed",
               "infra_failed",
               "budget_skipped",
-              "budget_truncated"
+              "budget_truncated",
+              "source_unavailable"
             ],
             "type": "string"
           },
