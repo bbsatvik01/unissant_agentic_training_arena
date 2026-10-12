@@ -3,6 +3,7 @@ arena_public,function,arena.actor_id(),EXECUTE,allow
 arena_public,function,"arena.advance_replay(uuid,uuid)",EXECUTE,allow
 arena_public,function,"arena.events_after(uuid,integer,integer)",EXECUTE,allow
 arena_public,function,"arena.finalize_trial(uuid,uuid,jsonb)",EXECUTE,allow
+arena_public,function,arena.harness_trial_state(uuid),EXECUTE,allow
 arena_public,function,"arena.open_work_item(uuid,text,text,integer)",EXECUTE,allow
 arena_public,function,"arena.record_coaching_event(uuid,uuid,jsonb,text)",EXECUTE,allow
 arena_public,function,"arena.record_execution_failure(uuid,uuid,text,text)",EXECUTE,allow
