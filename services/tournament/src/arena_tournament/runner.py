@@ -170,8 +170,8 @@ class TournamentRunner:
     async def _require_gate(self, tournament: UUID) -> None:
         """A hidden tournament runs only if, between its roster freezing and its opening, one complete gate run
         passed every IG item on the commit this job runs (S1 L9; S3 9 binds the gate to the code version). The
-        referee writes a run's rows in one transaction, so they share `run_at`: the latest row of each item must
-        come from that one run, never a mix (a dev gate run writes no IG-4 row). A dev tournament has no hidden
+        referee writes a run's rows in one transaction under one `run_id`: the latest row of each item must come
+        from that one run, never a mix (a dev gate run writes no IG-4 row). A dev tournament has no hidden
         corpus to scan and opens ungated."""
         if await self.db.tournament_split(tournament) != "hidden":
             return
@@ -184,6 +184,7 @@ class TournamentRunner:
             or not self.code_sha
             or commits != {self.code_sha}
             or len(runs) != 1
+            or None in runs
         ):
             msg = f"hidden tournament {tournament} did not pass the isolation gate before it opened; not run"
             raise IsolationGateNotPassedError(msg)

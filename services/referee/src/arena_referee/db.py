@@ -587,13 +587,13 @@ _INSERT_ISOLATION_CHECK = (
 )
 
 
-def _isolation_check_params(row: IsolationCheckRow) -> tuple[object, ...]:
+def _isolation_check_params(row: IsolationCheckRow, run_id: UUID) -> tuple[object, ...]:
     return (
         UUID(row.candidate_id) if row.candidate_id else None,
         row.check_name,
         row.passed,
         Jsonb(
-            {"hash": row.evidence_hash, "commit_sha": row.commit_sha}
+            {"hash": row.evidence_hash, "commit_sha": row.commit_sha, "run_id": str(run_id)}
             | ({"report": row.report} if row.report is not None else {})
         ),
     )
@@ -606,12 +606,13 @@ async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> 
 
 
 async def record_isolation_checks(connect: Connector, rows: Sequence[IsolationCheckRow]) -> None:
-    """One gate run's rows in ONE transaction: all of them commit or none does, so "the latest row per check
-    name" (the referee's own result read, and the tournament job's check before a hidden run) never folds a
-    partly written run together with an earlier run's rows."""
+    """One gate run's rows in ONE transaction, under one fresh `evidence.run_id`: all of them commit or none
+    does, and the tournament job's check before a hidden run (`arena.v_isolation_checks.run_id`) can tell one
+    complete run from rows of two."""
+    run_id = uuid4()
     async with connect() as conn, conn.transaction():
         for row in rows:
-            await conn.execute(_INSERT_ISOLATION_CHECK, _isolation_check_params(row))
+            await conn.execute(_INSERT_ISOLATION_CHECK, _isolation_check_params(row, run_id))
 
 
 async def fetch_isolation_result(connect: Connector, commit_sha: str) -> IsolationResult:

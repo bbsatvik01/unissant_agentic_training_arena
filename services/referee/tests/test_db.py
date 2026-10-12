@@ -675,7 +675,9 @@ def test_record_isolation_check_inserts_candidate_only_when_given() -> None:
     assert params[0] == CANDIDATE
     assert params[1] == "ig6_canary_audit"
     assert params[2] is False
-    assert params[3].obj == {"hash": "deadbeef", "commit_sha": "0" * 40}
+    evidence = dict(params[3].obj)
+    assert UUID(evidence.pop("run_id")).version == UUID_V4  # the run's own id (one per gate run, WP-28)
+    assert evidence == {"hash": "deadbeef", "commit_sha": "0" * 40}
 
     conn2 = FakeConn({})
     no_candidate = db.IsolationCheckRow(
@@ -813,6 +815,9 @@ def test_stored_trial_judgments_read_r1_from_a_replay_s_source_trial(
     assert stored.data is data
 
 
+UUID_V4 = 4
+
+
 class _TxConn(FakeConn):
     """Records whether each statement ran inside `conn.transaction()`, and can fail the n-th insert."""
 
@@ -857,6 +862,10 @@ def test_record_isolation_checks_writes_a_whole_gate_run_in_one_transaction() ->
     conn = _TxConn()
     run(db.record_isolation_checks(connector(conn), _gate_rows()))
     assert (conn.tx_count, conn.inside) == (1, [True] * len(db.CHECK_NAMES))
+    assert len({params[3].obj["run_id"] for _, params in conn.executed}) == 1  # one run id for the whole run
+    again = _TxConn()
+    run(db.record_isolation_checks(connector(again), _gate_rows()))
+    assert again.executed[0][1][3].obj["run_id"] != conn.executed[0][1][3].obj["run_id"]  # a new id per run
     failing = _TxConn(fail_at=4)
     with pytest.raises(psycopg.OperationalError):
         run(db.record_isolation_checks(connector(failing), _gate_rows()))

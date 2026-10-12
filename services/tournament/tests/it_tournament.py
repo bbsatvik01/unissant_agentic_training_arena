@@ -31,7 +31,7 @@ from decimal import Decimal
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired  # the role-process helper does the one reviewed Popen call
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -661,16 +661,69 @@ async def _api_recording_status(world: dict[str, Any], trial: UUID) -> int:
 
 
 async def _record_gate_run(admin_dsn: str, failed: dict[str, bool], items: tuple[str, ...] = IG_ITEMS) -> None:
-    """One isolation gate run's rows in one transaction, the shape `arena_referee.db.record_isolation_checks`
-    writes (`run_at` is the transaction's own time), every item passing unless `failed` says otherwise."""
+    """One isolation gate run's rows in one transaction under one `run_id`, the shape
+    `arena_referee.db.record_isolation_checks` writes, every item passing unless `failed` says otherwise."""
+    run_id = str(uuid4())
     async with await AsyncConnection.connect(admin_dsn) as conn:
         for item in items:
             await conn.execute(
-                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence)"
-                " values (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text))",
-                (IG_CHECK_NAMES[item], failed.get(item, True), REFEREE_GIT_SHA),
+                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values"
+                " (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text, 'run_id', %s::text))",
+                (IG_CHECK_NAMES[item], failed.get(item, True), REFEREE_GIT_SHA, run_id),
             )
         await conn.commit()
+
+
+async def _record_gate_runs_at_one_instant(admin_dsn: str) -> None:
+    """A hidden run failing IG-5 and a passing dev run whose rows carry the SAME `run_at` (written in one admin
+    transaction, so `now()` is shared): only the run id distinguishes them. The ids are fixed so a tie on
+    `run_at` resolves to the dev run's passing IG-5 (`order by ..., run_id`): six passing rows, from two runs."""
+    hidden_run, dev_run = "ffffffff-ffff-4fff-bfff-ffffffffffff", "00000000-0000-4000-8000-000000000001"
+    rows = [(IG_CHECK_NAMES[item], item != "IG-5", hidden_run) for item in IG_ITEMS]
+    rows += [(IG_CHECK_NAMES[item], True, dev_run) for item in DEV_IG_ITEMS]
+    async with await AsyncConnection.connect(admin_dsn) as conn:
+        for name, passed, run_id in rows:
+            await conn.execute(
+                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values"
+                " (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text, 'run_id', %s::text))",
+                (name, passed, REFEREE_GIT_SHA, run_id),
+            )
+        await conn.commit()
+
+
+def _assert_the_job_refuses_every_hidden_run_without_one_passing_gate(
+    world: dict[str, Any], families: list[dict[str, Any]], tournament_id: UUID, seed: int
+) -> None:
+    """S1 L9, S3 9: `arena.open_tournament` checks nothing itself; the job runs a hidden tournament only after one
+    complete gate run passed, on its own commit, between the roster freezing and the opening."""
+    # The job runs it only on the commit its gate passed on (S3 9)...
+    foreign = build_runner(world, tournament_id)
+    foreign.code_sha = "e" * 40
+    with pytest.raises(IsolationGateNotPassedError):
+        run(foreign.run(tournament_id))
+    # ...and never a hidden tournament opened without a gate run after its own roster froze: the gate rows above
+    # predate this second roster, and `arena.open_tournament` itself checks nothing.
+    ungated = _freeze_hidden_tournament(world, families, seed + 1)
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (ungated,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, ungated).run(ungated))
+    assert run(_terminal_record_count(world["admin"], ungated)) == 0
+    # ...nor one whose latest passing rows come from two runs: a hidden gate run failing IG-5, then a passing dev
+    # gate run (which writes no IG-4 row), each in its own transaction as the referee writes them, on this commit.
+    mixed = _freeze_hidden_tournament(world, families, seed + 2)
+    run(_record_gate_run(world["admin"], {"IG-5": False}))
+    run(_record_gate_run(world["admin"], {}, items=DEV_IG_ITEMS))
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (mixed,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, mixed).run(mixed))
+    assert run(_terminal_record_count(world["admin"], mixed)) == 0
+    # The same two runs committed at one instant (a microsecond tie): the run ids still tell them apart.
+    tied = _freeze_hidden_tournament(world, families, seed + 3)
+    run(_record_gate_runs_at_one_instant(world["admin"]))
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (tied,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, tied).run(tied))
+    assert run(_terminal_record_count(world["admin"], tied)) == 0
 
 
 def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_after_reveal(
@@ -702,27 +755,7 @@ def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_af
     _open_hidden_tournament_through_the_real_gate(world, tournament_id)
     run(_admin_rows(world["admin"], "select tests.users()"))
 
-    # The job runs it only on the commit its gate passed on (S3 9)...
-    foreign = build_runner(world, tournament_id)
-    foreign.code_sha = "e" * 40
-    with pytest.raises(IsolationGateNotPassedError):
-        run(foreign.run(tournament_id))
-    # ...and never a hidden tournament opened without a gate run after its own roster froze: the gate rows above
-    # predate this second roster, and `arena.open_tournament` itself checks nothing.
-    ungated = _freeze_hidden_tournament(world, families, seed + 1)
-    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (ungated,)))
-    with pytest.raises(IsolationGateNotPassedError):
-        run(build_runner(world, ungated).run(ungated))
-    assert run(_terminal_record_count(world["admin"], ungated)) == 0
-    # ...nor one whose latest passing rows come from two runs: a hidden gate run failing IG-5, then a passing dev
-    # gate run (which writes no IG-4 row), each in its own transaction as the referee writes them, on this commit.
-    mixed = _freeze_hidden_tournament(world, families, seed + 2)
-    run(_record_gate_run(world["admin"], {"IG-5": False}))
-    run(_record_gate_run(world["admin"], {}, items=DEV_IG_ITEMS))
-    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (mixed,)))
-    with pytest.raises(IsolationGateNotPassedError):
-        run(build_runner(world, mixed).run(mixed))
-    assert run(_terminal_record_count(world["admin"], mixed)) == 0
+    _assert_the_job_refuses_every_hidden_run_without_one_passing_gate(world, families, tournament_id, seed)
 
     summary = run(build_runner(world, tournament_id).run(tournament_id))
     assert summary.closed

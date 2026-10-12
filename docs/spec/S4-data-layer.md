@@ -581,7 +581,7 @@ All views are `security_barrier`, owned by the migration owner, and read through
 | `arena.v_candidates`, `v_tournaments`, `v_planned_trials` | Registry, tournaments, roster (no role anywhere) |
 | `arena.v_trials` | Every tournament trial's ids and states, the actor's training trials, execution state |
 | `arena.v_tournament_progress` | Per tournament, track and block: planned, running and ended counts and counts by execution state; the only progress source for a hidden tournament before reveal (D9, SG3-15) |
-| `arena.v_isolation_checks` | Per isolation check: check name, candidate, pass or fail, run time and the commit SHA it ran on (`evidence.commit_sha`, which the referee writes); never the `evidence` object, so hidden-text scan matches stay referee-only (SG3-43) |
+| `arena.v_isolation_checks` | Per isolation check: check name, candidate, pass or fail, run time, the commit SHA it ran on (`evidence.commit_sha`, which the referee writes) and the gate run's id (`evidence.run_id`, one per run, all six rows written in one transaction; WP-28 amendment, read by the tournament job before a hidden run); never the `evidence` object, so hidden-text scan matches stay referee-only (SG3-43) |
 | `arena.v_transcripts` (with origin and channel), `v_released_evidence` (with `doc_kind` and content), `v_findings` (with `likelihood`) | Visible trials only |
 | `arena.v_trial_events` | Visible trials; debrief rows hidden while running |
 | `arena.v_scores`, `v_leaderboards` | Exist only after reveal; leaderboards carry the manifest hash and version |

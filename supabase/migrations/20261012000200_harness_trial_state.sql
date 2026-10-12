@@ -50,3 +50,14 @@ end $$;
 revoke all on function arena.harness_trial_state(uuid)
   from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
 grant execute on function arena.harness_trial_state(uuid) to arena_public;
+
+-- WP-28: the tournament job checks, before it runs a hidden tournament, that ONE complete isolation gate run passed
+-- (S1 L9, S3 9). The referee writes a run's rows in one transaction with one `evidence.run_id` (a random uuid);
+-- this projection exposes it (a well-formed uuid only, never the rest of `evidence`, SG3-43) so the job can tell
+-- one run from two. A new column at the end: the existing columns, grants and owner are unchanged.
+create or replace view arena.v_isolation_checks with (security_barrier = true) as
+  select i.check_name, i.candidate_id, c.name as candidate_name, i.passed, i.created_at as run_at,
+         case when i.evidence ->> 'commit_sha' ~ '^[0-9a-f]{40}$' then i.evidence ->> 'commit_sha' end as commit_sha,
+         case when i.evidence ->> 'run_id' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+              then (i.evidence ->> 'run_id')::uuid end as run_id
+    from arena.isolation_checks i left join arena.candidates c on c.id = i.candidate_id;
