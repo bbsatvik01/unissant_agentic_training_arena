@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
@@ -19,6 +20,8 @@ import pytest
 from arena_core.db.pool import Connector
 from arena_core.identity import user_id_for
 from scripts import kpi1
+from tools import proc
+from tools.tests.conftest import REPO_ROOT
 
 A, B = "a@example.test", "b@example.test"
 
@@ -30,6 +33,7 @@ def run[T](coro: Coroutine[Any, Any, T]) -> T:
 class _Cursor:
     def __init__(self, rows: list[tuple[Any, ...]]) -> None:
         self.rows = rows
+        self.rowcount = 1
 
     async def fetchall(self) -> list[tuple[Any, ...]]:
         return self.rows
@@ -267,11 +271,14 @@ P1, P2 = uuid4(), uuid4()
 SEED = 5
 
 
-def _session(pid: UUID, phase: str, set_code: str | None, ended: bool = True, counts: bool = False) -> tuple[Any, ...]:
-    return (pid, uuid4(), phase, set_code, ended, counts)
+def _session(
+    pid: UUID, phase: str, set_code: str | None, *, counts: bool = False, published: bool = True
+) -> tuple[Any, ...]:
+    """A report row: participant, session, phase, set, ended (always, here), qualifying practice, debrief published."""
+    return (pid, uuid4(), phase, set_code, True, counts, published)
 
 
-def _report(sessions: list[tuple[Any, ...]], scores: dict[UUID, int]) -> dict[str, Any]:
+def _report(sessions: list[tuple[Any, ...]], scores: dict[UUID, int], scorer: str = "proxy") -> dict[str, Any]:
     conn = _Conn(
         {
             "from training.participants": [(P1, "P01", "AB"), (P2, "P02", "BA")],
@@ -279,8 +286,8 @@ def _report(sessions: list[tuple[Any, ...]], scores: dict[UUID, int]) -> dict[st
             "from training.rubric_scores": list(scores.items()),
         }
     )
-    out = run(kpi1.report(connector(conn), scorer="proxy", seed=SEED))
-    assert next(p for q, p in conn.executed if "rubric_scores" in q) == ("proxy",)
+    out = run(kpi1.report(connector(conn), scorer=scorer, seed=SEED))
+    assert next(p for q, p in conn.executed if "rubric_scores" in q) == (scorer,)
     return out
 
 
@@ -292,6 +299,13 @@ def _protocol(
     rows += [_session(pid, "post", post_set) for _ in post]
     tests = [r for r in rows if r[2] != "practice"]
     return rows, {r[1]: s for r, s in zip(tests, pre + post, strict=True)}
+
+
+def _unscore(rows: list[Any], scores: dict[UUID, int], *, published: bool) -> list[Any]:
+    """Drop the first post-test's score; its debrief published (unscorable) or not (pending)."""
+    target = next(r for r in rows if r[2] == "post")
+    del scores[target[1]]
+    return [(*r[:6], published) if r is target else r for r in rows]
 
 
 def test_report_is_not_measured_with_no_completed_participant() -> None:
@@ -309,7 +323,12 @@ def test_report_computes_kpi1_over_completed_participants_only() -> None:
     r2, s2 = _protocol(P2, "B", "A", [50, 50], [55, 45])  # pre 50 -> post 50: 0%
     out = _report(r1 + r2, {**s1, **s2})
     k = out["kpi1"]
-    assert (k["mean_rel"], k["mean_abs"], k["share_ge_20pct"], k["ratio_of_means"]) == (0.1, 5.0, 0.5, 0.1)
+    got = (k["mean_rel"], k["median_rel"], k["mean_abs"], k["share_ge_20pct"], k["ratio_of_means"])
+    assert got == (0.1, 0.1, 5.0, 0.5, 0.1)
+    assert set(k["ci"]) == {"mean_rel", "median_rel", "share_ge_20pct", "mean_abs", "ratio_of_means"}
+    lo, hi = k["ci"]["mean_abs"]
+    assert lo <= k["mean_abs"] <= hi
+    assert k["ci"]["mean_rel"] == [0.0, 0.2]  # two participants, r = 0.2 and 0: every resample mean is in [0, 0.2]
     assert k["met"] is False
     assert k["bootstrap_seed"] == SEED
     assert out["set_effect"] == {"A": 50.0, "B": 55.0}
@@ -319,15 +338,129 @@ def test_report_computes_kpi1_over_completed_participants_only() -> None:
     assert str(P1) not in blob
 
 
-def test_report_counts_unscorable_tests_and_excludes_unqualified_practice() -> None:
+def test_an_unscorable_test_is_left_out_and_the_estimate_still_prints() -> None:
     rows, scores = _protocol(P1, "A", "B", [40, 60], [60, 60])
-    unscored = next(r for r in rows if r[2] == "post")
-    del scores[unscored[1]]
-    rows = [r if r[2] != "practice" else (*r[:5], False) for r in rows]
+    rows = _unscore(rows, scores, published=True)
     out = _report(rows, scores)
     p1 = out["participants"][0]
-    assert (p1["unscorable_tests"], p1["practice_sessions"], p1["completed"]) == (1, 0, False)
+    assert (p1["unscorable_tests"], p1["pending_tests"], p1["post_scores"]) == (1, 0, [60])
+    assert (out["kpi1"]["mean_rel"], out["kpi1"]["met"]) == (0.2, True)
+
+
+def test_a_pending_test_withholds_the_estimate() -> None:
+    rows, scores = _protocol(P1, "A", "B", [40, 60], [60, 60])
+    rows = _unscore(rows, scores, published=False)
+    out = _report(rows, scores)
+    p1 = out["participants"][0]
+    assert (p1["unscorable_tests"], p1["pending_tests"], p1["completed"]) == (0, 1, True)
+    assert out["kpi1"] == f"{kpi1.PENDING}: P01"
+
+
+def test_for_human_scores_a_missing_rating_is_pending_even_after_the_debrief() -> None:
+    rows, scores = _protocol(P1, "A", "B", [40, 60], [60, 60])
+    rows = _unscore(rows, scores, published=True)
+    out = _report(rows, scores, scorer="human")
+    assert out["participants"][0]["pending_tests"] == 1
+    assert out["kpi1"].startswith(kpi1.PENDING)
+
+
+def test_unqualified_practice_leaves_the_protocol_incomplete() -> None:
+    rows, scores = _protocol(P1, "A", "B", [40, 60], [60, 60])
+    rows = [r if r[2] != "practice" else (*r[:5], False, r[6]) for r in rows]
+    out = _report(rows, scores)
+    p1 = out["participants"][0]
+    assert (p1["practice_sessions"], p1["completed"]) == (0, False)
     assert out["kpi1"] == "KPI-1 not measured"
+
+
+# ---------------------------------------------------------------- blinded human rating
+
+
+S1, S2 = uuid4(), uuid4()
+FINDING = {"label": "insufficient_evidence", "rationale": "Not yet tested."}
+
+
+def _export_conn() -> _Conn:
+    return _Conn(
+        {
+            "p.packet ->> 'title'": [(S1, "Title one", "C-6WQ3HD9P", FINDING), (S2, "Title two", "C-4VQ8N2HJ", None)],
+            "join arena.turns u": [(S1, 1, "q1", "a1"), (S1, 2, "q2", "a2"), (S2, 1, "q3", "a3")],
+        }
+    )
+
+
+def test_blind_items_strip_identity_and_shuffle_by_a_random_id(tmp_path: Path) -> None:
+    items, key = run(kpi1.blind_items(connector(_export_conn())))
+    assert sorted(key.values()) == sorted([str(S1), str(S2)])
+    assert [i["blind_id"] for i in items] == sorted(key)
+    one = next(i for i in items if key[i["blind_id"]] == str(S1))
+    assert one["transcript"] == [
+        {"turn": 1, "question": "q1", "answer": "a1"},
+        {"turn": 2, "question": "q2", "answer": "a2"},
+    ]
+    assert (one["case_title"], one["finding"]) == ("Title one", FINDING)
+    assert set(one) == {"blind_id", "case_title", "case_id", "transcript", "finding"}  # no code, phase or time
+    assert str(S1) not in json.dumps(items)
+    kpi1.write_export(tmp_path / "x", items, key)
+    sheet = json.loads((tmp_path / "x" / "items.json").read_text(encoding="utf-8"))
+    assert [d["field"] for d in sheet["rubric"]] == list(kpi1.RATING_FIELDS)
+    assert all(d["checks"] and len(d["anchors_0_to_4"]) == kpi1.MAX_DIMENSION + 1 for d in sheet["rubric"])
+    blank = json.loads((tmp_path / "x" / "ratings.json").read_text(encoding="utf-8"))
+    assert [r["blind_id"] for r in blank["ratings"]] == sorted(key)
+    assert json.loads((tmp_path / "x" / "key.json").read_text(encoding="utf-8")) == key
+    with pytest.raises(kpi1.StudyError, match="exists"):
+        kpi1.write_export(tmp_path / "x", items, key)
+
+
+def test_blind_items_refuses_when_no_test_ended() -> None:
+    with pytest.raises(kpi1.StudyError, match="no ended test session"):
+        run(kpi1.blind_items(connector(_Conn({}))))
+
+
+def _rating(blind: str, **over: object) -> dict[str, object]:
+    return {"blind_id": blind, **dict.fromkeys(kpi1.RATING_FIELDS, 3), "notes": "", **over}
+
+
+def test_parse_ratings_maps_blind_ids_back_to_sessions() -> None:
+    key = {"b1": str(S1), "b2": str(S2)}
+    got = kpi1.parse_ratings({"rater": "R02", "ratings": [_rating("b1"), _rating("b2", supported_closure=0)]}, key)
+    assert got == [(S1, "R02", (3, 3, 3, 3, 3), ""), (S2, "R02", (3, 3, 3, 3, 0), "")]
+
+
+@pytest.mark.parametrize(
+    ("ratings", "match"),
+    [
+        ({"rater": "Alice", "ratings": [_rating("b1")]}, "rater is a code"),
+        ({"rater": "R01", "ratings": [_rating("zz")]}, "unknown blind_id"),
+        ({"rater": "R01", "ratings": [_rating("b1", clarity_neutrality=None)]}, "integer 0-4"),
+        ({"rater": "R01", "ratings": [_rating("b1", clarity_neutrality=5)]}, "integer 0-4"),
+        ({"rater": "R01", "ratings": [_rating("b1", clarity_neutrality=True)]}, "integer 0-4"),
+        ({"rater": "R01", "ratings": []}, "no ratings"),
+        ([], "JSON objects"),
+    ],
+)
+def test_parse_ratings_refuses_bad_input(ratings: object, match: str) -> None:
+    with pytest.raises(kpi1.StudyError, match=match):
+        kpi1.parse_ratings(ratings, {"b1": str(S1)})
+
+
+class _CountingConn(_Conn):
+    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> _Cursor:
+        cur = await super().execute(query, params)
+        cur.rowcount = 0 if len(self.executed) > 1 else 1
+        return cur
+
+
+def test_import_human_inserts_scorer_human_rows_idempotently() -> None:
+    conn = _CountingConn({})
+    added = run(
+        kpi1.import_human(connector(conn), [(S1, "R01", (1, 2, 3, 4, 0), "n"), (S2, "R01", (0, 0, 0, 0, 0), "")])
+    )
+    assert added == 1
+    first = conn.executed[0]
+    assert "'human'" in first[0]
+    assert "on conflict (session_id, scorer, scorer_ref) do nothing" in first[0]
+    assert first[1][:7] == (S1, "R01", 1, 2, 3, 4, 0)
 
 
 # ---------------------------------------------------------------- CLI
@@ -377,3 +510,51 @@ def test_main_reports_a_study_error_and_withholds_a_database_error(
     err = capsys.readouterr().err
     assert "OperationalError" in err
     assert "secret" not in err
+
+
+def test_make_kpi1_report_stdout_is_the_json_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The runbook's `make kpi1-report > kpi1-results.json` must write parseable JSON: make echoes no recipe line."""
+    stub = tmp_path / "bin" / "uv"
+    stub.parent.mkdir()
+    stub.write_text('#!/bin/sh\necho \'{"kpi1": "stub"}\'\n', encoding="utf-8")
+    stub.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{stub.parent}:{os.environ['PATH']}")
+    monkeypatch.setenv("ARENA_REFEREE_DSN", "postgresql://stub")
+    result = proc.run("make", ["--no-print-directory", "-f", str(REPO_ROOT / "Makefile"), "kpi1-report"], cwd=REPO_ROOT)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"kpi1": "stub"}
+
+
+def test_main_export_then_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    env = {"ARENA_REFEREE_DSN": "postgresql://x"}
+
+    async def fake_items(_connect: Connector) -> tuple[list[dict[str, Any]], dict[str, str]]:
+        return [{"blind_id": "b1", "case_title": "T", "case_id": "C", "transcript": [], "finding": None}], {
+            "b1": str(S1)
+        }
+
+    monkeypatch.setattr(kpi1, "blind_items", fake_items)
+    out = tmp_path / "blind"
+    assert kpi1.main(["export-blind", "--out", str(out)], env=env) == 0
+    assert "1 blinded items" in capsys.readouterr().out
+    sheet = json.loads((out / "ratings.json").read_text(encoding="utf-8"))
+    sheet["ratings"][0].update(dict.fromkeys(kpi1.RATING_FIELDS, 2))
+    (out / "ratings.json").write_text(json.dumps(sheet), encoding="utf-8")
+    stored: list[Any] = []
+
+    async def fake_import(_connect: Connector, ratings: list[Any]) -> int:
+        stored.extend(ratings)
+        return 1
+
+    monkeypatch.setattr(kpi1, "import_human", fake_import)
+    args = ["import-human", "--ratings", str(out / "ratings.json"), "--key", str(out / "key.json")]
+    assert kpi1.main(args, env=env) == 0
+    assert stored == [(S1, "R01", (2, 2, 2, 2, 2), "")]
+    assert "1 human scores stored (0 already present)" in capsys.readouterr().out
+    assert (
+        kpi1.main(["import-human", "--ratings", str(out / "missing.json"), "--key", str(out / "key.json")], env=env)
+        == 1
+    )
+    assert "cannot read" in capsys.readouterr().err

@@ -96,6 +96,10 @@ rules:
         # arena_referee` subprocess this test starts and owns (role isolation, S5 1.2 item 2, forbids
         # importing arena_referee.app in process here), polled for readiness the same way.
         - "/services/tournament/tests/it_tournament.py"
+        # the KPI-1 study suite under make db-test (WP-30): both shapes above, in-process ASGI transport into the
+        # api app object (as it_api.py) and readiness polls of the real `python -m arena_referee` subprocess it
+        # starts and owns (as it_tournament.py); the api reaches that referee only through referee_client.
+        - "/services/api/tests/it_kpi1.py"
     pattern-either:
       - pattern: import httpx
       - pattern: import httpx2

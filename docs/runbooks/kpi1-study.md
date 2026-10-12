@@ -61,9 +61,18 @@ With `ARENA_REFEREE_DSN` set:
 make kpi1-report > kpi1-results.json
 ```
 
-The output is blinded: participant codes only (no email, user id, session id or timestamp). It holds each participant's counterbalance, pre and post scores, practice count and unscorable tests; the case-set check (mean score on set A and on set B); and the KPI-1 estimate over participants who completed the protocol (mean relative change with its bootstrap interval, median, mean absolute change, share at or above 20%, ratio of means, `met`). With no participant who completed the protocol it reads `KPI-1 not measured`.
+The output is blinded: participant codes only (no email, user id, session id or timestamp). It holds each participant's counterbalance, pre and post scores, practice count, unscorable and pending tests; the case-set check (mean score on set A and on set B); and the KPI-1 estimate over participants who completed the protocol: mean relative change, median, mean absolute change, share at or above 20% and ratio of means, each with its bootstrap interval, and `met`. It reads `KPI-1 not measured` when no participant completed the protocol, and `KPI-1 pending` while a completed participant's test session has no score yet (open its debrief, then rerun).
 
-Scores are the proxy scorer's (R3) by default. Once blinded human ratings are stored, `make kpi1-report SCORER=human` gives the same report from them. S3 6.1 decides which one is primary: the proxy if EVL-7 calibration passed, otherwise the human score, with the proxy marked provisional.
+### Blinded human rating
+
+S3 6.1 asks for one blinded human rating of every test session.
+
+1. `make kpi1-export OUT=kpi1-blind` writes three files into a new directory. Give the rater `items.json` (the rubric sheet with anchors and checks, then each test transcript and finding, shuffled, with no participant code, phase or time) and `ratings.json` (the blank sheet). Keep `key.json` yourself: it maps each blind id back to a session.
+2. The rater sets `rater` to their code (R01, never a name) and fills each dimension with 0-4.
+3. `make kpi1-import RATINGS=kpi1-blind/ratings.json KEY=kpi1-blind/key.json` stores the ratings. Importing the same file again stores nothing new.
+4. `make kpi1-report SCORER=human > kpi1-results-human.json`.
+
+S3 6.1 decides which score is primary: the proxy if EVL-7 calibration passed, otherwise the human score, with the proxy marked provisional.
 
 When writing up, state:
 

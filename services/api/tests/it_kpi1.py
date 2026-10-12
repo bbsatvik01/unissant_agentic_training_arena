@@ -22,6 +22,7 @@ import time
 from collections.abc import Coroutine, Iterator
 from decimal import Decimal
 from http import HTTPStatus
+from pathlib import Path
 from subprocess import Popen, TimeoutExpired
 from typing import Any
 from uuid import UUID, uuid4
@@ -302,7 +303,7 @@ def _protocol(world: dict[str, str], email: str) -> None:
 
 
 def test_kpi1_setup_then_two_participants_through_the_whole_protocol(
-    world: dict[str, str], capsys: pytest.CaptureFixture[str]
+    world: dict[str, str], capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
     referee_env = {kpi1.DSN_VAR: world["referee"]}
     assert kpi1.main(["setup", "--emails", ",".join(EMAILS)], env=referee_env) == 0
@@ -330,6 +331,38 @@ def test_kpi1_setup_then_two_participants_through_the_whole_protocol(
         assert p["completed"] is True
         assert len(p["pre_scores"]) == len(p["post_scores"]) == TESTS_PER_PHASE
     assert "@" not in json.dumps(report)
+    assert set(report["kpi1"]["ci"]) == {"mean_rel", "median_rel", "share_ge_20pct", "mean_abs", "ratio_of_means"}
+
+    # Blinded human rating: export, a rater fills the sheet, import; then the same report from human scores.
+    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
+    assert json.loads(capsys.readouterr().out)["kpi1"].startswith(kpi1.PENDING)  # no rating yet
+    out = tmp_path / "blind"
+    assert kpi1.main(["export-blind", "--out", str(out)], env=referee_env) == 0
+    capsys.readouterr()
+    items = json.loads((out / "items.json").read_text(encoding="utf-8"))["items"]
+    assert len(items) == len(EMAILS) * TESTS_PER_PHASE * 2
+    assert all(len(i["transcript"]) == len(QUESTIONS) and i["finding"] for i in items)
+    blob = json.dumps(items)
+    assert "@" not in blob
+    assert "P01" not in blob
+    assert "pre" not in {k for i in items for k in i}
+    key = json.loads((out / "key.json").read_text(encoding="utf-8"))
+    phase_of = {
+        str(r[0]): r[1]
+        for r in run(_admin(world["admin"], "select id, phase from training.sessions where phase in ('pre', 'post')"))
+    }
+    sheet = json.loads((out / "ratings.json").read_text(encoding="utf-8"))
+    for rating in sheet["ratings"]:  # the rater scores post-tests one point higher on every dimension
+        rating.update(dict.fromkeys(kpi1.RATING_FIELDS, 3 if phase_of[key[rating["blind_id"]]] == "post" else 2))
+    (out / "ratings.json").write_text(json.dumps(sheet), encoding="utf-8")
+    imported = ["import-human", "--ratings", str(out / "ratings.json"), "--key", str(out / "key.json")]
+    assert kpi1.main(imported, env=referee_env) == 0
+    assert capsys.readouterr().out.startswith(f"{len(items)} human scores stored")
+    assert kpi1.main(imported, env=referee_env) == 0  # idempotent per (session, rater)
+    assert capsys.readouterr().out.startswith("0 human scores stored")
+    assert kpi1.main(["report", "--scorer", "human"], env=referee_env) == 0
+    human = json.loads(capsys.readouterr().out)["kpi1"]
+    assert (human["mean_abs"], human["mean_rel"], human["met"]) == (25.0, 0.5, True)  # 50 -> 75 for both
 
 
 def test_setup_refuses_a_user_who_practised_on_a_kpi1_family_before(world: dict[str, str]) -> None:
