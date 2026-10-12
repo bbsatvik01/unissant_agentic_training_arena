@@ -104,9 +104,11 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
             setLoad(f);
             return;
           }
-          // Shown until a poll succeeds; the poll itself keeps going.
-          if (folded === EMPTY_TOURNAMENT) setLoad(f);
-          if (more) timer = setTimeout(poll, POLL_MS);
+          // Before any poll has succeeded the failure is shown and the poll is tried again whatever the lifecycle
+          // state (a revealed tournament read once still has to be read once); so is a page still being drained.
+          const first = folded === EMPTY_TOURNAMENT;
+          if (first) setLoad(f);
+          if (first || more) timer = setTimeout(poll, POLL_MS);
           else schedule(false);
         },
       );

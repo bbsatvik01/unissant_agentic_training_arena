@@ -173,6 +173,21 @@ describe("useTournament paging and visibility", () => {
     expect(tournamentEvents).toHaveBeenCalledTimes(2);
   });
 
+  it.each(["revealed", "frozen", "draft"])("retries a failed first poll of a %s tournament until one succeeds, then reads it once", async (state) => {
+    vi.useFakeTimers();
+    setVisibility("visible");
+    const polls: (() => Promise<TournamentPoll>)[] = [() => Promise.reject(new ApiError(503, null, "x")), () => Promise.resolve(events(state, 4))];
+    const tournamentEvents = vi.fn(() => (polls.shift() ?? (() => Promise.resolve(events(state, 4))))());
+    const onceApi = { tournament: () => Promise.resolve({ status: state }), tournamentEvents };
+    const { result } = renderHook(() => useTournament(onceApi, T, true));
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(result.current.state).toBe("error");
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(result.current.state).toBe("ready");
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents).toHaveBeenCalledTimes(2);
+  });
+
   it("sends nothing while the tab is hidden, at the start or after it hides during the wait", async () => {
     vi.useFakeTimers();
     setVisibility("hidden");
