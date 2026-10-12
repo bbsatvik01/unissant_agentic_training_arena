@@ -17,18 +17,15 @@ isolation level), with prepared statements off (S4 2.2: the pooler runs in trans
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any
 
-import psycopg
 from psycopg import AsyncConnection, AsyncCursor, IsolationLevel, sql
 from psycopg.pq import TransactionStatus
 from psycopg_pool import AsyncConnectionPool
 
 CONNECT_TIMEOUT_S = 5
-log = logging.getLogger(__name__)
 Connector = Callable[[], AbstractAsyncContextManager[AsyncConnection[Any]]]
 
 # Sized for one role process serving one or two investigators (S5 10; D-016): a turn holds at most a few connections
@@ -56,9 +53,6 @@ def dsn_connector(dsn: str) -> Connector:
             await conn.close()
 
     return connect
-
-
-_OPEN = frozenset({TransactionStatus.INTRANS, TransactionStatus.INERROR})
 
 
 def _status(conn: AsyncConnection[Any]) -> TransactionStatus:
@@ -165,8 +159,8 @@ async def one_statement(
 ) -> AsyncCursor[Any]:
     """`query` in its own transaction (`begin_statement`: READ COMMITTED on a role connection), as `actor` when
     given (`set_config('arena.actor_id', ..., true)`, S4 2.3), in one round trip. Returns the cursor with the
-    statement's rows already received. Any error is raised here (the transaction is rolled back first), exactly as
-    `conn.transaction()` would raise it."""
+    statement's rows already received. Any error is raised here as the statement raised it (a cancellation as a
+    cancellation), and the connection is closed: the server rolls the transaction back and the pool replaces it."""
     if _status(conn) != TransactionStatus.IDLE:
         msg = "one_statement needs a connection outside any transaction"
         raise RuntimeError(msg)
@@ -179,18 +173,15 @@ async def one_statement(
                 await conn.execute("select set_config('arena.actor_id', %s, true)", (actor,))
             cur = await conn.execute(query, params)
             await conn.execute("COMMIT")
-    except BaseException:
-        if _status(conn) in _OPEN:
-            try:
-                await conn.execute("ROLLBACK")
-            except psycopg.Error as rollback_error:
-                log.warning(
-                    "rollback after a failed statement failed (%s); closing the connection",
-                    type(rollback_error).__name__,
-                )
-                # The statement's own error (its SQLSTATE) is what the caller maps, as `conn.transaction()` keeps
-                # it; a connection that cannot even roll back is closed, which the server rolls back.
-                await conn.close()
+    except BaseException as exc:
+        # A failed or interrupted call never hands its connection back: a cancellation can land while the batch is
+        # still on the wire (psycopg then fails to leave pipeline mode, "cannot exit pipeline mode while busy",
+        # and that error replaces the cancellation), so what the connection still holds is unknown. Closing it ends
+        # the transaction on the server (rolled back) and the pool replaces it.
+        await conn.close()
+        task = asyncio.current_task()
+        if task is not None and task.cancelling() and not isinstance(exc, asyncio.CancelledError):
+            raise asyncio.CancelledError from exc  # the caller was cancelled: that, not the pipeline's error
         raise
     finally:
         if _status(conn) == TransactionStatus.IDLE:
