@@ -260,19 +260,22 @@ def vertex_adapter(env: Mapping[str, str], *, location: str = TEXT_LOCATION) -> 
 
 SPEECH_LOCATION = "global"
 SPEECH_SAMPLE_RATE = 24_000
-# 25 audio tokens a second: 80 s, past the longest line's reading time (60 s). The `tts` call limit's output tokens
-# (ops.call_limits, cost_model.LIMITS), so a reservation prices exactly the output this request allows.
+# The `tts` call limit's output tokens (ops.call_limits, cost_model.LIMITS): 80 s of audio at 25 tokens a second, past
+# the longest line's reading time (a 900-character line, about 60 s). The Gemini 3.8 TTS models refuse a
+# max_output_tokens field (400 INVALID_ARGUMENT, found on the first real call), so the request cannot carry this
+# bound: the line's own length bounds its audio, and a reservation, attempts_per_call (4) times this limit for a line
+# sent once, covers 320 s of audio.
 SPEECH_MAX_OUTPUT_TOKENS = LIMITS[CallType.TTS].output_tokens
 _PCM_SAMPLE_WIDTH = 2
 
 
 def build_speech_config(voice: str, timeout_s: float) -> gtypes.GenerateContentConfig:
     """Audio out in one voice (a prebuilt name or a designed voice id, both in ``voiceConfig.voice`` for the Gemini 3.8
-    TTS models), labelled, one attempt, bounded output; no sampling parameters (the 3.8 TTS models reject them)."""
+    TTS models), labelled, one attempt; no sampling parameters and no max_output_tokens (the 3.8 TTS models reject
+    both)."""
     return gtypes.GenerateContentConfig(
         response_modalities=["AUDIO"],
         speech_config=gtypes.SpeechConfig(voice_config=gtypes.VoiceConfig(voice=voice)),
-        max_output_tokens=SPEECH_MAX_OUTPUT_TOKENS,
         labels={"app": "unissant-arena"},
         automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
         http_options=gtypes.HttpOptions(retry_options=no_sdk_retries(), timeout=max(1, int(timeout_s * 1000))),
@@ -295,7 +298,6 @@ def speech_request_body(text: str, voice: str, style: str | None = None) -> dict
         "contents": [{"parts": [part], "role": "user"}],
         "labels": {"app": "unissant-arena"},
         "generationConfig": {
-            "maxOutputTokens": SPEECH_MAX_OUTPUT_TOKENS,
             "responseModalities": ["AUDIO"],
             "speechConfig": {"voiceConfig": {"voice": voice}},
         },
