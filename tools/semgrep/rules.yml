@@ -84,6 +84,9 @@ rules:
         # its client tests (httpx.MockTransport: the two caller-token clients against a scripted handler, no socket).
         - "/services/api/tests/test_app.py"
         - "/services/api/tests/test_clients.py"
+        # arena-api's voice route tests (WP-22): httpx to the loopback uvicorn server the same test starts and owns
+        # in its own event loop (the WebSocket relay needs a real socket), for the ticket mint and the snapshot.
+        - "/services/api/tests/test_voice.py"
         # the tournament job's own client test (WP-17): httpx.MockTransport against a scripted handler, the
         # same no-socket shape as arena-api's test_clients.py above.
         - "/services/tournament/tests/test_referee_client.py"

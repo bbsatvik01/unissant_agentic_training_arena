@@ -168,7 +168,7 @@ class VoiceSession:
         try:
             first = await self.relay.receive()
             start = p.parse_start(first) if isinstance(first, str) else None
-        except p.ProtocolViolationError:
+        except p.ProtocolViolationError:  # silent-ok: a malformed start is the 4400 close below
             start = None
         except RelayClosedError as exc:
             self.end(exc.code)
@@ -237,7 +237,7 @@ class VoiceSession:
             self.end(p.PROTOCOL)
         except RelayClosedError as exc:
             self.end(exc.code)
-        except LiveClosedError:
+        except LiveClosedError:  # silent-ok: Live went away; the session ends with 1011
             self.end(p.SERVER_ERROR)
         except asyncio.CancelledError:
             raise

@@ -26,7 +26,7 @@ from arena_core.db.pool import Connector, PooledConnector, close_connector
 from arena_core.db.voice import close_orphans
 from arena_core.providers.mode import FAKE, MODE_VAR, model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
-from arena_core.providers.vertex_live import vertex_live
+from arena_core.providers.vertex import vertex_live
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.voice.live import FakeLive, LiveBackend
 from arena_subject.answer import AnswerError, AnswerOutcome, AnswerStep, answer
@@ -209,7 +209,7 @@ def create_app(state: AppState) -> FastAPI:
         try:
             verify_host(ws.headers, _ALLOWED_HOSTS)
             verify_internal_caller(ws.headers, state.voice_callers)
-        except InternalCallerRefusedError:
+        except InternalCallerRefusedError:  # silent-ok: the refusal is the HTTP 403 of the upgrade
             await ws.close()  # before accept: the upgrade is refused (HTTP 403)
             return
         if state.live is None:

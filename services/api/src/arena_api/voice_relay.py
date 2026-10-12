@@ -135,7 +135,7 @@ class VoiceRelay:
             self.code = p.PROTOCOL
             with contextlib.suppress(ConnectionClosed):
                 await self._leg.close(p.PROTOCOL)
-        except ConnectionClosed:
+        except ConnectionClosed:  # silent-ok: arena-subject closed; its close code is read by the other pump
             return
 
     async def _subject_to_browser(self) -> None:
@@ -146,7 +146,7 @@ class VoiceRelay:
                         await self._browser.send_bytes(message)
                 elif p.subject_frame_allowed(message):
                     await self._browser.send_text(message)
-            except (WebSocketDisconnect, RuntimeError):
+            except (WebSocketDisconnect, RuntimeError):  # silent-ok: the browser left; the relay ends
                 return
         code = self._leg.close_code
         if self.code is None and code is not None:

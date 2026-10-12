@@ -71,7 +71,7 @@ async def voice_ws(ws: WebSocket) -> None:
     db = state.db(state.identity.user_id)
     try:
         binding = binding_from(await db.redeem_ticket(ticket, "voice"))
-    except ArenaError:
+    except ArenaError:  # silent-ok: any refusal is the 4401 close; the reason never reaches the browser
         await _refuse(ws, p.REFUSED, ticket)
         return
     await ws.accept(subprotocol=ticket)

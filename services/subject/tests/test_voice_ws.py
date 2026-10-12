@@ -7,10 +7,11 @@ import asyncio
 import contextlib
 import json
 import socket
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
+from uuid import uuid4
 
 import pytest
 import uvicorn
@@ -18,11 +19,14 @@ from psycopg import AsyncConnection
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
+from arena_core.db import calls
+from arena_core.db import voice as db_voice
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.memory import RunBudget
 from arena_core.voice import protocol as p
 from arena_core.voice.live import FakeLive
+from arena_subject import voice_ws
 from arena_subject.app import PORT, AppState, create_app
 from arena_subject.internal_auth import token_sha256
 
@@ -96,3 +100,48 @@ def test_an_admitted_leg_whose_first_frame_is_not_start_closes_4400() -> None:
             assert ws.close_code == p.PROTOCOL
 
     serve(test)
+
+
+def test_the_db_store_runs_each_call_on_its_own_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str] = []
+    marker = object()
+
+    @contextlib.asynccontextmanager
+    async def connect() -> AsyncIterator[AsyncConnection[Any]]:
+        seen.append("connect")
+        yield cast("AsyncConnection[Any]", marker)
+
+    def record(name: str, result: object) -> Callable[..., Awaitable[object]]:
+        async def call(conn: object, *args: object) -> object:
+            assert conn is marker
+            seen.append(name)
+            del args
+            return result
+
+        return call
+
+    opened = db_voice.OpenedVoice(uuid4(), uuid4())
+    dispatched = calls.DispatchResult("dispatched", None, None)
+    usage = calls.UsageResult("recorded", Decimal(0), Decimal(0), Decimal(1), shutoff=False)
+    monkeypatch.setattr(db_voice, "open_voice", record("open", opened))
+    monkeypatch.setattr(db_voice, "voice_context", record("context", {"a": 1}))
+    monkeypatch.setattr(db_voice, "record_exchange", record("exchange", ["rec-01"]))
+    monkeypatch.setattr(db_voice, "close_voice", record("close", None))
+    monkeypatch.setattr(calls, "mark_dispatched", record("dispatch", dispatched))
+    monkeypatch.setattr(calls, "record_usage", record("usage", usage))
+    monkeypatch.setattr(calls, "settle_voice_reservation", record("settle", None))
+    store = voice_ws.DbVoiceStore(connect)
+
+    async def go() -> None:
+        assert await store.open(p.Start(uuid4(), uuid4(), uuid4(), "practice")) == opened
+        assert await store.dispatch(uuid4()) is True
+        assert await store.context(uuid4()) == {"a": 1}
+        assert await store.record_exchange(uuid4(), 1, []) == ["rec-01"]
+        assert await store.record_usage(cast("calls.UsageReport", None)) == usage
+        await store.close(uuid4(), "1000")
+        await store.settle(uuid4(), "committed")
+
+    asyncio.run(go())
+    assert seen == [
+        x for name in ("open", "dispatch", "context", "exchange", "usage", "close", "settle") for x in ("connect", name)
+    ]
