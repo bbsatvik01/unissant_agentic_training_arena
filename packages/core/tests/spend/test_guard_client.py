@@ -58,7 +58,7 @@ class Conn(ScriptedConnection):
         self.executed.append((query, params))
         for name, answer in self.answers.items():
             if name in query:
-                if isinstance(answer, Exception):
+                if isinstance(answer, BaseException):
                     raise answer
                 if isinstance(answer, list):
                     return Cursor(answer)
@@ -406,3 +406,37 @@ def test_main_reports_a_broken_plan(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert plan.main(broken, ["--check", "--dsn-env", "OWNER"], {"OWNER": "x"}) == 1
     assert "exited 1" in capsys.readouterr().err
+
+
+class NotReleasable(psycopg.Error):
+    sqlstate = "AR001"  # S4: a dispatched hold cannot be released
+
+
+def test_a_cancelled_dispatch_still_settles_usage_unknown_on_a_fresh_connection() -> None:
+    """S5 4.10 through the real guard client: a cancellation during dispatch, then the port's unwind (release
+    refused, then usage_unknown). Every failed write closes its connection (db.pool.one_statement), so each next
+    write must open a fresh one instead of failing on the closed one."""
+    reserved = {"outcome": "reserved", "id": str(RID), "reserved_usd": 1}
+    opened = [
+        Conn({"ops.reserve_model_call": reserved, "ops.mark_dispatched": asyncio.CancelledError()}),
+        Conn({"ops.settle_reservation": NotReleasable("dispatched")}),
+        Conn({"ops.settle_reservation": {"outcome": "usage_unknown", "settled_usd": 1}}),
+    ]
+    pending = list(opened)
+
+    @asynccontextmanager
+    async def connect() -> AsyncIterator[Any]:
+        yield pending.pop(0)
+
+    async def body() -> Decimal:
+        async with DbSpendGuard(connect).session() as session:
+            found = await session.reserve(model_req())
+            with pytest.raises(asyncio.CancelledError):
+                await session.dispatch(found.id)
+            with pytest.raises(NotReleasable):
+                await session.settle(found.id, "released")
+            return await session.settle(found.id, "usage_unknown")
+
+    assert run(body()) == Decimal(1)
+    assert [c.closed for c in opened] == [True, True, False]
+    assert opened[2].executed[-1][1] == (RID, "usage_unknown")
