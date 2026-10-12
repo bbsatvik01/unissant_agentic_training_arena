@@ -117,6 +117,19 @@ describe("webAudioPort", () => {
     expect(lastContext?.source.onended).toBeNull();
   });
 
+  it("gives no clip when the browser keeps audio suspended, and unlocks audio on the first gesture", async () => {
+    const port = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
+    const pending = port.fetchClip("Kore", "Hi.");
+    // The context exists once the line is decoded; make its resume a no-op that leaves it suspended.
+    await Promise.resolve();
+    if (lastContext !== null) lastContext.resume = vi.fn(() => Promise.resolve());
+    expect(await pending).toBeNull();
+    const fresh = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
+    window.dispatchEvent(new Event("pointerdown"));
+    expect(lastContext?.resume).toHaveBeenCalled();
+    expect(await fresh.fetchClip("Kore", "Hi.")).not.toBeNull();
+  });
+
   it("gives no clip for the server's silence or a refusal", async () => {
     const silent = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: true }) });
     expect(await silent.fetchClip("Kore", "Hi.")).toBeNull();

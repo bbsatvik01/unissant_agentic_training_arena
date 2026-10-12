@@ -76,14 +76,15 @@ describe("Gemini voice engine", () => {
     t.engine.speak(t.item("second"), t.hooks("B"));
     expect(t.fetches).toEqual(["Kore:first", "Kore:second"]);
     await flush();
-    expect(t.log).toEqual(["start A", "play first at 1"]);
+    // The audio starts, then the mouth: a start that fails never reports one.
+    expect(t.log).toEqual(["play first at 1", "start A"]);
     t.setElapsed(1);
     t.ticks[0]?.();
     expect(t.log.at(-1)).toBe("at A 2");
     t.playing[0]?.ended();
     await flush();
     expect(t.ticks).toHaveLength(1);
-    expect(t.log.slice(2)).toEqual(["at A 2", "end A", "start B", "play second at 1"]);
+    expect(t.log.slice(2)).toEqual(["at A 2", "end A", "play second at 1", "start B"]);
   });
 
   it("cancel stops the line speaking and drops the queue, ending every item once", async () => {
@@ -167,5 +168,32 @@ describe("Gemini voice engine", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("speaks a line with the fallback when its audio will not start, and every line after", async () => {
+    const spoken: string[] = [];
+    const engine = createGeminiEngine(
+      {
+        fetchClip: () => Promise.resolve({ duration: 1 }),
+        play: () => {
+          throw new Error("NotAllowedError");
+        },
+      },
+      {
+        speak: (item, hooks) => {
+          spoken.push(item.text);
+          hooks.onend();
+        },
+        cancel: () => undefined,
+      },
+    );
+    const ends: string[] = [];
+    engine.speak({ voice: VOICE, text: "one", volume: 1, line: null }, { onstart: () => undefined, onprogress: () => undefined, onend: () => ends.push("one") });
+    engine.speak({ voice: VOICE, text: "two", volume: 1, line: null }, { onstart: () => undefined, onprogress: () => undefined, onend: () => ends.push("two") });
+    await flush();
+    await flush();
+    expect(spoken).toEqual(["one", "two"]);
+    expect(ends).toEqual(["one", "two"]);
+    expect(engine.usingFallback()).toBe(true);
   });
 });

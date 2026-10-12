@@ -23,7 +23,7 @@ from arena_core.db.calls import GUARD_ERRORS
 from arena_core.identity import DevIdentity
 from arena_core.providers.errors import ProviderError
 from arena_core.providers.mode import FAKE, MODE_VAR
-from arena_core.providers.vertex import vertex_speech
+from arena_core.providers.vertex import speech_request_bytes, vertex_speech
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.voice.tts import MAX_LINE_CHARS, TTS_MODEL, FakeSpeech, LineRefusedError, TtsService, VertexSynth
 
@@ -51,7 +51,9 @@ def service(request: Request) -> TtsService:
             built = TtsService(FakeSpeech(), None, cache)
         else:
             built = TtsService(
-                VertexSynth(vertex_speech(os.environ, TTS_MODEL)), DbSpendGuard(api_state(request).connect), cache
+                VertexSynth(vertex_speech(os.environ, TTS_MODEL), speech_request_bytes),
+                DbSpendGuard(api_state(request).connect),
+                cache,
             )
         request.app.state.tts = built
     return built

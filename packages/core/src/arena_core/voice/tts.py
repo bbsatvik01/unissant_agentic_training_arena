@@ -21,10 +21,11 @@ import os
 import tempfile
 import time
 import wave
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from arena_core.db.calls import ModelCallRequest, UsageReport, UsageStatus
 from arena_core.providers.errors import ProviderCallError
@@ -104,10 +105,6 @@ class SpeechAudio:
     usage: SpeechUsage | None
 
 
-class SpeechSynth(Protocol):
-    async def synthesize(self, text: str, voice: str) -> SpeechAudio: ...
-
-
 class FakeSpeech:
     """Silence of the line's reading length: zero spend, no network (ARENA_MODEL_MODE=fake)."""
 
@@ -116,6 +113,9 @@ class FakeSpeech:
         seconds = max(0.5, len(text) / FAKE_CHARS_PER_SECOND)
         return SpeechAudio(pcm=bytes(int(seconds * FAKE_SAMPLE_RATE) * 2), sample_rate=FAKE_SAMPLE_RATE, usage=None)
 
+    def request_bytes(self, text: str, voice: str) -> int:
+        return len(f"{voice}{text}".encode())
+
 
 class SpeechSender(Protocol):
     """The Vertex speech client's shape (``arena_core.providers.vertex.VertexSpeech``)."""
@@ -123,11 +123,24 @@ class SpeechSender(Protocol):
     async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]: ...
 
 
-class VertexSynth:
-    """The Vertex client as a ``SpeechSynth``: its usage as prompt tokens in and audio tokens out."""
+class SpeechSynth(Protocol):
+    async def synthesize(self, text: str, voice: str) -> SpeechAudio: ...
 
-    def __init__(self, sender: SpeechSender) -> None:
+    def request_bytes(self, text: str, voice: str) -> int:
+        """The byte length of the request a line sends: what its reservation is measured on."""
+        ...
+
+
+class VertexSynth:
+    """The Vertex client as a ``SpeechSynth``: its usage as prompt tokens in and audio tokens out, its request measured
+    as the body the SDK transmits."""
+
+    def __init__(self, sender: SpeechSender, measure: Callable[[str, str], int]) -> None:
         self._sender = sender
+        self._measure = measure
+
+    def request_bytes(self, text: str, voice: str) -> int:
+        return self._measure(text, voice)
 
     async def synthesize(self, text: str, voice: str) -> SpeechAudio:
         pcm, rate, usage = await self._sender.synthesize(text, voice)
@@ -173,6 +186,9 @@ class TtsService:
         self._guard = guard
         self._cache = cache_dir / model
         self._model = model
+        # One synthesis per line at a time in this process: a second request for the same line waits for the first
+        # and then reads the cache instead of paying again.
+        self._locks: dict[str, asyncio.Lock] = {}
 
     @property
     def silent(self) -> bool:
@@ -195,30 +211,36 @@ class TtsService:
         Path(tmp).replace(self._path(key))
 
     async def speak(self, text: str, voice: str, actor: UUID | None) -> bytes:
-        """The line's WAV audio: from the cache, or synthesized once (through the guard unless in fake mode)."""
+        """The line's WAV audio: from the cache, or synthesized once (through the guard unless in fake mode). Fake
+        silence is never cached, so a later run against Vertex never serves it."""
         line = check_line(text, voice)
         key = line_key(self._model, voice, line)
         path = self._path(key)
         if path.is_file():
             return path.read_bytes()
-        if self._guard is None:
-            audio = await self._synth.synthesize(line, voice)
-        else:
+        lock = self._locks.setdefault(key, asyncio.Lock())
+        async with lock:
+            if path.is_file():
+                return path.read_bytes()
+            if self._guard is None:
+                audio = await self._synth.synthesize(line, voice)
+                return wav_bytes(audio.pcm, audio.sample_rate)
             audio = await self._paid(self._guard, line, voice, key, actor)
-        out = wav_bytes(audio.pcm, audio.sample_rate)
-        self._store(key, out)
-        return out
+            out = wav_bytes(audio.pcm, audio.sample_rate)
+            self._store(key, out)
+            return out
 
     async def _paid(self, guard: SpendGuard, line: str, voice: str, key: str, actor: UUID | None) -> SpeechAudio:
+        # Each paid attempt is its own reservation: a line whose attempt failed can be tried again later.
         request = ModelCallRequest(
-            key=f"tts:{key[:64]}",
+            key=f"tts:{key[:40]}:{uuid4().hex[:16]}",
             bucket=BUDGET_BUCKET,
             model=self._model,
             call_kind=TTS_CALL_KIND,
             purpose=TTS_PURPOSE,
             trial_id=None,
             actor_user_id=actor,
-            input_bytes=len(line.encode()),
+            input_bytes=self._synth.request_bytes(line, voice),
         )
         async with guard.session() as session:
             reservation = await session.reserve(request)

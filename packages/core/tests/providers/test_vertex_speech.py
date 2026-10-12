@@ -5,10 +5,12 @@ calls (a non-200 is not billed, a timeout or a malformed reply may have been).""
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Coroutine
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import pytest
+from google.oauth2.credentials import Credentials as GoogleTokenCredentials
 
 from arena_core.providers import vertex
 from arena_core.providers.errors import ErrorKind, ProviderCallError
@@ -18,6 +20,8 @@ httpx: Any = vertex.TRANSPORT
 PROMPT_TOKENS = 9
 AUDIO_TOKENS = 75
 PCM = b"\x01\x00" * 1200
+# google-auth ships no annotations for this constructor; a typed alias keeps the test strictly checked.
+TokenCredentials: Any = GoogleTokenCredentials
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -146,3 +150,49 @@ def test_the_runtime_client_is_on_the_arena_project_in_the_global_location(monke
     speech = vertex.vertex_speech({"ARENA_GCP_PROJECT": "cna-guardian"}, "gemini-2.5-flash-tts")
     assert (built["project"], built["location"], built["credentials"]) == ("cna-guardian", "global", creds)
     assert speech.model == "gemini-2.5-flash-tts"
+
+
+class SentRequest(Protocol):
+    content: bytes
+
+
+def wire_body(text: str, voice: str) -> bytes:
+    """Drive the pinned SDK through the speech client with an in-memory transport and return the raw body it sent."""
+    bodies: list[bytes] = []
+
+    def handler(sent: SentRequest) -> object:
+        bodies.append(sent.content)
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [{"inlineData": {"mimeType": "audio/L16", "data": "AAAA"}}],
+                        },
+                        "finishReason": "STOP",
+                    }
+                ],
+                "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1, "totalTokenCount": 4},
+            },
+        )
+
+    transport = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = vertex.build_vertex_client("cna-guardian", "global", TokenCredentials("t"), http_client=transport)
+    run(vertex.VertexSpeech(client, "gemini-2.5-flash-tts").synthesize(text, voice))
+    [body] = bodies
+    return body
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["Hello.", "\u20ac" * 900, "\U0001f600" * 300, "\\" * 100 + '"' * 100 + "\x01" * 20, "line\nbreak\ttab"],
+    ids=["ascii", "three-byte", "four-byte", "escapes", "whitespace"],
+)
+def test_the_measured_request_is_the_body_the_sdk_transmits(text: str) -> None:
+    raw = wire_body(text, "Kore")
+    assert vertex.speech_request_bytes(text, "Kore") == len(
+        raw
+    )  # the reservation is the transmitted body, byte for byte
+    assert json.loads(raw) == vertex.speech_request_body(text, "Kore")

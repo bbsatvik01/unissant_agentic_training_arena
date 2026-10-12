@@ -115,12 +115,21 @@ export function createGeminiEngine<C extends Clip>(port: AudioPort<C>, fallback:
           fallback.speak(entry.item, { ...entry.hooks, onend: () => { finish(entry); } });
           return;
         }
-        entry.hooks.onstart();
         let stopTimer: () => void = () => undefined;
-        const playing = port.play(clip, entry.item.volume, () => {
-          stopTimer();
-          finish(entry);
-        });
+        let playing: Playing;
+        try {
+          playing = port.play(clip, entry.item.volume, () => {
+            stopTimer();
+            finish(entry);
+          });
+        } catch {
+          // The audio would not start: the fallback speaks this line and every later one.
+          failed = true;
+          if (current !== null) current.stop = fallback.cancel;
+          fallback.speak(entry.item, { ...entry.hooks, onend: () => { finish(entry); } });
+          return;
+        }
+        entry.hooks.onstart();
         stopTimer = timer.every(PROGRESS_MS, () => {
           entry.hooks.onprogress(charAt(entry.item.text, playing.elapsed(), clip.duration));
         });

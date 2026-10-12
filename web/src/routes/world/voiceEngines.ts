@@ -59,8 +59,23 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
   let context: AudioContext | null = null;
   const ctx = () => {
     context ??= new AudioContext();
-    if (context.state === "suspended") void context.resume();
     return context;
+  };
+  // Browsers start audio only from a user gesture: the first click or key in the page unlocks it (entering the room
+  // always takes one).
+  const unlock = () => {
+    void ctx()
+      .resume()
+      .catch(() => undefined);
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+    window.addEventListener("keydown", unlock, { once: true, capture: true });
+  }
+  /** Whether audio can play now; a context the browser keeps suspended means the browser's voice speaks instead. */
+  const running = async (c: AudioContext) => {
+    if (c.state !== "running") await c.resume().catch(() => undefined);
+    return c.state === "running";
   };
   const clips = new Map<string, Promise<WebClip | null>>();
   return {
@@ -71,8 +86,9 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
         clip = api.speak(voice, text).then(
           async ({ audio, silent }) => {
             if (silent) return null;
-            const buffer = await ctx().decodeAudioData(audio);
-            return { duration: buffer.duration, buffer };
+            const c = ctx();
+            const buffer = await c.decodeAudioData(audio);
+            return (await running(c)) ? { duration: buffer.duration, buffer } : null;
           },
           () => null,
         );

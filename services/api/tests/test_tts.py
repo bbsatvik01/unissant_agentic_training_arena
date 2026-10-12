@@ -25,6 +25,9 @@ class Refusing:
         msg = "kill switch"
         raise KillSwitchOnError(msg)
 
+    def request_bytes(self, text: str, voice: str) -> int:
+        return len(text) + len(voice)
+
 
 def harness(tmp_path: Path, synth: tts.SpeechSynth | None = None) -> Harness:
     h = Harness()
@@ -32,7 +35,7 @@ def harness(tmp_path: Path, synth: tts.SpeechSynth | None = None) -> Harness:
     return h
 
 
-def test_a_line_comes_back_as_wav_audio_and_is_cached(tmp_path: Path) -> None:
+def test_a_line_comes_back_as_wav_audio_flagged_as_silence_in_fake_mode(tmp_path: Path) -> None:
     h = harness(tmp_path)
     r = h.post("/api/tts", {"voice": "Kore", "text": "Where were you at two?"})
     assert r.status_code == HTTPStatus.OK, r.text
@@ -41,7 +44,8 @@ def test_a_line_comes_back_as_wav_audio_and_is_cached(tmp_path: Path) -> None:
     assert r.headers["x-arena-speech"] == "silent"
     with wave.open(io.BytesIO(r.content)) as w:
         assert w.getnchannels() == 1
-    assert list((tmp_path / tts.TTS_MODEL).glob("*.wav"))
+    # Fake silence is never cached.
+    assert not list(tmp_path.rglob("*.wav"))
 
 
 @pytest.mark.parametrize(
@@ -77,7 +81,7 @@ def test_fake_mode_builds_a_silent_service_without_a_guard(tmp_path: Path, monke
     built = h.app.state.tts
     assert isinstance(built, tts.TtsService)
     assert built.silent
-    assert list(tmp_path.rglob("*.wav"))
+    assert not list(tmp_path.rglob("*.wav"))
 
 
 def test_vertex_mode_builds_the_paid_service_behind_the_guard(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

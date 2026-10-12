@@ -18,6 +18,7 @@ else Application Default Credentials. API keys are never used (D-001, boot check
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol
@@ -265,8 +266,29 @@ def build_speech_config(voice: str, timeout_s: float) -> gtypes.GenerateContentC
         ),
         max_output_tokens=SPEECH_MAX_OUTPUT_TOKENS,
         labels={"app": "unissant-arena"},
+        automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
         http_options=gtypes.HttpOptions(retry_options=no_sdk_retries(), timeout=max(1, int(timeout_s * 1000))),
     )
+
+
+def speech_request_body(text: str, voice: str) -> dict[str, object]:
+    """The Vertex `generateContent` JSON body google-genai 2.24.0 sends for one spoken line, field for field (the
+    speech tests compare it with the body the pinned SDK actually puts on the wire)."""
+    return {
+        "contents": [{"parts": [{"text": text}], "role": "user"}],
+        "labels": {"app": "unissant-arena"},
+        "generationConfig": {
+            "maxOutputTokens": SPEECH_MAX_OUTPUT_TOKENS,
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voice_name": voice}}},
+        },
+    }
+
+
+def speech_request_bytes(text: str, voice: str) -> int:
+    """The exact byte length of that body as transmitted (``json.dumps`` defaults, so every non-ASCII character costs
+    its escape): what a line's reservation is measured on (S5 3.2, D11)."""
+    return len(json.dumps(speech_request_body(text, voice)).encode("ascii"))
 
 
 def speech_from(resp: gtypes.GenerateContentResponse) -> tuple[bytes, Usage | None]:
