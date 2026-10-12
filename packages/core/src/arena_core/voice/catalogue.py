@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from importlib import resources
+from pathlib import Path
 from typing import Any
 
 from arena_core.voice.prebuilt import PREBUILT_VOICES
@@ -91,9 +91,12 @@ def parse(doc: Mapping[str, Any]) -> dict[str, PersonaVoice]:
     return out
 
 
+#: The catalogue file, next to this module (``scripts/design_voices.py`` writes designed voice ids into it).
+CATALOGUE_PATH = Path(__file__).with_name("personas.json")
+
+
 def load() -> dict[str, PersonaVoice]:
-    text = resources.files("arena_core.voice").joinpath("personas.json").read_text(encoding="utf-8")
-    return parse(json.loads(text))
+    return parse(json.loads(CATALOGUE_PATH.read_text(encoding="utf-8")))
 
 
 PERSONAS: dict[str, PersonaVoice] = load()

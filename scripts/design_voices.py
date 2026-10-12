@@ -16,7 +16,6 @@ import os
 import re
 import sys
 from collections.abc import Mapping, Sequence
-from importlib import resources
 from pathlib import Path
 
 from arena_core.config import ArenaRole, boot
@@ -24,7 +23,7 @@ from arena_core.db.pool import dsn_connector
 from arena_core.providers.mode import FAKE, MODE_VAR
 from arena_core.providers.vertex import vertex_voice_designer, voice_design_bytes
 from arena_core.spend.guard import DbSpendGuard
-from arena_core.voice.catalogue import load
+from arena_core.voice.catalogue import CATALOGUE_PATH, load
 from arena_core.voice.design import Designed, Tools, design_missing, display_name, write_voice_id
 from arena_core.voice.tts import wav_bytes
 
@@ -38,10 +37,6 @@ def sample_wav(sample: bytes, mime: str) -> bytes:
         return sample
     match = re.search(r"rate=(\d+)", mime)
     return wav_bytes(sample, int(match.group(1)) if match else PCM_RATE)
-
-
-def catalogue_path() -> Path:
-    return Path(str(resources.files("arena_core.voice").joinpath("personas.json")))
 
 
 def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> int:
@@ -63,7 +58,7 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         sys.stderr.write("design_voices: ARENA_MODEL_MODE=fake; designing a voice is a real, paid call\n")
         return 2
     settings = boot(ArenaRole.API, resolved)
-    path = catalogue_path()
+    path = CATALOGUE_PATH
 
     def keep(key: str, out: Designed) -> None:
         write_voice_id(path, key, out.voice_id)
