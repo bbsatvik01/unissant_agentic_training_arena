@@ -155,6 +155,12 @@ MATRIX = [
     ("gap, null missing fact", {"flags.0.missing_fact": None}, "flags.0: missing_fact: required"),
     ("flag on t09 at t07", {"flags.0.turn_id": "t09"}, "flags[0].turn_id: t09 is after"),
     ("record not requestable", {"follow_up.record_request": "rec-05"}, "follow_up.record_request: rec-05"),
+    (
+        "closing remark as follow-up",
+        {"follow_up.question": "Thank you, that concludes our questions."},
+        "follow_up.question: one question ending in a question mark",
+    ),
+    ("question mark mid-sentence", {"follow_up.question": "Why? Tell me more."}, "follow_up.question: one question"),
     ("four flags", {"flags": [good_card()["flags"][0]] * 4}, "flags: List should have at most 3 items"),
     ("cited turn after current", {"finding.cited_turns": [9]}, "finding.cited_turns[0]: turn 9"),
     ("record not yet released", {"finding.cited_records": ["rec-03"]}, "finding.cited_records[0]: rec-03"),
