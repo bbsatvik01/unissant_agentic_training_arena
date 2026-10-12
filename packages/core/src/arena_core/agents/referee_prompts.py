@@ -277,7 +277,7 @@ def build_referee_assistant_prompt(
         raise ManifestMismatchError(msg)
     system = render(join_blocks(prompts.assembly("referee_assistant")), {"rubric_subchecks": rubric_subchecks(rubric)})
     user = render(
-        prompts.user_template("assistant.user.v1.txt"),
+        prompts.user_template("assistant.user.v2.txt"),
         {
             "salt": salt,
             **case_values(inp.case),
@@ -288,6 +288,7 @@ def build_referee_assistant_prompt(
             "finding": NONE if inp.finding is None else finding_projection(inp.finding, salt),
             "finding_citations": _citation_lines(inp.citations),
             "triggers": _trigger_lines(inp.triggers),
+            "applicable": ", ".join(sorted({t.subcheck_id for t in inp.triggers})) or NONE,
         },
     )
     return Prompt(system, user, salt)

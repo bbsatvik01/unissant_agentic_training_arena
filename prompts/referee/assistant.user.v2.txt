@@ -1,0 +1,44 @@
+Case file:
+<untrusted_case_{{salt}}>
+Case ID: {{case_id}}
+Objective: {{objective}}
+Known timeline:
+{{timeline}}
+Initial documents:
+{{initial_documents}}
+Interview context: {{interview_context}}
+Records that could be requested (title only, earliest turn): {{requestable}}
+</untrusted_case_{{salt}}>
+
+Released records:
+<untrusted_records_{{salt}}>
+{{released_records}}
+</untrusted_records_{{salt}}>
+
+Transcript:
+<untrusted_transcript_{{salt}}>
+{{transcript}}
+</untrusted_transcript_{{salt}}>
+
+Flags:
+<untrusted_flags_{{salt}}>
+{{flags}}
+</untrusted_flags_{{salt}}>
+
+Follow-ups:
+<untrusted_followups_{{salt}}>
+{{followups}}
+</untrusted_followups_{{salt}}>
+
+Committed finding:
+{{finding}}
+
+Finding citations:
+{{finding_citations}}
+
+Applicability triggers:
+{{triggers}}
+
+Sub-checks that apply in this trial, so answer pass or fail, never na: {{applicable}}
+
+Assess every flag, every follow-up and every finding citation. Return only the JSON object.

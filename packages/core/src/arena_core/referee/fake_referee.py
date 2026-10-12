@@ -59,7 +59,7 @@ def _citations_block(text: str) -> str:
     """`finding_citations` (referee_prompts._citation_lines) is rendered directly, not inside an untrusted
     tag: it is code-derived from a validated `StoredFinding`'s own `cited_turns`/`cited_records`, never raw
     case text (S2 1's "trusted blocks carry only code-validated identifiers and counts"). Scoped instead by
-    the assistant template's own static headers either side of it (assistant.user.v1.txt)."""
+    the assistant template's own static headers either side of it (assistant.user.v2.txt)."""
     match = re.search(r"Finding citations:\n(.*?)\n\nApplicability triggers:", text, re.DOTALL)
     return match.group(1) if match else ""
 

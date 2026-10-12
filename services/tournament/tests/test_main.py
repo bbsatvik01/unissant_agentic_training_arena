@@ -81,3 +81,19 @@ USAGE_EXIT = 2  # __main__.main's own usage-error return code
 def test_main_usage_for_an_unrecognized_argv_shape(bad_argv: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     assert main(bad_argv) == USAGE_EXIT
     assert "usage: python -m arena_tournament" in capsys.readouterr().err
+
+
+def test_main_run_exits_1_and_says_so_when_blocks_are_left_unscored(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tournament_id = uuid4()
+
+    async def fake_run_tournament(_env: Mapping[str, str], tid: UUID) -> RunSummary:
+        return RunSummary(tournament_id=tid, outcomes={"completed": 6}, closed=False)
+
+    monkeypatch.setattr("os.environ", dict(GOOD_ENV))
+    monkeypatch.setattr(tournament_main, "run_tournament", fake_run_tournament)
+    assert main(["run", str(tournament_id)]) == 1
+    out = capsys.readouterr().out
+    assert f"tournament {tournament_id} not closed" in out
+    assert "run it again" in out

@@ -30,6 +30,7 @@ from arena_core.scoring.exact import (
     investigator_score,
     questioning_quality,
 )
+from arena_core.spend.limits import REFEREE_COMBINATIONS
 
 # ---------------------------------------------------------------- the registry, canonical in rubric.v1, C-13
 
@@ -320,7 +321,7 @@ REFEREE_PROMPT_DIR = "prompts/referee/"
 REFEREE_PROMPT_FILES: tuple[str, ...] = tuple(
     sorted(
         f"{REFEREE_PROMPT_DIR}{name}"
-        for name in ("assistant.user.v1.txt", "assistant.v1.txt", "subject.user.v1.txt", "subject.v1.txt")
+        for name in ("assistant.user.v2.txt", "assistant.v2.txt", "subject.user.v1.txt", "subject.v2.txt")
     )
 )
 
@@ -347,6 +348,8 @@ CONFIG = RubricConfig(
             for score, text in enumerate(anchors)
         ),
         *(f"referee_prompt_file|{path}|{read_prompt_text(path)}" for path in REFEREE_PROMPT_FILES),
+        # The thinking level of each referee purpose changes what the model writes as much as its prompt does.
+        *(f"referee_thinking|{purpose}|{level.value}" for purpose, (_m, level) in sorted(REFEREE_COMBINATIONS.items())),
     ),
     model_ids=("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"),
 )
@@ -399,6 +402,19 @@ LINEAGE: tuple[LineageEntry, ...] = (
             " (`manifests.referee_manifest`, S2 3.4/7.4), so `check_referee_freeze` accepts it without a"
             " `rubric=` override -- a manifest-registration change, not a rubric-hash input, but recorded here"
             " alongside the prompt-file binding since both close the sealed-run referee-freeze gap together."
+        ),
+    ),
+    LineageEntry(
+        sha256="dd64b26c7e107967919a84bfe270cf4b615e4fa0eb150f6a923a8fda9ad697db",
+        supersedes="a2eb8ba8a38a423728c2ea5599d0ca384019cf8469b48b06c363e6ed05966ac7",
+        date="2026-10-12",
+        note=(
+            "referee robustness from the first real dev tournament: subject.v2.txt (no_contradiction judges a"
+            " statement at the time it describes and by what the subject was given, so a truthful subject is not"
+            " failed on a canonical fact its ledger lacks), assistant.v2.txt (a sub-check with a listed trigger is"
+            " never na) with assistant.user.v2.txt (one line naming the sub-checks the triggers make applicable),"
+            " and R1/r3_subject thinking MINIMAL instead of LOW (LOW overran the 4,000 output tokens on 30 of 71"
+            " calls); each purpose's thinking level is now bound into the hash."
         ),
     ),
 )

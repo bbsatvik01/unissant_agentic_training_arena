@@ -20,7 +20,7 @@ from arena_core.turns.harness import Execution
 from arena_core.turns.orchestrator import Orchestrator
 from arena_tournament import admission
 from arena_tournament import runner as runner_module
-from arena_tournament.referee_client import RefereeClient
+from arena_tournament.referee_client import RefereeClient, RefereeError
 from arena_tournament.runner import (
     MAX_ATTEMPTS,
     Attempt,
@@ -449,3 +449,47 @@ def test_a_hidden_tournament_is_refused_when_the_job_does_not_know_its_own_commi
     db = _FakeDb(split="hidden", gate=PASSED_GATE)
     with pytest.raises(IsolationGateNotPassedError):
         run(_runner_with(db, _FakeOrchestrator(), code_sha=None).run_replay_track_prerequisite(uuid4()))
+
+
+class _FlakyBlockReferee(_TrackReferee):
+    """Block scoring that fails `failures[block]` times before it succeeds (a referee 500, e.g. a schema repair
+    that failed twice)."""
+
+    def __init__(self, failures: dict[int, int]) -> None:
+        super().__init__()
+        self.failures = dict(failures)
+
+    async def score_block(self, _tournament: UUID, block_no: int) -> None:
+        self.calls.append(f"block:{block_no}")
+        if self.failures.get(block_no, 0) > 0:
+            self.failures[block_no] -= 1
+            raise RefereeError(500, "Internal Server Error")
+
+
+def _flaky_runner(
+    monkeypatch: pytest.MonkeyPatch, failures: dict[int, int]
+) -> tuple[TournamentRunner, _FlakyBlockReferee]:
+    rows = [_row("interactive", 1), _row("interactive", 2)]
+    runner, *_ = _track_runner(monkeypatch, rows, {"opening_question": "Why?"}, Execution.COMPLETED)
+    referee = _FlakyBlockReferee(failures)
+    runner.referee = cast("RefereeClient", referee)
+    return runner, referee
+
+
+def test_a_block_whose_scoring_fails_once_is_scored_again_after_the_other_blocks_and_the_run_closes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner, referee = _flaky_runner(monkeypatch, {1: 1})
+    summary = run(runner.run(uuid4()))
+    assert referee.calls == ["block:1", "block:2", "block:1", "close"]
+    assert summary.closed
+
+
+def test_a_block_whose_scoring_keeps_failing_leaves_the_run_open_for_a_rerun_instead_of_raising(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner, referee = _flaky_runner(monkeypatch, {2: 5})
+    summary = run(runner.run(uuid4()))
+    assert referee.calls == ["block:1", "block:2", "block:2"]
+    assert not summary.closed
+    assert summary.outcomes == {"completed": 2}
