@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 import pytest
 
-from scripts.referee_admin_client import AdminCallError, admin_post
+from scripts.referee_admin_client import AdminCallError, admin_get, admin_post
 
 BASE = "http://127.0.0.1:8082"
 TOKEN = "t" * 64
@@ -63,6 +63,28 @@ def test_admin_post_raises_on_a_non_200_from_the_post() -> None:
     with pytest.raises(AdminCallError) as exc_info:
         run(admin_post("/api/admin/tournaments/t/reveal", base_url=BASE, transport=httpx.MockTransport(handler)))
     assert exc_info.value.status == httpx.codes.CONFLICT
+
+
+def test_admin_get_sends_no_csrf_dance() -> None:
+    """A GET is not state-changing (D10): no `/api/me` round trip, no cookie, no header."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"commit_sha": "a" * 40})
+
+    result = run(admin_get("/api/admin/isolation-gate", base_url=BASE, transport=httpx.MockTransport(handler)))
+    assert result == {"commit_sha": "a" * 40}
+    [got] = seen
+    assert (got.method, got.url.path) == ("GET", "/api/admin/isolation-gate")
+    assert "x-arena-csrf" not in got.headers
+
+
+def test_admin_get_raises_on_a_non_200() -> None:
+    handler = httpx.MockTransport(lambda _r: httpx.Response(httpx.codes.FORBIDDEN, text="admin role required"))
+    with pytest.raises(AdminCallError) as exc_info:
+        run(admin_get("/api/admin/isolation-gate", base_url=BASE, transport=handler))
+    assert exc_info.value.status == httpx.codes.FORBIDDEN
 
 
 def test_admin_post_with_no_body_sends_none() -> None:

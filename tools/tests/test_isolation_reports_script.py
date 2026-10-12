@@ -86,8 +86,15 @@ def test_run_ig3_selects_exactly_the_two_type_test_node_ids(monkeypatch: pytest.
     assert all("test_coach_prompts.py" in n for n in ig.IG3_SELECT)
 
 
-def _patch_suites(monkeypatch: pytest.MonkeyPatch, *, ig1: bool = True, ig2: bool = True, ig3: bool = True) -> None:
+def _patch_suites(
+    monkeypatch: pytest.MonkeyPatch, *, ig1: bool = True, ig2: bool = True, ig3: bool = True, referee_sha: str = SHA
+) -> None:
     monkeypatch.setattr(ig, "current_git_sha", lambda: SHA)
+
+    async def fake_admin_get(*_a: object, **_kw: object) -> dict[str, Any]:
+        return {"commit_sha": referee_sha}
+
+    monkeypatch.setattr(ig, "admin_get", fake_admin_get)
     monkeypatch.setattr(ig, "run_ig1", lambda: (ig1, "ig1 report"))
     monkeypatch.setattr(ig, "run_ig2", lambda: (ig2, "ig2 report"))
     monkeypatch.setattr(ig, "run_ig3", lambda: (ig3, "ig3 report"))
@@ -156,6 +163,44 @@ def test_main_exits_nonzero_when_ig1_3_pass_but_the_referees_own_verdict_is_fals
     assert "IG-1 PASS" in out
     assert "IG-2 PASS" in out
     assert "IG-3 PASS" in out
+
+
+def test_main_refuses_when_the_referee_is_on_a_different_commit(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """S3 9: results are scoped to the running processes' own commit. Testing checkout A against a referee
+    still on commit B must refuse before running anything -- never mind recording evidence -- or B would be
+    certified using A's results."""
+    other_sha = "b" * 40
+    calls: list[str] = []
+    _patch_suites(monkeypatch, referee_sha=other_sha)
+
+    def fake_run_ig1() -> tuple[bool, str]:
+        calls.append("ig1")
+        return True, ""
+
+    monkeypatch.setattr(ig, "run_ig1", fake_run_ig1)
+
+    async def fake_admin_post(*_a: object, **_kw: object) -> dict[str, Any]:
+        calls.append("posted")
+        return {"passed": True}
+
+    monkeypatch.setattr(ig, "admin_post", fake_admin_post)
+    assert ig.main([]) == 1
+    assert calls == []  # neither IG-1 nor the post ever ran
+    err = capsys.readouterr().err
+    assert SHA in err
+    assert other_sha in err
+
+
+def test_main_fails_when_the_referee_commit_check_itself_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_suites(monkeypatch)
+
+    async def fake_admin_get(*_a: object, **_kw: object) -> dict[str, Any]:
+        raise AdminCallError(403, "admin role required")
+
+    monkeypatch.setattr(ig, "admin_get", fake_admin_get)
+    assert ig.main([]) == 1
 
 
 def test_main_fails_when_the_referee_refuses_the_post(

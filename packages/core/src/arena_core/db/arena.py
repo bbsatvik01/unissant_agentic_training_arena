@@ -420,7 +420,11 @@ class ArenaDb:
         `ledger.v_events` after the global cursor, joined to each row's own trial (`_tournament_trial_refs`,
         read second -- see its own docstring) and projected (`events.projections.tournament_frames`, the
         only module that builds a frame, S5 1.2 item 2); never called for a hidden tournament before reveal
-        (the route serves counts instead, D9)."""
+        (the route serves counts instead, D9). The returned cursor never regresses below `after`: an empty
+        page (nothing new since the caller's own cursor) must answer that cursor back, not
+        `tournament_frames`'s own "nothing consumed yet" 0 -- a caller that trusts the advertised cursor
+        literally, rather than folding it with its previous one the way the existing client's `foldPoll`
+        does (`Math.max`), would otherwise reread the whole tournament from the start."""
         rows = await self.fetch(
             "select seq, event_type, trial_id::text, payload::text, created_us from ledger.v_events"
             " where tournament_id = %s and seq > %s order by seq",
@@ -444,7 +448,8 @@ class ArenaDb:
                     never_started=False if ref is None else ref["never_started"],
                 )
             )
-        return tournament_frames(ledger_rows, str(tournament), limit)
+        frames, last = tournament_frames(ledger_rows, str(tournament), limit)
+        return frames, max(after, last)
 
     # ------------------------------------------------------------------ trust center (S6 4.11)
 

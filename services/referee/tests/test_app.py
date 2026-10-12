@@ -914,6 +914,19 @@ def test_get_isolation_gate_reads_the_latest_result(tmp_path: Path, monkeypatch:
     assert resp.json()["passed"] is True
 
 
+def test_get_isolation_gate_names_its_own_running_commit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """S3 9: results are code-version-scoped to "the running processes", never the caller's own checkout
+    (`make isolation-reports` relies on this to refuse before recording evidence for the wrong commit)."""
+    app = make_app(tmp_path)
+
+    async def fake_fetch(_connect: object, _git_sha: str) -> object:
+        return PASSING_ISOLATION
+
+    monkeypatch.setattr(db, "fetch_isolation_result", fake_fetch)
+    resp = run(_get(app, "/api/admin/isolation-gate"))
+    assert resp.json()["commit_sha"] == BASE_ENV["ARENA_GIT_SHA"]
+
+
 def test_run_isolation_gate_route_rejects_a_malformed_body(tmp_path: Path) -> None:
     app = make_app(tmp_path)
     me = run(_get(app, "/api/me"))
@@ -955,6 +968,7 @@ def test_run_isolation_gate_route_runs_and_returns_the_result(tmp_path: Path, mo
     )
     assert resp.status_code == httpx.codes.OK
     assert resp.json()["passed"] is True
+    assert resp.json()["commit_sha"] == BASE_ENV["ARENA_GIT_SHA"]
 
 
 def _open_body() -> dict[str, object]:

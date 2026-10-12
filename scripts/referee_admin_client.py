@@ -26,6 +26,18 @@ class AdminCallError(Exception):
         self.body = body
 
 
+async def admin_get(
+    path: str, *, base_url: str = DEFAULT_BASE_URL, transport: httpx.AsyncBaseTransport | None = None
+) -> dict[str, Any]:
+    """One admin-console `GET`: no CSRF double submit (D10's `check_csrf`/`check_origin` apply only to
+    state-changing methods), just the one request. Raises `AdminCallError` on anything but 200."""
+    async with httpx.AsyncClient(base_url=base_url, transport=transport) as client:
+        resp = await client.get(path)
+        if resp.status_code != httpx.codes.OK:
+            raise AdminCallError(resp.status_code, resp.text)
+        return dict(resp.json())
+
+
 async def admin_post(
     path: str,
     body: dict[str, Any] | None = None,

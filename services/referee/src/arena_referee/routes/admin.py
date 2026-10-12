@@ -31,11 +31,16 @@ def _git_sha(request: Request) -> str:
     return sha
 
 
-def _result_json(result: IsolationResult) -> dict[str, object]:
+def _result_json(result: IsolationResult, git_sha: str) -> dict[str, object]:
+    # `commit_sha` is this process's own `ARENA_GIT_SHA` (S3 9: "the tournament's code version -- git commit
+    # of the RUNNING PROCESSES"), on every answer, so a caller recording evidence for some other checkout
+    # (`make isolation-reports`, WP-16's own operator script) can refuse before trusting what gets recorded,
+    # rather than discovering later that its own commit was never the one certified.
     return {
         "passed": result.passed,
         "evidence_hash": result.evidence_hash,
         "items": {k: v[0] for k, v in result.items.items()},
+        "commit_sha": git_sha,
     }
 
 
@@ -43,8 +48,9 @@ def _result_json(result: IsolationResult) -> dict[str, object]:
 async def get_isolation_gate(
     request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
-    result = await db.fetch_isolation_result(request.app.state.connect, _git_sha(request))
-    return _result_json(result)
+    git_sha = _git_sha(request)
+    result = await db.fetch_isolation_result(request.app.state.connect, git_sha)
+    return _result_json(result, git_sha)
 
 
 def _as_report(body: dict[str, Any], key: str) -> tuple[bool, str]:
@@ -71,12 +77,13 @@ def isolation_gate_request(body: dict[str, Any], git_sha: str) -> IsolationGateR
 async def run_isolation_gate_route(
     body: dict[str, Any], request: Request, _identity: Annotated[DevIdentity, Depends(require_admin_role)]
 ) -> dict[str, object]:
+    git_sha = _git_sha(request)
     try:
-        request_obj = isolation_gate_request(body, _git_sha(request))
+        request_obj = isolation_gate_request(body, git_sha)
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     result = await run_isolation_gate(request.app.state.connect, request_obj)
-    return _result_json(result)
+    return _result_json(result, git_sha)
 
 
 # ------------------------------------------------------------------ console reads and the validity review (S5 5.5)

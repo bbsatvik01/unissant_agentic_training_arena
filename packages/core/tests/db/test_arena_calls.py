@@ -473,6 +473,15 @@ def test_tournament_events_names_a_replay_trials_pairing_from_its_corpus_source(
     }
 
 
+def test_tournament_events_never_regresses_the_cursor_on_an_empty_page() -> None:
+    """Nothing new since the caller's own cursor must answer that cursor back, not `tournament_frames`'s own
+    "nothing consumed" 0 -- a caller that trusts it literally would otherwise reread the whole tournament."""
+    tournament = uuid4()
+    arena, _ = db([("ledger.v_events", []), ("arena.v_trials", [])])
+    frames, last = run(arena.tournament_events(tournament, 57))
+    assert (frames, last) == ([], 57)
+
+
 def test_tournament_events_synthesizes_a_start_for_a_trial_that_never_started() -> None:
     """`_tournament_trial_refs`'s own `never_started` (`started_at is null`): a `budget_skipped` attempt's
     only ledger row is `execution_recorded`, and the matrix still needs a `trial.started` for it."""
