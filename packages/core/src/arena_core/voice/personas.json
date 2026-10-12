@@ -1,5 +1,5 @@
 {
-  "_note": "Stage 8 voice catalogue. Each speaking persona: a fallback prebuilt voice, the voice design prompt (permanent traits drawn from the public persona: apparent age, work, region, temperament) and a short delivery style drawn from the case family's speaking style (verbosity, register, fluency, language), never from the subject's role and never from affect, so nothing in a voice is a stress cue (PRB-4). voice_id is the stored project voice scripts/design_voices.py created from the prompt (null until designed). Synthetic characters only: no voice is replicated from a real person.",
+  "_note": "Stage 8 voice catalogue. Each speaking persona: a fallback prebuilt voice, the voice design prompt (permanent traits drawn from the public persona: apparent age, work, region, temperament; an accent only where the public persona implies a second language, kept subtle and intelligible, never from the subject's role) and a short delivery style drawn from the case family's speaking style (verbosity, register, fluency, language), never from the subject's role and never from affect, so nothing in a voice is a stress cue (PRB-4). voice_id is the stored project voice scripts/design_voices.py created from the prompt (null until designed). Synthetic characters only: no voice is replicated from a real person.",
   "personas": {
     "subject:Jordan Pell": {
       "prebuilt": "Algieba",
@@ -21,9 +21,9 @@
       "prebuilt": "Puck",
       "gender": "male",
       "language_code": "en-US",
-      "description": "An IT support specialist in his late twenties who learned English as an adult, with a light Scandinavian accent: a bright, clear tenor, careful and articulate.",
+      "description": "An IT support specialist in his late twenties who grew up speaking Swedish and learned English as an adult: a bright, clear tenor with a subtle, natural Swedish accent, fully intelligible, careful and articulate.",
       "style": "formal and careful, explains at length in clear second-language English",
-      "voice_id": "voice_c840d7f4-bd70-43e7-9a47-f0d58d64164e"
+      "voice_id": "voice_7f71dfed-8027-4e4b-9bb6-d3fe9254819b"
     },
     "subject:Dana Okafor": {
       "prebuilt": "Sulafat",
@@ -61,9 +61,9 @@
       "prebuilt": "Zephyr",
       "gender": "male",
       "language_code": "en-US",
-      "description": "A security systems technician in his early thirties who learned English as an adult, with a light Central European accent: a calm, clear tenor.",
+      "description": "A security systems technician in his early thirties who grew up speaking Hungarian and learned English as an adult: a calm, clear tenor with a subtle, natural Hungarian accent, fully intelligible.",
       "style": "casual and brief, in clear second-language English",
-      "voice_id": "voice_3084e3e5-00f7-4039-9459-460a16fa6283"
+      "voice_id": "voice_09fc37ab-3cdf-407d-bfb2-6a903f5f3378"
     },
     "subject:Elise Dunmore": {
       "prebuilt": "Kore",
