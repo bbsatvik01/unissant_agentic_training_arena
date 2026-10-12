@@ -16,8 +16,13 @@ from uuid import UUID
 
 import httpx
 
+from arena_core.spend.limits import DEFAULT_TIMING, CallType
+
 REFEREE_URL = "http://127.0.0.1:8082"
-SCORE_TIMEOUT_S = 90.0  # one trial's R1 and R2, each with the port's own attempts and repair (S2 2)
+# One referee stage (R1 or R2): the referee call's own deadline (S2 2; attempts, repair and backoff included)
+# plus the referee's database reads and writes around it.
+STAGE_TIMEOUT_S = DEFAULT_TIMING[CallType.REFEREE].deadline_s + 10.0
+SCORE_TIMEOUT_S = 2 * STAGE_TIMEOUT_S  # one trial scored R1 then R2, sequentially (an interactive trial)
 # The block-boundary route runs R1 and R2 for every trial of the block sequentially, in one HTTP
 # request/response cycle; the official lineup's block is at most 18 trials (S3: "nine pairings, two
 # variants"), so the single-trial budget alone (a real bug, Codex round 1) would time out a real, non-fake

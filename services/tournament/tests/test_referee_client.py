@@ -12,6 +12,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
+from arena_core.spend.limits import DEFAULT_TIMING, CallType
 from arena_tournament.referee_client import (
     BLOCK_SCORE_TIMEOUT_S,
     MAX_BLOCK_TRIALS,
@@ -116,8 +117,10 @@ def test_score_block_budgets_enough_time_for_the_whole_blocks_trials_not_just_on
     """A real bug (Codex round 1): the block route runs R1 and R2 for every trial of the block sequentially
     in one HTTP cycle; a single trial's own timeout would abort a real (non-fake) block long before the
     referee finishes scoring it."""
-    assert BLOCK_SCORE_TIMEOUT_S == SCORE_TIMEOUT_S * MAX_BLOCK_TRIALS
-    assert BLOCK_SCORE_TIMEOUT_S > SCORE_TIMEOUT_S
+    referee_deadline = DEFAULT_TIMING[CallType.REFEREE].deadline_s
+    # every trial of a full block, each scored R1 then R2, each stage allowed its whole call deadline
+    assert MAX_BLOCK_TRIALS * 2 * referee_deadline < BLOCK_SCORE_TIMEOUT_S
+    assert 2 * referee_deadline < SCORE_TIMEOUT_S
 
     seen_timeouts: list[float] = []
 
