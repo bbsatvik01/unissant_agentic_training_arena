@@ -253,7 +253,7 @@ class VoiceSession:
                 task.cancel()
             # Live reports usage after the model turn it bills (often in the message that completes it): when
             # speech or output was not yet metered, give that report a moment to arrive before Live closes.
-            if self._meter is not None and self._meter.unmetered:
+            if self._meter is not None and self._meter.awaiting_report:
                 with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(asyncio.shield(receive), FINAL_USAGE_S)
             receive.cancel()
@@ -286,7 +286,13 @@ class VoiceSession:
         try:
             await self.store.close(self._opened.voice_session_id, p.close_code_text(code, self.guard_rule))
         finally:
-            outcome: SettleOutcome = self._meter.outcome() if self._meter is not None else "released"
+            outcome: SettleOutcome = "released"
+            if self._meter is not None:
+                try:
+                    await self._meter.close_out()
+                except Exception:
+                    log.exception("voice: the closing usage estimate was not recorded")
+                outcome = self._meter.outcome()
             await self.store.settle(self._opened.reservation_id, outcome)
 
     # ------------------------------------------------------------------ relay -> Live
@@ -300,7 +306,7 @@ class VoiceSession:
                 p.check_browser_audio(message)
                 async with self._lock:
                     if not self._holding:
-                        await live.send_audio(message)
+                        await self._send_audio(live, message)
                         continue
                     self._held.append(message)
                     self._held_bytes += len(message)
@@ -319,6 +325,11 @@ class VoiceSession:
                     self._pending_update = True
                     if not self._exchange_open():
                         await self._apply_update(live)
+
+    async def _send_audio(self, live: LiveConnection, pcm: bytes) -> None:
+        if self._meter is not None:
+            self._meter.audio_in(len(pcm))  # Live bills listening input
+        await live.send_audio(pcm)
 
     def _exchange_open(self) -> bool:
         return bool(self._window) or self._open_utterance is not None
@@ -344,7 +355,7 @@ class VoiceSession:
                 # Terminal: only a usage report still matters (it settles what was billed); nothing more is relayed.
                 if isinstance(event, LiveUsage) and self._meter is not None:
                     await self._meter.record(event)
-                if self._meter is None or not self._meter.unmetered:
+                if self._meter is None or not self._meter.awaiting_report:
                     return
                 continue
             if isinstance(event, LiveAudio):
@@ -363,7 +374,7 @@ class VoiceSession:
 
     async def _audio(self, data: bytes) -> None:
         if self._meter is not None:
-            self._meter.output_seen()
+            self._meter.audio_out(len(data))
         self._last_activity = self.clock()
         if self._open_utterance is None:
             if self._muted_utterance is not None and self._muted_utterance == self._utterance:
@@ -377,8 +388,8 @@ class VoiceSession:
     async def _transcript(self, event: LiveTranscript) -> None:
         self._last_activity = self.clock()
         if self._meter is not None and event.text:
-            # Transcribed speech (either side) is billable until a usage report covers it.
-            self._meter.output_seen()
+            # Transcribed speech means a model turn is under way: its usage report is awaited at a close.
+            self._meter.speech_seen()
         if event.text:
             last = self._window[-1] if self._window else None
             if last is not None and last.role == event.role:
@@ -436,7 +447,7 @@ class VoiceSession:
                 self.end(p.EXCHANGE_CAP_REACHED)
                 return
             for chunk in self._held:
-                await live.send_audio(chunk)
+                await self._send_audio(live, chunk)
             self._held.clear()
             self._held_bytes = 0
             self._holding = False

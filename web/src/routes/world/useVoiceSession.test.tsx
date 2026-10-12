@@ -185,3 +185,28 @@ describe("useVoiceSession", () => {
     expect(result.current.state.status).toBe("connecting");
   });
 });
+
+describe("useVoiceSession hang up while connecting", () => {
+  it("cancels a pending ticket: no socket opens and the microphone is closed", async () => {
+    let release: (t: string) => void = () => undefined;
+    const pending = { mintVoiceTicket: vi.fn(() => new Promise<string>((r) => (release = r))) } as unknown as ArenaApi;
+    const { result } = renderHook(() => useVoiceSession({ api: pending, trialId: "t1", exchanges: NONE }));
+    act(() => {
+      result.current.open();
+      result.current.consent();
+    });
+    await waitFor(() => {
+      expect(audio.hooks).toHaveLength(1);
+    });
+    act(() => {
+      result.current.stop();
+    });
+    expect(result.current.state.status).toBe("ended");
+    expect(audio.closed).toBe(1);
+    await act(async () => {
+      release(TICKET);
+      await Promise.resolve();
+    });
+    expect(FakeSocket.all).toHaveLength(0);
+  });
+});

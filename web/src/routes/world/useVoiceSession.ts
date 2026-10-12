@@ -220,8 +220,18 @@ export function useVoiceSession({ api, trialId, exchanges }: Options): VoiceCont
     if (ws !== null && ws.readyState === WebSocket.OPEN) ws.send(controlFrame(control));
   }, []);
   const stop = useCallback(() => {
-    send({ type: "stop" });
-  }, [send]);
+    const ws = socket.current;
+    if (ws !== null && ws.readyState === WebSocket.OPEN) {
+      send({ type: "stop" });
+      return;
+    }
+    // Hung up while still connecting: cancel the attempt (its late microphone, ticket or socket is dropped), stop
+    // the microphone now, and end.
+    generation.current += 1;
+    ws?.close(1000);
+    teardown();
+    dispatch({ type: "ended", key: "normal" });
+  }, [send, teardown, dispatch]);
   const interrupt = useCallback(() => {
     audio.current?.flush();
     send({ type: "interrupt" });

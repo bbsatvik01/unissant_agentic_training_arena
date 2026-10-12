@@ -12,6 +12,7 @@ import pytest
 from arena_core.providers import vertex
 from arena_core.providers.vertex import events_of, live_config, live_usage
 from arena_core.voice.live import (
+    LIVE_FALLBACK_MODEL,
     LiveAudio,
     LiveClosedError,
     LiveInterrupted,
@@ -41,8 +42,9 @@ def test_the_live_config_is_audio_with_both_transcriptions_the_voice_and_no_tool
     assert cfg.tools is None
     assert cfg.session_resumption is None
     assert cfg.thinking_config is None
-    assert cfg.proactivity == gtypes.ProactivityConfig(proactive_audio=False)
-    assert cfg.enable_affective_dialog is False
+    # gemini-3.8-live refuses both switches (proactive audio always on, affective dialog removed)...
+    assert cfg.proactivity is None
+    assert cfg.enable_affective_dialog is None
     detect = cfg.realtime_input_config
     assert detect is not None
     assert detect.automatic_activity_detection is not None
@@ -52,6 +54,12 @@ def test_the_live_config_is_audio_with_both_transcriptions_the_voice_and_no_tool
     assert voice.voice_config is not None
     assert voice.voice_config.prebuilt_voice_config is not None
     assert voice.voice_config.prebuilt_voice_config.voice_name == "Charon"
+
+
+def test_the_native_audio_fallback_turns_proactivity_and_affective_dialog_off() -> None:
+    cfg = live_config(SETUP, LIVE_FALLBACK_MODEL)
+    assert cfg.proactivity == gtypes.ProactivityConfig(proactive_audio=False)
+    assert cfg.enable_affective_dialog is False
 
 
 def _usage() -> gtypes.UsageMetadata:

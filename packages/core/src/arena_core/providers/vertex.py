@@ -374,9 +374,14 @@ SILENCE_MS = 700
 AUDIO_MIME = "audio/pcm;rate=16000"
 
 
-def live_config(setup: Mapping[str, Any]) -> gtypes.LiveConnectConfig:
-    """The SDK config from `subject_prompts.live_setup`'s plain data."""
+def live_config(setup: Mapping[str, Any], model: str = LIVE_MODEL) -> gtypes.LiveConnectConfig:
+    """The SDK config from `subject_prompts.live_setup`'s plain data. `gemini-3.8-live` has proactive audio always
+    on and affective dialog removed (setting either is refused, per its Vertex migration guide), so both are sent
+    off only to the 2.5 native-audio fallback, where S2 9.2 turns them off."""
     voice = setup["speech_config"]["voice_config"]["prebuilt_voice_config"]["voice_name"]
+    switches: dict[str, Any] = {}
+    if model != LIVE_MODEL:
+        switches = {"proactivity": gtypes.ProactivityConfig(proactive_audio=False), "enable_affective_dialog": False}
     return gtypes.LiveConnectConfig(
         response_modalities=[gtypes.Modality.AUDIO],
         system_instruction=str(setup["system_instruction"]),
@@ -385,11 +390,10 @@ def live_config(setup: Mapping[str, Any]) -> gtypes.LiveConnectConfig:
         realtime_input_config=gtypes.RealtimeInputConfig(
             automatic_activity_detection=gtypes.AutomaticActivityDetection(silence_duration_ms=SILENCE_MS)
         ),
-        proactivity=gtypes.ProactivityConfig(proactive_audio=False),
-        enable_affective_dialog=False,
         speech_config=gtypes.SpeechConfig(
             voice_config=gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name=str(voice)))
         ),
+        **switches,
     )
 
 
@@ -492,7 +496,9 @@ class VertexLive:
     def connect(self, setup: Mapping[str, Any]) -> AbstractAsyncContextManager[LiveConnection]:
         @asynccontextmanager
         async def _open() -> AsyncIterator[LiveConnection]:
-            async with self._client.aio.live.connect(model=self.model, config=live_config(setup)) as session:
+            async with self._client.aio.live.connect(
+                model=self.model, config=live_config(setup, self.model)
+            ) as session:
                 yield LiveSessionConnection(session)
 
         return _open()

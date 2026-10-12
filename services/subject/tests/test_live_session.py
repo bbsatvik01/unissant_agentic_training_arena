@@ -41,6 +41,7 @@ GATE_LOCKED = "g:01 condition"
 POLL_S = 0.005
 AUDIO_OUT_TOKENS = 40
 TWO = 2
+FRAMES_PER_S = 10
 
 
 def gate_line(instruction: str) -> str:
@@ -89,6 +90,7 @@ class Store:
     shutoff_after: int | None = None
     refuse: int | None = None
     kill: bool = False
+    fail_usage: bool = False
     log: list[tuple[str, Any]] = field(default_factory=list)
     stored: list[tuple[int, list[dict[str, Any]]]] = field(default_factory=list)
     usage: list[UsageReport] = field(default_factory=list)
@@ -118,6 +120,9 @@ class Store:
         return new
 
     async def record_usage(self, report: UsageReport) -> UsageResult:
+        if self.fail_usage:
+            msg = "database unavailable"
+            raise ConnectionError(msg)
         self.usage.append(report)
         shutoff = self.shutoff_after is not None and len(self.usage) >= self.shutoff_after
         return UsageResult("recorded", Decimal("0.01"), Decimal("0.01"), Decimal("3.39"), shutoff)
@@ -302,8 +307,9 @@ def test_guard_hit_on_subject_speech_closes_4409_and_records_the_rule(said: str,
     assert relay.closed == p.SUBJECT_GUARD
     assert ("close", f"guard:{rule}") in store.log
     assert store.stored == []
-    # Output arrived with no usage report: the hold stays charged.
-    assert store.log[-1] == ("settle", "usage_unknown")
+    # Output arrived with no usage report: it is estimated from its bytes on one closing receipt.
+    assert [u.audio_output_tokens > 0 for u in store.usage] == [True]
+    assert store.log[-1] == ("settle", "committed")
 
 
 def test_meter_shutoff_closes_4413_and_settles_only_after_the_close() -> None:
@@ -481,7 +487,8 @@ def test_a_transport_drop_mid_answer_closes_the_session_and_stores_nothing_parti
     _relay, _ = run(_drive(store, script))
     assert store.stored == []
     assert ("close", "1006") in store.log
-    assert store.log[-1] == ("settle", "usage_unknown")
+    assert len(store.usage) == 1  # the cut-off answer, estimated
+    assert store.log[-1] == ("settle", "committed")
 
 
 def test_idle_closes_4408_and_the_audio_cap_closes_1000() -> None:
@@ -627,16 +634,18 @@ def test_a_reconnect_carries_the_stored_conversation_into_the_new_live_session()
     assert store.stored[0][0] == store.exchanges + 1
 
 
-def test_speech_with_no_usage_report_settles_usage_unknown_and_a_late_report_settles_committed() -> None:
+def test_unreported_input_is_estimated_at_the_close_and_a_late_report_replaces_the_estimate() -> None:
     store = Store()
 
-    async def spoken(relay: Relay, conn: FakeLiveConnection) -> None:
-        conn.push(LiveTranscript("investigator", "Where were you?", finished=True))
-        await until(lambda: bool(relay.frames("transcription")))
+    async def listened(relay: Relay, conn: FakeLiveConnection) -> None:
+        for _ in range(FRAMES_PER_S):  # one second of investigator audio, hung up before any transcription
+            relay.inbound.put_nowait(SPEECH)
+        await until(lambda: len(conn.audio_in) == FRAMES_PER_S)
         relay.inbound.put_nowait(json.dumps({"type": "stop"}))
 
-    run(_drive(store, spoken))
-    assert store.log[-1] == ("settle", "usage_unknown")
+    run(_drive(store, listened))
+    assert [(u.audio_input_tokens, u.audio_output_tokens, u.input_tokens) for u in store.usage] == [(25, 0, 0)]
+    assert store.log[-1] == ("settle", "committed")
 
     late = Store()
 
@@ -650,3 +659,15 @@ def test_speech_with_no_usage_report_settles_usage_unknown_and_a_late_report_set
     run(_drive(late, reported))
     assert len(late.usage) == 1
     assert late.log[-1] == ("settle", "committed")
+
+
+def test_an_estimate_that_cannot_be_recorded_settles_usage_unknown() -> None:
+    store = Store(fail_usage=True)
+
+    async def listened(relay: Relay, conn: FakeLiveConnection) -> None:
+        relay.inbound.put_nowait(SPEECH)
+        await until(lambda: bool(conn.audio_in))
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+
+    run(_drive(store, listened))
+    assert store.log[-1] == ("settle", "usage_unknown")
