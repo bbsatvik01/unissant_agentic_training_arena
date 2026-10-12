@@ -217,7 +217,7 @@ licenses:
 # against it. make export-run TRIAL=<id> writes recordings/<id>.json. dev-db and dev-db-down never write or
 # delete the root .env.local* files.
 ENV_DIR ?=
-.PHONY: dev dev-local dev-db dev-db-down export-run
+.PHONY: dev dev-local dev-db dev-db-down export-run seed-hosted real-smoke
 dev-db:
 	scripts/dev.sh db-up
 dev-db-down:
@@ -229,3 +229,24 @@ dev-local:
 export-run:
 	@test -n "$(TRIAL)" || { echo "usage: make export-run TRIAL=<trial-id> [ENV_DIR=.run/localdb]"; exit 2; }
 	ENV_DIR="$(ENV_DIR)" scripts/dev.sh export-run "$(TRIAL)"
+
+# make seed-hosted EMAIL=<email> (ARENA_OWNER_DSN already set in the operator's shell, never passed here or
+# written anywhere): idempotently ingests cases/dev/F01-F09 through sealed.ingest_case_family, registers the
+# official roster (A1-A3, S1-S3) through arena.register_candidate, and allowlists one investigator (an
+# auth.users row, S4 2.3). Never touches ARENA_USERS_FILE; add the same email there separately. No model call.
+seed-hosted:
+	@test -n "$(EMAIL)" || { echo "usage: ARENA_OWNER_DSN=... make seed-hosted EMAIL=<allowlisted email>"; exit 2; }
+	@test -n "$$ARENA_OWNER_DSN" || { echo "ARENA_OWNER_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.seed_hosted --email "$(EMAIL)"
+
+# make real-smoke [FAMILY=F01] [COACH=A1] [SUBJECT=S1]: one real subject call and one real coach card through
+# the real agent port and spend guard (ARENA_PUBLIC_DSN, ARENA_SUBJECT_DSN, ARENA_DEV_USER, ARENA_USERS_FILE
+# already set in the environment -- .env.local plus .env.local.public and .env.local.subject, same as make
+# dev; ARENA_MODEL_MODE unset or `vertex` for a real call, `fake` for the zero-spend smoke test this script is
+# tested with). Run make seed-hosted first so the candidates and the dev family it draws on are registered.
+FAMILY ?= F01
+real-smoke:
+	@test -n "$$ARENA_PUBLIC_DSN" || { echo "ARENA_PUBLIC_DSN is not set in the environment"; exit 2; }
+	@test -n "$$ARENA_SUBJECT_DSN" || { echo "ARENA_SUBJECT_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.probes.real_smoke --family "$(FAMILY)" $(if $(COACH),--coach "$(COACH)") \
+		$(if $(SUBJECT),--subject "$(SUBJECT)")

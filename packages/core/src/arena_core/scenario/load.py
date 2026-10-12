@@ -22,6 +22,10 @@ names the active predecessor (`Fnn` for r2, `Fnn.r(N-1)` after that); `variant_c
 authoring loop; this package runs no model). The review names the family hash it was run on, and a review of
 any other file is refused (S1 8.5 step 3). S4 checks the two against each other and the variants.
 
+A caller may hand either shape: the attestation's own `CodexReview`, or the authoring loop's full per-family
+CX report (`cases/dev/reports/<ID>.cx.json`, `is_legacy_codex_report`); `codex_review_from_report` reduces
+the latter to the former, refusing one that does not record a clean pass (`LegacyCodexReportError`).
+
 Variants are ordered by `variant_code`, so the insertion order of the public-tier `arena.case_variants`
 rows cannot reveal which variant is truthful (L3). The loader refuses a family with any validator issue
 (V1-V4 on the family, V5 over the whole dev split and, for a hidden family, the whole hidden split named by
@@ -35,9 +39,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeGuard
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from arena_core.ids import canonical_json, read_json_text, sha256_hex
 from arena_core.scenario.source import VARIANTS
@@ -126,6 +130,68 @@ class IngestBundle(_Model):
     def to_json(self) -> str:
         """Canonical JSON text, the `p_bundle` argument of `sealed.ingest_case_family`."""
         return canonical_json(self.as_json())
+
+
+LEGACY_REPORT_CHECKS: tuple[str, ...] = ("cx1", "cx4", "cx2_truthful", "cx2_deceptive", "cx3")
+
+
+class LegacyCodexReportError(ValueError):
+    """The authoring loop's full per-family CX report (`cases/dev/reports/<ID>.cx.json`, documented in
+    `cases/dev/README.md`) does not record a clean pass on every check, or carries a review finding. The
+    review is re-run on the family (S1 8.5 step 3); nothing here coerces a failed check to pass."""
+
+
+def is_legacy_codex_report(raw: object) -> TypeGuard[dict[str, Any]]:
+    """Whether `raw` is the authoring loop's full per-family CX report (S1 9.7) rather than the attestation's
+    reduced `codex` object (S1 10.5, `CodexReview`). Both are the loop's own JSON: the report keeps every
+    solve sheet and basis for audit (`cases/dev/README.md`), with one boolean per check plus `solves`, where
+    the attestation holds five fields with `pass` literals. `solves` and `cx1` together are only ever on the
+    report (`CodexReview` forbids both as extra fields), so the two shapes never overlap."""
+    return isinstance(raw, dict) and "solves" in raw and "cx1" in raw
+
+
+def codex_review_from_report(report: Mapping[str, Any]) -> CodexReview:
+    """The attestation's `codex` object (S1 10.5), reduced from the authoring loop's full per-family CX
+    report (S1 9.7: one review session for CX-1 and CX-4, one solve session each for CX-2 truthful, CX-2
+    deceptive and CX-3). Refuses (never coerces) a report whose `pass` summary disagrees with its checks, that
+    does not record every check as a real pass, or that carries a review finding — exactly what `ingest_bundle`
+    would refuse from a passed-looking review that was not, so a stale or hand-edited report is never ingested.
+
+    The report predates per-round tracking (S1 8.5 step 4: a seed is discarded after 5 failed rounds), so a
+    report with no `rounds` field is recorded as round 1; `CodexReview` only bounds the field to 1-5, and S4
+    does not check it against authoring history, so this never understates or overstates what S4 attests.
+    """
+    failed = [check for check in LEGACY_REPORT_CHECKS if report.get(check) is not True]
+    findings = report.get("findings")
+    overall = report.get("pass")
+    if failed or findings or overall is not True:
+        family = report.get("family", "?")
+        message = (
+            f"{family}: the CX report does not record a clean pass "
+            f"(failed={failed}, findings={findings!r}, pass={overall!r})"
+        )
+        raise LegacyCodexReportError(message)
+    if "family_sha256" not in report:
+        message = "the CX report has no family_sha256"
+        raise LegacyCodexReportError(message)
+    rounds = report.get("rounds", 1)
+    if not isinstance(rounds, int):
+        message = f"rounds is not an integer: {rounds!r}"
+        raise LegacyCodexReportError(message)
+    try:
+        return CodexReview.model_validate(
+            {
+                "rounds": rounds,
+                "review": "pass",
+                "cx2_truthful": "pass",
+                "cx2_deceptive": "pass",
+                "cx3": "pass",
+                "family_sha256": str(report["family_sha256"]),
+            }
+        )
+    except ValidationError as exc:
+        message = f"malformed CX report: {exc}"
+        raise LegacyCodexReportError(message) from exc
 
 
 class FamilyLoadError(ValueError):

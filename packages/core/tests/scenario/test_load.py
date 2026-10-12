@@ -14,7 +14,15 @@ from pydantic import ValidationError
 
 from arena_core.ids import canonical_json, canonical_sha256
 from arena_core.scenario import load
-from arena_core.scenario.load import CodexReview, FamilyLoadError, IngestBundle, ingest_bundle
+from arena_core.scenario.load import (
+    CodexReview,
+    FamilyLoadError,
+    IngestBundle,
+    LegacyCodexReportError,
+    codex_review_from_report,
+    ingest_bundle,
+    is_legacy_codex_report,
+)
 from arena_core.scenario.schema import schema_enum
 
 Family = dict[str, Any]
@@ -165,6 +173,74 @@ def test_a_revision_has_its_own_code_and_names_its_predecessor(
 def test_only_a_passed_codex_review_can_be_attested(codex: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         CodexReview.model_validate({**codex, "family_sha256": "0" * 64})
+
+
+REPORTS_DIR = DEV_DIR / "reports"
+
+
+def legacy_report(family_id: str, **changes: object) -> dict[str, Any]:
+    """A copy of the real per-family CX report (`cases/dev/reports/<ID>.cx.json`), optionally mutated."""
+    report: dict[str, Any] = json.loads((REPORTS_DIR / f"{family_id}.cx.json").read_text(encoding="utf-8"))
+    report.update(changes)
+    return report
+
+
+@pytest.mark.parametrize("family_id", ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09"])
+def test_codex_review_from_report_reduces_the_real_dev_reports(family_id: str, seed: Callable[[str], Family]) -> None:
+    """S1 9.7/10.5: the committed per-family CX report reduces to the attestation's codex object and is
+    bound to the committed family file's own hash (never a stale one)."""
+    report = legacy_report(family_id)
+    assert is_legacy_codex_report(report)
+    review = codex_review_from_report(report)
+    assert review == CodexReview.model_validate({**CODEX_RESULTS, "family_sha256": report["family_sha256"]})
+    assert review.family_sha256 == canonical_sha256(seed(family_id))  # the report is not stale
+
+
+def test_a_direct_codex_review_is_not_mistaken_for_a_report() -> None:
+    assert is_legacy_codex_report({**CODEX_RESULTS, "family_sha256": "0" * 64}) is False
+
+
+@pytest.mark.parametrize("check", ["cx1", "cx4", "cx2_truthful", "cx2_deceptive", "cx3"])
+def test_codex_review_from_report_refuses_a_failed_check(check: str) -> None:
+    report = legacy_report("F01", **{check: False})
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_review_finding() -> None:
+    report = legacy_report("F01", findings=[{"code": "CX-1", "refs": ["f:01"], "note": "x"}])
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_pass_summary_that_disagrees_with_its_checks() -> None:
+    """Defense in depth: a hand-edited or stale report whose top-level `pass` no longer matches its own
+    per-check fields is refused rather than trusted on either field alone."""
+    report = legacy_report("F01", cx3=False)  # the per-check field already makes this fail
+    report["pass"] = True  # still asserted true, but disagrees with cx3
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_missing_hash() -> None:
+    report = legacy_report("F01")
+    del report["family_sha256"]
+    with pytest.raises(LegacyCodexReportError):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_non_integer_rounds() -> None:
+    report = legacy_report("F01", rounds="one")
+    with pytest.raises(LegacyCodexReportError, match="rounds"):
+        codex_review_from_report(report)
+
+
+def test_codex_review_from_report_refuses_a_malformed_hash() -> None:
+    """A `family_sha256` that is not 64 hex characters fails `CodexReview`'s own pattern; the wrapper reports
+    it as a report problem (`LegacyCodexReportError`), never a bare `pydantic.ValidationError`."""
+    report = legacy_report("F01", family_sha256="not-a-hash")
+    with pytest.raises(LegacyCodexReportError, match="malformed CX report"):
+        codex_review_from_report(report)
 
 
 def test_a_review_of_another_family_file_is_refused(seed: Callable[[str], Family]) -> None:

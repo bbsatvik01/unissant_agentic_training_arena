@@ -7,8 +7,10 @@
 - `validate FAMILY...`: run V1-V4 on each family file and V5 across them.
 - `bundle FAMILY --codex CODEX.json --dev-dir DIR [--hidden FAMILY... --sampler-record RECORD.json]
   [--out BUNDLE]`: the S4 `sealed.ingest_case_family` bundle of a valid family, with its source text and
-  attestation (S1 10.5). CODEX.json is the passed Codex review (`CodexReview`); V5 compares the family with
-  every development family file in DIR (`cases/dev`) and, for a hidden family, with the rest of the hidden
+  attestation (S1 10.5). CODEX.json is the passed Codex review (`CodexReview`), or the authoring loop's full
+  per-family CX report (`cases/dev/reports/<ID>.cx.json`, `load.is_legacy_codex_report`), reduced to the
+  attestation's `codex` object (`load.codex_review_from_report`); V5 compares the family with every
+  development family file in DIR (`cases/dev`) and, for a hidden family, with the rest of the hidden
   split, which must be exactly the families the split's sampler record names (`load.corpus_issues`).
 
 `--counts` (every command) prints one JSON object of outcome codes and counts and nothing else, on every
@@ -35,7 +37,16 @@ from pydantic import ValidationError
 from arena_core.ids import StrictJSONError, canonical_json, read_json_text
 from arena_core.scenario.assemble import assemble, draw_identifiers, dump_family, new_revision
 from arena_core.scenario.brief import load_authoring
-from arena_core.scenario.load import CodexReview, DevSplit, FamilyLoadError, ingest_bundle, read_family_file
+from arena_core.scenario.load import (
+    CodexReview,
+    DevSplit,
+    FamilyLoadError,
+    LegacyCodexReportError,
+    codex_review_from_report,
+    ingest_bundle,
+    is_legacy_codex_report,
+    read_family_file,
+)
 from arena_core.scenario.source import SourceError, parse_source
 from arena_core.scenario.validators import Issue, validate_families
 
@@ -71,6 +82,8 @@ class Report:
             self.problem("INPUT.not_json", f"{where}: not JSON: {exc}")
         elif isinstance(exc, ValidationError):
             self.problem(f"{area}.model", f"{where}: {exc}", exc.error_count())
+        elif isinstance(exc, LegacyCodexReportError):
+            self.problem(f"{area}.not_passed", f"{where}: {exc}")
         elif isinstance(exc, SourceError):
             self.problem(f"{area}.problem", f"{where}: {exc}", len(exc.problems))
         else:
@@ -151,7 +164,11 @@ def _validate(args: argparse.Namespace, report: Report) -> None:
 
 def _bundle(args: argparse.Namespace, report: Report) -> None:
     try:
-        codex = CodexReview.model_validate_json(canonical_json(read_json_text(args.codex.read_text(encoding="utf-8"))))
+        raw_codex = read_json_text(args.codex.read_text(encoding="utf-8"))
+        if is_legacy_codex_report(raw_codex):
+            codex = codex_review_from_report(raw_codex)
+        else:
+            codex = CodexReview.model_validate_json(canonical_json(raw_codex))
     except (OSError, ValueError) as exc:
         report.failure(exc, area="CODEX", where=str(args.codex))
         return
