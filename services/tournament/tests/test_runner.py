@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -49,7 +50,7 @@ class _FakeDb:
         admit: bool = True,
         start_state: str | None = None,
         split: str = "dev",
-        gate: list[tuple[str, bool, str | None]] | None = None,
+        gate: list[tuple[str, bool, str | None, datetime]] | None = None,
     ) -> None:
         self.admit = admit
         self.start_state = start_state
@@ -76,7 +77,7 @@ class _FakeDb:
     async def tournament_split(self, _tournament: UUID) -> str:
         return self.split
 
-    async def gate_rows_before_open(self, _tournament: UUID) -> list[tuple[str, bool, str | None]]:
+    async def gate_rows_before_open(self, _tournament: UUID) -> list[tuple[str, bool, str | None, datetime]]:
         self.gate_reads += 1
         return list(self.gate)
 
@@ -222,7 +223,10 @@ def test_run_replay_track_prerequisite_proceeds_for_a_dev_tournament_without_rea
 
 
 SHA = "a" * 40
-PASSED_GATE: list[tuple[str, bool, str | None]] = [(IG_CHECK_NAMES[item], True, SHA) for item in IG_ITEMS]
+RUN_AT = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)
+PASSED_GATE: list[tuple[str, bool, str | None, datetime]] = [
+    (IG_CHECK_NAMES[item], True, SHA, RUN_AT) for item in IG_ITEMS
+]
 
 
 def test_a_hidden_tournament_whose_gate_passed_before_it_opened_runs() -> None:
@@ -236,14 +240,21 @@ def test_a_hidden_tournament_whose_gate_passed_before_it_opened_runs() -> None:
     [
         [],  # opened directly (`arena.open_tournament`), the gate never ran
         PASSED_GATE[:-1],  # an item missing (IG-6)
-        [(name, name != IG_CHECK_NAMES["IG-4"], sha) for name, _, sha in PASSED_GATE],  # the hidden-text scan failed
-        [*PASSED_GATE[:-1], (IG_CHECK_NAMES["IG-6"], True, "b" * 40)],  # items from two different commits
-        [(name, True, None) for name, _, _ in PASSED_GATE],  # no commit recorded
-        [(name, True, "b" * 40) for name, _, _ in PASSED_GATE],  # a complete gate, but on another commit
+        [
+            (name, name != IG_CHECK_NAMES["IG-4"], sha, at) for name, _, sha, at in PASSED_GATE
+        ],  # the hidden-text scan failed
+        [*PASSED_GATE[:-1], (IG_CHECK_NAMES["IG-6"], True, "b" * 40, RUN_AT)],  # items from two different commits
+        [(name, True, None, at) for name, _, _, at in PASSED_GATE],  # no commit recorded
+        [(name, True, "b" * 40, at) for name, _, _, at in PASSED_GATE],  # a complete gate, but on another commit
+        # a hidden run that failed IG-5, then a passing dev run (no IG-4 row): every latest row passes, from two runs
+        [
+            (name, True, SHA, RUN_AT + timedelta(minutes=1) if name != IG_CHECK_NAMES["IG-4"] else RUN_AT)
+            for name, _, _, _ in PASSED_GATE
+        ],
     ],
 )
 def test_a_hidden_tournament_without_a_passing_gate_before_it_opened_is_refused_before_any_trial(
-    gate: list[tuple[str, bool, str | None]],
+    gate: list[tuple[str, bool, str | None, datetime]],
 ) -> None:
     """S1 L9, S3 9: `arena.open_tournament` checks nothing itself, so the job refuses a hidden tournament that
     did not pass the isolation gate (all six items, one commit) before it went `running`."""

@@ -639,20 +639,21 @@ class ArenaDb:
         rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
         return None if not rows else str(rows[0][0])
 
-    async def gate_rows_before_open(self, tournament: UUID) -> list[tuple[str, bool, str | None]]:
+    async def gate_rows_before_open(self, tournament: UUID) -> list[tuple[str, bool, str | None, datetime]]:
         """`arena.v_isolation_checks`: the latest row per check name recorded after the tournament's roster froze
-        and before it went `running` (`check_name`, `passed`, `commit_sha`): the isolation gate the referee's
-        open route runs fresh for a hidden tournament between the two (S1 L9, S3 9). Empty for an unknown or
-        never-opened tournament, and for one opened without a gate run in that window."""
+        and before it went `running` (`check_name`, `passed`, `commit_sha`, `run_at`): the isolation gate the
+        referee's open route runs fresh for a hidden tournament between the two (S1 L9, S3 9). One gate run's rows
+        share `run_at` (the referee writes them in one transaction). Empty for an unknown or never-opened
+        tournament, and for one opened without a gate run in that window."""
         rows = await self.fetch(
-            "select distinct on (i.check_name) i.check_name, i.passed, i.commit_sha"
+            "select distinct on (i.check_name) i.check_name, i.passed, i.commit_sha, i.run_at"
             " from arena.v_isolation_checks i join arena.v_tournaments t on t.id = %s"
             " where t.frozen_at is not null and t.running_at is not null"
             " and i.run_at > t.frozen_at and i.run_at <= t.running_at"
             " order by i.check_name, i.run_at desc",
             (tournament,),
         )
-        return [(str(r[0]), bool(r[1]), None if r[2] is None else str(r[2])) for r in rows]
+        return [(str(r[0]), bool(r[1]), None if r[2] is None else str(r[2]), r[3]) for r in rows]
 
     async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
         """`arena.harness_trial_state` (WP-28): the job's own in-flight read of a running tournament trial -- the

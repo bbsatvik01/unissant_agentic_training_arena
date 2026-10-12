@@ -56,6 +56,7 @@ from arena_core.scenario.load import (
     family_source_text,
 )
 from arena_core.scoring.inclusion import Exec, block_invalid
+from arena_core.scoring.ranking import DEV_IG_ITEMS, IG_CHECK_NAMES, IG_ITEMS
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.spend.memory import RunBudget
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
@@ -659,6 +660,19 @@ async def _api_recording_status(world: dict[str, Any], trial: UUID) -> int:
     return resp.status_code
 
 
+async def _record_gate_run(admin_dsn: str, failed: dict[str, bool], items: tuple[str, ...] = IG_ITEMS) -> None:
+    """One isolation gate run's rows in one transaction, the shape `arena_referee.db.record_isolation_checks`
+    writes (`run_at` is the transaction's own time), every item passing unless `failed` says otherwise."""
+    async with await AsyncConnection.connect(admin_dsn) as conn:
+        for item in items:
+            await conn.execute(
+                "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence)"
+                " values (null, %s, %s, jsonb_build_object('hash', 'it', 'commit_sha', %s::text))",
+                (IG_CHECK_NAMES[item], failed.get(item, True), REFEREE_GIT_SHA),
+            )
+        await conn.commit()
+
+
 def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_after_reveal(
     world: dict[str, Any],
 ) -> None:
@@ -700,6 +714,15 @@ def test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_af
     with pytest.raises(IsolationGateNotPassedError):
         run(build_runner(world, ungated).run(ungated))
     assert run(_terminal_record_count(world["admin"], ungated)) == 0
+    # ...nor one whose latest passing rows come from two runs: a hidden gate run failing IG-5, then a passing dev
+    # gate run (which writes no IG-4 row), each in its own transaction as the referee writes them, on this commit.
+    mixed = _freeze_hidden_tournament(world, families, seed + 2)
+    run(_record_gate_run(world["admin"], {"IG-5": False}))
+    run(_record_gate_run(world["admin"], {}, items=DEV_IG_ITEMS))
+    run(_admin_rows(world["admin"], "select arena.open_tournament(%s)", (mixed,)))
+    with pytest.raises(IsolationGateNotPassedError):
+        run(build_runner(world, mixed).run(mixed))
+    assert run(_terminal_record_count(world["admin"], mixed)) == 0
 
     summary = run(build_runner(world, tournament_id).run(tournament_id))
     assert summary.closed
