@@ -74,5 +74,5 @@ async def get_config(request: Request, db: Annotated[ArenaDb, Depends(actor_db)]
             "text_sessions_per_day": config["text_sessions_per_user_day"],
             "voice_sessions_per_day": config["voice_sessions_per_user_day"],
         },
-        "planned_n": None,
+        "planned_n": request.app.state.api.planned_n,
     }

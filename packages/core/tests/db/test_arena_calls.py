@@ -8,13 +8,15 @@ import json
 from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID, uuid4
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
-from arena_core.db.arena import EVENTS_PAGE, ArenaDb, ArenaError, SessionStart, iso
+from arena_core.db.arena import EVENTS_PAGE, ArenaDb, ArenaError, QuestionOrigin, SessionStart, iso
 from arena_core.db.pool import Connector
 
 ACTOR = UUID("00000000-0000-0000-0000-00000000000a")
@@ -259,3 +261,167 @@ def test_projection_reads() -> None:
 
 def test_iso_is_utc_with_milliseconds() -> None:
     assert iso(NOW) == "2026-10-11T14:00:00.123Z"
+
+
+# ---------------------------------------------------------------- tournament job (S5 5.3; WP-17)
+
+
+def test_tournament_job_function_wrappers_pass_their_arguments() -> None:
+    planned = uuid4()
+    arena, script = db(
+        [
+            ("arena.start_trial", j({"status": "running"})),
+            ("arena.retry_trial", [(str(TRIAL),)]),
+            ("arena.advance_replay", j({"turn_no": 2})),
+            ("arena.work_item_results", [(json.dumps([{"kind": "release"}]),)]),
+            ("ops.admit_unit", j({"decision": "admit"})),
+        ]
+    )
+    assert run(arena.start_trial(TRIAL)) == {"status": "running"}
+    assert run(arena.retry_trial(planned)) == TRIAL
+    assert run(arena.advance_replay(TRIAL, uuid4())) == {"turn_no": 2}
+    assert run(arena.work_item_results(TRIAL)) == [{"kind": "release"}]
+    assert run(arena.admit_unit("global", Decimal("1.50"))) == {"decision": "admit"}
+    params = [p for q, p in script.executed if "set_config" not in q]
+    assert params[1] == (planned,)
+    assert params[4] == ("global", Decimal("1.50"))
+
+
+def test_work_item_results_is_empty_for_a_non_list_or_non_json_result() -> None:
+    arena, _ = db([("arena.work_item_results", [("null",)])])
+    assert run(arena.work_item_results(TRIAL)) == []
+
+
+def test_tournament_trial_found_and_missing() -> None:
+    variant, assistant, subject, planned = uuid4(), uuid4(), uuid4(), uuid4()
+    row = (TRIAL, "interactive", "running", 3, 2, 12, False, None, variant, assistant, subject, planned, NOW)
+    arena, _ = db([("arena.v_trials", [row]), ("arena.v_trials", [])])
+    meta = run(arena.tournament_trial(TRIAL))
+    assert meta is not None
+    assert (meta["kind"], meta["assistant_candidate_id"], meta["planned_trial_id"]) == (
+        "interactive",
+        assistant,
+        planned,
+    )
+    assert run(arena.tournament_trial(TRIAL)) is None
+
+
+def test_tournament_split_found_and_missing() -> None:
+    arena, _ = db([("from arena.v_tournaments", [("hidden",)]), ("from arena.v_tournaments", [])])
+    assert run(arena.tournament_split(TRIAL)) == "hidden"
+    assert run(arena.tournament_split(TRIAL)) is None
+
+
+def test_released_with_titles_maps_every_row() -> None:
+    arena, _ = db([("arena.v_released_evidence", [("rec-01", "Work orders", 2), ("rec-02", "Radio log", 3)])])
+    assert run(arena.released_with_titles(TRIAL)) == [
+        {"record_id": "rec-01", "title": "Work orders", "released_after_exchanges": 2},
+        {"record_id": "rec-02", "title": "Radio log", "released_after_exchanges": 3},
+    ]
+
+
+def test_planned_trials_maps_the_frozen_roster_in_position_order() -> None:
+    tournament, variant, a1, s1 = uuid4(), uuid4(), uuid4(), uuid4()
+    planned_a, planned_b = uuid4(), uuid4()
+    rows = [
+        (planned_a, 1, "replay_corpus", None, variant, None, s1, False, None),
+        (planned_b, 2, "replay", None, variant, a1, s1, False, planned_a),
+    ]
+    arena, _ = db([("arena.v_planned_trials", rows)])
+    out = run(arena.planned_trials(tournament))
+    assert [r["track"] for r in out] == ["replay_corpus", "replay"]
+    assert out[1]["source_planned_trial_id"] == planned_a
+
+
+def test_planned_trial_attempts_groups_by_planned_trial_newest_last() -> None:
+    tournament = uuid4()
+    planned = uuid4()
+    first_attempt, second_attempt = uuid4(), uuid4()
+    rows = [
+        (planned, first_attempt, 1, "finalized", "infra_failed"),
+        (planned, second_attempt, 2, "running", None),
+    ]
+    arena, _ = db([("arena.v_trials", rows)])
+    out = run(arena.planned_trial_attempts(tournament))
+    assert [a["trial_id"] for a in out[planned]] == [first_attempt, second_attempt]
+    assert out[planned][-1]["status"] == "running"
+
+
+def test_finalize_trial_sends_a_real_sql_null_for_a_corpus_transcripts_finding() -> None:
+    """S2 8.6; S4 6.2 item 3: a corpus transcript's finding is null -- a real SQL NULL (`finding` itself),
+    never `Jsonb(None)`, which binds the *jsonb value* `null` (`is not null` is still true for that)."""
+    arena, script = db([("arena.finalize_trial", j({"commitment_sha256": "c"}))])
+    run(arena.finalize_trial(TRIAL, uuid4(), None))
+    assert script.executed[-1][1][-1] is None
+
+
+def test_finalize_trial_wraps_a_real_finding_as_jsonb() -> None:
+    arena, script = db([("arena.finalize_trial", j({"commitment_sha256": "c"}))])
+    run(arena.finalize_trial(TRIAL, uuid4(), {"label": "truthful"}))
+    assert isinstance(script.executed[-1][1][-1], Jsonb)
+
+
+def test_submit_question_sends_no_origin_for_an_investigators_own_question() -> None:
+    """`QuestionOrigin`'s default (every field `None`) is an investigator's question (SG2-09): the SQL
+    function itself reads a null source that way, so the wrapper sends the default through unchanged."""
+    arena, script = db([("arena.submit_question", j({"turn_no": 1, "transcript_version": 1}))])
+    run(arena.submit_question(TRIAL, 0, "Why?", "k" * 10))
+    params = script.executed[-1][1]
+    assert (params[-3], params[-2], params[-1]) == (None, None, None)
+
+
+def test_submit_question_passes_a_harness_origin_through() -> None:
+    arena, script = db([("arena.submit_question", j({"turn_no": 1, "transcript_version": 1}))])
+    origin = QuestionOrigin(source="assistant_relay", relay_outcome="accepted", proposal_seq=2)
+    run(arena.submit_question(TRIAL, 0, "Why?", "k" * 10, origin))
+    params = script.executed[-1][1]
+    assert (params[-3], params[-2], params[-1]) == ("assistant_relay", "accepted", 2)
+
+
+def test_tournament_status_and_leaderboard_reads() -> None:
+    tournament = uuid4()
+    arena, script = db(
+        [
+            ("arena.v_tournaments", [("revealed",)]),
+            ("arena.v_tournaments", []),
+            ("arena.v_leaderboards", [(json.dumps({"board": "assistant"}), "corrected", 2)]),
+            ("arena.v_leaderboards", []),
+        ]
+    )
+    assert run(arena.tournament_status(tournament)) == "revealed"
+    assert run(arena.tournament_status(tournament)) is None
+    found = run(arena.leaderboard(tournament, "assistant", None))
+    assert found == {"body": {"board": "assistant"}, "label": "corrected", "manifest_version": 2}
+    assert run(arena.leaderboard(tournament, "subject", "original")) is None
+    assert script.executed[-1][1] == (tournament, "subject", "original", "original")
+
+
+def test_trust_center_reads() -> None:
+    payload = {"transcript_sha256": "t" * 64, "evidence_sha256": "e" * 64}
+    tournament = uuid4()
+    arena, _ = db(
+        [
+            ("arena.v_isolation_checks", [("hidden_text_scan", "A1", True, NOW, "c" * 40)]),
+            ("ledger.v_commitments", [(tournament, "dev-1", 1, "x" * 64, json.dumps(payload), "n" * 64)]),
+            ("ops.v_budget_status", [(Decimal("74"), Decimal("3.5"), Decimal("1.25"))]),
+            ("ops.v_call_costs", [("coach.card", 4, Decimal("0.20"))]),
+            ("ops.v_budget_status", []),
+            ("ops.v_call_costs", []),
+        ]
+    )
+    assert run(arena.isolation_checks()) == [
+        {"check": "hidden_text_scan", "candidate": "A1", "passed": True, "run_at": iso(NOW), "commit_sha": "c" * 40}
+    ]
+    [commitment] = run(arena.revealed_commitments())
+    assert commitment["trial_ref"] == "dev-1 #1"
+    assert commitment["transcript_sha256"] == "t" * 64
+    assert commitment["nonce"] == "n" * 64
+    assert commitment["tournament_id"] == str(tournament)
+    budget = run(arena.budget_view())
+    assert budget == {
+        "ceiling_usd": "74",
+        "spent_usd": "2.25",
+        "open_usd": "1.25",
+        "by_purpose": [{"purpose": "coach.card", "calls": 4, "spent_usd": "0.20"}],
+    }
+    assert run(arena.budget_view())["ceiling_usd"] == "0"

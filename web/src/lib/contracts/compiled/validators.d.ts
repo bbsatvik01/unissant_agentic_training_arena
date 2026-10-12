@@ -11,6 +11,7 @@ export declare const events: ValidateFunction;
 export declare const evidence_request: ValidateFunction;
 export declare const evidence_result: ValidateFunction;
 export declare const finding_commit: ValidateFunction;
+export declare const harness_events: ValidateFunction;
 export declare const replay_page: ValidateFunction;
 export declare const review_item: ValidateFunction;
 export declare const review_list: ValidateFunction;

@@ -1,4 +1,7 @@
-"""`arena_public` calls for the investigator path (S5 5, 6; S4 5.2-5.4, 6.3; WP-13).
+"""`arena_public` calls, shared by the investigator path (S5 5, 6; S4 5.2-5.4, 6.3; WP-13) and the tournament
+job (S5 5.3; WP-17): both processes hold the one `arena_public` credential (S5 2.2), so one class wraps every
+function and view that role may use. A harness or job call passes `actor=None` (no `arena.actor_id`, S4 2.3);
+an investigator call passes the acting user.
 
 Every call opens its own connection and transaction, sets `arena.actor_id` for that transaction (S4 2.3: an
 investigator request names its actor; a harness request never does) and runs one S4 function or one projection
@@ -16,6 +19,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -57,6 +61,18 @@ class SessionStart:
     subject: UUID
     voice: bool
     key: str
+
+
+@dataclass(frozen=True)
+class QuestionOrigin:
+    """`arena.submit_question`'s harness-only arguments (S2 8.2, SG2-09): who asked, the relay test's
+    verdict, and the relayed or rejected card's event, bundled so the wrapper takes one object instead of
+    three positional arguments. The default (every field None) is an investigator's question, which carries
+    no origin at all."""
+
+    source: str | None = None
+    relay_outcome: str | None = None
+    proposal_seq: int | None = None
 
 
 @dataclass(frozen=True)
@@ -118,9 +134,15 @@ class ArenaDb:
             (start.variant, start.mode, start.coach, start.subject, start.voice, start.key),
         )
 
-    async def submit_question(self, trial: UUID, expected_version: int, text: str, key: str) -> dict[str, Any]:
+    async def submit_question(
+        self, trial: UUID, expected_version: int, text: str, key: str, origin: QuestionOrigin | None = None
+    ) -> dict[str, Any]:
+        """S4 `arena.submit_question`: investigator calls pass no origin; harness calls name theirs
+        (`harness_fixed`, `harness_fallback` or `assistant_relay`, S2 8.2, SG2-09)."""
+        o = origin or QuestionOrigin()
         return await self.obj(
-            "select arena.submit_question(%s, %s, %s, %s)::text", (trial, expected_version, text, key)
+            "select arena.submit_question(%s, %s, %s, %s, %s, %s, %s)::text",
+            (trial, expected_version, text, key, o.source, o.relay_outcome, o.proposal_seq),
         )
 
     async def open_work_item(
@@ -156,8 +178,13 @@ class ArenaDb:
             "select arena.record_coaching_event(%s, %s, %s, %s)::text", (trial, work_item, Jsonb(payload), kind)
         )
 
-    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any]) -> dict[str, Any]:
-        return await self.obj("select arena.finalize_trial(%s, %s, %s)::text", (trial, work_item, Jsonb(finding)))
+    async def finalize_trial(self, trial: UUID, work_item: UUID, finding: dict[str, Any] | None) -> dict[str, Any]:
+        """`arena.finalize_trial`: `finding` is null for a corpus transcript (S2 8.6; S4 6.2 item 3). SQL
+        checks `p_final_finding is null`, so a corpus call sends an actual SQL NULL, never `Jsonb(None)`
+        (which would bind the *jsonb value* `null`, not an absent parameter, and `is not null` is true for
+        that)."""
+        param = finding if finding is None else Jsonb(finding)
+        return await self.obj("select arena.finalize_trial(%s, %s, %s)::text", (trial, work_item, param))
 
     async def record_execution_failure(self, trial: UUID, work_item: UUID, state: str, reason: str) -> dict[str, Any]:
         return await self.obj(
@@ -294,6 +321,90 @@ class ArenaDb:
         rows = await self.fetch("select payload::text from training.v_my_debrief where session_id = %s", (session,))
         return json.loads(rows[0][0]) if rows else None
 
+    async def tournament_status(self, tournament: UUID) -> str | None:
+        """`arena.v_tournaments`: the tournament's status, None when there is no such tournament."""
+        rows = await self.fetch("select status from arena.v_tournaments where id = %s", (tournament,))
+        return str(rows[0][0]) if rows else None
+
+    async def leaderboard(self, tournament: UUID, board: str, label: str | None) -> dict[str, Any] | None:
+        """`arena.v_leaderboards`: the published body of one board (S5 5.5), the given label or else the one bound
+        to the latest manifest (a corrected board supersedes the original, S6 4.10). None when none is published."""
+        rows = await self.fetch(
+            "select body::text, label, manifest_version from arena.v_leaderboards"
+            " where tournament_id = %s and board = %s and (%s::text is null or label = %s::text)"
+            " order by manifest_version desc limit 1",
+            (tournament, board, label, label),
+        )
+        if not rows:
+            return None
+        return {"body": json.loads(rows[0][0]), "label": str(rows[0][1]), "manifest_version": int(rows[0][2])}
+
+    # ------------------------------------------------------------------ trust center (S6 4.11)
+
+    async def isolation_checks(self) -> list[dict[str, Any]]:
+        """`arena.v_isolation_checks`: the latest run per check and candidate (S6 4.11): check, candidate, pass or
+        fail, run time and commit (never the evidence)."""
+        rows = await self.fetch(
+            "select check_name, candidate_name, passed, run_at, commit_sha from"
+            " (select distinct on (check_name, candidate_id) check_name, candidate_name, passed, run_at, commit_sha"
+            "  from arena.v_isolation_checks order by check_name, candidate_id, run_at desc) latest"
+            " order by check_name, candidate_name"
+        )
+        return [
+            {"check": r[0], "candidate": r[1], "passed": bool(r[2]), "run_at": iso(r[3]), "commit_sha": r[4]}
+            for r in rows
+        ]
+
+    async def revealed_commitments(self) -> list[dict[str, Any]]:
+        """The commitments of revealed tournaments' trials with their payload and the revealed nonce (S4 6:
+        public after reveal), each trial named by an opaque per-tournament ordinal (`trial_ref`, S5 6.2)."""
+        rows = await self.fetch(
+            "select t.tournament_id, x.name, row_number() over (partition by t.tournament_id order by t.id),"
+            " c.commitment_sha256, c.payload_text, n.nonce_hex"
+            " from ledger.v_commitments c join arena.v_trials t on t.id = c.trial_id"
+            " join arena.v_tournaments x on x.id = t.tournament_id and x.status = 'revealed'"
+            " left join ledger.v_revealed_nonces n on n.trial_id = c.trial_id"
+            " where c.payload_text is not null order by x.name, 3"
+        )
+        out = []
+        for tournament, name, ref, commitment, payload_text, nonce in rows:
+            payload = json.loads(payload_text)
+            out.append(
+                {
+                    "tournament_id": str(tournament),
+                    # Unique across tournaments: the tournament's name and the trial's ordinal in it.
+                    "trial_ref": f"{name} #{int(ref)}",
+                    "commitment_sha256": commitment,
+                    "transcript_sha256": payload.get("transcript_sha256"),
+                    "evidence_sha256": payload.get("evidence_sha256"),
+                    "payload_text": payload_text,
+                    "nonce": nonce,
+                }
+            )
+        return out
+
+    async def budget_view(self) -> dict[str, Any]:
+        """The `global` bucket (`ops.v_budget_status`) and spend by purpose label (`ops.v_call_costs`), money as
+        decimal strings. `spent_usd` is the bucket's settled liability (liability minus open holds)."""
+        rows = await self.fetch(
+            "select ceiling_usd, liability_usd, open_usd from ops.v_budget_status where bucket = 'global'"
+        )
+        ceiling, liability, held = rows[0] if rows else (0, 0, 0)
+        # Settled liability once per reservation (a usage_unknown settlement keeps its whole hold even when its
+        # receipts carry no usage), so the purpose rows use the same accounting as the total.
+        purposes = await self.fetch(
+            "select purpose, count(*), coalesce(sum(settled), 0) from"
+            " (select distinct reservation_id, purpose, coalesce(settled_usd, 0) as settled from ops.v_call_costs"
+            "  where state in ('committed', 'usage_unknown')) settled_reservations"
+            " group by purpose order by purpose"
+        )
+        return {
+            "ceiling_usd": str(ceiling),
+            "spent_usd": str(liability - held),
+            "open_usd": str(held),
+            "by_purpose": [{"purpose": p, "calls": int(n), "spent_usd": str(c)} for p, n, c in purposes],
+        }
+
     async def public_config(self) -> dict[str, Any]:
         rows = await self.fetch(
             "select paused, text_sessions_per_user_day, voice_sessions_per_user_day from ops.v_public_config"
@@ -314,3 +425,113 @@ class ArenaDb:
 
     async def ack_card(self, trial: UUID, turn_no: int, client_valid: bool) -> bool:
         return bool(await self.value("select ops.ack_card(%s, %s::smallint, %s)", (trial, turn_no, client_valid)))
+
+    # ------------------------------------------------------------------ tournament job (S5 5.3; WP-17)
+
+    async def start_trial(self, trial: UUID) -> dict[str, Any]:
+        """S4 `arena.start_trial`: planned -> running, enforcing BKO-2's order; a replay trial whose corpus
+        source did not complete and verify `valid` comes back `{"status": "terminated", "state":
+        "source_unavailable", ...}` with no caller input (S4 derives it)."""
+        return await self.obj("select arena.start_trial(%s)::text", (trial,))
+
+    async def retry_trial(self, planned_trial: UUID) -> UUID:
+        """S4 `arena.retry_trial`: a new attempt (same seed and position) after `infra_failed`, at most 3."""
+        return UUID(str(await self.value("select arena.retry_trial(%s)", (planned_trial,))))
+
+    async def advance_replay(self, trial: UUID, work_item: UUID) -> dict[str, Any]:
+        """S4 `arena.advance_replay` (D2): copies the next sealed source turn into this replay trial."""
+        return await self.obj("select arena.advance_replay(%s, %s)::text", (trial, work_item))
+
+    async def work_item_results(self, trial: UUID) -> list[dict[str, Any]]:
+        """S4 `arena.work_item_results` (D3): every step of the trial, for the job's own resume at restart."""
+        raw = await self.value("select arena.work_item_results(%s)::text", (trial,))
+        parsed = json.loads(raw) if isinstance(raw, str) else None
+        return parsed if isinstance(parsed, list) else []
+
+    async def tournament_trial(self, trial: UUID) -> dict[str, Any] | None:
+        """`arena.v_trials` alone (no training-session join, S5 5.5): a tournament trial's own ids and
+        execution state, read by the harness, the job and the D-021 recording export (D9, SG3-15)."""
+        rows = await self.fetch(
+            "select id, kind, status, transcript_version, exchanges, max_exchanges, coaching_pending,"
+            " execution_state, variant_id, assistant_candidate_id, subject_candidate_id, planned_trial_id,"
+            " started_at from arena.v_trials where id = %s",
+            (trial,),
+        )
+        if not rows:
+            return None
+        keys = (
+            "trial_id",
+            "kind",
+            "status",
+            "transcript_version",
+            "exchanges",
+            "max_exchanges",
+            "coaching_pending",
+            "execution_state",
+            "variant_id",
+            "assistant_candidate_id",
+            "subject_candidate_id",
+            "planned_trial_id",
+            "started_at",
+        )
+        return dict(zip(keys, rows[0], strict=True))
+
+    async def released_with_titles(self, trial: UUID) -> list[dict[str, Any]]:
+        """`arena.v_released_evidence`'s `record_id`, `title` and `released_after_exchanges` (the corpus
+        harness needs the title for `replay_script.v1`'s evidence-slot question, S2 8.6; C-23)."""
+        rows = await self.fetch(
+            "select record_id, title, released_after_exchanges from arena.v_released_evidence"
+            " where trial_id = %s order by release_seq",
+            (trial,),
+        )
+        return [{"record_id": r[0], "title": r[1], "released_after_exchanges": int(r[2])} for r in rows]
+
+    async def tournament_split(self, tournament: UUID) -> str | None:
+        """`arena.v_tournaments.split` ("dev" or "hidden"), or None for an unknown id: the job's own
+        defense-in-depth check (WP-17) that it never runs a hidden tournament -- `lifecycle.open_tournament`
+        already refuses to open one this way, but that refusal is this operator tool's own convenience, not
+        a database invariant `arena.open_tournament` itself enforces (no WP-16 hidden-text scan exists
+        yet), so a tournament opened by some other path must still never reach this job's harness."""
+        rows = await self.fetch("select split from arena.v_tournaments where id = %s", (tournament,))
+        return None if not rows else str(rows[0][0])
+
+    async def planned_trials(self, tournament: UUID) -> list[dict[str, Any]]:
+        """`arena.v_planned_trials`: the frozen roster, position order (S5 5.3's "recorded seeded order")."""
+        rows = await self.fetch(
+            "select id, position, track, block_no, variant_id, assistant_candidate_id, subject_candidate_id,"
+            " repeat, source_planned_trial_id from arena.v_planned_trials where tournament_id = %s order by position",
+            (tournament,),
+        )
+        keys = (
+            "planned_trial_id",
+            "position",
+            "track",
+            "block_no",
+            "variant_id",
+            "assistant_candidate_id",
+            "subject_candidate_id",
+            "repeat",
+            "source_planned_trial_id",
+        )
+        return [dict(zip(keys, r, strict=True)) for r in rows]
+
+    async def planned_trial_attempts(self, tournament: UUID) -> dict[UUID, list[dict[str, Any]]]:
+        """Every attempt (`arena.v_trials`) of every planned trial of the tournament, newest attempt last, for
+        the job's resume check ("skips planned trials that already have an execution record", S5 5.3).
+        `status` distinguishes a never-started attempt (`planned`, where `ops.admit_unit`'s pre-check still
+        applies) from one already `running` (where only the per-call spend guard governs, S4 8.5)."""
+        rows = await self.fetch(
+            "select planned_trial_id, id, attempt, status, execution_state from arena.v_trials"
+            " where tournament_id = %s order by planned_trial_id, attempt",
+            (tournament,),
+        )
+        out: dict[UUID, list[dict[str, Any]]] = {}
+        for planned_trial_id, trial_id, attempt, status, execution_state in rows:
+            out.setdefault(planned_trial_id, []).append(
+                {"trial_id": trial_id, "attempt": attempt, "status": status, "execution_state": execution_state}
+            )
+        return out
+
+    async def admit_unit(self, bucket: str, high_cost_usd: Decimal) -> dict[str, Any]:
+        """S4 `ops.admit_unit` (8.5): admit only with 1.5 x the unit's high cost free; holds nothing."""
+        return await self.obj("select ops.admit_unit(%s, %s)::text", (bucket, high_cost_usd))

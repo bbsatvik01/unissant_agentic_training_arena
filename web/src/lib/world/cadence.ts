@@ -8,9 +8,13 @@
 /** Characters spoken per second (about 170 words a minute). */
 export const CHARS_PER_SECOND = 15;
 
-/** The shortest and longest time one line is spoken. */
+/** The longest line the stream carries: a subject answer's `maxLength` (events.schema.json SubjectAnswer). */
+export const MAX_LINE_CHARS = 900;
+
+/** The shortest and longest time one line is spoken: the longest covers the longest line at the reading pace, so a
+ * line is always spoken in full (and a voice fitted to it, `fitRate`, ends with its mouth and shot). */
 export const MIN_SPEECH_MS = 700;
-export const MAX_SPEECH_MS = 14_000;
+export const MAX_SPEECH_MS = (MAX_LINE_CHARS / CHARS_PER_SECOND) * 1000;
 
 const VOWELS = new Set("aeiouyAEIOUY");
 const PAUSES = new Set(".,;:!?");

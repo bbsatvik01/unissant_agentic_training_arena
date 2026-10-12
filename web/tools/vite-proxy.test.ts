@@ -10,7 +10,7 @@ import type { AddressInfo } from "node:net";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
 
-import viteConfig, { arenaApiProxy } from "../vite.config.ts";
+import viteConfig, { arenaApiProxy, proxyTarget } from "../vite.config.ts";
 
 const BROWSER_ORIGIN = "http://127.0.0.1:5173";
 
@@ -93,5 +93,22 @@ describe("arenaApiProxy: the dev proxy satisfies arena-api's Host guard", () => 
     expect(Object.keys(arenaApiProxy("http://127.0.0.1:8080"))).toEqual(["/api"]);
     expect(viteConfig.server?.host).toBe("127.0.0.1");
     expect(viteConfig.server?.proxy).toEqual(arenaApiProxy("http://127.0.0.1:8080"));
+  });
+});
+
+describe("proxy target", () => {
+  it("defaults to arena-api and accepts only a loopback http origin", () => {
+    expect(proxyTarget(undefined)).toBe("http://127.0.0.1:8080");
+    expect(proxyTarget("")).toBe("http://127.0.0.1:8080");
+    expect(proxyTarget("http://127.0.0.1:8082")).toBe("http://127.0.0.1:8082");
+    for (const bad of ["http://localhost:8082", "https://127.0.0.1:8082", "http://10.0.0.1:8082", "http://127.0.0.1:8082/x"]) expect(() => proxyTarget(bad)).toThrow();
+  });
+});
+
+describe("file access", () => {
+  it("allows the web workspace and the database fixtures folder only", () => {
+    const allow = (viteConfig as { server?: { fs?: { allow?: string[] } } }).server?.fs?.allow ?? [];
+    expect(allow).toHaveLength(2);
+    expect(allow.some((p) => p.endsWith("/supabase/tests/fixtures/"))).toBe(true);
   });
 });

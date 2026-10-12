@@ -49,6 +49,8 @@ export interface Recording {
   readonly snapshot: TrialSnapshot;
   readonly events: readonly RecordedEvent[];
   readonly debrief: Debrief | null;
+  /** The trial's end-of-trial snapshot (null while it ran): in assessment mode, the withheld coaching (FE-DEB-4). */
+  readonly final_snapshot: TrialSnapshot | null;
   /** The time of the last event plus a short tail, so the last signature moment plays out (`END_TAIL_MS`). */
   readonly durationMs: number;
 }
@@ -110,6 +112,11 @@ export function seek(recording: Recording, cursor: PlaybackCursor, t: number): P
     state = trialReducer(state, { type: "frame", frame: event.frame });
     arrivals = noteArrival(arrivals, event.frame, event.at_ms);
     next += 1;
+  }
+  // At the end, the end-of-trial snapshot: in assessment mode it brings the coaching the session withheld
+  // (FE-DEB-4); the reducer keeps whichever snapshot is newer, so a practice run ends as it played.
+  if (next >= recording.events.length && recording.final_snapshot !== null) {
+    state = trialReducer(state, { type: "snapshot", snapshot: recording.final_snapshot });
   }
   return { t: target, next, state, arrivals };
 }

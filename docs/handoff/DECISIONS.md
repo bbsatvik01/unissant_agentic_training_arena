@@ -164,3 +164,8 @@
 - **Decision:** coordinator. S3 7.4's full calibration report (inter-human agreement, per-check diagnostics, total-score differences with transcript bootstrap intervals, label confusion and per-class precision/recall, false-compliant counts) is built in WP-25a, where the human ratings it consumes are produced. WP-16 keeps the AC1/AC2/QWK primitives and the CalibrationReport status type.
 - **Reason:** no human ratings exist before WP-25a; building the report against synthetic inputs now would be speculative work (D-016).
 - **Reversibility:** cheap.
+
+## 2026-10-11 · D-027 Infra-retried trials draw a new model seed
+- **Decision:** coordinator. S2 1 derives model seeds from the trial id and `arena.retry_trial` creates a new trial id, so a retried trial uses a new seed. S5 5.3's "same seed" wording is read as the same planned trial and pairing, not the same model seed. Spec wording follow-up.
+- **Reason:** carrying a planned-trial seed identity through the port and arena-subject adds plumbing for a rare infra path (D-016).
+- **Reversibility:** cheap.

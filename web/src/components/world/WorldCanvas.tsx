@@ -13,7 +13,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, PCFShadowMap, PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-import { COACHES, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
+import { COACHES, HUB_CREW, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import type { CaseCard } from "../../lib/world/cases";
 import type { ShotName } from "../../lib/world/layout";
 import { nextTier, TIERS, WINDOW, type Tier } from "../../lib/world/quality";
@@ -21,11 +21,11 @@ import type { WorldState } from "../../lib/world/worldState";
 import { preloadAvatar } from "./Avatar";
 import { CameraRig } from "./CameraRig";
 import { Hub } from "./Hub";
-import type { WallDocument } from "./moments";
+import type { ScoreCard, WallDocument } from "./moments";
 import { PostFX } from "./PostFX";
 import { Room } from "./Room";
 
-export type { WallDocument } from "./moments";
+export type { ScoreCard, WallDocument } from "./moments";
 
 export interface WorldCanvasProps {
   readonly place: "hub" | "room";
@@ -42,6 +42,8 @@ export interface WorldCanvasProps {
   /** Reduced motion: camera moves become cuts and signature moments show their end state. */
   readonly reducedMotion: boolean;
   readonly showPet: boolean;
+  /** The debrief scene: its score cards pin to the evidence wall and the camera turns to it. */
+  readonly scoreCards: readonly ScoreCard[] | null;
   readonly onOpenCase: (caseId: string) => void;
   readonly onFocusCase: (caseId: string | null) => void;
   readonly onArrive?: () => void;
@@ -144,7 +146,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
   // pixel ratio on stronger machines.
   const [tier, setTier] = useState<Tier>(PINNED ?? "medium");
   const settings = TIERS[tier];
-  const shot: ShotName = props.place === "hub" ? "hub" : (props.world?.shot ?? "room");
+  const shot: ShotName = props.place === "hub" ? "hub" : props.scoreCards !== null ? "debrief" : (props.world?.shot ?? "room");
   const persona = subjectPersona(props.subjectName);
   // Load the room's people while the camera is still in the precinct, so nobody pops in mid-flight.
   useEffect(() => {
@@ -152,6 +154,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
     for (const coach of COACHES) preloadAvatar(coach);
     preloadAvatar(INVESTIGATOR);
     preloadAvatar(HUB_STAFF);
+    for (const p of HUB_CREW) preloadAvatar(p);
   }, [persona]);
   return (
     <Canvas
@@ -175,6 +178,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         reducedMotion={props.reducedMotion}
         shadows={settings.shadowMap > 0}
         present={props.place === "hub"}
+        crowd={settings.crowd}
         clock={props.clock}
         still={props.still}
         onOpenCase={props.onOpenCase}
@@ -190,6 +194,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         showPet={props.showPet}
         shadowMap={settings.shadowMap}
         present={props.place === "room"}
+        scoreCards={props.scoreCards}
       />
       <CameraRig place={props.place} shot={shot} reducedMotion={props.reducedMotion} {...(props.onArrive === undefined ? {} : { onArrive: props.onArrive })} />
       <PostFX ao={settings.ao} bloom={settings.bloom} />

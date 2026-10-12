@@ -147,3 +147,24 @@ export function meshGradientTexture(): CanvasTexture {
   ctx.fillRect(0, 0, 1024, 512);
   return texture(el);
 }
+
+/** A debrief score card: a mono label, the dimension's name, and its score large. */
+export function scoreCardTexture(label: string, title: string, score: string): CanvasTexture {
+  const [el, ctx] = canvas(480, 320);
+  ctx.fillStyle = PALETTE.canvas;
+  ctx.fillRect(0, 0, 480, 320);
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, 474, 314);
+  ctx.fillStyle = PALETTE.mute;
+  ctx.font = `400 26px ${MONO}`;
+  ctx.fillText(label.toUpperCase(), 28, 52);
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = `600 30px ${SANS}`;
+  wrap(ctx, title, 424, 2).forEach((line, i) => {
+    ctx.fillText(line, 28, 100 + i * 36);
+  });
+  ctx.font = `600 96px ${SANS}`;
+  ctx.fillText(score, 28, 286);
+  return texture(el);
+}

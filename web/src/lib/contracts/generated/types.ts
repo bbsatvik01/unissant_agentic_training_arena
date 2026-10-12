@@ -632,9 +632,9 @@ export interface TableContent {
 }
 
 export interface TextTrialSnapshot {
-  readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated";
+  readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated" | "source_unavailable";
   readonly reason_code: string | null;
-  readonly mode: "practice" | "assessment";
+  readonly mode: "practice" | "assessment" | "harness";
   readonly split: "dev" | "hidden";
   readonly exchanges_used: number;
   readonly exchanges_cap: number;
@@ -859,9 +859,9 @@ export interface VoiceLine {
 }
 
 export interface VoiceTrialSnapshot {
-  readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated";
+  readonly status: "running" | "completed" | "subject_quarantined" | "assistant_failed" | "infra_failed" | "budget_skipped" | "budget_truncated" | "source_unavailable";
   readonly reason_code: string | null;
-  readonly mode: "practice" | "assessment";
+  readonly mode: "practice" | "assessment" | "harness";
   readonly split: "dev" | "hidden";
   readonly exchanges_used: number;
   readonly exchanges_cap: number;
@@ -879,6 +879,8 @@ export interface VoiceTrialSnapshot {
 }
 
 export type TrialFrame = QuestionAcceptedFrame | SubjectThinkingFrame | EvidenceReleasedFrame | SubjectAnswerFrame | CoachWorkingFrame | CoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | TrialStatusFrame | TrialFinalizedFrame | DebriefReadyFrame | NoticeFrame;
+
+export type HarnessFrame = QuestionAcceptedFrame | SubjectThinkingFrame | EvidenceReleasedFrame | SubjectAnswerFrame | CoachWorkingFrame | CoachCardFrame | CoachUpdateFrame | CoachFailedFrame | FindingCommittedFrame | TrialStatusFrame | TrialFinalizedFrame | DebriefReadyFrame | NoticeFrame | ReplayTrialStatusFrame;
 
 export type TrialSnapshot = TextTrialSnapshot | VoiceTrialSnapshot;
 
@@ -945,6 +947,7 @@ export interface CardAck {
 /** The root type of each wire schema, by file stem. */
 export interface WireTypes {
   readonly events: TrialFrame;
+  readonly "harness-events": HarnessFrame;
   readonly "training-card": TrainingWireCard;
   readonly "tournament-card": TournamentWireCard;
   readonly snapshot: TrialSnapshot;

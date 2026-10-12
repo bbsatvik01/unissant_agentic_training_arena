@@ -78,6 +78,9 @@ export interface WorldInput {
   readonly investigatorActive: boolean;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
+  /** Whether a voiced line is still being spoken (or waits to be): true keeps it on stage past its text cadence,
+   * false ends it with its voice, null (or absent: no voice) leaves it to the cadence (`speechSync.activeFor`). */
+  readonly voice?: (line: Speech, nowMs: number) => boolean | null;
 }
 
 /** How long a released record counts as fresh (its flight onto the wall). */
@@ -115,16 +118,19 @@ function turnNo(id: string | null): number | null {
 }
 
 /**
- * The line a figure is speaking now: the newest turn's line, while its speaking window is open. A newer turn
- * ends the older line (a new question stops the previous answer).
+ * The line a figure is speaking now: the newest turn's line, while its speaking window is open (its text cadence,
+ * or its voice while one speaks it). A newer turn ends the older line (a new question stops the previous answer).
  */
 function speaking(texts: readonly { turn: number; text: string | null }[], prefix: string, input: WorldInput): Speech | null {
   const newest = texts.at(-1);
   if (newest === undefined || newest.text === null) return null;
   const entry = { turn: newest.turn, text: newest.text };
   const at = input.arrivals.get(`${prefix}:${String(entry.turn)}`);
-  if (at === undefined || input.nowMs < at || input.nowMs - at >= speechDurationMs(entry.text)) return null;
-  return { turn: entry.turn, text: entry.text, startedAt: at };
+  if (at === undefined || input.nowMs < at) return null;
+  const line = { turn: entry.turn, text: entry.text, startedAt: at };
+  const voiced = input.voice?.(line, input.nowMs) ?? null;
+  if (voiced !== null) return voiced ? line : null;
+  return input.nowMs - at >= speechDurationMs(entry.text) ? null : line;
 }
 
 /** The newest accepted card's one-shot, while its window is open (S6 6.3: noticing over encouraging). */

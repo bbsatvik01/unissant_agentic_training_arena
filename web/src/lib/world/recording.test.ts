@@ -83,11 +83,35 @@ describe("parseRecording refuses a broken recording whole", () => {
     expect(parseRecording(null)).toEqual({ ok: false, errors: ["recording: not an object"] });
   });
 
+  it("reads the end-of-trial snapshot, and refuses one that fails the schema or is still running", () => {
+    expect(load().final_snapshot).toBe(null);
+    const ended = { ...structuredClone(raw.snapshot), status: "completed" };
+    const withFinal = { ...(structuredClone(raw) as unknown as Record<string, unknown>), final_snapshot: ended };
+    const result = parseRecording(withFinal);
+    expect(result.ok && result.recording.final_snapshot?.status).toBe("completed");
+    expect(broken((r) => (r["final_snapshot"] = { status: "completed" }))).toContain("final_snapshot: fails the snapshot wire schema");
+    expect(broken((r) => (r["final_snapshot"] = structuredClone(raw.snapshot)))).toContain("final_snapshot: the trial had not ended");
+  });
+
   it("accepts a recording without a debrief", () => {
     const copy = structuredClone(raw) as unknown as Record<string, unknown>;
     delete copy["debrief"];
     const result = parseRecording(copy);
     expect(result.ok && result.recording.debrief).toBe(null);
+  });
+});
+
+describe("the end-of-trial snapshot", () => {
+  it("is folded in only once playback reaches the end", () => {
+    const rec = load();
+    const final = { ...structuredClone(rec.snapshot), status: "completed" as const, last_seq: 10_000 };
+    const ended: Recording = { ...rec, final_snapshot: final };
+    const middle = seek(ended, startCursor(ended), ended.events[1]?.at_ms ?? 0);
+    expect(middle.state.snapshot?.last_seq).not.toBe(10_000);
+    const end = seek(ended, startCursor(ended), ended.durationMs);
+    expect(end.state.snapshot?.last_seq).toBe(10_000);
+    expect(end.state.snapshot?.status).toBe("completed");
+    expect(seek(rec, startCursor(rec), rec.durationMs).state.snapshot?.last_seq).toBe(rec.snapshot.last_seq);
   });
 });
 
@@ -156,5 +180,54 @@ describe("arrivals", () => {
     const base = { v: 1, seq: 1, scope: "trial", scope_id: "x", ts: "2026-10-09T14:00:00.000Z", transcript_version: 1 } as const;
     expect(arrivalKey({ ...base, type: "coach.update", data: { turn_no: 3 } } as never)).toBe("coach.update:3");
     expect(arrivalKey({ ...base, type: "coach.failed", data: { turn_no: 2, reason: "timeout" } } as never)).toBe("coach.failed:2");
+  });
+});
+
+describe("a harness (tournament) trial's recording (D-021, WP-17)", () => {
+  function harness(change?: (r: Record<string, unknown>) => void): Record<string, unknown> {
+    const copy = structuredClone(raw) as unknown as Record<string, unknown>;
+    (copy["snapshot"] as Record<string, unknown>)["mode"] = "harness";
+    copy["debrief"] = null;
+    copy["events"] = (copy["events"] as { frame: { type: string } }[]).filter((e) => e.frame.type !== "debrief.ready");
+    change?.(copy);
+    return copy;
+  }
+
+  function sourceUnavailable(r: Record<string, unknown>): void {
+    const first = (r["events"] as { frame: Record<string, unknown> }[])[0];
+    const frame = {
+      ...first?.frame,
+      seq: 1,
+      type: "trial.status",
+      transcript_version: 0,
+      data: { status: "source_unavailable", reason_code: "source_unavailable" },
+    };
+    r["events"] = [{ at_ms: 0, frame }];
+  }
+
+  it("plays with its recorded coaching visible: no investigator, no debrief to save it for", () => {
+    const result = parseRecording(harness());
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const end = seek(result.recording, startCursor(result.recording), result.recording.durationMs);
+    const view = end.state.view;
+    expect(view?.status).toBe("ended");
+    expect(view?.mode).toBe("practice");
+    expect(view?.cards.map((c) => c.turn_no)).toEqual(view?.turns.map((t) => t.turn_no));
+    expect(view?.runningFinding).not.toBeNull();
+  });
+
+  it("accepts a replay trial that ended source_unavailable and plays it to its end", () => {
+    const result = parseRecording(harness(sourceUnavailable));
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const end = seek(result.recording, startCursor(result.recording), result.recording.durationMs);
+    expect(end.state.view?.status).toBe("ended");
+    expect(end.state.view?.serverStatus).toBe("source_unavailable");
+  });
+
+  it("refuses source_unavailable in a training recording (C-45: never a training state)", () => {
+    const copy = structuredClone(raw) as unknown as Record<string, unknown>;
+    copy["debrief"] = null;
+    sourceUnavailable(copy);
+    expect(parseRecording(copy).ok).toBe(false);
   });
 });

@@ -1939,6 +1939,23 @@
         ],
         "last": 4
       }
+    },
+    {
+      "id": "harness-frame:trial.status.source_unavailable",
+      "schema": "harness-events",
+      "value": {
+        "v": 1,
+        "seq": 1,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.status",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 0,
+        "data": {
+          "status": "source_unavailable",
+          "reason_code": "source_unavailable"
+        }
+      }
     }
   ],
   "invalid": [
@@ -6845,6 +6862,25 @@
         "cards": [],
         "updates": [],
         "coach_failures": []
+      }
+    },
+    {
+      "id": "neg-90",
+      "why": "source_unavailable on a training frame (C-45: replay trials only)",
+      "schema": "events",
+      "layer": "schema",
+      "value": {
+        "v": 1,
+        "seq": 1,
+        "scope": "trial",
+        "scope_id": "3f2b8c1e-5a4d-4e8f-9b2a-1c0d7e6f5a41",
+        "type": "trial.status",
+        "ts": "2026-10-20T15:04:05.123Z",
+        "transcript_version": 0,
+        "data": {
+          "status": "source_unavailable",
+          "reason_code": "source_unavailable"
+        }
       }
     }
   ]

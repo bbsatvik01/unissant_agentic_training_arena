@@ -14,13 +14,18 @@
 | WP-14 referee | MERGED (new migration 20261011000100 to apply) | done |
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
-| WP-17 tournament (a0989bb31b07d2da1, Sonnet, wt-wp17-tourney) | building + demo-tournament CLI | review, merge |
+| Hosted seed + real smoke (a79b6bd60d05a4e17, Sonnet, wt-hosted-seed) | real ingest bundles (cx.json format), make seed-hosted, real-model env, make real-smoke; no hosted/real calls by the agent | coordinator runs against hosted Supabase + Vertex |
+| WP-17 tournament | MERGED (demo: scripts/dev.sh tournament) | done |
 | WP-14 fake referee (a82783ff6d2a01d89) | canned R1/R2/R3 fake replies so fake sessions publish a debrief | merge |
 | WP-04 pgTAP | MERGED (23 files green) | done |
 | WP-07 observability | MERGED; Phoenix live run + screenshot deferred to WP-24 | done |
 | UI stage 1 | MERGED (38792cd); reads as a gray prototype vs owner bar | stage 1b running |
 | UI stage 1b | MERGED (5035094) | done |
-| UI stage 2 (ac2a4c78d321feac9, feat/ui-stage2) | live sessions via SSE, browser TTS voices, debrief scene, 3D pet, leaderboard/arena view | review, merge |
+| UI stage 2 | MERGED (f7f2a37) | done |
+| UI stage 3 (WP-20a) | MERGED (6588996) | done |
+| UI stage 4 | MERGED (f77c5b0) | done |
+| UI stage 5 | MERGED (79b2182); TTS inactive | OWNER ASK: tts call_limits + price rows; model choice gemini-2.5-flash-tts (GA, 2.5 retiring on Vertex mid/late Oct) vs gemini-3.8-flash-lite-tts (preview, needs google-genai>=2.25) |
+| api UI routes + trust + recordings | MERGED | done; GAP: S3 fairness audit (style FPR, flag rates, permutation tests, negative controls) not computed by anyone yet -> assign |
 | Supabase | 0600-1100 + 20261011000100 APPLIED 2026-10-11 via owner DSN (transactional, stored byte-exact; 12 migrations); global ceiling $74 set, per-user $5, kill switch off. Role logins enabled (owner-authorized, random passwords) and .env.local.{public,subject,referee} written (0600, git-ignored); each role connects | next: advisor follow-ups: duplicate referee read policies (perf WARN), unindexed FKs (INFO); public.rls_auto_enable is Supabase's platform helper |
 - Queue: WP-13 (incl. D-021 export-run + history route) after WP-12; UI stage 2 live wiring + debrief; WP-16/17; WP-24.
 - Budget plan $74 approved (D-022); apply right after 0600. Codex up to 7 rounds per agent (D-022).

@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from arena_api.state import ApiState, actor_db, api_state
 from arena_core.db.arena import ArenaDb, ArenaError, iso
-from arena_core.events.load import load_trial, stored_events
+from arena_core.events.load import TrialMeta, load_trial, stored_events
 from arena_core.events.projections import Viewer, live_deltas, notice_message
 
 router = APIRouter()
@@ -58,7 +58,8 @@ async def _stream(request: Request, db: ArenaDb, state: ApiState, trial_id: UUID
             meta = await db.trial(trial_id) or {}
             state_of = meta.get("execution_state")
             viewer = Viewer(trial_ended=meta.get("status") != "running", mode=opening.mode)
-            events = stored_events(trial_id, rows, opening.packet, await db.released(trial_id), state_of)
+            trial_meta = TrialMeta(trial_id, "training", state_of)
+            events = stored_events(trial_meta, rows, opening.packet, await db.released(trial_id))
             for message in live_deltas(events, viewer):
                 yield message
             cursor, version = rows[-1].seq, rows[-1].transcript_version

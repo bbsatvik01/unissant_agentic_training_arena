@@ -1,9 +1,12 @@
-"""Canned coach replies for `ARENA_MODEL_MODE=fake` (S5 10.4): zero-spend, schema-valid card.v1 and deep.v1.
+"""Canned coach replies for `ARENA_MODEL_MODE=fake` (S5 10.4): zero-spend, schema-valid card.v1, deep.v1 and
+final.v1.
 
 A card must name the exchange it was requested for and a deep update must list every released record, so a
 fixed text cannot serve every turn: each reply is written from the request itself (the user message's
 "Exchange N of 12." line and the record ids inside its released-records block). The cards carry no flag, so no
-quote check can fail; they exist so a local run exercises the whole pipeline, not to coach.
+quote check can fail; they exist so a local run exercises the whole pipeline, not to coach. `final_reply`
+feeds the harness's one committing call (S2 8.5; `arena_tournament`, WP-17): every tournament trial reaches
+it, so a fake run with no canned final.v1 reply would fail every trial at its last step.
 """
 
 from __future__ import annotations
@@ -76,5 +79,11 @@ def deep_reply(request: ModelRequest) -> str:
     return json.dumps(update)
 
 
+def final_reply(request: ModelRequest) -> str:
+    n = _exchange(request)
+    final = {"schema_version": "final.v1", "finding": _finding(n), "alternative_explanations": []}
+    return json.dumps(final)
+
+
 # Schema title -> reply writer, for `providers.mode.model_adapter(canned=...)`.
-FAKE_COACH_REPLIES = {"CoachingCard": card_reply, "DeepUpdate": deep_reply}
+FAKE_COACH_REPLIES = {"CoachingCard": card_reply, "DeepUpdate": deep_reply, "FinalFinding": final_reply}

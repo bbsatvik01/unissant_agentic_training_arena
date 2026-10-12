@@ -406,6 +406,10 @@ TrialFrame = (
     | NoticeFrame
 )
 
+# A harness (tournament) trial's D-021 recording export: the trial-scope frames, plus a replay trial's own
+# `source_unavailable` end (C-45: never on a browser's live stream, so `TrialFrame` keeps the training statuses).
+HarnessFrame = TrialFrame | ReplayTrialStatusFrame
+
 # Trial replay of a visible tournament trial: the persisted frames of the trial scope, with the tournament card.
 ReplayFrame = (
     QuestionAcceptedFrame

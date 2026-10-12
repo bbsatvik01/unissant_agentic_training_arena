@@ -1149,7 +1149,8 @@
             "assistant_failed",
             "infra_failed",
             "budget_skipped",
-            "budget_truncated"
+            "budget_truncated",
+            "source_unavailable"
           ],
           "type": "string"
         },
@@ -1168,7 +1169,8 @@
         "mode": {
           "enum": [
             "practice",
-            "assessment"
+            "assessment",
+            "harness"
           ],
           "type": "string"
         },
@@ -1485,7 +1487,8 @@
             "assistant_failed",
             "infra_failed",
             "budget_skipped",
-            "budget_truncated"
+            "budget_truncated",
+            "source_unavailable"
           ],
           "type": "string"
         },
@@ -1504,7 +1507,8 @@
         "mode": {
           "enum": [
             "practice",
-            "assessment"
+            "assessment",
+            "harness"
           ],
           "type": "string"
         },

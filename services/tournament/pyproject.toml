@@ -5,6 +5,10 @@ description = "ARENA_ROLE=tournament job: frozen roster, block scheduling, harne
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "arena-core",
+  # Reuses `arena_api.subject_client` for the `/internal/answer` call (identical for both roles; the
+  # S5 1.2 item 2 role lint names only arena_subject and arena_referee as forbidden for arena_tournament,
+  # not arena_api, precisely so this one client is not duplicated).
+  "arena-api",
 ]
 
 [build-system]
@@ -13,3 +17,4 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 arena-core = { workspace = true }
+arena-api = { workspace = true }

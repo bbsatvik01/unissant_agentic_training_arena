@@ -146,3 +146,13 @@ export function beatTimes(text: string): readonly number[] {
   for (let m = re.exec(text); m !== null; m = re.exec(text)) beats.push((m.index / Math.max(1, text.length)) * duration);
   return beats;
 }
+
+/** Where the line's timeline is when the voice reaches character `charIndex` (ms): the viseme units before it,
+ * over all of them, of the speaking time. A synthesized voice's word boundaries map onto the track with it. */
+export function timeAtChar(text: string, charIndex: number): number {
+  const weight = (units: readonly Unit[]) => units.reduce((sum, u) => sum + u.weight, 0);
+  const total = weight(visemeUnits(text));
+  if (total === 0) return 0;
+  const at = Math.max(0, Math.min(text.length, charIndex));
+  return (weight(visemeUnits(text.slice(0, at))) / total) * speechDurationMs(text);
+}

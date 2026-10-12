@@ -72,3 +72,12 @@
 - 5035094 merge UI stage 1b realistic world (Rocketbox MIT avatars, text-driven lip sync, cinematic shots, PBR)
 - 682f750 merge WP-16 reveal + leaderboards + isolation gates
 - f4cc538 merge fixture fix: S1-complete public packets in fixtures.psql (db-test green)
+- f7f2a37 merge UI stage 2 (live sessions, voices, debrief scene, cat, leaderboard view)
+- 86b4ea6 merge api leaderboards pass-through
+- 6588996 merge UI stage 3 (WP-20a: onboarding, KPI-1 flow, progress, consoles, replay)
+- ce1d12c merge single fake referee (arena_core/referee/fake_referee.py)
+- f77c5b0 merge UI stage 4 (trust center, debrief export, judge demo)
+- fdad8fa merge api UI routes (progress/KPI-1, EX-4 server check, /api/admin, referee bundle)
+- b141662 merge trust routes + assessment recording final snapshot
+- 79b2182 merge UI stage 5 (Gemini TTS route, inactive pending owner spend rows; hub life)
+- 6ea8e1b merge WP-17 tournament job + demo tournament CLI

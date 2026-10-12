@@ -39,12 +39,24 @@ export class ContractError extends Error {
   }
 }
 
-/** The fields of `GET /api/me` (S5 5.5) this layer relies on; the rest arrive with their screens. */
+/** The KPI-1 study status in `GET /api/me` (S6 3.2): ended sessions per phase and the next allowed phase. */
+export interface Study {
+  readonly counterbalance: string;
+  readonly ended: { readonly pre: number; readonly practice: number; readonly post: number };
+  readonly next_phase: "pre" | "practice" | "post" | "done";
+}
+
+/** The fields of `GET /api/me` (S5 5.5) this layer relies on. The referee origin's console `/api/me` carries no
+ * acknowledgement or study, which read as null there. */
 export interface Me {
   readonly user_id: string;
   readonly display_name: string;
   readonly roles: readonly string[];
   readonly ex4_acknowledged: string | null;
+  readonly study: Study | null;
+  /** True on the referee origin, whose console `/api/me` carries no `ex4_acknowledged` key (S5 5.5). The
+   * trainer and admin consoles act only here (FE-REV-4, FE-ADM-1). */
+  readonly console: boolean;
   readonly csrf_token: string;
 }
 
@@ -60,6 +72,9 @@ export interface ApiClient {
   get(path: string): Promise<unknown>;
   /** POST with the CSRF header; `body` is sent as JSON when given. */
   post(path: string, body?: unknown, options?: PostOptions): Promise<unknown>;
+  /** POST with the CSRF header for audio: the response's bytes, and whether the server said they are silence (its
+   * fake mode, `X-Arena-Speech: silent`). */
+  postAudio(path: string, body: unknown): Promise<{ readonly audio: ArrayBuffer; readonly silent: boolean }>;
 }
 
 export interface ApiClientOptions {
@@ -94,14 +109,37 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseMe(value: unknown): Me | null {
+const PHASES = ["pre", "practice", "post", "done"] as const;
+
+function count(v: unknown): number | null {
+  return typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null;
+}
+
+/** The study status, or undefined when present but malformed (the whole answer is then refused). */
+export function parseStudy(value: unknown): Study | null | undefined {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value) || !isRecord(value["ended"])) return undefined;
+  const { counterbalance, next_phase: next } = value;
+  const ended = value["ended"];
+  const pre = count(ended["pre"]);
+  const practice = count(ended["practice"]);
+  const post = count(ended["post"]);
+  const phase = PHASES.find((p) => p === next);
+  if ((typeof counterbalance !== "string" && typeof counterbalance !== "number") || pre === null || practice === null || post === null || phase === undefined) return undefined;
+  return { counterbalance: String(counterbalance), ended: { pre, practice, post }, next_phase: phase };
+}
+
+export function parseMe(value: unknown): Me | null {
   if (!isRecord(value)) return null;
-  const { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, csrf_token: token } = value;
+  const { user_id: userId, display_name: name, roles, csrf_token: token } = value;
+  const ack = value["ex4_acknowledged"] ?? null;
   if (typeof userId !== "string" || userId === "" || typeof name !== "string") return null;
   if (!Array.isArray(roles) || !roles.every((role) => typeof role === "string")) return null;
   if (ack !== null && typeof ack !== "string") return null;
   if (typeof token !== "string" || token === "") return null;
-  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, csrf_token: token };
+  const study = parseStudy(value["study"]);
+  if (study === undefined) return null;
+  return { user_id: userId, display_name: name, roles, ex4_acknowledged: ack, study, console: !("ex4_acknowledged" in value), csrf_token: token };
 }
 
 /** The server's reason in an error body: `{code}`, `{detail: "<code>"}` or `{detail: {code}}`. */
@@ -169,6 +207,17 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   };
 
 
+  /** A POST with the CSRF token: with the token known the request leaves now, in this call (an acknowledgement goes out
+   * before the caller renders, S6 5.6); otherwise after /api/me answered, and never without it. A stale token (the
+   * cookie rotated, another tab re-read /api/me) is re-read once and the request retried once. */
+  const postWithToken = async (path: string, payload: string | undefined, keepalive: boolean): Promise<Response> => {
+    const known = token;
+    const response = known === null ? await me().then((m) => send("POST", path, payload, keepalive, m.csrf_token)) : await send("POST", path, payload, keepalive, known);
+    if (response.status !== 403) return response;
+    const fresh = (await me()).csrf_token;
+    return send("POST", path, payload, keepalive, fresh);
+  };
+
   return {
     me,
     async get(path) {
@@ -179,20 +228,20 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     post(path, body, postOptions = {}) {
       const refused = pathError(path);
       if (refused !== null) return Promise.reject(refused);
-      const keepalive = postOptions.keepalive === true;
       // Serialized now: a caller changing its object later (a draft being edited) never changes what is sent,
       // neither after the token read nor on the 403 retry, which reuse the same idempotency key.
       const payload = body === undefined ? undefined : JSON.stringify(body);
-      // With the token known the request leaves now, in this call (an acknowledgement goes out before the caller
-      // renders, S6 5.6); otherwise after /api/me answered, and never without it.
-      const known = token;
-      const first = known === null ? me().then((m) => send("POST", path, payload, keepalive, m.csrf_token)) : send("POST", path, payload, keepalive, known);
-      return first.then(async (response) => {
-        if (response.status !== 403) return settle(path, response);
-        // A stale token (the cookie rotated, another tab re-read /api/me): re-read once, retry once.
-        const fresh = (await me()).csrf_token;
-        return settle(path, await send("POST", path, payload, keepalive, fresh));
-      });
+      return postWithToken(path, payload, postOptions.keepalive === true).then((response) => settle(path, response));
+    },
+    async postAudio(path, body) {
+      const refused = pathError(path);
+      if (refused !== null) throw refused;
+      const response = await postWithToken(path, JSON.stringify(body), false);
+      if (!response.ok) {
+        const parsed = await readJson(response);
+        throw new ApiError(response.status, parsed.ok ? errorCode(parsed.value) : null, path);
+      }
+      return { audio: await response.arrayBuffer(), silent: response.headers.get("X-Arena-Speech") === "silent" };
     },
   };
 }

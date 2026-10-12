@@ -4,7 +4,7 @@
  * with the recording, not with the page.
  */
 
-import type { Debrief } from "../contracts/generated/types";
+import type { Debrief, TrialSnapshot } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
 import { END_TAIL_MS, RECORDING_FORMAT, type Recording } from "./recording";
 
@@ -68,6 +68,8 @@ export function parseRecording(raw: unknown): RecordingResult {
   errors.push(...caseErrors(raw["case"]));
   if (!isWire("snapshot", raw["snapshot"])) errors.push("snapshot: fails the snapshot wire schema");
   const events = raw["events"];
+  // A harness (tournament) trial's export also carries a replay trial's own `source_unavailable` end (C-45).
+  const frameSchema = isObject(raw["snapshot"]) && raw["snapshot"]["mode"] === "harness" ? "harness-events" : "events";
   if (!Array.isArray(events) || events.length === 0) errors.push("events: must be a non-empty list");
   else {
     let last = 0;
@@ -81,7 +83,7 @@ export function parseRecording(raw: unknown): RecordingResult {
       if (typeof at !== "number" || !Number.isFinite(at) || at < last) errors.push(`${where}: at_ms must be a number at or after the previous one`);
       else last = at;
       const frame = event["frame"];
-      if (!isWire("events", frame)) errors.push(`${where}: frame fails the events wire schema`);
+      if (!isWire(frameSchema, frame)) errors.push(`${where}: frame fails the ${frameSchema} wire schema`);
       else if (frame.scope_id !== trialId) errors.push(`${where}: frame belongs to another trial`);
     });
   }
@@ -97,8 +99,19 @@ export function parseRecording(raw: unknown): RecordingResult {
     }
   }
   if (errors.length > 0) return { ok: false, errors };
-  const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief"> & { readonly debrief?: Debrief | null };
+  // The end-of-trial snapshot (absent or null while the trial ran): in assessment mode it holds the coaching the
+  // session withheld, shown once the recording reaches the end (FE-DEB-4).
+  const finalSnapshot = raw["final_snapshot"] ?? null;
+  if (finalSnapshot !== null) {
+    if (!isWire("snapshot", finalSnapshot)) errors.push("final_snapshot: fails the snapshot wire schema");
+    else if (finalSnapshot.status === "running") errors.push("final_snapshot: the trial had not ended");
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief" | "final_snapshot"> & {
+    readonly debrief?: Debrief | null;
+    readonly final_snapshot?: TrialSnapshot | null;
+  };
   const durationMs = (checked.events.at(-1)?.at_ms ?? 0) + END_TAIL_MS;
-  return { ok: true, recording: { ...checked, debrief: checked.debrief ?? null, durationMs } };
+  return { ok: true, recording: { ...checked, debrief: checked.debrief ?? null, final_snapshot: checked.final_snapshot ?? null, durationMs } };
 }
 

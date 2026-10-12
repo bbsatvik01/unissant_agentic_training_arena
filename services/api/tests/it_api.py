@@ -172,6 +172,7 @@ class Client:
 
 def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> None:
     api = Client(dsns)
+    assert api.post("/api/me/ack-ex4").status_code == HTTPStatus.OK  # EX-4 before any session
     # The database is shared with the other suites, which may have committed fixture families of their own: the
     # interview runs on F01, one variant of which the draw lists (C-37).
     cases = [c for c in api.get("/api/cases").json()["cases"] if c["title"] == F01_TITLE]
@@ -255,6 +256,7 @@ def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> N
 
 def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None:
     owner, other = Client(dsns), Client(dsns, USER_B)
+    owner.post("/api/me/ack-ex4")
     case = next(c["case_id"] for c in owner.get("/api/cases").json()["cases"] if c["title"] == F01_TITLE)
     started = owner.post(
         "/api/sessions", {"case_id": case, "mode": "practice", "voice": False, "idem_key": str(uuid4())}
@@ -271,3 +273,12 @@ def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None
         other.get(f"/api/sessions/{session}/debrief").status_code,
     ):
         assert status == HTTPStatus.NOT_FOUND
+
+
+def test_the_trust_center_reads_the_real_views(dsns: dict[str, str]) -> None:
+    api = Client(dsns)
+    for section in ("isolation", "commitments", "fairness", "methodology", "budget"):
+        assert api.get(f"/api/trust/{section}").status_code == HTTPStatus.OK
+    budget = api.get("/api/trust/budget").json()
+    assert set(budget) == {"ceiling_usd", "spent_usd", "open_usd", "by_purpose", "planned_n"}
+    assert isinstance(api.get("/api/trust/commitments").json()["commitments"], list)

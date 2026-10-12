@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { StoredFinding } from "../contracts/generated/types";
-import { allowedLikelihoods, corroborationItems, draftProblems, EMPTY_DRAFT, flagPhrase, LIKELIHOODS, renderFinding, type FindingDraft } from "./finding";
+import { allowedLikelihoods, corroborationItems, draftProblems, draftToFinding, EMPTY_DRAFT, flagPhrase, LIKELIHOODS, renderFinding, type FindingDraft } from "./finding";
 
 const base: StoredFinding = {
   label: "truthful",
@@ -74,5 +74,24 @@ describe("finding draft (S6 4.6, FE-FIND-1)", () => {
     expect(draftProblems({ ...insufficient, corroboration: "a\nb\nc\nd" })).toHaveLength(1);
     expect(draftProblems({ ...insufficient, corroboration: "ab" })).toHaveLength(1);
     expect(corroborationItems("  one \n\n two ")).toEqual(["one", "two"]);
+  });
+});
+
+describe("draftToFinding", () => {
+  it("builds the investigator finding from a complete draft, and nothing from an incomplete one", () => {
+    const draft: FindingDraft = { ...EMPTY_DRAFT, label: "truthful", likelihood: "unlikely", confidence: "moderate", citedTurns: [3, 1], citedRecords: ["rec-02"], rationale: "  Corroborated.  ", corroboration: "ignored" };
+    expect(draftToFinding(draft)).toEqual({
+      label: "truthful",
+      likelihood: "unlikely",
+      confidence: "moderate",
+      basis_flag_refs: [],
+      cited_turns: [1, 3],
+      cited_records: ["rec-02"],
+      corroboration_needed: [],
+      rationale: "Corroborated.",
+    });
+    expect(draftToFinding(EMPTY_DRAFT)).toBe(null);
+    const insufficient = draftToFinding({ ...EMPTY_DRAFT, label: "insufficient_evidence", likelihood: "roughly_even_chance", confidence: "low", rationale: "Open.", corroboration: "the radio log\nthe work order" });
+    expect(insufficient?.corroboration_needed).toEqual(["the radio log", "the work order"]);
   });
 });

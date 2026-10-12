@@ -32,7 +32,7 @@ export const MIRROR = { center: [1.65, 1.6, -3] as Vec3, width: 2.5, height: 1.3
 export const TABLE = { center: [0, 0.75, 0] as Vec3, width: 1.6, depth: 0.9 } as const;
 export const SUBJECT_SEAT: Vec3 = [0, 0, -0.78];
 export const INVESTIGATOR_SEAT: Vec3 = [0, 0, 0.85];
-export const PET_SPOT: Vec3 = [0.62, 0.775, 0.3];
+export const PET_SPOT: Vec3 = [-0.6, 0.775, -0.2];
 export const FOLDER_SPOT: Vec3 = [-0.42, 0.808, 0.18];
 /** The point the subject looks at when looking at the investigator (eye height over the empty chair). */
 export const INVESTIGATOR_EYES: Vec3 = [0, 1.22, 0.95];
@@ -87,7 +87,8 @@ export type ShotName =
   | "subject_close"
   | "observation"
   | "wall"
-  | "table";
+  | "table"
+  | "debrief";
 
 export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   hub: { position: [6.4, 2.25, 4.9], target: [-1.2, 1.35, -5.2], fov: 46 },
@@ -100,6 +101,8 @@ export const SHOTS: Readonly<Record<ShotName, Shot>> = {
   subject_close: { position: inRoom([0.22, 1.3, 0.62]), target: inRoom([0, 1.12, -0.8]), fov: 30 },
   observation: { position: inRoom([0.15, 1.75, -3.55]), target: inRoom([1.75, 1.0, -5.0]), fov: 46 },
   wall: { position: inRoom([-1.6, 1.55, 0.1]), target: inRoom([-1.75, 1.5, -3]), fov: 40 },
+  // The debrief scene: the score cards on the wall, framed left of centre so the debrief card beside it leaves them clear.
+  debrief: { position: inRoom([-1.2, 1.55, 0.35]), target: inRoom([-1.2, 1.5, -3]), fov: 42 },
   table: { position: inRoom([-1.05, 1.5, 0.85]), target: inRoom([-0.4, 0.8, 0.15]), fov: 42 },
 };
 

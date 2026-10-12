@@ -1,0 +1,1186 @@
+{
+ "note": "Example data shaped like the WP-16 leaderboard bodies (arena_core.referee.leaderboard), for building the view before GET /api/leaderboards lands. Not a result.",
+ "tournament": {
+  "id": "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f",
+  "name": "Development tournament (example)",
+  "split": "dev"
+ },
+ "assistant": {
+  "board": "assistant",
+  "status": "provisional",
+  "isolation_evidence_hash": "9999999999999999999999999999999999999999999999999999999999999999",
+  "not_computed": [
+   "fairness_audit"
+  ],
+  "binding": {
+   "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "manifest_version": 1,
+   "scorer_git_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "rubric_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+   "r1_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+   "r2_prompt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+   "label_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "bootstrap_b": 2000
+  },
+  "rows": [
+   {
+    "candidate_id": "A1",
+    "display_name": "Evidence Strategist",
+    "rank": 1,
+    "reason": null,
+    "eligibility": {
+     "eligible": true,
+     "status": "definitive",
+     "point": {
+      "num": 0,
+      "den": 9,
+      "value": 0.0
+     },
+     "worst": {
+      "num": 0,
+      "den": 9,
+      "value": 0.0
+     },
+     "best": {
+      "num": 0,
+      "den": 9,
+      "value": 0.0
+     },
+     "provisional": false
+    },
+    "rank_interval": {
+     "lo": 1,
+     "hi": 2,
+     "share_first": {
+      "num": 3,
+      "den": 5
+     },
+     "no_deceptive_resamples": 0
+    },
+    "metrics": {
+     "M01_deceptive_recall": {
+      "point": {
+       "num": 8,
+       "den": 9,
+       "value": 0.8888888888888888
+      },
+      "interval": {
+       "lo": 0.62,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M02_false_positive_rate": {
+      "point": {
+       "num": 0,
+       "den": 9,
+       "value": 0.0
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.12,
+       "status": "ok",
+       "pool": "families"
+      },
+      "complete_family_bound": {
+       "bound": 0.2831288355631135,
+       "kind": "one-sided 95% zero-event bound (equal sizes)",
+       "families": 9,
+       "failed": 0
+      }
+     },
+     "M03_ppv": {
+      "point": {
+       "num": 8,
+       "den": 9,
+       "value": 0.8888888888888888
+      },
+      "interval": {
+       "lo": 0.6,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M09_questioning_quality": {
+      "point": {
+       "num": 31,
+       "den": 40,
+       "value": 0.775
+      },
+      "interval": {
+       "lo": 0.66,
+       "hi": 0.86,
+       "status": "ok",
+       "pool": "families"
+      },
+      "coverage": {
+       "num": 9,
+       "den": 9,
+       "value": 1.0
+      },
+      "provisional": false,
+      "calibrated": true
+     },
+     "M22_cost": {
+      "total": "2.41",
+      "mean_per_included": "0.27",
+      "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 8,
+       "deceptive": 0,
+       "insufficient_evidence": 1
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 8,
+       "insufficient_evidence": 0
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 31,
+       "den": 9,
+       "value": 3.4444444444444446
+      },
+      "interval": {
+       "lo": 2.9,
+       "hi": 3.9,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 2.41,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       2.9
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
+     }
+    },
+    "fairness_violations": []
+   },
+   {
+    "candidate_id": "A3",
+    "display_name": "Conservative Corroborator",
+    "rank": 2,
+    "reason": null,
+    "eligibility": {
+     "eligible": true,
+     "status": "provisional",
+     "point": {
+      "num": 0,
+      "den": 8,
+      "value": 0.0
+     },
+     "worst": {
+      "num": 0,
+      "den": 8,
+      "value": 0.0
+     },
+     "best": {
+      "num": 0,
+      "den": 8,
+      "value": 0.0
+     },
+     "provisional": true
+    },
+    "rank_interval": {
+     "lo": 1,
+     "hi": 3,
+     "share_first": {
+      "num": 3,
+      "den": 5
+     },
+     "no_deceptive_resamples": 0
+    },
+    "metrics": {
+     "M01_deceptive_recall": {
+      "point": {
+       "num": 6,
+       "den": 9,
+       "value": 0.6666666666666666
+      },
+      "interval": {
+       "lo": 0.4,
+       "hi": 0.9,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M02_false_positive_rate": {
+      "point": {
+       "num": 0,
+       "den": 8,
+       "value": 0.0
+      },
+      "complete_family_bound": {
+       "bound": 0.31234397806636793,
+       "kind": "one-sided 95% zero-event bound (equal sizes)",
+       "families": 8,
+       "failed": 0
+      }
+     },
+     "M03_ppv": {
+      "point": {
+       "num": 6,
+       "den": 6,
+       "value": 1.0
+      },
+      "interval": {
+       "lo": 0.62,
+       "hi": 1.0,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M09_questioning_quality": {
+      "point": {
+       "num": 28,
+       "den": 40,
+       "value": 0.7
+      },
+      "interval": {
+       "lo": 0.58,
+       "hi": 0.81,
+       "status": "ok",
+       "pool": "families"
+      },
+      "coverage": {
+       "num": 9,
+       "den": 9,
+       "value": 1.0
+      },
+      "provisional": false,
+      "calibrated": true
+     },
+     "M22_cost": {
+      "total": "2.41",
+      "mean_per_included": "0.27",
+      "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 7,
+       "deceptive": 3,
+       "insufficient_evidence": 2
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 6,
+       "insufficient_evidence": 2
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 31,
+       "den": 9,
+       "value": 3.4444444444444446
+      },
+      "interval": {
+       "lo": 2.9,
+       "hi": 3.9,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 2.71,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       3.1999999999999997
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
+     }
+    },
+    "fairness_violations": []
+   },
+   {
+    "candidate_id": "A2",
+    "display_name": "Cognitive-Load Prober",
+    "rank": null,
+    "reason": "ineligible: FPR above 5%",
+    "eligibility": {
+     "eligible": false,
+     "status": "definitive",
+     "point": {
+      "num": 3,
+      "den": 9,
+      "value": 0.3333333333333333
+     },
+     "worst": {
+      "num": 3,
+      "den": 9,
+      "value": 0.3333333333333333
+     },
+     "best": {
+      "num": 3,
+      "den": 9,
+      "value": 0.3333333333333333
+     },
+     "provisional": false
+    },
+    "rank_interval": null,
+    "metrics": {
+     "M01_deceptive_recall": {
+      "point": {
+       "num": 7,
+       "den": 9,
+       "value": 0.7777777777777778
+      },
+      "interval": {
+       "lo": 0.5,
+       "hi": 0.95,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M02_false_positive_rate": {
+      "point": {
+       "num": 3,
+       "den": 9,
+       "value": 0.3333333333333333
+      },
+      "interval": {
+       "lo": 0.11,
+       "hi": 0.6,
+       "status": "ok",
+       "pool": "families"
+      },
+      "complete_family_bound": {
+       "bound": 0.7,
+       "kind": "one-sided 95% family failure bound (family-level statistic)",
+       "families": 9,
+       "failed": 3
+      }
+     },
+     "M03_ppv": {
+      "point": {
+       "num": 7,
+       "den": 10,
+       "value": 0.7
+      },
+      "interval": {
+       "lo": 0.45,
+       "hi": 0.92,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M09_questioning_quality": {
+      "point": {
+       "num": 30,
+       "den": 40,
+       "value": 0.75
+      },
+      "interval": {
+       "lo": 0.62,
+       "hi": 0.85,
+       "status": "ok",
+       "pool": "families"
+      },
+      "coverage": {
+       "num": 9,
+       "den": 9,
+       "value": 1.0
+      },
+      "provisional": false,
+      "calibrated": true
+     },
+     "M22_cost": {
+      "total": "2.41",
+      "mean_per_included": "0.27",
+      "mean_per_planned": "0.27"
+     },
+     "M04_unresolved_rate": {
+      "truthful": {
+       "point": {
+        "num": 1,
+        "den": 9,
+        "value": 0.1111111111111111
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.3,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      },
+      "deceptive": {
+       "point": {
+        "num": 0,
+        "den": 9,
+        "value": 0.0
+       },
+       "interval": {
+        "lo": 0.0,
+        "hi": 0.2,
+        "status": "ok",
+        "pool": "families"
+       },
+       "synthetic_insufficient": false
+      }
+     },
+     "M05_count_matrix": {
+      "truthful": {
+       "truthful": 6,
+       "deceptive": 0,
+       "insufficient_evidence": 3
+      },
+      "deceptive": {
+       "truthful": 1,
+       "deceptive": 6,
+       "insufficient_evidence": 2
+      },
+      "by_subject": {}
+     },
+     "M06_evasion_precision": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 7,
+        "value": 0.7142857142857143
+       },
+       "interval": {
+        "lo": 0.4,
+        "hi": 0.9,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": {
+        "num": 6,
+        "den": 7,
+        "value": 0.8571428571428571
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M07_evasion_recall": {
+      "strict": {
+       "point": {
+        "num": 5,
+        "den": 9,
+        "value": 0.5555555555555556
+       },
+       "interval": {
+        "lo": 0.3,
+        "hi": 0.8,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "broad": {
+       "point": null,
+       "interval": {
+        "lo": null,
+        "hi": null,
+        "status": "undefined",
+        "pool": "families"
+       }
+      }
+     },
+     "M08_unsupported_flag_rate": {
+      "point": {
+       "num": 1,
+       "den": 12,
+       "value": 0.08333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      },
+      "reasons": {
+       "citation": 1,
+       "demeanor": 0,
+       "claim": 0
+      }
+     },
+     "M10_closure_support": {
+      "point": {
+       "num": 31,
+       "den": 9,
+       "value": 3.4444444444444446
+      },
+      "interval": {
+       "lo": 2.9,
+       "hi": 3.9,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M16_coaching_latency": {
+      "share_within_3s": {
+       "num": 80,
+       "den": 84,
+       "value": 0.9523809523809523
+      },
+      "p95_s": 3.0100000000000002,
+      "interval_share": null,
+      "interval_p95": [
+       2.1,
+       3.5
+      ],
+      "measured": 84,
+      "unmeasured": 0,
+      "in_flight": 0,
+      "provisional": false
+     },
+     "M23_execution_rates": {
+      "overall": {
+       "completed": {
+        "count": 18,
+        "share": 1.0
+       }
+      },
+      "by_role": {
+       "truthful": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       },
+       "deceptive": {
+        "completed": {
+         "count": 9,
+         "share": 1.0
+        }
+       }
+      }
+     },
+     "M25_role_prevalence": {
+      "num": 1,
+      "den": 2,
+      "value": 0.5
+     }
+    },
+    "fairness_violations": []
+   }
+  ]
+ },
+ "subject": {
+  "board": "subject",
+  "status": "unranked",
+  "isolation_evidence_hash": "9999999999999999999999999999999999999999999999999999999999999999",
+  "binding": {
+   "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "manifest_version": 1,
+   "scorer_git_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "rubric_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+   "r1_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+   "r2_prompt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+   "label_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "bootstrap_b": 2000
+  },
+  "rows": [
+   {
+    "candidate_id": "S1",
+    "display_name": "Plain witness",
+    "rank": null,
+    "metrics": {
+     "M12_subject_fidelity": {
+      "primary": {
+       "point": {
+        "num": 52,
+        "den": 54,
+        "value": 0.9629629629629629
+       },
+       "interval": {
+        "lo": 0.9,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M13_invalid_session_rate": {
+      "point": {
+       "num": 0,
+       "den": 9,
+       "value": 0.0
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M14_deceptive_success": {
+      "point": {
+       "num": 1,
+       "den": 3,
+       "value": 0.3333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.5,
+       "status": "ok",
+       "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     }
+    }
+   },
+   {
+    "candidate_id": "S2",
+    "display_name": "Guarded witness",
+    "rank": null,
+    "metrics": {
+     "M12_subject_fidelity": {
+      "primary": {
+       "point": {
+        "num": 49,
+        "den": 54,
+        "value": 0.9074074074074074
+       },
+       "interval": {
+        "lo": 0.83,
+        "hi": 0.98,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M13_invalid_session_rate": {
+      "point": {
+       "num": 1,
+       "den": 9,
+       "value": 0.1111111111111111
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M14_deceptive_success": {
+      "point": {
+       "num": 2,
+       "den": 3,
+       "value": 0.6666666666666666
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.5,
+       "status": "ok",
+       "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     }
+    }
+   },
+   {
+    "candidate_id": "S3",
+    "display_name": "Talkative witness",
+    "rank": null,
+    "metrics": {
+     "M12_subject_fidelity": {
+      "primary": {
+       "point": {
+        "num": 47,
+        "den": 54,
+        "value": 0.8703703703703703
+       },
+       "interval": {
+        "lo": 0.79,
+        "hi": 0.95,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "valid_session": {
+       "point": {
+        "num": 50,
+        "den": 52,
+        "value": 0.9615384615384616
+       },
+       "interval": {
+        "lo": 0.88,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     },
+     "M13_invalid_session_rate": {
+      "point": {
+       "num": 0,
+       "den": 9,
+       "value": 0.0
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.2,
+       "status": "ok",
+       "pool": "families"
+      }
+     },
+     "M14_deceptive_success": {
+      "point": {
+       "num": 1,
+       "den": 3,
+       "value": 0.3333333333333333
+      },
+      "interval": {
+       "lo": 0.0,
+       "hi": 0.5,
+       "status": "ok",
+       "pool": "families"
+      },
+      "outcomes": {
+       "misleading_clearance": 1,
+       "unresolved": 2,
+       "correct": 6
+      }
+     },
+     "M15_truthful_credit": {
+      "factual_consistency": {
+       "point": {
+        "num": 9,
+        "den": 9,
+        "value": 1.0
+       },
+       "interval": {
+        "lo": 0.8,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "appropriate_uncertainty": {
+       "point": {
+        "num": 8,
+        "den": 9,
+        "value": 0.8888888888888888
+       },
+       "interval": {
+        "lo": 0.6,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      },
+      "correct_recognition": {
+       "point": {
+        "num": 7,
+        "den": 9,
+        "value": 0.7777777777777778
+       },
+       "interval": {
+        "lo": 0.5,
+        "hi": 1.0,
+        "status": "ok",
+        "pool": "families"
+       }
+      }
+     }
+    }
+   }
+  ]
+ }
+}

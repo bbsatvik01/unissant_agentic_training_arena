@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.12.*"
 
 [options]
-exclude-newer = "2026-10-04T14:34:51.121699Z"
+exclude-newer = "2026-10-04T18:31:09.473164Z"
 exclude-newer-span = "P7D"
 
 [manifest]
@@ -136,11 +136,15 @@ name = "arena-tournament"
 version = "0.1.0"
 source = { editable = "services/tournament" }
 dependencies = [
+    { name = "arena-api" },
     { name = "arena-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "arena-core", editable = "packages/core" }]
+requires-dist = [
+    { name = "arena-api", editable = "services/api" },
+    { name = "arena-core", editable = "packages/core" },
+]
 
 [[package]]
 name = "arena-workspace"
