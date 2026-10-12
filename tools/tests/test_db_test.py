@@ -216,6 +216,12 @@ def test_all_steps_pass(repo: Path) -> None:
     assert "-W error" in log[tournament_suite[0]]
     dsns = {line.split()[1]: line.split()[2] for line in log if line.startswith("uv-dsn ")}
     shared = dsns["packages/core/tests/db/it_spend_guard.py"]
+    # the pool suite runs right after the spend-guard suite, on the same database
+    pool_suite = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_pool.py")]
+    assert len(pool_suite) == 1, log
+    assert spend_suite[0] < pool_suite[0]
+    assert "-W error" in log[pool_suite[0]]
+    assert dsns["packages/core/tests/db/it_pool.py"] == shared
     assert dsns["services/subject/tests/it_answer.py"] == shared
     own = dsns["services/tournament/tests/it_tournament.py"]
     assert own == f"postgresql://postgres@127.0.0.1:{TOURNAMENT_PORT}/postgres" != shared

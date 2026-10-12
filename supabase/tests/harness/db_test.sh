@@ -254,7 +254,9 @@ spend_guard_integration() {
   supabase_up || return 1
   local dsn="$ADMIN/postgres"
   (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
-    -p no:cacheprovider -W error packages/core/tests/db/it_spend_guard.py packages/core/tests/db/it_pool.py)
+    -p no:cacheprovider -W error packages/core/tests/db/it_spend_guard.py) || return 1
+  (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
+    -p no:cacheprovider -W error packages/core/tests/db/it_pool.py)
 }
 
 step "migrations and pgTAP on plain PostgreSQL 17 with pgTAP, throwaway database with the shim (plain path)" plain_path
