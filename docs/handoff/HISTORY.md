@@ -98,3 +98,4 @@
 - 3eec25d merge UI stage 8 (polish, gemini-3.8-flash-tts designed voices, audio lip sync, coach earpiece); hosted: applied 20261012000300_tts_limits_prices
 - 10319bf merge designed voices (13/13 live, ~$0.20 actual)
 - a5f99fe merge voice accents (2 personas)
+- 668bec8 merge coach/subject prompts 1.1.0 + real recordings; hosted has A1-A3/S1-S3 1.1.0 registered; real dev tournament ca6c4b9b closed ($3.35), reveal blocked by 21 subject_invalid reviews
