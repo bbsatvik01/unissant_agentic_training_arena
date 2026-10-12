@@ -71,7 +71,11 @@ class FakeArenaDb(ArenaDb):
         self.ticket: str | None = None
         self.overtake_bound_steps = False  # a step bound to an earlier version is refused AR002
         self.manifest_missing = False
-        self.tournaments: dict[UUID, str] = {}
+        self.tournament_statuses: dict[UUID, str] = {}
+        self.tournament_splits: dict[UUID, str] = {}
+        self.tournament_rows: list[dict[str, Any]] = []  # GET /api/tournaments rows
+        self.tournament_progress_rows: dict[UUID, list[dict[str, Any]]] = {}
+        self.tournament_event_pages: dict[UUID, tuple[list[dict[str, Any]], int]] = {}
         self.more_sessions: list[dict[str, Any]] = []
         self.study_row: dict[str, Any] | None = (
             None  # the actor's training.v_my_study row  # further sessions of the actor (progress tests)
@@ -356,7 +360,9 @@ class FakeArenaDb(ArenaDb):
         return rows[:limit]
 
     async def trial(self, trial: UUID) -> dict[str, Any] | None:
-        if trial != self.trial_id:
+        """`arena.v_trials` joined with `training.v_my_sessions`: no row for a tournament trial (no training
+        session), whatever `trial_id` or actor; `tournament_trial` is that trial's own read."""
+        if trial != self.trial_id or self.kind != "training":
             return None
         return {
             "trial_id": self.trial_id,
@@ -465,7 +471,22 @@ class FakeArenaDb(ArenaDb):
         return self.debriefs.get(session)
 
     async def tournament_status(self, tournament: UUID) -> str | None:
-        return self.tournaments.get(tournament)
+        return self.tournament_statuses.get(tournament)
+
+    async def tournament_split(self, tournament: UUID) -> str | None:
+        return self.tournament_splits.get(tournament)
+
+    async def tournaments(self) -> list[dict[str, Any]]:
+        return list(self.tournament_rows)
+
+    async def tournament_progress(self, tournament: UUID) -> list[dict[str, Any]]:
+        return list(self.tournament_progress_rows.get(tournament, []))
+
+    async def tournament_events(
+        self, tournament: UUID, after: int, limit: int = 200
+    ) -> tuple[list[dict[str, Any]], int]:
+        frames, last = self.tournament_event_pages.get(tournament, ([], after))
+        return frames[:limit], last
 
     async def leaderboard(self, tournament: UUID, board: str, label: str | None) -> dict[str, Any] | None:
         rows = [

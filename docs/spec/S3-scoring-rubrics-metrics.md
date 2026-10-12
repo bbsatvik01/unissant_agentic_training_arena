@@ -1579,6 +1579,28 @@ The result row (`arena.isolation_checks`) stores each item's status and evidence
 
 Applies only if the owner approves hosting (OD-10); the local default above is unchanged otherwise. Under the hosted design (direction 4, 5.6, 8.3; S5 9): `isolation_pass` binds to the tournament's deployed image digest and migration version; IG-2 runs with an IAP-authenticated investigator account, and direct calls to the IAM-private `arena-subject` and `arena-referee` Cloud Run services without IAM fail; KPI-4's `instance_cold` marks Cloud Run cold starts, which stay in the primary population (6.4). Switching to hosted re-applies the hosted `budget_plan()` (D-012), which refuses any ceiling below current liability; nothing in the metric definitions changes.
 
+### 9.2 Running the gate locally (`make isolation-reports`)
+
+An operator command (`scripts/isolation_reports.py`; `POST /api/admin/isolation-gate/run`'s own JSON answer gained one additive field, `commit_sha`, the referee's own `ARENA_GIT_SHA`, so a caller can tell which commit a result is for). The command never accepts an override for the commit under test -- only this checkout's own `git rev-parse HEAD`. Before running anything it reads the referee's `commit_sha` (`GET /api/admin/isolation-gate`) and refuses if it differs, as a fail-fast check that skips the suites entirely on an obvious mismatch; that `GET` is an optimization only, not the boundary, since the referee could still restart onto a different commit while the suites run. The actual, race-free check is server-side: the `POST` body itself carries this checkout's `commit_sha`, and `run_isolation_gate_route` -- the one place that writes `arena.isolation_checks` -- refuses with 409, before executing or recording anything, if that claimed commit is not its own running one. IG-1, IG-2 and IG-3's own real suites run against the checkout and their real pass/fail and report text post to the referee, which computes IG-4, IG-5 and IG-6 itself, live, from the database, every call. Never fabricates a pass (a suite's own exit code is `passed`; the command's own exit code also requires the referee's full combined verdict, not just these three).
+
+IG-1 is `tools/isolation_gate_pgtap.sh` (a disposable plain PostgreSQL 17 + pgTAP container, `supabase/tests/harness/db_test.sh`'s own "plain path" duplicated into its own tool rather than adding a second caller to that script): every `supabase/tests/*.sql` file runs, `run_pgtap.sh`'s own all-or-nothing per-file verdict. These files prove the properties this section's own wording names ("forged turn, cross-trial call, duplicate and replayed work items, stale transcript version, concurrent calls, wrong role, wrong state"), picked from `docs/spec/sql/TESTS.md` section 0's harness:
+
+| File | Property proved |
+| --- | --- |
+| `001_capability_matrix.sql` | per-role, per-function privilege matrix (wrong role) |
+| `003_role_reads.sql` | "role cannot read X" (wrong role) |
+| `004_turns_and_versions.sql` | stale transcript version (SV-01..04); wrong state (SV-06, SV-12) |
+| `005_release_evidence.sql` | cross-trial, duplicate and replayed release work items (RE-08..12) |
+| `006_record_subject_turn.sql` | forged turn (ST-02..04); cross-trial (ST-06); replayed (ST-05) |
+| `007_coaching_events_caller.sql` | duplicate work item (CC-03); caller separation (CC-14..17) |
+| `008_finalize_commitment.sql` | duplicate and replayed work items (FC-02/03); wrong state (FC-05/13) |
+| `009_execution_failures.sql` | wrong state (EF-02, 04, 06, 08, 10, 11) |
+| `010_concurrency.sql` | concurrent calls (CO-01..09) |
+
+IG-2 is the capability-matrix route tests (every investigator route, SSE, reconnect and export with an investigator account; direct calls to arena-subject and arena-referee without the per-run service token refused): `services/api/tests/test_app.py`, `services/subject/tests/test_app.py`, `services/subject/tests/test_internal_auth.py`, `services/referee/tests/test_app.py`.
+
+IG-3 is the assistant-context type test (S5 1.2 item 3: "mypy and a runtime check"): the static check (`typing.get_type_hints` on `build_coach_prompt`, every Pydantic model reachable from `PublicTrialView`) and the runtime assertion (`arena_core.agents.templates.require` refuses any other type) -- both already written in `packages/core/tests/agents/test_coach_prompts.py` (this section's own acceptance line, S8-build-plan.md line 620); the command runs exactly those two tests, adding none.
+
 ---
 
 ## 10. Fixture catalog

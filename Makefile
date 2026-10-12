@@ -45,7 +45,7 @@ SYNC_TOOLS ?=
 
 .PHONY: help bootstrap hooks check deps-sync tools-sync py-check sec-check \
 	lint format-check typecheck no-rigging silent-except roles cost-parity supabase-config ratchet deps-policy \
-	push-clean test scope-coverage diff-cover db-test web-check traces-push \
+	push-clean test scope-coverage diff-cover db-test web-check traces-push isolation-reports \
 	bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses
 
 help:
@@ -54,6 +54,7 @@ help:
 	@echo "make web-check   web/: frozen pnpm install, then pnpm check (lint, tsc, tests, coverage, build)"
 	@echo "make db-test     migrations and pgTAP on plain PostgreSQL 17 and on Supabase Postgres 17 (Docker, psql)"
 	@echo "make traces-push export pending/held-and-revealed trace mirror rows to local Phoenix and verify"
+	@echo "make isolation-reports  run IG-1..3's real suites and post their real report to the local referee"
 
 bootstrap:
 	uv sync --locked
@@ -157,6 +158,38 @@ db-test:
 # verified. Needs ARENA_REFEREE_DSN and PHOENIX_OTLP_ENDPOINT (shape: .env.local.example).
 traces-push:
 	$(UV_RUN) python -m arena_core.observability.pump
+
+# isolation-reports (S3 9; operator-invoked, not part of make check): runs IG-1, IG-2 and IG-3's own REAL
+# suites and posts their real pass/fail and report text to the already-running local arena-referee's
+# POST /api/admin/isolation-gate/run (needs `scripts/dev.sh up` first; IG-1 also needs Docker). Never
+# fabricates a pass: a suite's own exit code is `passed`.
+#
+#   IG-1  the pgTAP privilege suite (tools/isolation_gate_pgtap.sh: db_test.sh's own "plain path", one
+#         disposable plain PostgreSQL 17 + pgTAP container, every supabase/tests/*.sql file). Its own
+#         per-property files, picked from docs/spec/sql/TESTS.md section 0 for S3 9's own wording ("forged
+#         turn, cross-trial call, duplicate and replayed work items, stale transcript version, concurrent
+#         calls, wrong role, wrong state"):
+#           001_capability_matrix.sql       per-role, per-function privilege matrix (wrong role)
+#           003_role_reads.sql              "role cannot read X" (wrong role)
+#           004_turns_and_versions.sql      stale transcript version (SV-01..04); wrong state (SV-06, SV-12)
+#           005_release_evidence.sql        cross-trial, duplicate and replayed release work items (RE-08..12)
+#           006_record_subject_turn.sql     forged turn (ST-02..04); cross-trial (ST-06); replayed (ST-05)
+#           007_coaching_events_caller.sql  duplicate work item (CC-03); caller separation (CC-14..17)
+#           008_finalize_commitment.sql     duplicate and replayed work items (FC-02/03); wrong state (FC-05/13)
+#           009_execution_failures.sql      wrong state (EF-02, 04, 06, 08, 10, 11)
+#           010_concurrency.sql             concurrent calls (CO-01..09)
+#         The whole suite runs every time (run_pgtap.sh's own all-or-nothing per-file verdict, never a
+#         narrowed run); the list above documents which file proves which named property.
+#   IG-2  the capability-matrix route tests (every investigator route, SSE, reconnect, export; direct calls
+#         to arena-subject and arena-referee without the service token refused): services/api/tests/test_app.py,
+#         services/subject/tests/test_app.py, services/subject/tests/test_internal_auth.py,
+#         services/referee/tests/test_app.py.
+#   IG-3  the assistant-context type test (S5 1.2 item 3: the static check and the runtime assertion), both
+#         already proved in packages/core/tests/agents/test_coach_prompts.py; this runs exactly those two.
+#
+# See scripts/isolation_reports.py's own docstring for the full per-file justification.
+isolation-reports:
+	$(UV_RUN) python -m scripts.isolation_reports
 
 # ------------------------------------------------------------------ security
 sec-check: tools-sync bandit semgrep codeql gitleaks trufflehog pip-audit osv-scanner licenses

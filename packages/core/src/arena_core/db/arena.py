@@ -28,6 +28,7 @@ from psycopg.types.json import Jsonb
 
 from arena_core.db.calls import Conn
 from arena_core.db.pool import Connector, one_statement
+from arena_core.events.projections import LedgerRow, tournament_frames
 
 EVENTS_PAGE = 200  # S4 arena.events_after: at most 200 rows per call
 
@@ -342,6 +343,117 @@ class ArenaDb:
         if not rows:
             return None
         return {"body": json.loads(rows[0][0]), "label": str(rows[0][1]), "manifest_version": int(rows[0][2])}
+
+    # ------------------------------------------------------------------ tournament arena (S5 6.2, S6 4.9)
+
+    async def tournaments(self) -> list[dict[str, Any]]:
+        """`arena.v_tournaments` (S6 4.9's list, `GET /api/tournaments`): every tournament, oldest first."""
+        rows = await self.fetch(
+            "select id, name, split, status, seed, roster_sha256 from arena.v_tournaments order by created_at"
+        )
+        return [
+            {
+                "id": str(r[0]),
+                "name": str(r[1]),
+                "split": str(r[2]),
+                "status": str(r[3]),
+                "seed": int(r[4]),
+                "roster_sha256": r[5],
+            }
+            for r in rows
+        ]
+
+    async def tournament_progress(self, tournament: UUID) -> list[dict[str, Any]]:
+        """`arena.v_tournament_progress` (D9, SG3-15): per track and block, planned trials and counts by
+        execution state -- the one view a hidden tournament exposes before reveal (S6 4.9's progress table),
+        and part of a dev or revealed tournament's own `GET /api/tournaments/{id}` too."""
+        rows = await self.fetch(
+            "select track, block_no, planned, states::text from arena.v_tournament_progress"
+            " where tournament_id = %s order by track, block_no",
+            (tournament,),
+        )
+        return [
+            {"track": str(r[0]), "block": r[1], "planned": int(r[2]), "counts_by_state": json.loads(r[3])} for r in rows
+        ]
+
+    async def _tournament_trial_refs(self, tournament: UUID) -> dict[UUID, dict[str, Any]]:
+        """Every tournament trial's planned position (`trial_ref`, S5 6.2's opaque per-tournament ordinal:
+        `arena.v_planned_trials.position`, "seeded order across the tournament"), track, block, pairing and
+        whether it ever started, keyed by trial id. The pairing names the registered assistant and subject
+        candidates (S6 4.9's "A1 x S1"; `arena.v_candidates.name`, always `A{n}`/`S{n}` for the official
+        lineup): a `replay` planned trial carries no subject of its own (`arena.planned_trials`'s own track
+        shape), so its pairing names the subject of the corpus trial it replays instead
+        (`source_planned_trial_id`); a `replay_corpus` trial carries no assistant, so its pairing is `None`
+        (its caller never frames one, S6 4.9: counts only). `never_started` is `started_at is null`: a
+        `budget_skipped` or `source_unavailable` attempt never reaches `arena.start_trial`'s own update
+        (S4 EF-01, EF-09), the same signal `events.load.load_tournament_trial` already reads for the same
+        reason.
+
+        Called after the ledger read in `tournament_events` (never before it, SG3-xx): under `read
+        committed`, a row this call's own SELECT sees was committed strictly before this statement started,
+        so a trial whose `trial_started` row the earlier ledger read already returned is guaranteed to have
+        its `arena.trials`/`arena.planned_trials` rows visible here too -- reading refs first could race a
+        concurrent retry's start between the two queries and silently drop that trial's frame forever."""
+        rows = await self.fetch(
+            "select t.id, p.position, p.track, p.block_no, ac.name, coalesce(sc.name, ssc.name), t.started_at"
+            " from arena.v_trials t join arena.v_planned_trials p on p.id = t.planned_trial_id"
+            " left join arena.v_planned_trials sp on sp.id = p.source_planned_trial_id"
+            " left join arena.v_candidates ac on ac.id = p.assistant_candidate_id"
+            " left join arena.v_candidates sc on sc.id = p.subject_candidate_id"
+            " left join arena.v_candidates ssc on ssc.id = sp.subject_candidate_id"
+            " where t.tournament_id = %s",
+            (tournament,),
+        )
+        out: dict[UUID, dict[str, Any]] = {}
+        for trial_id, position, track, block_no, assistant_name, subject_name, started_at in rows:
+            both_named = assistant_name is not None and subject_name is not None
+            pairing = f"{assistant_name} x {subject_name}" if both_named else None
+            out[trial_id] = {
+                "trial_ref": int(position),
+                "track": str(track),
+                "block": block_no,
+                "pairing": pairing,
+                "never_started": started_at is None,
+            }
+        return out
+
+    async def tournament_events(
+        self, tournament: UUID, after: int, limit: int = 200
+    ) -> tuple[list[dict[str, Any]], int]:
+        """`GET /api/tournaments/{id}/events?after=` on a dev or revealed tournament (S5 6.2, S6 4.9, 5.3):
+        `ledger.v_events` after the global cursor, joined to each row's own trial (`_tournament_trial_refs`,
+        read second -- see its own docstring) and projected (`events.projections.tournament_frames`, the
+        only module that builds a frame, S5 1.2 item 2); never called for a hidden tournament before reveal
+        (the route serves counts instead, D9). The returned cursor never regresses below `after`: an empty
+        page (nothing new since the caller's own cursor) must answer that cursor back, not
+        `tournament_frames`'s own "nothing consumed yet" 0 -- a caller that trusts the advertised cursor
+        literally, rather than folding it with its previous one the way the existing client's `foldPoll`
+        does (`Math.max`), would otherwise reread the whole tournament from the start."""
+        rows = await self.fetch(
+            "select seq, event_type, trial_id::text, payload::text, created_us from ledger.v_events"
+            " where tournament_id = %s and seq > %s order by seq",
+            (tournament, after),
+        )
+        refs = await self._tournament_trial_refs(tournament)
+        ledger_rows: list[LedgerRow] = []
+        for seq, event_type, trial_id, payload_text, created_us in rows:
+            ref = refs.get(UUID(trial_id)) if trial_id is not None else None
+            ledger_rows.append(
+                LedgerRow(
+                    seq=int(seq),
+                    event_type=str(event_type),
+                    trial_id=trial_id,
+                    created_at=iso(datetime.fromtimestamp(int(created_us) / 1_000_000, tz=UTC)),
+                    payload=json.loads(payload_text),
+                    trial_ref=None if ref is None else ref["trial_ref"],
+                    track=None if ref is None else ref["track"],
+                    block=None if ref is None else ref["block"],
+                    pairing=None if ref is None else ref["pairing"],
+                    never_started=False if ref is None else ref["never_started"],
+                )
+            )
+        frames, last = tournament_frames(ledger_rows, str(tournament), limit)
+        return frames, max(after, last)
 
     # ------------------------------------------------------------------ trust center (S6 4.11)
 

@@ -430,7 +430,7 @@ WP16_BOARDS = json.loads((REPO / "web" / "src" / "fixtures" / "leaderboard.wp16.
 
 def _published(h: Harness, status: str = "revealed") -> UUID:
     tournament = uuid4()
-    h.db.tournaments[tournament] = status
+    h.db.tournament_statuses[tournament] = status
     for board in ("assistant", "subject"):
         body = WP16_BOARDS[board]
         h.db.boards.append(
@@ -472,11 +472,85 @@ def test_no_board_before_reveal_and_unknown_or_unpublished_is_404() -> None:
     assert early.json() == {"code": "not_revealed", "status": "sealed"}
     assert h.get(f"/api/leaderboards/{uuid4()}", params={"board": "assistant"}).status_code == HTTPStatus.NOT_FOUND
     empty = uuid4()
-    h.db.tournaments[empty] = "revealed"
+    h.db.tournament_statuses[empty] = "revealed"
     assert h.get(f"/api/leaderboards/{empty}", params={"board": "subject"}).status_code == HTTPStatus.NOT_FOUND
     tournament = _published(h)
     bad = h.get(f"/api/leaderboards/{tournament}", params={"board": "investigator"})
     assert bad.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+# ------------------------------------------------------------------ tournament arena (S5 6.2, S6 4.9)
+
+
+def test_tournament_list_reports_the_rows_and_the_global_budget() -> None:
+    h = Harness()
+    row = {
+        "id": str(uuid4()),
+        "name": "dev-demo-F01",
+        "split": "dev",
+        "status": "running",
+        "seed": 1,
+        "roster_sha256": "a" * 64,
+    }
+    h.db.tournament_rows.append(row)
+    body = h.get("/api/tournaments").json()
+    assert body["tournaments"] == [row]
+    assert body["budget"]["ceiling_usd"] == "0.000000"  # ArenaDb.budget_view's own ops.v_budget_status read
+
+
+def test_tournament_detail_reports_status_and_progress_and_404_for_unknown() -> None:
+    h = Harness()
+    tournament = uuid4()
+    h.db.tournament_statuses[tournament] = "running"
+    progress = [{"track": "interactive", "block": 1, "planned": 18, "counts_by_state": {"completed": 3}}]
+    h.db.tournament_progress_rows[tournament] = progress
+    body = h.get(f"/api/tournaments/{tournament}").json()
+    assert body == {"status": "running", "progress": progress}
+    assert h.get(f"/api/tournaments/{uuid4()}").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_tournament_events_is_counts_only_for_a_hidden_tournament_before_reveal() -> None:
+    """D9: a hidden tournament before reveal answers progress counts only, never a frame or a trial id."""
+    h = Harness()
+    tournament = uuid4()
+    h.db.tournament_statuses[tournament] = "sealed"
+    h.db.tournament_splits[tournament] = "hidden"
+    progress: list[dict[str, Any]] = [{"track": "replay", "block": None, "planned": 9, "counts_by_state": {}}]
+    h.db.tournament_progress_rows[tournament] = progress
+    body = h.get(f"/api/tournaments/{tournament}/events").json()
+    assert body == {"visibility": "counts", "progress": progress}
+
+
+def test_tournament_events_is_frames_for_a_dev_tournament_and_a_revealed_hidden_one() -> None:
+    frame = {
+        "v": 1,
+        "seq": 3,
+        "scope": "tournament",
+        "scope_id": str(uuid4()),
+        "ts": "2026-10-12T00:00:00.000Z",
+        "type": "tournament.status",
+        "data": {"state": "running"},
+    }
+    for split, status in (("dev", "running"), ("hidden", "revealed")):
+        h = Harness()
+        tournament = uuid4()
+        h.db.tournament_statuses[tournament] = status
+        h.db.tournament_splits[tournament] = split
+        h.db.tournament_event_pages[tournament] = ([frame], 3)
+        body = h.get(f"/api/tournaments/{tournament}/events", params={"after": 1}).json()
+        assert body == {"visibility": "events", "frames": [frame], "last": 3}
+    assert h.get(f"/api/tournaments/{uuid4()}/events").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_recording_route_serves_a_visible_tournament_trial() -> None:
+    """D-021: the recording route's tournament-trial sibling (`arena_core.events.load.load_recording`), a
+    harness trial with no training session and no debrief."""
+    h = Harness()
+    h.db.kind = "interactive"
+    rec = h.get(f"/api/trials/{h.trial}/recording").json()
+    assert rec["format"] == "arena.recording.v1"
+    assert rec["debrief"] is None
+    assert rec["snapshot"]["mode"] == "harness"
 
 
 # ------------------------------------------------------------------ progress (S5 5.5, S6 4.8, S3 6.1)
