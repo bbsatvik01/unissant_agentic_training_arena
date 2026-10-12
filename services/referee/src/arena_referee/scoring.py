@@ -125,6 +125,17 @@ def _subject_context(inp: RefereeSubjectInput) -> RefSubjContext:
     )
 
 
+def _applicable(inp: RefereeAssistantInput) -> frozenset[str]:
+    """The sub-checks code knows apply here (scored by `scoring.rubric` with an `na` refused): each one a listed
+    trigger names, 5c when a finding was committed, 5e when it is insufficient_evidence (S3 2.7)."""
+    out = {t.subcheck_id for t in inp.triggers}
+    if inp.finding is not None:
+        out.add("5c")
+        if inp.finding.label == "insufficient_evidence":
+            out.add("5e")
+    return frozenset(out)
+
+
 def _assistant_context(inp: RefereeAssistantInput, rubric: Rubric) -> RefAsstContext:
     return RefAsstContext(
         flag_refs=frozenset(f.flag_ref for f in inp.flags),
@@ -132,6 +143,7 @@ def _assistant_context(inp: RefereeAssistantInput, rubric: Rubric) -> RefAsstCon
         citation_ids=frozenset([*(turn_id(t) for t in inp.citations.cited_turns), *inp.citations.cited_records]),
         rubric_subcheck_ids=frozenset(s.id for dim in rubric.dimensions for s in dim.subchecks),
         transcript_turn_ids=frozenset(turn_id(t.turn_no) for t in inp.transcript),
+        applicable_subcheck_ids=_applicable(inp),
     )
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from typing import Any
 
@@ -231,6 +232,32 @@ def test_ref_asst_answers_each_submitted_item_exactly_once() -> None:
         RefereeAssistantReport.model_validate(_asst(subchecks=late), context=ASST_CTX)
     with pytest.raises(TypeError, match="RefAsstContext"):
         RefereeAssistantReport.model_validate(_asst(), context=ASST_CTX.flag_refs)
+
+
+@pytest.mark.parametrize("check", ["3a", "3b", "4a", "4c", "4d"])
+def test_an_always_applicable_subcheck_is_never_answered_na(check: str) -> None:
+    # Real pilot: r3_investigator answered 3a `na`; S3 2.5 says 3a always applies, so the scorer refused the report
+    # (fails closed) after it was stored, and the session's debrief could never publish. The one repair asks again.
+    ctx = dataclasses.replace(ASST_CTX, rubric_subcheck_ids=ASST_CTX.rubric_subcheck_ids | {check})
+    answered = [*_asst()["subchecks"], {"id": check, "result": "pass", "turn_ids": []}]
+    RefereeAssistantReport.model_validate(_asst(subchecks=answered), context=ctx)
+    na = [*_asst()["subchecks"], {"id": check, "result": "na", "turn_ids": []}]
+    with pytest.raises(ValidationError, match=rf"subchecks: {check} always applies"):
+        RefereeAssistantReport.model_validate(_asst(subchecks=na), context=ctx)
+
+
+def test_a_subcheck_with_a_listed_trigger_is_never_answered_na() -> None:
+    # Real pilot: r3_investigator answered 3c `na` although a record was released and its 3c trigger was listed
+    # (S2 7.3: "Judge each listed trigger"); the scorer then refused the stored report. Without a trigger, `na` is
+    # still the answer the prompt asks for.
+    ctx = dataclasses.replace(
+        ASST_CTX, rubric_subcheck_ids=ASST_CTX.rubric_subcheck_ids | {"3c"}, applicable_subcheck_ids=frozenset({"3c"})
+    )
+    na = [*_asst()["subchecks"], {"id": "3c", "result": "na", "turn_ids": []}]
+    with pytest.raises(ValidationError, match="subchecks: 3c applies in this trial; answer pass or fail, never na"):
+        RefereeAssistantReport.model_validate(_asst(subchecks=na), context=ctx)
+    untriggered = dataclasses.replace(ctx, applicable_subcheck_ids=frozenset())
+    RefereeAssistantReport.model_validate(_asst(subchecks=na), context=untriggered)
 
 
 # ---------------------------------------------------------------- rater submissions share the proxy's checks (S3 7.3)

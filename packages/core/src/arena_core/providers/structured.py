@@ -100,9 +100,28 @@ def vertex_schema(node: object) -> object:
     return out
 
 
+def _unbound_object_lists(node: object) -> object:
+    """The schema with `maxItems`/`minItems` dropped from every list whose items are objects (a `$ref` or an object
+    schema); lists of scalars keep their bounds."""
+    if isinstance(node, list):
+        return [_unbound_object_lists(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out = {key: (value if key == "enum" else _unbound_object_lists(value)) for key, value in node.items()}
+    items = out.get("items")
+    if out.get("type") == "array" and isinstance(items, dict) and ("$ref" in items or items.get("type") == "object"):
+        out.pop("maxItems", None)
+        out.pop("minItems", None)
+    return out
+
+
 def sent_schema(model: type[BaseModel]) -> dict[str, Any]:
-    """The `response_json_schema` of a request for `model`: linted, then filtered by `vertex_schema`."""
+    """The `response_json_schema` of a request for `model`: linted, then filtered by `vertex_schema`. A model that
+    sets `UNBOUNDED_OBJECT_LISTS_SENT` (a schema Vertex refuses as too complex with its object-list bounds) is sent
+    without them; the lint above still requires them in the contract, and validation enforces them."""
     out = vertex_schema(lint_schema(model))
+    if getattr(model, "UNBOUNDED_OBJECT_LISTS_SENT", False):
+        out = _unbound_object_lists(out)
     if not isinstance(out, dict):
         msg = f"schema {model.__name__} is not an object schema"
         raise ConfigError(msg)

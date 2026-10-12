@@ -7,6 +7,7 @@ local fake interview hit before this fix (no canned reply for either referee sch
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 from collections.abc import Coroutine, Mapping
 from dataclasses import replace
 from decimal import Decimal
@@ -15,9 +16,10 @@ from typing import Any
 from pydantic import BaseModel
 
 from arena_core.agents.manifests import load_prompts, referee_manifest, with_hash
+from arena_core.agents.referee_prompts import FindingProjection
 from arena_core.agents.repair import output_errors
 from arena_core.agents.rubric import Rubric
-from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.contracts.referee import RefAsstContext, RefereeAssistantReport, RefereeSubjectReport
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort
 from arena_core.providers.structured import sent_schema
@@ -30,6 +32,7 @@ from arena_referee.mapping import TrialData, build_assistant_input, build_subjec
 from arena_referee.scoring import (
     PromptContext,
     ScoringDeps,
+    _applicable,
     assistant_agent_call,
     subject_agent_call,
 )
@@ -374,3 +377,39 @@ def test_a_fake_training_session_publishes_a_complete_scored_debrief() -> None:
     # one reservation per R3 call (r3_subject then r3_investigator).
     expected_r3_calls = 2
     assert len(storage.budget.reservations) == expected_r3_calls
+
+
+def test_the_assistant_call_refuses_na_on_every_subcheck_its_triggers_list() -> None:
+    """The validation context names the sub-checks the input's code-built triggers list (S2 7.3), so an `na` on
+    one of them is a schema failure the one repair answers, never a stored report the scorer refuses."""
+    data = dataclasses.replace(
+        trial_data(4),
+        released=[
+            {
+                "record_id": "rec-01",
+                "title": "Work order",
+                "content": {"body": "Work order at 09:00."},
+                "released_after": 1,
+                "date": None,
+            }
+        ],
+    )
+    triggers = build_triggers(data, _empty_subject_report(), "investigator")
+    assert {t.subcheck_id for t in triggers} == {"3c"}
+    call = assistant_agent_call(
+        build_assistant_input(data, "investigator", triggers), REFEREE, RUBRIC, data.trial_id, "r3_investigator"
+    )
+    assert isinstance(call.validation_context, RefAsstContext)
+    assert call.validation_context.applicable_subcheck_ids == frozenset({"3c"})
+    finding = FindingProjection(
+        label="insufficient_evidence",
+        likelihood="roughly_even_chance",
+        confidence="low",
+        rationale="Not yet tested against the work orders.",
+        corroboration_needed=["the work orders"],
+        alternative_explanations=[],
+    )
+    inp = build_assistant_input(data, "investigator", triggers)
+    assert _applicable(inp.model_copy(update={"finding": finding})) == frozenset({"3c", "5c", "5e"})
+    truthful = finding.model_copy(update={"label": "truthful", "likelihood": "unlikely"})
+    assert _applicable(inp.model_copy(update={"finding": truthful})) == frozenset({"3c", "5c"})
