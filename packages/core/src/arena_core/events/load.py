@@ -240,11 +240,17 @@ async def load_recording(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
     `arena_public` caller may read (a dev-split trial, or a hidden one after reveal) regardless of the acting
     identity, so the same dev identity that exports a training trial can export a visible tournament trial
     too (`scripts/export_run.py`'s own docstring). `None` when `trial` is neither (another user's training
-    trial, or an unknown id)."""
+    trial, or an unknown id) -- or when it names a hidden-split variant: `db.public_packet` resolves only
+    `arena.v_dev_cases` (dev split), so `load_trial`/`load_tournament_trial` fall back to an empty packet for
+    any hidden variant, revealed or not (a real gap: hidden-tournament export needs its own
+    visibility-checked packet projection, not built here). Answering 404 there too, the same as an unknown
+    id, is deliberate: a crash on `_case`'s `packet["interview_context"]` would both 500 and -- by
+    distinguishing that 500 from this route's 404 on a genuinely unknown id -- leak whether a guessed id
+    names a real hidden trial, the existence oracle S4 9.1 exists to deny."""
     loaded = await load_trial(db, trial)
     if loaded is None:
         loaded = await load_tournament_trial(db, trial)
-    if loaded is None:
+    if loaded is None or not loaded.packet:
         return None
     debrief = None if loaded.session_id is None else await db.debrief(loaded.session_id)
     return recording_of(loaded, debrief)

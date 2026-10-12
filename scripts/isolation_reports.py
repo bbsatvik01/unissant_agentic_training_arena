@@ -2,7 +2,9 @@
 and posts their real report text to the already-running local arena-referee's `POST /api/admin/isolation-gate/run`
 (S5 5.5; `arena_referee.routes.admin`, unchanged here -- IG-4, IG-5 and IG-6 are computed there, live, from
 the database). Never fabricates a pass: each suite's own exit code is `passed`; its captured stdout and
-stderr, verbatim, is `report_text`.
+stderr, verbatim, is `report_text`. The command's own exit code reflects the referee's full combined verdict
+(IG-1..6, not just the three this script ran) -- IG-1..3 passing locally with IG-4, 5 or 6 failing at the
+referee is still a failing run.
 
 IG-1 the pgTAP privilege suite (`tools/isolation_gate_pgtap.sh`: `supabase/tests/harness/db_test.sh`'s own
     "plain path" duplicated into its own tool, never a second caller added to that proven gate script -- one
@@ -117,6 +119,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="the local arena-referee origin")
     args = parser.parse_args(argv)
 
+    # S3 9: "the tournament's code version (git commit of the RUNNING PROCESSES)" -- the referee records
+    # under its own `ARENA_GIT_SHA` (bound at its own startup, S5 1.3), never a value this script sends (the
+    # POST body carries none, and the route reads none); this is this checkout's own commit, printed so the
+    # operator can confirm it is the one the referee was (re)started from before trusting the result.
     git_sha = args.git_sha or current_git_sha()
     if not is_commit_sha(git_sha):
         sys.stderr.write(f"isolation_reports: not a 40-hex commit sha: {git_sha!r}\n")
@@ -135,10 +141,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         result = asyncio.run(admin_post("/api/admin/isolation-gate/run", body, base_url=args.base_url))
     except AdminCallError as exc:
-        sys.stderr.write(f"isolation_reports: the referee refused the run (commit {git_sha}): {exc}\n")
+        sys.stderr.write(f"isolation_reports: the referee refused the run (this checkout's commit {git_sha}): {exc}\n")
         return 1
-    sys.stdout.write(f"isolation_reports: referee recorded, commit {git_sha}: {result}\n")
-    return 0 if (ig1[0] and ig2[0] and ig3[0]) else 1
+    overall_passed = result.get("passed") is True
+    sys.stdout.write(
+        f"isolation_reports: referee recorded (this checkout's commit {git_sha}; "
+        f"confirm it matches the running referee's own ARENA_GIT_SHA): {result}\n"
+    )
+    # Never fabricate a pass: IG-1..3 passing locally is not the gate -- the referee's own combined verdict
+    # (IG-1..6, S3 9's acceptance) is, and a refusal to record is already caught above.
+    return 0 if (ig1[0] and ig2[0] and ig3[0] and overall_passed) else 1
 
 
 if __name__ == "__main__":

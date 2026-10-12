@@ -442,10 +442,14 @@ class LedgerRow:
     """One `ledger.v_events` row scoped to a tournament (S5 6.2, S6 4.9, 5.3). The caller (`arena_core.db.arena`,
     never this module's own SQL) joins in what a tournament frame needs beyond the payload: the trial's own
     planned position (`trial_ref`, an opaque per-tournament ordinal, `arena.planned_trials.position`), its
-    track and block, and, for `trial.started`, its pairing (the registered assistant and subject candidate
-    names, S6 4.9's "A1 x S1"; a replay trial's subject is its corpus source's own, joined through
-    `source_planned_trial_id`). `trial_ref`, `track`, `block` and `pairing` are all None for a tournament-level
-    row (one with no `trial_id` at all, such as `tournament_running`)."""
+    track and block, its pairing for `trial.started` (the registered assistant and subject candidate names,
+    S6 4.9's "A1 x S1"; a replay trial's subject is its corpus source's own, joined through
+    `source_planned_trial_id`), and whether the trial ever actually started (`arena.v_trials.started_at is
+    null`: a `budget_skipped` or `source_unavailable` attempt never reaches S4 `arena.start_trial`, so no
+    `trial_started` row exists for it anywhere in the ledger -- `never_started` lets `tournament_frames`
+    synthesize the one this scope's own contract still requires, S6 4.9's matrix). `trial_ref`, `track`,
+    `block`, `pairing` and `never_started` are all at their default for a tournament-level row (one with no
+    `trial_id` at all, such as `tournament_running`)."""
 
     seq: int
     event_type: str
@@ -456,54 +460,78 @@ class LedgerRow:
     track: str | None = None
     block: int | None = None
     pairing: str | None = None
+    never_started: bool = False
 
 
-def _started(row: LedgerRow) -> tuple[str, dict[str, Any]]:
-    return "trial.started", {
-        "trial_ref": row.trial_ref,
-        "trial_id": row.trial_id,
-        "pairing": row.pairing,
-        "track": row.track,
-        "block": row.block,
-    }
+def _started(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (
+            "trial.started",
+            {
+                "trial_ref": row.trial_ref,
+                "trial_id": row.trial_id,
+                "pairing": row.pairing,
+                "track": row.track,
+                "block": row.block,
+            },
+        )
+    ]
 
 
-def _replay_turn(row: LedgerRow) -> tuple[str, dict[str, Any]]:
-    return "replay.turn", {"trial_ref": row.trial_ref, "turn_no": row.payload["turn_no"]}
+def _replay_turn(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [("replay.turn", {"trial_ref": row.trial_ref, "turn_no": row.payload["turn_no"]})]
 
 
-def _trial_finalized(row: LedgerRow) -> tuple[str, dict[str, Any]]:
-    return "trial.finalized", {"trial_ref": row.trial_ref, "commitment_hash": row.payload["commitment_sha256"]}
+def _trial_finalized(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    """S4 `arena.finalize_trial`'s own success payload already carries `state: "completed"` next to the
+    commitment hash (`tournament_ledger.sql`'s `trial_finalized` append): a completed trial writes no
+    separate `execution_recorded` row, so this is the only place that state ever reaches the ledger, and the
+    matrix needs it exactly as it needs every other terminal state (S6 4.9)."""
+    return [
+        ("trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]}),
+        ("trial.finalized", {"trial_ref": row.trial_ref, "commitment_hash": row.payload["commitment_sha256"]}),
+    ]
 
 
-def _trial_execution(row: LedgerRow) -> tuple[str, dict[str, Any]]:
-    return "trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]}
+def _trial_execution(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    return [("trial.execution", {"trial_ref": row.trial_ref, "state": row.payload["state"]})]
 
 
 # Every ledger `event_type` naming a trial that still carries a tournament-scope frame (S6 5.3), keyed by
-# that name; `_tournament_frame` dispatches here once it knows the row's own trial is framed at all.
-_TRIAL_FRAME_BUILDERS: dict[str, Callable[[LedgerRow], tuple[str, dict[str, Any]]]] = {
+# that name; `_tournament_frames_for` dispatches here once it knows the row's own trial is framed at all.
+_TRIAL_FRAME_BUILDERS: dict[str, Callable[[LedgerRow], list[tuple[str, dict[str, Any]]]]] = {
     "trial_started": _started,
     "replay_turn_copied": _replay_turn,
     "trial_finalized": _trial_finalized,
     "execution_recorded": _trial_execution,
 }
+# S4 never writes a real `trial_started` row for one of these (arena.start_trial's early-return and
+# arena.record_execution_failure from `planned`, S4 EF-01, EF-09): `execution_recorded` is the only row this
+# trial will ever contribute, so it is also the one row that must open the matrix cell for it.
+_NEVER_STARTED_TERMINAL_EVENT = "execution_recorded"
 
 
-def _tournament_frame(row: LedgerRow) -> tuple[str, dict[str, Any]] | None:
-    """The tournament-scope wire type and data for this row, or `None`: a row this scope carries no frame for
-    (S6 5.3: "no block-start frame... no referee.labeled or budget.* frame") -- a trial-scope event this
-    tournament trial also wrote (`question_asked`, `evidence_released`, `subject_answered`, ...), a
-    lifecycle or audit row with no wire type (`trial_retry`, `validity_adjudicated`, `manifest_corrected`),
-    or any event of a `replay_corpus` trial, which S6 4.9 shows only as progress counts, dev split or
-    revealed alike, never a wire frame (its corpus producer run stays internal)."""
+def _tournament_frames_for(row: LedgerRow) -> list[tuple[str, dict[str, Any]]]:
+    """The tournament-scope wire types and data for this row, in order (zero, one or two: a terminal row may
+    also need the `trial.started` the ledger never recorded, or carries both an execution state and a
+    finalization). Empty for a row this scope carries no frame for (S6 5.3: "no block-start frame... no
+    referee.labeled or budget.* frame") -- a trial-scope event this tournament trial also wrote
+    (`question_asked`, `evidence_released`, `subject_answered`, ...), a lifecycle or audit row with no wire
+    type (`trial_retry`, `validity_adjudicated`, `manifest_corrected`), or any event of a `replay_corpus`
+    trial, which S6 4.9 shows only as progress counts, dev split or revealed alike, never a wire frame (its
+    corpus producer run stays internal)."""
     state = _TOURNAMENT_STATUS.get(row.event_type)
     if state is not None:
-        return "tournament.status", {"state": state}
+        return [("tournament.status", {"state": state})]
     if row.trial_ref is None or row.track == "replay_corpus":
-        return None
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
+    if row.never_started and row.event_type == _NEVER_STARTED_TERMINAL_EVENT:
+        out.extend(_started(row))
     builder = _TRIAL_FRAME_BUILDERS.get(row.event_type)
-    return None if builder is None else builder(row)
+    if builder is not None:
+        out.extend(builder(row))
+    return out
 
 
 def tournament_frames(rows: Iterable[object], tournament_id: str, limit: int = 200) -> tuple[list[dict[str, Any]], int]:
@@ -511,31 +539,31 @@ def tournament_frames(rows: Iterable[object], tournament_id: str, limit: int = 2
     ledger rows (in ascending `seq` order), validated against `TournamentFrame` and dumped -- never a frame
     object leaves this module -- at most `limit` of them. Returns the frames and the ledger `seq` to resume
     after: the last row this call actually consumed, whether or not it produced a frame, so a filtered-out
-    row (a trial-scope event, a replay-corpus trial) is never re-read on the next poll; a row that would push
-    the page past `limit` is left entirely for that next call (its own `seq` never becomes the returned
-    cursor), so its frame is built exactly once, on the call that has room for it."""
+    row (a trial-scope event, a replay-corpus trial) is never re-read on the next poll. A row's own frames
+    (one or two) are never split across pages: a row that would push the page past `limit` is left entirely
+    for the next call, so its frames are built exactly once, on the call that has room for all of them."""
     out: list[dict[str, Any]] = []
     last = 0
     for row in rows:
         if not isinstance(row, LedgerRow):
             msg = f"tournament_frames projects ledger rows, not {type(row).__name__}"
             raise TypeError(msg)
-        built = _tournament_frame(row)
-        if built is not None:
-            if len(out) >= limit:
+        built = _tournament_frames_for(row)
+        if built:
+            if len(out) + len(built) > limit:
                 break
-            wire_type, data = built
-            frame = _TOURNAMENT_FRAMES.validate_python(
-                {
-                    "v": 1,
-                    "seq": row.seq,
-                    "scope": "tournament",
-                    "scope_id": tournament_id,
-                    "type": wire_type,
-                    "ts": row.created_at,
-                    "data": data,
-                }
-            )
-            out.append(_TOURNAMENT_FRAMES.dump_python(frame, mode="json"))
+            for wire_type, data in built:
+                frame = _TOURNAMENT_FRAMES.validate_python(
+                    {
+                        "v": 1,
+                        "seq": row.seq,
+                        "scope": "tournament",
+                        "scope_id": tournament_id,
+                        "type": wire_type,
+                        "ts": row.created_at,
+                        "data": data,
+                    }
+                )
+                out.append(_TOURNAMENT_FRAMES.dump_python(frame, mode="json"))
         last = row.seq
     return out, last

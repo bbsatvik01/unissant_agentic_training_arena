@@ -427,16 +427,17 @@ def test_tournament_progress_reads_the_view_in_track_and_block_order() -> None:
 def test_tournament_events_joins_trial_refs_and_projects_the_ledger() -> None:
     """A tournament-level row (no `trial_id`) needs no join hit; a trial-scoped one is named by its own
     planned position, track, block and pairing (`_tournament_trial_refs`), then projected
-    (`events.projections.tournament_frames`, never built here)."""
+    (`events.projections.tournament_frames`, never built here). The ledger is read before the trial refs
+    (never the other way: a concurrent retry's start between the two reads must not be silently dropped)."""
     tournament = uuid4()
     trial = uuid4()
-    refs_rows = [(trial, 3, "interactive", 2, "A1", "S1")]
+    refs_rows = [(trial, 3, "interactive", 2, "A1", "S1", NOW)]
     created_us = int(NOW.timestamp() * 1_000_000)
     ledger_rows = [
         (1, "tournament_running", None, json.dumps({}), created_us),
         (2, "trial_started", str(trial), json.dumps({}), created_us),
     ]
-    arena, script = db([("arena.v_trials", refs_rows), ("ledger.v_events", ledger_rows)])
+    arena, script = db([("ledger.v_events", ledger_rows), ("arena.v_trials", refs_rows)])
     frames, last = run(arena.tournament_events(tournament, 0))
     last_ledger_seq = ledger_rows[-1][0]
     assert [f["type"] for f in frames] == ["tournament.status", "trial.started"]
@@ -449,7 +450,9 @@ def test_tournament_events_joins_trial_refs_and_projects_the_ledger() -> None:
         "block": 2,
     }
     assert last == last_ledger_seq
-    assert script.executed[-1][1] == (tournament, 0)
+    ledger_call, refs_call = (p for q, p in script.executed if "set_config" not in q)
+    assert ledger_call == (tournament, 0)
+    assert refs_call == (tournament,)
 
 
 def test_tournament_events_names_a_replay_trials_pairing_from_its_corpus_source() -> None:
@@ -457,9 +460,9 @@ def test_tournament_events_names_a_replay_trials_pairing_from_its_corpus_source(
     replays' subject instead (`source_planned_trial_id`)."""
     tournament = uuid4()
     trial = uuid4()
-    refs_rows = [(trial, 10, "replay", None, "A2", "S3")]
+    refs_rows = [(trial, 10, "replay", None, "A2", "S3", NOW)]
     ledger_rows = [(1, "trial_started", str(trial), json.dumps({}), int(NOW.timestamp() * 1_000_000))]
-    arena, _ = db([("arena.v_trials", refs_rows), ("ledger.v_events", ledger_rows)])
+    arena, _ = db([("ledger.v_events", ledger_rows), ("arena.v_trials", refs_rows)])
     frames, _ = run(arena.tournament_events(tournament, 0))
     assert frames[0]["data"] == {
         "trial_ref": 10,
@@ -468,6 +471,30 @@ def test_tournament_events_names_a_replay_trials_pairing_from_its_corpus_source(
         "track": "replay",
         "block": None,
     }
+
+
+def test_tournament_events_synthesizes_a_start_for_a_trial_that_never_started() -> None:
+    """`_tournament_trial_refs`'s own `never_started` (`started_at is null`): a `budget_skipped` attempt's
+    only ledger row is `execution_recorded`, and the matrix still needs a `trial.started` for it."""
+    tournament = uuid4()
+    trial = uuid4()
+    refs_rows = [(trial, 7, "interactive", 1, "A1", "S2", None)]
+    seq = 5
+    ledger_rows = [
+        (
+            seq,
+            "execution_recorded",
+            str(trial),
+            json.dumps({"state": "budget_skipped"}),
+            int(NOW.timestamp() * 1_000_000),
+        )
+    ]
+    arena, _ = db([("ledger.v_events", ledger_rows), ("arena.v_trials", refs_rows)])
+    frames, last = run(arena.tournament_events(tournament, 0))
+    assert [f["type"] for f in frames] == ["trial.started", "trial.execution"]
+    assert frames[0]["data"]["trial_id"] == str(trial)
+    assert frames[1]["data"] == {"trial_ref": 7, "state": "budget_skipped"}
+    assert last == seq
 
 
 def test_trust_center_reads() -> None:

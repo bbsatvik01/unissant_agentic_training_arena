@@ -374,15 +374,24 @@ class ArenaDb:
 
     async def _tournament_trial_refs(self, tournament: UUID) -> dict[UUID, dict[str, Any]]:
         """Every tournament trial's planned position (`trial_ref`, S5 6.2's opaque per-tournament ordinal:
-        `arena.v_planned_trials.position`, "seeded order across the tournament"), track, block and pairing,
-        keyed by trial id. The pairing names the registered assistant and subject candidates (S6 4.9's "A1 x
-        S1"; `arena.v_candidates.name`, always `A{n}`/`S{n}` for the official lineup): a `replay` planned
-        trial carries no subject of its own (`arena.planned_trials`'s own track shape), so its pairing names
-        the subject of the corpus trial it replays instead (`source_planned_trial_id`); a `replay_corpus`
-        trial carries no assistant, so its pairing is `None` (its caller never frames one, S6 4.9: counts
-        only)."""
+        `arena.v_planned_trials.position`, "seeded order across the tournament"), track, block, pairing and
+        whether it ever started, keyed by trial id. The pairing names the registered assistant and subject
+        candidates (S6 4.9's "A1 x S1"; `arena.v_candidates.name`, always `A{n}`/`S{n}` for the official
+        lineup): a `replay` planned trial carries no subject of its own (`arena.planned_trials`'s own track
+        shape), so its pairing names the subject of the corpus trial it replays instead
+        (`source_planned_trial_id`); a `replay_corpus` trial carries no assistant, so its pairing is `None`
+        (its caller never frames one, S6 4.9: counts only). `never_started` is `started_at is null`: a
+        `budget_skipped` or `source_unavailable` attempt never reaches `arena.start_trial`'s own update
+        (S4 EF-01, EF-09), the same signal `events.load.load_tournament_trial` already reads for the same
+        reason.
+
+        Called after the ledger read in `tournament_events` (never before it, SG3-xx): under `read
+        committed`, a row this call's own SELECT sees was committed strictly before this statement started,
+        so a trial whose `trial_started` row the earlier ledger read already returned is guaranteed to have
+        its `arena.trials`/`arena.planned_trials` rows visible here too -- reading refs first could race a
+        concurrent retry's start between the two queries and silently drop that trial's frame forever."""
         rows = await self.fetch(
-            "select t.id, p.position, p.track, p.block_no, ac.name, coalesce(sc.name, ssc.name)"
+            "select t.id, p.position, p.track, p.block_no, ac.name, coalesce(sc.name, ssc.name), t.started_at"
             " from arena.v_trials t join arena.v_planned_trials p on p.id = t.planned_trial_id"
             " left join arena.v_planned_trials sp on sp.id = p.source_planned_trial_id"
             " left join arena.v_candidates ac on ac.id = p.assistant_candidate_id"
@@ -392,25 +401,32 @@ class ArenaDb:
             (tournament,),
         )
         out: dict[UUID, dict[str, Any]] = {}
-        for trial_id, position, track, block_no, assistant_name, subject_name in rows:
+        for trial_id, position, track, block_no, assistant_name, subject_name, started_at in rows:
             both_named = assistant_name is not None and subject_name is not None
             pairing = f"{assistant_name} x {subject_name}" if both_named else None
-            out[trial_id] = {"trial_ref": int(position), "track": str(track), "block": block_no, "pairing": pairing}
+            out[trial_id] = {
+                "trial_ref": int(position),
+                "track": str(track),
+                "block": block_no,
+                "pairing": pairing,
+                "never_started": started_at is None,
+            }
         return out
 
     async def tournament_events(
         self, tournament: UUID, after: int, limit: int = 200
     ) -> tuple[list[dict[str, Any]], int]:
         """`GET /api/tournaments/{id}/events?after=` on a dev or revealed tournament (S5 6.2, S6 4.9, 5.3):
-        `ledger.v_events` after the global cursor, joined to each row's own trial (`_tournament_trial_refs`)
-        and projected (`events.projections.tournament_frames`, the only module that builds a frame, S5 1.2
-        item 2); never called for a hidden tournament before reveal (the route serves counts instead, D9)."""
-        refs = await self._tournament_trial_refs(tournament)
+        `ledger.v_events` after the global cursor, joined to each row's own trial (`_tournament_trial_refs`,
+        read second -- see its own docstring) and projected (`events.projections.tournament_frames`, the
+        only module that builds a frame, S5 1.2 item 2); never called for a hidden tournament before reveal
+        (the route serves counts instead, D9)."""
         rows = await self.fetch(
             "select seq, event_type, trial_id::text, payload::text, created_us from ledger.v_events"
             " where tournament_id = %s and seq > %s order by seq",
             (tournament, after),
         )
+        refs = await self._tournament_trial_refs(tournament)
         ledger_rows: list[LedgerRow] = []
         for seq, event_type, trial_id, payload_text, created_us in rows:
             ref = refs.get(UUID(trial_id)) if trial_id is not None else None
@@ -425,6 +441,7 @@ class ArenaDb:
                     track=None if ref is None else ref["track"],
                     block=None if ref is None else ref["block"],
                     pairing=None if ref is None else ref["pairing"],
+                    never_started=False if ref is None else ref["never_started"],
                 )
             )
         return tournament_frames(ledger_rows, str(tournament), limit)

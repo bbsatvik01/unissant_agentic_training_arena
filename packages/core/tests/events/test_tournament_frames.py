@@ -84,6 +84,10 @@ def test_trial_started_on_the_replay_track_has_no_block() -> None:
 
 
 def test_replay_turn_finalized_and_execution_map_their_own_payload_field() -> None:
+    """A completed trial's own `trial_finalized` payload already carries `state: "completed"` (S4
+    `arena.finalize_trial`'s own success append, never a separate `execution_recorded` row for it) -- the
+    matrix needs that state exactly as it needs every other terminal one, so this maps to both a
+    `trial.execution` and a `trial.finalized` frame, not finalized alone."""
     rows = [
         LedgerRow(
             seq=1,
@@ -99,7 +103,7 @@ def test_replay_turn_finalized_and_execution_map_their_own_payload_field() -> No
             event_type="trial_finalized",
             trial_id=None,
             created_at=TS,
-            payload={"commitment_sha256": "c" * 64},
+            payload={"commitment_sha256": "c" * 64, "state": "completed"},
             trial_ref=1,
             track="replay",
         ),
@@ -109,16 +113,82 @@ def test_replay_turn_finalized_and_execution_map_their_own_payload_field() -> No
             trial_id=None,
             created_at=TS,
             payload={"state": "budget_skipped"},
-            trial_ref=1,
+            trial_ref=2,
             track="replay",
         ),
     ]
     frames, last = tournament_frames(rows, TOURNAMENT)
-    assert [f["type"] for f in frames] == ["replay.turn", "trial.finalized", "trial.execution"]
+    assert [f["type"] for f in frames] == ["replay.turn", "trial.execution", "trial.finalized", "trial.execution"]
     assert frames[0]["data"] == {"trial_ref": 1, "turn_no": 4}
-    assert frames[1]["data"] == {"trial_ref": 1, "commitment_hash": "c" * 64}
-    assert frames[2]["data"] == {"trial_ref": 1, "state": "budget_skipped"}
+    assert frames[1]["data"] == {"trial_ref": 1, "state": "completed"}
+    assert frames[2]["data"] == {"trial_ref": 1, "commitment_hash": "c" * 64}
+    assert frames[3]["data"] == {"trial_ref": 2, "state": "budget_skipped"}
     assert last == rows[-1].seq
+
+
+def test_a_never_started_trial_still_opens_its_own_matrix_cell() -> None:
+    """S4 `arena.start_trial`'s early return and `record_execution_failure` from `planned` (EF-01, EF-09)
+    write no `trial_started` row for a `budget_skipped` or `source_unavailable` attempt -- its own
+    `execution_recorded` row is the only one it will ever contribute, so that row must also open the matrix
+    cell the client's `trial.started`-gated reducer needs (S6 4.9), synthesized from the same row."""
+    trial = str(uuid4())
+    seq = 9
+    row = LedgerRow(
+        seq=seq,
+        event_type="execution_recorded",
+        trial_id=trial,
+        created_at=TS,
+        payload={"state": "source_unavailable"},
+        trial_ref=4,
+        track="replay",
+        pairing="A2 x S3",
+        never_started=True,
+    )
+    frames, last = tournament_frames([row], TOURNAMENT)
+    assert [f["type"] for f in frames] == ["trial.started", "trial.execution"]
+    assert frames[0]["data"] == {
+        "trial_ref": 4,
+        "trial_id": trial,
+        "pairing": "A2 x S3",
+        "track": "replay",
+        "block": None,
+    }
+    assert frames[1]["data"] == {"trial_ref": 4, "state": "source_unavailable"}
+    assert last == seq
+
+
+def test_a_trial_that_really_started_gets_no_synthetic_second_start() -> None:
+    """The common case (`never_started` false): its own real `trial_started` row already opened the cell,
+    so its terminal row carries only the execution-state frame, never a duplicate `trial.started`."""
+    row = LedgerRow(
+        seq=9,
+        event_type="execution_recorded",
+        trial_id=None,
+        created_at=TS,
+        payload={"state": "infra_failed"},
+        trial_ref=4,
+        track="interactive",
+        never_started=False,
+    )
+    frames, _ = tournament_frames([row], TOURNAMENT)
+    assert [f["type"] for f in frames] == ["trial.execution"]
+
+
+def test_a_rows_two_frames_are_never_split_across_a_page() -> None:
+    """A `trial_finalized` row's own two frames (execution then finalized) are built together or not at
+    all: a page limit that would fit only the first leaves the whole row for the next call."""
+    row = LedgerRow(
+        seq=5,
+        event_type="trial_finalized",
+        trial_id=None,
+        created_at=TS,
+        payload={"commitment_sha256": "d" * 64, "state": "completed"},
+        trial_ref=1,
+        track="replay",
+    )
+    frames, last = tournament_frames([row], TOURNAMENT, limit=1)
+    assert frames == []
+    assert last == 0  # the row is deferred whole; the cursor never advances past it
 
 
 def test_a_replay_corpus_trial_produces_no_frame_at_all() -> None:

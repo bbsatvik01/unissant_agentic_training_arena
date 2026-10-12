@@ -135,6 +135,29 @@ def test_main_still_posts_a_real_failure_and_exits_nonzero(
     assert "IG-2 FAIL" in capsys.readouterr().out
 
 
+def test_main_exits_nonzero_when_ig1_3_pass_but_the_referees_own_verdict_is_false(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Never fabricates a pass: IG-1..3 passing locally is not the gate -- a real IG-4, 5 or 6 failure at the
+    referee (S3 9's full six-item verdict) must still fail the command, not just a suite failing locally or
+    the referee refusing the call outright."""
+    _patch_suites(monkeypatch)
+
+    async def fake_admin_post(*_a: object, **_kw: object) -> dict[str, Any]:
+        return {
+            "passed": False,
+            "evidence_hash": "h",
+            "items": {"IG-1": True, "IG-2": True, "IG-3": True, "IG-4": False},
+        }
+
+    monkeypatch.setattr(ig, "admin_post", fake_admin_post)
+    assert ig.main([]) == 1
+    out = capsys.readouterr().out
+    assert "IG-1 PASS" in out
+    assert "IG-2 PASS" in out
+    assert "IG-3 PASS" in out
+
+
 def test_main_fails_when_the_referee_refuses_the_post(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
