@@ -169,3 +169,7 @@
 - **Decision:** coordinator. S2 1 derives model seeds from the trial id and `arena.retry_trial` creates a new trial id, so a retried trial uses a new seed. S5 5.3's "same seed" wording is read as the same planned trial and pairing, not the same model seed. Spec wording follow-up.
 - **Reason:** carrying a planned-trial seed identity through the port and arena-subject adds plumbing for a rare infra path (D-016).
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-028 KPI-1 participants and session limit
+- **Decision:** owner. KPI-1 participants: P01 (owner) set order A then B, P02 (one friend) B then A; sets A = F06/F07, B = F08/F09. Per-user text sessions per day raised from 5 to 20 (ops.config, hosted) for testing and the 7-session study. The 3 stuck wt-wp08 pytest runs were stopped with owner approval.
+- **Reversibility:** cheap.

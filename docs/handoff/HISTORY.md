@@ -93,3 +93,4 @@
 - 6479e85 merge KPI-1 study tooling + runbook (sets A=F06/F07, B=F08/F09)
 - fa4224f merge seal prep (freeze path, hidden export, seal dry run); migration 20261012000100 to apply on hosted
 - 2026-10-12 hosted: applied 20261012000100_hidden_case_visibility (additive view)
+- 2026-10-12 hosted: KPI-1 setup done (P01, P02); text_sessions_per_user_day 5 -> 20 (owner); stuck wt-wp08 pytest runs stopped (owner)
