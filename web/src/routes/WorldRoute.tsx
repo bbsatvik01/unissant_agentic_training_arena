@@ -43,6 +43,7 @@ import { useProgress } from "./world/useProgress";
 import { standings } from "../lib/arena/standings";
 import { useBoards } from "./world/useBoards";
 import { useTournament, useTournamentList } from "./world/useTournament";
+import { modeBadge } from "../lib/world/badge";
 import { latestOnly } from "../lib/world/latest";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
@@ -511,7 +512,7 @@ export function WorldRoute() {
         <div className="topbar-meta">
           {place === "room" && view !== null ? (
             <>
-              <span className="badge">{view.mode === "practice" ? "Practice" : "Assessment: coaching is saved for your debrief"}</span>
+              <span className="badge">{modeBadge(view.mode, mode === "playback" ? (recording?.snapshot.mode ?? null) : null)}</span>
               <span className="badge mono">
                 {view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>

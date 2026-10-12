@@ -19,6 +19,8 @@ afterEach(() => {
   cleanup();
 });
 
+const assistantBoard = parseBoard(boards.assistant);
+
 function show() {
   render(
     <ArenaView
@@ -99,6 +101,14 @@ describe("ArenaView", () => {
     expect(screen.queryAllByRole("button", { name: /^Replay / })).toHaveLength(0);
     rerender(view("error"));
     expect(screen.getByText("The tournament could not be read. Try again later.")).toBeTruthy();
+  });
+
+  it("shows a candidate id once when the board publishes it as the name", () => {
+    if (assistantBoard === null) throw new Error("fixture");
+    const ids = { ...assistantBoard, rows: assistantBoard.rows.map((r) => ({ ...r, display_name: r.candidate_id })) };
+    render(<ArenaView name="Arena" boards={{ kind: "published", tournamentId: "t-1", label: null }} assistant={ids} subject={null} tournament={EMPTY_TOURNAMENT} matrix="ready" tournaments={{ state: "idle" }} notice={null} onReplay={() => undefined} motionOff onClose={() => undefined} />);
+    const ranked = document.querySelector("table.board tbody tr");
+    expect(ranked?.querySelectorAll("td")[1]?.textContent).toBe("A1");
   });
 
   it("lists the tournaments to choose from when none is selected", () => {

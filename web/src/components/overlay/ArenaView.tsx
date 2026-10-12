@@ -17,6 +17,16 @@ import { Tabs } from "./Tabs";
 
 export const NOT_CERTIFICATION = "A tournament rank is not certification for real investigations.";
 
+/** A candidate's name and id; a board that publishes the id as the name shows it once. */
+function Who({ row }: { row: BoardRow }) {
+  if (row.display_name === row.candidate_id) return <span className="mono fine">{row.candidate_id}</span>;
+  return (
+    <>
+      {row.display_name} <span className="mono fine">{row.candidate_id}</span>
+    </>
+  );
+}
+
 function Binding({ board }: { board: Board }) {
   return board.manifestHash === null ? (
     <p className="fine">Inclusion manifest not published.</p>
@@ -44,7 +54,7 @@ function GatePanel({ board }: { board: Board }) {
           return (
             <li key={r.candidate_id} data-gate={g.result.split(" ")[0]}>
               <span>
-                {r.display_name} <span className="mono fine">{r.candidate_id}</span>
+                <Who row={r} />
               </span>
               <span>
                 False-positive rate {g.fpr}; sponsor gate at or below 5%: {g.result}
@@ -97,7 +107,7 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
               <tr key={r.candidate_id}>
                 <td className="mono">{r.rank}</td>
                 <td>
-                  {r.display_name} <span className="mono fine">{r.candidate_id}</span>
+                  <Who row={r} />
                 </td>
                 <td>
                   {bar === null || r.rankInterval === null ? (
@@ -123,7 +133,7 @@ function AssistantBoard({ board, motionOff }: { board: Board; motionOff: boolean
           <ul className="ineligible">
             {unranked.map((r) => (
               <li key={r.candidate_id}>
-                {r.display_name} <span className="mono fine">{r.candidate_id}</span>: {r.reason ?? r.eligibilityStatus ?? "not eligible"}
+                <Who row={r} />: {r.reason ?? r.eligibilityStatus ?? "not eligible"}
               </li>
             ))}
           </ul>
@@ -182,7 +192,7 @@ function CandidateDetails({ rows, lines, matrix: withMatrix = false }: { rows: r
         return (
           <details key={r.candidate_id}>
             <summary>
-              {r.display_name} <span className="mono fine">{r.candidate_id}</span>: details
+              <Who row={r} />: details
             </summary>
             {counts === null ? null : (
               <table className="board count-matrix">
@@ -238,7 +248,7 @@ function SubjectBoard({ board }: { board: Board }) {
         {board.rows.map((r) => (
           <tr key={r.candidate_id}>
             <td>
-              {r.display_name} <span className="mono fine">{r.candidate_id}</span>
+              <Who row={r} />
             </td>
             <td>{metricText(r.metrics["M12_subject_fidelity"])}</td>
             <td>{metricText(r.metrics["M13_invalid_session_rate"])}</td>
