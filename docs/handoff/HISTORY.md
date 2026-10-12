@@ -97,3 +97,4 @@
 - 525c260 merge WP-28 hidden execution (D-029); hosted: applied 20261012000200
 - 3eec25d merge UI stage 8 (polish, gemini-3.8-flash-tts designed voices, audio lip sync, coach earpiece); hosted: applied 20261012000300_tts_limits_prices
 - 10319bf merge designed voices (13/13 live, ~$0.20 actual)
+- a5f99fe merge voice accents (2 personas)
