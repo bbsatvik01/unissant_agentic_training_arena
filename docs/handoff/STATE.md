@@ -15,7 +15,7 @@
 | WP-16 reveal + leaderboards | MERGED | done |
 | WP-13 orchestrator | MERGED (bcacc28); make dev (root Supabase env) / make dev-local (.run/localdb) | done |
 | Hosted seed + real smoke | MERGED; hosted seeded; first real call landed (G0_schema quarantine) | done |
-| Tourney routes + IG reports (Sonnet, wt-tourney-routes) | arena-api tournament list/state/events, tournament recordings, make isolation-reports running real suites, local reveal proof | merge |
+| Tourney routes + IG reports | MERGED; local dev tournament revealed, boards served | done; open: hidden-split trial export 404 |
 | Real pilot | MERGED (175bd66): real Gemini end to end, real debrief, recordings/real-F01.json, $0.30 | done |
 | DB latency | MERGED; per-call 0.84->0.07 s; real after-run pending quota reset (scratchpad/realpilot/count.py) | measure |
 | rubric.v1 | MERGED; open: referee manifest freeze path (rubric.v1.json), referee prompt files not in rubric hash | follow-up before sealed run |

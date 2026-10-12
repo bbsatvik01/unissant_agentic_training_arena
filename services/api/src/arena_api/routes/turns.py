@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from arena_api.state import ApiState, actor_db, api_state, error_response, identity
 from arena_core.contracts.routes import TurnSubmit
 from arena_core.db.arena import ArenaDb
-from arena_core.events.load import LoadedTrial, load_trial, recording_of, snapshot_of
+from arena_core.events.load import LoadedTrial, load_recording, load_trial, snapshot_of
 from arena_core.identity import DevIdentity
 from arena_core.turns.orchestrator import TurnRefusedError
 
@@ -64,11 +64,14 @@ async def get_snapshot(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]
 @router.get("/api/trials/{trial_id}/recording")
 async def get_recording(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
     """D-021: the trial's full event history as `arena.recording.v1`, through the same projection and
-    visibility rules as the live stream."""
-    trial = await owned(db, trial_id)
-    # `owned` only ever loads a training trial (`load_trial`), which always has a session (D-021's tournament
-    # path, `load_tournament_trial`, is this route's investigator-only sibling; it never reaches here).
-    if trial.session_id is None:
-        msg = f"training trial {trial_id} was loaded without a session id"
-        raise RuntimeError(msg)
-    return recording_of(trial, await db.debrief(trial.session_id))
+    visibility rules as the live stream -- the owner's own training trial, or a dev-split tournament trial
+    (`arena.events.load.load_recording`, shared with `make export-run`). A revealed hidden-split trial is
+    `arena.trial_visible` too but answers 404 here, same as an unknown id: `db.public_packet` resolves only
+    the dev split, so there is no packet to export yet (a real gap -- hidden export needs its own
+    visibility-checked projection, not this route). That 404 is deliberate, not accidental: distinguishing
+    it from a crash would itself leak which hidden ids are real, the existence oracle S4 9.1 exists to
+    deny."""
+    recording = await load_recording(db, trial_id)
+    if recording is None:
+        raise HTTPException(status_code=404, detail="not_found")
+    return recording

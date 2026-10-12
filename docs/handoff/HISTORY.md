@@ -86,3 +86,4 @@
 - 175bd66 merge real pilot: real Gemini end to end on hosted Supabase (4 full 12-turn interviews, real debrief, recordings/real-F01.json; $0.30)
 - 344d5ff merge rubric.v1 (22 checks verbatim from S3; spec-parity test)
 - 94a693b merge DB latency fix (pool + pipelined statements; per-call 841->69 ms)
+- a5d7f8a merge tournament routes + isolation reports; local dev tournament revealed end to end

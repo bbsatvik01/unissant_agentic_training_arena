@@ -7,7 +7,11 @@ A tournament trial (no training session, no debrief) exports the same way throug
 (D-021: "every tournament trial must be exportable"; `arena_tournament`, WP-17) -- `arena.trial_visible`
 already restricts which ones an `arena_public` caller may read (a dev-split trial, or a hidden one after
 reveal) regardless of the acting identity, so the same dev identity that exports a training trial can export
-a tournament one too. `scripts/dev.sh export-run <trial>` builds the environment from `.env.local` and
+a visible DEV-split tournament trial too, today: `ArenaDb.public_packet` reads only `arena.v_dev_cases`
+(dev split only), so a hidden-split variant's packet is never found there, revealed or not -- `None` (the
+same as an unknown trial) for that case, not D-021's "every tournament trial must be exportable" for it yet
+(a real, separate gap: hidden-tournament export needs its own visibility-checked packet projection,
+tracked, not built here). `scripts/dev.sh export-run <trial>` builds the environment from `.env.local` and
 `.env.local.public`.
 """
 
@@ -26,7 +30,7 @@ from uuid import UUID
 from arena_core.config import ArenaRole, boot
 from arena_core.db.arena import ArenaDb
 from arena_core.db.pool import Connector, dsn_connector
-from arena_core.events.load import load_tournament_trial, load_trial, recording_of
+from arena_core.events.load import load_recording
 from arena_core.identity import resolve_dev_user
 
 
@@ -35,13 +39,9 @@ async def export(connect: Connector, actor: UUID, trial: UUID) -> dict[str, Any]
 
 
 async def export_from(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
-    loaded = await load_trial(db, trial)
-    if loaded is None:
-        loaded = await load_tournament_trial(db, trial)
-    if loaded is None:
-        return None
-    debrief = None if loaded.session_id is None else await db.debrief(loaded.session_id)
-    return recording_of(loaded, debrief)
+    """`arena_core.events.load.load_recording`, shared with `GET /api/trials/{id}/recording` (no duplicated
+    projection or visibility logic between the two callers)."""
+    return await load_recording(db, trial)
 
 
 def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> int:
@@ -55,8 +55,9 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     recording = asyncio.run(export(dsn_connector(settings.dsn), actor, args.trial))
     if recording is None:
         sys.stderr.write(
-            f"export-run: trial {args.trial} is not one of the acting user's trials, a dev tournament trial "
-            "or a revealed one\n"
+            f"export-run: trial {args.trial} is not one of the acting user's trials, a dev-split tournament "
+            "trial, or a revealed dev-split one (a hidden-split tournament trial's recording is not yet "
+            "supported, revealed or not)\n"
         )
         return 1
     args.out.parent.mkdir(parents=True, exist_ok=True)
