@@ -13,6 +13,7 @@ function fake(answer: (path: string) => unknown) {
       calls.push(`GET ${path}`);
       return Promise.resolve(answer(path));
     },
+    postAudio: () => Promise.reject(new Error("not used")),
     post: (path) => {
       calls.push(`POST ${path}`);
       return Promise.resolve({ ok: true });

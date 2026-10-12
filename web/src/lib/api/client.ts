@@ -72,6 +72,9 @@ export interface ApiClient {
   get(path: string): Promise<unknown>;
   /** POST with the CSRF header; `body` is sent as JSON when given. */
   post(path: string, body?: unknown, options?: PostOptions): Promise<unknown>;
+  /** POST with the CSRF header for audio: the response's bytes, and whether the server said they are silence (its
+   * fake mode, `X-Arena-Speech: silent`). */
+  postAudio(path: string, body: unknown): Promise<{ readonly audio: ArrayBuffer; readonly silent: boolean }>;
 }
 
 export interface ApiClientOptions {
@@ -204,6 +207,17 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   };
 
 
+  /** A POST with the CSRF token: with the token known the request leaves now, in this call (an acknowledgement goes out
+   * before the caller renders, S6 5.6); otherwise after /api/me answered, and never without it. A stale token (the
+   * cookie rotated, another tab re-read /api/me) is re-read once and the request retried once. */
+  const postWithToken = async (path: string, payload: string | undefined, keepalive: boolean): Promise<Response> => {
+    const known = token;
+    const response = known === null ? await me().then((m) => send("POST", path, payload, keepalive, m.csrf_token)) : await send("POST", path, payload, keepalive, known);
+    if (response.status !== 403) return response;
+    const fresh = (await me()).csrf_token;
+    return send("POST", path, payload, keepalive, fresh);
+  };
+
   return {
     me,
     async get(path) {
@@ -214,20 +228,20 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     post(path, body, postOptions = {}) {
       const refused = pathError(path);
       if (refused !== null) return Promise.reject(refused);
-      const keepalive = postOptions.keepalive === true;
       // Serialized now: a caller changing its object later (a draft being edited) never changes what is sent,
       // neither after the token read nor on the 403 retry, which reuse the same idempotency key.
       const payload = body === undefined ? undefined : JSON.stringify(body);
-      // With the token known the request leaves now, in this call (an acknowledgement goes out before the caller
-      // renders, S6 5.6); otherwise after /api/me answered, and never without it.
-      const known = token;
-      const first = known === null ? me().then((m) => send("POST", path, payload, keepalive, m.csrf_token)) : send("POST", path, payload, keepalive, known);
-      return first.then(async (response) => {
-        if (response.status !== 403) return settle(path, response);
-        // A stale token (the cookie rotated, another tab re-read /api/me): re-read once, retry once.
-        const fresh = (await me()).csrf_token;
-        return settle(path, await send("POST", path, payload, keepalive, fresh));
-      });
+      return postWithToken(path, payload, postOptions.keepalive === true).then((response) => settle(path, response));
+    },
+    async postAudio(path, body) {
+      const refused = pathError(path);
+      if (refused !== null) throw refused;
+      const response = await postWithToken(path, JSON.stringify(body), false);
+      if (!response.ok) {
+        const parsed = await readJson(response);
+        throw new ApiError(response.status, parsed.ok ? errorCode(parsed.value) : null, path);
+      }
+      return { audio: await response.arrayBuffer(), silent: response.headers.get("X-Arena-Speech") === "silent" };
     },
   };
 }

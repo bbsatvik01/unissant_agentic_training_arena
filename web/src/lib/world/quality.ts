@@ -15,12 +15,14 @@ export interface TierSettings {
   readonly ao: boolean;
   /** Bloom on the practical lights. */
   readonly bloom: boolean;
+  /** More staff at work in the precinct (two more skinned figures). */
+  readonly crowd: boolean;
 }
 
 export const TIERS: Readonly<Record<Tier, TierSettings>> = {
-  high: { dpr: 2, shadowMap: 2048, ao: true, bloom: true },
-  medium: { dpr: 1.5, shadowMap: 1024, ao: false, bloom: true },
-  low: { dpr: 1, shadowMap: 1024, ao: false, bloom: false },
+  high: { dpr: 2, shadowMap: 2048, ao: true, bloom: true, crowd: true },
+  medium: { dpr: 1.5, shadowMap: 1024, ao: false, bloom: true, crowd: true },
+  low: { dpr: 1, shadowMap: 1024, ao: false, bloom: false, crowd: false },
 };
 
 const ORDER: readonly Tier[] = ["high", "medium", "low"];

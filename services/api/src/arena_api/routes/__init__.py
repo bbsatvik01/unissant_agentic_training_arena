@@ -17,11 +17,13 @@ from arena_api.routes import (
     sse,
     telemetry,
     trust,
+    tts,
     turns,
 )
 
 router = APIRouter()
-for module in (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards, progress, trust):
+_MODULES = (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards, progress, trust, tts)
+for module in _MODULES:
     router.include_router(module.router)
 
 __all__ = ["router"]
