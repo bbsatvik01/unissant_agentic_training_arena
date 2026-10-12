@@ -17,6 +17,7 @@ from psycopg.types.json import Jsonb
 
 from arena_core.db import subject as db_subject
 from arena_core.db.calls import Conn, GuardProtocolError
+from arena_core.db.scripted import ScriptedConnection
 
 TRIAL = uuid4()
 WORK_ITEM = uuid4()
@@ -47,7 +48,7 @@ class Cursor:
         return self.rows[0] if self.rows else None
 
 
-class _Conn:
+class _Conn(ScriptedConnection):
     """Answers `select <fn>(...)::text` with the jsonb text registered for `<fn>`; records every statement."""
 
     def __init__(self, answers: dict[str, object]) -> None:
@@ -60,7 +61,7 @@ class _Conn:
         self.transactions += 1
         yield
 
-    async def execute(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
         self.executed.append((query, params))
         for name, answer in self.answers.items():
             if name in query:

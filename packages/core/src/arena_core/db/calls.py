@@ -43,6 +43,7 @@ import psycopg
 from psycopg import AsyncConnection
 from psycopg.types.json import Jsonb
 
+from arena_core.db.pool import one_statement
 from arena_core.observability.processors import SpanRow
 
 # ============================================================================================= spend guard
@@ -157,9 +158,8 @@ def _outcome[T: str](raw: dict[str, Any], key: str, allowed: tuple[T, ...], fn: 
 
 
 async def _call(conn: Conn, fn: str, sql: str, params: tuple[object, ...]) -> dict[str, Any]:
-    async with conn.transaction():
-        cur = await conn.execute(sql, params)
-        row = await cur.fetchone()
+    cur = await one_statement(conn, sql, params)
+    row = await cur.fetchone()
     if row is None:
         msg = f"{fn} returned no row"
         raise GuardProtocolError(msg)

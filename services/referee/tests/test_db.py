@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Mapping
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, cast
@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, AgentResult, CallContext, Message, Usage
 from arena_core.scoring.inclusion import Exec
@@ -64,22 +65,22 @@ async def _noop_tx() -> AsyncIterator[None]:
 AnswerMap = Mapping[str, list[tuple[Any, ...]] | None]
 
 
-class FakeConn:
+class FakeConn(ScriptedConnection):
     """Answers the first registered substring found in the statement text; records every call."""
 
     def __init__(self, answers: AnswerMap | None = None) -> None:
         self.answers: AnswerMap = answers or {}
         self.executed: list[tuple[str, tuple[Any, ...]]] = []
 
-    async def execute(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
+    async def statement(self, query: str, params: tuple[Any, ...] = ()) -> FakeCursor:
         self.executed.append((query, params))
         for key, rows in self.answers.items():
             if key in query:
                 return FakeCursor(rows or [])
         return FakeCursor([])
 
-    def transaction(self) -> AsyncIterator[None]:
-        return cast("AsyncIterator[None]", _noop_tx())
+    def transaction(self) -> AbstractAsyncContextManager[None]:
+        return _noop_tx()
 
 
 def connector(conn: FakeConn) -> Connector:

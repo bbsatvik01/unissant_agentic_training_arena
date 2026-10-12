@@ -21,7 +21,7 @@ from psycopg.types.json import Jsonb
 
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
-from arena_core.db.pool import Connector
+from arena_core.db.pool import Connector, one_statement
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall
 from arena_core.scoring.inclusion import Exec, RevealBlockedError
@@ -45,7 +45,7 @@ _PACKET_QUERIES: Mapping[str, str] = {
 async def _packet_row(connect: Connector, table: str, variant_id: UUID) -> Mapping[str, Any] | None:
     query = _PACKET_QUERIES[table]
     async with connect() as conn:
-        cur = await conn.execute(query, (variant_id,))
+        cur = await one_statement(conn, query, (variant_id,))
         row = await cur.fetchone()
         return cast("Mapping[str, Any] | None", row[0] if row else None)
 
@@ -54,7 +54,7 @@ async def fetch_source_trial_id(connect: Connector, trial_id: str) -> str | None
     """A `replay` trial's source corpus transcript (`arena.trials.source_trial_id`, set by `start_trial`,
     S4 privileged_functions.sql), or None for any other kind (never set)."""
     async with connect() as conn:
-        cur = await conn.execute("select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
+        cur = await one_statement(conn, "select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
         row = await cur.fetchone()
         return None if row is None or row[0] is None else str(row[0])
 
@@ -65,7 +65,7 @@ async def fetch_trial_kind(connect: Connector, trial_id: str) -> str | None:
     route and R3's training-session path, so it cannot itself refuse a kind) -- `score.py`'s route uses
     this to refuse a corpus or replay trial with a clear error instead of mis-scoring it (S5 5.3)."""
     async with connect() as conn:
-        cur = await conn.execute("select kind from arena.trials where id = %s", (UUID(trial_id),))
+        cur = await one_statement(conn, "select kind from arena.trials where id = %s", (UUID(trial_id),))
         row = await cur.fetchone()
         return cast("str | None", row[0] if row else None)
 
@@ -74,7 +74,8 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
     """Everything one trial's R1/R2 (or R3's two calls) read (S2 7.1-7.3, 7.5), already fetched."""
     trial_uuid = UUID(trial_id)
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select t.variant_id, f.split from arena.trials t"
             " join arena.case_variants v on v.id = t.variant_id"
             " join arena.case_families f on f.id = v.family_id"
@@ -88,7 +89,9 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
     variant_id, split = row[0], cast("Literal['dev', 'hidden']", row[1])
 
     async with connect() as conn:
-        cur = await conn.execute("select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,))
+        cur = await one_statement(
+            conn, "select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,)
+        )
         evaluator_row = await cur.fetchone()
     if evaluator_row is None:
         msg = f"no evaluator packet for variant {variant_id}"
@@ -104,7 +107,8 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         raise LookupError(msg)
 
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select record_id, title, content, released_after_exchanges"
             " from arena.released_evidence where trial_id = %s order by release_seq",
             (trial_uuid,),
@@ -120,7 +124,8 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         # exchanges only (S2 6.10's "no answer to label when the first turn was quarantined" is exactly the
         # zero-row case this filter produces), matching `empty_subject_report()`'s "no transcript" branch
         # and `TranscriptTurn`'s non-null `answer`.
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select turn_no, question, answer, question_source from arena.turns"
             " where trial_id = %s and answer is not null order by turn_no",
             (trial_uuid,),
@@ -130,21 +135,23 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         ]
 
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select payload from arena.trial_events where trial_id = %s and kind = 'coach_card' order by seq",
             (trial_uuid,),
         )
         cards = [r[0] for r in await cur.fetchall()]
 
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select turn_no from arena.trial_events where trial_id = %s and kind = 'coach_unavailable' order by seq",
             (trial_uuid,),
         )
         unavailable_turns = [r[0] for r in await cur.fetchall()]
 
     async with connect() as conn:
-        cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (trial_uuid,))
+        cur = await one_statement(conn, "select finding from arena.final_findings where trial_id = %s", (trial_uuid,))
         finding_row = await cur.fetchone()
     final_finding = finding_row[0] if finding_row else None
 
@@ -176,7 +183,8 @@ async def fetch_block_trial_ids(connect: Connector, tournament_id: str, block_no
     1-based number (`arena.blocks.block_no`), not that row's internal id -- `arena_public` has no grant to
     read the latter (S4 9.3), so the job names the block this way instead."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select t.id from arena.planned_trials p join arena.blocks b on b.id = p.block_id"
             " join arena.trials t on t.planned_trial_id = p.id"
             " join ledger.terminal_records r on r.trial_id = t.id"
@@ -190,8 +198,8 @@ async def fetch_block_trial_ids(connect: Connector, tournament_id: str, block_no
 
 async def _existing_corpus_seal(connect: Connector, tournament_id: str) -> str | None:
     async with connect() as conn:
-        cur = await conn.execute(
-            "select corpus_sha256 from ledger.corpus_seals where tournament_id = %s", (UUID(tournament_id),)
+        cur = await one_statement(
+            conn, "select corpus_sha256 from ledger.corpus_seals where tournament_id = %s", (UUID(tournament_id),)
         )
         row = await cur.fetchone()
         return None if row is None else cast("str", row[0])
@@ -206,15 +214,15 @@ async def seal_replay_corpus(connect: Connector, tournament_id: str) -> str:
     existing = await _existing_corpus_seal(connect, tournament_id)
     if existing is not None and await fetch_tournament_status(connect, tournament_id) != "running":
         return existing
-    async with connect() as conn, conn.transaction():
-        cur = await conn.execute("select ledger.seal_replay_corpus(%s)", (UUID(tournament_id),))
+    async with connect() as conn:
+        cur = await one_statement(conn, "select ledger.seal_replay_corpus(%s)", (UUID(tournament_id),))
         row = await cur.fetchone()
     return cast("str", row[0] if row else "")
 
 
 async def fetch_tournament_status(connect: Connector, tournament_id: str) -> str | None:
     async with connect() as conn:
-        cur = await conn.execute("select status from arena.tournaments where id = %s", (UUID(tournament_id),))
+        cur = await one_statement(conn, "select status from arena.tournaments where id = %s", (UUID(tournament_id),))
         row = await cur.fetchone()
         return None if row is None else cast("str", row[0])
 
@@ -231,8 +239,8 @@ async def close_tournament_run(connect: Connector, tournament_id: str) -> None:
     own state check (`running` only) would otherwise turn a lost first response into a 409 on retry."""
     if await fetch_tournament_status(connect, tournament_id) in _CLOSED_OR_LATER:
         return
-    async with connect() as conn, conn.transaction():
-        await conn.execute("select arena.close_tournament_run(%s)", (UUID(tournament_id),))
+    async with connect() as conn:
+        await one_statement(conn, "select arena.close_tournament_run(%s)", (UUID(tournament_id),))
 
 
 # ---------------------------------------------------------------- sealed writes (S2 7.2, S3 4.2)
@@ -240,7 +248,9 @@ async def close_tournament_run(connect: Connector, tournament_id: str) -> None:
 
 async def get_judgment(connect: Connector, idempotency_key: str) -> Mapping[str, Any] | None:
     async with connect() as conn:
-        cur = await conn.execute("select payload from sealed.judgments where idempotency_key = %s", (idempotency_key,))
+        cur = await one_statement(
+            conn, "select payload from sealed.judgments where idempotency_key = %s", (idempotency_key,)
+        )
         row = await cur.fetchone()
         return cast("Mapping[str, Any] | None", row[0] if row else None)
 
@@ -248,8 +258,9 @@ async def get_judgment(connect: Connector, idempotency_key: str) -> Mapping[str,
 async def store_labels(
     connect: Connector, trial_id: str, labeler: str, rows: list[dict[str, Any]], prompt_sha256: str
 ) -> None:
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "select sealed.record_independent_labels(%s, %s, %s, %s)",
             (UUID(trial_id), labeler, Jsonb(rows), prompt_sha256),
         )
@@ -266,8 +277,9 @@ class JudgmentRow:
 
 
 async def store_judgment(connect: Connector, row: JudgmentRow) -> None:
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "select sealed.record_judgment(%s, %s, %s, %s, %s, %s)",
             (
                 UUID(row.trial_id),
@@ -283,8 +295,9 @@ async def store_judgment(connect: Connector, row: JudgmentRow) -> None:
 async def adjudicate_valid(connect: Connector, trial_id: str, reason: str, evidence_ref: str) -> None:
     """S3 4.2 item 1: the automatic `valid` verdict, `decided_by='auto_rule'`, idempotent on the evidence
     reference (the R1 stage key), so a resumed call reaches the same adjudication."""
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "select ledger.adjudicate_validity(%s, 'valid', %s, %s, 'auto_rule', %s)",
             (UUID(trial_id), reason, evidence_ref, f"{evidence_ref}:validity"),
         )
@@ -344,7 +357,8 @@ def make_scoring_deps(connect: Connector, port: AgentPort, prompt_sha256: str) -
 async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
     session_uuid = UUID(session_id)
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select s.trial_id, s.voice, t.variant_id, t.status from training.sessions s"
             " join arena.trials t on t.id = s.trial_id where s.id = %s",
             (session_uuid,),
@@ -356,14 +370,16 @@ async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
     trial_id, voice, variant_id, trial_status = str(row[0]), bool(row[1]), row[2], cast("str", row[3])
 
     async with connect() as conn:
-        cur = await conn.execute("select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,))
+        cur = await one_statement(
+            conn, "select packet from sealed.evaluator_packets where variant_id = %s", (variant_id,)
+        )
         evaluator_row = await cur.fetchone()
     if evaluator_row is None:
         msg = f"no evaluator packet for variant {variant_id}"
         raise LookupError(msg)
 
     async with connect() as conn:
-        cur = await conn.execute("select finding from arena.final_findings where trial_id = %s", (row[0],))
+        cur = await one_statement(conn, "select finding from arena.final_findings where trial_id = %s", (row[0],))
         finding_row = await cur.fetchone()
     committed_finding = None if finding_row is None else StoredFinding.model_validate(finding_row[0])
 
@@ -378,14 +394,16 @@ async def fetch_session(connect: Connector, session_id: str) -> SessionInfo:
 
 async def get_debrief(connect: Connector, session_id: str) -> Mapping[str, Any] | None:
     async with connect() as conn:
-        cur = await conn.execute("select payload from training.debriefs where session_id = %s", (UUID(session_id),))
+        cur = await one_statement(
+            conn, "select payload from training.debriefs where session_id = %s", (UUID(session_id),)
+        )
         row = await cur.fetchone()
         return cast("Mapping[str, Any] | None", row[0] if row else None)
 
 
 async def publish_debrief(connect: Connector, session_id: str, payload: Mapping[str, Any]) -> None:
-    async with connect() as conn, conn.transaction():
-        await conn.execute("select training.publish_debrief(%s, %s)", (UUID(session_id), Jsonb(dict(payload))))
+    async with connect() as conn:
+        await one_statement(conn, "select training.publish_debrief(%s, %s)", (UUID(session_id), Jsonb(dict(payload))))
 
 
 async def store_rubric_score(connect: Connector, session_id: str, result: RubricResult, scorer_ref: str) -> None:
@@ -407,8 +425,9 @@ async def store_rubric_score(connect: Connector, session_id: str, result: Rubric
         result.dimensions["D5"],
         Jsonb(rationale),
     )
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "insert into training.rubric_scores"
             " (session_id, scorer, scorer_ref, clarity_neutrality, response_relevance, evidence_follow_up,"
             "  alternative_testing, supported_closure, rationale)"
@@ -466,8 +485,9 @@ async def create_review_item(connect: Connector, item: NewReviewItem) -> UUID:
     back unchanged, so the row's id and the payload's `item_id` must be set from the same value."""
     item_id = uuid4()
     payload = {**dict(item.payload), "item_id": str(item_id)}
-    async with connect() as conn, conn.transaction():
-        cur = await conn.execute(
+    async with connect() as conn:
+        cur = await one_statement(
+            conn,
             "select training.create_review_item(%s, %s, %s, %s, %s, %s)",
             (
                 item.kind,
@@ -487,14 +507,14 @@ async def create_review_item(connect: Connector, item: NewReviewItem) -> UUID:
 
 async def list_review_items(connect: Connector, rater_user_id: UUID) -> list[Mapping[str, Any]]:
     async with connect() as conn:
-        cur = await conn.execute("select training.list_review_items(%s)", (rater_user_id,))
+        cur = await one_statement(conn, "select training.list_review_items(%s)", (rater_user_id,))
         row = await cur.fetchone()
     return cast("list[Mapping[str, Any]]", row[0] if row else [])
 
 
 async def get_review_item(connect: Connector, item_id: UUID, rater_user_id: UUID) -> Mapping[str, Any] | None:
     async with connect() as conn:
-        cur = await conn.execute("select training.get_review_item(%s, %s)", (item_id, rater_user_id))
+        cur = await one_statement(conn, "select training.get_review_item(%s, %s)", (item_id, rater_user_id))
         row = await cur.fetchone()
     return cast("Mapping[str, Any] | None", row[0] if row else None)
 
@@ -502,9 +522,9 @@ async def get_review_item(connect: Connector, item_id: UUID, rater_user_id: UUID
 async def submit_review_item(
     connect: Connector, item_id: UUID, rater_user_id: UUID, submission: Mapping[str, Any]
 ) -> Mapping[str, Any]:
-    async with connect() as conn, conn.transaction():
-        cur = await conn.execute(
-            "select training.submit_review_item(%s, %s, %s)", (item_id, rater_user_id, Jsonb(dict(submission)))
+    async with connect() as conn:
+        cur = await one_statement(
+            conn, "select training.submit_review_item(%s, %s, %s)", (item_id, rater_user_id, Jsonb(dict(submission)))
         )
         row = await cur.fetchone()
     if row is None:
@@ -526,8 +546,8 @@ class RevealResult:
 async def reveal_tournament(connect: Connector, tournament_id: str) -> RevealResult:
     """`ledger.reveal` (S4 6): manifest version 1, published nonces, status `revealed`. A second call is the
     spec's own no-op (RV-15): the same manifest id and hash come back, never a new row."""
-    async with connect() as conn, conn.transaction():
-        cur = await conn.execute("select ledger.reveal(%s)", (UUID(tournament_id),))
+    async with connect() as conn:
+        cur = await one_statement(conn, "select ledger.reveal(%s)", (UUID(tournament_id),))
         row = await cur.fetchone()
     result = cast("Mapping[str, Any]", row[0] if row else {})
     return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), 1)
@@ -538,8 +558,8 @@ async def seal_corrected_manifest(connect: Connector, tournament_id: str) -> Rev
     trial line changed (RV-18) returns the latest version with no new row -- the caller never republishes a
     "corrected" board for a manifest id a board already exists for (the table's own `unique(manifest_id,
     board)`, S4 4.2)."""
-    async with connect() as conn, conn.transaction():
-        cur = await conn.execute("select ledger.seal_corrected_manifest(%s)", (UUID(tournament_id),))
+    async with connect() as conn:
+        cur = await one_statement(conn, "select ledger.seal_corrected_manifest(%s)", (UUID(tournament_id),))
         row = await cur.fetchone()
     result = cast("Mapping[str, Any]", row[0] if row else {})
     return RevealResult(str(result["manifest_id"]), str(result["manifest_sha256"]), int(result["version"]))
@@ -571,8 +591,9 @@ class IsolationCheckRow:
 async def record_isolation_check(connect: Connector, row: IsolationCheckRow) -> None:
     """`arena.isolation_checks` (S4 4.1, S3 9): append-only, one row per item per run. `candidate_id` is set
     only for IG-6's canary attribution (FX-I02); every other item's row carries none."""
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "insert into arena.isolation_checks (candidate_id, check_name, passed, evidence) values (%s, %s, %s, %s)",
             (
                 UUID(row.candidate_id) if row.candidate_id else None,
@@ -590,7 +611,8 @@ async def fetch_isolation_result(connect: Connector, commit_sha: str) -> Isolati
     """The latest row per check name for this commit (S3 9's preamble: `isolation_pass` is scoped to the
     running code version and migration version), folded through WP-15's `isolation_result`."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select distinct on (check_name) check_name, passed, evidence ->> 'hash'"
             " from arena.isolation_checks where evidence ->> 'commit_sha' = %s"
             " order by check_name, created_at desc",
@@ -655,7 +677,8 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
     still billed for (coach calls made before the retry) is this planned trial's own cost too (M22), never
     dropped just because a later attempt superseded it."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select p.id, p.track, p.assistant_candidate_id, p.subject_candidate_id, f.family_code, ep.role,"
             "       p.block_id, e.state, adj.verdict, ff.classification,"
             "       coalesce((select sum(c.cost_usd) from ops.model_calls c"
@@ -712,7 +735,7 @@ async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> Sto
     """One trial's stored R1 and R2 judgments (`arena_referee.scoring`'s stage keys) and its data, or None when
     the trial was never scored. A replay trial's R1 is its source corpus transcript's."""
     async with connect() as conn:
-        cur = await conn.execute("select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
+        cur = await one_statement(conn, "select source_trial_id from arena.trials where id = %s", (UUID(trial_id),))
         row = await cur.fetchone()
     # A replay trial runs R2 only; its R1 is the source corpus transcript's (S3 1.3.2, D2), on the same turns.
     r1_trial = str(row[0]) if row is not None and row[0] is not None else trial_id
@@ -726,7 +749,8 @@ async def fetch_stored_trial_judgments(connect: Connector, trial_id: str) -> Sto
 async def fetch_latency_rows(connect: Connector, trial_ids: list[str]) -> list[LatencyRow]:
     """`ops.v_latency_report` (S4, C-28) for these trials: the projection S3 6.4 and M16 read."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select trial_id::text, turn_no, population, report_outcome, subject_commit_at, client_ack_at,"
             "       card_validated_server_at, instance_cold"
             "  from ops.v_latency_report where trial_id = any(%s)",
@@ -749,8 +773,9 @@ async def write_leaderboard(connect: Connector, row: LeaderboardRow) -> None:
     """`arena.leaderboards` (S4 4.1-4.2): `original` only on manifest v1, `corrected` only on later versions
     (`arena.tg_leaderboard_label`); append-only, and idempotent on `unique(manifest_id, board)` (RV-18's
     no-op correction never republishes a second row for a manifest id that already has one)."""
-    async with connect() as conn, conn.transaction():
-        await conn.execute(
+    async with connect() as conn:
+        await one_statement(
+            conn,
             "insert into arena.leaderboards (tournament_id, manifest_id, board, label, body)"
             " values (%s, %s, %s, %s, %s) on conflict (manifest_id, board) do nothing",
             (UUID(row.tournament_id), UUID(row.manifest_id), row.board, row.label, Jsonb(dict(row.body))),
@@ -766,7 +791,8 @@ async def fetch_leaderboard(
     `unique(manifest_id, board)` does not collapse them): the highest manifest version wins, never whichever
     row the server happens to return first."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select l.body from arena.leaderboards l join ledger.inclusion_manifests m on m.id = l.manifest_id"
             " where l.tournament_id = %s and l.board = %s and l.label = %s"
             " order by m.version desc limit 1",
@@ -779,7 +805,8 @@ async def fetch_leaderboard(
 async def fetch_manifest(connect: Connector, tournament_id: str, version: int) -> RevealResult | None:
     """One sealed inclusion manifest of a tournament by version (`ledger.inclusion_manifests`)."""
     async with connect() as conn:
-        cur = await conn.execute(
+        cur = await one_statement(
+            conn,
             "select id, manifest_sha256, version from ledger.inclusion_manifests"
             " where tournament_id = %s and version = %s",
             (UUID(tournament_id), version),
@@ -792,8 +819,8 @@ async def open_tournament(connect: Connector, tournament_id: str) -> None:
     """`arena.open_tournament` (S4): `frozen` -> `running`. For a hidden-split tournament, called only
     after the isolation gate passes (`arena_referee.isolation.open_hidden_tournament`, S1 L9); a dev-split
     tournament has no hidden seal to gate on and opens directly (`routes.reveal.open_route`)."""
-    async with connect() as conn, conn.transaction():
-        await conn.execute("select arena.open_tournament(%s)", (UUID(tournament_id),))
+    async with connect() as conn:
+        await one_statement(conn, "select arena.open_tournament(%s)", (UUID(tournament_id),))
 
 
 async def fetch_tournament_split(connect: Connector, tournament_id: str) -> str:
@@ -801,7 +828,7 @@ async def fetch_tournament_split(connect: Connector, tournament_id: str) -> str:
     gate (including the hidden-text scan) is specifically a hidden-tournament precondition; `dev` never
     has a hidden seal to verify, so gating it the same way would refuse every dev open forever."""
     async with connect() as conn:
-        cur = await conn.execute("select split from arena.tournaments where id = %s", (UUID(tournament_id),))
+        cur = await one_statement(conn, "select split from arena.tournaments where id = %s", (UUID(tournament_id),))
         row = await cur.fetchone()
     if row is None:
         msg = f"no tournament {tournament_id}"

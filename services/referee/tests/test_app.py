@@ -23,6 +23,7 @@ import pytest
 from fastapi import FastAPI
 
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.identity import DevIdentity, user_id_for
 from arena_core.referee.pipeline import ValidityDecision
 from arena_core.scoring.ranking import IG_ITEMS, IsolationResult, isolation_result
@@ -795,14 +796,14 @@ def test_correction_route_publishes_a_corrected_board(tmp_path: Path, monkeypatc
     assert resp.json()["manifest_version"] == corrected.manifest_version
 
 
-class _SqlConn:
+class _SqlConn(ScriptedConnection):
     """A fake connection answering by SQL substring (first match wins), recording every statement."""
 
     def __init__(self, answers: list[tuple[str, list[tuple[Any, ...]]]]) -> None:
         self.answers = answers
         self.executed: list[str] = []
 
-    async def execute(self, query: str, _params: tuple[Any, ...] = ()) -> _SqlCursor:
+    async def statement(self, query: str, _params: tuple[Any, ...] = ()) -> _SqlCursor:
         self.executed.append(query)
         return _SqlCursor(next((rows for key, rows in self.answers if key in query), []))
 

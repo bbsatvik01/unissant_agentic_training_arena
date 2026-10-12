@@ -27,7 +27,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from arena_core.db.calls import Conn
-from arena_core.db.pool import Connector
+from arena_core.db.pool import Connector, one_statement
 
 EVENTS_PAGE = 200  # S4 arena.events_after: at most 200 rows per call
 
@@ -95,6 +95,10 @@ class ArenaDb:
         self._connect = connect
         self.actor = actor
 
+    @property
+    def connector(self) -> Connector:
+        return self._connect
+
     async def _begin(self, conn: Conn) -> None:
         if self.actor is not None:
             await conn.execute("select set_config('arena.actor_id', %s, true)", (str(self.actor),))
@@ -102,9 +106,9 @@ class ArenaDb:
     async def fetch(self, query: str, params: Sequence[object] = ()) -> list[tuple[Any, ...]]:
         """Run one statement in its own transaction as this actor and return every row."""
         try:
-            async with self._connect() as conn, conn.transaction():
-                await self._begin(conn)
-                cur = await conn.execute(query, params)
+            async with self._connect() as conn:
+                actor = None if self.actor is None else str(self.actor)
+                cur = await one_statement(conn, query, params, actor=actor)
                 return list(await cur.fetchall())
         except psycopg.Error as exc:
             raise _arena_error(exc) from exc
