@@ -35,7 +35,7 @@ from arena_core.spend.guard import GuardSession, SpendGuard
 from arena_core.voice.catalogue import Speaker, speaker_for
 
 #: The model (stage 8, owner-approved real voices): Gemini 3.8 Flash TTS on Vertex AI in the global location, priced
-#: in ops.model_prices and limited by ops.call_limits['tts'] (migration 20261012000200).
+#: in ops.model_prices and limited by ops.call_limits['tts'] (migration 20261012000300).
 TTS_MODEL = "gemini-3.8-flash-tts"
 #: The call kind and purpose label its reservations carry (an ``ops.call_limits`` row must name the kind).
 TTS_CALL_KIND = "tts"
