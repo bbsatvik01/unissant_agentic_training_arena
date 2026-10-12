@@ -126,9 +126,12 @@ export function WorldRoute() {
   // reveal. Without a selection the arena shows the bundled example boards and matrix, labeled as such.
   const [boardLabel] = useState<"original" | null>(() => (new URLSearchParams(window.location.search).get("label") === "original" ? "original" : null));
   const revealed = tournamentLoad.state === "ready" && tournamentLoad.tournament.state === "revealed";
-  const published = useBoards(api, tournamentId, boardLabel, showArena || place === "hub", revealed);
+  // Each opening of the arena reads the boards again (a failed read is not final).
+  const [boardsRound, setBoardsRound] = useState(0);
+  const published = useBoards(api, tournamentId, boardLabel, showArena || place === "hub", revealed, boardsRound);
   // Stable, so the memoized precinct (whose standings wall opens the arena) does not re-render with every frame.
   const openArena = useCallback(() => {
+    setBoardsRound((r) => r + 1);
     setShowArena(true);
     setShowProgress(false);
   }, []);

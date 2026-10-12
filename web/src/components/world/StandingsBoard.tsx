@@ -27,6 +27,12 @@ export function flipAt(t: number): number {
   return (Math.PI / 2) * (1 - x) ** 3;
 }
 
+/** How far the board stands out from the wall while turned by `angle`: its half width times sin(angle), plus a
+ * small gap, so the edge turning back never passes behind its frame or the wall. Flat (0) it rests on the wall. */
+export function flipOffset(angle: number): number {
+  return angle <= 0 ? 0 : (STANDINGS_SIZE[0] / 2) * Math.sin(angle) + 0.02;
+}
+
 export function StandingsBoard({ standings, position, rotation, still, onOpen }: { standings: Standings; position: Vec3; rotation: number; still: boolean; onOpen: () => void }) {
   // Keyed on what the board says, so a re-read of the same board neither redraws nor turns it over.
   const key = standingsKey(standings);
@@ -56,7 +62,7 @@ export function StandingsBoard({ standings, position, rotation, still, onOpen }:
       g.rotation.y = flipAt(t);
       if (t >= FLIP_S) flipFrom.current = null;
     }
-    g.position.z = hover && !still ? 0.03 : 0;
+    g.position.z = flipOffset(g.rotation.y) + (hover && !still ? 0.03 : 0);
   });
   return (
     <group position={position} rotation={[0, rotation, 0]}>

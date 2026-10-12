@@ -57,4 +57,19 @@ describe("useBoards", () => {
     expect(result.current?.state.kind).toBe("error");
     expect(leaderboard).toHaveBeenCalledWith("t", "assistant", "original");
   });
+
+  it("tries a failed read again, and reads anew when the round changes", async () => {
+    vi.useFakeTimers();
+    let up = false;
+    const leaderboard = vi.fn((_t: string, board: "assistant" | "subject") => (up ? Promise.resolve(board === "assistant" ? boards.assistant : boards.subject) : Promise.reject(new ApiError(503, null, "x"))));
+    const api = { leaderboard };
+    const { result, rerender } = renderHook(({ round }: { round: number }) => useBoards(api, "t", null, true, false, round), { initialProps: { round: 0 } });
+    await act(() => vi.advanceTimersByTimeAsync(60000));
+    expect(leaderboard).toHaveBeenCalledTimes(REVEAL_TRIES * 2);
+    expect(result.current?.state.kind).toBe("error");
+    up = true;
+    rerender({ round: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(result.current?.state.kind).toBe("published");
+  });
 });
