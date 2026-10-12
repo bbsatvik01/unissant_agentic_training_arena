@@ -326,3 +326,14 @@ def test_subject_inputs_group_by_subject_skip_replay_rows_and_read_r1_labels() -
     assert (second.output, second.labels, second.subj_inc) == (None, None, SubjInc.AGAINST_SUBJECT)
     [corpus] = by_id["S2"].trials
     assert corpus.output is None  # no assistant on a corpus row: never an invented outcome
+
+
+def test_rows_show_each_candidate_s_registered_display_name() -> None:
+    # S3 5.6 / S6: a row names its candidate by the manifest's display name, never the bare id.
+    facts = [
+        dataclasses.replace(BASE, planned_trial_id="p1", assistant_id="A1", subject_id="S1"),
+        dataclasses.replace(BASE, planned_trial_id="p2", assistant_id="A2", subject_id="S1"),
+    ]
+    names = {"A1": "Coach Alpha", "S1": "Subject One"}
+    assert [c.display_name for c in candidate_inputs(facts, names=names)] == ["Coach Alpha", "A2"]
+    assert [c.display_name for c in subject_inputs(facts, {}, names)] == ["Subject One"]

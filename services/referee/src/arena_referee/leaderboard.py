@@ -85,10 +85,12 @@ def candidate_inputs(
     facts: Sequence[TrialFacts],
     scores: Mapping[str, TrialScore] | None = None,
     latency: Sequence[LatencyRow] = (),
+    names: Mapping[str, str] | None = None,
 ) -> list[CandidateInput]:
     """Groups by `assistant_id` (a `replay_corpus` row has none and is never an assistant's own trial).
     `scores`: `trial_score` by trial id; an included trial with none (never scored) still counts against QQ
-    coverage and leaves its flag metrics out, never a zero. `latency`: samples by trial id (M16).
+    coverage and leaves its flag metrics out, never a zero. `latency`: samples by trial id (M16). `names`: each
+    candidate's registered display name by id (`db.fetch_candidate_names`; an unknown id shows itself).
 
     Known gaps (not fixed this round):
     1. Groups an assistant's `interactive` and `replay` track rows into one `CandidateInput` -- S3 5.2's
@@ -143,7 +145,7 @@ def candidate_inputs(
         out.append(
             CandidateInput(
                 candidate_id=candidate_id,
-                display_name=candidate_id,
+                display_name=(names or {}).get(candidate_id, candidate_id),
                 trials=trials,
                 excluded_truthful_by_family=excluded_truthful_by_family,
                 excluded_deceptive_by_family=excluded_deceptive_by_family,
@@ -167,11 +169,13 @@ def _output(asst: AsstInc, classification: str | None) -> str | None:
     return None
 
 
-def subject_inputs(facts: Sequence[TrialFacts], r1: Mapping[str, Mapping[str, Any]]) -> list[SubjectCandidateInput]:
+def subject_inputs(
+    facts: Sequence[TrialFacts], r1: Mapping[str, Mapping[str, Any]], names: Mapping[str, str] | None = None
+) -> list[SubjectCandidateInput]:
     """Groups by `subject_id` for the subject board (S3 5.3, 5.6): interactive and corpus trials (M12/M13 "I +
     corpus"); a `replay` row re-reads a corpus transcript already counted, so it never counts twice. `r1`: each
     trial's stored R1 judgment payload (`<trial>:referee_subject`) by trial id; a trial with none adds no
-    evaluated turn."""
+    evaluated turn. `names`: each candidate's registered display name by id (an unknown id shows itself)."""
     invalid_blocks = _block_invalid_map(facts)
     by_subject: dict[str, list[SubjectTrialInput]] = {}
     for f in facts:
@@ -200,4 +204,7 @@ def subject_inputs(facts: Sequence[TrialFacts], r1: Mapping[str, Mapping[str, An
                 labels=labels,
             )
         )
-    return [SubjectCandidateInput(candidate_id=c, display_name=c, trials=t) for c, t in by_subject.items()]
+    return [
+        SubjectCandidateInput(candidate_id=c, display_name=(names or {}).get(c, c), trials=t)
+        for c, t in by_subject.items()
+    ]

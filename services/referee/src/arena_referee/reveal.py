@@ -99,6 +99,7 @@ class _Inputs:
     scores: dict[str, TrialScore]
     latency: list[LatencyRow]
     r1: dict[str, Mapping[str, Any]]
+    names: dict[str, str]
 
 
 async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
@@ -124,7 +125,8 @@ async def _gather(connect: Connector, tournament_id: str) -> _Inputs:
         msg = f"{len(unscored)} executed trial(s) not yet scored (R1/R2), e.g. {sorted(unscored)[:3]}"
         raise ScoringIncompleteError(msg)
     latency = await db.fetch_latency_rows(connect, sorted(trial_id for trial_id, _ in scored))
-    return _Inputs(tournament_id, facts, scores, latency, r1)
+    names = await db.fetch_candidate_names(connect, tournament_id)
+    return _Inputs(tournament_id, facts, scores, latency, r1, names)
 
 
 async def _publish(
@@ -142,13 +144,13 @@ async def _publish(
         bootstrap_b=ctx.bootstrap_b,
     )
     body = build_assistant_leaderboard(
-        candidates=candidate_inputs(facts, inputs.scores, inputs.latency),
+        candidates=candidate_inputs(facts, inputs.scores, inputs.latency, inputs.names),
         isolation=ctx.isolation,
         qq_calibrated=ctx.qq_calibrated,
         binding=binding,
     )
     subject_body = build_subject_leaderboard(
-        candidates=subject_inputs(facts, inputs.r1), isolation=ctx.isolation, binding=binding
+        candidates=subject_inputs(facts, inputs.r1, inputs.names), isolation=ctx.isolation, binding=binding
     )
     for board, board_body in (("assistant", body), ("subject", subject_body)):
         await db.write_leaderboard(

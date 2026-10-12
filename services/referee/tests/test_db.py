@@ -259,6 +259,18 @@ def test_fetch_block_trial_ids_restricts_to_review_eligible_states() -> None:
     assert "'completed', 'assistant_failed'" in query
 
 
+def test_fetch_candidate_names_reads_each_registered_display_name() -> None:
+    cid = uuid4()
+    conn = FakeConn({"from arena.candidates c": [(cid, "Coach Alpha")]})
+    tournament = str(uuid4())
+    assert run(db.fetch_candidate_names(connector(conn), tournament)) == {str(cid): "Coach Alpha"}
+    query, params = conn.executed[-1]
+    assert "manifest ->> 'display_name'" in query
+    assert "assistant_candidate_id" in query
+    assert "subject_candidate_id" in query
+    assert params == (UUID(tournament), UUID(tournament))
+
+
 def test_fetch_tournament_status_found_and_missing() -> None:
     found = FakeConn({"select status from arena.tournaments": [("running",)]})
     assert run(db.fetch_tournament_status(connector(found), TRIAL)) == "running"

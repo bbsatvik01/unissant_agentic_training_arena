@@ -760,6 +760,23 @@ async def fetch_latency_rows(connect: Connector, trial_ids: list[str]) -> list[L
     return [LatencyRow(r[0], r[1], r[2], r[3], r[4], r[5], r[6], bool(r[7])) for r in rows]
 
 
+async def fetch_candidate_names(connect: Connector, tournament_id: str) -> dict[str, str]:
+    """Each candidate the tournament plays, by id, with its registered display name (S2 3.1 manifest.v1
+    `display_name`; the registered `name` only if the manifest leaves it empty): what a leaderboard row shows."""
+    async with connect() as conn:
+        cur = await one_statement(
+            conn,
+            "select c.id::text, coalesce(nullif(c.manifest ->> 'display_name', ''), c.name)"
+            "  from arena.candidates c"
+            " where c.id in (select p.assistant_candidate_id from arena.planned_trials p where p.tournament_id = %s"
+            "                union"
+            "                select p.subject_candidate_id from arena.planned_trials p where p.tournament_id = %s)",
+            (UUID(tournament_id), UUID(tournament_id)),
+        )
+        rows = await cur.fetchall()
+    return {str(r[0]): str(r[1]) for r in rows}
+
+
 @dataclass(frozen=True, kw_only=True)
 class LeaderboardRow:
     tournament_id: str

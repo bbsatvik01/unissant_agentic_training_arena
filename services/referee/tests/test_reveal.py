@@ -153,6 +153,20 @@ def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> N
 
 
 @pytest.mark.usefixtures("scored")
+def test_reveal_publishes_each_candidate_s_registered_display_name() -> None:
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.planned_execution": [trial_fact_row()],
+            "from arena.candidates c": [(CANDIDATE, "Coach Alpha")],
+        }
+    )
+    run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    insert, _subject_insert = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    assert [(r["candidate_id"], r["display_name"]) for r in insert[4].obj["rows"]] == [(CANDIDATE, "Coach Alpha")]
+
+
+@pytest.mark.usefixtures("scored")
 def test_seal_correction_and_publish_skips_the_board_on_rv18s_unchanged_no_op() -> None:
     # No trial line changed: `ledger.seal_corrected_manifest` returns v1 itself (RV-18), never a new row.
     # Publishing a "corrected" board bound to v1 would trip `arena.tg_leaderboard_label` (AR020) -- the fix
