@@ -76,3 +76,4 @@
 - 86b4ea6 merge api leaderboards pass-through
 - 6588996 merge UI stage 3 (WP-20a: onboarding, KPI-1 flow, progress, consoles, replay)
 - ce1d12c merge single fake referee (arena_core/referee/fake_referee.py)
+- f77c5b0 merge UI stage 4 (trust center, debrief export, judge demo)
