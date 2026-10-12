@@ -191,9 +191,11 @@ export interface TurnEvidence {
  * read field by field. The isolation canary is never read, so it can never be drawn. */
 export interface CompliancePacket {
   readonly role: "truthful" | "deceptive" | null;
-  readonly persona: { readonly name: string; readonly position: string; readonly organization: string; readonly unit: string | null; readonly background: string } | null;
+  readonly persona: { readonly name: string; readonly position: string; readonly organization: string; readonly unit: string | null; readonly tenureYears: number | null; readonly background: string } | null;
   readonly matter: string | null;
   readonly objective: string | null;
+  /** The facts that are the subject's own relevant actions (S1 4.2), which the referee reads. */
+  readonly relevantActions: readonly string[];
   readonly facts: readonly { readonly id: string; readonly cls: string; readonly text: string; readonly gate: string | null; readonly certainty: string | null }[];
   readonly unknown: readonly { readonly fact_id: string; readonly text: string }[];
   readonly uncertainty: readonly { readonly id: string; readonly fact_id: string; readonly text: string; readonly form: string | null; readonly range: string | null }[];
@@ -218,7 +220,7 @@ function parsePacket(v: unknown): CompliancePacket | null {
   const name = isRecord(p) ? text(p["name"]) : null;
   const persona =
     isRecord(p) && name !== null
-      ? { name, position: text(p["position"]) ?? "", organization: text(p["organization"]) ?? "", unit: text(p["unit"]), background: text(p["background"]) ?? "" }
+      ? { name, position: text(p["position"]) ?? "", organization: text(p["organization"]) ?? "", unit: text(p["unit"]), tenureYears: count(p["tenure_years"]), background: text(p["background"]) ?? "" }
       : null;
   const style = v["style"];
   const limits = v["limits"];
@@ -228,6 +230,7 @@ function parsePacket(v: unknown): CompliancePacket | null {
     persona,
     matter: text(v["matter"]),
     objective: text(v["objective"]),
+    relevantActions: strings(v["relevant_action_ids"]),
     facts: list(v["facts"], (f) => {
       const id = text(f["id"]);
       const t = text(f["text"]);

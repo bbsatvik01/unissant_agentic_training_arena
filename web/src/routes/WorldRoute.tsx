@@ -84,6 +84,11 @@ export function WorldRoute() {
   const [liveCases, setLiveCases] = useState<readonly CaseCard[] | null>(null);
   const [place, setPlace] = useState<"hub" | "room">("hub");
   const placeRef = useRef(place);
+  // Every way a recording reaches the room (a file, the bundled demo run, a run from the server) takes a turn here,
+  // and only the newest turn's answer is used: choosing another run, opening a case, starting a live interview,
+  // going back to the precinct or leaving the arena before an answer arrives never lets that older answer replace
+  // what came after it.
+  const replayOrder = useRef(latestOnly());
   useEffect(() => {
     placeRef.current = place;
   });
@@ -260,6 +265,7 @@ export function WorldRoute() {
       // of a recording already in hand can open again.
       const card = cases.find((c) => c.case_id === caseId) ?? (!live && active?.case_id === caseId ? active : null);
       if (card === null) return;
+      replayOrder.current();
       setActive(card);
       // With the server, the room offers a live interview (and the recorded run for F01); without it, the recorded
       // run plays straight away where there is one.
@@ -284,6 +290,7 @@ export function WorldRoute() {
   const startSession = session.start;
   const liveCaseId = mode === "live" ? (active?.case_id ?? null) : null;
   const startLive = (m: "practice" | "assessment") => {
+    replayOrder.current();
     // Already live (a retry after a refused start): start now; otherwise once the mode has changed.
     if (liveCaseId !== null) {
       void startSession(m);
@@ -299,10 +306,6 @@ export function WorldRoute() {
     void startSession(m);
   }, [liveCaseId, startSession]);
 
-  // Every way a recording reaches the room (a file, the bundled demo run, a run from the server) takes a turn here,
-  // and only the newest turn's answer is used: choosing another run, or leaving the arena, before an answer arrives
-  // never lets that older answer replace what came after it.
-  const replayOrder = useRef(latestOnly());
   // D-021: any exported run (`recordings/<trial>.json`) plays the same way, checked whole before it is used.
   // A checked recording plays in the room the same way whether it came from a file or the server.
   const playRecording = useCallback((raw: unknown, parse: (v: unknown) => RecordingResult) => {
@@ -400,6 +403,7 @@ export function WorldRoute() {
     setShowArena(false);
   };
   const backToHub = useCallback(() => {
+    replayOrder.current();
     playback.pause();
     session.stop();
     refreshMe();

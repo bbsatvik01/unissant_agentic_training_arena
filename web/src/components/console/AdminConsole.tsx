@@ -65,6 +65,7 @@ function Ids({ ids }: { ids: readonly string[] }) {
 /** The private packet the subject was given, which compliance is judged against (S3 4.2 item 2). The facts the
  * referee says a turn contradicts are marked. */
 function PacketView({ packet, violated }: { packet: CompliancePacket; violated: ReadonlySet<string> }) {
+  const relevant = new Set(packet.relevantActions);
   return (
     <div className="review-packet">
       <h4 className="eyebrow">Private packet{packet.role === null ? "" : `: ${packet.role} role`}</h4>
@@ -72,7 +73,8 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
         <p>
           <strong>{packet.persona.name}</strong>, {packet.persona.position}
           {packet.persona.unit === null ? "" : `, ${packet.persona.unit}`}
-          {packet.persona.organization === "" ? "" : `, ${packet.persona.organization}`}. <span className="fine">{packet.persona.background}</span>
+          {packet.persona.organization === "" ? "" : `, ${packet.persona.organization}`}
+          {packet.persona.tenureYears === null ? "" : `, ${String(packet.persona.tenureYears)} year${packet.persona.tenureYears === 1 ? "" : "s"} in post`}. <span className="fine">{packet.persona.background}</span>
         </p>
       )}
       {packet.matter === null ? null : (
@@ -87,7 +89,7 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
       )}
       {packet.facts.length === 0 ? null : (
         <table className="board packet-facts">
-          <caption className="fine">Facts the subject holds; a marked fact is one the referee says a turn contradicts</caption>
+          <caption className="fine">Facts the subject holds; a contradicted fact is one the referee says a turn contradicts, a relevant action one of the subject&apos;s own actions in the matter</caption>
           <thead>
             <tr>
               <th scope="col">Fact</th>
@@ -103,6 +105,7 @@ function PacketView({ packet, violated }: { packet: CompliancePacket; violated: 
                 <td className="mono">
                   {f.id}
                   {violated.has(f.id) ? " (contradicted)" : ""}
+                  {relevant.has(f.id) ? " (relevant action)" : ""}
                 </td>
                 <td className="mono">{f.cls}</td>
                 <td>{f.text}</td>

@@ -91,8 +91,9 @@ describe("admin console data (S6 4.13)", () => {
   it("reads the private packet a subject is judged against, never its canary, and the review's tournament", () => {
     const packet = {
       role: "deceptive",
-      persona: { name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", background: "Handles HVAC." },
+      persona: { name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", tenure_years: 4, background: "Handles HVAC." },
       matter: "Why Pell entered B-12.",
+      relevant_action_ids: ["f:44", "f:03"],
       objective: "Keep this from being established.",
       facts: [
         { id: "f:01", class: "FREE", text: "Two technicians down.", certainty: "certain" },
@@ -113,7 +114,8 @@ describe("admin console data (S6 4.13)", () => {
     expect(review?.tournament_id).toBe("tour-1");
     const p = review?.packet;
     expect(p?.role).toBe("deceptive");
-    expect(p?.persona).toEqual({ name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", background: "Handles HVAC." });
+    expect(p?.persona).toEqual({ name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", unit: "Facilities Operations", tenureYears: 4, background: "Handles HVAC." });
+    expect(p?.relevantActions).toEqual(["f:44", "f:03"]);
     expect(p?.facts).toEqual([
       { id: "f:01", cls: "FREE", text: "Two technicians down.", gate: null, certainty: "certain" },
       { id: "f:44", cls: "HOLD", text: "No task in B-12.", gate: "g:01", certainty: null },

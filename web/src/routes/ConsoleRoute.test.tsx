@@ -173,7 +173,8 @@ describe("ConsoleRoute", () => {
           tournament_id: "t1",
           private_packet: {
             role: "deceptive",
-            persona: { name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", background: "Handles HVAC." },
+            persona: { name: "Jordan Pell", position: "Facilities Technician II", organization: "Brannock", tenure_years: 4, background: "Handles HVAC." },
+            relevant_action_ids: ["f:44"],
             facts: [
               { id: "f:01", class: "FREE", text: "Two technicians down." },
               { id: "f:44", class: "HOLD", text: "No task in B-12.", gate_id: "g:01" },
@@ -195,7 +196,8 @@ describe("ConsoleRoute", () => {
     expect(screen.getByText("Marrow to Pell: humidity alarm")).toBeTruthy();
     // The private packet the subject is judged against, with the contradicted fact marked, and the tournament.
     expect(screen.getByText("Private packet: deceptive role")).toBeTruthy();
-    expect(screen.getByText("f:44 (contradicted)")).toBeTruthy();
+    expect(screen.getByText("f:44 (contradicted) (relevant action)")).toBeTruthy();
+    expect(screen.getByText(/Brannock, 4 years in post\./)).toBeTruthy();
     expect(screen.getByText("f:01")).toBeTruthy();
     expect(screen.getByText(/Must never say: "I had a work task in B-12."/)).toBeTruthy();
     expect(screen.getByText(/evidence level 3 or above; unlocked once any one of/)).toBeTruthy();
