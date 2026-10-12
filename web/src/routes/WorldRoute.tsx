@@ -42,6 +42,7 @@ import { useMe } from "./world/useMe";
 import { useProgress } from "./world/useProgress";
 import { useMotionPrefs } from "./world/useMotionPrefs";
 import { useVoice } from "./world/useVoice";
+import { roomEngine } from "./world/voiceEngines";
 import { usePlayback } from "./world/usePlayback";
 
 const WorldCanvas = lazy(() => import("../components/world/WorldCanvas"));
@@ -444,8 +445,11 @@ export function WorldRoute() {
   // Reduced motion or the pause control: loops stop, camera moves cut, signature moments show their end state.
   const still = reducedMotion || paused;
   const reason = composerReason(view, mode, live);
-  // Voices speak only in the room, unmuted, live or during playback at normal speed.
+  // Voices speak only in the room, unmuted, live or during playback at normal speed: Gemini voices through the server
+  // when it is there (each line cached there, so a recorded run replays for free), the browser's own otherwise.
+  const engine = useMemo(() => roomEngine(live ? api : null), [live, api]);
   useVoice({
+    engine,
     world,
     view,
     subjectName,

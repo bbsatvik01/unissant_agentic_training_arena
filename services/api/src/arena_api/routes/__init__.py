@@ -1,4 +1,4 @@
-"""arena-api routes (S5 5.5). Tournament, trust-center and voice routes land with WP-17, WP-20b and WP-22; static
+"""arena-api routes (S5 5.5). Tournament and voice routes land with WP-17 and WP-22; static
 serving with the hosted variant (WP-33)."""
 
 from __future__ import annotations
@@ -16,11 +16,14 @@ from arena_api.routes import (
     sessions,
     sse,
     telemetry,
+    trust,
+    tts,
     turns,
 )
 
 router = APIRouter()
-for module in (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards, progress):
+_MODULES = (me, cases, sessions, turns, evidence, findings, sse, debrief, telemetry, leaderboards, progress, trust, tts)
+for module in _MODULES:
     router.include_router(module.router)
 
 __all__ = ["router"]

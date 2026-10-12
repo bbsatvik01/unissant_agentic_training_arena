@@ -394,3 +394,34 @@ def test_tournament_status_and_leaderboard_reads() -> None:
     assert found == {"body": {"board": "assistant"}, "label": "corrected", "manifest_version": 2}
     assert run(arena.leaderboard(tournament, "subject", "original")) is None
     assert script.executed[-1][1] == (tournament, "subject", "original", "original")
+
+
+def test_trust_center_reads() -> None:
+    payload = {"transcript_sha256": "t" * 64, "evidence_sha256": "e" * 64}
+    tournament = uuid4()
+    arena, _ = db(
+        [
+            ("arena.v_isolation_checks", [("hidden_text_scan", "A1", True, NOW, "c" * 40)]),
+            ("ledger.v_commitments", [(tournament, "dev-1", 1, "x" * 64, json.dumps(payload), "n" * 64)]),
+            ("ops.v_budget_status", [(Decimal("74"), Decimal("3.5"), Decimal("1.25"))]),
+            ("ops.v_call_costs", [("coach.card", 4, Decimal("0.20"))]),
+            ("ops.v_budget_status", []),
+            ("ops.v_call_costs", []),
+        ]
+    )
+    assert run(arena.isolation_checks()) == [
+        {"check": "hidden_text_scan", "candidate": "A1", "passed": True, "run_at": iso(NOW), "commit_sha": "c" * 40}
+    ]
+    [commitment] = run(arena.revealed_commitments())
+    assert commitment["trial_ref"] == "dev-1 #1"
+    assert commitment["transcript_sha256"] == "t" * 64
+    assert commitment["nonce"] == "n" * 64
+    assert commitment["tournament_id"] == str(tournament)
+    budget = run(arena.budget_view())
+    assert budget == {
+        "ceiling_usd": "74",
+        "spent_usd": "2.25",
+        "open_usd": "1.25",
+        "by_purpose": [{"purpose": "coach.card", "calls": 4, "spent_usd": "0.20"}],
+    }
+    assert run(arena.budget_view())["ceiling_usd"] == "0"

@@ -273,3 +273,12 @@ def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None
         other.get(f"/api/sessions/{session}/debrief").status_code,
     ):
         assert status == HTTPStatus.NOT_FOUND
+
+
+def test_the_trust_center_reads_the_real_views(dsns: dict[str, str]) -> None:
+    api = Client(dsns)
+    for section in ("isolation", "commitments", "fairness", "methodology", "budget"):
+        assert api.get(f"/api/trust/{section}").status_code == HTTPStatus.OK
+    budget = api.get("/api/trust/budget").json()
+    assert set(budget) == {"ceiling_usd", "spent_usd", "open_usd", "by_purpose", "planned_n"}
+    assert isinstance(api.get("/api/trust/commitments").json()["commitments"], list)

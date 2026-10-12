@@ -13,7 +13,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, PCFShadowMap, PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-import { COACHES, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
+import { COACHES, HUB_CREW, HUB_STAFF, INVESTIGATOR, subjectPersona } from "../../lib/world/cast";
 import type { CaseCard } from "../../lib/world/cases";
 import type { ShotName } from "../../lib/world/layout";
 import { nextTier, TIERS, WINDOW, type Tier } from "../../lib/world/quality";
@@ -154,6 +154,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
     for (const coach of COACHES) preloadAvatar(coach);
     preloadAvatar(INVESTIGATOR);
     preloadAvatar(HUB_STAFF);
+    for (const p of HUB_CREW) preloadAvatar(p);
   }, [persona]);
   return (
     <Canvas
@@ -177,6 +178,7 @@ export default function WorldCanvas(props: WorldCanvasProps) {
         reducedMotion={props.reducedMotion}
         shadows={settings.shadowMap > 0}
         present={props.place === "hub"}
+        crowd={settings.crowd}
         clock={props.clock}
         still={props.still}
         onOpenCase={props.onOpenCase}

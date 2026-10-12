@@ -31,6 +31,7 @@ class ApiState:
     coach_name: str = "A1"
     subject_name: str = "S1"
     case_draw_seed: str = "0"
+    planned_n: int = 30  # S8 1.3: the 30-case baseline (34 only if OD-8 approves after the dev pilot)
     stream_max_s: float = 600.0
     stream_poll_s: float = 1.0
     ping_after_s: float = 15.0

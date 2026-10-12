@@ -14,8 +14,8 @@ import { useEffect, useRef } from "react";
 import type { TrialView } from "../../lib/trial/trialReducer";
 import { COACHES, INVESTIGATOR, subjectPersona, type Persona } from "../../lib/world/cast";
 import type { WorldState } from "../../lib/world/worldState";
+import type { VoiceEngine } from "../../lib/voice/gemini";
 import { speechSync, type SpokenLine } from "../../lib/voice/speechSync";
-import { fitRate, pickVoice, utteranceSettings } from "../../lib/voice/tts";
 
 interface Options {
   readonly world: WorldState | null;
@@ -26,6 +26,8 @@ interface Options {
   readonly active: boolean;
   /** The session or recording in the room: lines already spoken are forgotten when it changes. */
   readonly scope: string;
+  /** Who speaks: Gemini voices through the server, or the browser's own (`roomEngine`). */
+  readonly engine: VoiceEngine;
 }
 
 const START_WINDOW_MS = 500;
@@ -33,98 +35,89 @@ const START_WINDOW_MS = 500;
 const REWIND_MS = 250;
 const COACH = COACHES[2] ?? INVESTIGATOR;
 
-function synth(): SpeechSynthesis | null {
-  return typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
-}
-
-/** What has been voiced: line keys, coach cards, the clock at the last look, and the utterance speaking now. */
+/** What has been voiced: line keys, coach cards, the clock at the last look, and the item speaking now. */
 interface Memory {
   spoken: Set<string>;
   cards: Set<number>;
   lastClock: number;
-  speaking: { readonly utterance: SpeechSynthesisUtterance; readonly kind: "dialogue" | "coach" } | null;
-  /** Coach utterances queued or speaking: while any is, a new line queues instead of cancelling. */
+  speaking: { readonly token: object; readonly kind: "dialogue" | "coach" } | null;
+  /** Coach items queued or speaking: while any is, a new line queues instead of cancelling. */
   coachPending: number;
 }
 
-/** Speak `text`; a dialogue line reports its voice to `speechSync` (queued until it starts, so its mouth waits). */
-function speak(memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
-  const s = synth();
-  if (s === null) return;
-  const u = new SpeechSynthesisUtterance(text);
-  const voice = pickVoice(s.getVoices(), persona.voice.prefer);
-  if (voice !== null) u.voice = voice;
-  const { pitch, rate } = utteranceSettings(persona.voice);
-  u.pitch = pitch;
-  u.rate = line === null ? rate : fitRate(text, rate);
-  u.volume = volume;
+/** Speak `text` through the engine; a dialogue line reports its voice to `speechSync` (queued until it starts, so its
+ * mouth waits). */
+function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
   const epoch = speechSync.epoch();
+  const token = {};
   let pending = kind === "coach";
   if (pending) memory.coachPending += 1;
-  const done = () => {
-    if (pending) {
-      pending = false;
-      memory.coachPending = Math.max(0, memory.coachPending - 1);
-    }
-    if (memory.speaking?.utterance === u) memory.speaking = null;
-    if (line !== null) speechSync.end(line, epoch);
-  };
-  u.onstart = () => {
-    memory.speaking = { utterance: u, kind };
-    if (line !== null) speechSync.at(line, 0, clock.current, epoch);
-  };
-  u.onboundary = (e) => {
-    if (line !== null) speechSync.at(line, e.charIndex, clock.current, epoch);
-  };
-  u.onend = done;
-  u.onerror = done;
   if (line !== null) speechSync.queue(line, clock.current, epoch);
-  s.speak(u);
+  engine.speak(
+    { voice: persona.voice, text, volume, line },
+    {
+      onstart: () => {
+        memory.speaking = { token, kind };
+        if (line !== null) speechSync.at(line, 0, clock.current, epoch);
+      },
+      onprogress: (charIndex) => {
+        if (line !== null) speechSync.at(line, charIndex, clock.current, epoch);
+      },
+      onend: () => {
+        if (pending) {
+          pending = false;
+          memory.coachPending = Math.max(0, memory.coachPending - 1);
+        }
+        if (memory.speaking?.token === token) memory.speaking = null;
+        if (line !== null) speechSync.end(line, epoch);
+      },
+    },
+  );
 }
 
 /** Stop every voice; lines go back to their text cadence. */
-function silence(memory: Memory): void {
+function silence(engine: VoiceEngine, memory: Memory): void {
+  speechSync.clear();
+  engine.cancel();
   memory.speaking = null;
   memory.coachPending = 0;
-  speechSync.clear();
-  synth()?.cancel();
 }
 
-function forget(memory: Memory): void {
+function forget(engine: VoiceEngine, memory: Memory): void {
   memory.spoken = new Set();
   memory.cards = new Set();
-  silence(memory);
+  silence(engine, memory);
 }
 
 /** Forget what was voiced when the clock has gone back since the last look (Replay, a seek back). */
-function noteClock(memory: Memory, now: number): void {
-  if (now + REWIND_MS < memory.lastClock) forget(memory);
+function noteClock(engine: VoiceEngine, memory: Memory, now: number): void {
+  if (now + REWIND_MS < memory.lastClock) forget(engine, memory);
   memory.lastClock = now;
 }
 
-export function useVoice({ world, view, subjectName, clock, active, scope }: Options): void {
+export function useVoice({ world, view, subjectName, clock, active, scope, engine }: Options): void {
   const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0 });
   useEffect(() => {
-    forget(memory.current);
+    forget(engine, memory.current);
     memory.current.lastClock = 0;
-  }, [scope]);
+  }, [scope, engine]);
 
   useEffect(() => {
-    if (!active) silence(memory.current);
-  }, [active]);
+    if (!active) silence(engine, memory.current);
+  }, [active, engine]);
 
   useEffect(() => {
     const m = memory.current;
     return () => {
-      silence(m);
+      silence(engine, m);
     };
-  }, []);
+  }, [engine]);
 
   const subject = world?.subject.speech ?? null;
   const question = world?.investigator.speech ?? null;
   useEffect(() => {
     const m = memory.current;
-    noteClock(m, clock.current);
+    noteClock(engine, m, clock.current);
     if (!active) return;
     for (const [who, line] of [
       ["i", question],
@@ -137,19 +130,19 @@ export function useVoice({ world, view, subjectName, clock, active, scope }: Opt
       if (clock.current - line.startedAt > START_WINDOW_MS) continue;
       // A newer line supersedes the dialogue being spoken; the coach's suggestion (speaking or queued) is never
       // cut: the line waits behind it.
-      if (m.coachPending === 0) synth()?.cancel();
-      speak(m, "dialogue", who === "s" ? subjectPersona(subjectName) : INVESTIGATOR, line.text, 1, line, clock);
+      if (m.coachPending === 0) engine.cancel();
+      speak(engine, m, "dialogue", who === "s" ? subjectPersona(subjectName) : INVESTIGATOR, line.text, 1, line, clock);
     }
-  }, [active, subject, question, subjectName, clock]);
+  }, [active, subject, question, subjectName, clock, engine]);
 
   // The coach reads its suggested follow-up as it hands a new card over (practice only; queued after the answer).
   const newest = view?.mode === "practice" ? (view.cards.at(-1) ?? null) : null;
   const handing = world?.coaches.some((c) => c.pose === "handing") ?? false;
   useEffect(() => {
     const m = memory.current;
-    noteClock(m, clock.current);
+    noteClock(engine, m, clock.current);
     if (!active || !handing || newest === null || m.cards.has(newest.turn_no)) return;
     m.cards.add(newest.turn_no);
-    speak(m, "coach", COACH, `Suggested follow-up: ${newest.card.follow_up.question}`, 0.8, null, clock);
-  }, [newest, handing, active, clock]);
+    speak(engine, m, "coach", COACH, `Suggested follow-up: ${newest.card.follow_up.question}`, 0.8, null, clock);
+  }, [newest, handing, active, clock, engine]);
 }

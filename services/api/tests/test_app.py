@@ -33,6 +33,7 @@ from packages.core.tests.turns.fakedb import PACKET, FakeArenaDb
 
 REPO = Path(__file__).resolve().parents[3]
 BASE = "http://127.0.0.1:8080"
+PLANNED_N = 30  # S8 1.3 baseline
 TURNS = 3  # A1's deep update falls on the third exchange
 EMAIL = "a@example.test"
 WHO = DevIdentity(user_id=user_id_for(EMAIL), email=EMAIL, display_name="A", roles=frozenset({"investigator"}))
@@ -591,3 +592,23 @@ def test_a_session_does_not_start_before_the_ex4_acknowledgement() -> None:
     assert "start_session" not in h.db.calls
     assert h.post("/api/me/ack-ex4").status_code == HTTPStatus.OK
     assert h.post("/api/sessions", body).status_code == HTTPStatus.OK
+
+
+# ------------------------------------------------------------------ trust center (S5 5.5, S6 4.11)
+
+
+def test_each_trust_section_reads_published_data_only() -> None:
+    h = Harness()
+    checks = h.get("/api/trust/isolation").json()["checks"]
+    assert checks[0]["check"] == "hidden_text_scan"
+    assert "evidence" not in checks[0]
+    assert h.get("/api/trust/commitments").json() == {"commitments": []}
+    fairness = h.get("/api/trust/fairness").json()
+    assert fairness["published"] is False
+    assert fairness["style_fpr"] == []
+    assert h.get("/api/trust/methodology").json() == {"calibration": []}
+    budget = h.get("/api/trust/budget").json()
+    assert budget["ceiling_usd"] == "0.000000"  # plan not applied: the page says so (FE-TRUST-4)
+    assert budget["planned_n"] == PLANNED_N
+    assert h.get("/api/trust/other").status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert h.get("/api/config").json()["planned_n"] == PLANNED_N

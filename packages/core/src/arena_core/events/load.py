@@ -207,7 +207,8 @@ def _case(packet: dict[str, Any]) -> dict[str, Any]:
 
 def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str, Any]:
     """D-021 `arena.recording.v1`: the public case, the opening snapshot, every frame the owner saw live with
-    its time from the session start, and the published debrief when there is one. The UI player
+    its time from the session start, the end-of-trial snapshot once the trial ended, and the published debrief
+    when there is one. The UI player
     (`web/src/lib/world/recording.ts`) reads exactly this shape."""
     return {
         "format": RECORDING_FORMAT,
@@ -219,5 +220,15 @@ def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str
             Viewer(trial_ended=False, mode=trial.mode, internal_visible=trial.internal_visible),
         ),
         "events": recording_events(trial.events, trial.mode, trial.started_ms, internal_visible=trial.internal_visible),
+        # The trial's terminal state as its owner reads it after the end (S5 6.2): in assessment mode the coaching
+        # withheld during the session is here, so a recording played from disk can show it (FE-DEB-4).
+        # Built without the debrief_ready row, so the snapshot's last_seq stays below it and the player keeps that
+        # frame (a snapshot supersedes every frame at or below its last_seq). `trial.viewer` carries a harness
+        # trial's internal visibility too.
+        "final_snapshot": (
+            snapshot(trial.state(), [e for e in trial.events if e.kind != "debrief_ready"], trial.viewer)
+            if trial.ended
+            else None
+        ),
         "debrief": debrief,
     }

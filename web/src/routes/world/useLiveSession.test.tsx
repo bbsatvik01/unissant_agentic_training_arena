@@ -39,6 +39,7 @@ function api(overrides: Partial<ArenaApi>): ArenaApi {
     ackEx4: refuse,
     progress: refuse,
     recording: refuse,
+    speak: refuse,
     ...overrides,
   };
 }

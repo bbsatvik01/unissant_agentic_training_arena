@@ -18,6 +18,7 @@ else Application Default Credentials. API keys are never used (D-001, boot check
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol
@@ -245,3 +246,103 @@ def vertex_adapter(env: Mapping[str, str], *, location: str = TEXT_LOCATION) -> 
     """The runtime adapter: project from ARENA_GCP_PROJECT (boot-checked, D-015), credentials per S5 10.2."""
     project = env.get("ARENA_GCP_PROJECT", "")
     return VertexAdapter(build_vertex_client(project, location, vertex_credentials(env)))
+
+
+# ============================================================================================= text-to-speech
+# Stage 5: one spoken line in one prebuilt voice (arena_core.voice.tts owns the cache and the spend guard). The same
+# client rules as text calls: the arena project only, a pinned host, no SDK retries, the billing label.
+
+SPEECH_LOCATION = "global"
+SPEECH_SAMPLE_RATE = 24_000
+SPEECH_MAX_OUTPUT_TOKENS = 2_000  # 25 audio tokens a second: 80 s, past the longest line's reading time (60 s)
+
+
+def build_speech_config(voice: str, timeout_s: float) -> gtypes.GenerateContentConfig:
+    """Audio out in one prebuilt voice, labelled, one attempt, bounded output."""
+    return gtypes.GenerateContentConfig(
+        response_modalities=["AUDIO"],
+        speech_config=gtypes.SpeechConfig(
+            voice_config=gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name=voice))
+        ),
+        max_output_tokens=SPEECH_MAX_OUTPUT_TOKENS,
+        labels={"app": "unissant-arena"},
+        automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
+        http_options=gtypes.HttpOptions(retry_options=no_sdk_retries(), timeout=max(1, int(timeout_s * 1000))),
+    )
+
+
+def speech_request_body(text: str, voice: str) -> dict[str, object]:
+    """The Vertex `generateContent` JSON body google-genai 2.24.0 sends for one spoken line, field for field (the
+    speech tests compare it with the body the pinned SDK actually puts on the wire)."""
+    return {
+        "contents": [{"parts": [{"text": text}], "role": "user"}],
+        "labels": {"app": "unissant-arena"},
+        "generationConfig": {
+            "maxOutputTokens": SPEECH_MAX_OUTPUT_TOKENS,
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voice_name": voice}}},
+        },
+    }
+
+
+def speech_request_bytes(text: str, voice: str) -> int:
+    """The exact byte length of that body as transmitted (``json.dumps`` defaults, so every non-ASCII character costs
+    its escape): what a line's reservation is measured on (S5 3.2, D11)."""
+    return len(json.dumps(speech_request_body(text, voice)).encode("ascii"))
+
+
+def speech_from(resp: gtypes.GenerateContentResponse) -> tuple[bytes, Usage | None]:
+    """The response's audio and billed usage (prompt tokens in, audio tokens out); typed errors otherwise."""
+    meta = resp.usage_metadata
+    usage = None
+    if meta is not None and meta.prompt_token_count is not None and meta.candidates_token_count is not None:
+        usage = Usage(input_tokens=meta.prompt_token_count, output_tokens=meta.candidates_token_count)
+    candidate = resp.candidates[0] if resp.candidates else None
+    parts = candidate.content.parts if candidate and candidate.content and candidate.content.parts else []
+    audio = b"".join(p.inline_data.data for p in parts if p.inline_data is not None and p.inline_data.data)
+    if candidate is not None and candidate.finish_reason in _BLOCKED_REASONS:
+        raise ProviderCallError(
+            ErrorKind.BLOCKED, f"finish_reason={candidate.finish_reason}", usage=usage, maybe_billed=True
+        )
+    if not audio:
+        raise ProviderCallError(ErrorKind.EMPTY, "no audio in the reply", usage=usage, maybe_billed=True)
+    return audio, usage
+
+
+@dataclass(frozen=True)
+class VertexSpeech:
+    """Gemini TTS on Vertex AI (``arena_core.voice.tts.TTS_MODEL``): 16-bit mono PCM at 24 kHz."""
+
+    client: VertexClient
+    model: str
+    timeout_s: float = 60.0
+
+    async def synthesize(self, text: str, voice: str) -> tuple[bytes, int, Usage | None]:
+        contents: list[gtypes.ContentUnion] = [gtypes.Content(role="user", parts=[gtypes.Part(text=text)])]
+        try:
+            resp = await self.client.aio.models.generate_content(
+                model=self.model, contents=contents, config=build_speech_config(voice, self.timeout_s)
+            )
+        except genai_errors.APIError as exc:
+            raise ProviderCallError(kind_for_status(exc.code), f"HTTP {exc.code}", status=exc.code) from exc
+        except google_auth_exceptions.GoogleAuthError as exc:
+            raise ProviderCallError(ErrorKind.BAD_REQUEST, f"credentials: {type(exc).__name__}") from exc
+        except httpx.TimeoutException as exc:
+            raise ProviderCallError(ErrorKind.TRANSIENT, "timeout", maybe_billed=True) from exc
+        except httpx.TransportError as exc:
+            never_sent = isinstance(exc, httpx.ConnectError)
+            raise ProviderCallError(
+                ErrorKind.TRANSIENT, f"transport error: {type(exc).__name__}", maybe_billed=not never_sent
+            ) from exc
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
+            raise ProviderCallError(
+                ErrorKind.TRANSIENT, f"malformed response: {type(exc).__name__}", maybe_billed=True
+            ) from exc
+        audio, usage = speech_from(resp)
+        return audio, SPEECH_SAMPLE_RATE, usage
+
+
+def vertex_speech(env: Mapping[str, str], model: str) -> VertexSpeech:
+    """The runtime speech client: project from ARENA_GCP_PROJECT (D-015), credentials per S5 10.2, global location."""
+    project = env.get("ARENA_GCP_PROJECT", "")
+    return VertexSpeech(build_vertex_client(project, SPEECH_LOCATION, vertex_credentials(env)), model)
