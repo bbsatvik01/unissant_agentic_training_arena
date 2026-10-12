@@ -612,3 +612,10 @@ def test_each_trust_section_reads_published_data_only() -> None:
     assert budget["planned_n"] == PLANNED_N
     assert h.get("/api/trust/other").status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert h.get("/api/config").json()["planned_n"] == PLANNED_N
+
+
+def test_the_published_fairness_audit_is_served_as_published() -> None:
+    h = Harness()
+    audit = {"published": True, "style_fpr": [{"candidate": "A1", "style": "verbosity=terse"}], "tests": []}
+    h.db.published_fairness = audit
+    assert h.get("/api/trust/fairness").json() == audit

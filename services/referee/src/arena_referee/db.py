@@ -11,8 +11,9 @@ SQL, so a reviewer can check it against the schema directly.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
@@ -558,6 +559,9 @@ class TrialFacts:
     settled_cost: Decimal
     trial_id: str | None = None  # the latest attempt (`ledger.planned_execution`); None before any attempt
     cell: str = ""  # the planned cell two assistants share (a replay row's corpus transcript), S3 5.5's pairs
+    variant_id: str = ""
+    style: Mapping[str, str] = field(default_factory=dict)  # the variant's style levels per axis (S1; S3 8)
+    position: int = 0  # the planned trial's position in its roster (FA-5c reads it within each block)
 
 
 _COACH_PURPOSES = ("coach.card", "coach.deep", "coach.final")
@@ -582,7 +586,8 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             "                    and r.purpose = any(%s)), 0), e.trial_id,"
             "       coalesce(p.source_planned_trial_id::text,"
             "                p.variant_id::text || ':' || coalesce(p.subject_candidate_id::text, '')"
-            "                || ':' || p.repeat)"
+            "                || ':' || p.repeat),"
+            "       p.variant_id, v.style::text, p.position"
             "  from arena.planned_trials p"
             "  join arena.case_variants v on v.id = p.variant_id"
             "  join arena.case_families f on f.id = v.family_id"
@@ -621,6 +626,9 @@ async def fetch_tournament_trial_facts(connect: Connector, tournament_id: str) -
             settled_cost=Decimal(r[10]),
             trial_id=str(r[11]) if r[11] else None,
             cell=str(r[12]),
+            variant_id=str(r[13]),
+            style={str(k): str(v) for k, v in json.loads(r[14]).items()},
+            position=int(r[15]),
         )
         for r in rows
     ]

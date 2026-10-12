@@ -356,6 +356,15 @@ class ArenaDb:
             )
         return out
 
+    async def fairness(self) -> dict[str, Any] | None:
+        """The fairness audit published with the newest assistant board (S3 8.1 item 4: published with the
+        leaderboard; boards exist only after reveal), or None before any is published."""
+        rows = await self.fetch(
+            "select (body -> 'fairness')::text from arena.v_leaderboards"
+            " where board = 'assistant' and body ? 'fairness' order by created_at desc limit 1"
+        )
+        return json.loads(rows[0][0]) if rows and rows[0][0] is not None else None
+
     async def budget_view(self) -> dict[str, Any]:
         """The `global` bucket (`ops.v_budget_status`) and spend by purpose label (`ops.v_call_costs`), money as
         decimal strings. `spent_usd` is the bucket's settled liability (liability minus open holds)."""

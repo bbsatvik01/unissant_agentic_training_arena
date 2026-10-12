@@ -309,3 +309,9 @@ def test_trust_center_reads() -> None:
         "by_purpose": [{"purpose": "coach.card", "calls": 4, "spent_usd": "0.20"}],
     }
     assert run(arena.budget_view())["ceiling_usd"] == "0"
+
+
+def test_fairness_reads_the_newest_published_audit() -> None:
+    arena, _ = db([("arena.v_leaderboards", [(json.dumps({"published": True}),)]), ("arena.v_leaderboards", [])])
+    assert run(arena.fairness()) == {"published": True}
+    assert run(arena.fairness()) is None

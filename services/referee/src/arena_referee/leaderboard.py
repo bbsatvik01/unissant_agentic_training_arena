@@ -7,18 +7,27 @@ agrees with the sealed manifest by construction, never by a second, possibly dri
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
 from arena_core.contracts.adapter import adapt_subject_report, contradiction_triggers, verdicts_by_key
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
+from arena_core.referee.fairness_audit import FairTrial, LabelTrial
 from arena_core.referee.leaderboard import CandidateInput, SubjectCandidateInput, SubjectTrialInput, TrialScore
 from arena_core.scoring.flags import BROAD, STRICT, evasion_counts, support_counts
-from arena_core.scoring.inclusion import AsstInc, Exec, block_invalid, inclusion
+from arena_core.scoring.inclusion import AsstInc, Exec, SubjInc, block_invalid, inclusion
 from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.metrics import TrialOutcome
-from arena_core.scoring.rubric import Closure, assistant_questions, closure_score, score_rubric, triggers_from
+from arena_core.scoring.rubric import (
+    Closure,
+    assistant_questions,
+    closure_checks,
+    closure_score,
+    score_rubric,
+    triggers_from,
+)
 from arena_referee.db import StoredTrialJudgments, TrialFacts
 from arena_referee.debrief import demeanor_hit
 from arena_referee.mapping import (
@@ -63,6 +72,7 @@ def trial_score(family_id: str, stored: StoredTrialJudgments) -> TrialScore:
     )
     verdicts = verdicts_by_key(cards, assistant)
     turn_labels = {n: lab.label for n, lab in labels.items()}
+    fails_5c = finding is not None and closure_checks(closure, assistant.subchecks)["5c"].result is False
     return TrialScore(
         family_id=family_id,
         qq=score_rubric(questions, triggers, assistant.subchecks, closure).qq,
@@ -70,6 +80,7 @@ def trial_score(family_id: str, stored: StoredTrialJudgments) -> TrialScore:
         strict=evasion_counts(cards, turn_labels, rows, verdicts, kinds=STRICT),
         broad=evasion_counts(cards, turn_labels, rows, verdicts, kinds=BROAD),
         support=support_counts(cards, rows, verdicts),
+        finding_fails_5c=fails_5c,
     )
 
 
@@ -201,3 +212,95 @@ def subject_inputs(facts: Sequence[TrialFacts], r1: Mapping[str, Mapping[str, An
             )
         )
     return [SubjectCandidateInput(candidate_id=c, display_name=c, trials=t) for c, t in by_subject.items()]
+
+
+# ---------------------------------------------------------------- the fairness audit's inputs (S3 8)
+
+
+@dataclass(frozen=True)
+class TrialExtras:
+    """What the fairness audit reads from a scored trial beyond its `TrialScore`: the subject turns answered (FA-2's
+    denominator)."""
+
+    subject_turns: int
+
+
+def trial_extras(stored: StoredTrialJudgments) -> TrialExtras:
+    return TrialExtras(sum(1 for t in stored.data.transcript if t.get("answer")))
+
+
+def _block_positions(facts: Sequence[TrialFacts]) -> dict[str, int]:
+    """FA-5c's within-block position: each planned trial's ordinal (1-based) in its block, by roster position."""
+    by_block: dict[str, list[TrialFacts]] = {}
+    for f in facts:
+        if f.block_id is not None:
+            by_block.setdefault(f.block_id, []).append(f)
+    return {
+        f.planned_trial_id: i
+        for rows in by_block.values()
+        for i, f in enumerate(sorted(rows, key=lambda r: (r.position, r.planned_trial_id)), start=1)
+    }
+
+
+_TRACK = {"interactive": "I", "replay": "R"}
+
+
+def fairness_inputs(
+    facts: Sequence[TrialFacts],
+    scores: Mapping[str, TrialScore],
+    extras: Mapping[str, TrialExtras],
+    r1: Mapping[str, Mapping[str, Any]],
+) -> tuple[list[FairTrial], list[LabelTrial]]:
+    """The audit's per-trial inputs from the same facts the boards read: each assistant trial with its inclusion
+    (S3 4.3, the boards' own `inclusion()`), output, style, block position and flag counts; and, for FA-4, the R1
+    labels of each assistant trial's truthful transcript (a replay trial's are its source corpus transcript's),
+    unless the subject side of that trial is excluded (an invalid block, S3 4.3)."""
+    invalid_blocks = _block_invalid_map(facts)
+    positions = _block_positions(facts)
+    # a replay row has no subject of its own: its subject is its source corpus row's (`cell` names that row)
+    subject_of = {f.planned_trial_id: f.subject_id for f in facts}
+    trial_of = {f.planned_trial_id: f.trial_id for f in facts}
+    trials: list[FairTrial] = []
+    labels: list[LabelTrial] = []
+    for f in facts:
+        block_bad = f.block_id is not None and invalid_blocks.get(f.block_id, False)
+        asst, subj, _reason = inclusion(f.exec_state, f.verdict, block_bad)
+        if f.assistant_id is None or f.track not in _TRACK:
+            continue
+        score = scores.get(f.trial_id) if f.trial_id is not None else None
+        extra = extras.get(f.trial_id) if f.trial_id is not None else None
+        support = score.support if score is not None else None
+        trials.append(
+            FairTrial(
+                candidate_id=f.assistant_id,
+                track=_TRACK[f.track],
+                family_id=f.family_id,
+                variant_id=f.variant_id,
+                role=f.role,
+                style=f.style,
+                output=_output(asst, f.classification),
+                block_id=f.block_id,
+                position=positions.get(f.planned_trial_id, 0),
+                subject_id=f.subject_id or subject_of.get(f.cell) or "",
+                subject_turns=extra.subject_turns if extra is not None else None,
+                unique_flags=support.unique if support is not None else None,
+                emitted_flags=support.emitted if support is not None else None,
+                demeanor_flags=support.demeanor_based if support is not None else None,
+                finding_demeanor=score.finding_fails_5c if score is not None else False,
+            )
+        )
+        transcript = trial_of.get(f.cell) if f.track == "replay" else f.trial_id
+        stored = r1.get(transcript) if transcript is not None else None
+        if stored is not None and f.role == "truthful" and subj is not SubjInc.EXCLUDED:
+            report = RefereeSubjectReport.model_validate(stored["report"])
+            adapted = adapt_subject_report(report, frozenset(stored.get("quote_invalid", ())))
+            labels.append(
+                LabelTrial(
+                    candidate_id=f.assistant_id,
+                    track=_TRACK[f.track],
+                    family_id=f.family_id,
+                    style=f.style,
+                    turns=[(lab.label, lab.eva_subtype, lab.compliant) for lab in adapted.values()],
+                )
+            )
+    return trials, labels

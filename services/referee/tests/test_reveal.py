@@ -16,6 +16,7 @@ from arena_core.referee.leaderboard import TrialScore
 from arena_core.scoring.inclusion import RevealBlockedError
 from arena_core.scoring.ranking import IG_ITEMS, isolation_result
 from arena_referee import db, reveal
+from arena_referee.leaderboard import TrialExtras
 
 TOURNAMENT = "00000000-0000-0000-0000-0000000000a1"
 MANIFEST_1 = "00000000-0000-0000-0000-0000000000b1"
@@ -99,7 +100,15 @@ def trial_fact_row() -> tuple[Any, ...]:
         "0.01",
         "00000000-0000-0000-0000-0000000000e1",
         "variant:subject:1",
+        "00000000-0000-0000-0000-0000000000f1",
+        '{"verbosity": "terse"}',
+        3,
     )
+
+
+def no_extras(_stored: object) -> TrialExtras:
+    """The stub judgments carry no transcript: no subject turns."""
+    return TrialExtras(subject_turns=0)
 
 
 @pytest.fixture
@@ -114,6 +123,7 @@ def scored(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(db, "fetch_stored_trial_judgments", fake_fetch)
     monkeypatch.setattr(reveal, "trial_score", fake_score)
+    monkeypatch.setattr(reveal, "trial_extras", no_extras)
 
 
 def test_reveal_waits_for_scoring_and_never_seals_with_an_unscored_trial() -> None:
@@ -149,6 +159,30 @@ def test_reveal_and_publish_writes_an_original_leaderboard_on_manifest_v1() -> N
     assert (subject_insert[1], subject_insert[3]) == (insert[1], insert[3])
     assert insert[3] == "original"
     assert insert[4].obj["binding"]["manifest_version"] == 1
+
+
+@pytest.mark.usefixtures("scored")
+def test_reveal_publishes_the_fairness_audit_inside_the_assistant_board() -> None:
+    # S3 8: the audit is published at reveal, bound to the same manifest, so /api/trust/fairness can serve it.
+    conn = FakeConn(
+        {
+            "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
+            "ledger.planned_execution": [trial_fact_row()],
+        }
+    )
+    run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx()))
+    insert, subject_insert = [p for q, p in conn.executed if "arena.leaderboards" in q]
+    audit = insert[4].obj["fairness"]
+    assert audit["published"] is True
+    assert audit["manifest_sha256"] == "a" * 64
+    # the one truthful trial (output truthful, style terse) is a correct verdict: FPR 0/1 in verbosity=terse
+    [row] = audit["style_fpr"]
+    assert (row["candidate"], row["style"], row["num"], row["den"]) == (CANDIDATE, "verbosity=terse", 0, 1)
+    assert audit["negative_controls"]["caught"] is True
+    assert "fairness" not in subject_insert[4].obj
+    # M24 is now computed; the one row carries its (empty: nothing significant, no demeanor output) violations
+    assert "M24_fairness_audit" not in insert[4].obj["not_computed"]
+    assert [r["fairness_violations"] for r in insert[4].obj["rows"]] == [[]]
 
 
 @pytest.mark.usefixtures("scored")
@@ -203,6 +237,7 @@ def test_reveal_publishes_qq_from_each_trial_s_stored_judgments(monkeypatch: pyt
 
     monkeypatch.setattr(db, "fetch_stored_trial_judgments", fake_fetch)
     monkeypatch.setattr(reveal, "trial_score", fake_score)
+    monkeypatch.setattr(reveal, "trial_extras", no_extras)
     conn = FakeConn(
         {
             "ledger.reveal": [({"manifest_id": MANIFEST_1, "manifest_sha256": "a" * 64},)],
@@ -241,6 +276,7 @@ def test_an_unscored_replay_trial_blocks_reveal_until_it_is_scored(monkeypatch: 
 
     monkeypatch.setattr(db, "fetch_stored_trial_judgments", scored)
     monkeypatch.setattr(reveal, "trial_score", fake_score)
+    monkeypatch.setattr(reveal, "trial_extras", no_extras)
     assert run(reveal.reveal_and_publish(connector(conn), TOURNAMENT, ctx())).manifest_version == 1
 
 
