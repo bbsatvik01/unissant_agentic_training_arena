@@ -161,9 +161,12 @@ async def one_statement(
     given (`set_config('arena.actor_id', ..., true)`, S4 2.3), in one round trip. Returns the cursor with the
     statement's rows already received. Any error is raised here as the statement raised it (a cancellation as a
     cancellation), and the connection is closed: the server rolls the transaction back and the pool replaces it."""
-    if _status(conn) != TransactionStatus.IDLE:
+    if not conn.closed and _status(conn) != TransactionStatus.IDLE:
         msg = "one_statement needs a connection outside any transaction"
         raise RuntimeError(msg)
+    # A closed connection (an earlier call failed on it) falls through to psycopg's own OperationalError below.
+    task = asyncio.current_task()
+    cancels_before = task.cancelling() if task is not None else 0
     autocommit = conn.autocommit
     await conn.set_autocommit(True)  # psycopg sends no BEGIN of its own: the block below names it
     try:
@@ -179,9 +182,10 @@ async def one_statement(
         # and that error replaces the cancellation), so what the connection still holds is unknown. Closing it ends
         # the transaction on the server (rolled back) and the pool replaces it.
         await conn.close()
-        task = asyncio.current_task()
-        if task is not None and task.cancelling() and not isinstance(exc, asyncio.CancelledError):
-            raise asyncio.CancelledError from exc  # the caller was cancelled: that, not the pipeline's error
+        # Cancelled during this call (not an earlier cancellation its caller is already cleaning up after): that
+        # cancellation, not the pipeline's own error, is what propagates.
+        if task is not None and task.cancelling() > cancels_before and not isinstance(exc, asyncio.CancelledError):
+            raise asyncio.CancelledError from exc
         raise
     finally:
         if _status(conn) == TransactionStatus.IDLE:

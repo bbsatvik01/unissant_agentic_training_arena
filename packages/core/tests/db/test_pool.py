@@ -297,3 +297,22 @@ def test_an_error_that_is_not_a_cancellation_is_raised_unchanged() -> None:
     with pytest.raises(psycopg.OperationalError, match="lost"):
         run(one_statement(_real(conn), "select boom"))
     assert conn.closed
+
+
+def test_an_earlier_cancellation_never_turns_a_later_error_into_a_cancellation() -> None:
+    """Cleanup after a caught cancellation runs in the same task (its cancel count stays raised): a refusal there is
+    raised as the refusal."""
+    refusal = Refused("no identity")
+
+    async def body() -> None:
+        me = asyncio.current_task()
+        assert me is not None
+        me.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.sleep(1)
+        with pytest.raises(Refused) as raised:
+            await one_statement(_real(Conn(fail=refusal)), "select boom")
+        assert raised.value is refusal
+        me.uncancel()
+
+    run(body())

@@ -412,13 +412,23 @@ class NotReleasable(psycopg.Error):
     sqlstate = "AR001"  # S4: a dispatched hold cannot be released
 
 
+class Stalls(Conn):
+    """A connection whose `ops.mark_dispatched` never answers (the request is cancelled meanwhile)."""
+
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> Cursor:
+        if "ops.mark_dispatched" in query:
+            await asyncio.sleep(10)
+        return await super().statement(query, params)
+
+
 def test_a_cancelled_dispatch_still_settles_usage_unknown_on_a_fresh_connection() -> None:
-    """S5 4.10 through the real guard client: a cancellation during dispatch, then the port's unwind (release
-    refused, then usage_unknown). Every failed write closes its connection (db.pool.one_statement), so each next
-    write must open a fresh one instead of failing on the closed one."""
+    """S5 4.10 through the real guard client: the request is cancelled during dispatch, then the port's unwind runs
+    in the same (cancelled) task: release refused, then usage_unknown. Every failed write closes its connection
+    (db.pool.one_statement), so each next write returns that checkout and takes a fresh one; and the earlier
+    cancellation never turns the refusal into a cancellation."""
     reserved = {"outcome": "reserved", "id": str(RID), "reserved_usd": 1}
     opened = [
-        Conn({"ops.reserve_model_call": reserved, "ops.mark_dispatched": asyncio.CancelledError()}),
+        Stalls({"ops.reserve_model_call": reserved}),
         Conn({"ops.settle_reservation": NotReleasable("dispatched")}),
         Conn({"ops.settle_reservation": {"outcome": "usage_unknown", "settled_usd": 1}}),
     ]
@@ -435,13 +445,18 @@ def test_a_cancelled_dispatch_still_settles_usage_unknown_on_a_fresh_connection(
             slot.release()
 
     async def body() -> Decimal:
+        me = asyncio.current_task()
+        assert me is not None
         async with DbSpendGuard(connect).session() as session:
             found = await session.reserve(model_req())
+            asyncio.get_running_loop().call_later(0.05, me.cancel)
             with pytest.raises(asyncio.CancelledError):
                 await session.dispatch(found.id)
             with pytest.raises(NotReleasable):
                 await session.settle(found.id, "released")
-            return await session.settle(found.id, "usage_unknown")
+            settled = await session.settle(found.id, "usage_unknown")
+        me.uncancel()
+        return settled
 
     assert run(body()) == Decimal(1)
     assert [c.closed for c in opened] == [True, True, False]
