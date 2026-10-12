@@ -18,6 +18,7 @@ from psycopg.types.json import Jsonb
 
 from arena_core.db.arena import EVENTS_PAGE, ArenaDb, ArenaError, QuestionOrigin, SessionStart, iso
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 
 ACTOR = UUID("00000000-0000-0000-0000-00000000000a")
 TRIAL = uuid4()
@@ -43,7 +44,7 @@ class _Cursor:
         return self.rows[0] if self.rows else None
 
 
-class Script:
+class Script(ScriptedConnection):
     """A connection whose statements answer from `answers` (SQL fragment -> rows or an exception), in order."""
 
     def __init__(self, answers: list[tuple[str, list[tuple[Any, ...]] | Exception]]) -> None:
@@ -51,7 +52,7 @@ class Script:
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.transactions = 0
 
-    async def execute(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
         self.executed.append((query, tuple(params)))
         if query.startswith("select set_config"):
             return _Cursor([])

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any, cast
 from uuid import uuid4
 
@@ -15,6 +15,7 @@ import pytest
 
 from arena_core.agents.manifests import committed_manifest
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_tournament import lifecycle
 from arena_tournament.roster import PlannedRow
 
@@ -42,20 +43,20 @@ class FakeCursor:
         return list(self._rows)
 
 
-class FakeConn:
+class FakeConn(ScriptedConnection):
     def __init__(self, row: tuple[Any, ...] | None = None, *, error: Exception | None = None) -> None:
         self._row = row
         self._error = error
         self.executed: list[str] = []
 
-    async def execute(self, query: str, _params: tuple[Any, ...] = ()) -> FakeCursor:
+    async def statement(self, query: str, _params: tuple[Any, ...] = ()) -> FakeCursor:
         self.executed.append(query)
         if self._error is not None:
             raise self._error
         return FakeCursor([self._row] if self._row is not None else [])
 
-    def transaction(self) -> AsyncIterator[None]:
-        return cast("AsyncIterator[None]", _noop_tx())
+    def transaction(self) -> AbstractAsyncContextManager[None]:
+        return _noop_tx()
 
 
 def connector(conn: FakeConn) -> Connector:

@@ -23,6 +23,7 @@ from fastapi import FastAPI
 
 from arena_core.agents.manifests import committed_manifest
 from arena_core.db.pool import Connector
+from arena_core.db.scripted import ScriptedConnection
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.memory import RunBudget
@@ -97,7 +98,7 @@ class _Cursor:
         return self.rows[0] if self.rows else None
 
 
-class _FakeConn:
+class _FakeConn(ScriptedConnection):
     """Answers `subject.turn_context` and `arena.record_subject_turn` with fixed jsonb text, by query substring
     (the same stand-in pattern `packages/core/tests/spend/test_guard_client.py` uses for the spend-guard calls)."""
 
@@ -110,7 +111,7 @@ class _FakeConn:
     async def transaction(self) -> AsyncIterator[None]:
         yield
 
-    async def execute(self, query: str, _params: tuple[object, ...] = ()) -> _Cursor:
+    async def statement(self, query: str, _params: tuple[object, ...] = ()) -> _Cursor:
         self.queries.append(query)
         if "subject.turn_context" in query:
             return _Cursor([(self.ctx_json,)])

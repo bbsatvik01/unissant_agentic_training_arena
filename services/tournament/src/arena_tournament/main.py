@@ -16,7 +16,7 @@ from arena_api.subject_client import subject_client
 from arena_core.agents.manifests import CandidateManifest
 from arena_core.config import ArenaRole, boot
 from arena_core.db.arena import ArenaDb
-from arena_core.db.pool import dsn_connector
+from arena_core.db.pool import PooledConnector, close_connector
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
@@ -50,7 +50,7 @@ def build_runner(env: Mapping[str, str]) -> TournamentRunner:
     `run_tournament` once it knows which tournament it is running (the roster, not the environment, names
     the candidates)."""
     settings = boot(ArenaRole.TOURNAMENT, env)
-    connect = dsn_connector(settings.dsn)
+    connect = PooledConnector(settings.dsn)
     db = ArenaDb(connect, actor=None)  # S4 2.3: a harness/job request never sets arena.actor_id
     port = AgentPort(model_adapter(env, canned=FAKE_COACH_REPLIES), DbSpendGuard(connect), PortOptions())
     caller = env.get(LOCAL_CALLER_VAR, "")
@@ -61,5 +61,8 @@ def build_runner(env: Mapping[str, str]) -> TournamentRunner:
 
 async def run_tournament(env: Mapping[str, str], tournament: UUID) -> RunSummary:
     runner = build_runner(env)
-    runner.manifests = await load_manifests(runner.db, tournament)
-    return await runner.run(tournament)
+    try:
+        runner.manifests = await load_manifests(runner.db, tournament)
+        return await runner.run(tournament)
+    finally:
+        await close_connector(runner.db.connector)

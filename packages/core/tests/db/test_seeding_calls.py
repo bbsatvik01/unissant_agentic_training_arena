@@ -15,6 +15,7 @@ from psycopg.types.json import Jsonb
 
 from arena_core.db import calls
 from arena_core.db.calls import GuardProtocolError
+from arena_core.db.scripted import ScriptedConnection
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -29,7 +30,7 @@ class _Cursor:
         return self.rows[0] if self.rows else None
 
 
-class _Conn:
+class _Conn(ScriptedConnection):
     """A scripted stand-in for `calls.Conn` (a concrete `AsyncConnection`, not a protocol): cast at the call
     site, exactly as `test_arena_calls.py`'s `Script.connector()` casts its own fake (no real DB here)."""
 
@@ -38,7 +39,7 @@ class _Conn:
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.transactions = 0
 
-    async def execute(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
+    async def statement(self, query: str, params: tuple[object, ...] = ()) -> _Cursor:
         self.executed.append((query, params))
         return _Cursor(self.rows)
 
