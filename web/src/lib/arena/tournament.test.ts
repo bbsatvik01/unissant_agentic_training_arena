@@ -84,6 +84,19 @@ describe("tournament arena state", () => {
     expect(stale.state).toBe("revealed");
   });
 
+  it("a never-started attempt's start and end share one seq, in any order and re-read, and the end lands", () => {
+    const T = "7a1c2e3d-4b5f-4a6e-8d9c-0b1a2c3d4e5f";
+    const f = (seq: number, type: string, data: object) => ({ v: 1, seq, scope: "tournament", scope_id: T, ts: "2026-10-11T12:00:00Z", type, data });
+    for (const state of ["budget_skipped", "source_unavailable"]) {
+      const frames = [f(30, "trial.execution", { trial_ref: 9, state }), f(30, "trial.started", { trial_ref: 9, trial_id: "33333333-3333-4333-8333-333333333333", pairing: "A2 x S3", track: "replay", block: null })];
+      const poll = { visibility: "events", last: 30, frames } as TournamentPoll;
+      const once = foldPoll(EMPTY_TOURNAMENT, poll);
+      expect(once.trials.get(9)?.execution).toBe(state);
+      expect(foldPoll(EMPTY_TOURNAMENT, { ...poll, frames: [...frames].reverse() } as TournamentPoll).trials.get(9)?.execution).toBe(state);
+      expect(foldPoll(once, poll).trials.get(9)?.execution).toBe(state);
+    }
+  });
+
   it("names a cell's state", () => {
     const base = { trial_ref: 1, trial_id: "t", pairing: "A1 x S1", track: "interactive" as const, block: 1 };
     expect(cellState({ ...base, execution: null, commitment_hash: null, since: 1 })).toBe("running");

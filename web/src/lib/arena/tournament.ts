@@ -46,9 +46,12 @@ export function foldPoll(state: TournamentState, poll: TournamentPoll): Tourname
   // clean, and an earlier attempt's end (in this poll, or folded again as a duplicate) never lands on the retry.
   const patch = (ref: number, seq: number, change: Partial<TrialCell>) => {
     const held = trials.get(ref);
-    if (held !== undefined && seq > held.since) trials.set(ref, { ...held, ...change });
+    if (held !== undefined && seq >= held.since) trials.set(ref, { ...held, ...change });
   };
-  for (const frame of [...poll.frames].sort((a, b) => a.seq - b.seq)) {
+  // A never-started attempt (budget_skipped, source_unavailable) has its start and its end on one ledger row, so
+  // frames sharing a seq apply the start first.
+  const first = (type: string) => (type === "trial.started" ? 0 : 1);
+  for (const frame of [...poll.frames].sort((a, b) => a.seq - b.seq || first(a.type) - first(b.type))) {
     switch (frame.type) {
       case "tournament.status":
         if (frame.seq >= stateSeq) {

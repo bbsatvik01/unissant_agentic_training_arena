@@ -50,7 +50,8 @@ export function useTournamentList(api: Pick<ArenaApi, "tournaments">, enabled: b
   return enabled ? load : { state: "idle" };
 }
 
-export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEvents">, tournamentId: string | null, enabled: boolean): TournamentLoad {
+/** `round`: bump it to read the tournament afresh (the arena opening), restarting a poll that had stopped. */
+export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEvents">, tournamentId: string | null, enabled: boolean, round = 0): TournamentLoad {
   // Each answer is kept with the tournament it is for, so a newly selected tournament reads as loading, never as
   // the previous one's data.
   const [held, setHeld] = useState<{ readonly id: string; readonly load: TournamentLoad } | null>(null);
@@ -136,7 +137,7 @@ export function useTournament(api: Pick<ArenaApi, "tournament" | "tournamentEven
       if (timer !== null) clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [readTournament, tournamentEvents, tournamentId, enabled]);
+  }, [readTournament, tournamentEvents, tournamentId, enabled, round]);
   if (!enabled || tournamentId === null) return { state: "idle" };
   return held !== null && held.id === tournamentId ? held.load : { state: "loading" };
 }

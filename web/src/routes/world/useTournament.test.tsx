@@ -214,6 +214,25 @@ describe("useTournament paging and visibility", () => {
   });
 });
 
+describe("useTournament refresh", () => {
+  it("reads afresh when the round changes, after a frozen tournament's single read has stopped", async () => {
+    vi.useFakeTimers();
+    setVisibility("visible");
+    let status = "frozen";
+    const tournamentEvents = vi.fn(() => Promise.resolve(events(status, 4)));
+    const api = { tournament: () => Promise.resolve({ status }), tournamentEvents };
+    const { result, rerender } = renderHook(({ round }: { round: number }) => useTournament(api, T, true, round), { initialProps: { round: 0 } });
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(tournamentEvents).toHaveBeenCalledTimes(1);
+    status = "revealed";
+    rerender({ round: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(tournamentEvents).toHaveBeenCalledTimes(2);
+    const r = result.current;
+    expect(r.state === "ready" ? r.tournament.state : null).toBe("revealed");
+  });
+});
+
 describe("useTournamentList", () => {
   it("reads the list once enabled; a 404 is the route not being there", async () => {
     const tournaments = vi.fn(() => Promise.resolve({ tournaments: [{ id: T, name: "dev-demo", split: "dev", status: "revealed" }] }));
