@@ -37,6 +37,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import { speechSync } from "../../lib/voice/speechSync";
+import { audioMouth } from "../../lib/world/audioLips";
 import { seeded, seedOf, type Persona } from "../../lib/world/cast";
 import type { Vec3 } from "../../lib/world/layout";
 import { beatTimes, VISEMES, visemeTrack, visemeWeightsAt, type VisemeKey, type VisemeSpan } from "../../lib/world/visemes";
@@ -255,11 +256,12 @@ export function stepAvatar(ctx: FrameContext, s: IdleState, t: number, delta: nu
   let mouthOpen = 0;
   const weights: Partial<Record<VisemeKey, number>> = {};
   if (pose === "speaking" && speech !== null) {
-    // The mouth follows the voice when one is speaking the line, else the text cadence (speechSync).
+    // The mouth follows the audio being played for this persona when there is some (lips from audio), else the
+    // voice's reported position on the text timeline, else the text cadence (speechSync).
     const elapsed = speechSync.elapsedFor(speech, clock.current);
     if (still) mouthOpen = 0.5;
     else {
-      Object.assign(weights, visemeWeightsAt(track, elapsed));
+      Object.assign(weights, audioMouth.weightsFor(persona.voice.gemini) ?? visemeWeightsAt(track, elapsed));
       let beat = 0;
       for (const b of beats) beat = Math.max(beat, easeBeat((elapsed - b) / 1000));
       rotateWorld(head, right, beat * 0.06 * persona.gesture);

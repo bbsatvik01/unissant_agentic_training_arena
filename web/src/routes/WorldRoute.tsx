@@ -175,6 +175,24 @@ export function WorldRoute() {
       return !on;
     });
   };
+  // The coach in the earpiece (practice only): on by default, the trainee's choice remembered in this browser.
+  const [earpiece, setEarpiece] = useState(() => {
+    try {
+      return window.localStorage.getItem("arena.earpiece") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleEarpiece = () => {
+    setEarpiece((on) => {
+      try {
+        window.localStorage.setItem("arena.earpiece", on ? "0" : "1");
+      } catch {
+        // Storage unavailable: the toggle still works for this page.
+      }
+      return !on;
+    });
+  };
 
   const live = liveCases !== null;
   const meCtl = useMe(api, live);
@@ -473,7 +491,8 @@ export function WorldRoute() {
   // Voices speak only in the room, unmuted, live or during playback at normal speed: Gemini voices through the server
   // when it is there (each line cached there, so a recorded run replays for free), the browser's own otherwise.
   const engine = useMemo(() => roomEngine(live ? api : null), [live, api]);
-  useVoice({
+  const { coachSpeaking } = useVoice({
+    earpiece,
     engine,
     world,
     view,
@@ -537,6 +556,20 @@ export function WorldRoute() {
           {place === "room" ? (
             <button type="button" className="btn-secondary-sm" aria-pressed={!sound} onClick={toggleSound}>
               {sound ? "Mute voices" : "Unmute voices"}
+            </button>
+          ) : null}
+          {place === "room" && sound && view?.mode === "practice" ? (
+            <button
+              type="button"
+              className="btn-secondary-sm earpiece"
+              aria-pressed={earpiece}
+              data-speaking={coachSpeaking ? "true" : "false"}
+              title="The coach says its suggestion quietly in your earpiece after each answer"
+              onClick={toggleEarpiece}
+            >
+              <span className="earpiece-dot" aria-hidden="true" />
+              {earpiece ? "Earpiece on" : "Earpiece off"}
+              {coachSpeaking ? <span className="sr-only">, the coach is speaking</span> : null}
             </button>
           ) : null}
           {live && meCtl.me !== null ? (
