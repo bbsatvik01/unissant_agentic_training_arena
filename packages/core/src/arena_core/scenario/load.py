@@ -22,6 +22,10 @@ names the active predecessor (`Fnn` for r2, `Fnn.r(N-1)` after that); `variant_c
 authoring loop; this package runs no model). The review names the family hash it was run on, and a review of
 any other file is refused (S1 8.5 step 3). S4 checks the two against each other and the variants.
 
+A caller may hand either shape: the attestation's own `CodexReview`, or the authoring loop's full per-family
+CX report (`cases/dev/reports/<ID>.cx.json`, `is_legacy_codex_report`); `codex_review_from_report` reduces
+the latter to the former, refusing one that does not record a clean pass (`LegacyCodexReportError`).
+
 Variants are ordered by `variant_code`, so the insertion order of the public-tier `arena.case_variants`
 rows cannot reveal which variant is truthful (L3). The loader refuses a family with any validator issue
 (V1-V4 on the family, V5 over the whole dev split and, for a hidden family, the whole hidden split named by
@@ -35,9 +39,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeGuard
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from arena_core.ids import canonical_json, read_json_text, sha256_hex
 from arena_core.scenario.source import VARIANTS
@@ -126,6 +130,148 @@ class IngestBundle(_Model):
     def to_json(self) -> str:
         """Canonical JSON text, the `p_bundle` argument of `sealed.ingest_case_family`."""
         return canonical_json(self.as_json())
+
+
+LEGACY_REPORT_CHECKS: tuple[str, ...] = ("cx1", "cx4", "cx2_truthful", "cx2_deceptive", "cx3")
+# S1 9.7: the three solve sheets with a nested basis (cx1 and cx4 are the review session, one verdict, no sheet).
+LEGACY_SOLVE_KEYS: tuple[str, ...] = ("cx2_truthful", "cx2_deceptive", "cx3")
+
+
+class LegacyCodexReportError(ValueError):
+    """The authoring loop's full per-family CX report (`cases/dev/reports/<ID>.cx.json`, documented in
+    `cases/dev/README.md`) does not record a clean pass on every check, or carries a review finding. The
+    review is re-run on the family (S1 8.5 step 3); nothing here coerces a failed check to pass."""
+
+
+def is_legacy_codex_report(raw: object) -> TypeGuard[dict[str, Any]]:
+    """Whether `raw` is the authoring loop's full per-family CX report (S1 9.7) rather than the attestation's
+    reduced `codex` object (S1 10.5, `CodexReview`). Both are the loop's own JSON: the report keeps every
+    solve sheet and basis for audit (`cases/dev/README.md`), with one boolean per check plus `solves`, where
+    the attestation holds five fields with `pass` literals. `solves` and `cx1` together are only ever on the
+    report (`CodexReview` forbids both as extra fields), so the two shapes never overlap."""
+    return isinstance(raw, dict) and "solves" in raw and "cx1" in raw
+
+
+VALID_FINDINGS: frozenset[str] = frozenset({"truthful", "deceptive", "insufficient_evidence"})
+
+# S1 9.7's own pass rule for each solve session, fixed by which session it is: CX-2 per variant compares
+# against that variant's own correct finding (the truthful-variant session against `truthful`, the
+# deceptive-variant session against `deceptive`); CX-3 (truthful variant, free evidence only) compares
+# against `deceptive` or `insufficient_evidence` -- `truthful` is never a valid CX-3 finding. This is never
+# something a sheet gets to claim for itself: a report that moves `finding` and its own `expected` field
+# together, so the two still agree with each other, must still be refused below.
+EXPECTED_FINDINGS: dict[str, frozenset[str]] = {
+    "cx2_truthful": frozenset({"truthful"}),
+    "cx2_deceptive": frozenset({"deceptive"}),
+    "cx3": frozenset({"deceptive", "insufficient_evidence"}),
+}
+
+
+def _sheet_problems(key: str, sheet: Mapping[str, Any]) -> list[str]:
+    """Whether one solve sheet (S1 9.7's CX-2 or CX-3 output shape: `finding`, `cited_records`, `cited_answers`,
+    `basis`, `expected`, `pass`) is a real, filled-in sheet, not a bare `{"pass": true}` standing in for one,
+    and that its own `finding` is the literal S1 9.7's fixed rule requires for this solve session
+    (`EXPECTED_FINDINGS[key]`) -- never resolved by trusting `pass` alone, and never by trusting the sheet's
+    own `expected` field, which is checked against that same fixed rule rather than used as the authority (so
+    a report that moves `finding` and `expected` together is still refused). This is the sheet's internal
+    self-consistency plus S1 9.7's fixed pass rule, the only things checkable without a model call; it is not
+    a re-run of CX-2/CX-3's full semantic comparison against the family -- citation completeness against the
+    family's own decisive-support items and their required account evidence runs in the authoring session
+    itself (S1 9.7's own "code compares", outside this package, which reads no family data and runs no
+    model), so a hand-edited report with a well-typed but fabricated or incomplete citation is not caught
+    here."""
+    problems = []
+    if sheet.get("pass") is not True:
+        problems.append(f"solves.{key}.pass is {sheet.get('pass')!r}, not true")
+    finding = sheet.get("finding")
+    if not isinstance(finding, str) or finding not in VALID_FINDINGS:
+        problems.append(f"solves.{key}.finding is {finding!r}, not one of {sorted(VALID_FINDINGS)}")
+    required = EXPECTED_FINDINGS[key]
+    if isinstance(finding, str) and finding in VALID_FINDINGS and finding not in required:
+        problems.append(f"solves.{key}.finding {finding!r} is not one of {sorted(required)} (S1 9.7, this session)")
+    expected = sheet.get("expected")
+    expected_values = {part.strip() for part in expected.split(" or ")} if isinstance(expected, str) else set()
+    if expected_values != required:
+        problems.append(f"solves.{key}.expected {expected!r} does not name exactly {sorted(required)} (S1 9.7)")
+    cited_records = sheet.get("cited_records")
+    if not isinstance(cited_records, list) or not all(isinstance(r, str) for r in cited_records):
+        problems.append(f"solves.{key}.cited_records is not a list of strings: {cited_records!r}")
+    elif key != "cx3" and not cited_records:
+        # S1 9.7: CX-2's own pass rule needs the cited records to cover a decisive-support item, so an empty
+        # list can never be real; CX-3's pass rule is `finding` alone (no citation requirement at all), so an
+        # honest "insufficient_evidence" sheet may legitimately cite nothing.
+        problems.append(f"solves.{key}.cited_records is empty (S1 9.7's CX-2 pass rule needs one cited)")
+    cited_answers = sheet.get("cited_answers")
+    if not isinstance(cited_answers, list) or not all(isinstance(a, str) for a in cited_answers):
+        problems.append(f"solves.{key}.cited_answers is not a list of strings: {cited_answers!r}")
+    basis = sheet.get("basis")
+    if not isinstance(basis, str) or not basis.strip():
+        problems.append(f"solves.{key}.basis is not a non-empty string: {basis!r}")
+    return problems
+
+
+def _solve_mismatches(report: Mapping[str, Any]) -> list[str]:
+    """Where `report["solves"]` (S1 9.7's per-sheet basis, kept for audit) disagrees with the top-level flag
+    `codex_review_from_report` would otherwise trust alone, or is not a real, filled-in sheet in the first
+    place: a report edited (or corrupted) so one says pass and the other does not, or that stands in a bare
+    `{"pass": true}` for a sheet, is refused, never resolved in the passing field's favor."""
+    solves = report.get("solves")
+    if not isinstance(solves, Mapping):
+        return [f"solves is not an object: {solves!r}"]
+    problems = []
+    for key in LEGACY_SOLVE_KEYS:
+        sheet = solves.get(key)
+        if not isinstance(sheet, Mapping):
+            problems.append(f"solves.{key} is not an object: {sheet!r}")
+        else:
+            problems.extend(_sheet_problems(key, sheet))
+    return problems
+
+
+def codex_review_from_report(report: Mapping[str, Any]) -> CodexReview:
+    """The attestation's `codex` object (S1 10.5), reduced from the authoring loop's full per-family CX
+    report (S1 9.7: one review session for CX-1 and CX-4, one solve session each for CX-2 truthful, CX-2
+    deceptive and CX-3). Refuses (never coerces) a report whose `pass` summary disagrees with its checks or
+    with its own nested solve sheets, that does not record every check as a real pass, or that carries a
+    review finding — exactly what `ingest_bundle` would refuse from a passed-looking review that was not, so
+    a stale or hand-edited report is never ingested.
+
+    The report predates per-round tracking (S1 8.5 step 4: a seed is discarded after 5 failed rounds), so a
+    report with no `rounds` field is recorded as round 1; `CodexReview` only bounds the field to 1-5, and S4
+    does not check it against authoring history, so this never understates or overstates what S4 attests.
+    """
+    failed = [check for check in LEGACY_REPORT_CHECKS if report.get(check) is not True]
+    findings = report.get("findings")
+    overall = report.get("pass")
+    solve_problems = _solve_mismatches(report)
+    if failed or findings or overall is not True or solve_problems:
+        family = report.get("family", "?")
+        message = (
+            f"{family}: the CX report does not record a clean pass "
+            f"(failed={failed}, findings={findings!r}, pass={overall!r}, solves={solve_problems})"
+        )
+        raise LegacyCodexReportError(message)
+    if "family_sha256" not in report:
+        message = "the CX report has no family_sha256"
+        raise LegacyCodexReportError(message)
+    rounds = report.get("rounds", 1)
+    if not isinstance(rounds, int):
+        message = f"rounds is not an integer: {rounds!r}"
+        raise LegacyCodexReportError(message)
+    try:
+        return CodexReview.model_validate(
+            {
+                "rounds": rounds,
+                "review": "pass",
+                "cx2_truthful": "pass",
+                "cx2_deceptive": "pass",
+                "cx3": "pass",
+                "family_sha256": str(report["family_sha256"]),
+            }
+        )
+    except ValidationError as exc:
+        message = f"malformed CX report: {exc}"
+        raise LegacyCodexReportError(message) from exc
 
 
 class FamilyLoadError(ValueError):

@@ -22,17 +22,26 @@ from tools.tests.conftest import REPO_ROOT
 HARNESS = REPO_ROOT / "supabase" / "tests" / "harness"
 SUPABASE_IMAGE = re.search(r'^SUPABASE_IMAGE="([^"]+)"$', (HARNESS / "db_test.sh").read_text(), re.MULTILINE)
 
-STEPS = 7  # plain path, Supabase path, cost parity, capability fixture, subject/spend-guard suites, tournament path
-SERVERS = 3  # the plain, the Supabase and the tournament path's own Supabase container
-# the Supabase path, the four steps that read its database, and the tournament path (same image)
+STEPS = 8  # plain path, Supabase path, cost parity, capability fixture, subject suite, spend-guard suite,
+# tournament path, seed_hosted + real_smoke suite (its own fourth container, never counted in
+# STEPS_ON_SUPABASE below: its container is named arena-db-test-seed-* and the stub's own docker-run
+# classification (below) never counts that as "supabase", so it reads no database the Supabase path migrated
+# and does not fail when that path does)
+SERVERS = 4  # the plain container, the Supabase path's, the tournament path's own, and the seed_hosted step's own
+# the Supabase path, the four steps that read its database, and the tournament path (its own container, but
+# still classified "supabase" by the stub's docker-run kind check below); seed_hosted is immune (see STEPS)
 STEPS_ON_SUPABASE = 6
 TOURNAMENT_PORT = "55002"  # the stub's port for the tournament path's container (every other one gets 55001)
 
-# FAKE_FAIL entries: daemon, build, run-plain, run-supabase (both Supabase-image containers), pgtap-plain,
-# pgtap-supabase (the Supabase path's run), pgtap-tournament (the tournament path's run), uv (the
-# cost-parity run), it-subject (the subject suite's pytest run), it-tournament (the tournament job suite's pytest
-# run), it-spend (the spend-guard suite's pytest run), fixture. A pytest run under uv also logs
-# "uv-dsn <last argument> <ARENA_IT_ADMIN_DSN>", so a proof can tell which server each suite ran on.
+# FAKE_FAIL entries: daemon, build, run-plain, run-supabase (the shared Supabase-path container and the
+# tournament path's own, both classified "supabase" by the stub), run-seed (the seed_hosted_integration
+# step's own container, named arena-db-test-seed-*, never counted as "supabase" even though it runs the same
+# image), pgtap-plain, pgtap-supabase (the Supabase path's run), pgtap-tournament (the tournament path's
+# run), uv (the cost-parity run), it-subject (the subject suite's pytest run), it-tournament (the tournament
+# job suite's pytest run), it-spend (the spend-guard suite's pytest run), it-seed-hosted (the seed_hosted
+# integration suite's pytest run), it-real-smoke (the real_smoke integration suite's pytest run), fixture. A
+# pytest run under uv also logs "uv-dsn <last argument> <ARENA_IT_ADMIN_DSN>", so a proof can tell which
+# server each suite ran on.
 STUB = """
 import os, pathlib, sys
 tool = sys.argv[1]
@@ -51,7 +60,13 @@ if tool == "docker":
         sys.exit(1 if "build" in fail else 0)
     if cmd == "run":
         image = args[-1]
-        kind = "plain" if image.startswith("arena-postgres-pgtap:") else "supabase"
+        name = args[args.index("--name") + 1]
+        if name.startswith("arena-db-test-seed-"):
+            kind = "seed"
+        elif image.startswith("arena-postgres-pgtap:"):
+            kind = "plain"
+        else:
+            kind = "supabase"
         sys.exit(1 if "run-" + kind in fail else 0)
     if cmd == "inspect":
         fmt = args[args.index("-f") + 1]
@@ -68,12 +83,18 @@ if tool == "uv":
     subject_it = any("it_answer.py" in a for a in args)
     tournament_it = any("it_tournament.py" in a for a in args)
     spend_it = any("it_spend_guard.py" in a for a in args)
+    seed_it = any("it_seed_hosted.py" in a for a in args)
+    realsmoke_it = any("it_real_smoke.py" in a for a in args)
     sys.exit(
         1
-        if ("uv" in fail and parity)
-        or ("it-subject" in fail and subject_it)
-        or ("it-tournament" in fail and tournament_it)
-        or ("it-spend" in fail and spend_it)
+        if (
+            ("uv" in fail and parity)
+            or ("it-subject" in fail and subject_it)
+            or ("it-tournament" in fail and tournament_it)
+            or ("it-spend" in fail and spend_it)
+            or ("it-seed-hosted" in fail and seed_it)
+            or ("it-real-smoke" in fail and realsmoke_it)
+        )
         else 0
     )
 # psql
@@ -159,11 +180,17 @@ def test_all_steps_pass(repo: Path) -> None:
     assert (code, bool(re.search(r"^db-test: OK$", out, re.MULTILINE))) == (0, True), out
     assert out.count("-- OK: ") == STEPS
     log = calls(repo)
-    images = sorted(started(repo).values())
+    names = started(repo)
+    images = sorted(names.values())
     assert SUPABASE_IMAGE is not None
-    assert images[1] == SUPABASE_IMAGE.group(1)
+    assert len(images) == SERVERS
+    assert images[1] == images[2] == images[3] == SUPABASE_IMAGE.group(1)
     assert re.fullmatch(r"arena-postgres-pgtap:[0-9a-f]{16}", images[0])
     assert any(line.startswith("docker build -q -t arena-postgres-pgtap:") for line in log)
+    # the seed_hosted step's container is its own fourth server (never the shared Supabase-path one, by name)
+    seed_servers = [name for name in names if name.startswith("arena-db-test-seed-")]
+    assert len(seed_servers) == 1
+    assert names[seed_servers[0]] == SUPABASE_IMAGE.group(1)
     # plain path: throwaway database with the shim; Supabase path: in place, no shim
     assert any("drop database if exists arena_pgtap" in line for line in log)
     assert sum("supabase_shim.psql" in line for line in log) == 1
@@ -195,6 +222,17 @@ def test_all_steps_pass(repo: Path) -> None:
     own_migrations = [i for i, line in enumerate(log) if f"-d {own} -f " in line and "/migrations/" in line]
     assert own_migrations, log
     assert own_migrations[-1] < tournament_suite[0]
+    # the seed_hosted and real_smoke suites run on their own (fourth) server, seed_hosted's own user and the
+    # budget plan provisioned in between, real_smoke last (it needs both)
+    seed_it = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_seed_hosted.py")]
+    realsmoke_it = [i for i, line in enumerate(log) if line.endswith("packages/core/tests/db/it_real_smoke.py")]
+    assert len(seed_it) == 1, log
+    assert len(realsmoke_it) == 1, log
+    assert seed_it[0] < realsmoke_it[0]
+    assert "-W error" in log[seed_it[0]]
+    assert "-W error" in log[realsmoke_it[0]]
+    assert any("scripts.seed_hosted" in line for line in log[seed_it[0] : realsmoke_it[0]])
+    assert any("scripts.budget_plan" in line for line in log[seed_it[0] : realsmoke_it[0]])
 
 
 def test_every_server_binds_loopback_and_a_docker_picked_port_and_is_removed(repo: Path) -> None:
@@ -230,6 +268,9 @@ def test_an_existing_plain_image_is_reused(repo: Path, monkeypatch: pytest.Monke
         ("it-tournament", "tournament job integration suite"),
         ("pgtap-tournament", "tournament job integration suite"),
         ("it-spend", "spend-guard integration suite"),
+        ("run-seed", "seed_hosted and real_smoke integration suites"),
+        ("it-seed-hosted", "seed_hosted and real_smoke integration suites"),
+        ("it-real-smoke", "seed_hosted and real_smoke integration suites"),
     ],
 )
 def test_a_failing_step_fails_db_test_and_the_other_steps_still_run(
