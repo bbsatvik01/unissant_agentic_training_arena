@@ -60,8 +60,10 @@ def test_subject_system_and_live_are_the_spec_text_with_one_blocks_placeholder()
     assert read_text("prompts/subject/live.v1.txt") == live
 
 
-def test_a1_deep_is_the_common_contract_subset_then_the_task() -> None:
-    common = read_text("prompts/coach/common.v1.txt").split("\n")
+@pytest.mark.parametrize("common_file", ["prompts/coach/common.v1.txt", "prompts/coach/common.v2.txt"])
+def test_a1_deep_is_the_common_contract_subset_then_the_task(common_file: str) -> None:
+    """Both coach contracts share rules 1-5 and 9, so a1.deep.v1 is the subset of either (1.1.0 changed 6-8)."""
+    common = read_text(common_file).split("\n")
     rules: dict[int, list[str]] = {}
     current = 0
     for line in common[3:]:

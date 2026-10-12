@@ -237,7 +237,7 @@ def test_the_returned_text_is_the_hashed_text(
 
     # The file on disk still hashes as recorded; the text a reader got must be what was hashed.
     monkeypatch.setattr(m, "read_text", swapped)
-    with pytest.raises(m.ManifestMismatchError, match=r"common\.v1\.txt sha256"):
+    with pytest.raises(m.ManifestMismatchError, match=r"common\.v2\.txt sha256"):
         m.load_prompts(official["A1"])
 
 
