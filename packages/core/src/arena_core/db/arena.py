@@ -363,8 +363,12 @@ class ArenaDb:
             "select ceiling_usd, liability_usd, open_usd from ops.v_budget_status where bucket = 'global'"
         )
         ceiling, liability, held = rows[0] if rows else (0, 0, 0)
+        # Settled liability once per reservation (a usage_unknown settlement keeps its whole hold even when its
+        # receipts carry no usage), so the purpose rows use the same accounting as the total.
         purposes = await self.fetch(
-            "select purpose, count(distinct reservation_id), coalesce(sum(cost_usd), 0) from ops.v_call_costs"
+            "select purpose, count(*), coalesce(sum(settled), 0) from"
+            " (select distinct reservation_id, purpose, coalesce(settled_usd, 0) as settled from ops.v_call_costs"
+            "  where state in ('committed', 'usage_unknown')) settled_reservations"
             " group by purpose order by purpose"
         )
         return {

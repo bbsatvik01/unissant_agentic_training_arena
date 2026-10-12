@@ -253,3 +253,12 @@ def test_an_assessment_recording_carries_the_withheld_coaching_in_its_final_snap
     assert rec["final_snapshot"]["status"] == "completed"
     running = _played(1, finish=False)
     assert recording_of(_loaded(running.db), None)["final_snapshot"] is None
+
+
+def test_the_final_snapshot_stays_below_the_debrief_ready_frame() -> None:
+    rig = _played(2)
+    rig.db._emit("debrief_ready", {"session_id": str(rig.db.session_id)})
+    rec = recording_of(_loaded(rig.db), None)
+    ready = [e["frame"]["seq"] for e in rec["events"] if e["frame"]["type"] == "debrief.ready"]
+    assert ready
+    assert rec["final_snapshot"]["last_seq"] < ready[0]

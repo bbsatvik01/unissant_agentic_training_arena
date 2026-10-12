@@ -164,6 +164,12 @@ def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str
         "events": recording_events(trial.events, trial.mode, trial.started_ms),
         # The trial's terminal state as its owner reads it after the end (S5 6.2): in assessment mode the coaching
         # withheld during the session is here, so a recording played from disk can show it (FE-DEB-4).
-        "final_snapshot": snapshot_of(trial) if trial.ended else None,
+        # Built without the debrief_ready row, so the snapshot's last_seq stays below it and the player keeps that
+        # frame (a snapshot supersedes every frame at or below its last_seq).
+        "final_snapshot": (
+            snapshot(trial.state(), [e for e in trial.events if e.kind != "debrief_ready"], trial.viewer)
+            if trial.ended
+            else None
+        ),
         "debrief": debrief,
     }
