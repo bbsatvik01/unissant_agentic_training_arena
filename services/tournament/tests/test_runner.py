@@ -14,13 +14,13 @@ from uuid import UUID, uuid4
 import pytest
 
 from arena_core.agents.manifests import CandidateManifest
-from arena_core.db.arena import ArenaDb
+from arena_core.db.arena import ArenaDb, HarnessTrialState
 from arena_core.turns.harness import Execution
 from arena_core.turns.orchestrator import Orchestrator
 from arena_tournament import admission
 from arena_tournament import runner as runner_module
 from arena_tournament.referee_client import RefereeClient
-from arena_tournament.runner import MAX_ATTEMPTS, Attempt, HiddenTournamentError, TournamentRunner
+from arena_tournament.runner import MAX_ATTEMPTS, Attempt, MissingPacketError, TournamentRunner
 from packages.core.tests.turns.test_orchestrator import Rig
 
 
@@ -32,14 +32,13 @@ def run[T](aw: Awaitable[T]) -> T:
 
 
 class _FakeDb:
-    """Only the three calls `_run_until_terminal` itself ever makes directly, plus the three reads
-    `run_replay_track_prerequisite` makes before it (split, then an empty roster so its own corpus/replay
-    loops do nothing)."""
+    """Only the three calls `_run_until_terminal` itself ever makes directly, plus the two reads
+    `run_replay_track_prerequisite` makes before it (an empty roster, so its own corpus/replay loops do
+    nothing)."""
 
-    def __init__(self, *, admit: bool = True, start_state: str | None = None, split: str = "dev") -> None:
+    def __init__(self, *, admit: bool = True, start_state: str | None = None) -> None:
         self.admit = admit
         self.start_state = start_state
-        self.split = split
         self.retry_calls: list[UUID] = []
         self.started: list[UUID] = []
 
@@ -53,9 +52,6 @@ class _FakeDb:
     async def retry_trial(self, planned_trial: UUID) -> UUID:
         self.retry_calls.append(planned_trial)
         return uuid4()
-
-    async def tournament_split(self, _tournament: UUID) -> str:
-        return self.split
 
     async def planned_trials(self, _tournament: UUID) -> list[dict[str, Any]]:
         return []
@@ -193,19 +189,8 @@ def test_count_keys_an_execution_value_by_its_string_and_accumulates() -> None:
     assert runner.outcomes == {"completed": 2, "budget_skipped": 1}
 
 
-def test_run_replay_track_prerequisite_refuses_a_hidden_tournament_before_any_read() -> None:
-    """A real gap (Codex round 1): `lifecycle.open_tournament` refuses split="hidden" at open time, but
-    that is this operator tool's own convenience, not a database invariant `arena.open_tournament` itself
-    enforces -- a hidden tournament opened by any other path must still never reach the job's own harness
-    (no WP-16 hidden-text scan exists yet)."""
-    db = _FakeDb(split="hidden")
-    runner = _runner_with(db, _FakeOrchestrator())
-    with pytest.raises(HiddenTournamentError):
-        run(runner.run_replay_track_prerequisite(uuid4()))
-
-
-def test_run_replay_track_prerequisite_proceeds_for_a_dev_tournament() -> None:
-    db = _FakeDb(split="dev")
+def test_run_replay_track_prerequisite_proceeds_with_an_empty_roster() -> None:
+    db = _FakeDb()
     runner = _runner_with(db, _FakeOrchestrator())
     run(runner.run_replay_track_prerequisite(uuid4()))  # an empty roster: nothing else to do
 
@@ -255,8 +240,7 @@ def test_replay_track_scores_every_trial_that_needs_review(
 def test_an_interactive_trial_runs_end_to_end_through_the_harness_on_the_runners_loop() -> None:
     """`_run_interactive_trial`: the harness loop in a worker thread, every port call on this loop (the
     orchestrator double's own fake database), through to the final call and its commitment."""
-    rig = Rig()
-    rig.db.kind = "interactive"
+    rig = Rig(harness=True)
     assert run(runner_module._run_interactive_trial(rig.db.trial_id, rig.orch, "What happened?")) is Execution.COMPLETED
     assert rig.db.status == "finalized"
 
@@ -267,9 +251,16 @@ class _TrackDb(_FakeDb):
         self.rows = rows
         self.packet = packet
         self.attempts = {r["planned_trial_id"]: _attempts(None) for r in rows}
+        self.reads: list[tuple[str, UUID]] = []
 
-    async def public_packet(self, _variant: UUID) -> dict[str, Any] | None:
-        return self.packet
+    async def start_trial(self, trial: UUID) -> dict[str, Any]:
+        self.reads.append(("start", trial))
+        return await super().start_trial(trial)
+
+    async def harness_trial_state(self, trial: UUID) -> HarnessTrialState:
+        """`arena.harness_trial_state`'s packet (WP-28): the job reads it once the trial runs."""
+        self.reads.append(("state", trial))
+        return HarnessTrialState(public_packet=self.packet, open_question=False, released=[], coach_events=[])
 
     async def planned_trials(self, _tournament: UUID) -> list[dict[str, Any]]:
         return self.rows
@@ -361,3 +352,27 @@ def test_a_variant_with_no_public_packet_is_refused(monkeypatch: pytest.MonkeyPa
     runner, *_ = _track_runner(monkeypatch, [_row(track, 1)], None, Execution.COMPLETED)
     with pytest.raises(RuntimeError, match="no public packet"):
         run(runner.run(uuid4()))
+
+
+@pytest.mark.parametrize("track", ["replay_corpus", "interactive"])
+def test_the_packet_is_read_through_harness_trial_state_only_once_the_trial_runs(
+    monkeypatch: pytest.MonkeyPatch, track: str
+) -> None:
+    """WP-28: `arena.harness_trial_state` answers only for a running trial, and it is the one packet read that
+    resolves a sealed hidden variant before reveal, so the job reads the packet after `start_trial`, never from
+    the dev case library before it."""
+    runner, db, *_ = _track_runner(monkeypatch, [_row(track, 1)], {"opening_question": "Why?"}, Execution.COMPLETED)
+    run(runner.run(uuid4()))
+    trial = db.attempts[db.rows[0]["planned_trial_id"]][0]["trial_id"]
+    assert db.reads == [("start", trial), ("state", trial)]
+
+
+def test_a_missing_packet_stops_the_job_and_is_never_recorded_as_an_infra_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A data defect, not a transient one: `_run_until_terminal` re-raises it (no `infra_failed` stop, no retry)."""
+    runner, db, orch, _ = _track_runner(monkeypatch, [_row("interactive", 1)], None, Execution.COMPLETED)
+    with pytest.raises(MissingPacketError, match="no public packet"):
+        run(runner.run(uuid4()))
+    assert orch.stopped == []
+    assert db.retry_calls == []

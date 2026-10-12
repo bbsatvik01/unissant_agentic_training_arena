@@ -16,7 +16,7 @@ import psycopg
 import pytest
 from psycopg.types.json import Jsonb
 
-from arena_core.db.arena import EVENTS_PAGE, ArenaDb, ArenaError, QuestionOrigin, SessionStart, iso
+from arena_core.db.arena import EVENTS_PAGE, ArenaDb, ArenaError, CoachEvent, QuestionOrigin, SessionStart, iso
 from arena_core.db.pool import Connector
 from arena_core.db.scripted import ScriptedConnection
 
@@ -313,12 +313,33 @@ def test_tournament_split_found_and_missing() -> None:
     assert run(arena.tournament_split(TRIAL)) is None
 
 
-def test_released_with_titles_maps_every_row() -> None:
-    arena, _ = db([("arena.v_released_evidence", [("rec-01", "Work orders", 2), ("rec-02", "Radio log", 3)])])
-    assert run(arena.released_with_titles(TRIAL)) == [
-        {"record_id": "rec-01", "title": "Work orders", "released_after_exchanges": 2},
-        {"record_id": "rec-02", "title": "Radio log", "released_after_exchanges": 3},
-    ]
+def test_harness_trial_state_calls_the_function_with_no_actor_and_maps_every_field() -> None:
+    """WP-28: the job's own in-flight read, `arena.harness_trial_state(trial)`, run with no `arena.actor_id`
+    (S4 2.3), never a reveal-gated projection."""
+    raw = {
+        "trial_id": str(TRIAL),
+        "kind": "interactive",
+        "transcript_version": 7,
+        "exchanges": 2,
+        "public_packet": {"opening_question": "Why?"},
+        "open_question": True,
+        "released": [{"record_id": "rec-01", "title": "Work orders", "released_after_exchanges": 1}],
+        "coach_events": [{"seq": 4, "kind": "coach_card", "turn_no": 1, "payload": {"turn_no": 1}}],
+    }
+    missing = {**raw, "public_packet": None, "open_question": False, "released": [], "coach_events": []}
+    arena, script = db(
+        [("arena.harness_trial_state", [(json.dumps(raw),)]), ("arena.harness_trial_state", [(json.dumps(missing),)])],
+        actor=None,
+    )
+    state = run(arena.harness_trial_state(TRIAL))
+    assert state.public_packet == {"opening_question": "Why?"}
+    assert state.open_question is True
+    assert state.released == [{"record_id": "rec-01", "title": "Work orders", "released_after_exchanges": 1}]
+    assert state.coach_events == [CoachEvent(4, "coach_card", 1, {"turn_no": 1})]
+    assert script.executed[0] == ("select arena.harness_trial_state(%s)::text", (TRIAL,))
+    assert not any(q.startswith("select set_config") for q, _ in script.executed)
+    empty = run(arena.harness_trial_state(TRIAL))
+    assert (empty.public_packet, empty.open_question, empty.released, empty.coach_events) == (None, False, [], [])
 
 
 def test_planned_trials_maps_the_frozen_roster_in_position_order() -> None:

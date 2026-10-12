@@ -8,10 +8,11 @@ section 1.3 and `docs/handoff/DECISIONS.md`; this runbook assumes they are alrea
 starts.
 
 **Proof that this sequence works end to end**: `services/tournament/tests/it_tournament.py`'s
-`test_hidden_split_seal_freeze_and_open_prove_the_wp27_sequence` runs steps 1-5 below for real (2 throwaway
-synthetic hidden families, never committed) against a disposable, migrated database (`make db-test`'s own
-"tournament path" container). Read that test's docstring before running a real sealing session: it also
-states exactly where the sequence stops today and why (see "Known gap" at the end of this file).
+`test_a_hidden_tournament_runs_end_to_end_and_its_trials_are_readable_only_after_reveal` runs every step below
+for real (2 throwaway synthetic hidden families, never committed) against a disposable, migrated database
+(`make db-test`'s own "tournament path" container): seal, freeze, open through the isolation gate, the
+fake-model run, scoring, reveal, and each trial's recording. Read that test's docstring before running a real
+sealing session.
 
 ## 0. Preconditions
 
@@ -157,33 +158,21 @@ is the "publish the seal hash" half of S1 10.3 step 3 (the hash itself; the ledg
    current database -- never from the request body. A failing gate leaves the tournament `frozen`, not
    `running`; nothing here is retried automatically.
 
-## Known gap: hidden-tournament execution does not run yet (WP-28)
+## 6. Run, score, reveal (S5 5.3, S3 4.4; WP-28)
 
-A hidden tournament that reaches `running` (step 5.4 passed) cannot actually be run by
-`arena_tournament.runner.TournamentRunner` today: `run_replay_track_prerequisite` refuses every hidden split
-outright (`HiddenTournamentError`), and for a confirmed reason, not an oversight -- the harness's own
-mid-execution reads (`ArenaDb.public_packet`, and more fundamentally `HarnessAsker`/`CorpusAsker`'s reads of
-`arena.v_trial_events` and `arena.v_released_evidence`, both gated by `arena.trial_visible`) see nothing for
-a trial that is `running` but not yet `revealed`, because `trial_visible`'s non-training rule is `split =
-'dev' or status = 'revealed'` with no allowance for the executing job reading its own in-flight writes.
+1. Run the job: `python -m arena_tournament run <id>` (`arena_tournament.main.run_tournament`;
+   `ARENA_TRACE_EXPORT=mirror_only`, S5 8.5). It runs a hidden tournament exactly as a dev one: corpus
+   transcripts, the corpus seal, replay trials, interactive blocks with their scoring calls, then close.
+2. `POST /api/admin/tournaments/{id}/scoring` (`begin_scoring`), then `POST /api/admin/tournaments/{id}/reveal`.
+3. After reveal, `GET /api/trials/{id}/recording` (or `make export-run`) resolves each trial, its packet through
+   `arena.v_hidden_cases`.
 
-A narrowing that first looks sufficient -- `or arena.actor_id() is null`, since every `arena-api` route
-constructs `ArenaDb` with a real, non-optional actor (`arena_api.state.ApiState.db(actor: UUID)`), so that
-clause could only ever add visibility for an automated job/CLI call, never a browser-facing investigator
-one -- is not narrow enough on inspection: `scripts/export_run.py` and `scripts/dev_tournament_demo.py` also
-call `ArenaDb` with `actor=None`, so the same clause would let `make export-run <hidden-trial-id>` read a
-hidden trial's full recording before reveal, exactly what L7 forbids. Distinguishing "the tournament job
-reading its OWN currently-running trial" from "any `actor=None` caller reading ANY trial" needs a real
-design decision (a dedicated credential, or an explicit execution-context flag threaded through `ArenaDb`
-separately from "no investigator"), not a one-line change to a function every content view in the system
-depends on. This is tracked as a WP-28 follow-up, not attempted inside this runbook or its proof test.
-
-Once that gap closes, the remaining steps are: a fake-model run (`arena_tournament.main.run_tournament` or
-the real job), `POST /api/admin/tournaments/{id}/scoring` (`begin_scoring`), `POST
-/api/admin/tournaments/{id}/reveal`, then `GET /api/trials/{id}/recording` (or `make export-run`) resolves
-through `arena.v_hidden_cases` (the sealed-run export gap d0db9da closes, 18f3eef its own gate-fix
-follow-up) -- proven separately:
-`test_a_small_tournament_runs_every_track_through_the_real_functions_and_closes` (same file)
-proves the real `TournamentRunner` execution machinery end to end on a dev tournament, and
-`supabase/tests/012_reveal_manifest.sql`'s `rvh`/RV-19/RV-20 golden path proves a hidden tournament's
-content becomes visible exactly at reveal, not before, including the recording packet.
+How the job reads its own running hidden trials (WP-28): every read the harness makes of a trial while it
+runs (the case's public packet, its coach cards, the released records' titles, whether a question is open)
+goes through `arena.harness_trial_state(trial)` (`supabase/migrations/20261012000200_harness_trial_state.sql`),
+an `arena_public` function that answers only a harness request (no `arena.actor_id`, S4 2.3) on a tournament
+trial that is `running`, and never returns record content, answers or anything of the private or evaluator
+packet. `arena.trial_visible` is unchanged: before reveal, every projection a recording or export reads
+(`arena.v_transcripts`, `v_released_evidence`, `v_trial_events`, `v_findings`, `v_hidden_cases`,
+`ledger.v_commitments` payloads) shows a hidden trial nothing, with or without an actor, and once a trial is
+finalized or terminated the function refuses it too (`supabase/tests/020_harness_trial_state.sql`, HS-01..12).

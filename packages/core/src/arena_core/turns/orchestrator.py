@@ -348,15 +348,32 @@ class Orchestrator:
         """A1's deep update: every third exchange, and on each release, i.e. when a record first became visible to
         this turn's coaching (released after exchange n - 1, at this question or between the turns; S2 4.4.1)."""
         manifest, _ = await self._manifest(trial)
-        released = any(r["released_after_exchanges"] == n - 1 for r in await self.db.released(trial))
+        released = any(r["released_after_exchanges"] == n - 1 for r in await self._released(trial))
         if deep_due(manifest.model_dump(mode="json"), n, released):
             await self._coach(trial, n, "deep", card_version)
+
+    # ------------------------------------------------------------------ the trial's own reads (S4 2.3, 5.5)
+
+    async def _released(self, trial: UUID) -> list[dict[str, Any]]:
+        """The trial's released records (`released_after_exchanges` is all a caller here reads). An investigator
+        request reads its own training trial through `arena.v_released_evidence`; a harness request (no actor,
+        S4 2.3) reads the tournament trial it is running through `arena.harness_trial_state`, the one read that
+        sees a running hidden trial's own writes before reveal (WP-28)."""
+        if self.db.actor is None:
+            return (await self.db.harness_trial_state(trial)).released
+        return await self.db.released(trial)
+
+    async def _open_question(self, trial: UUID) -> bool:
+        """Whether the trial has a question with no answer yet, through the same per-caller read as `_released`."""
+        if self.db.actor is None:
+            return (await self.db.harness_trial_state(trial)).open_question
+        return await self.db.open_question(trial)
 
     # ------------------------------------------------------------------ between turns (S5 5.4)
 
     async def request_evidence(self, trial: UUID, record_ids: list[str], idem_key: str) -> dict[str, Any]:
         async with self.signals.lock(trial):
-            if await self.db.open_question(trial):  # S5 5.4: between turns only; the open turn's retry owns it
+            if await self._open_question(trial):  # S5 5.4: between turns only; the open turn's retry owns it
                 raise TurnRefusedError(409, "turn_in_progress", "the last question is not answered yet")
             try:
                 key = request_key(trial, 0, "release", f"evidence:{idem_key}")

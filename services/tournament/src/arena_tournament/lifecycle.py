@@ -102,9 +102,10 @@ async def freeze_tournament(connect: Connector, tournament: UUID) -> str:
 
 async def open_tournament(connect: Connector, tournament: UUID, *, split: str) -> None:
     """`arena.open_tournament`: frozen -> running. A hidden tournament needs the referee's hidden-text scan
-    first (S5 5.3, D1); that scan is WP-16's, so this refuses a hidden split outright rather than open one
-    unscanned -- `open_tournament` itself has no isolation check of its own to lean on."""
+    first (S5 5.3, D1), which runs in the referee's own open route (`POST /api/admin/tournaments/{id}/open`,
+    the isolation gate), so this refuses a hidden split outright rather than open one unscanned --
+    `arena.open_tournament` itself has no isolation check of its own to lean on."""
     if split == "hidden":
-        msg = "a hidden tournament needs the S5 5.3 hidden-text scan before it opens (D1; WP-16); not run here"
+        msg = "a hidden tournament needs the S5 5.3 hidden-text scan in the referee's isolation gate (D1); not here"
         raise LifecycleError("AR001", msg)
     await _call(connect, "select arena.open_tournament(%s)", (tournament,))
