@@ -250,7 +250,7 @@ licenses:
 # against it. make export-run TRIAL=<id> writes recordings/<id>.json. dev-db and dev-db-down never write or
 # delete the root .env.local* files.
 ENV_DIR ?=
-.PHONY: dev dev-local dev-db dev-db-down export-run seed-hosted real-smoke
+.PHONY: dev dev-local dev-db dev-db-down export-run seed-hosted kpi1-setup kpi1-report real-smoke
 dev-db:
 	scripts/dev.sh db-up
 dev-db-down:
@@ -271,6 +271,18 @@ seed-hosted:
 	@test -n "$(EMAIL)" || { echo "usage: ARENA_OWNER_DSN=... make seed-hosted EMAIL=<allowlisted email>"; exit 2; }
 	@test -n "$$ARENA_OWNER_DSN" || { echo "ARENA_OWNER_DSN is not set in the environment"; exit 2; }
 	$(UV_RUN) python -m scripts.seed_hosted --email "$(EMAIL)"
+
+# make kpi1-setup EMAILS=a@x,b@y (ARENA_REFEREE_DSN already set in the operator's shell): writes KPI-1 case sets A
+# and B (F06+F07, F08+F09; cases/dev/README.md) and adds each allowlisted email as a counterbalanced participant,
+# then prints the study plan (S3 6.1, X-08). Run after make seed-hosted EMAIL=... for each participant.
+# make kpi1-report [SCORER=human]: the blinded results and the KPI-1 estimate as JSON. No model call.
+kpi1-setup:
+	@test -n "$(EMAILS)" || { echo "usage: ARENA_REFEREE_DSN=... make kpi1-setup EMAILS=a@x,b@y"; exit 2; }
+	@test -n "$$ARENA_REFEREE_DSN" || { echo "ARENA_REFEREE_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.kpi1 setup --emails "$(EMAILS)"
+kpi1-report:
+	@test -n "$$ARENA_REFEREE_DSN" || { echo "ARENA_REFEREE_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.kpi1 report --scorer "$(or $(SCORER),proxy)"
 
 # make real-smoke [FAMILY=F01] [COACH=A1] [SUBJECT=S1]: one real subject call and one real coach card through
 # the real agent port and spend guard (ARENA_PUBLIC_DSN, ARENA_SUBJECT_DSN, ARENA_DEV_USER, ARENA_USERS_FILE
