@@ -375,7 +375,7 @@ def test_a_committed_finding_fails_5c_by_the_lexicon_or_by_the_referee() -> None
 
 
 def test_fairness_inputs_carry_inclusion_style_position_flags_and_truthful_r1_labels() -> None:
-    r1 = {
+    r1: dict[str, Any] = {
         "report": {
             "schema_version": "ref_subj.v5",
             "turns": [_r1_turn(1), {**_r1_turn(2), "label": "evasion", "eva_subtype": "stall"}],
