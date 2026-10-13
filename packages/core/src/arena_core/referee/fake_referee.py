@@ -38,6 +38,11 @@ _ANSWER_LINE = re.compile(r"^(t\d{2}) Subject: (.+)$", re.MULTILINE)
 _FLAG_REF_LINE = re.compile(r"^(t\d{2}\.f\d) \|", re.MULTILINE)
 _FOLLOWUP_LINE = re.compile(r"^(t\d{2}) \|", re.MULTILINE)
 _CITATION_LINE = re.compile(r"^(t\d{2}|rec-\d{2}|doc-0[1-4])$", re.MULTILINE)
+# Every untrusted-tagged block, any kind -- removed wholesale before a *literal-header* search (one that
+# has no tag boundary of its own to scope it, unlike `_tagged()` above), so a record's or an initial
+# document's own body can never impersonate a structural header by just containing its text (a document
+# that itself reads "Finding citations:\n...\n\nApplicability triggers:\n...").
+_UNTRUSTED_BLOCK = re.compile(rf"<untrusted_\w+_{_SALT}>\n.*?\n</untrusted_\w+_{_SALT}>", re.DOTALL)
 
 # Every rubric sub-check an assistant report must answer once (S2 7.3; S3 2.11): fixed by the dev rubric's
 # own registry, never by the request's content, so there is nothing to extract from the prompt for this one.
@@ -58,9 +63,14 @@ def _tagged(text: str, kind: str) -> str:
 def _citations_block(text: str) -> str:
     """`finding_citations` (referee_prompts._citation_lines) is rendered directly, not inside an untrusted
     tag: it is code-derived from a validated `StoredFinding`'s own `cited_turns`/`cited_records`, never raw
-    case text (S2 1's "trusted blocks carry only code-validated identifiers and counts"). Scoped instead by
-    the assistant template's own static headers either side of it (assistant.user.v2.txt)."""
-    match = re.search(r"Finding citations:\n(.*?)\n\nApplicability triggers:", text, re.DOTALL)
+    case text (S2 1's "trusted blocks carry only code-validated identifiers and counts"). Scoped by the
+    assistant template's own static headers either side of it (assistant.user.v2.txt) -- but those headers
+    are plain words, not a tag boundary, so a record's or an initial document's own body is free to contain
+    that same text (released records and initial documents render before the real header; S2 1 sanitizes
+    `<`/`>` but not prose). Every untrusted block is stripped first so only the template's own header can
+    ever match."""
+    stripped = _UNTRUSTED_BLOCK.sub("", text)
+    match = re.search(r"Finding citations:\n(.*?)\n\nApplicability triggers:", stripped, re.DOTALL)
     return match.group(1) if match else ""
 
 
