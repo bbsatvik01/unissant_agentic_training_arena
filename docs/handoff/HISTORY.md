@@ -104,3 +104,4 @@
 - e8fca14 merge referee robustness + subjects 1.2.0; hosted: S1-S3 1.2.0 registered (coaches 1.1.0); local real tournament 9c713e54 published both boards (invalid-proposal rate 21/36 -> 6/17)
 - 2026-10-12 hosted: voice_sessions_per_user_day 2 -> 10 (owner, D-031)
 - 2026-10-12 first REAL live voice session (gemini-3.8-live, F01, 3 exchanges, $0.024, first audio 0.01-0.64 s after each question; session open ~47 s -> fixing)
+- 8173caf merge voice polish (Live uses persona designed voice; server open ~1.2 s)
