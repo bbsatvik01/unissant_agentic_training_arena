@@ -4,6 +4,12 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## HOLD 4 (owner, 2026-10-13): checkpoint and hold
+- Do not dispatch new work; let the one running agent (calibration batch aa11884a8c667c2de, feat/calibration-batch, f9b7be2 committed) finish; merge it on report.
+- Done: all core features merged; real Gemini end to end (text, designed TTS voices, live voice on gemini-3.8-live); real dev tournament ca6c4b9b revealed on hosted; hidden split SEALED (n=9, seal fdc96908..., docs/seal/hidden-split.md); KPI-1 setup for P01/P02; spend ~ $7 of $74.
+- Owner to delete 22 authoring-agent Claude transcripts (S1 L6; list in scratchpad hidden/transcripts_to_delete.txt; the safety check blocked my rm).
+- Next on resume: calibration ratings Oct 15-18 (owner + Brundhar), register frozen candidates + freeze the sealed tournament roster, run the sealed tournament (real Gemini, ~$15-25), adjudication + reveal, KPI-1 Oct 24, slice/E2E walkthrough, recorded demo Oct 31-Nov 2.
+
 ## Wave 2026-10-12
 - Hidden split: 9 families bundled in git-ignored cases/hidden/bundles (finalize: validator_issues=0, sampler problems=0, IG-4 dry run 0 hits). Seal on hosted blocked by the permission classifier (irreversible shared write): owner to approve or run scripts.seal_hidden_split.
 - Dev tournament ca6c4b9b revealed on hosted (D-031). Running: voice polish (a47192aec3a6ecc1b, feat/voice-polish); calibration batch WP-25a (aa11884a8c667c2de, Sonnet, feat/calibration-batch, cap $4); hidden authoring WP-27, 15 families into git-ignored cases/hidden/, seal on hosted by coordinator (ab73e259fc6d907ab, feat/hidden-authoring).
