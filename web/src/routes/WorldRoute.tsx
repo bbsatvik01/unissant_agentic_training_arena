@@ -51,7 +51,7 @@ import { useVoice } from "./world/useVoice";
 import { useVoiceSession } from "./world/useVoiceSession";
 import { INVESTIGATOR, subjectPersona } from "../lib/world/cast";
 import { VoiceBar } from "../components/overlay/VoiceBar";
-import { liveVoiceView, withLiveVoice } from "../lib/voice/liveWorld";
+import { liveVoiceView, voiceShownCount, withLiveVoice } from "../lib/voice/liveWorld";
 import type { ExchangeEntry } from "../lib/voice/voiceMachine";
 import type { VoiceExchange } from "../lib/contracts/generated/types";
 
@@ -562,7 +562,7 @@ export function WorldRoute() {
             <>
               <span className="badge">{isVoice ? "Voice practice: not scored" : modeBadge(view.mode, mode === "playback" ? (recording?.snapshot.mode ?? null) : null)}</span>
               <span className="badge mono">
-                {isVoice ? (voice.state.exchangeCount?.used ?? view.exchangesUsed) : view.exchangesUsed}/{view.exchangesCap} exchanges
+                {isVoice ? voiceShownCount(voice.state, view.exchangesUsed) : view.exchangesUsed}/{view.exchangesCap} exchanges
               </span>
               {isVoice ? null : (
                 <span className="badge" data-state={view.status}>

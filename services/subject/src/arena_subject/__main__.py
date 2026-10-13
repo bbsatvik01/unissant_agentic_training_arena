@@ -9,6 +9,7 @@ helper (which never reaches this line) and the serving path with its own process
 blocking wait).
 """
 
+import logging
 import os
 import sys
 
@@ -22,6 +23,12 @@ def main() -> int:
     app = create_app(state)
     sys.stdout.write(f"arena-subject: boot checks passed; serving on {state.bind_host}:{PORT}\n")
     sys.stdout.flush()
+    # The role's own INFO lines (voice session openings and closes) reach the console beside uvicorn's.
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s %(message)s"))
+    role_log = logging.getLogger("arena_subject")
+    role_log.addHandler(handler)
+    role_log.setLevel(logging.INFO)
     uvicorn.run(app, host=state.bind_host, port=PORT, log_level="info")
     return 0
 

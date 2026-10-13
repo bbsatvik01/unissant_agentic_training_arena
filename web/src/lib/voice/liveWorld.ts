@@ -6,7 +6,7 @@
  * never paired (SG3-40). `CaptureEdges` turns the microphone level into the machine's capture edges with a
  * hangover, so a breath between words does not end the investigator's turn.
  */
-import type { CaptionLine, VoiceEvent, VoiceState } from "./voiceMachine";
+import { EXCHANGE_CAP, type CaptionLine, type VoiceEvent, type VoiceState } from "./voiceMachine";
 import { shotFor, type Speech, type WorldState } from "../world/worldState";
 
 /** Microphone RMS above which the investigator counts as speaking. */
@@ -90,4 +90,16 @@ export class CaptureEdges {
   get active(): boolean {
     return this.speaking;
   }
+}
+
+/** The header's exchange count in voice: the stored count, plus the exchange whose answer is being spoken (it is
+ * stored when the answer ends). */
+export function voiceShownCount(state: VoiceState, fallback: number): number {
+  const used = state.exchangeCount?.used ?? fallback;
+  // The answer has started (its utterance is open, or its caption is up) and its window is not stored yet: the
+  // `exchange` frame that stores it clears the captions, and its `exchange_count` follows, so the same exchange is
+  // never counted twice; audio still playing after that is already counted.
+  const started = state.openUtterance !== null || state.captions.some((c) => c.role === "subject");
+  const answering = state.connection === "open" && started;
+  return Math.min(EXCHANGE_CAP, used + (answering ? 1 : 0));
 }

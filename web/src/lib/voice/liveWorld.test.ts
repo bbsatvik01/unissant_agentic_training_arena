@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CAPTURE_FLOOR, CaptureEdges, HANGOVER_MS, liveVoiceView, withLiveVoice } from "./liveWorld";
+import { CAPTURE_FLOOR, CaptureEdges, HANGOVER_MS, liveVoiceView, voiceShownCount, withLiveVoice } from "./liveWorld";
 import { initialVoiceState, voiceReducer, type VoiceEvent, type VoiceState } from "./voiceMachine";
 import type { WorldState } from "../world/worldState";
 
@@ -67,5 +67,33 @@ describe("liveWorld", () => {
     expect(edges.next(0, 100 + HANGOVER_MS - 1)).toBe(null);
     expect(edges.next(0, 100 + HANGOVER_MS)).toEqual({ type: "investigator_silence" });
     expect(edges.active).toBe(false);
+  });
+
+  it("counts the exchange whose answer is being spoken, up to the cap", () => {
+    const counted = fold([...OPEN, { type: "exchange_count", used: 2, cap: 12 }]);
+    expect(voiceShownCount(counted, 0)).toBe(2);
+    expect(voiceShownCount(voiceReducer(counted, { type: "utterance_start", utterance: 1 }), 0)).toBe(3);
+    expect(voiceShownCount(initialVoiceState("live"), 5)).toBe(5);
+    const done = [
+      { type: "utterance_start", utterance: 1 },
+      { type: "transcription", role: "subject", text: "Here.", partial: false },
+      { type: "playback", utterance: 1 },
+      { type: "utterance_end", utterance: 1 },
+      { type: "exchange", exchangeNo: 3, lines: [{ role: "subject", text: "Here.", partial: false }] },
+      { type: "exchange_count", used: 3, cap: 12 },
+    ] as const;
+    let state = counted;
+    const shown: number[] = [];
+    for (const e of done) {
+      state = voiceReducer(state, e);
+      shown.push(voiceShownCount(state, 0));
+    }
+    state = voiceReducer(state, { type: "playback", utterance: null });
+    shown.push(voiceShownCount(state, 0));
+    // 3 while the answer plays and is stored; the moment between the exchange frame and its count (same message
+    // burst) reads 2; never 4.
+    expect(shown).toEqual([3, 3, 3, 3, 2, 3, 3]);
+    const full = fold([...OPEN, { type: "exchange_count", used: 12, cap: 12 }, { type: "utterance_start", utterance: 1 }]);
+    expect(voiceShownCount(full, 0)).toBe(12);
   });
 });

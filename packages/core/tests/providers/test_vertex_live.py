@@ -56,6 +56,15 @@ def test_the_live_config_is_audio_with_both_transcriptions_the_voice_and_no_tool
     assert voice.voice_config.prebuilt_voice_config.voice_name == "Charon"
 
 
+def test_a_designed_persona_voice_goes_in_voice_and_a_prebuilt_name_in_its_own_config() -> None:
+    designed = {**SETUP, "speech_config": {"voice_config": {"prebuilt_voice_config": {"voice_name": "voice_abc-1"}}}}
+    cfg = live_config(designed)
+    assert cfg.speech_config is not None
+    assert cfg.speech_config.voice_config is not None
+    assert cfg.speech_config.voice_config.voice == "voice_abc-1"
+    assert cfg.speech_config.voice_config.prebuilt_voice_config is None
+
+
 def test_the_native_audio_fallback_turns_proactivity_and_affective_dialog_off() -> None:
     cfg = live_config(SETUP, LIVE_FALLBACK_MODEL)
     assert cfg.proactivity == gtypes.ProactivityConfig(proactive_audio=False)

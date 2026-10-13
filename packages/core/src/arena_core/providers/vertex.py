@@ -41,6 +41,7 @@ from arena_core.config import ALLOWED_GCP_PROJECT
 from arena_core.providers.errors import ConfigError, ErrorKind, ProviderCallError, kind_for_status
 from arena_core.providers.types import ModelRequest, RawCompletion, Usage
 from arena_core.spend.limits import LIMITS, CallType, ThinkingLevel
+from arena_core.voice.catalogue import VOICE_ID_PREFIX
 from arena_core.voice.live import (
     LIVE_LOCATION,
     LIVE_MODEL,
@@ -626,7 +627,13 @@ def live_config(setup: Mapping[str, Any], model: str = LIVE_MODEL) -> gtypes.Liv
     """The SDK config from `subject_prompts.live_setup`'s plain data. `gemini-3.8-live` has proactive audio always
     on and affective dialog removed (setting either is refused, per its Vertex migration guide), so both are sent
     off only to the 2.5 native-audio fallback, where S2 9.2 turns them off."""
-    voice = setup["speech_config"]["voice_config"]["prebuilt_voice_config"]["voice_name"]
+    voice = str(setup["speech_config"]["voice_config"]["prebuilt_voice_config"]["voice_name"])
+    # A designed voice id (`voice_...`, the persona catalogue) goes in `voice`; a prebuilt name in its own config.
+    voice_config = (
+        gtypes.VoiceConfig(voice=voice)
+        if voice.startswith(VOICE_ID_PREFIX)
+        else gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name=voice))
+    )
     switches: dict[str, Any] = {}
     if model != LIVE_MODEL:
         switches = {"proactivity": gtypes.ProactivityConfig(proactive_audio=False), "enable_affective_dialog": False}
@@ -638,9 +645,7 @@ def live_config(setup: Mapping[str, Any], model: str = LIVE_MODEL) -> gtypes.Liv
         realtime_input_config=gtypes.RealtimeInputConfig(
             automatic_activity_detection=gtypes.AutomaticActivityDetection(silence_duration_ms=SILENCE_MS)
         ),
-        speech_config=gtypes.SpeechConfig(
-            voice_config=gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name=str(voice)))
-        ),
+        speech_config=gtypes.SpeechConfig(voice_config=voice_config),
         **switches,
     )
 

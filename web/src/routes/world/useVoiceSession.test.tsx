@@ -110,6 +110,8 @@ describe("useVoiceSession", () => {
     act(() => {
       ws.open();
     });
+    // The socket is open but Live is not: still connecting, and no audio is sent.
+    expect(result.current.state.status).toBe("connecting");
     const pcm = new ArrayBuffer(3200);
     act(() => {
       audio.hooks[0]?.onFrame(pcm, 0);
@@ -117,6 +119,9 @@ describe("useVoiceSession", () => {
     expect(ws.sent).toEqual([]);
     act(() => {
       ws.frame({ type: "exchange_count", used: 0, cap: 12 });
+    });
+    expect(result.current.state.status).toBe("listening");
+    act(() => {
       audio.hooks[0]?.onFrame(pcm, 0);
       ws.frame({ type: "utterance_start", utterance: 1 });
       ws.onmessage?.({ data: new ArrayBuffer(4) });

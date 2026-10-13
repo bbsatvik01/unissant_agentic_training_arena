@@ -22,6 +22,7 @@ from arena_core.agents.manifests import ManifestMismatchError, committed_manifes
 from arena_core.db.calls import SettleOutcome, UsageReport, UsageResult
 from arena_core.db.voice import OpenedVoice, VoiceOpenRefusedError
 from arena_core.voice import protocol as p
+from arena_core.voice.catalogue import speaker_for
 from arena_core.voice.live import (
     FakeLive,
     FakeLiveConnection,
@@ -688,3 +689,21 @@ def test_audio_produced_during_the_closing_wait_is_still_metered() -> None:
     run(_drive(store, script))
     assert [u.audio_output_tokens for u in store.usage] == [2 * PER_S]
     assert store.log[-1] == ("settle", "committed")
+
+
+def test_the_live_voice_is_the_persona_designed_voice_and_the_instruction_uses_the_manifest_style() -> None:
+    store = Store()
+
+    async def script(relay: Relay, conn: FakeLiveConnection) -> None:
+        del conn
+        relay.inbound.put_nowait(json.dumps({"type": "stop"}))
+
+    _, live = run(_drive(store, script))
+    setup = live.setups[0]
+    voice = setup["speech_config"]["voice_config"]["prebuilt_voice_config"]["voice_name"]
+    speaker = speaker_for("subject:Jordan Pell")
+    assert speaker is not None
+    assert voice == speaker.voice
+    assert voice.startswith("voice_")
+    # S1's own assembly (style and role v2): the style line the text subject also gets.
+    assert "do not repeat remarks about your feelings" in setup["system_instruction"]
