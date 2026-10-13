@@ -1,0 +1,28 @@
+Task: author one synthetic case family for an investigative-interview training arena, as a FamilySource JSON file that the assembler turns into the family file (schema v1.2). The family is one canonical event graph with two matched variants: truthful (the subject did nothing wrong) and deceptive (the subject committed exactly one violation of the seed's type and conceals it).
+
+Content rules:
+- Fictional organizations, people and places only. The agency is Brannock Administrative Services Agency (fictional). Use the seed's facility, occupation, dates, style and presentation; never change a code-owned field.
+- Administrative facility-access register: badge logs, sign-in sheets, access-control audit exports, key and spare-card registers, work orders, tickets, camera metadata (never footage content), short written statements.
+- No violence. No protected-class traits as clues. No medical detail beyond a named condition category. Demeanor and accent are never evidence.
+- EX-4: evasive wording alone does not prove a violation; a deceptive finding needs record content that establishes the involvement the answers avoid.
+- The deceptive subject conceals only by omission, deflection or minimization and never states a falsehood; once the investigator presents the evidence that opens a gate, the subject acknowledges the opened fact.
+- Editorial, plain English. No emojis.
+
+Construction rules:
+- Atomic facts (F1-F5): one proposition per fact, with time, actors and place where relevant; every fact lists the variants it holds in.
+- Matching (M1-M6): the two variants share the same people, places, timeline skeleton, records and free evidence; they differ only in what the subject did inside the violation window and in the on-request records that show it.
+- Truthful variant: each misleading circumstance (tagged misleading) is explained exactly once by an innocent-explanation fact backed by an on-request record; the subject has genuine uncertainty (uncertainty entries, matched in count across variants).
+- Deceptive variant: exactly one violation, one motive, one opportunity, one means, a true cover activity; the violation fact is CORE; at least one gate (HOLD facts opened by presenting a record at the gate's evidence level).
+- Free evidence (initial documents and scheduled records) is identical across variants and must look suspicious before corroboration: only the on-request corroboration path may clear the truthful subject.
+- At most 4 initial documents and 6 releasable records; predicate values at most 10.
+- Evidence Framing Matrix: a support link has source strength (strong: system records and first-hand statements by the record's owner; weak: third-party recollection) and precision (high: states the fact specifically, with room, time, count or name; low: implies it). Level = 1 weak/low, 2 weak/high, 3 strong/low, 4 strong/high. Meet the seed's knob targets exactly (K, E, M, G and matched U).
+- Each decisive-support item must establish its variant's finding from its own records plus the free evidence and, when it requires one, the subject account it names, without relying on another item. A deceptive item's records must tie the subject personally to the violation (not just show that something happened).
+- Forbidden assertions (2-8 per variant): each is a specific false statement the subject is likely to make, and contradicts its named fact exactly as that fact is stated (never a broader claim).
+- Free text never carries a protected fact: no FREE or PRIVATE ledger text, uncertainty entry of a FREE fact, persona background or matter states or implies a HOLD or CORE proposition of the same packet, alone or together with the other FREE texts. If FREE facts already establish a proposition, that proposition is FREE and carries no gate.
+- Records, times, names and places agree with the canonical timeline everywhere (where each witness was at each time). A record that logs an event must be consistent with every other record of the same event.
+- Opening question: open and neutral, from public material only. Three replay topics: noun phrases of at most 12 words, public material only. Both must pass S2's relay test: no fact, gate or record IDs, no role or verdict words, no case-specific claim that the public packet does not hold.
+- No role or verdict words and no IDs in any record text or public text (titles included). Never name the subject as the culprit in a record; records state evidence.
+- S2 guard vocabulary (G3-G5: instructions to a model, role-play or prompt words, system or developer terms) never appears in any text.
+- Content limits and the table rule (S1 6.1): records are short; a table has a header row and consistent columns.
+- Turn-label guide entries are labeled by content in S2 J1's order, never by role or style: the same answer to the same question gets the same label in both variants unless what the subject knows differs.
+- Ledger rows and unknown-fact views are written in the second person ("You badged into ...").
