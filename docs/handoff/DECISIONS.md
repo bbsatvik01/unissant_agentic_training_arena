@@ -190,3 +190,8 @@
 ## 2026-10-12 · D-032 Calibration raters, 15 hidden families, keep authoring lean
 - **Decision:** owner. Owner and Brundhar rate the calibration batch Oct 15-18. OD-8 = 15 hidden families (30 cases). Authoring stays lean: at most 2 revision rounds per family, drop and replace once if still failing (D-016). Owner will do a final UI review when the rating batch is ready.
 - **Reversibility:** cheap.
+
+## 2026-10-12 · D-033 Seal 9 hidden families (18 cases)
+- **Decision:** coordinator, under the owner's "do not overspend on hidden authoring" directive. After one replacement round, 12 families passed CX, but no subset of 12, 11 or 10 meets S1 7.5's style/level balance (AC-S1-16); the largest balanced subset is 9 (levels 3/3/3, max_phi 0.350). Seal those 9 (18 cases) rather than authoring more; the balance gate is not weakened.
+- **Effect:** the sealed tournament has 9 hidden families; the zero-event FPR bound is wider than at 15 (reported honestly, S3 5.2).
+- **Reversibility:** expensive after the seal.
