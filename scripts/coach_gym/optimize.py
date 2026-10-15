@@ -333,6 +333,12 @@ async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
     lock = threading.Lock()
 
     async def tracked[R](coro: Coroutine[Any, Any, R]) -> R:
+        # On the loop thread, like the cancellation handler: a call submitted before the halt but started after
+        # it is refused here, so it can never escape the handler's snapshot of running calls.
+        if halt.event.is_set():
+            coro.close()
+            msg = f"the search is halted ({halt.reason}); no new call"
+            raise SearchHaltedError(msg)
         task = asyncio.current_task()
         if task is not None:
             tasks.add(task)
@@ -357,8 +363,8 @@ async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
     except asyncio.CancelledError:
         with lock:
             halt.stop("cancelled")
-        # Let any call submitted just before the halt start, then cancel every one and wait for its cleanup.
-        await asyncio.sleep(0)
+        # Every call already started is cancelled and awaited through its cleanup; one not started yet refuses
+        # itself in `tracked` (both run on this loop, so there is no window between them).
         running = set(tasks)
         for task in running:
             task.cancel()

@@ -8,6 +8,8 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import json
+import threading
+import time
 from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -641,6 +643,37 @@ def test_cancelling_the_search_stops_new_calls_and_waits_for_their_cleanup_and_t
 
     run(main())
     assert actions == ["start1", "cleanup1", "CancelledError", "SearchHaltedError", "worker done", "cancelled"]
+
+
+def test_a_call_submitted_before_the_halt_but_started_after_it_never_runs() -> None:
+    actions: list[str] = []
+    go = threading.Event()
+
+    async def call() -> None:
+        actions.append("call ran")
+
+    def worker(bridge: Bridge, halt: Halt) -> None:
+        assert go.wait(5)
+        try:
+            bridge(call())
+        except SearchHaltedError:
+            actions.append("refused")
+        actions.append(f"worker done ({halt.reason})")
+
+    def block_the_loop() -> None:
+        go.set()  # the worker submits now, while this loop is blocked: its task cannot start before the halt
+        time.sleep(0.3)
+
+    async def main() -> None:
+        task = asyncio.create_task(run_in_thread(worker))
+        await asyncio.sleep(0.01)  # the worker thread is running and waiting for `go`
+        block_the_loop()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(main())
+    assert actions == ["refused", "worker done (cancelled)"]
 
 
 def test_runs_and_promotions_take_the_registry_one_at_a_time(tmp_path: Path) -> None:
