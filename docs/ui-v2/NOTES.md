@@ -4,6 +4,8 @@
 
 Issue: https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/7
 
+Draft PR: https://github.com/bbsatvik01/unissant_agentic_training_arena/pull/9
+
 Branch `ui-v2` starts from the genuine `main` history at `1ef9a9f`. Work is performed on the dot cloud computer. No cloud models, paid services, credentials in source, or backend edits are used.
 
 ### Architecture
@@ -30,7 +32,12 @@ The ground rule is retained verbatim. Nervousness, demeanor, accent, and stress 
 - Asset validator: 121 colliders, 12 unobstructed hotspots, 30 connected navigation nodes, 8 clear door portals; original GLB approximately 5.48 MB / 116,034 triangles / 38 material groups.
 - Pure movement: 28 tests, 100% lines/functions, 98.54% statements, 96.33% branches in the focused run.
 - Whole-app typecheck and focused movement/renderer lint passed during development.
-- Full `pnpm check`, rendered browser validation, and both requested screenshot sizes are in progress. No check has been weakened or waived.
+- New render-clock regression: 20 cadence tests, 100% coverage. R3F resets its absolute clock on demand/continuous transitions; delta-based sampling keeps navigation/minimap updates immediate after menus.
+- Latest normal test phase: 77 files / 1,417 tests passed. Lint and typecheck passed. The coverage phase hit an unchanged 5-second generator-test timeout and a worker-start timeout during concurrent software rendering; the complete gate is being rerun sequentially.
+- Test concurrency is capped at one worker to fit the shared cloud/laptop budget. No test, timeout, assertion, isolation rule, lint rule, or coverage threshold is removed or relaxed.
+- Clean isolated WebGL smoke: 21 checks per viewport, 42/42 passed, no console errors, page errors, failed requests or HTTP errors. All ten screenshots have the exact requested dimensions.
+- [Five views at each resolution](screenshots/slice-01/README.md) and the [machine-readable report](screenshots/slice-01/smoke-report.json) are committed. The welcome, first-person, third-person, map and accessibility views were visually inspected.
+- Remaining visual polish: low-tier in-world lettering is visibly aliased; readable text overlays/atlases are next. This is an early playable environment, not a claim of finished photorealism.
 
 ### Review workflow
 
@@ -39,3 +46,7 @@ GitHub permits one open pull request for a given head/base pair. The explicit `u
 ### Rendering verification
 
 The managed cloud browser exposes no WebGL context. Its entry, directory, keyboard E interaction, native-dialog focus, and accessibility settings were checked through the explicit original-render fallback. An isolated fresh Chromium launched from the same cloud desktop verifies actual WebGL separately with the software renderer. Initial software runs exposed slow frame delivery; the runtime now detects software rendering, selects Low, uses lower DPR and fewer local lights, stops unnecessary drawing during menus/pause, and avoids duplicate stationary pose updates. Hardware-GPU frame-rate measurements remain distinct from this software-rendered functional check.
+
+### Next checkpoint
+
+[Issue 8](https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/8) covers reception, fictional staff, explicit local visit memory and an evidence-first public briefing. NPC, monitor and world-replay code is prepared separately and is not presented as shipped in this slice. Docker/Postgres are unavailable here, so development uses bundled recordings and explicit local mocks; no real-model or hosted backend is started.
