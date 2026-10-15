@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PrecinctCanvas from "../components/precinct/PrecinctCanvas";
 import { STATIONS } from "../components/precinct/sceneTypes";
 import { EX4_TEXT } from "../lib/copy/ex4";
+import { CASES, RECORDED_CASE_ID } from "../lib/world/cases";
+import type { DossierUiEvent } from "../components/precinct/DossierPanel";
 import { PrecinctRoute } from "./PrecinctRoute";
 
 type CanvasProps = ComponentProps<typeof PrecinctCanvas>;
@@ -43,16 +45,25 @@ function canvas(): CanvasProps {
   return props;
 }
 
-async function mount() {
-  render(<MemoryRouter><PrecinctRoute /></MemoryRouter>);
+async function mount(props: ComponentProps<typeof PrecinctRoute> = {}) {
+  render(<MemoryRouter><PrecinctRoute {...props} /></MemoryRouter>);
   await screen.findByTestId("precinct-renderer");
 }
 
-async function enter(skip = false) {
-  await mount();
+async function enter(skip = false, props: ComponentProps<typeof PrecinctRoute> = {}) {
+  await mount(props);
   act(() => { canvas().onReady(); });
   fireEvent.click(screen.getByRole("button", { name: skip ? "Skip arrival" : "Enter the precinct" }));
   expect(screen.getByRole("heading", { name: "Check in at reception" })).toBeTruthy();
+}
+
+async function choosePublicCase() {
+  act(() => { canvas().onInteract("case_board"); });
+  const card = CASES.find((item) => item.case_id === RECORDED_CASE_ID);
+  if (card === undefined) throw new Error("Expected the public offline case");
+  fireEvent.click(screen.getByRole("button", { name: `Select ${card.title}` }));
+  await screen.findByText("Your public packet is ready at your desk.");
+  fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 }
 
 function key(code: string, value?: string, target: HTMLElement | Window = window) {
@@ -261,6 +272,7 @@ describe("PrecinctRoute reception and briefing", () => {
     expect(screen.getByRole("heading", { name: "Meet your training sergeant" })).toBeTruthy();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
     fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    await choosePublicCase();
     act(() => { canvas().onInteract("briefing"); });
     const dialog = screen.getByRole("dialog", { name: "Sergeant briefing" });
     expect(within(dialog).getByRole("heading", { name: "Records vault entry during a busy shift" })).toBeTruthy();
@@ -330,5 +342,103 @@ describe("PrecinctRoute reception and briefing", () => {
     act(() => { canvas().onInteract("reception"); });
     expect(screen.getByRole("button", { name: "Checked in" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("heading", { name: "Meet your training sergeant" })).toBeTruthy();
+  });
+});
+
+
+describe("PrecinctRoute desk integration", () => {
+  it("keeps reception and case-free staff usable before an explicit public selection", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const getItem = vi.spyOn(Storage.prototype, "getItem");
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    try {
+      await enter(true);
+      act(() => { canvas().onInteract("reception"); });
+      expect(screen.getByText("Choose a case at the case board.")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Check in for this shift" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+      act(() => { canvas().onInteract("briefing"); });
+      expect(screen.getByRole("heading", { name: "Choose your public assignment" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Acknowledge the briefing and ground rule" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Talk to training sergeant" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+      await choosePublicCase();
+      expect(fetch).not.toHaveBeenCalled();
+      expect(getItem).not.toHaveBeenCalled();
+      expect(setItem).not.toHaveBeenCalled();
+    } finally { getItem.mockRestore(); setItem.mockRestore(); }
+  });
+
+  it("completes step three only on reviewed-file confirmation and keeps notes after closing the desk", async () => {
+    await enter(true);
+    act(() => { canvas().onInteract("reception"); });
+    fireEvent.click(screen.getByRole("button", { name: "Check in for this shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    await choosePublicCase();
+    act(() => { canvas().onInteract("briefing"); });
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge the briefing and ground rule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => { canvas().onInteract("personal_dossier"); });
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Your desk" })).toBeTruthy();
+    expect(canvas().active).toBe(false);
+    for (const name of ["Documents", "Subject", "Evidence", "Timeline", "Notebook"]) fireEvent.click(screen.getByRole("tab", { name: new RegExp(name) }));
+    fireEvent.change(screen.getByRole("textbox", { name: "New note" }), { target: { value: "Ask for the source of the assignment." } });
+    key("KeyM", "m", screen.getByRole("textbox", { name: "New note" }));
+    expect(screen.getByRole("dialog", { name: "Your desk" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add note" }));
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("2");
+    fireEvent.click(screen.getByRole("button", { name: "Mark case file reviewed" }));
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("3");
+    expect(screen.getByRole("heading", { name: "Prepare your interview" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    expect(canvas().active).toBe(true);
+    act(() => { canvas().onInteract("personal_dossier"); });
+    fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    expect(screen.getByText("Ask for the source of the assignment.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Case file reviewed" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("refuses to invent an unavailable offline packet and does not leak notes when switching back", async () => {
+    await enter(true);
+    await choosePublicCase();
+    act(() => { canvas().onInteract("personal_dossier"); });
+    fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "New note" }), { target: { value: "Only belongs to the first preparation workspace." } });
+    fireEvent.click(screen.getByRole("button", { name: "Add note" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => { canvas().onInteract("case_board"); });
+    const other = CASES.find((item) => item.case_id !== RECORDED_CASE_ID);
+    if (other === undefined) throw new Error("Expected another public case");
+    fireEvent.click(screen.getByRole("button", { name: `Select ${other.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => { canvas().onInteract("personal_dossier"); });
+    expect(screen.getByRole("region", { name: "Desk packet status" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: /Notebook/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark case file reviewed" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Choose a case at the board" }));
+    expect(screen.getByRole("dialog", { name: "Case board" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    await choosePublicCase();
+    act(() => { canvas().onInteract("personal_dossier"); });
+    fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    expect(screen.queryByText("Only belongs to the first preparation workspace.")).toBeNull();
+    expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "New note" }).value).toBe("");
+  });
+
+  it("forwards dossier telemetry to the parent without turning it into a network request", async () => {
+    const onDossierUiEvent = vi.fn<(event: DossierUiEvent, context: { readonly caseId: string; readonly sessionKey: string }) => void>();
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await enter(true, { onDossierUiEvent });
+    await choosePublicCase();
+    act(() => { canvas().onInteract("personal_dossier"); });
+    fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "New note" }), { target: { value: "Follow the record." } });
+    fireEvent.click(screen.getByRole("button", { name: "Add note" }));
+    expect(onDossierUiEvent).toHaveBeenCalledWith({ type: "page.open", page: "notebook" }, { caseId: RECORDED_CASE_ID, sessionKey: `case:${RECORDED_CASE_ID}` });
+    expect(onDossierUiEvent.mock.calls.some(([event]) => event.type === "notebook.change" && event.command.type === "add")).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

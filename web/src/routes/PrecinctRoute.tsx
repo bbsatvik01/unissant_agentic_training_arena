@@ -2,9 +2,13 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { Link } from "react-router";
 import raw from "../../public/world/precinct-manifest.json";
 import { EX4_TEXT } from "../lib/copy/ex4";
-import { CASES, RECORDED_CASE_ID } from "../lib/world/cases";
 import { usePrecinctNpcController } from "../hooks/usePrecinctNpcController";
 import { ReceptionBriefingPanel } from "../components/precinct/ReceptionBriefingPanel";
+import { PrecinctDeskPanel } from "../components/precinct/PrecinctDeskPanel";
+import { PrecinctCaseChoicePanel } from "../components/precinct/PrecinctCaseChoicePanel";
+import type { DossierUiEvent } from "../components/precinct/DossierPanel";
+import { usePrecinctSession } from "./precinct/usePrecinctSession";
+import { usePrecinctNotebook } from "./precinct/usePrecinctNotebook";
 import { nextCameraMode } from "../lib/precinct/movement";
 import type { CameraMode, Vec3 } from "../lib/precinct/types";
 import type { Tier } from "../lib/world/quality";
@@ -19,11 +23,6 @@ const MANIFEST: PrecinctManifest = {
   hotspots: raw.hotspots.map((hotspot) => ({ ...hotspot, position: xyz(hotspot.position) })),
   navigationNodes: raw.navigationNodes.map((node) => ({ ...node, position: xyz(node.position) })),
 };
-const ASSIGNMENT = (() => {
-  const assignment = CASES.find((item) => item.case_id === RECORDED_CASE_ID) ?? CASES[0];
-  if (assignment === undefined) throw new Error("A public practice assignment is required");
-  return assignment;
-})();
 const INITIAL_POSE: PlayerPose = { position: [0, 0, -2.4], yaw: 0, speed: 0, hotspot: null };
 
 function Symbol({ name }: { readonly name: "compass" | "settings" | "arrow" | "close" | "map" }) {
@@ -56,10 +55,16 @@ function Minimap({ pose, onMap }: { readonly pose: PlayerPose; readonly onMap: (
   </button>;
 }
 
-export function PrecinctRoute() {
+export interface PrecinctRouteProps {
+  /** Ordered dossier events stay parent-owned. No network or automatic persistence is added here. */
+  readonly onDossierUiEvent?: (event: DossierUiEvent, context: { readonly caseId: string; readonly sessionKey: string }) => void;
+}
+
+export function PrecinctRoute({ onDossierUiEvent }: PrecinctRouteProps = {}) {
   const npcController = usePrecinctNpcController();
   const [checkedIn, setCheckedIn] = useState(false);
-  const [briefed, setBriefed] = useState(false);
+  const [briefedScope, setBriefedScope] = useState<string | null>(null);
+  const [reviewedScope, setReviewedScope] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const [ready, setReady] = useState(false);
   const [flatView, setFlatView] = useState(false);
@@ -79,6 +84,18 @@ export function PrecinctRoute() {
   const close = useCallback(() => { setPanel(null); }, []);
   const hotspot = MANIFEST.hotspots.find((item) => item.id === pose.hotspot);
   const room = [...raw.rooms].reverse().find((candidate) => pose.position[0] >= (candidate.bounds.min[0] ?? 0) && pose.position[0] <= (candidate.bounds.max[0] ?? 0) && pose.position[2] >= (candidate.bounds.min[2] ?? 0) && pose.position[2] <= (candidate.bounds.max[2] ?? 0));
+  const session = usePrecinctSession({ reducedMotion, paused, audioInRoom: room?.id === "interview" || room?.id === "observation" });
+  const notebookScope = JSON.stringify([session.source === "idle" ? "browser-preparation" : session.me?.user_id ?? "browser-preparation", session.source, session.sessionKey]);
+  const notebook = usePrecinctNotebook({ packet: session.packet, released: session.released, scope: notebookScope, readOnly: session.source === "recording", caseId: session.selectedCase?.case_id ?? null, source: session.source, runKey: session.source === "live" && session.live.phase === "running" ? session.sessionKey : null });
+  const briefed = session.selectedCase !== null && briefedScope === notebookScope;
+  const fileReviewed = session.packet !== null && reviewedScope === notebook.key && !notebook.readOnly;
+  const selectPublicCase = session.selectCase;
+  const selectCase = useCallback((caseId: string) => {
+    setBriefedScope(null); setReviewedScope(null); selectPublicCase(caseId);
+  }, [selectPublicCase]);
+  const dossierEvent = useCallback((event: DossierUiEvent) => {
+    if (session.packet !== null) onDossierUiEvent?.(event, { caseId: session.packet.case_id, sessionKey: session.sessionKey });
+  }, [onDossierUiEvent, session.packet, session.sessionKey]);
   const station = STATIONS.find((item) => item.id === panel || item.id === MANIFEST.hotspots.find((item) => item.id === panel)?.room);
   const go = useCallback((index: number) => {
     const destination = STATIONS[index];
@@ -102,7 +119,7 @@ export function PrecinctRoute() {
     if (flatView) setPose({ position, yaw, speed: 0, hotspot: id });
   }, [go, flatView, resume]);
   const staffStation = station?.id === "lobby" ? "reception" : station?.id === "briefing" ? "briefing" : station?.id === "open_office" ? "office" : null;
-  const orientationStep = checkedIn ? (briefed ? 3 : 2) : 1;
+  const orientationStep = checkedIn ? (briefed ? (fileReviewed ? 4 : 3) : 2) : 1;
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -130,7 +147,7 @@ export function PrecinctRoute() {
     </header>
 
     {!entered ? <section className="precinct-welcome" aria-labelledby="welcome-title"><div className="welcome-rule" /><span className="precinct-kicker">YOUR NEXT CHAPTER BEGINS WITH A QUESTION</span><h1 id="welcome-title">Start your shift.</h1><p>A place to practice listening, follow the evidence,<br />and make a finding you can support.</p><div className="welcome-actions"><button className="precinct-primary" disabled={!ready} onClick={() => { setEntered(true); travel.current = {position: [0,0,-4.2],yaw:0,instant:reducedMotion}; }}>{ready ? "Enter the precinct" : "Preparing the precinct…"}<Symbol name="arrow" /></button><button className="precinct-text-button" disabled={!ready} onClick={() => { setEntered(true); }}>Skip arrival</button></div><div className="welcome-meta"><span>01 / ORIENTATION</span><span>EXPLORE AT YOUR OWN PACE</span></div></section> : <>
-      <section className="precinct-objective" aria-label="Current objective"><span className="precinct-kicker">ON YOUR SHIFT</span><h1>{!checkedIn ? "Check in at reception" : !briefed ? "Meet your training sergeant" : "Read your case file"}</h1><p>{!checkedIn ? "Get your assignment. Meet your colleagues." : !briefed ? "Review the objective and evidence-first ground rule." : "Your desk is the next stop. Follow the records."}</p><div className="shift-progress" role="progressbar" aria-label="Orientation progress" aria-valuemin={0} aria-valuemax={6} aria-valuenow={orientationStep - 1}><span style={{ width: `${String((orientationStep - 1) / 6 * 100)}%` }} /></div><small>ORIENTATION <span>{orientationStep} OF 6</span></small></section>
+      <section className="precinct-objective" aria-label="Current objective"><span className="precinct-kicker">ON YOUR SHIFT</span><h1>{!checkedIn ? "Check in at reception" : !briefed ? "Meet your training sergeant" : !fileReviewed ? "Read your case file" : "Prepare your interview"}</h1><p>{!checkedIn ? "Get your assignment. Meet your colleagues." : !briefed ? "Review the objective and evidence-first ground rule." : !fileReviewed ? "Your desk is the next stop. Follow the records." : "Your file is reviewed. Decide which neutral question to ask first."}</p><div className="shift-progress" role="progressbar" aria-label="Orientation progress" aria-valuemin={0} aria-valuemax={6} aria-valuenow={orientationStep - 1}><span style={{ width: `${String((orientationStep - 1) / 6 * 100)}%` }} /></div><small>ORIENTATION <span>{orientationStep} OF 6</span></small></section>
       <Minimap pose={pose} onMap={() => { setPanel("map"); }} />
       {hotspot !== undefined && panel === null && !paused ? <button className="precinct-interact" onClick={() => { setPanel(hotspot.id); }}><kbd>E</kbd><span>{hotspot.label}</span><Symbol name="arrow" /></button> : null}
       <div className="precinct-controls">{flatView ? <><span><kbd>1–0</kbd> Visit a station</span><span><kbd>M</kbd> Directory</span><span><kbd>E</kbd> Open station</span></> : <><span><kbd>W A S D</kbd> Walk</span><span><kbd>↔ ↕</kbd> Look</span><span>Right-click mouse look</span><span><kbd>V</kbd> {cameraMode === "first" ? "First person" : cameraMode === "third" ? "Third person" : "Free camera"}</span><span><kbd>Shift</kbd> Sprint</span></>}</div>
@@ -141,6 +158,6 @@ export function PrecinctRoute() {
 
     {panel === "map" ? <Modal title="Find your way." onClose={close}><p className="panel-lead">Every part of your training has a place here. Walk there, or choose a station to fast travel.</p><div className="station-directory">{STATIONS.map((item, index) => <button key={item.id} onClick={() => { go(index); }}><kbd>{item.key}</kbd><span><strong>{item.label}</strong><small>{item.description}</small></span><Symbol name="arrow" /></button>)}</div></Modal> : null}
     {panel === "settings" ? <Modal title="Make yourself comfortable." onClose={close}><p className="panel-lead">Your pace. Your point of view.</p><div className="precinct-settings"><label><span>Reduced motion<small>Steady cameras and still background gestures</small></span><input type="checkbox" checked={reducedMotion} onChange={(event) => { setReducedMotion(event.target.checked); }} /></label><label><span>Larger text<small>More readable panels and subtitles</small></span><input type="checkbox" checked={largeText} onChange={(event) => { setLargeText(event.target.checked); }} /></label><label><span>High contrast<small>Opaque, clearly separated interface surfaces</small></span><input type="checkbox" checked={contrast} onChange={(event) => { setContrast(event.target.checked); }} /></label><label><span>Rendering quality<small>Rendering can step down automatically for smoother movement</small></span><select value={tier} onChange={(event) => { const value = event.target.value; if (value === "high" || value === "medium" || value === "low") setTier(value); }}><option value="low">Low</option><option value="medium">Balanced</option><option value="high">High</option></select></label></div><p className="precinct-note">Keyboard-only: WASD moves, arrow keys look, E interacts, V changes camera, M opens the map. Number keys 1–0 fast travel. A connected controller uses the sticks to move/look and A to interact.</p></Modal> : null}
-    {panel !== null && panel !== "map" && panel !== "settings" ? <Modal title={station?.label ?? MANIFEST.hotspots.find((item) => item.id === panel)?.label ?? "Precinct station"} onClose={close}>{staffStation !== null ? <ReceptionBriefingPanel station={staffStation} assignment={ASSIGNMENT} controller={npcController} checkedIn={checkedIn} briefed={briefed} onCheckIn={() => { setCheckedIn(true); }} onBriefed={() => { setBriefed(true); }} onTravel={travelToHotspot} /> : <><span className="station-tag">PRECINCT ORIENTATION</span><p className="panel-lead">{station?.description ?? "Welcome to the investigation training center."}</p><p>This station is being brought into the world. The existing interview, recorded runs, and training tools remain available below.</p></>}<div className="station-actions"><Link className="precinct-primary" to="/session">Open training session<Symbol name="arrow" /></Link><Link className="precinct-secondary" to="/trust/methodology">Trust & methodology</Link></div><aside className="precinct-safety"><strong>Evidence first. Always.</strong><p>Nervousness, demeanor, accent and stress are never evidence.</p><p>{EX4_TEXT}</p></aside></Modal> : null}
+    {panel !== null && panel !== "map" && panel !== "settings" ? <Modal title={station?.label ?? MANIFEST.hotspots.find((item) => item.id === panel)?.label ?? "Precinct station"} onClose={close}>{staffStation !== null ? <ReceptionBriefingPanel key={notebookScope} station={staffStation} assignment={session.selectedCase} controller={npcController} checkedIn={checkedIn} briefed={briefed} onCheckIn={() => { setCheckedIn(true); }} onBriefed={() => { if (session.selectedCase !== null) setBriefedScope(notebookScope); }} onTravel={travelToHotspot} /> : station?.id === "dossier" ? <PrecinctDeskPanel key={notebook.key} session={session} notebook={notebook} reviewed={fileReviewed} onReviewed={() => { if (session.packetState === "ready" && session.packet !== null && !notebook.readOnly) setReviewedScope(notebook.key); }} onChooseCase={() => { setPanel("case_board"); }} onUiEvent={dossierEvent} /> : station?.id === "board_wall" ? <PrecinctCaseChoicePanel session={session} onSelect={selectCase} onDesk={() => { travelToHotspot("personal_dossier"); }} /> : <><span className="station-tag">PRECINCT ORIENTATION</span><p className="panel-lead">{station?.description ?? "Welcome to the investigation training center."}</p><p>This station is being brought into the world. The existing interview, recorded runs, and training tools remain available below.</p></>}<div className="station-actions"><Link className="precinct-primary" to="/session">Open training session<Symbol name="arrow" /></Link><Link className="precinct-secondary" to="/trust/methodology">Trust & methodology</Link></div><aside className="precinct-safety"><strong>Evidence first. Always.</strong><p>Nervousness, demeanor, accent and stress are never evidence.</p><p>{EX4_TEXT}</p></aside></Modal> : null}
   </div>;
 }

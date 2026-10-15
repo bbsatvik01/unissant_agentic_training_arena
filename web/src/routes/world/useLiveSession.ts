@@ -27,6 +27,8 @@ export interface LiveControls {
   readonly world: WorldState | null;
   readonly debrief: DebriefRead | null;
   readonly clock: { current: number };
+  /** Exact public event arrivals on this session clock; no evaluator data. */
+  readonly arrivals: ReadonlyMap<string, number>;
   /** The last action's error in words, or null. */
   readonly error: string | null;
   /** Start a session; `voice` opens a voice practice session (unscored, S6 3.3). */
@@ -93,6 +95,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [trial, setTrial] = useState<TrialState>(initialTrialState);
   const [world, setWorld] = useState<WorldState | null>(null);
+  const [arrivals, setArrivals] = useState<ReadonlyMap<string, number>>(EMPTY_TRACKER.arrivals);
   const [debrief, setDebrief] = useState<DebriefRead | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [debriefFailed, setDebriefFailed] = useState(false);
@@ -132,6 +135,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     setConnection("idle");
     setTrial(initialTrialState());
     setWorld(null);
+    setArrivals(EMPTY_TRACKER.arrivals);
     setDebrief(null);
     setError(null);
     setFailed(null);
@@ -152,6 +156,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
         const s = c.getState();
         const now = performance.now() - t0.current;
         tracker.current = trackArrivals(tracker.current, s.trial, now);
+        setArrivals(tracker.current.arrivals);
         trialRef.current = s.trial;
         setTrial(s.trial);
         setConnection(s.connection);
@@ -340,5 +345,5 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   );
 
   const connectionError = phase === "running" ? describeConnection(connection) : null;
-  return { phase, session, connection, trial, world, debrief, clock, error, start, resumable, resume, ask, failedQuestion, retryAsk, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
+  return { phase, session, connection, trial, world, debrief, clock, arrivals, error, start, resumable, resume, ask, failedQuestion, retryAsk, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
 }

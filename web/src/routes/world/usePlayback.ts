@@ -18,6 +18,8 @@ export interface PlaybackControls {
   readonly trial: TrialState;
   readonly world: WorldState | null;
   readonly clock: { current: number };
+  /** Exact public recorded arrivals at the shown cursor, including backward scrubs. */
+  readonly arrivals: ReadonlyMap<string, number>;
   readonly playing: boolean;
   readonly speed: Speed;
   readonly duration: number;
@@ -36,6 +38,7 @@ interface Options {
 /** What playback has published, tagged with the recording it belongs to. */
 interface Published {
   readonly recording: Recording | null;
+  readonly arrivals: ReadonlyMap<string, number>;
   readonly trial: TrialState;
   readonly world: WorldState | null;
 }
@@ -58,7 +61,7 @@ export function usePlayback(recording: Recording | null, options: Options): Play
   const clock = useRef(0);
   const worldKey = useRef("");
   const optionsRef = useRef(options);
-  const [published, setPublished] = useState<Published>({ recording: null, trial: initialTrialState(), world: null });
+  const [published, setPublished] = useState<Published>({ recording: null, arrivals: new Map(), trial: initialTrialState(), world: null });
   const [playingFor, setPlayingFor] = useState<Recording | null>(null);
   const [speed, setSpeed] = useState<Speed>(1);
   useEffect(() => {
@@ -70,9 +73,9 @@ export function usePlayback(recording: Recording | null, options: Options): Play
   const start = useMemo(() => {
     if (recording === null) return null;
     const at = startCursor(recording);
-    return { recording, trial: at.state, world: worldAt(at, { subjectName, reducedMotion, paused }) };
+    return { recording, arrivals: at.arrivals, trial: at.state, world: worldAt(at, { subjectName, reducedMotion, paused }) };
   }, [recording, subjectName, reducedMotion, paused]);
-  const shown: Published = published.recording === recording && recording !== null ? published : (start ?? { recording: null, trial: initialTrialState(), world: null });
+  const shown: Published = published.recording === recording && recording !== null ? published : (start ?? { recording: null, arrivals: new Map(), trial: initialTrialState(), world: null });
 
   const current = useCallback((rec: Recording): PlaybackCursor => (cursor.current?.recording === rec ? cursor.current.at : startCursor(rec)), []);
 
@@ -82,10 +85,10 @@ export function usePlayback(recording: Recording | null, options: Options): Play
     clock.current = next.t;
     const world = worldAt(next, optionsRef.current);
     const key = JSON.stringify(world);
-    const changed = key !== worldKey.current || prev?.state !== next.state;
+    const changed = key !== worldKey.current || prev?.state !== next.state || prev.arrivals !== next.arrivals;
     worldKey.current = key;
     // Only a change of state re-renders: the playback time lives in `clock`, read by the scrubber on its own.
-    setPublished((p) => (!changed && p.recording === rec ? p : { recording: rec, trial: next.state, world }));
+    setPublished((p) => (!changed && p.recording === rec ? p : { recording: rec, arrivals: next.arrivals, trial: next.state, world }));
   }, []);
 
   // Motion preferences change the derived world (still poses) even while playback is paused.
@@ -132,5 +135,5 @@ export function usePlayback(recording: Recording | null, options: Options): Play
     [recording, publish, current],
   );
 
-  return { trial: shown.trial, world: shown.world, clock, playing, speed, duration: recording?.durationMs ?? 0, play, pause, setSpeed, seekTo };
+  return { arrivals: shown.arrivals, trial: shown.trial, world: shown.world, clock, playing, speed, duration: recording?.durationMs ?? 0, play, pause, setSpeed, seekTo };
 }

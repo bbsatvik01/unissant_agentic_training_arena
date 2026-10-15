@@ -1,0 +1,69 @@
+{
+  "checkpoint": "explicit public case dossier and scoped working notebook",
+  "verifiedAt": "2026-10-15T12:11:29Z",
+  "baseRemoteCommit": "e7da5df40abdb3e2efc3b92a5ea99608c840289f",
+  "previousLocalCommit": "82dbfe0bcf6dd78557a1357ab6f105ea50c7c776",
+  "sourceStatus": "verified scoped checkpoint before local commit; publication pending owner branch decision",
+  "command": "cd web && pnpm check",
+  "node": "24.21.0",
+  "pnpm": "11.0.8",
+  "exitCode": 0,
+  "lint": "passed",
+  "typecheck": "passed",
+  "testFiles": 99,
+  "tests": 1626,
+  "coverageTestFiles": 99,
+  "coverageTests": 1626,
+  "coveragePercent": {
+    "statements": 98.48,
+    "branches": 95.28,
+    "functions": 99.39,
+    "lines": 99.69
+  },
+  "coverageCounts": {
+    "statements": { "covered": 3715, "total": 3772 },
+    "branches": { "covered": 3130, "total": 3285 },
+    "functions": { "covered": 824, "total": 829 },
+    "lines": { "covered": 2954, "total": 2963 }
+  },
+  "durationSeconds": {
+    "ordinaryTests": 210.10,
+    "coverageTests": 310.03,
+    "productionBuild": 5.88
+  },
+  "build": "passed",
+  "buildModules": 272,
+  "otherChecks": [
+    "no-rigging passed",
+    "dependency policy passed",
+    "current working snapshot push-clean policy passed for 1,322 files; historical blobs remain separately blocked",
+    "git diff --check passed",
+    "runtime GLB and editable Blender hashes unchanged from verified slice two"
+  ],
+  "unchangedGates": true,
+  "retryHistory": {
+    "initialRun": "Lint, types and all ordinary tests passed; coverage encountered four unchanged five-second test timeouts and a worker-start failure during a cloud execution stall.",
+    "diagnostic": "All 64 tests in the four affected suites passed unchanged after recovery. Its expected whole-library coverage floor failure was not counted as a full gate pass.",
+    "finalRun": "A fresh entire pnpm check passed with no source, timeout, assertion, isolation, lint or coverage-threshold changes."
+  },
+  "browser": {
+    "completedAt": "2026-10-15T11:35:00Z",
+    "checksPassed": 38,
+    "checksTotal": 38,
+    "screenshots": 10,
+    "viewports": ["1440x900", "1920x1080"],
+    "renderMode": "actual WebGL 2 / ANGLE SwiftShader",
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "failedRequests": 0,
+    "httpErrors": 0,
+    "remoteOrApiRequests": 0,
+    "independentVisualReview": "all ten final images inspected",
+    "report": "screenshots/slice-03/smoke-report.json"
+  },
+  "remaining": [
+    "Historical oversized blobs require an owner-authorized publication strategy; no branch rewrite or deviation is authorized yet.",
+    "Interview/observation, exact world replay and connected training stations remain later slices.",
+    "Hardware GPU 60fps, physical gamepad and audible device-local voice verification remain separate."
+  ]
+}

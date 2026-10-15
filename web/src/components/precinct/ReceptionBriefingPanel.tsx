@@ -13,7 +13,7 @@ import "../../styles/precinct-staff-panel.css";
 
 export interface ReceptionBriefingPanelProps {
   readonly station: "reception" | "briefing" | "office";
-  readonly assignment: CaseCard;
+  readonly assignment: CaseCard | null;
   readonly onTravel: (hotspotId: string) => void;
   readonly onCheckIn: () => void;
   readonly onBriefed: () => void;
@@ -44,7 +44,7 @@ function PublicBriefingCard({ assignment, onBriefed, briefed }: { readonly assig
 export function ReceptionBriefingPanel({ station, assignment, onTravel, onCheckIn, onBriefed, controller, checkedIn = false, briefed = false }: ReceptionBriefingPanelProps) {
   const npcId: NpcId = station === "reception" ? "receptionist" : station === "briefing" ? "sergeant" : "analyst";
   return <div className="npc-panel">
-    {station === "briefing" ? <PublicBriefingCard key={assignment.case_id} assignment={assignment} onBriefed={onBriefed} briefed={briefed} /> : <StationWelcome key={station} station={station} assignment={assignment} onCheckIn={onCheckIn} onTravel={onTravel} checkedIn={checkedIn} />}
+    {station === "briefing" ? assignment === null ? <section className="npc-assignment" aria-label="Assignment selection required"><h3>Choose your public assignment</h3><p className="panel-lead">Select a case at the board before acknowledging its briefing.</p><button type="button" className="precinct-primary" onClick={() => { onTravel("case_board"); }}>Go to the case board</button></section> : <PublicBriefingCard key={assignment.case_id} assignment={assignment} onBriefed={onBriefed} briefed={briefed} /> : <StationWelcome key={station} station={station} assignment={assignment} onCheckIn={onCheckIn} onTravel={onTravel} checkedIn={checkedIn} />}
     <NpcConversation key={npcId} npcId={npcId} controller={controller} onTravel={onTravel} />
   </div>;
 }
@@ -54,7 +54,7 @@ function StationWelcome({ station, assignment, onCheckIn, onTravel, checkedIn }:
   const complete = checkedIn || localCheckedIn;
   return <section className="npc-station-welcome" aria-label={station === "reception" ? "Reception check-in" : "Office introduction"}>
     <p className="panel-lead">{station === "reception" ? "Check in, choose your next stop, and get to know the precinct staff." : "Meet a colleague, then use your dossier desk or head to the briefing room."}</p>
-    <p className="npc-assignment-summary"><span className="precinct-kicker">PUBLIC ASSIGNMENT</span><strong>{assignment.title}</strong><span>{assignment.objective}</span></p>
+    <p className="npc-assignment-summary"><span className="precinct-kicker">PUBLIC ASSIGNMENT</span><strong>{assignment?.title ?? "Choose a case at the case board."}</strong>{assignment === null ? null : <span>{assignment.objective}</span>}</p>
     <div className="station-actions">
       {station === "reception" ? <button type="button" className="precinct-primary" disabled={complete} onClick={() => { if (!complete) { setCheckedIn(true); onCheckIn(); } }}>{complete ? "Checked in" : "Check in for this shift"}</button> : null}
       <button type="button" className="precinct-secondary" onClick={() => { onTravel(station === "reception" ? "case_board" : "personal_dossier"); }}>{station === "reception" ? "Go to the case board" : "Go to my dossier desk"}</button>
