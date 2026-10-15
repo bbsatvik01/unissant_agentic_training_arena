@@ -1,0 +1,371 @@
+/*
+ * Bid Tower (components/war-room/tower). Environment colours (sky, brass, glass, lamps) live here as --tower-*
+ * properties on the scene; everything else reads the product tokens, so light, dark and TechnoMile are a variable
+ * swap. Every animation is transform or opacity only, keyed on a recorded event, and none loops except to mark work
+ * in progress (a press running, a model call in flight). Reduced motion is at the bottom.
+ */
+
+.tw-root {
+  --tower-slab: color-mix(in oklab, var(--color-ink) 74%, var(--color-canvas));
+  --tower-shell: color-mix(in oklab, var(--color-ink) 58%, var(--color-canvas));
+  --tower-wall: var(--color-surface);
+  --tower-shaft: color-mix(in oklab, var(--color-ink) 9%, var(--color-surface-2));
+  --tower-brass: #b8903f;
+  --tower-brass-dark: #8a6a2b;
+  --tower-brass-hi: #f3e2ad;
+  --tower-wood: #c7a27a;
+  --tower-wood-dark: #9c7a55;
+  --tower-glass: rgb(160 196 222 / 0.22);
+  --tower-glass-edge: rgb(110 150 180 / 0.55);
+  --tower-lamp: rgb(255 240 205);
+  --tower-lamp-on: 0.16;
+  --tower-lamp-dim: 0.05;
+  --tower-skyline: color-mix(in oklab, var(--color-ink) 9%, transparent);
+  --tower-skyline-2: color-mix(in oklab, var(--color-ink) 5%, transparent);
+  --tower-ground: color-mix(in oklab, var(--color-ink) 16%, var(--color-surface-2));
+  --tower-window-frame: color-mix(in oklab, var(--color-ink) 22%, var(--color-canvas));
+  --tower-led-off: color-mix(in oklab, var(--color-ink) 18%, var(--color-surface-2));
+  --tower-crt: #20262b;
+  --tower-crt-glow: #9fe0b8;
+  --tower-paper: #fffdf6;
+  --tower-sun: #ffd98a;
+  --tower-dusk-window: 0;
+}
+
+:root[data-theme="dark"] .tw-root {
+  --tower-slab: #0b0b0c;
+  --tower-shell: #2c2c2e;
+  --tower-wall: #1d1d1f;
+  --tower-shaft: #121214;
+  --tower-brass: #a07c34;
+  --tower-brass-dark: #6e5320;
+  --tower-brass-hi: #d9bf78;
+  --tower-wood: #6f5539;
+  --tower-wood-dark: #4d3a26;
+  --tower-glass: rgb(120 160 200 / 0.14);
+  --tower-glass-edge: rgb(140 170 200 / 0.4);
+  --tower-lamp: rgb(255 214 150);
+  --tower-lamp-on: 0.3;
+  --tower-lamp-dim: 0.1;
+  --tower-skyline: rgb(0 0 0 / 0.35);
+  --tower-skyline-2: rgb(0 0 0 / 0.2);
+  --tower-ground: #101012;
+  --tower-window-frame: #3a3a3d;
+  --tower-led-off: #2a2a2c;
+  --tower-crt: #0b0f12;
+  --tower-paper: #e8e4d8;
+  --tower-sun: #f2f0e6;
+  --tower-dusk-window: 1;
+}
+
+/* The scene fits the viewport's height (the HUD above it and the log below stay in view on a 1080p projector)
+ * and its width; DOM overlays share its box through percentages. */
+.tw-fit {
+  width: min(100%, calc((100svh - 17rem) * var(--tw-ratio)));
+  margin-inline: auto;
+}
+.tw-scene {
+  position: relative;
+  aspect-ratio: var(--tw-ratio);
+  container-type: inline-size;
+  overflow: hidden;
+  user-select: none;
+}
+.tw-scene > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Text inside the scene scales with it, within readable bounds. */
+.tw-t-xs {
+  font-size: clamp(0.5625rem, 0.82cqw, 0.75rem);
+  line-height: 1.2;
+}
+.tw-t-sm {
+  font-size: clamp(0.625rem, 0.95cqw, 0.875rem);
+  line-height: 1.2;
+}
+.tw-t-md {
+  font-size: clamp(0.6875rem, 1.12cqw, 1rem);
+  line-height: 1.15;
+}
+
+/* Sky phases cross-fade (opacity only). */
+.tw-sky {
+  transition: opacity 1.2s var(--ease-out-quart);
+}
+
+/* Room lamps: a warm cone under each ceiling fixture. */
+.tw-cone {
+  mix-blend-mode: screen;
+  transition: opacity var(--duration-slow) var(--ease-out-quart);
+}
+.tw-fixture {
+  transition: opacity var(--duration-slow) var(--ease-out-quart);
+}
+
+/* Monitors and CRTs light with work. */
+.tw-screen {
+  transition: opacity var(--duration-base) var(--ease-out-quart);
+}
+
+/* Agents: the hit area is a real button over each seat; its focus ring is the product's. */
+.tw-agent-btn {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.tw-agent-btn:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 1px;
+}
+.tw-agent-btn[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--color-signal);
+}
+
+/* A seat dims outside the thread filter's focus. */
+.tw-dim {
+  opacity: 0.35;
+  transition: opacity var(--duration-base) var(--ease-out-quart);
+}
+.tw-undim {
+  opacity: 1;
+  transition: opacity var(--duration-base) var(--ease-out-quart);
+}
+
+/* Factual popups: rise and fade once. */
+.tw-popup {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tw-rise 900ms var(--ease-out-quart) forwards;
+}
+@keyframes tw-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -190%);
+  }
+}
+
+/* Door puff when an agent clocks in. */
+.tw-puff {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tw-puff 420ms var(--ease-out-expo) forwards;
+}
+@keyframes tw-puff {
+  from {
+    opacity: 0.7;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* The notary's stamp drops once per beat. */
+.tw-stamp {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.tw-stamp.is-down {
+  animation: tw-stamp 520ms var(--ease-out-expo);
+}
+@keyframes tw-stamp {
+  0% {
+    transform: translateY(-9px);
+  }
+  40% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-9px);
+  }
+}
+
+/* A slip rides the conveyor into its tray. */
+.tw-slip {
+  animation: tw-slip 520ms var(--ease-in-out-quart) forwards;
+}
+@keyframes tw-slip {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(var(--tw-slip-dx, 60px));
+    opacity: 0;
+  }
+}
+
+/* The shutter rolls up while S7 runs. */
+.tw-shutter {
+  transform-box: fill-box;
+  transform-origin: center top;
+  transition: transform 500ms var(--ease-out-quart);
+}
+.tw-shutter.is-up {
+  transform: scaleY(0.08);
+}
+
+/* Presses and the S13 press run while their stage's model calls are in flight. */
+.tw-press {
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+.tw-press.is-running {
+  animation: tw-press 700ms var(--ease-in-out-quart) infinite alternate;
+}
+@keyframes tw-press {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+/* The registry drawer slides out while S2 runs. */
+.tw-drawer {
+  transition: transform 400ms var(--ease-out-quart);
+}
+.tw-drawer.is-open {
+  transform: translateX(10px);
+}
+
+/* The H1 gate's arm turns up at the recorded approval. */
+.tw-arm {
+  transform-box: fill-box;
+  transform-origin: left center;
+  transition: transform 500ms var(--ease-out-quart);
+}
+.tw-arm.is-up {
+  transform: rotate(-80deg);
+}
+
+/* The H2 bell swings once at the recorded decision. */
+.tw-bell {
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+.tw-bell.is-ringing {
+  animation: tw-bell 900ms var(--ease-out-quart);
+}
+@keyframes tw-bell {
+  0% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(16deg);
+  }
+  45% {
+    transform: rotate(-12deg);
+  }
+  70% {
+    transform: rotate(6deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+
+/* The stage dial's needle swings to the running step. */
+.tw-needle {
+  transform-box: view-box;
+  transition: transform 300ms var(--ease-out-quart);
+}
+
+/* A model call in flight: its LED blinks while it runs (work in progress). */
+.tw-led-busy {
+  animation: tw-led 900ms steps(2, jump-none) infinite;
+}
+@keyframes tw-led {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+/* A CRT flashes white for a fetch, once. */
+.tw-flash {
+  animation: tw-flash 260ms var(--ease-out-quart) forwards;
+}
+@keyframes tw-flash {
+  from {
+    opacity: 0.95;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* A run error's alarm lamp flashes three times. */
+.tw-alarm {
+  animation: tw-alarm 500ms steps(2, jump-none) 3;
+}
+@keyframes tw-alarm {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
+/* A scoreboard bar grows to its share in steps. */
+.tw-bar {
+  transform-origin: left center;
+  animation: tw-bar 600ms steps(6, jump-end) both;
+}
+@keyframes tw-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* A paused replay freezes every loop and one-shot in the scene. */
+/* entrance one-shots show their end state when paused (a bar mounted while paused is never stuck at zero) */
+[data-tower-paused] .tw-bar {
+  animation: none;
+}
+[data-tower-paused] .tw-scene *,
+[data-tower-paused] .tw-scene .office-agent[data-activity] [class] {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-root *,
+  .tw-root .office-agent * {
+    animation: none !important;
+    transition-duration: 120ms !important;
+  }
+  .tw-popup {
+    opacity: 1;
+    transform: translate(-50%, -110%);
+  }
+  .tw-flash,
+  .tw-puff {
+    opacity: 0;
+  }
+}

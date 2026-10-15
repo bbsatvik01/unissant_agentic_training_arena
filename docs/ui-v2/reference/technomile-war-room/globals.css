@@ -1,0 +1,772 @@
+@import "tailwindcss";
+
+/*
+ * Black Hat Review design tokens.
+ *
+ * Source: docs/design/DESIGN.md (owner-chosen, MIT), adapted for a dense, projector-legible
+ * intelligence product. Kept: the ink scale, the orange action family, cream surfaces, the 4 px
+ * spacing grid, 8/12 px radii, the flat elevation ladder and the editorial serif + sans pairing.
+ * Changed (see docs/design/tokens.md): no brand imagery and no closing gradient band; the action
+ * fill is DESIGN.md `primary-deep` because `primary` on white is 3.34:1 (fails AA for labels);
+ * cream is reserved for human-decision surfaces and quote highlights; UI text is 14 px, prose 16 px.
+ *
+ * Every color and font is a CSS variable, so an optional theme (TechnoMile, dark) is a variable swap.
+ */
+
+@theme {
+  --color-ink: #1f1f1f;
+  --color-ink-2: #3d3d3d;
+  --color-muted: #5c5c5c;
+  --color-faint: #8a8a8a;
+  --color-canvas: #fdfdfc;
+  --color-surface: #f8f8f7;
+  --color-surface-2: #f1f1ef;
+  --color-hairline: #e5e5e5;
+  --color-hairline-soft: #ededed;
+  --color-hairline-strong: #c7c7c7;
+  --color-control: #8a8a8a;
+  --color-on-ink: #fdfdfc;
+
+  --color-signal: #fa520f;
+  --color-accent: #cc3a05;
+  --color-accent-strong: #a83003;
+  --color-on-accent: #ffffff;
+
+  --color-cream: #fff8e0;
+  --color-cream-soft: #fffaeb;
+  --color-cream-deep: #fff0c2;
+  --color-cream-edge: #e6d5a8;
+
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+
+  --color-chart-band: #8a8a8a;
+  --color-chart-mid: #3d3d3d;
+  --color-chart-us: #fa520f;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-prose: 1rem;
+  --text-prose--line-height: 1.625rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.6rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.8rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.2rem;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 2.6rem;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-1: 0 1px 2px 0 rgb(31 31 31 / 0.05);
+  --shadow-2: 0 4px 12px 0 rgb(31 31 31 / 0.06);
+  --shadow-3: 0 12px 24px -4px rgb(31 31 31 / 0.1);
+  --shadow-4: 0 16px 48px -8px rgb(31 31 31 / 0.16);
+
+  /*
+   * Motion system (docs/design/motion.md). Motion explains a state change or a data arrival; it
+   * never decorates. Every keyframe animates transform and opacity only (compositor, no layout),
+   * and `prefers-reduced-motion` collapses all of it (bottom of this file).
+   */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --animate-pulse-soft: pulse-soft 1.6s var(--ease-out-quart) infinite;
+  --animate-fade-in: fade-in 180ms var(--ease-out-quart);
+  /* Transform only: live text that keeps arriving must never pass through low contrast. */
+  --animate-rise: rise 180ms var(--ease-out-quart);
+  /* Entrance of a region or row: short travel, fast settle. */
+  --animate-enter: enter 220ms var(--ease-out-expo) both;
+  /* A glyph whose meaning changed (cell state, lane status). */
+  --animate-pop: pop 240ms var(--ease-out-expo);
+  /* One-shot ring when a cell changes state: draws the eye to what just changed, then leaves. */
+  --animate-settle: settle 600ms var(--ease-out-quart) forwards;
+  /* A bar or meter arriving with its data: grows from the left to its own scaleX (no `to` frame). */
+  --animate-grow: grow 600ms var(--ease-out-expo) both;
+  /* Indeterminate progress across the running stage only. */
+  --animate-sweep: sweep 1.4s var(--ease-in-out-quart) infinite;
+  /* Case board: a recorded item was filed (a card, memo or tag pinned at its own recorded time). */
+  --animate-pin: pin 260ms var(--ease-out-expo) both;
+  /* Case board: a verdict landed (a rubber stamp hitting a rival's claims ledger). */
+  --animate-slam: slam 220ms var(--ease-out-expo) both;
+
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes rise {
+    from {
+      transform: translateY(3px);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0.4;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes settle {
+    from {
+      opacity: 0.9;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.06);
+    }
+  }
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes pin {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes slam {
+    from {
+      opacity: 0;
+      transform: scale(1.35);
+    }
+    to {
+      opacity: 0.9;
+      transform: none;
+    }
+  }
+}
+
+/* Agent office tints live outside @theme: they are read through var() by the office's SVG only, and @theme
+ * emits only the tokens a utility uses. */
+:root {
+  /*
+   * Agent office (docs/design/motion.md, "Agent office"): one tint per rival team, plus the red team, the home
+   * side, the board and the verifier. Mid-light pastels that keep a dark outline readable; each pair of team tints
+   * differs in hue by at least 40 degrees so neighbouring pods never read as one team.
+   */
+  --color-team-0: oklch(0.79 0.1 252);
+  --color-team-1: oklch(0.81 0.1 168);
+  --color-team-2: oklch(0.79 0.1 305);
+  --color-team-3: oklch(0.85 0.11 88);
+  --color-team-4: oklch(0.8 0.1 350);
+  --color-team-5: oklch(0.82 0.11 128);
+  --color-office-red: oklch(0.7 0.16 27);
+  --color-office-home: oklch(0.82 0.12 58);
+  --color-office-board: oklch(0.76 0.03 268);
+  --color-office-verify: oklch(0.86 0.035 210);
+  /* screens, caps and visors: dark in both themes (a device does not invert with the page) */
+  --color-office-device: #3a3a3c;
+  --color-office-device-2: #232325;
+  --color-office-glint: #fdfdfc;
+  /*
+   * Agent graph (docs/design/tokens.md, "Agent graph"): a strong shade of each team tint for rings, ribbons, comets
+   * and dots; each is at least 4.7:1 on the light canvas.
+   */
+  --color-team-0-strong: oklch(0.55 0.14 252);
+  --color-team-1-strong: oklch(0.54 0.105 168);
+  --color-team-2-strong: oklch(0.55 0.14 305);
+  --color-team-3-strong: oklch(0.55 0.105 88);
+  --color-team-4-strong: oklch(0.55 0.14 350);
+  --color-team-5-strong: oklch(0.54 0.135 128);
+  --color-office-red-strong: oklch(0.55 0.14 27);
+  --color-office-home-strong: oklch(0.55 0.115 58);
+  --color-office-board-strong: oklch(0.55 0.035 268);
+  --swarm-edge-rest: 0.42;
+  --swarm-pod-mix: 12%;
+  --swarm-pod-edge: 28%;
+}
+
+/* Motion durations (used as `duration-[var(--duration-*)]` and by the stagger helper). */
+:root {
+  --duration-instant: 90ms;
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
+  /* Data arrival on meters and bars: long enough to read the direction of change. */
+  --duration-data: 600ms;
+  --stagger-step: 35ms;
+}
+
+/* Staggered entrance: children set `--i` (their index, capped by the caller). */
+.stagger > * {
+  animation-delay: calc(var(--i, 0) * var(--stagger-step));
+}
+
+/* Semantic z-index scale: no ad hoc values anywhere else. */
+:root {
+  --z-rail: 10;
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+  color-scheme: light;
+}
+
+/* Dark: recorded video and laptop close-ups only (G8: dark loses 56-57% contrast when projected). */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink: #ededeb;
+  --color-ink-2: #d0d0cd;
+  --color-muted: #adadaa;
+  --color-faint: #7c7c79;
+  --color-canvas: #161616;
+  --color-surface: #1c1c1d;
+  --color-surface-2: #242425;
+  --color-hairline: #2f2f30;
+  --color-hairline-soft: #262627;
+  --color-hairline-strong: #454547;
+  --color-control: #6b6b6d;
+  --color-on-ink: #161616;
+  --color-accent: #ff8a4c;
+  --color-accent-strong: #ffa574;
+  --color-on-accent: #161616;
+  --color-cream: #2a2418;
+  --color-cream-soft: #221e15;
+  --color-cream-deep: #3a311c;
+  --color-cream-edge: #5c4d2b;
+  --color-danger: #ff8b7e;
+  --color-danger-soft: #3a1c19;
+  --color-chart-band: #707070;
+  --color-chart-mid: #d0d0cd;
+  --color-team-0: oklch(0.66 0.1 252);
+  --color-team-1: oklch(0.68 0.09 168);
+  --color-team-2: oklch(0.66 0.1 305);
+  --color-team-3: oklch(0.72 0.1 88);
+  --color-team-4: oklch(0.67 0.1 350);
+  --color-team-5: oklch(0.69 0.1 128);
+  --color-office-red: oklch(0.62 0.15 27);
+  --color-office-home: oklch(0.7 0.12 58);
+  --color-office-board: oklch(0.62 0.03 268);
+  --color-office-verify: oklch(0.7 0.035 210);
+  --color-office-device: #0f0f10;
+  --color-office-device-2: #050506;
+  --color-office-glint: #ededeb;
+  --color-team-0-strong: oklch(0.76 0.115 252);
+  --color-team-1-strong: oklch(0.76 0.12 168);
+  --color-team-2-strong: oklch(0.76 0.13 305);
+  --color-team-3-strong: oklch(0.78 0.12 88);
+  --color-team-4-strong: oklch(0.76 0.13 350);
+  --color-team-5-strong: oklch(0.77 0.13 128);
+  --color-office-red-strong: oklch(0.74 0.13 27);
+  --color-office-home-strong: oklch(0.77 0.12 58);
+  --color-office-board-strong: oklch(0.76 0.04 268);
+  --swarm-edge-rest: 0.5;
+  --swarm-pod-mix: 16%;
+  --swarm-pod-edge: 40%;
+}
+
+/* Optional sponsor layer (REQ-UI-05): colors only; no logo, no "Powered by". */
+[data-theme="technomile"] {
+  --color-signal: #4154ff;
+  --color-accent: #4834b5;
+  --color-accent-strong: #22194d;
+  --color-chart-us: #4154ff;
+  --color-danger: #a51f22;
+}
+
+/* Presenter mode (REQ-UI-05): root text at 137.5%; the layout reflows from rem tokens. */
+[data-presenter="on"] {
+  font-size: 137.5%;
+}
+
+html {
+  background: var(--color-canvas);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-cream-deep);
+  color: var(--color-ink);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hatched fill for "pending": a pattern, not a color, so it reads in grayscale and on a projector. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    color-mix(in oklab, var(--color-faint) 24%, transparent) 5px 6px
+  );
+}
+
+/*
+ * Agent office characters (components/war-room/office-avatars.tsx). Each loop marks work in progress on one agent
+ * (typing, walking) and stops when the activity ends; the blink is the only idle motion, a 150 ms closing of the eyes
+ * every few seconds. Transform and opacity only.
+ */
+.office-agent .office-eyes,
+.office-agent .office-hand-l,
+.office-agent .office-hand-r,
+.office-agent .office-body,
+.office-agent .office-leg-l,
+.office-agent .office-leg-r,
+.office-stamp-arm {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.office-agent .office-eyes {
+  transform-origin: center;
+  animation: office-blink 5.2s linear infinite;
+  animation-delay: var(--blink-delay, 0ms);
+}
+.office-agent[data-activity="still"] .office-eyes {
+  animation: none;
+}
+.office-agent[data-activity="typing"] .office-hand-l {
+  animation: office-type 280ms var(--ease-in-out-quart) infinite alternate;
+}
+.office-agent[data-activity="typing"] .office-hand-r {
+  animation: office-type 280ms var(--ease-in-out-quart) 140ms infinite alternate;
+}
+.office-agent[data-activity="typing"] .office-dots circle {
+  animation: office-dot 900ms var(--ease-out-quart) infinite;
+}
+.office-agent[data-activity="typing"] .office-dots circle:nth-child(2) {
+  animation-delay: 150ms;
+}
+.office-agent[data-activity="typing"] .office-dots circle:nth-child(3) {
+  animation-delay: 300ms;
+}
+.office-agent[data-activity="walking"] .office-leg-l,
+.office-agent[data-activity="entering"] .office-leg-l {
+  animation: office-step 340ms var(--ease-in-out-quart) infinite alternate;
+}
+.office-agent[data-activity="walking"] .office-leg-r,
+.office-agent[data-activity="entering"] .office-leg-r {
+  animation: office-step 340ms var(--ease-in-out-quart) 170ms infinite alternate;
+}
+.office-agent[data-activity="walking"] .office-body,
+.office-agent[data-activity="entering"] .office-body {
+  animation: office-bob 340ms var(--ease-in-out-quart) infinite alternate;
+}
+.office-agent[data-activity="receiving"] .office-body {
+  animation: office-hop 520ms var(--ease-out-expo);
+}
+.office-agent[data-activity="sending"] .office-body {
+  animation: office-lean 420ms var(--ease-out-expo);
+}
+.office-agent[data-activity="browsing"] .office-lens {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: office-scan 1.4s var(--ease-in-out-quart) infinite alternate;
+}
+.office-stamp-arm.is-down {
+  animation: office-stamp 520ms var(--ease-out-expo);
+}
+/* A paused replay freezes the characters too, not only their positions (more specific than every activity rule
+ * above, whose `animation` shorthand would otherwise reset the play state to running). */
+[data-office-paused] .office-agent[data-activity] [class],
+[data-office-paused] .office-agent[data-activity] .office-dots circle,
+[data-office-paused] .office-stamp-arm.is-down {
+  animation-play-state: paused;
+}
+@keyframes office-blink {
+  0%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+  98% {
+    transform: scaleY(0.12);
+  }
+}
+@keyframes office-type {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2.2px);
+  }
+}
+@keyframes office-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes office-step {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2.4px);
+  }
+}
+@keyframes office-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1.6px);
+  }
+}
+@keyframes office-hop {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-5px) scaleY(1.04);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes office-lean {
+  0% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-2px) rotate(-4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes office-scan {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-3px, 2px);
+  }
+}
+@keyframes office-stamp {
+  0% {
+    transform: translateY(-10px);
+  }
+  45% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-10px);
+  }
+}
+
+/*
+ * Case board office style (components/war-room/office-styles/case-board.tsx): the run pinned up on a cork board.
+ * Light is the projector default (warm cork, canvas paper, ink text); dark is "after hours" for recorded video. Two
+ * threads, one meaning each: --cb-thread is a message's route, --cb-string is cited evidence (never danger red, which
+ * only marks withheld or failed). Cream stays on the H1 and H2 gate cards only.
+ */
+[data-office-style="case"] {
+  --cb-cork: oklch(0.87 0.04 75);
+  --cb-speck: oklch(0.72 0.06 62);
+  --cb-frame: oklch(0.58 0.05 60);
+  --cb-paper: var(--color-canvas);
+  --cb-paper-2: var(--color-surface);
+  --cb-rule: var(--color-hairline-soft);
+  --cb-edge: color-mix(in oklab, var(--color-ink) 16%, transparent);
+  --cb-string: var(--color-signal);
+  --cb-thread: var(--color-ink-2);
+  --cb-tape: var(--color-ink);
+  --cb-tape-text: var(--color-on-ink);
+  --cb-lamp: transparent;
+}
+[data-theme="dark"] [data-office-style="case"] {
+  --cb-cork: oklch(0.27 0.025 60);
+  --cb-speck: oklch(0.33 0.03 60);
+  --cb-frame: oklch(0.22 0.02 60);
+  --cb-paper: var(--color-surface-2);
+  --cb-paper-2: var(--color-surface);
+  --cb-edge: color-mix(in oklab, var(--color-ink) 22%, transparent);
+  --cb-lamp: oklch(0.85 0.06 75 / 0.09);
+}
+/* Static cork: a base colour, two speckle layers and, after hours, one lamp pool. No image, no filter. */
+.cb-cork {
+  background-color: var(--cb-cork);
+  background-image:
+    radial-gradient(ellipse 70% 60% at 32% 18%, var(--cb-lamp), transparent 70%),
+    radial-gradient(circle at 30% 40%, color-mix(in oklab, var(--cb-speck) 60%, transparent) 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 70% 65%, color-mix(in oklab, var(--cb-speck) 45%, transparent) 0 1.2px, transparent 1.9px);
+  background-size:
+    100% 100%,
+    7px 9px,
+    13px 11px;
+  border: 10px solid var(--cb-frame);
+}
+.animate-slam,
+.cb-sweep {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* The final poster: one slow push-in when a replay reaches the run's end (the review is complete). */
+.cb-push {
+  transform-origin: 50% 50%;
+  animation: cb-push 1.6s var(--ease-out-quart) both;
+}
+@keyframes cb-push {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.018);
+  }
+}
+[data-office-paused] .animate-sweep,
+[data-office-paused] .cb-sweep {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Looping indicators stop entirely; the state they mark stays visible as a static style. */
+  .animate-sweep,
+  .animate-pulse-soft,
+  .animate-settle,
+  .office-agent *,
+  .office-stamp-arm {
+    animation: none !important;
+  }
+  .animate-settle {
+    opacity: 0;
+  }
+}
+
+/*
+ * Agent graph (components/war-room/swarm-graph-view.tsx; docs/design/motion.md, "Agent graph"). Hue is the team only;
+ * state is shape and motion. The rAF loop writes `--p` (a call's recorded progress) on rings and bars; everything
+ * else changes on discrete state. Transform and opacity only, no filters.
+ */
+.swarm-graph .react-flow__pane {
+  cursor: grab;
+}
+.swarm-pod {
+  background: color-mix(in oklab, var(--team) var(--swarm-pod-mix), var(--color-canvas));
+  border-color: color-mix(in oklab, var(--team-strong) var(--swarm-pod-edge), transparent);
+}
+.swarm-pod.border-dashed {
+  background: transparent;
+  border-color: var(--color-hairline-strong);
+}
+.swarm-pod.is-on {
+  border-width: 2px;
+  border-color: var(--team-strong);
+}
+.swarm-pod > button:focus-visible,
+.swarm-agent button:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+.swarm-inbox {
+  background: var(--color-canvas);
+  border-color: color-mix(in oklab, var(--team-strong) 55%, transparent);
+}
+.swarm-ribbon {
+  opacity: var(--swarm-edge-rest);
+  transition: opacity var(--duration-base) var(--ease-out-quart);
+}
+.swarm-edge:hover .swarm-ribbon,
+.swarm-ribbon.is-lit {
+  opacity: 1;
+}
+.swarm-disc {
+  background: var(--color-canvas);
+  border-color: color-mix(in oklab, var(--team-strong) 70%, transparent);
+  color: var(--team-strong);
+  transition:
+    transform 220ms var(--ease-out-expo),
+    background-color 160ms var(--ease-out-quart),
+    opacity 220ms var(--ease-out-expo);
+}
+.swarm-disc .swarm-icon {
+  position: relative;
+}
+.swarm-disc[data-status="sending"] {
+  background: var(--team-strong);
+  border-color: var(--team-strong);
+  color: var(--color-canvas);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--team-strong) 22%, transparent);
+}
+.swarm-disc[data-status="receiving"] {
+  border-color: var(--team-strong);
+  transform: scale(1.06);
+}
+.swarm-disc[data-status="absent"],
+.swarm-pill[data-status="absent"] {
+  border-style: dashed;
+  border-color: var(--color-hairline-strong);
+  color: var(--color-faint);
+  background: transparent;
+  opacity: 0.6;
+  transform: scale(0.92);
+}
+.swarm-disc[data-failed],
+.swarm-pill[data-failed] {
+  border-style: dashed;
+  border-color: var(--color-danger);
+}
+.swarm-disc[data-on],
+.swarm-pill[data-on] {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+.swarm-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  background: conic-gradient(var(--team-strong) calc(var(--p, 0) * 360deg), color-mix(in oklab, var(--team-strong) 16%, transparent) 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out-quart);
+}
+.swarm-disc[data-status="working"] .swarm-ring,
+.swarm-disc[data-status="sending"] .swarm-ring {
+  opacity: 1;
+}
+.swarm-disc[data-status="sending"] .swarm-ring {
+  opacity: 0;
+}
+.swarm-diamond {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: var(--color-danger);
+  border: 1.5px solid var(--color-canvas);
+}
+.swarm-pill {
+  background: var(--color-canvas);
+  border-color: color-mix(in oklab, var(--team-strong) 45%, transparent);
+  transition:
+    background-color 160ms var(--ease-out-quart),
+    transform 220ms var(--ease-out-expo),
+    opacity 220ms var(--ease-out-expo);
+}
+.swarm-pill[data-status="working"] {
+  border-color: var(--team-strong);
+}
+.swarm-pill[data-status="sending"] {
+  background: color-mix(in oklab, var(--team-strong) 22%, var(--color-canvas));
+  border-color: var(--team-strong);
+}
+.swarm-bar {
+  background: var(--team-strong);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  opacity: 0;
+}
+.swarm-pill[data-status="working"] .swarm-bar {
+  opacity: 1;
+}
+.swarm-comet .swarm-fail {
+  opacity: 0;
+}
+.swarm-comet[data-failed] .swarm-fail {
+  opacity: 1;
+}
+.swarm-comet[data-failed] .swarm-head {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .swarm-disc,
+  .swarm-pill,
+  .swarm-ring,
+  .swarm-ribbon {
+    transition: none;
+  }
+}

@@ -1,0 +1,126 @@
+/*
+ * The Playhouse office style: a paper toy theatre. Tokens are scoped to the style's root so nothing leaks into the
+ * rest of the app. Light is the matinee (house lights up, the projector default); dark is the evening performance.
+ * The curtain is a deep blue-green, chosen so a closed curtain at H1 never reads as an alarm.
+ */
+[data-office-style="playhouse"] {
+  --color-stage-paper: #ffffff;
+  --ph-house: #f3efe8;
+  --ph-arch: #d9d2c5;
+  --ph-arch-edge: #b8ae9c;
+  --ph-arch-gilt: #a8823c;
+  --ph-backdrop: #ebe4d6;
+  --ph-backdrop-ink: color-mix(in oklab, var(--color-ink) 16%, var(--ph-backdrop));
+  --ph-floor: #efe9df;
+  --ph-floor-line: #ddd4c4;
+  --ph-wood: #d9d2c5;
+  --ph-wood-edge: #b9ad98;
+  --ph-curtain: #1f4e5f;
+  --ph-curtain-fold: #183f4d;
+  --ph-curtain-edge: #12313c;
+  --ph-light: color-mix(in oklab, var(--color-signal) 22%, transparent);
+  --ph-light-core: color-mix(in oklab, var(--color-signal) 34%, transparent);
+  --ph-scrim: color-mix(in oklab, var(--ph-backdrop) 88%, transparent);
+  --ph-ink-edge: #1f1f1f;
+  --ph-book: #fdfbf6;
+}
+[data-theme="dark"] [data-office-style="playhouse"] {
+  --color-stage-paper: var(--color-canvas);
+  --ph-house: #141312;
+  --ph-arch: #1f1d1b;
+  --ph-arch-edge: #3a3632;
+  --ph-arch-gilt: #8e7440;
+  --ph-backdrop: #1d1b19;
+  --ph-backdrop-ink: color-mix(in oklab, var(--color-ink) 20%, var(--ph-backdrop));
+  --ph-floor: #2a2622;
+  --ph-floor-line: #36312c;
+  --ph-wood: #1f1d1b;
+  --ph-wood-edge: #3d3833;
+  --ph-curtain: #163843;
+  --ph-curtain-fold: #112c35;
+  --ph-curtain-edge: #0b1f26;
+  --ph-light: color-mix(in oklab, var(--color-signal) 30%, transparent);
+  --ph-light-core: color-mix(in oklab, var(--color-signal) 44%, transparent);
+  --ph-scrim: color-mix(in oklab, #2b2825 90%, transparent);
+  --ph-ink-edge: #0c0c0c;
+  --ph-book: #2c2925;
+}
+
+/* the main curtain flies out (up) and back in, over CURTAIN_MS (900 ms) */
+.ph-curtain {
+  transition: transform 900ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.ph-curtain[data-open] {
+  transform: translateY(-104%);
+}
+
+/* the scrim: opaque while it screens the troupes, then the light moves behind it and it turns transparent */
+.ph-scrim {
+  transition: opacity 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* a pool of stage light for exactly a recorded model call */
+.ph-pool {
+  transition: opacity 260ms ease-out;
+}
+
+/* the devil rises through the star trap */
+.ph-devil {
+  transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* the prompter's stamp strikes once per burst and once per withheld claim */
+.ph-strike {
+  animation: ph-strike 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes ph-strike {
+  0% {
+    transform: translateY(-14px) scale(1.25);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(0) scale(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* a placard swings into place when the board unblinds the troupes */
+.ph-swing {
+  animation: ph-swing 900ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+@keyframes ph-swing {
+  0% {
+    transform: rotate(-9deg) translateY(-10px);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+[data-office-paused] .ph-strike,
+[data-office-paused] .ph-swing {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-curtain,
+  .ph-scrim,
+  .ph-pool,
+  .ph-devil {
+    transition: none;
+  }
+  .ph-strike,
+  .ph-swing {
+    animation: none;
+  }
+}
