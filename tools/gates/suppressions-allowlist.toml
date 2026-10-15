@@ -45,3 +45,9 @@ path = "services/tournament/tests/test_main_wiring.py"
 marker = "nosec"
 line = '"ARENA_LOCAL_CALLER_TOKEN": "it-main-wiring-caller",  # nosec B105 - throwaway test caller token, no server'
 reason = "Bandit B105 matches the variable name TOKEN; the value is a placeholder caller token for an in-process wiring test with no server and no network, never a real secret (verified false positive)"
+
+[[allow]]
+path = "tools/gates/trufflehog-exclude-paths.txt"
+marker = "trufflehog-exclude-path"
+line = "^tools/tests/test_kpi1_script\\.py$"
+reason = "Verified false positive, git history only: trufflehog's Postgres detector matched a placeholder DSN (user u, password secret, host h, database db -- host h does not resolve; VerificationError \"lookup h: no such host\") twice in tools/tests/test_kpi1_script.py as introduced by commit b6684aa393a29ce01a0b81a13433f2ef8798cbd5 (then at lines 367 and 372). The source was fixed forward (the DSN is now built from separate string arguments, not one credential-shaped literal) so the working tree and every future commit are clean, but that commit's blob is immutable history and trufflehog's inline per-line skip tag only ever suppresses the *current* text, never a frozen one. The CLI has no per-commit allowlist, so excluding this one exact, anchored file path is the narrowest mechanism it supports. Revisit only if trufflehog gains per-commit/per-finding exclusion, or if this path is ever reused for a real secret. (This reason is deliberately worded without the literal scheme://user:pass@host shape, so it does not itself trip the same detector.)"

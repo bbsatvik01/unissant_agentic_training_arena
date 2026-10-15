@@ -221,9 +221,12 @@ gitleaks:
 	done
 
 # Git history; a candidate that verifies live, or whose verification could not complete, fails.
+# --exclude-paths: reviewed, narrowly-scoped false positives only (tools/gates/trufflehog-exclude-paths.txt,
+# each line allowlisted in tools/gates/suppressions-allowlist.toml); never a way to drop a real finding.
 trufflehog:
 	@test -x "$(TRUFFLEHOG)" || { echo "trufflehog missing: run make bootstrap" >&2; exit 1; }
-	"$(TRUFFLEHOG)" git file://. --results=verified,unknown --no-update --fail --no-color
+	"$(TRUFFLEHOG)" git file://. --results=verified,unknown --no-update --fail --no-color \
+		--exclude-paths=tools/gates/trufflehog-exclude-paths.txt
 
 pip-audit:
 	@mkdir -p $(GATES_DIR)

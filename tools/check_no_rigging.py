@@ -64,6 +64,7 @@ SUPPRESSION_FILES = {
     ".gitleaksignore": "gitleaks-allow",
     ".gitleaks.toml": "gitleaks-allow",
     "gitleaks.toml": "gitleaks-allow",
+    "trufflehog-exclude-paths.txt": "trufflehog-exclude-path",
 }
 SCANNED_NAMES = {"Makefile", "Dockerfile", "pre-commit", "pre-push", *SUPPRESSION_FILES}
 YAML_SUFFIXES = {".yaml", ".yml"}
