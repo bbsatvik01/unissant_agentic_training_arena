@@ -392,9 +392,65 @@ def test_recording_route_returns_the_player_format() -> None:
     h.start()
     h.turn()
     rec = h.get(f"/api/trials/{h.trial}/recording").json()
-    assert rec["format"] == "arena.recording.v1"
+    assert rec["format"] == "arena.recording.v2"
     assert rec["debrief"] is None
     assert [e["frame"]["type"] for e in rec["events"]][:2] == ["question.accepted", "subject.thinking"]
+    assert rec["world_events"] == []
+
+
+def _pose(t_ms: int, actor: str = "subject") -> dict[str, Any]:
+    return {"t_ms": t_ms, "kind": "pose", "data": {"actor": actor, "position": [0, 1.5, 2]}}
+
+
+def test_world_events_are_stored_and_merged_into_the_recording_by_time() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    first = h.post(f"/api/trials/{h.trial}/world-events", {"events": [_pose(900), _pose(100)]})
+    assert first.status_code == HTTPStatus.OK, first.text
+    assert first.json() == {"batch_no": 1, "accepted": 2}
+    camera = {"t_ms": 500, "kind": "camera", "data": {"mode": "orbit", "fov": 50}}
+    assert h.post(f"/api/trials/{h.trial}/world-events", {"events": [camera]}).json() == {"batch_no": 2, "accepted": 1}
+    rec = h.get(f"/api/trials/{h.trial}/recording").json()
+    assert [(e["t_ms"], e["kind"]) for e in rec["world_events"]] == [(100, "pose"), (500, "camera"), (900, "pose")]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"events": []},
+        {"events": [{"t_ms": -1, "kind": "pose", "data": {}}]},
+        {"events": [{"t_ms": 1, "kind": "smell", "data": {}}]},
+        {"events": [{"t_ms": 1, "kind": "pose", "data": []}]},
+        {"events": [{"t_ms": "1", "kind": "pose", "data": {}}]},
+        {"events": [{"t_ms": 1, "kind": "pose", "data": {}, "extra": 1}]},
+        {"other": []},
+    ],
+)
+def test_a_malformed_world_event_batch_is_422_and_nothing_is_stored(body: object) -> None:
+    h = Harness()
+    h.start()
+    r = h.post(f"/api/trials/{h.trial}/world-events", body)
+    assert r.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert h.db.world_batches == []
+
+
+def test_a_world_event_batch_over_64_kb_is_413() -> None:
+    h = Harness()
+    h.start()
+    big = {"events": [{"t_ms": i, "kind": "input", "data": {"key": "x" * 200}} for i in range(400)]}
+    r = h.post(f"/api/trials/{h.trial}/world-events", big)
+    assert r.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+    assert h.db.world_batches == []
+
+
+def test_world_events_on_a_trial_the_actor_does_not_own_are_404() -> None:
+    h = Harness()
+    h.start()
+    r = h.post(f"/api/trials/{uuid4()}/world-events", {"events": [_pose(1)]})
+    assert r.status_code == HTTPStatus.NOT_FOUND
+    h.db.fail_next["record_world_events"] = ArenaError("AR040", "trial not found")
+    assert h.post(f"/api/trials/{h.trial}/world-events", {"events": [_pose(1)]}).status_code == HTTPStatus.NOT_FOUND
 
 
 def test_kpi4_ack_and_contract_violation() -> None:
@@ -549,7 +605,7 @@ def test_recording_route_serves_a_visible_tournament_trial() -> None:
     h = Harness()
     h.db.kind = "interactive"
     rec = h.get(f"/api/trials/{h.trial}/recording").json()
-    assert rec["format"] == "arena.recording.v1"
+    assert rec["format"] == "arena.recording.v2"
     assert rec["debrief"] is None
     assert rec["snapshot"]["mode"] == "harness"
 
@@ -568,7 +624,7 @@ def test_recording_route_404s_a_hidden_split_trial_before_reveal_and_serves_it_a
     assert h.get(f"/api/trials/{h.trial}/recording").status_code == HTTPStatus.NOT_FOUND
     h.db.hidden_packets[hidden_variant] = PACKET
     rec = h.get(f"/api/trials/{h.trial}/recording").json()
-    assert rec["format"] == "arena.recording.v1"
+    assert rec["format"] == "arena.recording.v2"
     assert rec["case"]["case_id"] == PACKET["case_id"]
 
 

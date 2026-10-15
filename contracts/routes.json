@@ -262,6 +262,26 @@
   {
     "service": "arena-api",
     "method": "GET",
+    "path": "/api/trials/{id}/recording",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "The trial's recording (arena.recording.v2, D-021)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/trials/{id}/world-events",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "One 3D-world telemetry batch (UI v2)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
     "path": "/api/health",
     "auth": "none",
     "csrf": false,

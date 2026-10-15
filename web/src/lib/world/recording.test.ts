@@ -101,6 +101,40 @@ describe("parseRecording refuses a broken recording whole", () => {
   });
 });
 
+describe("recording v2 (UI v2: the world's own telemetry)", () => {
+  const v2 = (worldEvents: unknown): Record<string, unknown> => ({ ...(structuredClone(raw) as unknown as Record<string, unknown>), format: "arena.recording.v2", world_events: worldEvents });
+
+  it("reads a v1 file as before, with no world events", () => {
+    expect(load().world_events).toEqual([]);
+  });
+
+  it("reads v2's world events in time order and stretches the length to the last one", () => {
+    const world = [
+      { t_ms: 0, kind: "camera", data: { mode: "orbit" } },
+      { t_ms: 10_000_000, kind: "pose", data: { actor: "subject" } },
+    ];
+    const result = parseRecording(v2(world));
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    expect(result.recording.format).toBe("arena.recording.v2");
+    expect(result.recording.world_events).toEqual(world);
+    expect(result.recording.durationMs).toBe(10_000_000 + END_TAIL_MS);
+  });
+
+  it("refuses world events out of order, of an unknown kind, without a data object, or in a v1 file", () => {
+    const errorsOf = (r: Record<string, unknown>): readonly string[] => {
+      const result = parseRecording(r);
+      return result.ok ? [] : result.errors;
+    };
+    expect(errorsOf(v2([{ t_ms: 5, kind: "pose", data: {} }, { t_ms: 4, kind: "pose", data: {} }])).join()).toMatch(/t_ms/);
+    expect(errorsOf(v2([{ t_ms: 1, kind: "smell", data: {} }])).join()).toMatch(/kind/);
+    expect(errorsOf(v2([{ t_ms: 1, kind: "ui", data: [] }])).join()).toMatch(/data/);
+    expect(errorsOf(v2([{ t_ms: 1, kind: "ui", data: {}, extra: 1 }])).join()).toMatch(/exactly/);
+    expect(errorsOf(v2({})).join()).toMatch(/must be a list/);
+    expect(broken((r) => (r["world_events"] = [])).join()).toMatch(/v1 recording has none/);
+    expect(broken((r) => (r["format"] = "arena.recording.v3")).join()).toMatch(/format/);
+  });
+});
+
 describe("the end-of-trial snapshot", () => {
   it("is folded in only once playback reaches the end", () => {
     const rec = load();

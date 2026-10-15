@@ -561,6 +561,8 @@ These names are canonical. `contracts/openapi.json`, generated from the FastAPI 
 | `GET /api/voice/ws` | Voice WebSocket (ticket in the subprotocol; Origin and Host checked first) | `training.redeem_access_ticket` |
 | `POST /api/telemetry/kpi4 {trial_id, turn_no, client_valid}` | Card acknowledgement (8.7; C-28, X-11) | `ops.ack_card(trial, turn_no, client_valid)` |
 | `POST /api/telemetry/contract-violation` | Client-side projection check failed (S6 5.4); writes a log line, never state | none |
+| `GET /api/trials/{id}/recording` | The trial's recording (D-021). UI v2 amendment: format `arena.recording.v2`, v1's fields unchanged plus `world_events` `[{t_ms, kind, data}]` in time order on the frames' `at_ms` clock; `make export-run` writes the same | `arena_core.events.load`, `training.v_my_world_events` |
+| `POST /api/trials/{id}/world-events {events: [{t_ms, kind: pose \| camera \| input \| ui, data}]}` | UI v2 amendment: one batch of the 3D world's telemetry for exact replay, at most 64 KB as sent (413) and 2,000 events (422); the trial owner's own training trial only (404 otherwise); stored append-only, at most 16 MiB per trial | `training.record_world_events` |
 | `GET /api/health` | Liveness only | none |
 | `GET /` and assets | Static web with SPA fallback (S6 1.3) | none |
 

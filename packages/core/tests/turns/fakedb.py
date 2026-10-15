@@ -98,6 +98,10 @@ class FakeArenaDb(ArenaDb):
         # (`arena.trial_visible`: v_trial_events, v_transcripts, v_released_evidence, the dev case library)
         # sees nothing of it, so a harness that still reads through one fails here as it would for real.
         self.hidden_unrevealed = False
+        self.voice = False  # training.sessions.voice
+        self.voice_rows: list[dict[str, Any]] = []  # training.v_my_voice_exchanges: {exchange_no, lines}
+        self.world_batches: list[list[dict[str, Any]]] = []  # training.world_event_batches, in batch order
+        self.annotation_rows: list[dict[str, Any]] = []  # training.v_my_annotations: {t_ms, text, created_at}
 
     # ------------------------------------------------------------------ helpers
 
@@ -394,7 +398,7 @@ class FakeArenaDb(ArenaDb):
             "execution_state": self.execution_state,
             "variant_id": self.variant_id,
             "session_id": self.session_id,
-            "voice": False,
+            "voice": self.voice,
             "started_at": self.started_at,
             "assistant_candidate_id": self.coach_id,
         }
@@ -423,6 +427,27 @@ class FakeArenaDb(ArenaDb):
             "planned_trial_id": self.planned_trial_id,
             "started_at": self.started_at,
         }
+
+    async def voice_exchanges(self, trial: UUID) -> list[dict[str, Any]]:
+        return [dict(r) for r in self.voice_rows] if trial == self.trial_id and self.kind == "training" else []
+
+    async def record_world_events(self, trial: UUID, events: list[dict[str, Any]]) -> int:
+        """`training.record_world_events`: the actor's own training trial only (AR040 otherwise)."""
+        self._check("record_world_events")
+        if trial != self.trial_id or self.kind != "training" or self.actor is None:
+            raise ArenaError("AR040", "trial not found")
+        self.world_batches.append([dict(e) for e in events])
+        return len(self.world_batches)
+
+    async def world_events(self, trial: UUID) -> list[dict[str, Any]]:
+        if trial != self.trial_id or self.kind != "training":
+            return []
+        return [dict(e) for batch in self.world_batches for e in batch]
+
+    async def annotations(self, trial: UUID) -> list[dict[str, Any]]:
+        if trial != self.trial_id or self.kind != "training":
+            return []
+        return sorted((dict(a) for a in self.annotation_rows), key=lambda a: (a["t_ms"], a["created_at"]))
 
     async def open_question(self, trial: UUID) -> bool:
         assert trial == self.trial_id

@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, Field, StringConstraints
+from pydantic import AfterValidator, Field, JsonValue, StringConstraints
 
 from arena_core.contracts.common import (
     CASE_ID,
@@ -91,6 +91,26 @@ class CardAck(Contract):
     trial_id: Uuid
     turn_no: TurnNo
     client_valid: bool
+
+
+WORLD_BATCH_MAX_BYTES = 65_536  # UI v2: one telemetry batch's request body
+WORLD_T_MS_MAX = 86_400_000  # a day from the session start
+
+
+class WorldEvent(Contract):
+    """One moment of the 3D world (UI v2, recording v2): `t_ms` from the session start, on the same clock as a
+    recording's frame `at_ms`. `data` is the client's own object per kind (pose: actor, position, quaternion, clip
+    and time; camera: mode, position, quaternion, fov; input; ui); the server checks only that it is an object."""
+
+    t_ms: Annotated[int, Field(ge=0, le=WORLD_T_MS_MAX)]
+    kind: Literal["pose", "camera", "input", "ui"]
+    data: dict[str, JsonValue]
+
+
+class WorldEventBatch(Contract):
+    """`POST /api/trials/{id}/world-events`: one batch, at most 64 KB as sent."""
+
+    events: Annotated[list[WorldEvent], Field(min_length=1, max_length=2000)]
 
 
 class DebriefScoring(Contract):
@@ -202,6 +222,8 @@ ROUTES: tuple[Route, ...] = (
     Route(API, "GET", "/api/voice/ws", "ticket", "Voice WebSocket (ticket in the subprotocol)"),
     Route(API, "POST", "/api/telemetry/kpi4", "session", "Card acknowledgement (KPI-4)", "card-ack.schema.json"),
     Route(API, "POST", "/api/telemetry/contract-violation", "session", "Client projection re-check failed (log only)"),
+    Route(API, "GET", "/api/trials/{id}/recording", "session", "The trial's recording (arena.recording.v2, D-021)"),
+    Route(API, "POST", "/api/trials/{id}/world-events", "session", "One 3D-world telemetry batch (UI v2)"),
     Route(API, "GET", "/api/health", "none", "Liveness only"),
     Route(SUBJECT, "POST", "/internal/answer", "caller:api_or_tournament", "One subject turn"),
     Route(SUBJECT, "GET", "/internal/voice/ws", "caller:api", "Voice relay leg"),

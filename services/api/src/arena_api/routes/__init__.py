@@ -20,6 +20,7 @@ from arena_api.routes import (
     tts,
     turns,
     voice,
+    world,
 )
 
 router = APIRouter()
@@ -39,6 +40,7 @@ _MODULES = (
     trust,
     tts,
     voice,
+    world,
 )
 for module in _MODULES:
     router.include_router(module.router)

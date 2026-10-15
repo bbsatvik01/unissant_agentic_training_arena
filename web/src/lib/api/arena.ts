@@ -144,7 +144,7 @@ export interface ArenaApi {
   startSession(body: SessionCreate): Promise<StartedSession>;
   /** `GET /api/progress`: the participant's own sessions (read with `parseProgress`). */
   progress: () => Promise<unknown>;
-  /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v1` (read with `parseRecording`). */
+  /** `GET /api/trials/{id}/recording`: the trial's whole run as `arena.recording.v2` (read with `parseRecording`). */
   recording: (trialId: string) => Promise<unknown>;
   /** `POST /api/tts {voice, text}`: one line's WAV audio in a prebuilt Gemini voice, and whether it is the server's
    * silence (its fake mode) rather than speech. */

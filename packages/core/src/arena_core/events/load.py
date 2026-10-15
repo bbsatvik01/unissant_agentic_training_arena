@@ -32,7 +32,7 @@ from arena_core.events.projections import (
     snapshot,
 )
 
-RECORDING_FORMAT = "arena.recording.v1"
+RECORDING_FORMAT = "arena.recording.v2"  # UI v2 amendment: v1 plus `world_events` (D-021)
 Mode = Literal["practice", "assessment", "harness"]
 TOURNAMENT_KINDS = frozenset({"interactive", "replay", "replay_corpus"})
 
@@ -217,10 +217,14 @@ def _case(packet: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str, Any]:
-    """D-021 `arena.recording.v1`: the public case, the opening snapshot, every frame the owner saw live with
+def recording_of(
+    trial: LoadedTrial, debrief: dict[str, Any] | None, world_events: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """D-021 `arena.recording.v2`: the public case, the opening snapshot, every frame the owner saw live with
     its time from the session start, the end-of-trial snapshot once the trial ended, and the published debrief
-    when there is one. The UI player
+    when there is one -- `arena.recording.v1`'s fields unchanged -- plus (UI v2 amendment) the 3D world's own
+    telemetry, `world_events` `[{t_ms, kind, data}]` on the same clock as the frames' `at_ms`, in time order (a
+    stable sort, so events of one time keep the order they were posted in). The UI player
     (`web/src/lib/world/recording.ts`) reads exactly this shape."""
     return {
         "format": RECORDING_FORMAT,
@@ -243,6 +247,7 @@ def recording_of(trial: LoadedTrial, debrief: dict[str, Any] | None) -> dict[str
             else None
         ),
         "debrief": debrief,
+        "world_events": sorted(world_events or [], key=lambda e: int(e["t_ms"])),
     }
 
 
@@ -265,5 +270,6 @@ async def load_recording(db: ArenaDb, trial: UUID) -> dict[str, Any] | None:
         loaded = await load_tournament_trial(db, trial)
     if loaded is None or not loaded.packet:
         return None
-    debrief = None if loaded.session_id is None else await db.debrief(loaded.session_id)
-    return recording_of(loaded, debrief)
+    if loaded.session_id is None:  # a tournament trial: no session, so no debrief and no world telemetry
+        return recording_of(loaded, None)
+    return recording_of(loaded, await db.debrief(loaded.session_id), await db.world_events(trial))
