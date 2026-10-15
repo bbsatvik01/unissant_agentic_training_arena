@@ -21,6 +21,7 @@ from uuid import UUID, uuid4
 from pydantic import StringConstraints
 
 from arena_core.contracts.common import Contract
+from arena_core.contracts.routes import NPC_TEXT_MAX_CHARS
 from arena_core.npc.catalogue import Npc
 from arena_core.providers.openai_compat import ChatClient, ChatEndpoint, Cooldowns, FreeTierError
 from arena_core.providers.port import AgentPort
@@ -30,9 +31,10 @@ from arena_core.voice.protocol import cut_words
 
 log = logging.getLogger("arena_core.npc")
 
-MAX_MESSAGE_CHARS = 400
+MAX_MESSAGE_CHARS = NPC_TEXT_MAX_CHARS
 MAX_HISTORY = 12
-MAX_REPLY_CHARS = 600
+# A reply goes back in the next request's history, where every line is at most 400 characters (NpcChatRequest).
+MAX_REPLY_CHARS = MAX_MESSAGE_CHARS
 NPC_MODEL = VertexModel.FLASH_LITE_35
 #: The per-user limit's default (messages a minute). A user-visible limit: owner approval pending (see the report).
 DEFAULT_MESSAGES_PER_MIN = 30

@@ -13,6 +13,7 @@ from arena_core.contracts.events import CoachCard
 from arena_core.db.arena import ArenaError
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
+from arena_core.providers.types import ModelRequest
 from arena_core.spend.memory import RunBudget
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.voice_coach import VoiceCoach
@@ -109,3 +110,24 @@ def test_a_database_refusal_is_no_card() -> None:
     db = RefusingDb(uuid4())
     db.voice = True
     assert asyncio.run(_coach(db)[0].card_after(2)) is None
+
+
+def test_a_record_released_after_a_window_without_a_turn_reaches_the_next_turns_card() -> None:
+    """Releases count windows, the coach counts turns: window 1 holds no turn, so a record released after window 2
+    (turn 1) is visible to turn 2's card (window 3)."""
+    db = _db()
+    db.releases = [
+        {"record_id": "rec-01", "title": "Work order", "content": {"body": "Logged at 21:40."}, "after_exchanges": 2}
+    ]
+    seen: list[str] = []
+
+    def card(request: ModelRequest) -> str:
+        seen.append(request.messages[-1].text)
+        return FAKE_COACH_REPLIES["CoachingCard"](request)
+
+    port = AgentPort(FakeAdapter(canned={"CoachingCard": card}), RunBudget(Decimal(100)), PortOptions(sleep=_no_sleep))
+    coach = VoiceCoach(db, port, db.trial_id)
+    asyncio.run(coach.card_after(2))
+    asyncio.run(coach.card_after(3))
+    assert "Logged at 21:40." not in seen[0]  # the record's content, not its id (the case lists every requestable id)
+    assert "Logged at 21:40." in seen[1]

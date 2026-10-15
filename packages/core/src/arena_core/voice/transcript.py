@@ -7,7 +7,9 @@ each cleaned and cut at a word to the same bounds a typed question and a subject
 coach and the referee read voice turns through the very contracts they read text turns with. A window without
 both a question and an answer (silence, a lone interruption) is no turn. Turns are numbered 1..n in exchange order;
 `exchange_no` keeps the window's own number. A turn is `partial` when any of its subject lines was interrupted.
-Nothing here reads the database or calls a model.
+Evidence releases count exchange windows (`released_after_exchanges`); `turns_through` turns such a count into the
+same turn numbering, so a record released after window k is visible from the turn after the last turn at or before
+k, for the coach and the referee alike. Nothing here reads the database or calls a model.
 """
 
 from __future__ import annotations
@@ -63,3 +65,8 @@ def voice_turns(exchanges: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+def turns_through(turns: Sequence[Mapping[str, Any]], exchanges: int) -> int:
+    """How many of `turns` fall in exchange windows 1..`exchanges`: a release boundary in turn numbers."""
+    return sum(1 for t in turns if int(t["exchange_no"]) <= exchanges)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from arena_core.contracts.rendered import ANSWER_MAX_CHARS, QUESTION_MAX_CHARS, check_answer, check_question
-from arena_core.voice.transcript import voice_turns
+from arena_core.voice.transcript import turns_through, voice_turns
 
 
 def _ex(no: int, *lines: tuple[str, str, bool]) -> dict[str, object]:
@@ -44,3 +44,8 @@ def test_long_or_wide_speech_is_cut_at_a_word_to_the_typed_bounds() -> None:
 def test_no_exchanges_no_turns() -> None:
     assert voice_turns([]) == []
     assert voice_turns([{"exchange_no": 1, "lines": None}]) == []
+
+
+def test_a_release_boundary_in_windows_becomes_one_in_turns() -> None:
+    turns = [{"exchange_no": 2}, {"exchange_no": 3}, {"exchange_no": 5}]
+    assert [turns_through(turns, k) for k in range(7)] == [0, 0, 1, 2, 2, 3, 3]

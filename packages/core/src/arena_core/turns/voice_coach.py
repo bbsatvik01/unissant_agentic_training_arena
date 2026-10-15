@@ -32,7 +32,7 @@ from arena_core.providers.types import CallContext
 from arena_core.spend.limits import CallType
 from arena_core.turns.coach import CardMeta, coach_inputs, store_card
 from arena_core.turns.orchestrator import coach_call, request_key
-from arena_core.voice.transcript import voice_turns
+from arena_core.voice.transcript import turns_through, voice_turns
 
 log = logging.getLogger("arena_core.turns.voice")
 #: Fixed namespace for the voice card's stand-in work item id (uuid5 of the trial and exchange).
@@ -109,7 +109,8 @@ class VoiceCoach:
                     "record_id": r["record_id"],
                     "title": r["title"],
                     "content": r["content"],
-                    "after_exchanges": int(r["released_after_exchanges"]),
+                    # releases count exchange windows; the coach counts turns (a window may hold no turn)
+                    "after_exchanges": turns_through(turns, int(r["released_after_exchanges"])),
                 }
                 for r in released
             ],
