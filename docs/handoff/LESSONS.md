@@ -62,3 +62,8 @@ Format per entry: date and one-line symptom; root cause; fix; prevention pattern
 - **Symptom:** a WP-17 agent ran `pkill -f db_test.sh` and killed another worktree's concurrent db-test.
 - **Root cause:** shared machine, identical command lines across worktrees.
 - **Prevention:** agents kill only PIDs they started (record them); dispatch prompts say so.
+
+## 2026-10-15 · Scratchpad gate files vanished mid-project
+- **Symptom:** an agent reported scratchpad gates/agent_protocol.md and codex_code_gate.md missing.
+- **Root cause:** session scratchpad is not durable across restarts/cleanups.
+- **Prevention:** recreated them; durable copies should live in the repo (docs/handoff/agent-protocol.md) on the next handoff pass.

@@ -106,3 +106,4 @@
 - 2026-10-12 first REAL live voice session (gemini-3.8-live, F01, 3 exchanges, $0.024, first audio 0.01-0.64 s after each question; session open ~47 s -> fixing)
 - 8173caf merge voice polish (Live uses persona designed voice; server open ~1.2 s)
 - 97052f0 hidden split sealed on hosted (n=9, seal fdc96908cde1...); cases/hidden and authoring Codex sessions deleted
+- f1c393c first push of main to github.com/bbsatvik01/unissant_agentic_training_arena (private)
