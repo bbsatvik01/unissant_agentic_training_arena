@@ -20,7 +20,7 @@ from psycopg.conninfo import make_conninfo
 from psycopg.types.json import Jsonb
 
 from arena_core.db.pool import Connector, dsn_connector
-from arena_referee import admin_db
+from arena_referee import admin_db, instructor
 from tools import proc
 
 TESTS_DIR = Path(__file__).resolve().parents[3] / "supabase" / "tests"
@@ -117,3 +117,50 @@ def test_budget_and_the_review_queue_read_as_the_referee(referee: tuple[Connecto
     reviews = run(admin_db.pending_reviews(connect))
     assert isinstance(reviews, list)
     assert "assistant" not in json.dumps(reviews)
+
+
+def test_instructor_mode_reads_and_writes_as_the_referee(referee: tuple[Connector, str]) -> None:
+    """UI v2 (D-036): the class progress, a dev case's variant, an idempotent assignment and a note on a training
+    trial, through `arena_referee.instructor` against the real tables and grants."""
+    connect, admin = referee
+    run(_admin(admin, "select tests.users()"))
+    trainee = run(_admin(admin, "select tests.uid('C')"))[0][0]
+    teacher = run(_admin(admin, "select tests.uid('D')"))[0][0]
+    variant = run(_admin(admin, "select tests.variant('TDEV', 'deceptive')"))[0][0]
+    case_id = run(
+        _admin(admin, "select packet ->> 'case_id' from arena.public_packets where variant_id = %s", (variant,))
+    )
+    trial = run(
+        _admin(
+            admin,
+            "select set_config('arena.actor_id', %s, false), (training.start_session(%s, 'practice',"
+            " tests.candidate('assistant', 'A1'), tests.candidate('subject', 'S1'), false, %s) ->> 'trial_id')::uuid",
+            (str(trainee), variant, f"it-instructor-{secrets.token_hex(4)}"),
+        )
+    )[0][1]
+
+    assert run(instructor.dev_variant(connect, case_id[0][0])) == variant
+    assert run(instructor.dev_variant(connect, "C-00000000")) is None
+    first = run(instructor.assign(connect, trainee, variant, teacher))
+    again = run(instructor.assign(connect, trainee, variant, teacher))
+    assert first == again
+
+    progress = run(instructor.class_progress(connect, [instructor.Trainee(trainee, "Cleo")]))
+    assert len(progress) == 1
+    row = progress[0]
+    assert (row["display_name"], row["sessions"], row["ended"], row["scored"], row["mean_score"]) == (
+        "Cleo",
+        1,
+        0,
+        0,
+        None,
+    )
+    assert row["recent"][0]["trial_id"] == str(trial)
+    assert [(a["case_id"], a["started"]) for a in row["assignments"]] == [(case_id[0][0], True)]
+
+    assert run(instructor.training_trial(connect, trial)) is True
+    assert run(instructor.training_trial(connect, UUID(int=1))) is False
+    note = run(instructor.annotate(connect, trial, teacher, 1500, "Open question, well done."))
+    assert (note["t_ms"], note["text"]) == (1500, "Open question, well done.")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):  # the referee only reads and appends notes
+        run(admin_db.call(connect, "update training.annotations set text = 'x' where trial_id = %s", (trial,)))

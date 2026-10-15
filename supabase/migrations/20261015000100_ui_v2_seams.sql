@@ -104,3 +104,62 @@ create policy world_event_batches_referee on training.world_event_batches for se
 -- allowance; output 1,000 tokens). The model, gemini-3.5-flash-lite, is already priced. Append-only (AR010).
 -- -----------------------------------------------------------------------------
 insert into ops.call_limits (call_kind, input_limit, output_limit) values ('npc', 72000, 1000);
+
+-- -----------------------------------------------------------------------------
+-- 3. Instructor mode (D-036). An instructor (role `instructor` in the users allowlist file, checked by arena-referee
+-- on its own origin) assigns development cases to trainees and annotates a trainee's training trial at a moment of
+-- its recording. Both tables are written only by arena_referee, append-only. The trial's owner reads the notes on
+-- their own trials through training.v_my_annotations (recording v2 carries them). The author columns name the
+-- instructor's user id without a foreign key: an instructor need not hold a session of their own.
+-- -----------------------------------------------------------------------------
+create table training.assignments (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete restrict,
+  variant_id  uuid not null references arena.case_variants(id) on delete restrict,
+  assigned_by uuid not null,
+  created_at  timestamptz not null default now(),
+  unique (user_id, variant_id)
+);
+create trigger assignments_append_only before update or delete on training.assignments
+  for each row execute function arena.tg_forbid_mutation();
+
+create table training.annotations (
+  id             uuid primary key default gen_random_uuid(),
+  trial_id       uuid not null references arena.trials(id) on delete restrict,
+  author_user_id uuid not null,
+  t_ms           integer not null check (t_ms between 0 and 86400000),
+  text           text not null check (length(text) between 1 and 2000),
+  created_at     timestamptz not null default now()
+);
+create index annotations_trial_idx on training.annotations (trial_id, t_ms);
+-- Notes go on training trials only (a tournament trial has no trainee to read them).
+create or replace function training.tg_annotation() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if tg_op <> 'INSERT' then
+    raise exception using errcode = 'AR010', message = 'training.annotations is append-only';
+  end if;
+  if not exists (select 1 from arena.trials t where t.id = new.trial_id and t.kind = 'training') then
+    raise exception using errcode = 'AR007', message = 'an annotation names a training trial';
+  end if;
+  return new;
+end $$;
+create trigger annotations_guard before insert or update or delete on training.annotations
+  for each row execute function training.tg_annotation();
+
+create view training.v_my_annotations with (security_barrier = true) as
+  select a.trial_id, a.t_ms, a.text, a.created_at
+    from training.annotations a join arena.trials t on t.id = a.trial_id
+   where t.kind = 'training' and t.owner_user_id = arena.actor_id();
+
+alter table training.assignments enable row level security;
+alter table training.annotations enable row level security;
+revoke all on training.assignments, training.annotations, training.v_my_annotations
+  from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
+revoke all on function training.tg_annotation()
+  from public, anon, authenticated, service_role, arena_public, arena_subject, arena_referee;
+grant select on training.v_my_annotations to arena_public;
+grant select, insert on training.assignments, training.annotations to arena_referee;
+create policy assignments_referee on training.assignments for all to arena_referee using (true) with check (true);
+create policy annotations_referee on training.annotations for all to arena_referee using (true) with check (true);
+

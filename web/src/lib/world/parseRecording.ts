@@ -6,7 +6,7 @@
 
 import type { Debrief, TrialSnapshot } from "../contracts/generated/types";
 import { isWire } from "../contracts/validate";
-import { END_TAIL_MS, RECORDING_FORMATS, type Recording, type WorldEvent } from "./recording";
+import { END_TAIL_MS, RECORDING_FORMATS, type Annotation, type Recording, type WorldEvent } from "./recording";
 
 export type RecordingResult = { readonly ok: true; readonly recording: Recording } | { readonly ok: false; readonly errors: readonly string[] };
 
@@ -81,6 +81,25 @@ function worldErrors(value: unknown): string[] {
   return errors;
 }
 
+/** Recording v2's instructor notes: absent (a v1 file) or a list of {t_ms, text, created_at} in time order. */
+function annotationErrors(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return ["annotations: must be a list"];
+  const errors: string[] = [];
+  let last = 0;
+  value.forEach((note: unknown, i) => {
+    const where = `annotations[${String(i)}]`;
+    if (!isObject(note) || !isText(note["text"]) || !isText(note["created_at"])) {
+      errors.push(`${where}: needs t_ms, text and created_at`);
+      return;
+    }
+    const t = note["t_ms"];
+    if (typeof t !== "number" || !Number.isInteger(t) || t < last) errors.push(`${where}: t_ms must be an integer at or after the previous one`);
+    else last = t;
+  });
+  return errors;
+}
+
 /** Check a parsed recording file against the format and the wire contracts. */
 export function parseRecording(raw: unknown): RecordingResult {
   if (!isObject(raw)) return { ok: false, errors: ["recording: not an object"] };
@@ -89,7 +108,8 @@ export function parseRecording(raw: unknown): RecordingResult {
   if (!RECORDING_FORMATS.some((f) => f === format)) errors.push(`recording: format must be one of ${RECORDING_FORMATS.join(", ")}`);
   // v1 has no world telemetry; v2 always carries the list (possibly empty).
   if (format === "arena.recording.v1" && raw["world_events"] !== undefined) errors.push("world_events: a v1 recording has none");
-  errors.push(...worldErrors(raw["world_events"]));
+  if (format === "arena.recording.v1" && raw["annotations"] !== undefined) errors.push("annotations: a v1 recording has none");
+  errors.push(...worldErrors(raw["world_events"]), ...annotationErrors(raw["annotations"]));
   const trialId = raw["trial_id"];
   if (!isText(trialId)) errors.push("recording: trial_id must be a non-empty string");
   errors.push(...caseErrors(raw["case"]));
@@ -134,17 +154,25 @@ export function parseRecording(raw: unknown): RecordingResult {
     else if (finalSnapshot.status === "running") errors.push("final_snapshot: the trial had not ended");
   }
   if (errors.length > 0) return { ok: false, errors };
-  const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief" | "final_snapshot" | "world_events"> & {
+  const checked = raw as unknown as Omit<Recording, "durationMs" | "debrief" | "final_snapshot" | "world_events" | "annotations"> & {
     readonly debrief?: Debrief | null;
     readonly final_snapshot?: TrialSnapshot | null;
     readonly world_events?: readonly WorldEvent[];
+    readonly annotations?: readonly Annotation[];
   };
   const worldEvents = checked.world_events ?? [];
   const lastAt = Math.max(checked.events.at(-1)?.at_ms ?? 0, worldEvents.at(-1)?.t_ms ?? 0);
   const durationMs = lastAt + END_TAIL_MS;
   return {
     ok: true,
-    recording: { ...checked, debrief: checked.debrief ?? null, final_snapshot: checked.final_snapshot ?? null, world_events: worldEvents, durationMs },
+    recording: {
+      ...checked,
+      debrief: checked.debrief ?? null,
+      final_snapshot: checked.final_snapshot ?? null,
+      world_events: worldEvents,
+      annotations: checked.annotations ?? [],
+      durationMs,
+    },
   };
 }
 

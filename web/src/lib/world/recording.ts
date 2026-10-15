@@ -32,6 +32,13 @@ export interface WorldEvent {
   readonly data: Readonly<Record<string, unknown>>;
 }
 
+/** An instructor's note at a moment of the recording (recording v2, D-036). */
+export interface Annotation {
+  readonly t_ms: number;
+  readonly text: string;
+  readonly created_at: string;
+}
+
 /** An initial document of the public packet (S1; shown on the evidence wall from the start). */
 export interface CaseDocument {
   readonly doc_id: string;
@@ -63,6 +70,8 @@ export interface Recording {
   readonly final_snapshot: TrialSnapshot | null;
   /** The world's telemetry in time order (recording v2; empty for a v1 file). */
   readonly world_events: readonly WorldEvent[];
+  /** Instructor notes in time order (recording v2; empty for a v1 file). */
+  readonly annotations: readonly Annotation[];
   /** The time of the last event plus a short tail, so the last signature moment plays out (`END_TAIL_MS`). */
   readonly durationMs: number;
 }

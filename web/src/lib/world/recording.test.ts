@@ -104,8 +104,27 @@ describe("parseRecording refuses a broken recording whole", () => {
 describe("recording v2 (UI v2: the world's own telemetry)", () => {
   const v2 = (worldEvents: unknown): Record<string, unknown> => ({ ...(structuredClone(raw) as unknown as Record<string, unknown>), format: "arena.recording.v2", world_events: worldEvents });
 
-  it("reads a v1 file as before, with no world events", () => {
+  it("reads a v1 file as before, with no world events or notes", () => {
     expect(load().world_events).toEqual([]);
+    expect(load().annotations).toEqual([]);
+  });
+
+  it("reads an instructor's notes in time order and refuses malformed ones", () => {
+    const notes = [
+      { t_ms: 1_000, text: "Good open question.", created_at: "2026-10-15T10:00:00Z" },
+      { t_ms: 9_000, text: "Follow up on the badge log.", created_at: "2026-10-15T10:01:00Z" },
+    ];
+    const result = parseRecording({ ...v2([]), annotations: notes });
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    expect(result.recording.annotations).toEqual(notes);
+    const bad = (annotations: unknown): string => {
+      const r = parseRecording({ ...v2([]), annotations });
+      return r.ok ? "" : r.errors.join();
+    };
+    expect(bad([notes[1], notes[0]])).toMatch(/t_ms/);
+    expect(bad([{ t_ms: 1, text: "", created_at: "x" }])).toMatch(/needs/);
+    expect(bad({})).toMatch(/must be a list/);
+    expect(broken((r) => (r["annotations"] = [])).join()).toMatch(/v1 recording has none/);
   });
 
   it("reads v2's world events in time order and stretches the length to the last one", () => {

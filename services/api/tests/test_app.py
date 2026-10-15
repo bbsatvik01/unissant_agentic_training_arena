@@ -415,6 +415,17 @@ def test_world_events_are_stored_and_merged_into_the_recording_by_time() -> None
     assert [(e["t_ms"], e["kind"]) for e in rec["world_events"]] == [(100, "pose"), (500, "camera"), (900, "pose")]
 
 
+def test_an_instructors_notes_are_in_the_owners_recording_in_time_order() -> None:
+    h = Harness()
+    h.start()
+    h.turn()
+    assert h.get(f"/api/trials/{h.trial}/recording").json()["annotations"] == []
+    late = {"t_ms": 9000, "text": "Follow up on the log.", "created_at": "2026-10-15T10:01:00.000Z"}
+    early = {"t_ms": 1000, "text": "Good open question.", "created_at": "2026-10-15T10:00:00.000Z"}
+    h.db.annotation_rows = [late, early]
+    assert h.get(f"/api/trials/{h.trial}/recording").json()["annotations"] == [early, late]
+
+
 @pytest.mark.parametrize(
     "body",
     [

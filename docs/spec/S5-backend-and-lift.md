@@ -579,7 +579,10 @@ These names are canonical. `contracts/openapi.json`, generated from the FastAPI 
 
 | Method and path | Allowed callers | Purpose |
 | --- | --- | --- |
-| `GET /api/me`, `GET /api/config` | users with role `admin` or `trainer` | Console bootstrap on the referee origin (SG4-11): identity, roles and the CSRF token (with its cookie); console flags (`phoenix_url`, `paused`) |
+| `GET /api/me`, `GET /api/config` | users with role `admin` or `trainer` (UI v2 amendment: or `instructor`) | Console bootstrap on the referee origin (SG4-11): identity, roles and the CSRF token (with its cookie); console flags (`phoenix_url`, `paused`) |
+| `GET /api/instructor/class` | users with role `instructor` (UI v2 amendment, D-036) | The class: the users file's investigators, each with sessions, ended and scored counts, mean published score, the last ten sessions and their assignments (`training.sessions`, `training.debriefs`, `training.assignments`) |
+| `POST /api/instructor/assignments {user_id, case_id}` | users with role `instructor` (UI v2 amendment) | Assign an active development case to a trainee of the class (404 for anyone else or any other case); idempotent per trainee and case (`training.assignments`, append-only) |
+| `POST /api/trials/{id}/annotations {t_ms, text}` | users with role `instructor` (UI v2 amendment) | A note at a moment of a trainee's training trial (404 for any other id; `training.annotations`, append-only); the trial's owner reads it in recording v2's `annotations` (`training.v_my_annotations`) |
 | `POST /internal/sessions/{id}/debrief` | api | R3 stages and the published debrief (5.4; C-42) |
 | `POST /internal/blocks/{id}/score` | tournament | Online block scoring from the block id alone (C-42) |
 | `POST /internal/trials/{id}/score` | tournament | R1 on a corpus transcript, followed by its initial validity verdict (S3 4.2: `auto_rule` valid when nothing is proposed; a proposed `subject_invalid` waits for the human review), or R2 on a replay trial, from the trial id alone (5.3) |

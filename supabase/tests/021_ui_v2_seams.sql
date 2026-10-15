@@ -1,8 +1,9 @@
 -- 021_ui_v2_seams.sql (UI v2 seams, migration 20261015000100; owner D-034..D-036): the world telemetry batches
--- (recording v2) on the owner's own training trial only.
+-- (recording v2) on the owner's own training trial only; the NPC call kind; instructor assignments and notes
+-- (written by arena_referee only, read by the trial's owner only).
 begin;
 \ir harness/fixtures.psql
-select plan(7);
+select plan(12);
 
 select tests.users();
 select tests.family('UIV2', 'dev');
@@ -83,6 +84,64 @@ insert into training.world_event_batches (trial_id, batch_no, events, bytes)
 select is(tests.error($$ select pg_temp.post('[{"t_ms": 1, "kind": "ui", "data": {}}]') $$),
   'AR007: the trial holds its 16 MiB of world events',
   'WE-07 a batch that would take the trial past 16 MiB is refused');
+
+-- ---------------------------------------------------------------------------- NC-01
+select is((select array[input_limit, output_limit]::text from ops.call_limits where call_kind = 'npc'), '{72000,1000}',
+  'NC-01 the npc call kind is seeded at cost_model.LIMITS[''npc''] (the Gemini fallback of NPC chat)');
+
+-- ---------------------------------------------------------------------------- IN-01
+-- arena_referee writes notes and assignments; the trial's owner (A) reads the notes on their own trial only.
+select set_config('arena.actor_id', '', true);
+create temp table in01 on commit drop as select
+  tests.as_role('arena_referee', format(
+    'with n as (insert into training.annotations (trial_id, author_user_id, t_ms, text) values (%L, %L, 2500, %L) '
+    || 'returning id) select to_jsonb(count(*)) from n', (select trial from ui), tests.uid('D'), 'Good open question.'))
+  as note,
+  tests.as_role('arena_referee', format(
+    'with a as (insert into training.assignments (user_id, variant_id, assigned_by) values (%L, %L, %L) '
+    || 'returning id) select to_jsonb(count(*)) from a', tests.uid('B'), tests.variant('UIV2', 'deceptive'), tests.uid('D')))
+  as assigned;
+select set_config('arena.actor_id', tests.uid('A')::text, true);
+create temp table in01a on commit drop as select tests.as_role('arena_public', format(
+  'select jsonb_agg(jsonb_build_array(t_ms, text)) from training.v_my_annotations where trial_id = %L',
+  (select trial from ui))) as mine;
+select set_config('arena.actor_id', tests.uid('B')::text, true);
+create temp table in01b on commit drop as select tests.as_role('arena_public', format(
+  'select to_jsonb(count(*)) from training.v_my_annotations where trial_id = %L', (select trial from ui))) as other;
+select set_config('arena.actor_id', tests.uid('A')::text, true);
+select is(array[(select note::text from in01), (select assigned::text from in01), (select mine::text from in01a),
+                (select other::text from in01b)],
+  array['1', '1', '[[2500, "Good open question."]]', '0'],
+  'IN-01 the referee writes a note and an assignment; the trial''s owner reads the note, another actor does not');
+
+-- ---------------------------------------------------------------------------- IN-02
+select is(array[
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'insert into training.annotations (trial_id, author_user_id, t_ms, text) values (%L, %L, 1, %L) returning null::jsonb',
+      (select trial from ui), tests.uid('A'), 'self'))),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_public', format(
+      'insert into training.assignments (user_id, variant_id, assigned_by) values (%L, %L, %L) returning null::jsonb',
+      tests.uid('A'), tests.variant('UIV2', 'deceptive'), tests.uid('A')))),
+    tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_referee', format(
+      'update training.annotations set text = %L where trial_id = %L returning null::jsonb', 'x', (select trial from ui)))),
+    tests.sqlstate(format('update training.annotations set text = %L where trial_id = %L', 'x', (select trial from ui))),
+    tests.sqlstate(format('update training.assignments set assigned_by = %L', tests.uid('A')))],
+  array['42501', '42501', '42501', 'AR010', 'AR010'],
+  'IN-02 arena_public writes neither table; arena_referee only appends; neither table changes once written');
+
+-- ---------------------------------------------------------------------------- IN-03
+create temp table in03 on commit drop as select tests.tournament('dev', array['interactive']) as tour;
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_referee', format(
+    'insert into training.annotations (trial_id, author_user_id, t_ms, text) values (%L, %L, 1, %L) returning null::jsonb',
+    tests.trial((select tour from in03), 1), tests.uid('D'), 'not here'))),
+  'AR007: an annotation names a training trial',
+  'IN-03 a note on a tournament trial is refused');
+
+-- ---------------------------------------------------------------------------- IN-04
+select is(tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_referee', format(
+    'insert into training.assignments (user_id, variant_id, assigned_by) values (%L, %L, %L) returning null::jsonb',
+    tests.uid('B'), tests.variant('UIV2', 'deceptive'), tests.uid('C')))), '23505',
+  'IN-04 a trainee holds one assignment per case');
 
 select * from finish();
 rollback;

@@ -133,6 +133,21 @@ class NpcChatRequest(Contract):
     history: list[NpcTurn] = Field(default_factory=list, max_length=12)
 
 
+class AssignmentCreate(Contract):
+    """`POST /api/instructor/assignments` (arena-referee, UI v2, D-036): assign one development case to a trainee."""
+
+    user_id: Uuid
+    case_id: Annotated[str, StringConstraints(pattern=CASE_ID)]
+
+
+class AnnotationCreate(Contract):
+    """`POST /api/trials/{id}/annotations` (arena-referee, UI v2, D-036): an instructor's note at a moment of a
+    trainee's recording (`t_ms` on the recording's clock)."""
+
+    t_ms: Annotated[int, Field(ge=0, le=WORLD_T_MS_MAX)]
+    text: Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+
+
 class DebriefScoring(Contract):
     """`GET /api/sessions/{id}/debrief` before the debrief is published (S5 5.4)."""
 
@@ -145,7 +160,8 @@ Auth = Literal[
     "session",
     "session:admin",
     "session:trainer",
-    "session:admin_or_trainer",
+    "session:console",
+    "session:instructor",
     "caller:api",
     "caller:tournament",
     "caller:api_or_tournament",
@@ -249,8 +265,11 @@ ROUTES: tuple[Route, ...] = (
     Route(API, "GET", "/api/health", "none", "Liveness only"),
     Route(SUBJECT, "POST", "/internal/answer", "caller:api_or_tournament", "One subject turn"),
     Route(SUBJECT, "GET", "/internal/voice/ws", "caller:api", "Voice relay leg"),
-    Route(REFEREE, "GET", "/api/me", "session:admin_or_trainer", "Console bootstrap on the referee origin"),
-    Route(REFEREE, "GET", "/api/config", "session:admin_or_trainer", "Console flags"),
+    Route(REFEREE, "GET", "/api/me", "session:console", "Console bootstrap on the referee origin"),
+    Route(REFEREE, "GET", "/api/config", "session:console", "Console flags"),
+    Route(REFEREE, "GET", "/api/instructor/class", "session:instructor", "Trainees with progress (UI v2)"),
+    Route(REFEREE, "POST", "/api/instructor/assignments", "session:instructor", "Assign a dev case to a trainee"),
+    Route(REFEREE, "POST", "/api/trials/{id}/annotations", "session:instructor", "Note on a trainee's recording"),
     Route(
         REFEREE,
         "POST",
