@@ -12,6 +12,7 @@ from arena_core.coachgym.examples import (
     HOLDOUT_FILE,
     HiddenSplitError,
     build_examples,
+    check_partitions,
     dataset_sha256,
     family_base,
     load_holdout,
@@ -102,7 +103,9 @@ def test_jsonl_round_trip_and_hash(tmp_path: Path) -> None:
     write_jsonl(path, examples)
     again = read_jsonl(path)
     assert again == examples
-    assert dataset_sha256(again) == dataset_sha256(examples)
+    assert dataset_sha256(again, HOLDOUT) == dataset_sha256(examples, HOLDOUT)
+    assert dataset_sha256(again, frozenset({"F01"})) != dataset_sha256(examples, HOLDOUT)
+    assert check_partitions(again, HOLDOUT) == []
 
 
 def test_a_dataset_line_claiming_another_split_does_not_parse(tmp_path: Path) -> None:
@@ -125,3 +128,16 @@ def test_the_committed_holdout_is_a_quarter_of_the_dev_families(tmp_path: Path) 
     bad.write_text('{"families": []}', encoding="utf-8")
     with pytest.raises(ValueError, match="non-empty"):
         load_holdout(tmp_path)
+
+
+def test_check_partitions_finds_moved_or_edited_examples() -> None:
+    examples = with_canaries(build_examples([trial("deceptive"), trial("truthful", Spec(family_code="F03"))], HOLDOUT))
+    held = next(e for e in examples if e.partition == "holdout")
+    moved = held.model_copy(update={"partition": "train"})
+    edited = held.model_copy(update={"reference": held.reference.model_copy(update={"role": "deceptive"})})
+    canary = next(e for e in examples if e.canary)
+    loose = canary.model_copy(update={"partition": "val"})
+    problems = check_partitions([moved, edited, loose], HOLDOUT)
+    assert [p.split(" ")[0] for p in problems] == ["example", "example", "canary"]
+    assert "not where its family puts it" in problems[0]
+    assert "does not hash to its own id" in problems[1]

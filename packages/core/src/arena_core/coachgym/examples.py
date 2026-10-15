@@ -212,8 +212,31 @@ def partition(examples: Iterable[Example], name: Partition) -> list[Example]:
     return [e for e in examples if e.partition == name]
 
 
-def dataset_sha256(examples: Sequence[Example]) -> str:
-    return canonical_sha256(sorted(e.example_id for e in examples))
+def dataset_sha256(examples: Sequence[Example], holdout: frozenset[str]) -> str:
+    """The hash of every example in full (context, reference, partition) and of the holdout it was split by."""
+    rows = [e.model_dump(mode="json") for e in sorted(examples, key=lambda e: e.example_id)]
+    return canonical_sha256({"holdout": sorted(holdout), "examples": rows})
+
+
+def _example_id(example: Example) -> str:
+    return canonical_sha256({"context": example.context, "reference": example.reference.model_dump(mode="json")})
+
+
+def check_partitions(examples: Sequence[Example], holdout: frozenset[str]) -> list[str]:
+    """Every example where `build_examples` and `with_canaries` would have put it: a real example's id is the hash
+    of its own input and reference, its partition follows its family and id; a canary sits in the train pool and
+    names the unreachable turn. Returns the problems (example ids only)."""
+    problems = []
+    for e in examples:
+        if e.canary:
+            if e.partition != "train" or e.family in holdout or e.reference.evasion_turns != (e.turn + 1,):
+                problems.append(f"canary {e.example_id[:16]} is not an unpassable train-pool example")
+        elif _example_id(e) != e.example_id:
+            problems.append(f"example {e.example_id[:16]} does not hash to its own id")
+        elif e.partition != partition_of(e.family, e.example_id, holdout):
+            where = f"is in the {e.partition} partition, not where its family puts it"
+            problems.append(f"example {e.example_id[:16]} {where}")
+    return problems
 
 
 def write_jsonl(path: Path, examples: Sequence[Example]) -> None:

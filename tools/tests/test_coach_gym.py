@@ -6,6 +6,7 @@ and the Coach Lab API over the registry it leaves. The dev-only SQL against the 
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import json
 from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
@@ -16,11 +17,12 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from psycopg import AsyncConnection
 
 from arena_core.agents.manifests import committed_manifest, load_prompts
 from arena_core.coachgym import registry
 from arena_core.coachgym.candidate import components
-from arena_core.coachgym.examples import Example, build_examples, with_canaries
+from arena_core.coachgym.examples import Example, build_examples, dataset_sha256, read_jsonl, with_canaries
 from arena_core.db.pool import Connector
 from arena_core.providers.errors import BudgetRefusedError, ErrorKind, ProviderCallError
 from arena_core.providers.fake import FakeAdapter
@@ -37,9 +39,29 @@ from packages.core.tests.coachgym.support import (
     trial,
 )
 from scripts.coach_gym import cli, gym
-from scripts.coach_gym.evaluate import BudgetExhaustedError, CardEvaluator, Meter, gather_all, run_metered
+from scripts.coach_gym.evaluate import (
+    BudgetExhaustedError,
+    CardEvaluator,
+    Meter,
+    gather_all,
+    reservation_for,
+    run_metered,
+)
 from scripts.coach_gym.fake import FAKE_ADDITION, FAKE_GYM_REPLIES, FAKE_LESSON, instruction_reply, lessons_reply
-from scripts.coach_gym.optimize import GymAdapter, HoldoutLeakError, OptimizeResult, ReflectionLM
+from scripts.coach_gym.optimize import (
+    NO_PROGRESS_CHECKS,
+    Bridge,
+    GymAdapter,
+    Halt,
+    HoldoutLeakError,
+    OptimizeResult,
+    ReflectionLM,
+    Search,
+    SearchHaltedError,
+    Stopper,
+    optimize,
+    run_in_thread,
+)
 from scripts.coach_gym.reflect import GymLessons, LessonDraft, proposals, reflector_input
 from tools import proc
 
@@ -329,8 +351,28 @@ def test_load_dataset_refuses_a_missing_or_altered_file(tmp_path: Path) -> None:
     _dataset(root)
     meta = json.loads((root / gym.RUN_DIR / gym.LATEST).read_text(encoding="utf-8"))
     data = root / meta["path"]
-    data.write_text("".join(data.read_text(encoding="utf-8").splitlines(keepends=True)[1:]), encoding="utf-8")
+    original = data.read_text(encoding="utf-8")
+    lines = original.splitlines(keepends=True)
+    data.write_text("".join(lines[1:]), encoding="utf-8")
     with pytest.raises(gym.GymError, match="does not hash"):
+        gym.load_dataset(root)
+    # A holdout row moved into the optimizer's pool keeps its id: the hash and the partition check both refuse it.
+    rows = [json.loads(line) for line in lines]
+    for row in rows:
+        if row["partition"] == "holdout":
+            row["partition"] = "train"
+            break
+    data.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    with pytest.raises(gym.GymError, match="does not hash"):
+        gym.load_dataset(root)
+    moved = read_jsonl(data)
+    meta["sha256"] = dataset_sha256(moved, frozenset(meta["holdout"]))
+    (root / gym.RUN_DIR / gym.LATEST).write_text(json.dumps(meta), encoding="utf-8")
+    with pytest.raises(gym.GymError, match="not where its family puts it"):
+        gym.load_dataset(root)
+    data.write_text(original, encoding="utf-8")
+    (root / "coachlab" / "holdout.json").write_text('{"families": ["F01"]}', encoding="utf-8")
+    with pytest.raises(gym.GymError, match="split by holdout"):
         gym.load_dataset(root)
 
 
@@ -479,3 +521,146 @@ def test_the_module_entry_point_runs() -> None:
     result = proc.run("python", ["-m", "scripts.coach_gym", "report"], cwd=REPO)
     assert result.returncode == 0, result.stderr
     assert [v["id"] for v in json.loads(result.stdout)["versions"]][:1] == ["A1@1.1.0"]
+
+
+# ---------------------------------------------------------------- Codex round 1: budget, halts, promotion order
+
+
+def test_the_meter_holds_exactly_what_the_guard_reserves(tmp_path: Path) -> None:
+    root = gym_root(tmp_path)
+    prompts = load_prompts(committed_manifest("A1", root), root)
+    example = build_examples([trial("deceptive", Spec(release_after=1))], frozenset())[-1]
+    guard = RunBudget(Decimal(100))
+    p = AgentPort(
+        FakeAdapter(
+            script=[ProviderCallError(ErrorKind.TRANSIENT, "t", maybe_billed=True)] * 4, canned=FAKE_GYM_REPLIES
+        ),
+        guard,
+        PortOptions(sleep=_no_sleep),
+    )
+    evaluator = CardEvaluator(p, Meter(Decimal(5)), "gym-x")
+    call, _ = evaluator._call(prompts, example)
+    expected = reservation_for(call)
+    out = run(evaluator.card(prompts, example))
+    assert out.card is None
+    [held] = guard.reservations.values()
+    assert held.reserved_usd == expected  # the hold the guard keeps when usage is unknown
+    assert evaluator.meter.spent == expected
+    assert evaluator.meter.largest == expected
+
+
+def test_a_meter_at_exactly_one_reservation_runs_one_call_and_then_refuses(tmp_path: Path) -> None:
+    root = gym_root(tmp_path)
+    prompts = load_prompts(committed_manifest("A1", root), root)
+    example = build_examples([trial("truthful")], frozenset())[0]
+    p, _ = port()
+    probe = CardEvaluator(p, Meter(Decimal(5)), "gym-y")
+    budget_one = reservation_for(probe._call(prompts, example)[0])
+    evaluator = CardEvaluator(p, Meter(budget_one), "gym-y")
+    assert run(evaluator.card(prompts, example)).card is not None
+    evaluator.meter.spent = budget_one  # as if the call had been charged its whole hold
+    with pytest.raises(BudgetExhaustedError):
+        run(evaluator.card(prompts, example))
+
+
+class _State:
+    def __init__(self, evals: int) -> None:
+        self.total_num_evals = evals
+
+
+def test_the_stopper_ends_a_search_that_makes_no_progress_or_runs_out() -> None:
+    halt = Halt()
+    stop = Stopper(Meter(Decimal(5)), 3, halt)
+    assert [stop(_State(7)) for _ in range(NO_PROGRESS_CHECKS)] == [False] * NO_PROGRESS_CHECKS
+    assert stop(_State(7)) is True
+    assert halt.reason.startswith("no progress")
+    meter = Meter(Decimal("1.00"))
+    meter.largest, meter.spent = Decimal("0.10"), Decimal("0.35")
+    budget_halt = Halt()
+    assert Stopper(meter, 3, budget_halt)(_State(1)) is True
+    assert budget_halt.reason == "budget"
+
+
+def test_a_search_without_train_examples_does_not_start(tmp_path: Path) -> None:
+    root = gym_root(tmp_path)
+    prompts = load_prompts(committed_manifest("A1", root), root)
+    p, adapter_calls = port()
+    examples = with_canaries(build_examples([trial("truthful")], frozenset()), count=1)
+    canaries = [e for e in examples if e.canary]
+    adapter = GymAdapter(CardEvaluator(p, Meter(Decimal(5)), "g"), prompts, "", "1.2.0", run)
+    reflection = ReflectionLM(p, Meter(Decimal(5)), "g", run)
+    found = optimize(adapter, Search(canaries, examples[:1], reflection, max_evals=5))
+    assert found.stop_reason.startswith("not enough examples")
+    assert adapter_calls.requests == []
+
+
+def test_a_systemic_failure_inside_gepa_is_raised_not_stepped_over(tmp_path: Path) -> None:
+    root = gym_root(tmp_path)
+    prompts = load_prompts(committed_manifest("A1", root), root)
+    examples = build_examples([trial("deceptive"), trial("truthful")], frozenset())
+    refusing = AgentPort(FakeAdapter(canned=SMART), RunBudget(Decimal(0)), PortOptions(sleep=_no_sleep))
+    adapter = GymAdapter(CardEvaluator(refusing, Meter(Decimal(5)), "g"), prompts, "", "1.2.0", run)
+    reflection = ReflectionLM(refusing, Meter(Decimal(5)), "g", run)
+    with pytest.raises(BudgetRefusedError):
+        optimize(adapter, Search(examples, examples[:2], reflection, max_evals=20))
+
+
+def test_cancelling_the_search_stops_new_calls_and_waits_for_the_worker() -> None:
+    actions: list[str] = []
+
+    async def main() -> None:
+        started = asyncio.Event()
+
+        async def call(i: int) -> int:
+            actions.append(f"start{i}")
+            started.set()
+            await asyncio.sleep(0.05)
+            actions.append(f"end{i}")
+            return i
+
+        def worker(bridge: Bridge, halt: Halt) -> None:
+            for i in (1, 2):
+                try:
+                    bridge(call(i))
+                except (SearchHaltedError, concurrent.futures.CancelledError) as exc:
+                    actions.append(type(exc).__name__)
+            assert halt.reason == "cancelled"
+            actions.append("worker done")
+
+        task = asyncio.create_task(run_in_thread(worker))
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        actions.append("cancelled")
+        await asyncio.sleep(0.1)
+
+    run(main())
+    assert actions == ["start1", "CancelledError", "SearchHaltedError", "worker done", "cancelled"]
+
+
+def test_promotion_needs_todays_champion_and_records_only_after_registration(tmp_path: Path) -> None:
+    first = _first_run(tmp_path)
+    root = first.root
+    event = registry.current_versions(root)["A1@1.2.0"]
+    twin = event.model_copy(update={"version_id": "A1@1.3.0", "version": "1.3.0"})
+    registry.append_versions(root, [twin])
+
+    class _Unreachable:
+        async def __aenter__(self) -> AsyncConnection[Any]:
+            msg = "database unreachable"
+            raise OSError(msg)
+
+        async def __aexit__(self, *_exc: object) -> None:
+            return None
+
+    def broken() -> _Unreachable:
+        return _Unreachable()
+
+    with pytest.raises(OSError, match="unreachable"):
+        run(gym.promote(root, "A1@1.2.0", "owner", register=broken))
+    assert registry.current_versions(root)["A1@1.2.0"].status == "challenger"  # nothing recorded
+    assert registry.champion(root, "A1").version == "1.1.0"
+    run(gym.promote(root, "A1@1.2.0", "owner"))  # the retry works
+    with pytest.raises(gym.GymError, match="graded against another champion"):
+        run(gym.promote(root, "A1@1.3.0", "owner"))  # graded against 1.1.0, which is no longer champion

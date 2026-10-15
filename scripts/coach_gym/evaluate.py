@@ -11,7 +11,6 @@ and its real cost is unknown here). A refusal raises `BudgetExhaustedError`.
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass, field
@@ -26,10 +25,20 @@ from arena_core.agents.manifests import PromptSet
 from arena_core.coachgym.examples import Example
 from arena_core.coachgym.metric import CardRun, Grade, GradeLimits, grade
 from arena_core.contracts.coaching import CoachingCard
+from arena_core.policy import check_call_policy
 from arena_core.providers.errors import BudgetRefusedError, KillSwitchOnError, ProviderError
-from arena_core.providers.port import AgentPort
+from arena_core.providers.port import AgentPort, seed_for
 from arena_core.providers.structured import sent_schema
-from arena_core.providers.types import AgentCall, CallContext, CallType, Message, ThinkingLevel, VertexModel
+from arena_core.providers.types import (
+    AgentCall,
+    CallContext,
+    CallType,
+    Message,
+    ModelRequest,
+    ThinkingLevel,
+    VertexModel,
+    request_bytes,
+)
 from arena_core.spend.limits import LIMITS, REPAIR_BYTES
 from arena_core.spend.rates import model_call_reservation, receipt_usd
 from arena_core.turns.coach import CardMeta, CoachInputs, coach_inputs, store_card
@@ -54,6 +63,7 @@ class Meter:
     spent: Decimal = Decimal(0)
     held: Decimal = Decimal(0)
     calls: int = 0
+    largest: Decimal = Decimal(0)  # the largest single hold so far (the stopper's per-call bound)
 
     @property
     def limit(self) -> Decimal:
@@ -68,6 +78,7 @@ class Meter:
             msg = f"the gym budget is exhausted: ${self.spent} spent, ${self.held} held, ${self.limit} cap"
             raise BudgetExhaustedError(msg)
         self.held += worst
+        self.largest = max(self.largest, worst)
 
     def settle(self, worst: Decimal, actual: Decimal) -> None:
         self.held -= worst
@@ -75,17 +86,29 @@ class Meter:
         self.calls += 1
 
 
-def worst_case(model: VertexModel, call_type: CallType, system: str, user: str, schema: type[BaseModel]) -> Decimal:
-    """`ops.reserve_model_call`'s amount for this request: its JSON size (non-ASCII escaped, as sent) plus the
-    repair allowance, priced as input tokens, plus the call type's full output limit, times the attempts."""
-    size = len(json.dumps([system, user, sent_schema(schema)]).encode("ascii")) + REPAIR_BYTES
-    return model_call_reservation(model, call_type, size)
+def reservation_for(call: AgentCall[Any]) -> Decimal:
+    """Exactly what `ops.reserve_model_call` will hold for this call: the port measures the attempt-1 request
+    (`request_bytes`, the same `ModelRequest` it sends) plus the repair allowance, and the database prices that
+    size with the call type's output limit, times the attempts (`spend.rates.model_call_reservation`, parity-tested
+    against the seeds). A call that fails without reported usage is charged this full hold."""
+    limits = check_call_policy(call, None)
+    ctx = call.context
+    request = ModelRequest(
+        model=call.model,
+        system=call.system,
+        messages=call.messages,
+        json_schema=sent_schema(call.schema),
+        max_output_tokens=limits.output_tokens,
+        thinking=call.thinking,
+        seed=seed_for(str(ctx.trial_id or "none"), ctx.turn_no, ctx.purpose, 1),
+    )
+    return model_call_reservation(call.model, ctx.call_type, request_bytes(request) + REPAIR_BYTES)
 
 
 async def run_metered[T: BaseModel](port: AgentPort, meter: Meter, call: AgentCall[T]) -> tuple[T | None, CardRun]:
     """One metered port call. A budget refusal or the kill switch is systemic and raised; any other provider
     failure is the candidate's (no valid output) and returned as a `CardRun` without a card."""
-    worst = worst_case(call.model, call.context.call_type, call.system, call.messages[-1].text, call.schema)
+    worst = reservation_for(call)
     meter.hold(worst)
     started = time.monotonic()
     actual = worst

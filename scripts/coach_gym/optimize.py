@@ -14,17 +14,17 @@ reflection prompt.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
+import threading
 from collections.abc import Callable, Coroutine, Mapping, Sequence
 from dataclasses import dataclass, field
-from decimal import Decimal
 from typing import Annotated, Any, Protocol
 from uuid import uuid4
 
 from gepa.api import optimize as gepa_optimize
 from gepa.core.adapter import EvaluationBatch, ProposalFn
 from gepa.core.result import GEPAResult
-from gepa.core.state import GEPAState
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from arena_core.agents.manifests import PromptSet
@@ -33,9 +33,10 @@ from arena_core.coachgym.examples import Example
 from arena_core.coachgym.metric import Grade
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.rendered import clean
+from arena_core.providers.errors import BudgetRefusedError, KillSwitchOnError
 from arena_core.providers.port import AgentPort
 from arena_core.providers.types import AgentCall, CallContext, CallType, Message, ThinkingLevel, VertexModel
-from scripts.coach_gym.evaluate import BudgetExhaustedError, CardEvaluator, Meter, run_metered, worst_case
+from scripts.coach_gym.evaluate import BudgetExhaustedError, CardEvaluator, Meter, run_metered
 
 log = logging.getLogger(__name__)
 
@@ -74,12 +75,49 @@ class ReflectionFailedError(RuntimeError):
     """The reflection call produced no valid instruction; GEPA logs it and moves to its next iteration."""
 
 
+class SearchHaltedError(RuntimeError):
+    """The search was halted (cancelled, out of budget or failed): no new call is sent."""
+
+
+@dataclass
+class Halt:
+    """Shared by the event loop and GEPA's thread: once set, the stopper ends the search and the bridge refuses
+    new calls. `fatal` is a systemic failure GEPA would otherwise log and step over; `optimize` re-raises it."""
+
+    event: threading.Event = field(default_factory=threading.Event)
+    reason: str = ""
+    fatal: BaseException | None = None
+
+    def stop(self, reason: str, fatal: BaseException | None = None) -> None:
+        if not self.event.is_set():
+            self.reason, self.fatal = reason, fatal
+            self.event.set()
+
+
+SYSTEMIC = (HoldoutLeakError, BudgetRefusedError, KillSwitchOnError, SearchHaltedError)
+NO_PROGRESS_CHECKS = 5  # consecutive stopper checks without a single new metric call
+
+
+def guarded[R](halt: Halt, bridge: Bridge, coro: Coroutine[Any, Any, R]) -> R:
+    """One bridged call that halts the search on a systemic failure or an exhausted budget (GEPA itself would
+    log the exception and carry on)."""
+    try:
+        return bridge(coro)
+    except BudgetExhaustedError:
+        halt.stop("budget")
+        raise
+    except SYSTEMIC as exc:
+        halt.stop(f"{type(exc).__name__}", exc)
+        raise
+
+
 @dataclass
 class ReflectionLM:
     port: AgentPort
     meter: Meter
     run_id: str
     bridge: Bridge
+    halt: Halt = field(default_factory=Halt)
     prompts: list[str] = field(default_factory=list)  # every reflection prompt sent (test evidence)
 
     def call(self, text: str) -> AgentCall[GymInstruction]:
@@ -100,7 +138,7 @@ class ReflectionLM:
     def __call__(self, prompt: str | list[dict[str, Any]]) -> str:
         text = prompt if isinstance(prompt, str) else "\n".join(str(p.get("content", "")) for p in prompt)
         self.prompts.append(text)
-        value, run = self.bridge(run_metered(self.port, self.meter, self.call(text)))
+        value, run = guarded(self.halt, self.bridge, run_metered(self.port, self.meter, self.call(text)))
         if value is None:
             raise ReflectionFailedError(run.error or "no instruction")
         # GEPA's instruction extractor reads the text between the first and last ``` fence.
@@ -139,6 +177,7 @@ class GymAdapter:
     playbook: str
     version: str
     bridge: Bridge
+    halt: Halt = field(default_factory=Halt)
     propose_new_texts: ProposalFn | None = None
     graded: dict[str, list[tuple[Example, Grade]]] = field(default_factory=dict)  # strategy -> its grades
 
@@ -151,13 +190,15 @@ class GymAdapter:
     ) -> EvaluationBatch[Trace, str]:
         if any(e.partition == "holdout" for e in batch):
             msg = "a holdout example reached the optimizer"
-            raise HoldoutLeakError(msg)
+            leak = HoldoutLeakError(msg)
+            self.halt.stop("holdout leak", leak)
+            raise leak
         strategy = candidate[STRATEGY]
         if len(strategy) > MAX_STRATEGY_CHARS or not strategy.strip():
             note = f"The strategy block must be 1-{MAX_STRATEGY_CHARS} characters; this one is {len(strategy)}."
             traces = [Trace(e, None, note) for e in batch]
             return EvaluationBatch([note] * len(batch), [0.0] * len(batch), traces if capture_traces else None)
-        results = self.bridge(self.evaluator.grade_all(self.candidate(strategy).prompts, batch))
+        results = guarded(self.halt, self.bridge, self.evaluator.grade_all(self.candidate(strategy).prompts, batch))
         self.graded.setdefault(strategy, []).extend((e, g) for e, (g, _) in zip(batch, results, strict=True))
         outputs = [_card_summary(run.card, run.error) for _, run in results]
         traces = [Trace(e, g, out) for e, (g, _), out in zip(batch, results, outputs, strict=True)]
@@ -184,17 +225,33 @@ class GymAdapter:
         return dict.fromkeys(components_to_update, records)
 
 
+class EvalCount(Protocol):
+    """The one field of GEPA's state the stopper reads."""
+
+    total_num_evals: int
+
+
 @dataclass
-class BudgetStop:
-    """Stop before the optimizer's share is spent: when what is left would not cover one more minibatch of cards
-    and one reflection call at their worst case."""
+class Stopper:
+    """GEPA's stop callback: a halt; the optimizer's share of the budget no longer covering one more iteration
+    (a minibatch of cards for parent and child plus one reflection, at the largest hold seen); or no metric call
+    made across `NO_PROGRESS_CHECKS` iterations (GEPA steps over failures, so it could otherwise spin)."""
 
     meter: Meter
-    per_iteration: Decimal
+    minibatch: int
+    halt: Halt
+    _last: int = -1
+    _idle: int = 0
 
-    def __call__(self, gepa_state: GEPAState[Any, Any]) -> bool:
-        _ = gepa_state
-        return self.meter.remaining < self.per_iteration
+    def __call__(self, gepa_state: EvalCount) -> bool:
+        if self.meter.largest and self.meter.remaining < self.meter.largest * (2 * self.minibatch + 1):
+            self.halt.stop("budget")
+        evals = int(gepa_state.total_num_evals)
+        self._idle = self._idle + 1 if evals == self._last else 0
+        self._last = evals
+        if self._idle >= NO_PROGRESS_CHECKS:
+            self.halt.stop("no progress: GEPA made no metric call in several iterations")
+        return self.halt.event.is_set()
 
 
 class _Log:
@@ -207,19 +264,6 @@ class OptimizeResult:
     strategy: str
     series: list[dict[str, Any]]
     stop_reason: str
-
-
-def per_iteration_cost(champion: PromptSet, examples: Sequence[Example], minibatch: int) -> Decimal:
-    """An upper bound for one GEPA iteration: a minibatch of cards for parent and child plus one reflection."""
-    sample = examples[0] if examples else None
-    card = Decimal(0)
-    if sample is not None:
-        rows = sample.context["transcript"]
-        text = "\n".join(f"{r['question']} {r['answer']}" for r in rows) * 4
-        model = VertexModel(champion.manifest.limits["card"].model_id)
-        card = worst_case(model, CallType.CARD, "\n".join(champion.texts.values()), text, GymInstruction)
-    reflect = worst_case(REFLECT_MODEL, CallType.FINAL, REFLECT_SYSTEM, "x" * 60_000, GymInstruction)
-    return card * 2 * minibatch + reflect
 
 
 @dataclass(frozen=True)
@@ -238,7 +282,11 @@ def optimize(adapter: GymAdapter, search: Search) -> OptimizeResult:
     """Run GEPA from the champion's strategy (blocking: call it from a worker thread)."""
     seed = components(adapter.champion)[STRATEGY]
     train, val, minibatch = search.train, search.val, search.minibatch
-    stop = BudgetStop(adapter.evaluator.meter, per_iteration_cost(adapter.champion, train, minibatch))
+    if not any(not e.canary for e in train) or not val:
+        return OptimizeResult(seed, [], "not enough examples: the search needs train and validation examples")
+    halt = adapter.halt
+    search.reflection.halt = halt
+    stop = Stopper(adapter.evaluator.meter, minibatch, halt)
     try:
         result: GEPAResult[Any, Any] = gepa_optimize(
             seed_candidate={STRATEGY: seed},
@@ -259,6 +307,8 @@ def optimize(adapter: GymAdapter, search: Search) -> OptimizeResult:
     except BudgetExhaustedError as exc:
         log.warning("coach gym: the search stopped before it began: %s", exc)
         return OptimizeResult(seed, [], "the budget ran out before the champion's validation score")
+    if halt.fatal is not None:
+        raise halt.fatal
     series = [
         {
             "candidate": i,
@@ -270,15 +320,39 @@ def optimize(adapter: GymAdapter, search: Search) -> OptimizeResult:
     ]
     best = result.best_candidate
     strategy = best[STRATEGY] if isinstance(best, dict) else seed
-    reason = "budget" if stop.meter.remaining < stop.per_iteration else "max_evals"
-    return OptimizeResult(strategy, series, reason)
+    return OptimizeResult(strategy, series, halt.reason or "max_evals")
 
 
-async def run_in_thread[T](fn: Callable[[Bridge], T]) -> T:
-    """Run blocking GEPA code in a worker thread with a bridge back to this event loop."""
+async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
+    """Run blocking GEPA code in a worker thread with a bridge back to this event loop. If this task is cancelled,
+    the search is halted, every bridged call in flight is cancelled, no new one is accepted, and the worker is
+    awaited before the cancellation propagates (so nothing keeps calling once the caller's resources close)."""
     loop = asyncio.get_running_loop()
+    halt = Halt()
+    pending: set[concurrent.futures.Future[Any]] = set()
+    lock = threading.Lock()
 
     def bridge[R](coro: Coroutine[Any, Any, R]) -> R:
-        return asyncio.run_coroutine_threadsafe(coro, loop).result()
+        with lock:
+            if halt.event.is_set():
+                coro.close()
+                msg = f"the search is halted ({halt.reason}); no new call"
+                raise SearchHaltedError(msg)
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            pending.add(future)
+        try:
+            return future.result()
+        finally:
+            with lock:
+                pending.discard(future)
 
-    return await asyncio.to_thread(fn, bridge)
+    worker = asyncio.ensure_future(asyncio.to_thread(fn, bridge, halt))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        with lock:
+            halt.stop("cancelled")
+            for future in pending:
+                future.cancel()
+        await asyncio.wait({worker})
+        raise

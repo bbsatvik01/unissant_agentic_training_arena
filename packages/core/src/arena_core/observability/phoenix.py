@@ -174,3 +174,72 @@ class PhoenixSpanReader:
 
     def span_ids(self, trace_id: str, *, timeout_s: float = DEFAULT_TIMEOUT_S) -> set[str]:
         return {s.span_id for s in self.spans(trace_id, timeout_s=timeout_s)}
+
+
+# ------------------------------------------------------------------ JSON writes (Coach Gym datasets, D-036)
+
+
+class JsonResponse(Protocol):
+    """The slice of ``httpx.Response`` the JSON client reads."""
+
+    @property
+    def status_code(self) -> int: ...
+
+    def json(self) -> object: ...
+
+
+class HttpRequester(Protocol):
+    """The slice of ``httpx.Client`` the JSON client uses (tests pass a scripted stand-in)."""
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        json: object = None,
+        params: Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> JsonResponse: ...
+
+    def close(self) -> None: ...
+
+
+class PhoenixJsonClient:
+    """The operator's Phoenix REST API for JSON calls (dataset upload, experiments): the same Phoenix, URL and key
+    as the span reader above, and the only HTTP the Coach Gym makes (`scripts/coach_gym/phoenix.py` builds on it
+    and imports no HTTP client of its own). Answers are `(status, parsed JSON or None when the body is not JSON)`."""
+
+    def __init__(self, client: HttpRequester, base_url: str, api_key: str = "") -> None:
+        self._client = client
+        self._base = base_url.rstrip("/")
+        self._headers = {"authorization": f"Bearer {api_key}"} if api_key else {}
+
+    @classmethod
+    def connect(cls, base_url: str, api_key: str = "", timeout_s: float = 30.0) -> "PhoenixJsonClient":
+        """A client with its own httpx client (no proxies from the environment); ``close()`` it when done."""
+        return cls(httpx.Client(timeout=timeout_s, trust_env=False), base_url, api_key)
+
+    @property
+    def base_url(self) -> str:
+        return self._base
+
+    @property
+    def authorized(self) -> bool:
+        return bool(self._headers)
+
+    def close(self) -> None:
+        self._client.close()
+
+    def call(
+        self, method: str, path: str, body: object = None, params: Mapping[str, str] | None = None
+    ) -> tuple[int, object]:
+        if not path.startswith("/v1/"):
+            msg = f"phoenix: {path} is not a /v1/ REST path"
+            raise PhoenixReadError(msg)
+        response = self._client.request(method, f"{self._base}{path}", json=body, params=params, headers=self._headers)
+        try:
+            parsed: object = response.json()
+        except ValueError as exc:  # an HTML error page or an empty body: the caller refuses a None answer
+            logger.info("phoenix %s %s: the answer is not JSON (%s)", method, path, type(exc).__name__)
+            parsed = None
+        return response.status_code, parsed

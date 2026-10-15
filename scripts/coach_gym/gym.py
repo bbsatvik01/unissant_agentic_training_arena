@@ -12,9 +12,11 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -36,6 +38,7 @@ from arena_core.coachgym.examples import (
     Example,
     TrialRecord,
     build_examples,
+    check_partitions,
     dataset_sha256,
     load_holdout,
     partition,
@@ -61,6 +64,7 @@ from scripts.coach_gym.evaluate import BudgetExhaustedError, CardEvaluator, Mete
 from scripts.coach_gym.optimize import (
     Bridge,
     GymAdapter,
+    Halt,
     OptimizeResult,
     ReflectionLM,
     Search,
@@ -102,8 +106,9 @@ def save_dataset(
 ) -> dict[str, Any]:
     """Examples (with the gym's canaries) to `.run/coach-gym/dataset-<sha>.jsonl`, the run metadata to
     `latest.json`, and optionally the examples to Phoenix as a dataset."""
-    examples = with_canaries(build_examples(trials, load_holdout(root)))
-    sha = dataset_sha256(examples)
+    holdout = load_holdout(root)
+    examples = with_canaries(build_examples(trials, holdout))
+    sha = dataset_sha256(examples, holdout)
     out = root / RUN_DIR
     path = out / f"dataset-{sha[:12]}.jsonl"
     write_jsonl(path, examples)
@@ -112,6 +117,7 @@ def save_dataset(
         "path": str(path.relative_to(root)),
         "built_at": registry.now(),
         "trials": len(trials),
+        "holdout": sorted(holdout),
         "counts": counts(examples),
         "forbidden": forbidden_strings(examples, canaries),
         "phoenix_dataset_id": None,
@@ -132,14 +138,25 @@ def counts(examples: Sequence[Example]) -> dict[str, int]:
 
 
 def load_dataset(root: Path) -> tuple[dict[str, Any], list[Example]]:
+    """The latest dataset, refused unless it hashes to what was recorded, was split by today's holdout and every
+    example sits in the partition its family and id put it in (so a hand-edited file cannot move a holdout
+    example into the optimizer's pool)."""
     latest = root / RUN_DIR / LATEST
     if not latest.is_file():
         msg = "no dataset yet: run `make coach-gym-dataset` first"
         raise GymError(msg)
     meta = json.loads(latest.read_text(encoding="utf-8"))
     examples = read_jsonl(root / meta["path"])
-    if dataset_sha256(examples) != meta["sha256"]:
+    holdout = load_holdout(root)
+    if sorted(holdout) != meta.get("holdout"):
+        msg = f"the dataset was split by holdout {meta.get('holdout')}, not today's {sorted(holdout)}; rebuild it"
+        raise GymError(msg)
+    if dataset_sha256(examples, holdout) != meta["sha256"]:
         msg = f"{meta['path']} does not hash to the dataset recorded in {LATEST}"
+        raise GymError(msg)
+    problems = check_partitions(examples, holdout)
+    if problems:
+        msg = f"{meta['path']}: {'; '.join(problems[:3])}"
         raise GymError(msg)
     return meta, examples
 
@@ -239,10 +256,10 @@ async def _search(ctx: Ctx) -> tuple[OptimizeResult, GymAdapter]:
     holder: list[GymAdapter] = []
     champ, examples, cfg = ctx.champ, ctx.examples, ctx.cfg
 
-    def search(bridge: Bridge) -> OptimizeResult:
-        adapter = GymAdapter(ctx.evaluator, champ.prompts, champ.playbook, champ.version, bridge)
+    def search(bridge: Bridge, halt: Halt) -> OptimizeResult:
+        adapter = GymAdapter(ctx.evaluator, champ.prompts, champ.playbook, champ.version, bridge, halt)
         holder.append(adapter)
-        reflection = ReflectionLM(ctx.port, ctx.evaluator.meter, cfg.run_id, bridge)
+        reflection = ReflectionLM(ctx.port, ctx.evaluator.meter, cfg.run_id, bridge, halt)
         space = Search(
             partition(examples, "train"), _val(examples, cfg.val_size), reflection, cfg.max_evals, cfg.minibatch
         )
@@ -362,45 +379,67 @@ async def run_gym(cfg: RunConfig, port: AgentPort, root: Path, phoenix: Phoenix 
 # ---------------------------------------------------------------- promote and report
 
 
+@contextmanager
+def _promotion_lock(root: Path) -> Iterator[None]:
+    """One promotion at a time on this checkout (an exclusive lock file under the git-ignored run directory)."""
+    path = root / RUN_DIR / "promote.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 async def promote(root: Path, version_id: str, by: str, register: Connector | None = None) -> list[str]:
-    """A human's promotion of a challenger whose holdout verdict says promote. Returns what was done."""
-    current = registry.current_versions(root)
-    event = current.get(version_id)
-    if event is None or event.status != "challenger":
-        msg = f"{version_id} is not a challenger on record"
-        raise GymError(msg)
-    if not (event.verdict or {}).get("promote") or not event.manifest_path:
-        msg = f"{version_id} did not pass the holdout promotion rule: {(event.verdict or {}).get('reasons')}"
-        raise GymError(msg)
-    manifest = registry.manifest_of(root, event)
-    load_prompts(manifest, root)  # every file and the manifest itself hash as recorded (S2 3.3)
-    if manifest.sha256 != event.manifest_sha256:
-        msg = f"{event.manifest_path} is not the manifest the gym graded"
-        raise GymError(msg)
-    others = [
-        registry.manifest_of(root, v)
-        for v in current.values()
-        if v.status == "champion" and v.candidate_id != event.candidate_id
-    ]
-    check_roster([manifest, *others])  # S2 3.3 freeze check: equal budgets, allowlisted models
-    old = registry.champion(root, event.candidate_id)
-    at = registry.now()
-    registry.append_versions(
-        root,
-        [
-            old.model_copy(update={"status": "retired", "at": at, "by": by, "metrics": None, "verdict": None}),
-            event.model_copy(update={"status": "champion", "at": at, "by": by, "metrics": None, "verdict": None}),
-        ],
-    )
-    done = [f"{old.version_id} retired", f"{version_id} is the {event.candidate_id} champion"]
-    if register is not None:
-        payload = manifest.model_dump(mode="json", exclude={"frozen_at"})
-        async with register() as conn:
-            uuid = await calls.register_candidate(
-                conn, kind=manifest.kind, name=manifest.candidate_id, version=manifest.version, manifest=payload
+    """A human's promotion of a challenger whose holdout verdict says promote, against the champion it was graded
+    against. With `register`, the version is registered in `arena.candidates` first (idempotent): the promotion
+    is recorded only after that succeeded, so a failed registration leaves the challenger promotable again."""
+    with _promotion_lock(root):
+        current = registry.current_versions(root)
+        event = current.get(version_id)
+        if event is None or event.status != "challenger":
+            msg = f"{version_id} is not a challenger on record"
+            raise GymError(msg)
+        if not (event.verdict or {}).get("promote") or not event.manifest_path:
+            msg = f"{version_id} did not pass the holdout promotion rule: {(event.verdict or {}).get('reasons')}"
+            raise GymError(msg)
+        old = registry.champion(root, event.candidate_id)
+        if event.parent_sha256 != old.manifest_sha256:
+            msg = (
+                f"{version_id} was graded against another champion than today's {old.version_id}; run the gym again"
+                " so it is graded against the current champion"
             )
-        done.append(f"registered in arena.candidates as {uuid}")
-    return done
+            raise GymError(msg)
+        manifest = registry.manifest_of(root, event)
+        load_prompts(manifest, root)  # every file and the manifest itself hash as recorded (S2 3.3)
+        if manifest.sha256 != event.manifest_sha256:
+            msg = f"{event.manifest_path} is not the manifest the gym graded"
+            raise GymError(msg)
+        others = [
+            registry.manifest_of(root, v)
+            for v in current.values()
+            if v.status == "champion" and v.candidate_id != event.candidate_id
+        ]
+        check_roster([manifest, *others])  # S2 3.3 freeze check: equal budgets, allowlisted models
+        done = []
+        if register is not None:
+            payload = manifest.model_dump(mode="json", exclude={"frozen_at"})
+            async with register() as conn:
+                uuid = await calls.register_candidate(
+                    conn, kind=manifest.kind, name=manifest.candidate_id, version=manifest.version, manifest=payload
+                )
+            done.append(f"registered in arena.candidates as {uuid}")
+        at = registry.now()
+        registry.append_versions(
+            root,
+            [
+                old.model_copy(update={"status": "retired", "at": at, "by": by, "metrics": None, "verdict": None}),
+                event.model_copy(update={"status": "champion", "at": at, "by": by, "metrics": None, "verdict": None}),
+            ],
+        )
+        return [f"{old.version_id} retired", f"{version_id} is the {event.candidate_id} champion", *done]
 
 
 def report(root: Path) -> dict[str, Any]:

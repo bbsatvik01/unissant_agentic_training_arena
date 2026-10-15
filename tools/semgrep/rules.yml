@@ -63,10 +63,6 @@ rules:
         # isolation-reports`, S3 9): the double-submit CSRF dance (GET /api/me, then a POST with Origin,
         # Cookie and X-Arena-Console-CSRF), the same role-client shape as the pair above, never a model call.
         - "/scripts/referee_admin_client.py"
-        # the Coach Gym's client for the operator's own Phoenix REST API (D-036, WP-07's Phoenix: dataset upload
-        # and experiment records at a URL from operator configuration), the same capability as
-        # arena_core/observability/phoenix.py above; never a model call, never an internal role route.
-        - "/scripts/coach_gym/phoenix.py"
         # httpx.ASGITransport drives the FastAPI app in process (no socket, no network, the same technique
         # FastAPI's own docs recommend over starlette.testclient, which this repo avoids because its newer
         # releases deprecate plain httpx).
@@ -97,8 +93,6 @@ rules:
         # the isolation-reports client's own test (`make isolation-reports`): httpx.MockTransport against a
         # scripted handler, the same no-socket shape as the client tests above.
         - "/tools/tests/test_referee_admin_client.py"
-        # the Coach Gym Phoenix client's own test: httpx.MockTransport against a scripted handler, no socket.
-        - "/tools/tests/test_coach_gym_phoenix.py"
         # arena-api's integration suite under make db-test: the same in-process ASGI transport into the app object.
         - "/services/api/tests/it_api.py"
         # the tournament job's integration suite under make db-test (WP-17): a real `python -m
