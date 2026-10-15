@@ -107,3 +107,4 @@
 - 8173caf merge voice polish (Live uses persona designed voice; server open ~1.2 s)
 - 97052f0 hidden split sealed on hosted (n=9, seal fdc96908cde1...); cases/hidden and authoring Codex sessions deleted
 - f1c393c first push of main to github.com/bbsatvik01/unissant_agentic_training_arena (private)
+- 6e8a784 merge Coach Gym (D-036); no real run yet
