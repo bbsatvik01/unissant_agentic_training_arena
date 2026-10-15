@@ -48,6 +48,9 @@ interface Memory {
   coachPending: number;
   /** Dialogue items queued or speaking (an earpiece mute never cancels them). */
   dialoguePending: number;
+  /** At most one accepted question and one committed answer for the current turn. */
+  dialogue: { turn: number; i: SpokenLine | null; s: SpokenLine | null } | null;
+  dialogueGeneration: number;
   /** Bumped on every silence: callbacks of items from before it are ignored. */
   generation: number;
   /** Tells the hook whether the coach's earpiece aside is being said. */
@@ -61,12 +64,12 @@ interface Memory {
   asides: (() => void)[];
   /** Dialogue lines waiting for the coach's aside to finish (held here, not in the voice's queue, so muting the
    * earpiece can cancel the aside without dropping them). */
-  held: (() => void)[];
+  held: { line: SpokenLine; start: () => void }[];
 }
 
 /** Speak the held dialogue once no aside speaks or waits. */
 function flushHeld(memory: Memory): void {
-  while (memory.coachPending === 0 && memory.held.length > 0) memory.held.shift()?.();
+  while (memory.coachPending === 0 && memory.held.length > 0) memory.held.shift()?.start();
 }
 
 /** Hand the waiting asides to the voice once no dialogue speaks or waits, if the earpiece is still on. */
@@ -80,6 +83,8 @@ function flushAsides(memory: Memory): void {
 function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, speaker: Pick<SpokenCaption, "role" | "speaker">, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
   const epoch = speechSync.epoch();
   const generation = memory.generation;
+  const dialogueGeneration = memory.dialogueGeneration;
+  const current = () => generation === memory.generation && (kind !== "dialogue" || dialogueGeneration === memory.dialogueGeneration);
   const captionGeneration = memory.captionGeneration;
   const token = {};
   let pending = true;
@@ -90,18 +95,18 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
     { voice: persona.voice, text, volume, line },
     {
       onstart: () => {
-        if (!pending || generation !== memory.generation || captionGeneration !== memory.captionGeneration) return;
+        if (!pending || !current() || captionGeneration !== memory.captionGeneration) return;
         memory.speaking = { token, kind };
         if (kind === "coach") memory.onCoach(true);
         memory.onSpeech({ identity: token, ...speaker, text });
         if (line !== null) speechSync.at(line, 0, clock.current, epoch);
       },
       onprogress: (charIndex) => {
-        if (!pending || generation !== memory.generation || captionGeneration !== memory.captionGeneration) return;
+        if (!pending || !current() || captionGeneration !== memory.captionGeneration) return;
         if (line !== null) speechSync.at(line, charIndex, clock.current, epoch);
       },
       onend: () => {
-        if (generation !== memory.generation) return;
+        if (!current()) return;
         if (pending) {
           pending = false;
           if (kind === "coach") memory.coachPending = Math.max(0, memory.coachPending - 1);
@@ -137,6 +142,8 @@ function silence(engine: VoiceEngine, memory: Memory): void {
   memory.speaking = null;
   memory.coachPending = 0;
   memory.dialoguePending = 0;
+  memory.dialogueGeneration += 1;
+  memory.dialogue = null;
   memory.asides = [];
   memory.held = [];
   memory.onCoach(false);
@@ -170,7 +177,7 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
   const [coachSpeaking, setCoachSpeaking] = useState(false);
   const [speech, setSpeech] = useState<{ readonly caption: SpokenCaption; readonly scope: string; readonly engine: VoiceEngine } | null>(null);
   const coaching = earpiece && view?.mode === "practice";
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking, captionGeneration: 0, onSpeech: () => undefined, earpiece: coaching, asides: [], held: [] });
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, dialogue: null, dialogueGeneration: 0, generation: 0, onCoach: setCoachSpeaking, captionGeneration: 0, onSpeech: () => undefined, earpiece: coaching, asides: [], held: [] });
   useLayoutEffect(() => {
     memory.current.onSpeech = (caption) => { setSpeech(caption === null ? null : { caption, scope, engine }); };
     forget(engine, memory.current);
@@ -190,6 +197,8 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
 
   const subject = world?.subject.speech ?? null;
   const question = world?.investigator.speech ?? null;
+  const turns = view?.turns;
+  const partialAnswer = subject !== null && (turns?.some((turn) => turn.turn_no === subject.turn && turn.partial) ?? false);
   useEffect(() => {
     const m = memory.current;
     noteClock(engine, m, clock.current);
@@ -198,28 +207,39 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
       ["i", question],
       ["s", subject],
     ] as const) {
-      if (line === null) continue;
+      if (line === null || (who === "s" && partialAnswer)) continue;
       const key = `${who}:${String(line.turn)}:${String(line.startedAt)}`;
       if (m.spoken.has(key)) continue;
       m.spoken.add(key);
       if (clock.current - line.startedAt > START_WINDOW_MS) continue;
+      if (m.dialogue !== null && line.turn < m.dialogue.turn) continue;
+      if (m.dialogue?.turn !== line.turn) {
+        // Supersede old dialogue once per turn, never between that turn's question and answer.
+        for (const previous of [m.dialogue?.i, m.dialogue?.s]) if (previous != null) speechSync.end(previous, speechSync.epoch());
+        m.dialogueGeneration += 1;
+        m.dialoguePending = 0;
+        for (const held of m.held) speechSync.end(held.line, speechSync.epoch());
+        m.held = [];
+        m.asides = []; // Suggestions not yet submitted to the engine belong to the superseded turn.
+        if (m.speaking?.kind === "dialogue") m.speaking = null;
+        if (m.coachPending === 0) { clearSpeech(m); engine.cancel(); }
+        m.dialogue = { turn: line.turn, i: null, s: null };
+      }
+      // Repeated/equal-time or revised render inputs cannot grow the two-item presentation bound.
+      // A late question cannot be inserted ahead of an answer that already began.
+      if (m.dialogue[who] !== null || (who === "i" && m.dialogue.s !== null)) continue;
+      m.dialogue[who] = line;
       const persona = who === "s" ? subjectPersona(subjectName) : INVESTIGATOR;
       const speaker: Pick<SpokenCaption, "role" | "speaker"> = who === "s" ? { role: "subject", speaker: subjectName } : { role: "investigator", speaker: "You · trainee" };
-      // The coach's suggestion (speaking or waiting) is never cut: the line is held until it ends, its mouth closed
-      // until its voice starts.
+      const start = () => { speak(engine, m, "dialogue", persona, speaker, line.text, 1, line, clock); };
+      // The existing serial engine starts the answer only after the real question end/error callback.
+      // A speaking coach keeps priority; only the latest turn's two dialogue items may wait behind it.
       if (m.coachPending > 0) {
         speechSync.queue(line, clock.current, speechSync.epoch());
-        m.held.push(() => {
-          speak(engine, m, "dialogue", persona, speaker, line.text, 1, line, clock);
-        });
-        continue;
-      }
-      // A newer line supersedes the dialogue being spoken.
-      clearSpeech(m);
-      engine.cancel();
-      speak(engine, m, "dialogue", persona, speaker, line.text, 1, line, clock);
+        m.held.push({ line, start });
+      } else start();
     }
-  }, [active, subject, question, subjectName, clock, engine]);
+  }, [active, subject, question, partialAnswer, subjectName, clock, engine]);
 
   // The coach in the investigator's earpiece (stage 8): as it hands a new card over it says the suggested follow-up
   // quietly, in its own voice, after the answer (it waits for the dialogue: it never talks over the subject). Practice

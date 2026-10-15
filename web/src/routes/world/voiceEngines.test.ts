@@ -30,6 +30,7 @@ const VOICE = { gemini: "Kore", prefer: ["Daniel"], pitch: 1.1, rate: 1 };
 
 class FakeContext {
   state = "suspended";
+  close = vi.fn(() => { this.state = "closed"; return Promise.resolve(); });
   currentTime = 10;
   resume = vi.fn(() => {
     // "never": the browser keeps playback blocked and the promise does not settle.
@@ -66,6 +67,9 @@ class FakeContext {
   createStereoPanner = () => this.node("panner", { pan: { value: 0 } });
 }
 
+const releases: (() => void)[] = [];
+function activatedPort(api: Parameters<typeof webAudioPort>[0]) { const port = webAudioPort(api); releases.push(port.activate()); return port; }
+function activatedEngine(api: Parameters<typeof roomEngine>[0]) { const engine = roomEngine(api); releases.push(engine.activate()); return engine; }
 let lastContext: FakeContext | null = null;
 let resumeMode: "ok" | "never" = "ok";
 
@@ -84,6 +88,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  for (const release of releases.splice(0)) release();
   vi.unstubAllGlobals();
   lastContext = null;
   resumeMode = "ok";
@@ -122,7 +127,7 @@ describe("browserEngine", () => {
 describe("webAudioPort", () => {
   it("fetches a line once per voice and text, decodes it, and plays and stops it at the item's volume", async () => {
     const api = { speak: vi.fn(() => Promise.resolve({ audio: new ArrayBuffer(8), silent: false })) };
-    const port = webAudioPort(api);
+    const port = activatedPort(api);
     const first = port.fetchClip("Kore", "Hello.");
     expect(port.fetchClip("Kore", "Hello.")).toBe(first);
     const clip = await first;
@@ -139,13 +144,14 @@ describe("webAudioPort", () => {
     lastContext?.source.onended?.();
     expect(ended).toHaveBeenCalled();
     playing.stop();
-    expect(lastContext?.source.stop).toHaveBeenCalled();
+    // Natural completion already released the graph; later stop is an idempotent no-op.
+    expect(lastContext?.source.stop).not.toHaveBeenCalled();
     expect(lastContext?.source.onended).toBeNull();
   });
 
   it("drives the speaker's mouth from the playing clip, and plays the coach as a quiet earpiece aside to one side", async () => {
     const api = { speak: vi.fn(() => Promise.resolve({ audio: new ArrayBuffer(8), silent: false })) };
-    const port = webAudioPort(api);
+    const port = activatedPort(api);
     const subject = await port.fetchClip("subject:Jordan Pell", "Hi.");
     if (subject === null) throw new Error("no clip");
     expect(audioMouth.weightsFor("subject:Jordan Pell")).toBeNull();
@@ -178,7 +184,7 @@ describe("webAudioPort", () => {
     resumeMode = "never";
     vi.useFakeTimers();
     try {
-      const port = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
+      const port = activatedPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
       const pending = port.fetchClip("Kore", "Hi.");
       await vi.advanceTimersByTimeAsync(RESUME_WAIT_MS);
       expect(await pending).toBeNull();
@@ -186,29 +192,29 @@ describe("webAudioPort", () => {
       vi.useRealTimers();
     }
     resumeMode = "ok";
-    const fresh = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
+    const fresh = activatedPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: false }) });
     window.dispatchEvent(new Event("pointerdown"));
     expect(lastContext?.resume).toHaveBeenCalled();
     expect(await fresh.fetchClip("Kore", "Hi.")).not.toBeNull();
   });
 
   it("gives no clip for the server's silence or a refusal", async () => {
-    const silent = webAudioPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: true }) });
+    const silent = activatedPort({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: true }) });
     expect(await silent.fetchClip("Kore", "Hi.")).toBeNull();
-    const refused = webAudioPort({ speak: () => Promise.reject(new Error("503")) });
+    const refused = activatedPort({ speak: () => Promise.reject(new Error("503")) });
     expect(await refused.fetchClip("Kore", "Hi.")).toBeNull();
   });
 });
 
 describe("roomEngine", () => {
   it("is the browser's own without the server", () => {
-    const engine = roomEngine(null);
+    const engine = activatedEngine(null);
     engine.speak({ voice: VOICE, text: "Hi.", volume: 1, line: null }, { onstart: vi.fn(), onprogress: vi.fn(), onend: vi.fn() });
     expect(speak).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to the browser's voice when the server answers with silence", async () => {
-    const engine = roomEngine({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: true }) });
+    const engine = activatedEngine({ speak: () => Promise.resolve({ audio: new ArrayBuffer(8), silent: true }) });
     engine.speak({ voice: VOICE, text: "Hi.", volume: 1, line: null }, { onstart: vi.fn(), onprogress: vi.fn(), onend: vi.fn() });
     await new Promise((r) => setTimeout(r, 0));
     expect(speak).toHaveBeenCalledTimes(1);

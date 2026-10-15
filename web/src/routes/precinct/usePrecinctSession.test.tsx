@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import raw from "../../fixtures/recordings/F01-truthful.json";
@@ -21,6 +22,34 @@ afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); });
 function fileWith(text: () => Promise<string>): File { const file = new File([], "run.json", { type: "application/json" }); Object.defineProperty(file, "text", { value: text }); return file; }
 
 describe("precinct runtime composition", () => {
+  it("commits one read-aloud owner under StrictMode and closes it on mute and unmount", async () => {
+    const contexts: { state: string; resume: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> }[] = [];
+    vi.stubGlobal("AudioContext", vi.fn(function makeContext() {
+      const context = { state: "suspended", resume: vi.fn(() => { context.state = "running"; return Promise.resolve(); }), close: vi.fn(() => { context.state = "closed"; return Promise.resolve(); }) };
+      contexts.push(context); return context;
+    }));
+    transport.mockImplementation((path) => Promise.resolve(new Response(JSON.stringify(path === "/api/me"
+      ? { user_id: "local-user", display_name: "Local trainee", roles: [], csrf_token: "test-token", ex4_acknowledged: null }
+      : { cases: CASES }), { status: 200 })));
+    const { result, unmount } = renderHook(() => usePrecinctSession(options), { wrapper: StrictMode });
+    act(() => { window.dispatchEvent(new Event("pointerdown")); window.dispatchEvent(new Event("keydown")); });
+    expect(contexts).toHaveLength(0);
+    await act(async () => { await result.current.connectLocalBackend(); });
+    act(() => { result.current.setSound(true); });
+    expect(contexts).toHaveLength(0);
+    act(() => { window.dispatchEvent(new Event("pointerdown")); window.dispatchEvent(new Event("keydown")); });
+    expect(contexts).toHaveLength(1); expect(contexts[0]?.resume).toHaveBeenCalledTimes(1);
+    act(() => { result.current.setSound(false); });
+    expect(contexts[0]?.close).toHaveBeenCalledTimes(1);
+    act(() => { result.current.setSound(true); });
+    act(() => { window.dispatchEvent(new Event("keydown")); window.dispatchEvent(new Event("pointerdown")); });
+    expect(contexts).toHaveLength(2); expect(contexts.filter((context) => context.state !== "closed")).toHaveLength(1);
+    unmount();
+    expect(contexts[1]?.close).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new Event("keydown")); window.dispatchEvent(new Event("pointerdown"));
+    expect(contexts).toHaveLength(2); expect(speak).not.toHaveBeenCalled();
+  });
+
   it("connects only on request and keeps the existing EX-4 acknowledgement gate", async () => {
     const profile = { user_id: "local-user", display_name: "Local trainee", roles: ["trainee"], csrf_token: "test-token", ex4_acknowledged: null };
     transport.mockImplementation((input) => {

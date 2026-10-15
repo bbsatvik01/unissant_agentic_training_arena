@@ -1,0 +1,353 @@
+{
+  "attempt": "native-20261015T212816Z-5fa76a56",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T212816Z-5fa76a56",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "bf86b371afd255391b14fc568b84f85201fd2684322e3f19ff5d55b5a9659de0",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "sourceRoot": "/workspace/shared/unissant_agentic_training_arena",
+      "snapshotRoot": "/workspace/shared/precinct-rehearsal-browser-qa",
+      "recorderRevision": "3c: demonstrated case locator and bounded failure diagnostics",
+      "nativeLauncherSha256": "e18832f06339eb3e84e9c171e864cddba268a8c145c49b0b981391ef9818badf",
+      "runtimeSource": "accepted main merge plus validated performance candidate; not the earlier benchmark snapshot"
+    },
+    "strictGate": {
+      "status": "passed",
+      "checkedAt": "2026-10-15T21:27:35.897502+00:00",
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "recorderRevision": "3c",
+      "toolSha256": "bf86b371afd255391b14fc568b84f85201fd2684322e3f19ff5d55b5a9659de0",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "typesExit": 0,
+      "lintExit": 0,
+      "typesLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/recorder-types-revision-3c.log",
+      "lintLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/recorder-lint-revision-3c.log",
+      "strictTools": "unchanged tsconfig.node.json; isolated build info",
+      "lint": "tools/precinct-rehearsal-recorder.ts --no-cache --max-warnings 0",
+      "browserExecutedForThisRevision": false,
+      "previousNativeAttempt": "native-20261015T211812Z-2fb3cd22 retained unchanged"
+    },
+    "nativeTmp": "/tmp/arena-rec-i_9eqhy1",
+    "vitePid": 7147,
+    "recorderPid": 7172,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 78.239
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual browser canvas plus actual page-owned Web Audio, captured together. Scene only: DOM controls/subtitles are excluded. Fixed authored unscored TEXT rehearsal; no AI, microphone, overdub or fabricated frames.",
+    "blocked": [],
+    "errors": [
+      "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 2\n+ Received  + 2\n\n  Object {\n    \"active\": 0,\n-   \"contextCount\": 1,\n+   \"contextCount\": 2,\n    \"ended\": 0,\n-   \"error\": null,\n+   \"error\": \"More than one page-owned audio context; capture refuses ambiguous mixing.\",\n    \"starts\": 0,\n  }\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toMatchObject (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at recordRehearsalScene (/workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:315:33)\n    at async file:///workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:465:104"
+    ],
+    "cleanupErrors": [],
+    "tts": [],
+    "recording": null,
+    "video": null,
+    "sha256": null,
+    "screenshots": [],
+    "voicedEvidence": "pending",
+    "overviews": [],
+    "failureDiagnostics": {
+      "uiState": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T212816Z-5fa76a56/capture/failure-ui-state.json",
+      "screenshot": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T212816Z-5fa76a56/capture/failure-full-page.png",
+      "errors": []
+    },
+    "mouthEvidence": {
+      "thresholds": {
+        "quietMouthMax": 1e-05,
+        "activeSignalMin": 0.0001,
+        "morphChangeMin": 0.01,
+        "minActiveFrames": 5,
+        "minChangedFramePairs": 2,
+        "settleMs": 5000
+      },
+      "quiet": [
+        {
+          "pageTimeMs": 65158.40000000596,
+          "audio": {
+            "contextCount": 2,
+            "starts": 0,
+            "ended": 0,
+            "active": 0,
+            "rms": 0,
+            "peak": 0,
+            "recording": false,
+            "error": "More than one page-owned audio context; capture refuses ambiguous mixing."
+          },
+          "scene": {
+            "frame": 69,
+            "canvasWidth": 960,
+            "canvasHeight": 600,
+            "mouthMax": 0,
+            "morphCount": 49,
+            "speechMorphs": [
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "a8822b06-d2f0-45fd-bbe7-d29b17208cf4",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "3fc827e5-6942-46e4-a841-74a1f6272306",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "a5bb2d84-0be8-4cd5-b6a2-c52333000d49",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "94a539a1-7e35-455f-b4f9-a87408e76954",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "8a835afe-870d-4065-a965-46ad8b01a70b",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "fdab1ea1-c422-4cde-a990-943dda6a4881",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "7bdac5ee-d0fb-487a-8a73-314ccddb39f9",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              }
+            ],
+            "contextLost": false
+          }
+        }
+      ],
+      "active": [],
+      "changedFramePairs": [],
+      "settled": []
+    }
+  },
+  "accepted_playable_slice": false
+}

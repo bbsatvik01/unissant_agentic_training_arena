@@ -28,7 +28,13 @@ describe("production render benchmark", () => {
     expect(adaptive.url.searchParams.has("precinctPerfPinned")).toBe(false); expect(adaptive.scene).toBe("courtyard"); expect(adaptive.headed).toBe(true);
   });
   it("refuses remote, credentialed, too-short, ambiguous or malformed runs", () => {
-    for (const args of [["--url=https://example.org"], ["--url=http://user:password@localhost/"], ["--url=http://localhost/?token=x"], ["--url=http://localhost/#x"],
+    // Intentionally synthetic URL components exercise rejection without embedding credential-form URIs.
+    const syntheticCredentialedUrl = new URL("http://localhost/");
+    syntheticCredentialedUrl.username = "synthetic-test-user";
+    syntheticCredentialedUrl.password = "synthetic-test-placeholder";
+    expect(syntheticCredentialedUrl.username).not.toBe("");
+    expect(syntheticCredentialedUrl.password).not.toBe("");
+    for (const args of [["--url=https://example.org"], [`--url=${syntheticCredentialedUrl.href}`], ["--url=http://localhost/?token=x"], ["--url=http://localhost/#x"],
       ["--seconds=5"], ["--seconds=NaN"], ["--seconds=601"], ["--tier=ultra"], ["--camera=free"], ["--scene=outside"], ["--unknown"],
       ["--tier=high", "--tier=low"], ["--software=false"], ["--readiness-diagnostics=false"], ["--slow-start-diagnostic=false"], ["--slow-start-diagnostic", "--readiness-diagnostics"], ["wat"], ["--viewport=1x1"], ["--viewport=9999x9999"], ["--dpr=8"]]) expect(() => benchmarkOptions(args)).toThrow();
   });

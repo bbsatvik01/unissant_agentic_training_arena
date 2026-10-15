@@ -1,0 +1,785 @@
+{
+  "attempt": "native-20261015T220802Z-39f2692d",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "121d394ab37a3a8208f202fe3a344574902a38161bf8a3ebdaaeb940173cecb1",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "note": "Independent read-only real browser stills; no audio/backend acceptance; runtime src is source checkpoint 8eedd756.",
+      "supportFiles": {
+        "web/tools/precinct-capture-position.ts": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c"
+      },
+      "previousAttempt": "native-20261015T215921Z-e5a5c054 retained: actual movement through portal, 46 frames/60s, endpoint failed; two valid first-person stills"
+    },
+    "strictGate": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "121d394ab37a3a8208f202fe3a344574902a38161bf8a3ebdaaeb940173cecb1",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "note": "Independent read-only real browser stills; no audio/backend acceptance; runtime src is source checkpoint 8eedd756.",
+      "supportFiles": {
+        "web/tools/precinct-capture-position.ts": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c"
+      },
+      "previousAttempt": "native-20261015T215921Z-e5a5c054 retained: actual movement through portal, 46 frames/60s, endpoint failed; two valid first-person stills",
+      "status": "passed",
+      "checkedAt": "2026-10-15T22:07:18.412525+00:00",
+      "typesExit": 0,
+      "lintExit": 0,
+      "testsPassed": 16,
+      "testScope": "Unchanged minimap helper and performance option cases from revision2; overview script has static checks only.",
+      "typesLog": "/workspace/shared/precinct-overview-browser-qa/results/types-overview-revision4.log",
+      "lintLog": "/workspace/shared/precinct-overview-browser-qa/results/lint-overview-revision4.log",
+      "browserExecuted": false
+    },
+    "nativeTmp": "/tmp/arena-rec-p06phn2m",
+    "vitePid": 7906,
+    "recorderPid": 7931,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 142.22
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual cloud browser screenshots and real keyboard/settings interactions; Low quality. No hardware FPS, backend, audio or replay acceptance is implied.",
+    "errors": [
+      "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 16.3\nReceived:    11.691599999982108\n\nCall Log:\n- Timeout 60000ms exceeded while waiting on the predicate\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at /workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:86:47",
+      "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 13\n\n- Array []\n+ Array [\n+   \"Error: expect(received).toBeGreaterThanOrEqual(expected)\n+\n+ Expected: >= 16.3\n+ Received:    11.691599999982108\n+\n+ Call Log:\n+ - Timeout 60000ms exceeded while waiting on the predicate\n+     at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n+     at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n+     at Object.toBeGreaterThanOrEqual (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n+     at /workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:86:47\",\n+ ]\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toEqual (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at /workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:106:61"
+    ],
+    "blocked": [],
+    "cleanupErrors": [],
+    "routeReached": false,
+    "movement": {
+      "durationMs": 60341.5,
+      "framesRendered": 55,
+      "averageRenderedFps": 0.9114788329756469,
+      "frameIntervalMs": {
+        "samples": 54,
+        "retained": 54,
+        "dropped": 0,
+        "p50": 55.69999999552965,
+        "p95": 3656.39999999851,
+        "p99": 4334.5,
+        "max": 4334.5
+      },
+      "cpuFrameAndRenderSubmissionMs": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 5.399999998509884,
+        "p95": 14.600000001490116,
+        "p99": 64.39999999850988,
+        "max": 64.39999999850988
+      },
+      "drawCalls": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 77,
+        "p95": 77,
+        "p99": 77,
+        "max": 77
+      },
+      "triangles": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 138642,
+        "p95": 138642,
+        "p99": 138642,
+        "max": 138642
+      },
+      "dpr": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 0.75,
+        "p95": 0.75,
+        "p99": 0.75,
+        "max": 0.75
+      },
+      "drawingBufferPixels": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 729000,
+        "p95": 729000,
+        "p99": 729000,
+        "max": 729000
+      },
+      "inputToRenderSubmissionMs": {
+        "samples": 1,
+        "retained": 1,
+        "dropped": 0,
+        "p50": 2903.1999999955297,
+        "p95": 2903.1999999955297,
+        "p99": 2903.1999999955297,
+        "max": 2903.1999999955297
+      },
+      "eventTimingDurationMs": {
+        "samples": 1,
+        "retained": 1,
+        "dropped": 0,
+        "p50": 4384,
+        "p95": 4384,
+        "p99": 4384,
+        "max": 4384
+      },
+      "longTaskMs": {
+        "samples": 3,
+        "retained": 3,
+        "dropped": 0,
+        "p50": 141,
+        "p95": 554,
+        "p99": 554,
+        "max": 554
+      },
+      "intervalsOver20Ms": 47,
+      "intervalsOver33_34Ms": 35,
+      "intervalsOver50Ms": 29,
+      "hiddenFrames": 0,
+      "demandFrames": 0,
+      "visibilityInterruptions": 0,
+      "tierFrames": {
+        "low": 55,
+        "medium": 0,
+        "high": 0
+      },
+      "gpuFrameMs": null,
+      "actualInputToPhotonMs": null,
+      "schema": "arena.precinct-render-performance.v1",
+      "production": false,
+      "sceneAsset": "/world/precinct-courtyard.glb",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "unmaskedAvailable": true,
+        "softwareRenderer": true,
+        "contextLost": false,
+        "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "shadowsEnabled": false,
+        "geometries": 88,
+        "textures": 53,
+        "programs": 15,
+        "actualGpuMemoryBytes": null,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+        "deviceDpr": 1,
+        "hardwareConcurrency": 9
+      },
+      "scene": {
+        "meshes": 75,
+        "uncullableMeshes": 18,
+        "shadowCastingMeshes": 0,
+        "uniqueMaterials": 75,
+        "transparentMaterials": 3,
+        "materialTextures": 14,
+        "unknownTextureDimensions": 0,
+        "textureDimensions": [
+          {
+            "width": 1536,
+            "height": 864,
+            "mipmaps": true
+          },
+          {
+            "width": 1536,
+            "height": 864,
+            "mipmaps": true
+          },
+          {
+            "width": 1536,
+            "height": 864,
+            "mipmaps": true
+          },
+          {
+            "width": 2048,
+            "height": 628,
+            "mipmaps": true
+          },
+          {
+            "width": 2048,
+            "height": 810,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 512,
+            "height": 512,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          },
+          {
+            "width": 1024,
+            "height": 1024,
+            "mipmaps": true
+          }
+        ],
+        "materialTextureRgba8MiBEstimate": 79.22916666666667,
+        "textureEstimateCaveat": "RGBA8 + mip-chain estimate, deduplicated by Texture. Excludes environment/render targets; real formats, compression and driver allocation differ. Not measured VRAM."
+      },
+      "budgets": {
+        "low": {
+          "dpr": 0.75,
+          "pixels": 1500000,
+          "drawCalls": 140,
+          "triangles": 500000,
+          "textureMiB": 192
+        },
+        "medium": {
+          "dpr": 1.25,
+          "pixels": 2500000,
+          "drawCalls": 200,
+          "triangles": 800000,
+          "textureMiB": 256
+        },
+        "high": {
+          "dpr": 1.75,
+          "pixels": 4000000,
+          "drawCalls": 260,
+          "triangles": 1100000,
+          "textureMiB": 384
+        }
+      },
+      "observers": {
+        "longtask": true,
+        "event": true
+      },
+      "measurementNotes": [
+        "Frame intervals are measured after actual R3F render submissions. No synthetic frames or FPS.",
+        "CPU duration includes frame callbacks and WebGL submission; it is not GPU execution time.",
+        "Input proxy is canvas movement key dispatch to next render submission. It is not input-to-photon latency.",
+        "Event Timing duration is browser-reported event-to-next-presentation estimate, rounded and thresholded at 16 ms; unsupported or zero samples means unavailable, not zero latency.",
+        "Long tasks use browser PerformanceObserver (>=50 ms); unsupported means unavailable.",
+        "No diagnostic export is sent over the network. No typed text, actor truth labels, credentials or case payloads are recorded."
+      ]
+    },
+    "progress": [
+      {
+        "x": 0,
+        "z": -4.2,
+        "at": 43607.90000000596,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 0
+      },
+      {
+        "x": 0,
+        "z": -3.5999999999999996,
+        "at": 47015.20000000298,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 2
+      },
+      {
+        "x": 0,
+        "z": -2.9248799999892703,
+        "at": 49838.70000000298,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 4
+      },
+      {
+        "x": 0,
+        "z": -2.170559999996422,
+        "at": 52033.90000000596,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 6
+      },
+      {
+        "x": 0,
+        "z": -1.4707200000107266,
+        "at": 53894,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 9
+      },
+      {
+        "x": 0,
+        "z": -0.7747200000107262,
+        "at": 56745.90000000596,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 11
+      },
+      {
+        "x": 0,
+        "z": 0.03287999998927382,
+        "at": 58510.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 13
+      },
+      {
+        "x": 0,
+        "z": 0.7075199999928501,
+        "at": 60182.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 15
+      },
+      {
+        "x": 0,
+        "z": 1.4049599999964264,
+        "at": 62071.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 17
+      },
+      {
+        "x": 0,
+        "z": 2.145359999996427,
+        "at": 63686.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 19
+      },
+      {
+        "x": 0,
+        "z": 2.842079999989275,
+        "at": 65626.30000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 21
+      },
+      {
+        "x": 0,
+        "z": 3.528719999992852,
+        "at": 66763.10000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 23
+      },
+      {
+        "x": 0,
+        "z": 4.211759999996429,
+        "at": 69896.20000000298,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 26
+      },
+      {
+        "x": 0,
+        "z": 4.914719999992853,
+        "at": 73913,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 28
+      },
+      {
+        "x": 0,
+        "z": 5.579279999989277,
+        "at": 76279.80000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 31
+      },
+      {
+        "x": 0,
+        "z": 6.293519999992854,
+        "at": 79273.80000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 34
+      },
+      {
+        "x": 0,
+        "z": 7.078079999989278,
+        "at": 81880,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 36
+      },
+      {
+        "x": 0,
+        "z": 7.7567999999821255,
+        "at": 83603.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 38
+      },
+      {
+        "x": 0,
+        "z": 8.423039999967818,
+        "at": 85510.80000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 41
+      },
+      {
+        "x": 0,
+        "z": 9.125039999967814,
+        "at": 88242.60000000149,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 44
+      },
+      {
+        "x": 0,
+        "z": 9.85295999997854,
+        "at": 91938.80000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 46
+      },
+      {
+        "x": 0,
+        "z": 10.532399999982111,
+        "at": 94195.90000000596,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 48
+      },
+      {
+        "x": 0,
+        "z": 11.691599999982108,
+        "at": 96146.70000000298,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 51
+      },
+      {
+        "x": 0,
+        "z": 12.323519999992833,
+        "at": 101182.30000000447,
+        "focused": true,
+        "activeTag": "CANVAS",
+        "visible": true,
+        "continuous": true,
+        "frameCount": 53
+      }
+    ],
+    "inputEvents": [
+      {
+        "at": 43592.90000000596,
+        "event": "keydown",
+        "code": "KeyS",
+        "focused": true,
+        "activeTag": "CANVAS"
+      },
+      {
+        "at": 103829.30000000447,
+        "event": "keyup",
+        "code": "KeyS",
+        "focused": true,
+        "activeTag": "CANVAS"
+      },
+      {
+        "at": 110067.80000000447,
+        "event": "keydown",
+        "code": "KeyV",
+        "focused": true,
+        "activeTag": "CANVAS"
+      },
+      {
+        "at": 110125.60000000149,
+        "event": "keyup",
+        "code": "KeyV",
+        "focused": true,
+        "activeTag": "CANVAS"
+      },
+      {
+        "at": 128477.60000000149,
+        "event": "blur",
+        "code": null,
+        "focused": true,
+        "activeTag": "BODY"
+      },
+      {
+        "at": 128478.10000000149,
+        "event": "focus",
+        "code": null,
+        "focused": true,
+        "activeTag": "BUTTON"
+      },
+      {
+        "at": 128582.40000000596,
+        "event": "blur",
+        "code": null,
+        "focused": true,
+        "activeTag": "BODY"
+      },
+      {
+        "at": 128587.80000000447,
+        "event": "focus",
+        "code": null,
+        "focused": true,
+        "activeTag": "BUTTON"
+      },
+      {
+        "at": 128629.90000000596,
+        "event": "blur",
+        "code": null,
+        "focused": true,
+        "activeTag": "BODY"
+      },
+      {
+        "at": 128632.5,
+        "event": "focus",
+        "code": null,
+        "focused": true,
+        "activeTag": "BUTTON"
+      },
+      {
+        "at": 128648.30000000447,
+        "event": "blur",
+        "code": null,
+        "focused": true,
+        "activeTag": "BODY"
+      },
+      {
+        "at": 128648.80000000447,
+        "event": "focus",
+        "code": null,
+        "focused": true,
+        "activeTag": "BUTTON"
+      }
+    ],
+    "screenshots": [
+      {
+        "path": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d/capture/00-studio-courtyard-interior-1440x900.png",
+        "sha256": "9e15392b281b96030f6ca00bdb709736b146f72de05f48605807e572ae3cf323",
+        "label": "Studio theme, selected courtyard interior before the walking route",
+        "state": {
+          "active": false,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            1.65,
+            -3.0000000000000004
+          ],
+          "cameraQuaternion": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "calls": 72,
+          "triangles": 135820,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": false
+        }
+      },
+      {
+        "path": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d/capture/01-studio-courtyard-first-person-1440x900.png",
+        "sha256": "55d03dfe3e46abd343ca1d7c046d8a6d11a343fdf0ef2e92cd84a745bd74dcb7",
+        "label": "Studio courtyard, first person, actual reached position; timed arrival gate failed",
+        "state": {
+          "active": false,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            1.65,
+            12.47784000000356
+          ],
+          "cameraQuaternion": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "calls": 77,
+          "triangles": 138642,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": false
+        }
+      },
+      {
+        "path": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d/capture/02-studio-courtyard-third-person-1440x900.png",
+        "sha256": "b62430695288f3e7f43c44dbf1cffbcc295955c49598a9406cf820f78959ce12",
+        "label": "Studio courtyard, third person, actual reached position; timed arrival gate failed",
+        "state": {
+          "active": false,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            15.277840000003572
+          ],
+          "cameraQuaternion": [
+            -0.060088955032101495,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 86,
+          "triangles": 146090,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": false
+        }
+      },
+      {
+        "path": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d/capture/03-studio-courtyard-third-person-1920x1080.png",
+        "sha256": "e3658ed1bf06ea196210fd8e30631b5f5d6afb29a59fa81d34b2469f89c2b4a9",
+        "label": "Studio courtyard, third person, actual reached position; timed arrival gate failed",
+        "state": {
+          "active": false,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            15.277840000003572
+          ],
+          "cameraQuaternion": [
+            -0.060088955032101495,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 86,
+          "triangles": 146090,
+          "drawingBuffer": {
+            "width": 1440,
+            "height": 810
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": false
+        }
+      },
+      {
+        "path": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T220802Z-39f2692d/capture/04-studio-courtyard-map-1920x1080.png",
+        "sha256": "77f6ad34510fe3207c87ec22054ca024a87715af55df7d857358a3b3428dd183",
+        "label": "Actual courtyard station map and accessible navigation",
+        "state": {
+          "active": false,
+          "tier": "low",
+          "continuous": false,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            15.277840000003572
+          ],
+          "cameraQuaternion": [
+            -0.060088955032101495,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 86,
+          "triangles": 146090,
+          "drawingBuffer": {
+            "width": 1440,
+            "height": 810
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": false
+        }
+      }
+    ]
+  },
+  "accepted_playable_slice": false,
+  "independently_reviewed_stills": 5
+}

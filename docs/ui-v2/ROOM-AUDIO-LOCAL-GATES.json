@@ -1,0 +1,77 @@
+{
+  "baselineHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "verifiedRuntimeOverlay": {
+    "web/src/routes/WorldRoute.tsx": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+    "web/src/routes/precinct/usePrecinctSession.ts": "d652a71b6cf9fb3772cdeaf6dccbf45dfc39f782b1e55ddca0e48a2a2b244125",
+    "web/src/routes/world/voiceEngines.ts": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+    "web/src/routes/world/useVoice.ts": "62305af62bb18b0c0d3f65daa39a985a04aca896b179e42e552af2fa8dea2e05"
+  },
+  "lifecycle": {
+    "lifecycleStatus": "passed",
+    "focused": {
+      "exitCode": 0,
+      "suites": 6,
+      "tests": 56,
+      "log": "focused-final.log"
+    },
+    "appTypes": {
+      "exitCode": 0,
+      "log": "app-types-final.log"
+    },
+    "toolsTypes": {
+      "exitCode": 0,
+      "log": "tools-types-final.log"
+    },
+    "lint": {
+      "exitCode": 0,
+      "warnings": 0,
+      "log": "owned-lint-final.log"
+    },
+    "separateRegression": {
+      "status": "failed-demonstrated-existing-cancellation",
+      "log": "simultaneous-initial.log"
+    },
+    "preservedFailures": [
+      "app-types-initial.log",
+      "owned-lint-initial.log"
+    ],
+    "runtimeOverlay": {
+      "web/src/routes/WorldRoute.tsx": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+      "web/src/routes/precinct/usePrecinctSession.ts": "d652a71b6cf9fb3772cdeaf6dccbf45dfc39f782b1e55ddca0e48a2a2b244125",
+      "web/src/routes/world/voiceEngines.ts": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef"
+    }
+  },
+  "sameTurnQueue": {
+    "status": "passed",
+    "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+    "runtimeDescription": "Accepted baseline plus explicit committed-audio-lifecycle and same-turn-presentation overlays",
+    "runtimeOverlay": {
+      "web/src/routes/WorldRoute.tsx": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+      "web/src/routes/precinct/usePrecinctSession.ts": "d652a71b6cf9fb3772cdeaf6dccbf45dfc39f782b1e55ddca0e48a2a2b244125",
+      "web/src/routes/world/voiceEngines.ts": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+      "web/src/routes/world/useVoice.ts": "62305af62bb18b0c0d3f65daa39a985a04aca896b179e42e552af2fa8dea2e05"
+    },
+    "focused": {
+      "exitCode": 0,
+      "suites": 8,
+      "tests": 80,
+      "log": "queue-focused-initial.log"
+    },
+    "appTypes": {
+      "exitCode": 0,
+      "log": "queue-app-types-initial.log"
+    },
+    "toolsTypes": {
+      "exitCode": 0,
+      "log": "queue-tools-types-initial.log"
+    },
+    "lint": {
+      "exitCode": 0,
+      "warnings": 0,
+      "log": "queue-owned-lint-initial.log"
+    },
+    "preservedRegression": "simultaneous-initial.log",
+    "browserAudioVerified": false
+  },
+  "scope": "Isolated focused tests and static gates; not a combined full gate or actual audible browser acceptance."
+}

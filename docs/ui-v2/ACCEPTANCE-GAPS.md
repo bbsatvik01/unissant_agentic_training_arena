@@ -1,6 +1,6 @@
 # Remaining brief acceptance, 2026-10-15
 
-This is an implementation checklist. Slices one through four have reviewed browser evidence. The combined Studio/courtyard/stations/reviewer/capture/audio source at `6758285` passes the unchanged full web gate: 232 suites / 2,682 tests twice, coverage and build. See [exact proof](combined-web-check-6758285.json). Actual combined browser/audio acceptance and the separately staged performance, dictation and Coach Lab candidates remain outstanding.
+This is an implementation checklist. Slices one through four have reviewed browser evidence. The combined Studio/courtyard/stations/reviewer/capture/audio and performance-instrumentation source at `8eedd756` passes the unchanged full web gate: 242 suites / 2,726 tests twice, coverage and build. See [exact proof](combined-web-check-8eedd756.json). Actual combined browser/audio acceptance and separately staged dictation/Coach Lab candidates remain outstanding. Both measured Office production samples fail frame pacing and cold-start budgets; actual MacBook Air M5 acceptance remains unmeasured.
 
 ## Active finish-work
 
@@ -9,7 +9,7 @@ This is an implementation checklist. Slices one through four have reviewed brows
 - **Movable paused camera:** independent bounded pan, height, orbit and zoom, without moving the trainee or changing recorded time. The integrated source retains the sole camera owner and returns to the actual current live/recorded view; combined visual acceptance is pending.
 - **Controller navigation:** deliberate button activation, dialog focus/close, pause, map and camera mappings. The source is integrated; native pickers/permission surfaces remain native. Physical-controller acceptance is outstanding.
 - **Diegetic data:** a publication-gated debrief wall and public case/recognition surfaces should replace static placeholder content on existing props. The DOM readers remain the complete accessible detail. No manufactured scores, ranks, unlock prerequisites or dates.
-- **NPC movement:** actual generated convex-cell navigation and dynamic avoidance are integrated after 299 focused runtime checks and 95 scoped coverage checks. Both worlds include reviewer-chair geometry and all preserved station anchors; post-merge aggregate, rendered movement, second-generation determinism and performance acceptance remain pending.
+- **NPC movement:** actual generated convex-cell navigation and dynamic avoidance are integrated after 299 focused runtime checks and 95 scoped coverage checks. Both worlds include reviewer-chair geometry and all preserved station anchors; post-merge aggregate tests pass; rendered movement, second-generation determinism and performance acceptance remain pending.
 - **Review-panel presence and neutral handover:** the separate neutral reviewer and richer lifecycle-driven gestures are integrated under new versioned replay identities. The combined full web gate passes; visual acceptance is still required.
 
 ## Replay fidelity still owed

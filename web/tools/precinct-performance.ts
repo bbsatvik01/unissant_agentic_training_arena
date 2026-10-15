@@ -6,6 +6,7 @@ import { arch, cpus, platform, release, tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, expect, type Browser, type Page, type Request } from "@playwright/test";
+import { parseMinimapPosition } from "./precinct-capture-position.ts";
 import type { PrecinctPerformanceReport } from "../src/components/precinct/precinctPerformanceTypes.ts";
 
 export function benchmarkOptions(args: readonly string[]) {
@@ -63,10 +64,7 @@ export function steadyStateOutcome(coldStartPassed: boolean): { status: string; 
 type Position = { x: number; z: number };
 async function playerPosition(page: Page): Promise<Position> {
   const transform = await page.locator(".precinct-minimap g").getAttribute("transform");
-  const match = /^translate\(([-\d.]+) ([-\d.]+)\)/u.exec(transform ?? "");
-  const x = Number(match?.[1]), z = Number(match?.[2]);
-  if (!Number.isFinite(x) || !Number.isFinite(z)) throw new Error("Visible player minimap position is missing.");
-  return { x, z };
+  return parseMinimapPosition(transform);
 }
 async function status(page: Page) {
   return await page.evaluate(() => {

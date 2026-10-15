@@ -126,7 +126,9 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom, capture
   const sessionKey = source === "live" ? live.session?.session_id ?? `starting:${selectedCase?.case_id ?? "none"}` : source === "recording" ? recording?.trial_id ?? "none" : `case:${selectedCase?.case_id ?? "none"}`;
   // Do not even construct the Web Audio engine until audio was explicitly enabled for this local connection.
   // Offline speech requires an installed localService voice; the browser's unspecified default is never used.
-  const engine = useMemo(() => sound && backend === "connected" ? roomEngine(api) : localReadAloud, [sound, backend, api, localReadAloud]);
+  const backendEngine = useMemo(() => sound && backend === "connected" ? roomEngine(api) : null, [sound, backend, api]);
+  useEffect(() => backendEngine?.activate(), [backendEngine]);
+  const engine = backendEngine ?? localReadAloud;
   const { coachSpeaking, currentSpeech } = useVoice({ engine, world, view, subjectName, clock, scope: `${source}:${sessionKey}`, earpiece: earpiece && !assessmentActive,
     active: sound && audioInRoom && !paused && !isVoice && (source === "live" || (source === "recording" && playback.playing && playback.speed === 1)) });
 

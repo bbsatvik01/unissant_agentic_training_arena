@@ -1,0 +1,60 @@
+{
+  "attempt": "native-20261015T214320Z-55cec6df",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T214320Z-55cec6df",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "26640fd6142df50614fb2b667a43bcb405bb13376bbec877f83f20859f0b3d11",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "note": "Independent read-only real browser stills; no audio/backend acceptance; runtime src is source checkpoint 8eedd756.",
+      "supportFiles": {
+        "web/tools/precinct-capture-position.ts": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c"
+      },
+      "previousAttempt": "native-20261015T213635Z-4762fda2 retained: minimap diagnostic parser failure before any accepted screenshot"
+    },
+    "strictGate": {
+      "status": "passed",
+      "checkedAt": "2026-10-15T21:42:33.155535+00:00",
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "26640fd6142df50614fb2b667a43bcb405bb13376bbec877f83f20859f0b3d11",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "supportFiles": {
+        "web/tools/precinct-capture-position.ts": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c"
+      },
+      "testsPassed": 16,
+      "typesExit": 0,
+      "lintExit": 0,
+      "typesLog": "/workspace/shared/precinct-overview-browser-qa/results/types-overview-revision2.log",
+      "lintLog": "/workspace/shared/precinct-overview-browser-qa/results/lint-overview-revision2.log",
+      "browserExecuted": false
+    },
+    "nativeTmp": "/tmp/arena-rec-ncn7g3yr",
+    "vitePid": 7539,
+    "recorderPid": 7564,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 113.632
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual cloud browser screenshots and real keyboard/settings interactions; Low quality. No hardware FPS, backend, audio or replay acceptance is implied.",
+    "errors": [
+      "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 16.3\nReceived:    -1.6082400000035757\n\nCall Log:\n- Timeout 60000ms exceeded while waiting on the predicate\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at /workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:53:87",
+      "page.screenshot: Timeout 5000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n\n    at /workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:77:16"
+    ],
+    "blocked": [],
+    "cleanupErrors": [],
+    "screenshots": []
+  },
+  "accepted_playable_slice": false
+}
