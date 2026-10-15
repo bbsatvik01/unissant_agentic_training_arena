@@ -5,9 +5,10 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { controllerDeadzone, EYE_HEIGHT, findWaypointRoute, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, turn, WALK_SPEED } from "../../lib/precinct/movement";
+import { advanceCadence } from "../../lib/precinct/cadence";
 import type { CameraMode, LookAngles, Vec3 } from "../../lib/precinct/types";
 import { INVESTIGATOR } from "../../lib/world/cast";
-import type { Tier } from "../../lib/world/quality";
+import { nextTier, WINDOW, type Tier } from "../../lib/world/quality";
 import { WalkingAvatar } from "./WalkingAvatar";
 import type { PlayerPose, PrecinctManifest, TravelCommand } from "./sceneTypes";
 
@@ -18,6 +19,7 @@ interface Props {
   readonly reducedMotion: boolean;
   readonly cameraMode: CameraMode;
   readonly tier: Tier;
+  readonly onTierChange: (tier: Tier) => void;
   readonly travel: RefObject<TravelCommand | null>;
   readonly onPose: (pose: PlayerPose) => void;
   readonly onInteract: (id: string) => void;
@@ -41,6 +43,7 @@ function connectedGamepad(): Gamepad | null {
 }
 
 function Architecture({ onReady }: { readonly onReady: () => void }) {
+  const invalidate = useThree((state) => state.invalidate);
   const gltf = useLoader(GLTFLoader, "/world/precinct.glb");
   const scene = useMemo(() => {
     const copy = gltf.scene.clone(true);
@@ -57,6 +60,7 @@ function Architecture({ onReady }: { readonly onReady: () => void }) {
     // has actually appeared, rather than declaring readiness in its mount effect.
     if (rendered.current && !ready.current) { ready.current = true; onReady(); }
     rendered.current = true;
+    if (!ready.current) invalidate();
   });
   return <primitive object={scene} dispose={null} />;
 }
@@ -80,16 +84,40 @@ function Environment() {
   return null;
 }
 
+/** Lower rendering cost before changing the world or its controls. */
+function AdaptiveQuality({ tier, onChange }: { readonly tier: Tier; readonly onChange: (tier: Tier) => void }) {
+  const get = useThree((state) => state.get);
+  const intervals = useRef<number[]>([]);
+  useEffect(() => {
+    const context = get().gl.getContext();
+    const debug = context.getExtension("WEBGL_debug_renderer_info");
+    const renderer: unknown = debug === null ? "" : context.getParameter(debug.UNMASKED_RENDERER_WEBGL);
+    if (typeof renderer === "string" && /swiftshader|llvmpipe|software/i.test(renderer) && tier !== "low") onChange("low");
+  }, [get, onChange, tier]);
+  useFrame((_state, delta) => {
+    if (tier === "low") return;
+    intervals.current.push(delta * 1000);
+    if (intervals.current.length >= WINDOW) {
+      const next = nextTier(tier, intervals.current);
+      intervals.current = [];
+      if (next !== tier) onChange(next);
+    }
+  });
+  return null;
+}
+
 /** The existing avatar accepts a numeric speed. Sample changed speed at 10 Hz, never every frame. */
 function MovingBody({ speed, still }: { readonly speed: RefObject<number>; readonly still: boolean }) {
   const [sample, setSample] = useState(0);
-  const last = useRef({ time: -1, speed: 0 });
-  useFrame((frame) => {
+  const last = useRef({ elapsed: 0, speed: 0 });
+  useFrame((_frame, delta) => {
     const value = still ? 0 : speed.current;
     const previous = last.current;
     const stopped = value === 0 && previous.speed !== 0;
-    if ((stopped || frame.clock.elapsedTime - previous.time >= 0.1) && Math.abs(value - previous.speed) > 0.025) {
-      last.current = { time: frame.clock.elapsedTime, speed: value };
+    const cadence = advanceCadence(previous.elapsed, delta);
+    last.current.elapsed = cadence.elapsed;
+    if ((stopped || cadence.due) && Math.abs(value - previous.speed) > 0.025) {
+      last.current = { elapsed: 0, speed: value };
       setSample(value);
     }
   });
@@ -108,7 +136,8 @@ function Controls(props: Props) {
   const routeIndex = useRef(0);
   const arrivalYaw = useRef<number | null>(null);
   const manualLook = useRef(0);
-  const lastEmit = useRef(-1);
+  const lastEmit = useRef(0);
+  const emittedPose = useRef<PlayerPose | null>(null);
   const nearest = useRef<string | null>(null);
   const walking = useRef<Group>(null);
   const speed = useRef(0);
@@ -184,7 +213,8 @@ function Controls(props: Props) {
       keys.current.clear(); path.current = []; drag.current = null;
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     }
-  }, [props.active, props.paused, canvas]);
+    if (props.active && (!props.paused || props.cameraMode === "free")) canvas.focus({ preventScroll: true });
+  }, [props.active, props.paused, props.cameraMode, canvas]);
 
   useFrame((state, dt) => {
     const camera = state.camera;
@@ -286,9 +316,17 @@ function Controls(props: Props) {
     if (walking.current !== null) { walking.current.position.set(x, y, z); walking.current.rotation.y = look.current.yaw; }
     const visibleHotspots = p.manifest.hotspots.filter((hotspot) => hasLineOfSight(position.current, [hotspot.position[0], y, hotspot.position[2]], p.manifest.colliders, 0.02));
     nearest.current = nearestHotspot(position.current, visibleHotspots)?.id ?? null;
-    if (state.clock.elapsedTime - lastEmit.current > 0.1) {
-      lastEmit.current = state.clock.elapsedTime;
-      p.onPose({ position: position.current, yaw: look.current.yaw, speed: speed.current, hotspot: nearest.current });
+    // R3F resets its absolute clock when switching demand/always. A delta cadence
+    // keeps minimap and input state responsive immediately after closing a panel.
+    const emission = advanceCadence(lastEmit.current, dt);
+    lastEmit.current = emission.elapsed;
+    if (emission.due) {
+      const previous = emittedPose.current;
+      if (previous === null || previous.position !== position.current || previous.yaw !== look.current.yaw || Math.abs(previous.speed - speed.current) > 0.01 || previous.hotspot !== nearest.current) {
+        const next = { position: position.current, yaw: look.current.yaw, speed: speed.current, hotspot: nearest.current };
+        emittedPose.current = next;
+        p.onPose(next);
+      }
     }
   });
 
@@ -308,13 +346,12 @@ function Controls(props: Props) {
 }
 
 export default function PrecinctCanvas(props: Props) {
-  return <Canvas tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={props.tier === "high" ? [1, 1.75] : props.tier === "medium" ? [1, 1.25] : 1} gl={{ antialias: props.tier !== "low", powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label="Explorable precinct. WASD walks, arrows look, E interacts. Paused inspection: drag or arrows orbit, wheel or W/S zoom.">
+  return <Canvas frameloop={props.active && (!props.paused || props.cameraMode === "free") ? "always" : "demand"} tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={props.tier === "high" ? [1, 1.75] : props.tier === "medium" ? [1, 1.25] : 0.75} gl={{ antialias: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label="Explorable precinct. WASD walks, arrows look, E interacts. Paused inspection: drag or arrows orbit, wheel or W/S zoom.">
     <color attach="background" args={["#d5dfe0"]} /><fog attach="fog" args={["#d5dfe0", 55, 100]} />
-    <Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
+    <AdaptiveQuality tier={props.tier} onChange={props.onTierChange} /><Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
     <directionalLight position={[-12, 16, 6]} intensity={3} color="#fff1d5" />
     <pointLight position={[0, 3, -6]} intensity={45} distance={18} color="#ffe5c2" />
-    <pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" />
-    <pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" />
+    {props.tier !== "low" ? <><pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" /><pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" /></> : null}
     <Suspense fallback={null}><Architecture onReady={props.onReady} /></Suspense>
     <Controls {...props} />
   </Canvas>;

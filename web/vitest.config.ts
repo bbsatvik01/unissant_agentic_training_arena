@@ -13,6 +13,9 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "node",
+      // Keep the complete suite within shared-cloud/laptop memory; no tests, timeouts,
+      // coverage rules or assertions are relaxed. Excess forks can fail before tests start.
+      maxWorkers: 2,
       include: ["src/**/*.test.{ts,tsx}", "tools/**/*.test.ts"],
       coverage: {
         provider: "v8",

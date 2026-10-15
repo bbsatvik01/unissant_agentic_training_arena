@@ -31,3 +31,11 @@ The ground rule is retained verbatim. Nervousness, demeanor, accent, and stress 
 - Pure movement: 28 tests, 100% lines/functions, 98.54% statements, 96.33% branches in the focused run.
 - Whole-app typecheck and focused movement/renderer lint passed during development.
 - Full `pnpm check`, rendered browser validation, and both requested screenshot sizes are in progress. No check has been weakened or waived.
+
+### Review workflow
+
+GitHub permits one open pull request for a given head/base pair. The explicit `ui-v2` integration branch therefore uses one evolving draft against `main` while that draft is open, with a separate issue and tested checkpoint for each slice. No merge is authorized. After the user merges a reviewed slice, the next slice can receive a new draft PR. This avoids silently changing the requested branch strategy.
+
+### Rendering verification
+
+The managed cloud browser exposes no WebGL context. Its entry, directory, keyboard E interaction, native-dialog focus, and accessibility settings were checked through the explicit original-render fallback. An isolated fresh Chromium launched from the same cloud desktop verifies actual WebGL separately with the software renderer. Initial software runs exposed slow frame delivery; the runtime now detects software rendering, selects Low, uses lower DPR and fewer local lights, stops unnecessary drawing during menus/pause, and avoids duplicate stationary pose updates. Hardware-GPU frame-rate measurements remain distinct from this software-rendered functional check.
