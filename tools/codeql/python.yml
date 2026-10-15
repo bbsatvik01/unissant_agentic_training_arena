@@ -1,4 +1,5 @@
-# CodeQL scope for Python (local `make codeql` and .github/workflows/codeql.yml read the same file). Only
+# CodeQL scope for Python, read by the local gate (`make codeql`, inside `make sec-check`) -- CodeQL has no
+# GitHub Actions workflow in this repo (no GitHub Advanced Security license on this private repo). Only
 # generated, third-party or non-Python trees are ignored: docs/ holds frozen research scripts (evidence, not
 # product code); cases/ holds case-family data (JSON), and cases/hidden/ must never be read by a gate (D-014).
 # Lifted from TechnoMile tools/codeql/python.yml (ATTRIBUTIONS.md).

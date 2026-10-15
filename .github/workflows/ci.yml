@@ -5,8 +5,14 @@ name: CI
 # gate proofs run the pinned CodeQL and gitleaks binaries) and the database half (`make deps-sync db-test`: the
 # script starts its own disposable plain PostgreSQL 17 + pgTAP and Supabase Postgres 17 containers with the
 # runner's Docker, on 127.0.0.1, and uses the runner's psql, so no service container is declared here);
-# security.yml and codeql.yml run the security half. web-check arrives with web/ in WP-18. No path filter: push-clean and the other repository-policy gates run on every change,
-# including a Markdown-only one. Actions are pinned to full commit SHAs; each comment names the release tag.
+# security.yml runs the rest of the security half; CodeQL (security-extended) runs only locally, inside
+# `make sec-check` (`tools/check_codeql.py`) -- never as a GitHub Actions workflow, since code-scanning
+# upload needs a GitHub Advanced Security license this private repo does not carry. web-check runs the
+# same `make web-check` (pnpm install --frozen-lockfile && pnpm check: lint, typecheck, test, coverage,
+# build) locally runs, with Node pinned from web/package.json's devEngines and pnpm activated through
+# corepack from its packageManager field -- no separate action pins a Node or pnpm version. No path
+# filter: push-clean and the other repository-policy gates run on every change, including a
+# Markdown-only one. Actions are pinned to full commit SHAs; each comment names the release tag.
 on:
   push:
     branches: [main]
@@ -76,3 +82,27 @@ jobs:
 
       - name: make deps-sync db-test
         run: make deps-sync db-test
+
+  web-check:
+    name: make web-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Node pinned from web/package.json's devEngines.runtime (setup-node reads it natively).
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: web/package.json
+
+      # pnpm itself: corepack (bundled with Node) reads web/package.json's packageManager field and
+      # installs/activates that exact pinned version -- no separate action pins a pnpm version.
+      - name: Activate the pinned pnpm (web/package.json packageManager)
+        working-directory: web
+        run: |
+          corepack enable
+          corepack install
+
+      - name: make web-check
+        run: make web-check

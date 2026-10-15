@@ -47,3 +47,4 @@ fmt-skip	#fmt:skip
 test-disable	    __test__ = False
 test-disable	__test__: bool = False
 test-disable	setattr(TestThing, "__test__", False)
+trufflehog-exclude-path	^tools/tests/test_kpi1_script\.py$

@@ -1,0 +1,7 @@
+# Reviewed exceptions only (tools/check_no_rigging.py: every line here is a suppression and needs a
+# tools/gates/suppressions-allowlist.toml entry with the commit and reason, same discipline as
+# .gitleaksignore). trufflehog's CLI has no per-commit allowlist, and its own inline per-line skip
+# comment only ever suppresses the *current* blob, never a frozen historical one -- so an exact,
+# anchored file path is the narrowest mechanism it supports for a finding whose source has already
+# been fixed forward. Never widen a line here to a directory or a glob; one entry names exactly one file.
+^tools/tests/test_kpi1_script\.py$

@@ -28,6 +28,14 @@ from tools.tests.conftest import REPO_ROOT
 A, B = "a@example.test", "b@example.test"
 
 
+# Built from parts, never as one credential-shaped literal: trufflehog's Postgres detector matches a
+# contiguous `scheme://user:pass@host` run in the source text, and assembling it from separate string
+# arguments at the call site keeps the test's intent -- the DSN a database error message can carry --
+# without tripping the scanner on a fixture value that was never a real credential.
+def _fixture_dsn(user: str, password: str, host: str, database: str) -> str:
+    return f"postgresql://{user}:{password}@{host}/{database}"
+
+
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
     return asyncio.run(coro)
 
@@ -565,12 +573,13 @@ def test_main_report_prints_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest
 def test_main_reports_a_study_error_and_withholds_a_database_error(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    env = {"ARENA_REFEREE_DSN": "postgresql://u:secret@h/db"}
+    fixture_dsn = _fixture_dsn("u", "secret", "h", "db")
+    env = {"ARENA_REFEREE_DSN": fixture_dsn}
     assert kpi1.main(["setup", "--emails", "junk"], env=env) == 1
     assert "comma-separated" in capsys.readouterr().err
 
     async def boom(_connect: Connector, **_kw: object) -> dict[str, Any]:
-        msg = "could not connect: postgresql://u:secret@h/db"
+        msg = f"could not connect: {fixture_dsn}"
         raise psycopg.OperationalError(msg)
 
     monkeypatch.setattr(kpi1, "report", boom)

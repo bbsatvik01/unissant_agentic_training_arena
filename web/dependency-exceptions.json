@@ -2,13 +2,6 @@
   "policy": "Every exception in pnpm-workspace.yaml to the release-age gate, the trust gate or normal resolution is listed here: one exact version, the reason with its evidence, the date the evidence was checked, and the date it must be re-decided (at most 92 days later). tools/dependency-exceptions.test.ts, part of pnpm check, fails when this file and pnpm-workspace.yaml disagree and from the expiry date on, until the exception is re-verified or removed.",
   "exceptions": [
     {
-      "setting": "minimumReleaseAgeExclude",
-      "spec": "source-map-js@1.2.2",
-      "reason": "Security release younger than the 14-day cooldown: 1.2.2 (published 2026-09-30 by 7rulnik, the sole maintainer, who also published 1.2.0 and 1.2.1) is the first patched version for GHSA-68fv-2mgg-jv7q (CVE-2026-93749, high: event-loop denial of service through indexed source-map section offsets; every version from 1.0.0 to 1.2.1 is affected). Reached through postcss (vite), @tailwindcss/node, css-tree (jsdom) and magicast (@vitest/coverage-v8). Unneeded once 1.2.2 is 14 days old: remove this entry and its pnpm-workspace.yaml line on the expiry date.",
-      "verified": "2026-10-08",
-      "expires": "2026-10-15"
-    },
-    {
       "setting": "overrides",
       "spec": "source-map-js@<1.2.2: 1.2.2",
       "reason": "Floor for the same advisory (GHSA-68fv-2mgg-jv7q): every dependent asks for ^1.2.1, so without the override a fresh resolution may keep the vulnerable 1.2.1, which pnpm audit then fails. Remove once no dependent can resolve below 1.2.2.",

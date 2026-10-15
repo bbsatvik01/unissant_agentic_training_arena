@@ -77,9 +77,10 @@ def test_main_fails_on_a_finding(tmp_path: Path) -> None:
     assert cq.main(["--root", str(root), "--out", str(tmp_path / "out"), "--language", "python"]) == 1
 
 
-# ---------------------------------------------------------------- --sarif: the CI path (Codex round 1, finding 6)
-# .github/workflows/codeql.yml validates the codeql-action SARIF with this same function, so CI cannot accept a
-# report the local gate rejects.
+# ---------------------------------------------------------------- --sarif: validate an existing report
+# CodeQL runs only locally (`make codeql`, inside `make sec-check`); there is no CI workflow producing a
+# codeql-action SARIF to validate. --sarif stays as a standalone capability, proven here, for a report
+# produced any other way -- it rejects anything the local gate itself would reject.
 def _write(tmp_path: Path, name: str, body: object) -> Path:
     path = tmp_path / name
     path.write_text(body if isinstance(body, str) else json.dumps(body))
