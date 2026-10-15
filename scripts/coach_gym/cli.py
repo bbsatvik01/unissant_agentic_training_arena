@@ -27,7 +27,7 @@ from typing import Literal
 
 from arena_core.agents.templates import REPO_ROOT
 from arena_core.coachgym import registry
-from arena_core.db.pool import dsn_connector
+from arena_core.db.pool import PooledConnector, dsn_connector
 from arena_core.providers.mode import FAKE, MODE_VAR, model_adapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
@@ -93,11 +93,27 @@ def _parser() -> argparse.ArgumentParser:
 def _run(args: argparse.Namespace, env: Mapping[str, str], root: Path) -> dict[str, object]:
     cap = budget(args.budget)
     adapter = model_adapter(env, canned=FAKE_GYM_REPLIES)
-    port = AgentPort(adapter, DbSpendGuard(dsn_connector(_dsn(env))), PortOptions())
     mode: Literal["fake", "vertex"] = "fake" if env.get(MODE_VAR, "").strip() == FAKE else "vertex"
     cfg = gym.RunConfig(run_id(), args.candidate, cap, mode, args.max_evals, val_size=args.val_size)
     phoenix = phoenix_from(env) if args.phoenix else None
-    return asyncio.run(gym.run_gym(cfg, port, root, phoenix)).model_dump(mode="json")
+    connect = PooledConnector(_dsn(env))  # several guard writes per call: one pool for the run
+
+    async def go() -> dict[str, object]:
+        try:
+            port = AgentPort(adapter, DbSpendGuard(connect), PortOptions())
+            return (await gym.run_gym(cfg, port, root, phoenix)).model_dump(mode="json")
+        finally:
+            await connect.close()
+
+    return asyncio.run(go())
+
+
+async def _dataset(dsn: str, root: Path, env: Mapping[str, str], phoenix: bool) -> dict[str, object]:
+    connect = PooledConnector(dsn)
+    try:
+        return await gym.build_dataset(connect, root, phoenix_from(env) if phoenix else None)
+    finally:
+        await connect.close()
 
 
 def _lessons(args: argparse.Namespace, root: Path) -> object:
@@ -117,8 +133,7 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     try:
         out: object
         if args.command == "dataset":
-            phoenix = phoenix_from(resolved) if args.phoenix else None
-            out = asyncio.run(gym.build_dataset(dsn_connector(_dsn(resolved)), root, phoenix))
+            out = asyncio.run(_dataset(_dsn(resolved), root, resolved, args.phoenix))
         elif args.command == "run":
             out = _run(args, resolved, root)
         elif args.command == "report":

@@ -52,7 +52,7 @@ from arena_core.coachgym.metric import (
     cheat_findings,
     promotion_verdict,
 )
-from arena_core.coachgym.playbook import CurateContext, Lesson, curate, render
+from arena_core.coachgym.playbook import CurateContext, Lesson, curate, render, rendered
 from arena_core.db import calls
 from arena_core.db.pool import Connector
 from arena_core.providers.port import AgentPort
@@ -206,7 +206,7 @@ class Champion:
     def load(cls, root: Path, candidate_id: str) -> Champion:
         event = registry.champion(root, candidate_id)
         prompts = load_prompts(registry.manifest_of(root, event), root)
-        approved = registry.approved_lessons(root, candidate_id)
+        approved = rendered(registry.approved_lessons(root, candidate_id))  # exactly the lessons the text shows
         playbook = render(approved) or components(prompts)[PLAYBOOK]
         return cls(
             event, prompts, approved, playbook, next_version(event.version, registry.taken_versions(root, candidate_id))

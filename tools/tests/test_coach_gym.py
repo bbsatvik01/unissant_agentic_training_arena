@@ -21,6 +21,7 @@ from arena_core.agents.manifests import committed_manifest, load_prompts
 from arena_core.coachgym import registry
 from arena_core.coachgym.candidate import components
 from arena_core.coachgym.examples import Example, build_examples, with_canaries
+from arena_core.db.pool import Connector
 from arena_core.providers.errors import BudgetRefusedError, ErrorKind, ProviderCallError
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
@@ -424,6 +425,23 @@ def test_cli_run_and_lesson_review_in_fake_mode(
     [pending] = registry.pending_view(root)
     assert cli.main(["lessons", "--reject", pending["lesson_id"], "--by", "owner"], env={}, root=root) == 0
     assert json.loads(capsys.readouterr().out) == {"lesson_id": pending["lesson_id"], "status": "rejected"}
+
+
+def test_cli_dataset_never_prints_the_reference_only_strings(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = gym_root(tmp_path)
+
+    async def build(_connect: Connector, at: Path, phoenix: object) -> dict[str, object]:
+        assert (at, phoenix) == (root, None)
+        return {"sha256": "c" * 64, "counts": {"train": 1}, "forbidden": ["C-7Q2MXK4D", "CANARY-1"]}
+
+    monkeypatch.setattr(gym, "build_dataset", build)
+    env = {"ARENA_REFEREE_DSN": "postgresql://unused.invalid/x"}
+    assert cli.main(["dataset"], env=env, root=root) == 0
+    out = capsys.readouterr().out
+    assert json.loads(out) == {"sha256": "c" * 64, "counts": {"train": 1}}
+    assert "C-7Q2MXK4D" not in out
 
 
 def test_fake_replies_are_schema_shaped() -> None:

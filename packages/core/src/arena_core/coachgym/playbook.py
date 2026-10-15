@@ -117,10 +117,15 @@ def curate(proposals: Sequence[Proposal], ctx: CurateContext) -> Curated:
     return Curated(accepted, refused)
 
 
+def rendered(lessons: Sequence[Lesson]) -> list[Lesson]:
+    """The lessons a playbook section shows: oldest first, at most `MAX_RENDERED`."""
+    return sorted(lessons, key=lambda lesson: (lesson.created_at, lesson.lesson_id))[:MAX_RENDERED]
+
+
 def render(lessons: Sequence[Lesson]) -> str:
-    """The playbook section of a coach prompt: the approved lessons, oldest first, at most `MAX_RENDERED`.
-    Empty text when there is no approved lesson (the version then carries no playbook file)."""
-    chosen = sorted(lessons, key=lambda lesson: (lesson.created_at, lesson.lesson_id))[:MAX_RENDERED]
+    """The playbook section of a coach prompt (`rendered(lessons)`). Empty text when there is no approved lesson
+    (the version then carries no playbook file)."""
+    chosen = rendered(lessons)
     if not chosen:
         return ""
     return PLAYBOOK_HEADER + "\n" + "".join(f"- {lesson.text}\n" for lesson in chosen)
