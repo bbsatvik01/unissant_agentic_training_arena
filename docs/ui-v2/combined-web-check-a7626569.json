@@ -1,0 +1,43 @@
+{
+  "checkpoint": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
+  "verified_at_utc": "2026-10-15T22:33:00Z",
+  "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38816243320/job/116701517231",
+  "conclusion": "success",
+  "command": "cd web && pnpm install --frozen-lockfile && pnpm check",
+  "gates": [
+    "all-project zero-warning lint (unchanged rules)",
+    "strict typecheck",
+    "tests",
+    "coverage with unchanged src/lib floor",
+    "production build"
+  ],
+  "normal": {
+    "suites": 246,
+    "passed": 2764
+  },
+  "coverage": {
+    "suites": 246,
+    "passed": 2764,
+    "statements": 97.88,
+    "branches": 95.9,
+    "functions": 99.12,
+    "lines": 99.23
+  },
+  "build_seconds": 2.44,
+  "raw_log_sha256": "59f0620b9830e59fbe852e4d1daf7703f5bc9697341c23d6bc2f13887cbf5f29",
+  "not_proven": [
+    "combined native browser audio/lips/video",
+    "dictation and Coach Lab staged packages",
+    "whole-session exact audiovisual replay",
+    "MacBook Air M5 sustained performance",
+    "PR-wide CI"
+  ],
+  "note": "Includes the committed audio-context lifecycle and same-turn speech queue repairs, scene recorder tooling and retained actual Studio/courtyard browser evidence. This green source gate does not establish audible browser speech or passing frame pacing.",
+  "db_check": {
+    "conclusion": "success",
+    "status": "completed",
+    "observed_at_utc": "2026-10-15T22:57:00Z",
+    "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38816243320/job/116701517163",
+    "completed_at_utc": "2026-10-15T22:42:43Z"
+  }
+}

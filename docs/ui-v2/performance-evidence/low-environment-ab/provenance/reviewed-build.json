@@ -1,0 +1,14 @@
+{
+  "qa": "/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z",
+  "baseCommit": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "packageManifestSha256": "aba878b8b40d693c38a8c4f6eeac8e9d08e25209e7ff02cbad191f1bdffd173b",
+  "sourceInventorySha256": "d53fe0a6ea06ca648918c7cff05c771058abc95b76c03c22655983848bca1cb0",
+  "webOnlyInventorySha256": "84af6b6d58bd47ae6304e6e25e3605a95fa90615899c87080ae2cad6b9951498",
+  "inventoryChange": "Only the exact pinned capability_matrix.csv runtime input row was appended; the preceding web inventory bytes retain their earlier hash.",
+  "buildInventorySha256": "8034650c1d847f3f59b7e74a6bf57635606c17a09f7a95de2c14666710cabfeb",
+  "testInputInventorySha256": "4de27de149eca782c310546c87355e42a2cc6d04ad9300dc65699241caa2ab8e",
+  "buildInputInventorySha256": "c1bf1e82c325fa6c179b167524e83d2002446058c3f2c715c40dbc8249364f37",
+  "theme": "Office default, not Studio",
+  "protocol": "one frozen production bundle; courtyard interior fixed camera; Low; 1440x900 device DPR1 actual expected .75; environment retain/omit; 60 s warmup and 60 s measure; no screenshots/video during timed interval",
+  "browser": "installed /usr/bin/chromium with explicit software-renderer diagnostic flag, no M5 claim"
+}

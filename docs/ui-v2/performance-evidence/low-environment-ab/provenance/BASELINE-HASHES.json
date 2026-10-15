@@ -1,0 +1,110 @@
+{
+  "baseCommit": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "successorNote": "Synthetic credential-URL fixture and shared finite SVG parser are parent-authored uncommitted successors; unchanged helper/test are prerequisites, not experiment edits. No genuine source edited.",
+  "files": [
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.environment.test.tsx",
+      "commitSha256": null,
+      "baselineSha256": null,
+      "candidateSha256": "49bc7e1c46ed09ad1294ea2770b33b1c9d68738eff184e426f69d8ba87251761",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": false
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "commitSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "baselineSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "candidateSha256": "f9b4a0ce19eda31a3b65271772881d5ee4962f89acbcb49041fd17df66ccff2c",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.test.tsx",
+      "commitSha256": null,
+      "baselineSha256": null,
+      "candidateSha256": "61a08d19ddd003a2750b5fa825551d5190e56a4f881d0172868997996e32ad0a",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": false
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.tsx",
+      "commitSha256": null,
+      "baselineSha256": null,
+      "candidateSha256": "81ea81aba7994d81736940b4b487e04afb613e4c5968967229da0a0ed2f1ccf5",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": false
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.test.ts",
+      "commitSha256": "d2c66622a02c53adb19008c85f454dde70ea836613fe2e0abacd39c4d49b643e",
+      "baselineSha256": "d2c66622a02c53adb19008c85f454dde70ea836613fe2e0abacd39c4d49b643e",
+      "candidateSha256": "b12f325d1a5a5aae26686720d991957dd601b6288a4ccd9c622e3f80e01af970",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.ts",
+      "commitSha256": "f9671e3dda45e5aba518742ebc3001f9f6168cd944a7d57d0a231d4efddc3120",
+      "baselineSha256": "f9671e3dda45e5aba518742ebc3001f9f6168cd944a7d57d0a231d4efddc3120",
+      "candidateSha256": "d8f126c048aca20954b0e5d3f459b3361da68cb627da9e25990c40635f63df6a",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.test.ts",
+      "commitSha256": null,
+      "baselineSha256": null,
+      "candidateSha256": "7304bcf0b83b82f31934613a09712ef8bfa843d5a1bb72012d9d882bd8b77b79",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": false
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.ts",
+      "commitSha256": null,
+      "baselineSha256": null,
+      "candidateSha256": "0fff56739b7f08aac402601cd979219fbfdb0747be93790ad78ba39ac6e1e7b6",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": false
+    },
+    {
+      "path": "web/src/routes/PrecinctRoute.tsx",
+      "commitSha256": "8ce479720680e56efc82e33053e858ce261eec62156d5a406f7a91ae6abd46da",
+      "baselineSha256": "8ce479720680e56efc82e33053e858ce261eec62156d5a406f7a91ae6abd46da",
+      "candidateSha256": "ddcd579a4404264bcfed77e94e7bcb0f18c2c8e638a39362b3dd290e1eed9350",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/tools/precinct-capture-position.test.ts",
+      "commitSha256": null,
+      "baselineSha256": "1081382eb4bb85cc1ff627e4cbd032b98ea95676bf0e6353d3cd9775f75a12d5",
+      "candidateSha256": "1081382eb4bb85cc1ff627e4cbd032b98ea95676bf0e6353d3cd9775f75a12d5",
+      "changedFromBaseline": false,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/tools/precinct-capture-position.ts",
+      "commitSha256": null,
+      "baselineSha256": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c",
+      "candidateSha256": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c",
+      "changedFromBaseline": false,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/tools/precinct-performance.test.ts",
+      "commitSha256": "710c075c01718dc1eb65d84e649247cd147d41a010cba886b33ca2782abebb72",
+      "baselineSha256": "6722ecf4d258fa711e9bfb40783a482ce6225dc28f5b1f76a9fc95db9f0a53b4",
+      "candidateSha256": "703ac9da47720b637fb48be1e5dff17b171e704e4763cdb2fe8e51f63b99c667",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    },
+    {
+      "path": "web/tools/precinct-performance.ts",
+      "commitSha256": "75d1414af8decd88947af29167af0a02132232abe88b3f2d7060cec5c1244d09",
+      "baselineSha256": "3877d93143746ec3544e47d556e59016973117b05f66f45edd8be51a696984f1",
+      "candidateSha256": "ba9d65e0778b1298a6474491718d7bc934cf39067d9de2d8ab5924ab2066cfe8",
+      "changedFromBaseline": true,
+      "baselineMatchesCurrentGenuine": true
+    }
+  ]
+}

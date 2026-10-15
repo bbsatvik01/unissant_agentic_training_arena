@@ -1,0 +1,16 @@
+[
+  {
+    "archive": "fixed-camera-instrumentation.patch.gz",
+    "sourceName": "fixed-camera-instrumentation.patch",
+    "uncompressedBytes": 20315,
+    "uncompressedSha256": "d9c2945734ac72ec187bcc69a1dd46d8cc539ffa29a8692ee4687429b8c64756",
+    "note": "Verbatim unified diff archived to preserve mandatory blank-context markers without introducing trailing-whitespace source changes. Expanded bytes were scanned with both pinned secret scanners before archiving; no findings."
+  },
+  {
+    "archive": "low-environment-render.patch.gz",
+    "sourceName": "low-environment-render.patch",
+    "uncompressedBytes": 28334,
+    "uncompressedSha256": "7e856bf402fea994370f52de5d340d1128c45e10621a593272465819f878fd70",
+    "note": "Verbatim unified diff archived to preserve mandatory blank-context markers without introducing trailing-whitespace source changes. Expanded bytes were scanned with both pinned secret scanners before archiving; no findings."
+  }
+]

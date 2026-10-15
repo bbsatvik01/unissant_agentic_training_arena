@@ -1,0 +1,990 @@
+{
+  "attempt": "native-20261015T222127Z-6a462072",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T222127Z-6a462072",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "runtimeDescription": "Accepted baseline plus explicitly reviewed committed-audio-lifecycle and same-turn-presentation overlays",
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "1f30558f2335b986d790cf34cdac648a158b6c440111b2ab7667b21e2980a840",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "runtimeOverlay": {
+        "web/src/routes/WorldRoute.tsx": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+        "web/src/routes/precinct/usePrecinctSession.ts": "d652a71b6cf9fb3772cdeaf6dccbf45dfc39f782b1e55ddca0e48a2a2b244125",
+        "web/src/routes/world/voiceEngines.ts": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+        "web/src/routes/world/useVoice.ts": "62305af62bb18b0c0d3f65daa39a985a04aca896b179e42e552af2fa8dea2e05"
+      },
+      "nativeLauncherSha256": "a047772c49915afa1aea02d04ab2d47f14f1993421199291d9c767a0aaadef84",
+      "recorderRevision": "3d",
+      "runtimeSource": "8eedd756 baseline plus four explicitly hashed audio lifecycle and same-turn presentation overlays; not pristine HEAD"
+    },
+    "strictGate": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "1f30558f2335b986d790cf34cdac648a158b6c440111b2ab7667b21e2980a840",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "runtimeOverlay": {
+        "web/src/routes/WorldRoute.tsx": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+        "web/src/routes/precinct/usePrecinctSession.ts": "d652a71b6cf9fb3772cdeaf6dccbf45dfc39f782b1e55ddca0e48a2a2b244125",
+        "web/src/routes/world/voiceEngines.ts": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+        "web/src/routes/world/useVoice.ts": "62305af62bb18b0c0d3f65daa39a985a04aca896b179e42e552af2fa8dea2e05"
+      },
+      "nativeLauncherSha256": "a047772c49915afa1aea02d04ab2d47f14f1993421199291d9c767a0aaadef84",
+      "recorderRevision": "3d",
+      "runtimeSource": "8eedd756 baseline plus four explicitly hashed audio lifecycle and same-turn presentation overlays; not pristine HEAD",
+      "appTypesExit": 0,
+      "typesExit": 0,
+      "lintExit": 0,
+      "status": "passed",
+      "checkedAt": "2026-10-15T22:19:54.350145+00:00",
+      "appTypesLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/app-types-overlay-3d.log",
+      "typesLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/tools-types-overlay-3d.log",
+      "lintLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/lint-overlay-3d.log",
+      "browserExecutedForThisRevision": false
+    },
+    "nativeTmp": "/tmp/arena-rec-vtpqxazh",
+    "vitePid": 8090,
+    "recorderPid": 8115,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 131.159
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual browser canvas plus actual page-owned Web Audio, captured together. Scene only: DOM controls/subtitles are excluded. Fixed authored unscored TEXT rehearsal; no AI, microphone, overdub or fabricated frames.",
+    "blocked": [],
+    "errors": [
+      "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 3\n+ Received  + 3\n\n  Object {\n-   \"active\": 1,\n-   \"ended\": 1,\n+   \"active\": 0,\n+   \"ended\": 0,\n    \"error\": null,\n-   \"starts\": 2,\n+   \"starts\": 0,\n  }\n\nCall Log:\n- Timeout 50000ms exceeded while waiting on the predicate\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toMatchObject (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at recordRehearsalScene (/workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:344:124)\n    at async file:///workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:487:104"
+    ],
+    "cleanupErrors": [],
+    "tts": [],
+    "recording": null,
+    "video": null,
+    "sha256": null,
+    "screenshots": [],
+    "voicedEvidence": "pending",
+    "overviews": [],
+    "audioOwnership": {
+      "beforeCapture": {
+        "observedContexts": 1,
+        "observedSources": 0,
+        "truncated": false,
+        "contexts": [
+          {
+            "id": 0,
+            "createdAtMs": 49178.89999999851,
+            "creator": "Error: Observed native AudioContext construction\n    at Object.construct (eval at evaluate (:311:30), <anonymous>:49:59)\n    at ctx (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:65:15)\n    at unlock (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:77:8)",
+            "state": "running",
+            "sampleRate": 44100,
+            "currentTime": 0.17124716553287983,
+            "outputTees": 0,
+            "sourceCount": 0,
+            "starts": 0,
+            "ended": 0,
+            "states": [
+              {
+                "atMs": 49178.89999999851,
+                "state": "running"
+              }
+            ]
+          }
+        ]
+      },
+      "afterPlayback": null,
+      "onFailure": {
+        "observedContexts": 1,
+        "observedSources": 0,
+        "truncated": false,
+        "contexts": [
+          {
+            "id": 0,
+            "createdAtMs": 49178.89999999851,
+            "creator": "Error: Observed native AudioContext construction\n    at Object.construct (eval at evaluate (:311:30), <anonymous>:49:59)\n    at ctx (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:65:15)\n    at unlock (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:77:8)",
+            "state": "running",
+            "sampleRate": 44100,
+            "currentTime": 51.742766439909296,
+            "outputTees": 0,
+            "sourceCount": 0,
+            "starts": 0,
+            "ended": 0,
+            "states": [
+              {
+                "atMs": 49178.89999999851,
+                "state": "running"
+              },
+              {
+                "atMs": 49351.19999999553,
+                "state": "running"
+              }
+            ]
+          }
+        ]
+      },
+      "afterDisposal": {
+        "observedContexts": 1,
+        "observedSources": 0,
+        "truncated": false,
+        "contexts": [
+          {
+            "id": 0,
+            "createdAtMs": 49178.89999999851,
+            "creator": "Error: Observed native AudioContext construction\n    at Object.construct (eval at evaluate (:311:30), <anonymous>:49:59)\n    at ctx (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:65:15)\n    at unlock (http://127.0.0.1:5184/src/routes/world/voiceEngines.ts:77:8)",
+            "state": "closed",
+            "sampleRate": 44100,
+            "currentTime": 55.41151927437642,
+            "outputTees": 0,
+            "sourceCount": 0,
+            "starts": 0,
+            "ended": 0,
+            "states": [
+              {
+                "atMs": 49178.89999999851,
+                "state": "running"
+              },
+              {
+                "atMs": 49351.19999999553,
+                "state": "running"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "failureDiagnostics": {
+      "uiState": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T222127Z-6a462072/capture/failure-ui-state.json",
+      "screenshot": null,
+      "errors": [
+        "page.screenshot: Timeout 5000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n\n    at recordRehearsalScene (/workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:472:68)\n    at async file:///workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:487:104"
+      ]
+    },
+    "mouthEvidence": {
+      "thresholds": {
+        "quietMouthMax": 1e-05,
+        "activeSignalMin": 0.0001,
+        "morphChangeMin": 0.01,
+        "minActiveFrames": 5,
+        "minChangedFramePairs": 2,
+        "settleMs": 5000
+      },
+      "quiet": [
+        {
+          "pageTimeMs": 49344.19999999553,
+          "audio": {
+            "contextCount": 1,
+            "starts": 0,
+            "ended": 0,
+            "active": 0,
+            "rms": 0,
+            "peak": 0,
+            "recording": false,
+            "error": null
+          },
+          "scene": {
+            "frame": 68,
+            "canvasWidth": 960,
+            "canvasHeight": 600,
+            "mouthMax": 0,
+            "morphCount": 49,
+            "speechMorphs": [
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              }
+            ],
+            "contextLost": false
+          }
+        },
+        {
+          "pageTimeMs": 49905.29999999702,
+          "audio": {
+            "contextCount": 1,
+            "starts": 0,
+            "ended": 0,
+            "active": 0,
+            "rms": 0,
+            "peak": 0,
+            "recording": false,
+            "error": null
+          },
+          "scene": {
+            "frame": 69,
+            "canvasWidth": 960,
+            "canvasHeight": 600,
+            "mouthMax": 0,
+            "morphCount": 49,
+            "speechMorphs": [
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              }
+            ],
+            "contextLost": false
+          }
+        },
+        {
+          "pageTimeMs": 50838.89999999851,
+          "audio": {
+            "contextCount": 1,
+            "starts": 0,
+            "ended": 0,
+            "active": 0,
+            "rms": 0,
+            "peak": 0,
+            "recording": false,
+            "error": null
+          },
+          "scene": {
+            "frame": 70,
+            "canvasWidth": 960,
+            "canvasHeight": 600,
+            "mouthMax": 0,
+            "morphCount": 49,
+            "speechMorphs": [
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "df565571-97b1-4b94-93a4-8d73ba4f970a",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "81937007-6e9a-430c-862a-0f45200b197f",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "0acaa33e-6c23-4d48-a906-4d75540ad1f6",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "e8461631-d9d9-42ce-9baf-570b250d6229",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "b777645a-5e58-4c55-92e2-18e7944058a0",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "21ac8a5b-e248-4a9c-b3c2-d92d24a633c4",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_10_aa",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_11_E",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_12_I",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_13_O",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_14_U",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AA_VI_07_SS",
+                "value": 0
+              },
+              {
+                "mesh": "ec419185-80b5-4e39-8b92-38ce247a3d55",
+                "name": "AK_25_JawOpen",
+                "value": 0
+              }
+            ],
+            "contextLost": false
+          }
+        }
+      ],
+      "active": [],
+      "changedFramePairs": [],
+      "settled": []
+    }
+  },
+  "accepted_audible_scene": false,
+  "confirmed_ownership_repair": "Exactly one native context observed, running before capture and closed after disposal; no TTS or source playback occurred."
+}

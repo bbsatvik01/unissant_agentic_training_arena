@@ -1,0 +1,102 @@
+{
+  "status": "source-only; unexecuted; pending exclusive lane and parent review",
+  "baseCommit": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "issue": "https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/19",
+  "files": [
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.environment.test.tsx",
+      "sha256": "49bc7e1c46ed09ad1294ea2770b33b1c9d68738eff184e426f69d8ba87251761",
+      "bytes": 2794
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "sha256": "f9b4a0ce19eda31a3b65271772881d5ee4962f89acbcb49041fd17df66ccff2c",
+      "bytes": 34144
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.test.tsx",
+      "sha256": "61a08d19ddd003a2750b5fa825551d5190e56a4f881d0172868997996e32ad0a",
+      "bytes": 5219
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.tsx",
+      "sha256": "81ea81aba7994d81736940b4b487e04afb613e4c5968967229da0a0ed2f1ccf5",
+      "bytes": 1689
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.test.ts",
+      "sha256": "b12f325d1a5a5aae26686720d991957dd601b6288a4ccd9c622e3f80e01af970",
+      "bytes": 1859
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.ts",
+      "sha256": "d8f126c048aca20954b0e5d3f459b3361da68cb627da9e25990c40635f63df6a",
+      "bytes": 3555
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.test.ts",
+      "sha256": "7304bcf0b83b82f31934613a09712ef8bfa843d5a1bb72012d9d882bd8b77b79",
+      "bytes": 1655
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.ts",
+      "sha256": "0fff56739b7f08aac402601cd979219fbfdb0747be93790ad78ba39ac6e1e7b6",
+      "bytes": 975
+    },
+    {
+      "path": "web/src/routes/PrecinctRoute.tsx",
+      "sha256": "ddcd579a4404264bcfed77e94e7bcb0f18c2c8e638a39362b3dd290e1eed9350",
+      "bytes": 58684
+    },
+    {
+      "path": "web/tools/precinct-capture-position.test.ts",
+      "sha256": "1081382eb4bb85cc1ff627e4cbd032b98ea95676bf0e6353d3cd9775f75a12d5",
+      "bytes": 879
+    },
+    {
+      "path": "web/tools/precinct-capture-position.ts",
+      "sha256": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c",
+      "bytes": 685
+    },
+    {
+      "path": "web/tools/precinct-performance.test.ts",
+      "sha256": "703ac9da47720b637fb48be1e5dff17b171e704e4763cdb2fe8e51f63b99c667",
+      "bytes": 7511
+    },
+    {
+      "path": "web/tools/precinct-performance.ts",
+      "sha256": "ba9d65e0778b1298a6474491718d7bc934cf39067d9de2d8ab5924ab2066cfe8",
+      "bytes": 25975
+    },
+    {
+      "path": "docs/ui-v2/LOW-ENVIRONMENT-EXPERIMENT.md",
+      "sha256": "a45e97fae0d176ab7319f89d3468153dde85671a069ffa41027b5b9f22f68fc3",
+      "bytes": 10674
+    },
+    {
+      "path": "docs/ui-v2/LOW-ENVIRONMENT-VALIDATION-SUCCESSOR.md",
+      "sha256": "089569d0de6fd82a7f8966e007e4b32bc61c1c345370e85593f26855691502d8",
+      "bytes": 887
+    },
+    {
+      "path": "patches/fixed-camera-instrumentation.patch",
+      "sha256": "d9c2945734ac72ec187bcc69a1dd46d8cc539ffa29a8692ee4687429b8c64756",
+      "bytes": 20315
+    },
+    {
+      "path": "patches/low-environment-render.patch",
+      "sha256": "7e856bf402fea994370f52de5d340d1128c45e10621a593272465819f878fd70",
+      "bytes": 28334
+    },
+    {
+      "path": "BASELINE-HASHES.json",
+      "sha256": "eb558790eafc6478358adb34fb1a0c5acf796d8ba4842dd6d074d6bfff28cadd",
+      "bytes": 5179
+    },
+    {
+      "path": "INTERPRETATION-INTEGRITY.json",
+      "sha256": "c190ea1e4eb53eb538f5a8e816df83c5341e7d7459b7d479c88b6385e4a6c542",
+      "bytes": 20924
+    }
+  ]
+}

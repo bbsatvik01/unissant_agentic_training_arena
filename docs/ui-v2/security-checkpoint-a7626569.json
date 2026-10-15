@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
+  "observedAtUtc": "2026-10-15T22:38:00Z",
+  "securityRun": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38816244058",
+  "gitleaks": {
+    "reportedFindings": 2,
+    "exactCurrentFingerprintsFromCiLog": null
+  },
+  "trufflehog": {
+    "verifiedFindings": 0,
+    "unverifiedFindings": 1,
+    "exactCurrentFingerprintFromCiLog": null
+  },
+  "dependency": {
+    "scope": "unchanged isolated Semgrep tooling environment",
+    "package": "mcp",
+    "version": "1.29.0",
+    "advisories": [
+      "CVE-2026-59951",
+      "GHSA-84m7-p3x7-pcfv"
+    ],
+    "reportedFixes": [
+      "1.30.0",
+      "2.2.0"
+    ],
+    "rootAuditPassed": true,
+    "toolingAuditPassed": false,
+    "osvPassed": false,
+    "licensesReached": false
+  },
+  "logs": {
+    "python": {
+      "bytes": 47588,
+      "sha256": "b55b0b7bbcb3c68aba56460690bef44b62476db7b8839683f27313919de59311"
+    },
+    "osv": {
+      "bytes": 29881,
+      "sha256": "7585b8579ab1951f6d5364cc17220571fa886f935f9c11c95f708ee3c9bdcc9e"
+    },
+    "gitleaks": {
+      "bytes": 18193,
+      "sha256": "a6d075340058d49ecb77df389d063e6fbfe0e21eec702370883a62cb11438c30"
+    },
+    "trufflehog": {
+      "bytes": 26141,
+      "sha256": "45314b121e57046a6ab0b6866565bed0b78e1752dcf72f9a2b65088cef5b862f"
+    }
+  },
+  "limitations": [
+    "Matching finding counts are not a fresh exact fingerprint reproduction.",
+    "The clean staged preflight does not clear historical findings.",
+    "No allowlist, root policy, dependency lock, workflow, backend, branch or history rewrite is performed.",
+    "No conclusion that the browser 3D runtime is exposed follows from this tooling dependency advisory."
+  ]
+}

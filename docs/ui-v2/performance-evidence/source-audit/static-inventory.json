@@ -1,0 +1,114 @@
+{
+  "sourceRevision": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
+  "collectedAtUtc": "2026-10-15T22:35:00Z",
+  "method": "Read GLB JSON chunks and authored JSON only. No rendering or runtime measurements. Triangle totals are primitive accessor counts, not visible-frame totals. Effective navigation adds runtime collision overlays.",
+  "avatars": [
+    {
+      "file": "web/public/avatars/Business_Female_01/avatar.glb",
+      "nodes": 83,
+      "primitives": 7,
+      "indexedTriangles": 8966,
+      "skinJointCounts": [
+        80
+      ],
+      "morphTargetCounts": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "file": "web/public/avatars/Business_Male_04/avatar.glb",
+      "nodes": 83,
+      "primitives": 11,
+      "indexedTriangles": 7326,
+      "skinJointCounts": [
+        80
+      ],
+      "morphTargetCounts": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "file": "web/public/avatars/Business_Male_06/avatar.glb",
+      "nodes": 83,
+      "primitives": 3,
+      "indexedTriangles": 6950,
+      "skinJointCounts": [
+        81
+      ],
+      "morphTargetCounts": [
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "file": "web/public/avatars/Business_Female_02/avatar.glb",
+      "nodes": 83,
+      "primitives": 12,
+      "indexedTriangles": 8640,
+      "skinJointCounts": [
+        80
+      ],
+      "morphTargetCounts": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "file": "web/public/avatars/Male_Adult_12/avatar.glb",
+      "nodes": 83,
+      "primitives": 7,
+      "indexedTriangles": 6722,
+      "skinJointCounts": [
+        80
+      ],
+      "morphTargetCounts": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ]
+    }
+  ],
+  "worlds": [
+    {
+      "file": "web/public/world/precinct-manifest.json",
+      "authoredColliders": 121,
+      "hotspots": 12
+    },
+    {
+      "file": "web/public/world/precinct-courtyard-manifest.json",
+      "authoredColliders": 196,
+      "hotspots": 12
+    }
+  ]
+}
