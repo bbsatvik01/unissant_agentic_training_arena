@@ -1,5 +1,19 @@
 # UI v2 implementation notes
 
+## 2026-10-15 18:42 UTC — published checkpoint and verified CI
+
+Ordinary additive pushes to `ui-v2` have resumed. Remote `1c874bc6ad85282a8010b314ceb3b94cab2b96e2` includes the previously local reception (`82dbfe0`), dossier/notebook (`a8c309d`) and interview/observation (`2fde24f`) checkpoints, the real silent preview report, and the isolated offline-recognition findings. Earlier dated notes saying those commits were local-only describe their status at that time. PR #9 remains draft and is not ready to merge.
+
+The complete unchanged web gate now passes in [CI for `1c874bc`](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38777913534/job/116570250669): lint, strict types, 123 suites / 1,799 tests in both ordinary and coverage runs, and production build. Coverage is 98.58% statements, 95.71% branches, 99.44% functions and 99.71% lines. This closes the published interview/observation web gate; the earlier local timing failures remain recorded and are not relabelled as successful. The stronger walkthrough harness passes strict tools types and zero-warning lint, but renewed runtime/video acceptance is pending.
+
+All 237 changed paths at this checkpoint remain inside the approved UI/docs/assets scope; generated contracts are unchanged. No current committed file exceeds 5 MiB (largest: 3,075,764-byte GLB). Historical oversized GLB blobs remain in Git history and still prevent a clean `push-clean` result. The owner decision about a clean replacement branch is separate and still pending; no history rewrite, force push, main push or merge has occurred.
+
+All checks for that source commit are terminal: web, database, title, TruffleHog, OSV and the Python security/license job pass. Python stops at the historical asset cap before its tests. Gitleaks reports one reviewed false positive: `generic-api-key` at `web/src/lib/precinct/npcVisitMemory.ts:8`, introduced by `82dbfe0`. The value is a public localStorage namespace used only by getItem/setItem/removeItem for opt-in visit memory, not an authentication secret. The pinned scanner reproduced exactly one finding locally. No scanner/configuration exemption or history rewrite was made. See [CI and security diagnosis](CI-CHECKPOINT-1c874bc.md).
+
+Studio/stations/reviewer/voice/capture, courtyard variants and scene-context updates are still separately staged and undergoing combined validation. Their source/package checks do not mean the published application includes them. See [the measured synthetic recognition proof](OFFLINE-RECOGNITION-PROOF.md), [current acceptance gaps](ACCEPTANCE-GAPS.md) and issues #12–#18 for the remaining work.
+
+The owner's current performance target is a smooth 60 FPS production demo on a MacBook Air M5, including bounded Retina drawing-buffer cost and sustained navigation. Actual M5 hardware remains untested. Production profiling must report frame-time percentiles, actual draw calls/triangles, long tasks and measurable input latency; screenshots and compressed download size do not establish that target.
+
 ## 2026-10-15 — slice 01, precinct shell and movement
 
 Issue: https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/7

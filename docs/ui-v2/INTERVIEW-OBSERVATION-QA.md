@@ -1,6 +1,6 @@
-# Slice-four verification in progress
+# Slice-four verification
 
-Updated 2026-10-15. This is not yet the verified playable checkpoint. The preceding complete checkpoint is slice three, local commit a8c309d.
+Updated 2026-10-15 18:42 UTC. Published source `1c874bc` now passes the complete unchanged web gate in CI: 123 suites / 1,799 tests in both runs, lint, strict types, coverage and production build. Coverage is 98.58% statements, 95.71% branches, 99.44% functions and 99.71% lines. [Exact CI result](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38777913534/job/116570250669). The 14/14 browser checks below apply to the slice-four application source. Later staged Studio/courtyard/replay/audio changes are not included. PR-wide checks remain blocked by historical assets and a reviewed gitleaks false positive; see [diagnosis](CI-CHECKPOINT-1c874bc.md). Earlier failed attempts are retained below as history.
 
 ## Focused evidence
 
@@ -16,13 +16,13 @@ No timeout, assertion, lint rule, isolation rule or coverage floor changed. Focu
 - Local scripted service: 21/21 tests, strict app/tools types and zero-warning lint passed at 13:05 UTC. Owned process import/shutdown tests passed unchanged; see LOCAL_MOCK_QA.md.
 - A direct all-station geometry audit found the observation shortcut outside interaction range. Its landing point now stays clear of furniture and reaches the actual hotspot; a ten-station regression covers walkability and correct nearest interaction.
 
-## Still required
+## Requirements at the earlier local checkpoint
 
 The combined source still needs a successful complete lint/types/tests/coverage/build gate. Actual local scripted-mock interaction and genuine recorded-run playback subsequently passed the browser acceptance below at 1440×900 and 1920×1080. No audio/microphone, hardware-GPU frame rate, dynamic crowd or complete live exact replay is claimed by this slice.
 
 Integrated corrections before the next browser attempt: app typecheck passed; four focused suites (paper, station geometry, station reads, interview route) passed 31/31. The initial station-read test selected a nonexistent event in a known recording; it now selects the genuine completed trial.status frame. Two async test blocks were corrected to await their held response microtask. At 14:01 UTC, touched-source zero-warning lint and four focused visual-model suites passed 30/30, including the static paper mipmap option. A first polish lint run caught an unnecessary assignment in the smoke and was corrected without suppressing the rule. Full combined acceptance remains pending.
 
-## Actual browser acceptance — passed, full app gate pending
+## Actual browser acceptance — passed
 
 The corrected 14:02–14:19 UTC run passed all 14 grouped checks, seven at each requested resolution. Ten final images and four physical-scene audit images were visually reviewed. Actual local HTTP/SSE verified explicit acknowledgement, fresh practice/session IDs, preparation carry, call/sit/leave, seven typed questions, evidence thresholds and explicit presentation/citation drafts, a genuine submitted finding and its own unscored authored debrief. Separate genuine recorded-run playback verified one coach card, four synchronized projections, expansion/focus return and a Canvas monitor click. Pending and active fresh assessment withheld coaching after recorded review.
 
