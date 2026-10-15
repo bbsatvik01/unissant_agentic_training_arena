@@ -93,6 +93,19 @@ improve it, e.g. TalkingHead-style visemes). NPCs move with navmesh pathfinding 
 Ready Player Me is discontinued (Jan 2026): do not use it. Every asset you add must be open-licensed and
 listed in `ATTRIBUTIONS.md` with its licence.
 
+## Building your own assets (you have your own computer: use it)
+
+You can and should use desktop tools to make the world look real: Blender (bpy scripting or the GUI) to
+model the precinct rooms, props and furniture, to create, rig, retarget and animate characters (faces with
+viseme/ARKit blendshapes for lip sync), and to bake lighting and textures; image and texture tools for
+materials and signage; Unity or Unreal only as an authoring aid if it helps (bake, retarget, capture), never
+as the runtime: the shipped app stays web (React + three.js). Export to glTF/GLB with Draco or Meshopt
+compression and KTX2 textures, LODs for background characters, and keep the scene within a laptop budget.
+Commit the source files you author (e.g. `.blend`) under `assets-src/` and the exported runtime assets
+under `web/public/`; use Git LFS for any file over 25 MB. Everything you create or download must be
+original or open-licensed for commercial use and listed in `ATTRIBUTIONS.md`. Characters are fictional:
+never base a face or voice on a real person.
+
 ## Tech you may use (your choice; these are suggestions)
 
 React 19 + TypeScript strict + Vite (existing `web/`), three.js, @react-three/fiber, drei, @react-three/rapier,
