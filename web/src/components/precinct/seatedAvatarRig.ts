@@ -5,7 +5,7 @@ import {
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
-import { SEATED_PELVIS, seatedLeg } from "../../lib/precinct/interviewStage";
+import { SEATED_PELVIS, seatedLeg } from "../../lib/precinct/proceduralSeatedV1";
 import type { Vec3 } from "../../lib/precinct/types";
 import type { Weights } from "../../lib/world/audioLips";
 import { VISEMES } from "../../lib/world/visemes";

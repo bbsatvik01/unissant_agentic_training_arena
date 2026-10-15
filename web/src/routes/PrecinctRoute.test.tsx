@@ -61,7 +61,7 @@ async function choosePublicCase() {
   act(() => { canvas().onInteract("case_board"); });
   const card = CASES.find((item) => item.case_id === RECORDED_CASE_ID);
   if (card === undefined) throw new Error("Expected the public offline case");
-  fireEvent.click(screen.getByRole("button", { name: `Select ${card.title}` }));
+  fireEvent.click(screen.getByRole("button", { name: "Select case" }));
   await screen.findByText("Your public packet is ready at your desk.");
   fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 }
@@ -238,7 +238,7 @@ describe("PrecinctRoute renderer fallback", () => {
     vi.mocked(PrecinctCanvas).mockImplementation(() => { throw new Error("Simulated unavailable WebGL context"); });
     try {
       render(<MemoryRouter><PrecinctRoute /></MemoryRouter>);
-      expect(await screen.findByRole("status")).toHaveProperty("textContent", "3D rendering is unavailable on this device. Use the map or number keys to visit each station.");
+      expect(await screen.findByRole("status", { name: "Rendering status" })).toHaveProperty("textContent", "3D rendering is unavailable on this device. Use the map or number keys to visit each station.");
       expect(screen.getByRole("img", { name: "Original precinct lobby preview" })).toBeTruthy();
       expect(screen.queryByTestId("precinct-renderer")).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Enter the precinct" }));
@@ -400,7 +400,7 @@ describe("PrecinctRoute desk integration", () => {
     expect(screen.getByRole("button", { name: "Case file reviewed" }).hasAttribute("disabled")).toBe(true);
   });
 
-  it("refuses to invent an unavailable offline packet and does not leak notes when switching back", async () => {
+  it("keeps unavailable offline cases as previews and isolates notes across an explicit recording handoff", async () => {
     await enter(true);
     await choosePublicCase();
     act(() => { canvas().onInteract("personal_dossier"); });
@@ -409,16 +409,25 @@ describe("PrecinctRoute desk integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add note" }));
     fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
     act(() => { canvas().onInteract("case_board"); });
-    const other = CASES.find((item) => item.case_id !== RECORDED_CASE_ID);
-    if (other === undefined) throw new Error("Expected another public case");
-    fireEvent.click(screen.getByRole("button", { name: `Select ${other.title}` }));
+    const previews = screen.getAllByRole("button", { name: "Session unavailable" });
+    expect(previews.every((button) => button.hasAttribute("disabled"))).toBe(true);
+    const preview = previews[0]; if (preview === undefined) throw new Error("Expected another public case preview");
+    fireEvent.click(preview);
+    expect(screen.getByRole("button", { name: "Selected case" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
     act(() => { canvas().onInteract("personal_dossier"); });
-    expect(screen.getByRole("region", { name: "Desk packet status" })).toBeTruthy();
-    expect(screen.queryByRole("tab", { name: /Notebook/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Mark case file reviewed" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Choose a case at the board" }));
-    expect(screen.getByRole("dialog", { name: "Case board" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    expect(screen.getByText("Only belongs to the first preparation workspace.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => { canvas().onInteract("archive"); });
+    fireEvent.click(screen.getByRole("button", { name: "Load Recorded coached interview · Gemini" }));
+    await screen.findByText("64d80602-285e-4373-b8e8-12427af0c454");
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => { canvas().onInteract("personal_dossier"); });
+    fireEvent.click(await screen.findByRole("tab", { name: /Notebook/ }));
+    expect(screen.queryByText("Only belongs to the first preparation workspace.")).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "New note" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Mark case file reviewed" }).hasAttribute("disabled")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
     await choosePublicCase();
     act(() => { canvas().onInteract("personal_dossier"); });

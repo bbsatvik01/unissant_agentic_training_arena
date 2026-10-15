@@ -20,6 +20,7 @@ export function ObservationStationPanel({ frame, assessment, onExpandMonitor, on
     {safeFrame.assessment ? <p className="precinct-interview-boundary">Assessment: coaching activity and content are withheld.</p> : null}
     <div className="precinct-observation-grid">{WORK_STYLES.map((style) => <AgentWorkMonitor key={style} frame={safeFrame} style={style} size="thumbnail" onExpand={() => { onExpandMonitor(style); }} />)}</div>
     <button type="button" className="precinct-secondary" onClick={onReturnToInterview}>Return to interview room</button>
+    <p className="precinct-note">The fictional review colleague represents public review activity. A blank slip marks publication only; it never signals a score or finding. Assessment review presence stays withheld until the current run ends and its debrief is published.</p>
     <p className="precinct-note">Activity represents public work and turn timing. Nervousness, demeanor, accent and stress are never evidence.</p>
     <p className="precinct-interview-ground-rule">{EX4_TEXT}</p>
   </section>;

@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "generator": {
+    "name": "eSpeak NG",
+    "version": "1.52.0",
+    "debian_version": "1.52.0+dfsg-5",
+    "method": "native formant synthesis",
+    "license": "GPL-3.0-or-later",
+    "source_url": "https://github.com/espeak-ng/espeak-ng",
+    "runtime_bundled": false
+  },
+  "clips": [
+    {
+      "id": "receptionist-introduction",
+      "voice_id": "local-reception-v1",
+      "text": "Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "url": "/audio/staff-v1/receptionist-introduction.wav",
+      "sha256": "fbe0970affac62c715337633a2e8d73b2761e7ba2247d70807ef926c686320aa",
+      "bytes": 278058,
+      "duration_seconds": 6.304172335600907,
+      "sample_rate": 22050,
+      "peak": 0.94549560546875,
+      "rms": 0.11201521360732607,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-welcome",
+      "voice_id": "local-reception-v1",
+      "text": "Welcome. Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "url": "/audio/staff-v1/receptionist-welcome.wav",
+      "sha256": "145dfac48f664abdf4a3d672565ae8585cbd8164190b8502afb55cfe6244228a",
+      "bytes": 319796,
+      "duration_seconds": 7.250612244897959,
+      "sample_rate": 22050,
+      "peak": 0.94561767578125,
+      "rms": 0.10956646347725071,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-return",
+      "voice_id": "local-reception-v1",
+      "text": "Good to see you again. Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "url": "/audio/staff-v1/receptionist-return.wav",
+      "sha256": "453ff38bef8859eab774182bdc818aaf830f1a677a45815c00fb707f13bbed34",
+      "bytes": 348694,
+      "duration_seconds": 7.905895691609977,
+      "sample_rate": 22050,
+      "peak": 0.998626708984375,
+      "rms": 0.11395372304739296,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-redirect",
+      "voice_id": "local-reception-v1",
+      "text": "I can help with directions and interviewing technique, not case-specific answers. Ask one neutral question at a time, distinguish observations from interpretations, and check claims against available evidence.",
+      "url": "/audio/staff-v1/receptionist-redirect.wav",
+      "sha256": "efe1e1b53f441de8371d140381e571404db0200f7da01f5c1c685e66eee16020",
+      "bytes": 621066,
+      "duration_seconds": 14.082131519274377,
+      "sample_rate": 22050,
+      "peak": 0.99676513671875,
+      "rms": 0.11349979872035701,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-cases",
+      "voice_id": "local-reception-v1",
+      "text": "The case board is on the east side of the lobby, opposite reception. Choose a training case there, then review the public dossier at your desk.",
+      "url": "/audio/staff-v1/receptionist-cases.wav",
+      "sha256": "6f9bc28a90146be9ab8d4078b8d11bb6b4bf626828c76d84c26afdb7ea35ce30",
+      "bytes": 392914,
+      "duration_seconds": 8.908616780045351,
+      "sample_rate": 22050,
+      "peak": 0.998291015625,
+      "rms": 0.12457180582446277,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-desk",
+      "voice_id": "local-reception-v1",
+      "text": "Head north along the central corridor. Your dossier desk is the second room on the left, after the open office.",
+      "url": "/audio/staff-v1/receptionist-desk.wav",
+      "sha256": "f931a876aa6fc103264005e6b67c492f58c7debb31d0b7e92e711d1807492c2b",
+      "bytes": 316480,
+      "duration_seconds": 7.175419501133787,
+      "sample_rate": 22050,
+      "peak": 0.966522216796875,
+      "rms": 0.1261131580651562,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-briefing",
+      "voice_id": "local-reception-v1",
+      "text": "The training sergeant is inside Briefing, toward the north end of the corridor on the left.",
+      "url": "/audio/staff-v1/receptionist-briefing.wav",
+      "sha256": "dea3e30d5fa9a165dd9a8138584bf2ff8dd220169441b3e3e6e34abc24c54425",
+      "bytes": 240802,
+      "duration_seconds": 5.459365079365079,
+      "sample_rate": 22050,
+      "peak": 0.99871826171875,
+      "rms": 0.12912396372125418,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-interview",
+      "voice_id": "local-reception-v1",
+      "text": "The interview room is the first room on the right as you enter the central corridor. Review your briefing and the public material before starting.",
+      "url": "/audio/staff-v1/receptionist-interview.wav",
+      "sha256": "3ee0caa5dfd83030a66acd727852c55a2261ca4299f9c24da2dea5c72882465c",
+      "bytes": 365420,
+      "duration_seconds": 8.285170068027211,
+      "sample_rate": 22050,
+      "peak": 0.9984130859375,
+      "rms": 0.12097830686550716,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-replay",
+      "voice_id": "local-reception-v1",
+      "text": "Debrief and replay is the third room on the right. Use your recorded session and the available evidence when you review it.",
+      "url": "/audio/staff-v1/receptionist-replay.wav",
+      "sha256": "ad63736f70a78106c9ceba84eab83252ca565158f15a7d856be848729d66763a",
+      "bytes": 309164,
+      "duration_seconds": 7.0095238095238095,
+      "sample_rate": 22050,
+      "peak": 0.997833251953125,
+      "rms": 0.11663712981874208,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-leaderboard",
+      "voice_id": "local-reception-v1",
+      "text": "The recognition wall is at the north end of the central corridor. Check eligibility gates before reading a tournament rank. A rank is not certification for real investigations.",
+      "url": "/audio/staff-v1/receptionist-leaderboard.wav",
+      "sha256": "6a75bef27dab05a6c653c95381bb55b7532a6d7cdb8f5f8e80a3aaa49210d365",
+      "bytes": 493570,
+      "duration_seconds": 11.191065759637189,
+      "sample_rate": 22050,
+      "peak": 0.993896484375,
+      "rms": 0.12222674583075722,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-archive",
+      "voice_id": "local-reception-v1",
+      "text": "The records office is at the north end on your right. It is the place for past recordings, training resources and methodology.",
+      "url": "/audio/staff-v1/receptionist-archive.wav",
+      "sha256": "9ab39e18620b905776e58d76758baaf60eedeeff686454d499983c58866c3813",
+      "bytes": 353210,
+      "duration_seconds": 8.008299319727891,
+      "sample_rate": 22050,
+      "peak": 0.9967041015625,
+      "rms": 0.12301848470966678,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "receptionist-access",
+      "voice_id": "local-reception-v1",
+      "text": "Yes. The station menu is another way to reach the same rooms. Use the pause and reduced-motion controls whenever they make the training more comfortable.",
+      "url": "/audio/staff-v1/receptionist-access.wav",
+      "sha256": "d275c9e294cc5f0be8b2c1bb4f59b8988096afd4b0bcbe4f477b74c893d6c7c9",
+      "bytes": 437594,
+      "duration_seconds": 9.921768707482993,
+      "sample_rate": 22050,
+      "peak": 0.99554443359375,
+      "rms": 0.11577649867680907,
+      "settings": {
+        "voice": "en-us",
+        "words_per_minute": 155,
+        "pitch": 55,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-introduction",
+      "voice_id": "local-sergeant-v1",
+      "text": "We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "url": "/audio/staff-v1/sergeant-introduction.wav",
+      "sha256": "1bd6378984191fbf7c3e5f0fd829fc42b2bf48b7c068d8c2263b6cb6022db34f",
+      "bytes": 384892,
+      "duration_seconds": 8.72671201814059,
+      "sample_rate": 22050,
+      "peak": 0.99737548828125,
+      "rms": 0.11304535104941373,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-welcome",
+      "voice_id": "local-sergeant-v1",
+      "text": "Welcome. We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "url": "/audio/staff-v1/sergeant-welcome.wav",
+      "sha256": "fb69da3e642763eb63fa2c8f1e26f24e19c8fef0e27fa5cf22ba31ecc652bbe0",
+      "bytes": 427004,
+      "duration_seconds": 9.681632653061225,
+      "sample_rate": 22050,
+      "peak": 0.998687744140625,
+      "rms": 0.1105552557015598,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-return",
+      "voice_id": "local-sergeant-v1",
+      "text": "Good to see you again. We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "url": "/audio/staff-v1/sergeant-return.wav",
+      "sha256": "2c1ce3ebc8fec8eb0adae0c1f69ed342a4ff0eb4b67ee91d757ad7d717f35472",
+      "bytes": 457542,
+      "duration_seconds": 10.374104308390022,
+      "sample_rate": 22050,
+      "peak": 0.999237060546875,
+      "rms": 0.11286365774804027,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-redirect",
+      "voice_id": "local-sergeant-v1",
+      "text": "I can help with directions and interviewing technique, not case-specific answers. Ask one neutral question at a time, distinguish observations from interpretations, and check claims against available evidence.",
+      "url": "/audio/staff-v1/sergeant-redirect.wav",
+      "sha256": "f291746082d26922693ccfc56b4f8483d1747c0c48cc3a593c4361f457529ad1",
+      "bytes": 649074,
+      "duration_seconds": 14.717233560090703,
+      "sample_rate": 22050,
+      "peak": 0.9986572265625,
+      "rms": 0.1130659208820178,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-opening",
+      "voice_id": "local-sergeant-v1",
+      "text": "Start with an invitation such as, “Please walk me through what you remember, from the beginning.” Give the person room to answer before narrowing the question.",
+      "url": "/audio/staff-v1/sergeant-opening.wav",
+      "sha256": "3455ac577efa5854276dd6ecf0683a8aa768bddec35533f7396a412ad04ddf75",
+      "bytes": 449078,
+      "duration_seconds": 10.182176870748298,
+      "sample_rate": 22050,
+      "peak": 0.961395263671875,
+      "rms": 0.11623228055753464,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-clarify",
+      "voice_id": "local-sergeant-v1",
+      "text": "Ask one neutral question at a time. Separate what the person directly observed from what they heard, inferred, or do not remember. Do not fill in missing details for them.",
+      "url": "/audio/staff-v1/sergeant-clarify.wav",
+      "sha256": "74669b58abaf04259539982654ce3fa61649832fbd0c0cb6a368ed8338a7aa09",
+      "bytes": 510472,
+      "duration_seconds": 11.574331065759637,
+      "sample_rate": 22050,
+      "peak": 0.996734619140625,
+      "rms": 0.11459534844674263,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-evidence",
+      "voice_id": "local-sergeant-v1",
+      "text": "Keep observations, statements, and your interpretations separate. Check a claim against the available records or corroborating information, and record uncertainty when support is incomplete.",
+      "url": "/audio/staff-v1/sergeant-evidence.wav",
+      "sha256": "c6fcef4d37122219802836ca27d7c1df773f87b9ac5dca0f26a10d47618e3712",
+      "bytes": 581426,
+      "duration_seconds": 13.183265306122449,
+      "sample_rate": 22050,
+      "peak": 0.998931884765625,
+      "rms": 0.10945411808017003,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-demeanor",
+      "voice_id": "local-sergeant-v1",
+      "text": "Do not treat accent, pauses, stress, nervousness, eye contact, or appearance as evidence of truth or deception. Use the content of statements and independently checkable information.",
+      "url": "/audio/staff-v1/sergeant-demeanor.wav",
+      "sha256": "9f04dc3fa2348c4f32c14580faded4525910bf07c9378d264e25661f4201bcb6",
+      "bytes": 592564,
+      "duration_seconds": 13.435827664399094,
+      "sample_rate": 22050,
+      "peak": 0.997528076171875,
+      "rms": 0.1084048084891201,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-disagreement",
+      "voice_id": "local-sergeant-v1",
+      "text": "Describe the specific difference without assuming why it happened. Ask for clarification, check the source, and keep alternative explanations open until evidence supports a conclusion.",
+      "url": "/audio/staff-v1/sergeant-disagreement.wav",
+      "sha256": "6bc5fbe6cdaccf9882477d1fd6d6ededde27190db4605940968865f7d724e754",
+      "bytes": 554214,
+      "duration_seconds": 12.566213151927437,
+      "sample_rate": 22050,
+      "peak": 0.999176025390625,
+      "rms": 0.12135327437912263,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-limits",
+      "voice_id": "local-sergeant-v1",
+      "text": "This is a synthetic training exercise. Use the public briefing and authorized material, respect the exercise limits, and avoid pressure or promises. I cannot identify a culprit, reveal hidden facts, or evaluate your case.",
+      "url": "/audio/staff-v1/sergeant-limits.wav",
+      "sha256": "dabfba3cd9b2cdd3bed0bafb5597de6162dca063162075631fd696e7461b4409",
+      "bytes": 712616,
+      "duration_seconds": 16.15809523809524,
+      "sample_rate": 22050,
+      "peak": 0.999359130859375,
+      "rms": 0.11808134204921487,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    },
+    {
+      "id": "sergeant-review",
+      "voice_id": "local-sergeant-v1",
+      "text": "Review the questions you asked, what each answer actually supported, and what remains uncertain. Use the replay room to find specific moments you can improve.",
+      "url": "/audio/staff-v1/sergeant-review.wav",
+      "sha256": "ccb1274a0cd48433dbbf089dca47c0ebbcf9296c1110409f47a64351b6ce91e8",
+      "bytes": 476360,
+      "duration_seconds": 10.800816326530612,
+      "sample_rate": 22050,
+      "peak": 0.999298095703125,
+      "rms": 0.11446875627204924,
+      "settings": {
+        "voice": "en-gb",
+        "words_per_minute": 148,
+        "pitch": 38,
+        "amplitude": 135
+      }
+    }
+  ]
+}

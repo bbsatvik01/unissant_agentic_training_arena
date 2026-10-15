@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { DossierSourceRef } from "../../lib/precinct/dossier";
 import type { PrecinctSession } from "../../routes/precinct/usePrecinctSession";
 import type { PrecinctNotebook } from "../../routes/precinct/usePrecinctNotebook";
@@ -10,6 +10,7 @@ export interface PrecinctDeskPanelProps {
   readonly session: DeskSession;
   readonly notebook: PrecinctNotebook;
   readonly reviewed: boolean;
+  readonly recordedNotebook?: ReactNode;
   readonly onReviewed: () => void;
   readonly onChooseCase: () => void;
   readonly onUiEvent: (event: DossierUiEvent) => void;
@@ -17,7 +18,7 @@ export interface PrecinctDeskPanelProps {
 }
 
 /** Content only. The existing route retains the single dialog and movement/focus ownership. */
-export function PrecinctDeskPanel({ session, notebook, reviewed, onReviewed, onChooseCase, onUiEvent, onPresentEvidence }: PrecinctDeskPanelProps) {
+export function PrecinctDeskPanel({ session, notebook, reviewed, recordedNotebook, onReviewed, onChooseCase, onUiEvent, onPresentEvidence }: PrecinctDeskPanelProps) {
   const [carryError, setCarryError] = useState<string | null>(null);
   const { packet, packetState, selectedCase, released } = session;
   const ready = packetState === "ready" && packet !== null && packet.case_id === selectedCase?.case_id;
@@ -33,7 +34,7 @@ export function PrecinctDeskPanel({ session, notebook, reviewed, onReviewed, onC
       if (result.ok) { setCarryError(null); onUiEvent({ type: "notebook.carry", document: result.document }); }
       else setCarryError(result.error);
     }}>Carry preparation notes into this run</button><button type="button" className="precinct-secondary" onClick={notebook.discardPreparation}>Discard preparation note offer</button>{carryError === null ? null : <p role="alert">{carryError}</p>}</section> : null}
-    <DossierPanel key={notebook.key} packet={packet} released={released} notebook={notebook.snapshot} notebookActions={notebook.actions} notebookReadOnly={notebook.readOnly} onUiEvent={onUiEvent} {...(notebook.readOnly || onPresentEvidence === undefined ? {} : { onPresentEvidence })} />
+    <DossierPanel key={notebook.key} packet={packet} released={released} notebook={notebook.snapshot} notebookActions={notebook.actions} notebookReadOnly={notebook.readOnly} {...(recordedNotebook === undefined ? {} : { recordedNotebook })} onUiEvent={onUiEvent} {...(notebook.readOnly || onPresentEvidence === undefined ? {} : { onPresentEvidence })} />
     <section className="precinct-desk-review" aria-label="Case file review">
       <div><strong>Ready for the next step?</strong><p>Confirm when you have reviewed the public file. Reading pages or writing notes does not complete an interview or finding.</p></div>
       <button type="button" className="precinct-primary" disabled={reviewed || notebook.readOnly} onClick={onReviewed}>{reviewed ? "Case file reviewed" : "Mark case file reviewed"}</button>

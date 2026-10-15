@@ -170,7 +170,7 @@ describe("precinct runtime composition", () => {
     await act(async () => { await result.current.loadBundledRecording(); });
     const id = result.current.recordingTrialId;
     await act(async () => { await result.current.importRecording(fileWith(() => Promise.resolve("{"))); });
-    expect(result.current.recordingError).toBe("That file is not JSON."); expect(result.current.recordingTrialId).toBe(id);
+    expect(result.current.recordingError).toBe("Recording refused: recording: could not read a valid JSON file"); expect(result.current.recordingTrialId).toBe(id);
     await act(async () => { await result.current.importRecording(fileWith(() => Promise.resolve('{"format":"wrong"}'))); });
     expect(result.current.recordingError).toContain("Recording refused"); expect(result.current.recordingTrialId).toBe(id);
   });

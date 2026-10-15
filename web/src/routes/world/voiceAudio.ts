@@ -43,61 +43,85 @@ export async function openVoiceAudio(hooks: VoiceAudioHooks): Promise<VoiceAudio
   } catch {
     throw new MicrophoneRefusedError("The microphone is not available.");
   }
-  const capture = new AudioContext({ sampleRate: 16_000 });
-  const playback = new AudioContext({ sampleRate: 24_000 });
-  await Promise.all([capture.audioWorklet.addModule("/worklets/capture-processor.js"), playback.audioWorklet.addModule("/worklets/playback-processor.js")]);
-  // Chrome may start a context suspended until a gesture; the consent click was one.
-  await Promise.all([capture.resume(), playback.resume()]);
-
-  const source = capture.createMediaStreamSource(stream);
-  const micAnalyser = capture.createAnalyser();
-  micAnalyser.fftSize = 512;
-  source.connect(micAnalyser);
-  const tap = new AudioWorkletNode(capture, "arena-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
-  const mute = capture.createGain();
-  mute.gain.value = 0;
-  source.connect(tap).connect(mute).connect(capture.destination);
-  tap.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; level: number }>) => {
-    hooks.onFrame(e.data.pcm, e.data.level);
-  };
-
-  const player = new AudioWorkletNode(playback, "arena-playback", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
-  const analyser = playback.createAnalyser();
-  analyser.fftSize = 512;
-  player.connect(analyser).connect(playback.destination);
-  const ledger = new PlaybackLedger();
-  player.port.onmessage = (e: MessageEvent<PlaybackReport>) => {
-    const audible = ledger.report(e.data);
-    if (audible !== undefined) hooks.onPlayback(audible);
-  };
-
+  // Ownership begins immediately after getUserMedia resolves. Every subsequent failure releases it.
+  let capture: AudioContext | null = null;
+  let playback: AudioContext | null = null;
+  let tap: AudioWorkletNode | null = null;
+  let player: AudioWorkletNode | null = null;
+  const captureNodes: AudioNode[] = [];
+  const playbackNodes: AudioNode[] = [];
   let captureOn = true;
+  let closed = false;
+  const closeContext = (context: AudioContext | null) => {
+    try { if (context !== null) void context.close().catch(() => undefined); }
+    catch { /* Continue releasing other resources even if a partial context rejects close. */ }
+  };
+  const disconnect = (nodes: readonly AudioNode[]) => {
+    for (const node of nodes) { try { node.disconnect(); } catch { /* Already detached. */ } }
+  };
+  const closePort = (node: AudioWorkletNode | null) => {
+    if (node === null) return;
+    node.port.onmessage = null;
+    try { node.port.close(); } catch { /* Continue releasing the context. */ }
+  };
   const stopCapture = () => {
     if (!captureOn) return;
     captureOn = false;
-    tap.port.onmessage = null;
-    for (const track of stream.getTracks()) track.stop();
-    void capture.close().catch(() => undefined);
+    // End permission-bearing capture first, even when a later node/port/context cleanup fails.
+    for (const track of stream.getTracks()) { try { track.stop(); } catch { /* Stop every track. */ } }
+    closePort(tap); disconnect(captureNodes); closeContext(capture);
   };
-  return {
-    play(utterance, pcm) {
-      const ints = new Int16Array(pcm);
-      const floats = new Float32Array(ints.length);
-      for (let i = 0; i < ints.length; i += 1) floats[i] = (ints[i] ?? 0) / 0x8000;
-      ledger.post();
-      player.port.postMessage({ type: "chunk", utterance, samples: floats }, [floats.buffer]);
-    },
-    flush() {
-      player.port.postMessage({ type: "flush" });
-    },
-    busy: () => ledger.busy,
-    playbackAnalyser: analyser,
-    micAnalyser,
-    stopCapture,
-    close() {
-      stopCapture();
-      player.port.onmessage = null;
-      void playback.close().catch(() => undefined);
-    },
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    stopCapture(); closePort(player); disconnect(playbackNodes); closeContext(playback);
   };
+  try {
+    capture = new AudioContext({ sampleRate: 16_000 });
+    playback = new AudioContext({ sampleRate: 24_000 });
+    await Promise.all([capture.audioWorklet.addModule("/worklets/capture-processor.js"), playback.audioWorklet.addModule("/worklets/playback-processor.js")]);
+    await Promise.all([capture.resume(), playback.resume()]);
+    const source = capture.createMediaStreamSource(stream); captureNodes.push(source);
+    const micAnalyser = capture.createAnalyser(); captureNodes.push(micAnalyser);
+    micAnalyser.fftSize = 512;
+    source.connect(micAnalyser);
+    const captureTap = new AudioWorkletNode(capture, "arena-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+    tap = captureTap; captureNodes.push(captureTap);
+    const mute = capture.createGain(); captureNodes.push(mute);
+    mute.gain.value = 0;
+    source.connect(captureTap).connect(mute).connect(capture.destination);
+    captureTap.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; level: number }>) => {
+      if (captureOn) hooks.onFrame(e.data.pcm, e.data.level);
+    };
+    const playbackPlayer = new AudioWorkletNode(playback, "arena-playback", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
+    player = playbackPlayer; playbackNodes.push(playbackPlayer);
+    const analyser = playback.createAnalyser(); playbackNodes.push(analyser);
+    analyser.fftSize = 512;
+    playbackPlayer.connect(analyser).connect(playback.destination);
+    const ledger = new PlaybackLedger();
+    playbackPlayer.port.onmessage = (e: MessageEvent<PlaybackReport>) => {
+      if (closed) return;
+      const audible = ledger.report(e.data);
+      if (audible !== undefined) hooks.onPlayback(audible);
+    };
+    return {
+      play(utterance, pcm) {
+        if (closed) return;
+        const ints = new Int16Array(pcm);
+        const floats = new Float32Array(ints.length);
+        for (let i = 0; i < ints.length; i += 1) floats[i] = (ints[i] ?? 0) / 0x8000;
+        ledger.post();
+        playbackPlayer.port.postMessage({ type: "chunk", utterance, samples: floats }, [floats.buffer]);
+      },
+      flush() { if (!closed) playbackPlayer.port.postMessage({ type: "flush" }); },
+      busy: () => !closed && ledger.busy,
+      playbackAnalyser: analyser,
+      micAnalyser,
+      stopCapture,
+      close,
+    };
+  } catch (error) {
+    close();
+    throw error;
+  }
 }

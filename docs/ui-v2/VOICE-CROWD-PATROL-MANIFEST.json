@@ -1,0 +1,190 @@
+{
+  "status": "SOURCE ONLY; all QA for this combined addendum UNRUN",
+  "issue_url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/16",
+  "basis": "Finalized voice Canvas/Staff plus unchanged crowd and patrol-v2 packages on slice-five",
+  "qa": {
+    "new_controls_tests": "4 authored, UNRUN",
+    "all_tests": "UNRUN for addendum",
+    "types": "UNRUN",
+    "lint": "UNRUN",
+    "browser": "UNRUN",
+    "build": "UNRUN",
+    "coverage": "UNRUN"
+  },
+  "frozen_voice_manifest_sha256": "81d33c699a5a0c44b84be7116741606fb6996ff4aa8aa93c016dd4db5e4e01f4",
+  "frozen_voice_sha256sums_sha256": "57702f939f60b504852a49a0ba582d8ddb54e3f9c3fb89dfabf237e9f722579f",
+  "files": [
+    {
+      "path": "web/src/components/precinct/PrecinctActorReplay.test.tsx",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-slice-five-integration",
+      "base_sha256": "911547a38f88c33e59b810f91dd4e34d0e981b4c5dc3ba364de10f2e6c9c0d38",
+      "sha256": "51a043fae523bfa18427d349e550eff05b5167aa7bbebd9c9d60206dff3d6790",
+      "bytes": 4559,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "51a043fae523bfa18427d349e550eff05b5167aa7bbebd9c9d60206dff3d6790",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctActorReplay.tsx",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-slice-five-integration",
+      "base_sha256": "867947e4675504f6f3e8f65b73e891ccd9e02900ee4425af13c2fc0d4b0c1b73",
+      "sha256": "0942bbde511d6ac54a99f234fc9fac7c68d7a4c03c79cadaad147f179b79f7f8",
+      "bytes": 1765,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "0942bbde511d6ac54a99f234fc9fac7c68d7a4c03c79cadaad147f179b79f7f8",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-local-voice-next",
+      "base_sha256": "459e9303f8b7ea557ea45f452b5f95ca95c07b771c55b43b40ed1b8341b9410c",
+      "sha256": "0dfa37331473d8feb240d114d2990564755c0296517927b2620b6dcd74f21746",
+      "bytes": 32033,
+      "upstream_root": null,
+      "upstream_sha256": null,
+      "upstream_byte_identical": null
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctControls.crowd.test.tsx",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "fbe247b6e4cf1bf02b0ac9470be5cf9d8cb1a4bf64122bf95461d41a470e6464",
+      "bytes": 6479,
+      "upstream_root": null,
+      "upstream_sha256": null,
+      "upstream_byte_identical": null
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctStaff.tsx",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-local-voice-next",
+      "base_sha256": "dc15ef29f138939016fa65954c10eaab61e52f113a9e42c796b5cff6a7d39422",
+      "sha256": "5ca4c04b669f4ad1607b3dd74d6bfb6ed412c672097376fa3546fac059303cd4",
+      "bytes": 9216,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "9014102ffc62c48af97532505dded32ebd165a0b070cb1f14d688316400828e4",
+      "upstream_byte_identical": false
+    },
+    {
+      "path": "web/src/components/precinct/patrolBodyV2.test.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "3cfb321bad5cfb6decbb2e7cbb9ab479f214011e8f398cf4aedbd5e3c0d96696",
+      "bytes": 5093,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "3cfb321bad5cfb6decbb2e7cbb9ab479f214011e8f398cf4aedbd5e3c0d96696",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/components/precinct/patrolBodyV2.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+      "bytes": 1356,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/components/precinct/proceduralActorReplay.test.ts",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-slice-five-integration",
+      "base_sha256": "3d49407be7f3c14fbf510e0bf22b25fce584f53c9b9538a0355959f1ea862cda",
+      "sha256": "8f110db4ee8b6d3c77cbc29f143ca1e0531151fd7af355c78e900284125295b8",
+      "bytes": 9418,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "8f110db4ee8b6d3c77cbc29f143ca1e0531151fd7af355c78e900284125295b8",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/crowdNavigation.test.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "c448691b53cb33c5e5b5933e7fcacadcbdc321653d8a284b8b5fb52a0f572cbb",
+      "bytes": 13607,
+      "upstream_root": "/workspace/shared/precinct-crowd-next",
+      "upstream_sha256": "c448691b53cb33c5e5b5933e7fcacadcbdc321653d8a284b8b5fb52a0f572cbb",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/crowdNavigation.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "94f7415ff4a7b70474829c4bd6109d3dcee35e90561537b028272fa4712c8cad",
+      "bytes": 15313,
+      "upstream_root": "/workspace/shared/precinct-crowd-next",
+      "upstream_sha256": "94f7415ff4a7b70474829c4bd6109d3dcee35e90561537b028272fa4712c8cad",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralActors.ts",
+      "action": "modify",
+      "base_root": "/workspace/shared/precinct-slice-five-integration",
+      "base_sha256": "6c648a7bc4351767ee5d703df3761e3f195f5d8373a0fc52e80d698fb369c152",
+      "sha256": "8e7ddf4909535e471360e163d2a85f80238cc4339800d1538a599796e973b22e",
+      "bytes": 7766,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "8e7ddf4909535e471360e163d2a85f80238cc4339800d1538a599796e973b22e",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralPatrolV2.test.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "4fa12495e5fddd51ebb38b0a5c2912e8bb0fa8e7f6ba09491c517f5d17293c4d",
+      "bytes": 4167,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "4fa12495e5fddd51ebb38b0a5c2912e8bb0fa8e7f6ba09491c517f5d17293c4d",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralPatrolV2.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+      "bytes": 2799,
+      "upstream_root": "/workspace/shared/precinct-patrol-v2-next",
+      "upstream_sha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/staffCrowd.test.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "25c0530cc02ca315142ab2a4d49f74867a363e862daad1b1756357de1bc8dda2",
+      "bytes": 4461,
+      "upstream_root": "/workspace/shared/precinct-crowd-next",
+      "upstream_sha256": "25c0530cc02ca315142ab2a4d49f74867a363e862daad1b1756357de1bc8dda2",
+      "upstream_byte_identical": true
+    },
+    {
+      "path": "web/src/lib/precinct/staffCrowd.ts",
+      "action": "add",
+      "base_root": null,
+      "base_sha256": null,
+      "sha256": "a007a93a8185203f504042952d833841c2291bf74ca6fe436399fefe06adb958",
+      "bytes": 2152,
+      "upstream_root": "/workspace/shared/precinct-crowd-next",
+      "upstream_sha256": "a007a93a8185203f504042952d833841c2291bf74ca6fe436399fefe06adb958",
+      "upstream_byte_identical": true
+    }
+  ],
+  "unchanged_v1_baseline": {
+    "web/src/lib/precinct/proceduralStaffV1.ts": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+    "web/src/lib/precinct/proceduralWalkingV1.ts": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+    "web/src/lib/precinct/proceduralSeatedV1.ts": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+    "web/src/components/precinct/standingAvatarRigV1.ts": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c"
+  },
+  "separate_reviewer_owner": "/workspace/shared/precinct-review-panel-next; preserve additive registry/replay/Canvas changes during final merge"
+}

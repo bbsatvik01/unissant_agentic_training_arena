@@ -1,0 +1,9 @@
+
+ RUN  v5.0.1 /workspace/shared/precinct-local-voice-qa/web
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:23:36
+   Duration  10.27s (environment 49%, tests 34%, transform 12%, import 6%)
+

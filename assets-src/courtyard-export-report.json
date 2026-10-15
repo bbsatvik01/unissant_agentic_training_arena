@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "variantId": "northstar-courtyard-v1",
+  "asset": "precinct-courtyard.glb",
+  "sourceFile": "assets-src/northstar-precinct-courtyard.blend",
+  "manifestFile": "web/public/world/precinct-courtyard-manifest.json",
+  "sourceSha256": "a6260bed9a30b9931daed9738c183457a63df9b86842921c0177fab770f356c9",
+  "runtimeSha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+  "manifestSha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+  "uncompressedRuntimeSha256": "a8e972c6cbe3d8fb529cb270063eea8f7121695d363c496fde813674e3ba1a14",
+  "decodedBinarySha256": "a438d3340602693609c89501f7af0990cf1ae43bc4da8151edd379ca2f7d8af2",
+  "baselineSourceSha256": "06b48bf734e22a47f21caa8c5a1e6b1505586b42c5fa3c6b0f347e0ec2c942a5",
+  "baselineManifestSha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+  "losslessGeometryVerified": true,
+  "originalModuleObjectsPreserved": 1960,
+  "runtimeBytes": 3167788,
+  "sourceBytes": 1652324,
+  "triangles": 121656,
+  "actualRendererValidated": false,
+  "note": "Hashes identify the final compressed runtime and its matching final manifest. Browser acceptance is separate."
+}

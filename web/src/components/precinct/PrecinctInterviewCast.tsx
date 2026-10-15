@@ -1,22 +1,23 @@
-/** Seated cast only: mount inside the precinct's existing Canvas, beside Architecture. */
+/** Seated cast only: one Canvas, finite public personas and exact procedural body replay. */
 import { useFrame, useLoader } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
-import { Mesh, TextureLoader } from "three";
+import { Mesh, TextureLoader, type Group } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-
+import { audibleMouth, castBudget, type InterviewCastState } from "../../lib/precinct/interviewStage";
 import {
-  audibleMouth, castBudget, INVESTIGATOR_EYES, INVESTIGATOR_SEAT, OBSERVATION_SEATS,
-  seatedMotion, SUBJECT_EYES, SUBJECT_SEAT, type InterviewCastState, type SeatAnchor,
-} from "../../lib/precinct/interviewStage";
-import type { CameraMode, Vec3 } from "../../lib/precinct/types";
+  bodyPoseV1, INVESTIGATOR_V1, publicSubjectV1, SEATED_ACTORS_V1, seatedClip,
+  type ActorCapture, type BodyPose, type SeatedActorV1,
+} from "../../lib/precinct/proceduralActors";
+import type { CameraMode } from "../../lib/precinct/types";
 import { audioMouth, type Weights } from "../../lib/world/audioLips";
-import { COACHES, INVESTIGATOR, seedOf, subjectPersona, type Persona } from "../../lib/world/cast";
 import type { Tier } from "../../lib/world/quality";
-import type { FigurePose } from "../../lib/world/worldState";
+import type { PoseData } from "../../lib/world/worldEvents";
+import { applyActorRoot } from "./actorSamples";
 import { prepareSeatedRig, seatedResources, seatedTextureUrls } from "./seatedAvatarRig";
+import { applySeatedBodyV1 } from "./seatedBodyV1";
+import { useActorSampler } from "./useActorSampler";
 
 export interface PrecinctInterviewCastProps {
-  /** Explicit allow-list from projectInterviewCast; never pass the whole trial/recording/debrief. */
   readonly state: InterviewCastState | null;
   readonly subjectName: string;
   readonly clock: RefObject<number>;
@@ -25,78 +26,75 @@ export interface PrecinctInterviewCastProps {
   readonly tier: Tier;
   readonly view: CameraMode;
   readonly present: boolean;
-  /** Use "observation" while walking there so first-person never hides the distant investigator. */
+  readonly investigatorPresent?: boolean;
   readonly location?: "interview" | "observation";
-  /** Only decoded speech audio/supplied audio-aligned visemes. Null leaves the mouth closed. */
   readonly readMouth?: (voiceKey: string) => Weights | null;
+  readonly actorCapture?: ActorCapture;
 }
-
-interface SeatedFigureProps {
-  readonly persona: Persona;
-  readonly name: string;
-  readonly seat: SeatAnchor;
-  readonly gaze: Vec3;
-  readonly pose: FigurePose | "typing";
+export interface SeatedFigureProps {
+  readonly actor: SeatedActorV1;
+  readonly pose: BodyPose;
   readonly clock: RefObject<number>;
   readonly still: boolean;
   readonly tier: Tier;
+  readonly visible?: boolean;
   readonly readMouth: (voiceKey: string) => Weights | null;
+  readonly actorCapture?: ActorCapture;
+  readonly recorded?: PoseData;
 }
-
-function SeatedFigure(props: SeatedFigureProps) {
-  const gltf = useLoader(GLTFLoader, `/avatars/${props.persona.avatar}/avatar.glb`);
-  const textures = useLoader(TextureLoader, seatedTextureUrls(props.persona.avatar));
-  const resources = useMemo(() => seatedResources(gltf.scene, textures, props.persona.avatar), [gltf.scene, textures, props.persona.avatar]);
+export function SeatedFigure(props: SeatedFigureProps) {
+  const avatar = props.actor.avatar;
+  const gltf = useLoader(GLTFLoader, `/avatars/${avatar}/avatar.glb`);
+  const textures = useLoader(TextureLoader, seatedTextureUrls(avatar));
+  const resources = useMemo(() => seatedResources(gltf.scene, textures, avatar), [gltf.scene, textures, avatar]);
   const rig = useMemo(() => prepareSeatedRig(resources.scene), [resources]);
-  const budget = castBudget(props.tier);
-  const phase = useMemo(() => seedOf(props.name), [props.name]);
+  const root = useRef<Group>(null);
   const elapsed = useRef(Infinity);
-  const live = useRef({ rig, props, phase, budget });
-  useEffect(() => { live.current = { rig, props, phase, budget }; elapsed.current = Infinity; }, [rig, props, phase, budget]);
+  const captureElapsed = useRef(0);
+  const budget = castBudget(props.tier);
+  const sampler = useActorSampler(props.recorded === undefined ? props.actorCapture : undefined, props.actor.actorId);
+  const live = useRef(props);
+  useEffect(() => { live.current = props; elapsed.current = Infinity; }, [props]);
   useEffect(() => () => { resources.dispose(); }, [resources]);
   useEffect(() => {
     resources.scene.traverse((object) => { if (object instanceof Mesh) { object.castShadow = budget.shadows; object.receiveShadow = budget.shadows; } });
   }, [resources, budget.shadows]);
   useFrame((_frame, delta) => {
+    if (root.current === null) return;
     const current = live.current;
-    elapsed.current += Number.isFinite(delta) ? Math.max(0, delta) : 0;
-    if (elapsed.current < current.budget.frameSeconds) return;
+    const step = Number.isFinite(delta) ? Math.max(0, delta) : 0;
+    elapsed.current += step; captureElapsed.current += step;
+    // Replayed samples are applied immediately, including paused seeks; time never accumulates.
+    if (current.recorded === undefined && elapsed.current < budget.frameSeconds) return;
     elapsed.current = 0;
-    const { persona, clock, still, pose, gaze, readMouth } = current.props;
-    const motion = seatedMotion(clock.current, current.phase, pose, still, persona.gesture);
-    current.rig.reset();
-    current.rig.rotate("Bip01_Spine2", "pitch", Math.max(-0.12, Math.min(0.12, persona.lean)) + motion.breath);
-    current.rig.rotate("Bip01_Head", "roll", Math.max(-0.08, Math.min(0.08, persona.headTilt)));
-    current.rig.look(gaze);
-    current.rig.rotate("Bip01_Head", "pitch", motion.head);
-    current.rig.rotate("Bip01_L_Forearm", "pitch", motion.hands);
-    current.rig.rotate("Bip01_R_Forearm", "pitch", -motion.hands);
-    current.rig.face(audibleMouth(still ? null : readMouth(persona.voice.gemini), still), motion.blink);
-  });
-  return <group name={`precinct-cast:${props.name}`} position={props.seat.position} rotation={[0, props.seat.facing, 0]}>
+    const seconds = current.recorded?.animation.time ?? Math.max(0, current.clock.current) / 1000;
+    if (current.recorded !== undefined) applyActorRoot(root.current, current.recorded);
+    const mouth = current.recorded === undefined ? audibleMouth(current.still ? null : current.readMouth(current.actor.voiceKey), current.still) : {};
+    applySeatedBodyV1(rig, current.actor, current.pose, seconds, current.still, mouth);
+    if (current.recorded === undefined) sampler.current?.sample(root.current, seatedClip(current.actor, current.pose, current.still), seconds, captureElapsed.current);
+    captureElapsed.current = 0;
+  }, -1);
+  return <group ref={root} name={`precinct-cast:${props.actor.name}`} position={props.actor.position} rotation={[0, props.actor.facing, 0]} visible={props.visible ?? true}>
     <primitive object={resources.scene} dispose={null} />
   </group>;
 }
-
-export function PrecinctInterviewCast({ state, subjectName, clock, paused, reducedMotion, tier, view, present, location = "interview", readMouth = audioMouth.weightsFor }: PrecinctInterviewCastProps) {
+export function PrecinctInterviewCast({ state, subjectName, clock, paused, reducedMotion, tier, view, present, investigatorPresent = true, location = "interview", readMouth = audioMouth.weightsFor, actorCapture }: PrecinctInterviewCastProps) {
   if (!present) return null;
   const still = paused || reducedMotion;
   const investigatorVisible = location === "observation" || view === "third" || (view === "free" && paused);
-  const shared = { clock, still, tier, readMouth };
+  const shared = { clock, still, tier, readMouth, ...(actorCapture === undefined ? {} : { actorCapture }) };
+  const subject = publicSubjectV1(subjectName);
   return <group name="precinct-interview-cast">
-    <Suspense fallback={null}>
-      <SeatedFigure {...shared} persona={subjectPersona(subjectName)} name={subjectName} seat={SUBJECT_SEAT} gaze={INVESTIGATOR_EYES} pose={state?.subject.pose ?? "idle"} />
-    </Suspense>
-    {investigatorVisible ? <Suspense fallback={null}>
-      <SeatedFigure {...shared} persona={INVESTIGATOR} name="Investigator" seat={INVESTIGATOR_SEAT} gaze={SUBJECT_EYES} pose={state?.investigator.speech == null ? "listening" : "speaking"} />
+    {subject === undefined ? null : <Suspense fallback={null}>
+      <SeatedFigure {...shared} actor={subject} pose={bodyPoseV1(state?.subject.pose ?? "idle")} />
+    </Suspense>}
+    {investigatorPresent && (investigatorVisible || actorCapture !== undefined) ? <Suspense fallback={null}>
+      <SeatedFigure {...shared} actor={INVESTIGATOR_V1} visible={investigatorVisible} pose={state?.investigator.speech == null ? "listening" : "speaking"} />
     </Suspense> : null}
-    {state?.mode !== "practice" ? null : COACHES.map((persona) => {
-      const coach = state.coaches.find((entry) => entry.desk === persona.desk);
-      if (coach === undefined) return null;
-      const seat = OBSERVATION_SEATS[coach.desk];
-      const gaze: Vec3 = coach.pose === "typing" || coach.pose === "thinking" ? [seat.position[0], 0.9, -16.7] : SUBJECT_EYES;
-      return <Suspense key={persona.desk} fallback={null}>
-        <SeatedFigure {...shared} persona={persona} name={persona.name} seat={seat} gaze={gaze} pose={coach.pose} />
+    {state?.mode !== "practice" ? null : SEATED_ACTORS_V1.filter((actor) => actor.kind === "coach").map((actor) => {
+      const coach = state.coaches.find((entry) => entry.desk === actor.desk);
+      return coach === undefined ? null : <Suspense key={actor.actorId} fallback={null}>
+        <SeatedFigure {...shared} actor={actor} pose={bodyPoseV1(coach.pose)} />
       </Suspense>;
     })}
   </group>;

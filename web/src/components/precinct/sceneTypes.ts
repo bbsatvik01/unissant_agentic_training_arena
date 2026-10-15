@@ -1,3 +1,4 @@
+import type { WorldVariantMetadata } from "../../lib/precinct/worldVariant";
 import type { Collider, Hotspot, NavigationNode, Vec3 } from "../../lib/precinct/types";
 
 export interface PrecinctRoom {
@@ -8,7 +9,7 @@ export interface PrecinctRoom {
   readonly max?: Vec3;
 }
 
-export interface PrecinctManifest {
+export interface PrecinctManifest extends WorldVariantMetadata {
   readonly colliders: readonly Collider[];
   readonly hotspots: readonly Hotspot[];
   readonly navigationNodes: readonly NavigationNode[];

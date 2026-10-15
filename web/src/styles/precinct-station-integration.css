@@ -1,0 +1,10 @@
+/* Content-only integration, inside the existing scrollable native precinct dialog. */
+.training-station-navigation { display: flex; flex-wrap: wrap; gap: .45rem; margin-block: 1.2rem; padding-top: 1rem; border-top: 1px solid #72837855; }
+.training-station-navigation button { border: 1px solid #6e8075; border-radius: .2rem; background: #f4f4e8; color: #173e35; padding: .55rem .7rem; font: inherit; cursor: pointer; }
+.training-station-navigation button[aria-current="page"] { background: #173e35; color: #fffef2; }
+.training-session-select { display: grid; gap: .4rem; margin-block: 1rem; font-weight: 600; }
+.training-session-select select { min-width: 0; width: 100%; padding: .6rem; font: inherit; background: #fffef2; color: #173e35; border: 1px solid #6e8075; }
+.bundled-tape-shelf h4 { margin-block: .3rem; }
+.high-contrast .training-station-navigation button, .high-contrast .training-session-select select { background: #fff; color: #111; border: 2px solid #111; }
+.high-contrast .training-station-navigation button[aria-current="page"] { background: #111; color: #fff; }
+@media (forced-colors: active) { .training-station-navigation button, .training-session-select select { border: 1px solid ButtonText; } .training-station-navigation button[aria-current="page"] { outline: 2px solid Highlight; } }

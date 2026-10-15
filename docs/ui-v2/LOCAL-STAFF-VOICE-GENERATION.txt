@@ -1,0 +1,24 @@
+receptionist-introduction: 6.304 s, 278058 bytes, RMS 0.11202
+receptionist-welcome: 7.251 s, 319796 bytes, RMS 0.10957
+receptionist-return: 7.906 s, 348694 bytes, RMS 0.11395
+receptionist-redirect: 14.082 s, 621066 bytes, RMS 0.11350
+receptionist-cases: 8.909 s, 392914 bytes, RMS 0.12457
+receptionist-desk: 7.175 s, 316480 bytes, RMS 0.12611
+receptionist-briefing: 5.459 s, 240802 bytes, RMS 0.12912
+receptionist-interview: 8.285 s, 365420 bytes, RMS 0.12098
+receptionist-replay: 7.010 s, 309164 bytes, RMS 0.11664
+receptionist-leaderboard: 11.191 s, 493570 bytes, RMS 0.12223
+receptionist-archive: 8.008 s, 353210 bytes, RMS 0.12302
+receptionist-access: 9.922 s, 437594 bytes, RMS 0.11578
+sergeant-introduction: 8.727 s, 384892 bytes, RMS 0.11305
+sergeant-welcome: 9.682 s, 427004 bytes, RMS 0.11056
+sergeant-return: 10.374 s, 457542 bytes, RMS 0.11286
+sergeant-redirect: 14.717 s, 649074 bytes, RMS 0.11307
+sergeant-opening: 10.182 s, 449078 bytes, RMS 0.11623
+sergeant-clarify: 11.574 s, 510472 bytes, RMS 0.11460
+sergeant-evidence: 13.183 s, 581426 bytes, RMS 0.10945
+sergeant-demeanor: 13.436 s, 592564 bytes, RMS 0.10840
+sergeant-disagreement: 12.566 s, 554214 bytes, RMS 0.12135
+sergeant-limits: 16.158 s, 712616 bytes, RMS 0.11808
+sergeant-review: 10.801 s, 476360 bytes, RMS 0.11447
+Wrote 23 exact clips to /workspace/shared/precinct-local-voice-next/web/src/lib/precinct/localStaffVoiceManifest.json

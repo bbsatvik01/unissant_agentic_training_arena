@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { SnapshotRelease } from "../../lib/contracts/generated/types";
 import { EX4_TEXT } from "../../lib/copy/ex4";
 import { dossierSources, dossierTimeline, sourceKey, type DossierSource, type DossierSourceRef } from "../../lib/precinct/dossier";
@@ -30,6 +30,7 @@ export interface DossierPanelProps {
   readonly notebookActions: NotebookActions;
   /** V1 playback has no notebook event history; never mount a working/device notebook in replay. */
   readonly notebookReadOnly?: boolean;
+  readonly recordedNotebook?: ReactNode;
   readonly onUiEvent: (event: DossierUiEvent) => void;
   /** Optional world affordance. Only already-public sources can be presented. */
   readonly onPresentEvidence?: (source: DossierSourceRef) => void;
@@ -129,7 +130,7 @@ function Notebook({ snapshot, actions, sources, onUiEvent, onOpenSource }: {
 }
 
 /** Dialog CONTENT only. The parent owns modal focus, Escape, movement suppression, and lifecycle. */
-export function DossierPanel({ packet, released, notebook, notebookActions, notebookReadOnly = false, onUiEvent, onPresentEvidence }: DossierPanelProps) {
+export function DossierPanel({ packet, released, notebook, notebookActions, notebookReadOnly = false, recordedNotebook, onUiEvent, onPresentEvidence }: DossierPanelProps) {
   const id = useId();
   const [page, setPage] = useState<DossierPage>("overview");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -165,7 +166,7 @@ export function DossierPanel({ packet, released, notebook, notebookActions, note
       {item.id === "subject" ? <div className="dossier-profile"><div className="dossier-profile-monogram" aria-hidden="true">{packet.subject.display_name.split(/\s+/).map((word) => word[0] ?? "").slice(0, 2).join("")}</div><article><span className="dossier-eyebrow">PUBLIC SUBJECT PROFILE</span><h4>{packet.subject.display_name}</h4><dl><div><dt>Position</dt><dd>{packet.subject.position}</dd></div><div><dt>Interview setting</dt><dd>{packet.setting}</dd></div><div><dt>Profile source</dt><dd>Public case metadata · {packet.case_id}</dd></div></dl><p className="dossier-profile-note">This profile contains only the supplied public details. Nervousness, demeanor, accent and stress are never evidence.</p></article></div> : null}
       {item.id === "evidence" ? <><div className="dossier-section-intro"><span className="dossier-eyebrow">PUBLIC MATERIALS</span><h4>Keep the source in view.</h4><p>Opening documents and records already released in this session. Each source can be read in full.</p></div><ul className="dossier-evidence-list">{sources.map((source) => <li key={sourceKey(source.ref)}><span className="dossier-evidence-mark" aria-hidden="true">{source.ref.kind === "document" ? "D" : "R"}</span><div><SourceLabel source={source} /><p className="dossier-caption">{source.kind.replaceAll("_", " ")} · {source.release === null ? "Opening packet" : `Released at turn ${String(source.release.turn)} · ${source.release.trigger}`}</p></div><div className="dossier-actions"><button type="button" className="dossier-button" aria-label={`Read ${source.title}`} onClick={() => { openSource(source.ref); }}>Read</button>{onPresentEvidence === undefined ? null : <button type="button" className="dossier-text-button" aria-label={`Place on table ${source.title}`} onClick={() => { onPresentEvidence(source.ref); onUiEvent({ type: "evidence.present", source: source.ref }); }}>Place on table</button>}</div></li>)}</ul>{sources.length === 0 ? <p className="dossier-empty">No public materials are available yet.</p> : null}</> : null}
       {item.id === "timeline" ? <><div className="dossier-section-intro"><span className="dossier-eyebrow">SOURCE-LED TIMELINE</span><h4>Read the recorded sequence.</h4><p>Explicit table dates and times, shown in source order. Dates, time zones, and gaps are not inferred. Record dates are labeled as metadata. This is a reading aid, not a complete chronology.</p></div>{timeline.length === 0 ? <p className="dossier-empty">No explicitly labeled date or time cells are available. Read the original documents for narrative context.</p> : <ol className="dossier-timeline">{timeline.map((entry) => <li key={entry.id}><div className="dossier-timeline-time"><span>{entry.label}</span><strong>{entry.when}</strong></div><div><button type="button" className="dossier-cite" onClick={() => { openSource(entry.source); }}>{entry.source.id}{entry.row === null ? " · metadata" : ` · row ${String(entry.row)}`}</button><h5>{entry.sourceTitle}</h5><dl>{entry.cells.map((cell, index) => <div key={index}><dt>{cell.column}</dt><dd>{cell.value}</dd></div>)}</dl></div></li>)}</ol>}</> : null}
-      {item.id === "notebook" ? notebookReadOnly ? <p className="dossier-empty" role="status">This v1 recording does not contain notebook history. Device notes are not loaded into replay.</p> : notebookMatchesCase ? <Notebook key={packet.case_id} snapshot={notebook} actions={notebookActions} sources={sources} onUiEvent={onUiEvent} onOpenSource={openSource} /> : <p role="alert" className="dossier-error">The notebook is not ready for this case. No notes from another case are shown.</p> : null}
+      {item.id === "notebook" ? notebookReadOnly ? (recordedNotebook ?? <p className="dossier-empty" role="status">This v1 recording does not contain notebook history. Device notes are not loaded into replay.</p>) : notebookMatchesCase ? <Notebook key={packet.case_id} snapshot={notebook} actions={notebookActions} sources={sources} onUiEvent={onUiEvent} onOpenSource={openSource} /> : <p role="alert" className="dossier-error">The notebook is not ready for this case. No notes from another case are shown.</p> : null}
     </div>)}
     <aside className="dossier-ground-rule"><strong>Evidence first. Always.</strong><p>{EX4_TEXT}</p></aside>
   </section>;

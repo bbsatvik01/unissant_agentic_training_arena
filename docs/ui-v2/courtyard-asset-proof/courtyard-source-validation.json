@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "originalHotspotsPreserved": 12,
+  "originalRoomsPreserved": 11,
+  "roomsReachable": 16,
+  "navigationNodes": 48,
+  "clearGraphEdges": 53,
+  "portalCapsuleSamples": 45,
+  "reviewCamerasClear": 5,
+  "capsuleRadius": 0.28,
+  "sourceOnly": true,
+  "actualRendererValidated": false
+}

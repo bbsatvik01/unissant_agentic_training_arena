@@ -9,7 +9,9 @@ import type { NpcResponse } from "../../lib/precinct/npcLocalAdapter";
 import { STAFF_CONVERSATIONS } from "../../lib/precinct/staffDialogue";
 import type { LocalNpcVisit, PrecinctNpcController } from "../../hooks/usePrecinctNpcController";
 import { LocalSpeech } from "./LocalSpeech";
+import { LocalStaffSpeech } from "./LocalStaffSpeech";
 import "../../styles/precinct-staff-panel.css";
+import "../../styles/precinct-staff-view.css";
 
 export interface ReceptionBriefingPanelProps {
   readonly station: "reception" | "briefing" | "office";
@@ -96,12 +98,12 @@ function NpcConversation({ npcId, controller, onTravel }: { readonly npcId: NpcI
   };
 
   return <section className="npc-conversation" aria-labelledby={`${id}-title`}>
-    <div className="npc-conversation-heading"><div><span className="station-tag">LOCAL SCRIPTED DIALOGUE</span><h3 id={`${id}-title`}>{NPC_IDENTITIES[npcId].label}</h3></div><span className="npc-offline-label">Authored responses · no model or network</span></div>
+    <div className="npc-conversation-heading"><div><span className="station-tag">LOCAL SCRIPTED DIALOGUE</span><h3 id={`${id}-title`}>{NPC_IDENTITIES[npcId].label}</h3></div><span className="npc-offline-label">Authored responses · no model</span></div>
     <p className="npc-help">Choose a topic or type a short technique question. These are fixed local responses, not an open-ended assistant. Staff cannot answer your case.</p>
     <button type="button" className="precinct-primary" onClick={() => { if (visit === null) begin(); else { setResponse(visit.greeting); setDestination(null); } }}>{visit === null ? `Talk to ${NPC_IDENTITIES[npcId].label.toLowerCase()}` : "Repeat greeting"}</button>
     <div className={response === null ? "npc-subtitle-empty" : "npc-subtitle"} role="status" aria-live="polite" aria-atomic="true">{response === null ? null : <><span>{NPC_IDENTITIES[npcId].label}</span><p>{response.reply}</p></>}</div>
     {visit !== null ? <>
-      {response !== null ? <LocalSpeech key={response.reply} text={response.reply} /> : null}
+      {response !== null ? <LocalStaffSpeech text={response.reply} voiceId={response.voice_id} /> : null}
       {conversation !== null ? <div className="npc-topics" role="group" aria-label="Authored conversation topics">{conversation.replies.map((item) => <button type="button" key={item.topic} onClick={() => { ask(item.topic, item.destination ?? null); }}>{item.label}</button>)}</div> : <p className="npc-help">This colleague can welcome you. Reception has directions, and the sergeant has questioning-technique topics.</p>}
       {destination !== null ? <button type="button" className="precinct-secondary npc-go-there" onClick={() => { onTravel(destination); }}>Go to the suggested station</button> : null}
       <form className="npc-prompt" onSubmit={submitPrompt}><label htmlFor={`${id}-prompt`}>Optional short prompt</label><textarea id={`${id}-prompt`} value={prompt} maxLength={NPC_REQUEST_LIMITS.messageLength} rows={2} aria-describedby={`${id}-prompt-hint`} aria-invalid={promptError} onChange={(event) => { setPrompt(event.target.value); setPromptError(false); }} /><div className="npc-prompt-footer"><small id={`${id}-prompt-hint`}>{prompt.length}/{NPC_REQUEST_LIMITS.messageLength} · Unsupported prompts redirect to technique.</small><button type="submit" className="precinct-secondary">Ask locally</button></div>{promptError ? <p role="alert">Enter a short prompt without invisible control characters.</p> : null}</form>

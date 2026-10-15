@@ -1,0 +1,141 @@
+{
+  "checkedAt": "2026-10-15T18:47:31.109Z",
+  "default503": true,
+  "realNativeClips": [
+    {
+      "index": 0,
+      "voice": "investigator",
+      "textSha256": "6b1c8a0688c6c9600970d4ff47b68323010e1090e05b37784557b3737c7c32e3",
+      "bytes": 152488,
+      "durationSeconds": 3.456780045351474,
+      "peak": 0.7894287109375,
+      "rms": 0.08845778835292505,
+      "sha256": "df81c0165892915f6419234ba7ba568a6c91a2ef8b3b7e52cc26397702a925ec"
+    },
+    {
+      "index": 1,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "a81aee26c22677032dea195aa924a6d896fe3404f702ff1d01928c54048d8a87",
+      "bytes": 565828,
+      "durationSeconds": 12.829569160997732,
+      "peak": 0.751861572265625,
+      "rms": 0.08462490702200427,
+      "sha256": "bfe0b764869a11c51ea762f8b09b2d110ecb703edd405a7eb6b880949a81b633"
+    },
+    {
+      "index": 2,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "7545d16e638f3bb4f6093134c9040c95c450929393e9ffd889e59be3de4ba637",
+      "bytes": 604280,
+      "durationSeconds": 13.701496598639455,
+      "peak": 0.8746337890625,
+      "rms": 0.08683410787078756,
+      "sha256": "2b04b3d6b0827f1ce225ab36bee0629a215c260748a9050e88a491efe1211f92"
+    },
+    {
+      "index": 3,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "3966ebc99f6bb59a20fff212bf61157ff8dc6324b84af684338cf72973d6f447",
+      "bytes": 701284,
+      "durationSeconds": 15.901133786848073,
+      "peak": 0.73175048828125,
+      "rms": 0.08869738362592153,
+      "sha256": "4be2854e95814994e92ebf738200680c30ff7d9580ff62fa75f202e7802a2305"
+    },
+    {
+      "index": 4,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "23e1cece7afd3caa65cbe072d4df405d801dddfea9bb744de5a6beb18f67261f",
+      "bytes": 569334,
+      "durationSeconds": 12.90907029478458,
+      "peak": 0.831573486328125,
+      "rms": 0.08449593805892938,
+      "sha256": "8f6f02535c1339cf15a60f8d87b1403f9e6bfe2d2511f9e112a786ddbd02a1c4"
+    },
+    {
+      "index": 5,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "7283b979e44c492c83e65ac04320267f830a6266b0cbae70481fbe81d1c0c865",
+      "bytes": 628944,
+      "durationSeconds": 14.260770975056689,
+      "peak": 0.810638427734375,
+      "rms": 0.0879224364369915,
+      "sha256": "f79319668c6124eca2cc4c9b00307e1cc68ef4f311faa571f1ccf7456e1b4e1a"
+    },
+    {
+      "index": 6,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "37da39d06cdd0d88cab6f53b1a08d51c2db1aa0699fbe6413688d08d4a09b927",
+      "bytes": 544776,
+      "durationSeconds": 12.352199546485261,
+      "peak": 0.758056640625,
+      "rms": 0.08552928915653232,
+      "sha256": "509c89a47ae07f7364361097c6b0db5602358634a4e5d6db923af3f0c8497265"
+    },
+    {
+      "index": 7,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "8d005122b63523a2a3bc633d7eb3085dddfcfab20929f4fb7aec3503085a8ba5",
+      "bytes": 552410,
+      "durationSeconds": 12.52530612244898,
+      "peak": 0.7601318359375,
+      "rms": 0.08503473514755573,
+      "sha256": "6e216d9704897707f9702b65712fa2780d5e14cd448c160e59dbac0133a1be2d"
+    },
+    {
+      "index": 8,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "9cc55a50621ecf82f10c245388843a1b85b77fc40f710afa24c6cea0050ab7bf",
+      "bytes": 616112,
+      "durationSeconds": 13.969795918367346,
+      "peak": 0.72589111328125,
+      "rms": 0.08574260750017768,
+      "sha256": "c5ee9965f81f82117bd16847e77bd63e1db826142652aa917a0f742f3852a7a0"
+    },
+    {
+      "index": 9,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "ff4dc0cffca5d6ed3baf1c94f3f4548d19fffc3fff14efd49f8b66e92f3c002a",
+      "bytes": 634722,
+      "durationSeconds": 14.391791383219955,
+      "peak": 0.836883544921875,
+      "rms": 0.08599917155992107,
+      "sha256": "342d7c514d0bb1b0b0f57872b119faef252c79fc50044b301299a4064813aebb"
+    },
+    {
+      "index": 10,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "1e1302658302a9100ec88734f72293915daa8cf1ba108a06f796524f57f72e20",
+      "bytes": 606446,
+      "durationSeconds": 13.75061224489796,
+      "peak": 0.6898193359375,
+      "rms": 0.08385902641843196,
+      "sha256": "6c978881629b1a41d51de0b1ce984626151069c3ffeac8f39550de935722eb74"
+    },
+    {
+      "index": 11,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "c7ce724b3546e370d042c297f7e88d10fcb6b14791dc8568eeac3c832e239487",
+      "bytes": 636038,
+      "durationSeconds": 14.421632653061225,
+      "peak": 0.686798095703125,
+      "rms": 0.08388760862508297,
+      "sha256": "95b6f574931b8f8c7e107cd089f4d9dd5e297f2b0a44f140cbde52ca33d94b2f"
+    },
+    {
+      "index": 12,
+      "voice": "subject:Jordan Pell",
+      "textSha256": "95a9123c8b05b26f0e04b9c807705957a8760067a98843f7c347ede17837cb45",
+      "bytes": 680368,
+      "durationSeconds": 15.426848072562358,
+      "peak": 0.83026123046875,
+      "rms": 0.08411179131368772,
+      "sha256": "d1e4c75a863df6d70b76b4bdfd2184aff2ea7a5b900003387bdb1fa24cd76ff5"
+    }
+  ],
+  "voiceAvailabilityRemainsFalse": true,
+  "nativeAbortClosed": true,
+  "nativeShutdownClosed": true,
+  "browserPlaybackVerified": false,
+  "note": "Actual local API/native PCM validation only; no model, referee, microphone or remote call."
+}

@@ -1,0 +1,13 @@
+.precinct-capture-status, .precinct-capture-error { position: fixed; z-index: 15; left: 24px; bottom: 90px; max-width: min(480px, calc(100vw - 48px)); padding: 12px 16px; border-radius: 8px; color: #17392e; background: #f8f5e9; border: 1px solid #496658; font-size: 13px; box-shadow: 0 6px 20px #0003; }
+.precinct-capture-status button { display: block; margin-top: 8px; padding: 6px 12px; border: 1px solid currentColor; border-radius: 4px; }
+.precinct-capture-error { bottom: 155px; border-color: #8a302c; color: #752820; }
+
+.precinct-replay-loads { border: 0; padding: 0; margin: 0; min-width: 0; }
+.precinct-replay-loads > legend { font-weight: 700; }
+
+/* Capture status never intercepts scene controls. Counts stay outside the live region. */
+.precinct-capture-status { pointer-events: none; overflow-wrap: anywhere; }
+.precinct-capture-status:empty { padding: 0; border: 0; box-shadow: none; }
+.precinct-capture-status--modal { position: static; max-width: none; margin: 12px 0; box-shadow: none; }
+
+.precinct-capture-error--modal { position: static; max-width: none; margin: 12px 0; box-shadow: none; }

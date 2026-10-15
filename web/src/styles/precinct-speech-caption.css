@@ -1,0 +1,22 @@
+/* A bounded, readable line above the existing actions. No caption is inferred from a visual draft. */
+.precinct-speech-caption { color: #fffaf0; background: #132f30f5; border: 1px solid #d7c79d; border-radius: .4rem; padding: .7rem 1rem; text-align: left; font-size: 1rem; line-height: 1.5; max-height: min(22dvh, 13rem); overflow: auto; overflow-wrap: anywhere; scrollbar-gutter: stable; }
+.precinct-speech-caption[hidden] { display: none; }
+.precinct-speech-caption-label { display: block; color: #ded3b4; font-size: .75rem; line-height: 1.4; margin-bottom: .3rem; }
+.precinct-speech-caption p { margin: 0; }
+.precinct-speech-caption strong { font-weight: 650; }
+.precinct-conversation-hud { position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%); width: min(720px, calc(100vw - 480px)); display: flex; flex-direction: column; align-items: stretch; gap: .65rem; max-height: calc(100dvh - 240px); }
+.precinct-conversation-hud .precinct-interact { position: static; transform: none; align-self: center; }
+.precinct-conversation-hud .precinct-seat-controls { position: static; transform: none; max-width: none; }
+.precinct-caption-slot:empty { display: none; }
+.precinct-dialog > header:has(.precinct-caption-slot) { display: block; }
+.precinct-dialog-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.precinct-dialog .precinct-caption-slot:has(.precinct-speech-caption:not([hidden])) { margin-top: .75rem; }
+.precinct-dialog .precinct-speech-caption { max-height: min(18dvh, 11rem); }
+.large-text .precinct-speech-caption { font-size: 1.2rem; }
+.large-text .precinct-speech-caption-label { font-size: .9rem; }
+.high-contrast .precinct-speech-caption { background: #071d12; color: #fff; border-color: #f1db9e; }
+@media (max-width: 1000px) { .precinct-conversation-hud { width: calc(100vw - 420px); } }
+@media (max-width: 760px) { .precinct-conversation-hud { width: calc(100vw - 48px); bottom: 290px; max-height: calc(100dvh - 410px); } .precinct-conversation-hud .precinct-interact { min-width: 0; } }
+/* Integration: place the existing walking captureStatus node in this same stack, not over its left edge. */
+.precinct-conversation-hud .precinct-capture-status,
+.precinct-conversation-hud .precinct-capture-error { position: static; max-width: none; margin: 0; box-shadow: none; }

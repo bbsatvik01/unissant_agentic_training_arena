@@ -354,10 +354,10 @@ describe("developer loopback HTTP boundary", () => {
 });
 
 describe("offline and explicit lifecycle guarantees", () => {
-  it("has an audited runtime import closure with no external networking or subprocess capability", () => {
+  it("keeps the fixture model/transport free of outbound calls and isolates opt-in subprocess capability", () => {
     const expected: Record<string, string[]> = {
       "precinct-local-model.ts": ["node:crypto", "node:fs", "../src/lib/contracts/compiled/validators.js", "../src/lib/contracts/invariants.ts"],
-      "precinct-local-mock.ts": ["node:crypto", "node:http", "node:path", "node:url", "./precinct-local-model.ts"],
+      "precinct-local-mock.ts": ["node:crypto", "node:http", "node:path", "node:url", "./precinct-local-model.ts", "./precinct-local-speech.ts"],
     };
     for (const [file, imports] of Object.entries(expected)) {
       const source = readFileSync(new URL(file, import.meta.url), "utf8");

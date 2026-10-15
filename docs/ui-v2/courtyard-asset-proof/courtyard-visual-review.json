@@ -1,0 +1,16 @@
+{
+  "sourceRender": "qa/courtyard-axial.png",
+  "sourceViewInspected": true,
+  "sourceViewFindings": "Clear calm stone colonnade, paired planted circles and geometric beds; clear central route and sightline into unchanged training module. No visible placement conflict in this axial view.",
+  "previewBytes": 1018308,
+  "otherViews": "Oblique and gallery preview renders canceled before output at parent request to release shared CPU.",
+  "renderProcessExit": 130,
+  "renderLog": "qa/blender-review-render.log",
+  "frozenArtifactsUnchanged": {
+    "sourceSha256": true,
+    "runtimeSha256": true,
+    "manifestSha256": true
+  },
+  "browserRendererValidated": false,
+  "remaining": "Actual runtime lighting, side/south galleries, all room navigation, staff/capture/replay and effective-geometry navmesh QA."
+}

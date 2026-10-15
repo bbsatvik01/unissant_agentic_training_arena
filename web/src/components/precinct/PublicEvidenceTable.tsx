@@ -49,7 +49,7 @@ export function PublicEvidenceTable({ documents, released, scope, state, readOnl
       <button type="button" className="precinct-text-button" disabled={presented === null || readOnly} onClick={() => { if (!readOnly) onAction({ type: "clear" }); }}>Clear table</button>
     </div>
     <p className="precinct-table-status" role="status">{presented === null ? "The table is clear." : `On the table: ${presented.ref.id} · ${presented.title}`}</p>
-    {readOnly ? <p className="precinct-note">Read-only recording. The original v1 file has no evidence-table handling history; browsing a source does not change this run.</p> : <p className="precinct-note">Presenting a source changes only this table. A question draft is not sent until you choose Send.</p>}
+    {readOnly ? <p className="precinct-note">Read-only recording. Captured evidence markers are shown separately when available; browsing a source does not change this run.</p> : <p className="precinct-note">Presenting a source changes only this table. A question draft is not sent until you choose Send.</p>}
     {selected === null ? null : <div className="precinct-selected-source" aria-label={`Read selected source: ${selected.title}`}>
       <EvidencePanel documents={selected.ref.kind === "document" ? documents.filter((document) => document.doc_id === selected.ref.id) : []} released={selected.ref.kind === "record" ? released.filter((record) => record.record_id === selected.ref.id) : []} requestable={[]} exchangesUsed={0} freshId={null} onRequest={null} openSource={selected.ref} />
     </div>}

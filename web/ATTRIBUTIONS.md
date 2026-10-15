@@ -123,6 +123,16 @@ What changed: the cast is one unstyled development placeholder (`src/components/
 
 ## Microsoft Rocketbox avatars (MIT)
 
-`public/avatars/` holds ten characters and six seated motion clips from the Microsoft Rocketbox Avatar Library,
+`public/avatars/` holds eight characters and six seated motion clips from the Microsoft Rocketbox Avatar Library,
 converted to glTF and three.js clip JSON. Provenance, the conversion steps and the MIT licence text are in
 `public/avatars/LICENSE.md`.
+
+## Original observation review-panel v2 addendum (2026-10-15)
+
+`src/lib/precinct/proceduralReviewerV2.ts`, `src/components/precinct/reviewerBodyV2.ts`,
+and `src/components/precinct/PrecinctReviewPanel.tsx` are original authored code and minimal
+chair/blank-paper geometry. They reuse this project's frozen seated-rig fitting and existing
+Microsoft Rocketbox `Business_Male_06` asset under the existing MIT attribution above.
+No new model, animation, texture, remote font, recording or audio asset was downloaded or generated.
+The fictional colleague and publication-slip gesture are presentation only. They do not represent
+an actual human reviewer, private referee work, a score, or a truth/deception/demeanor signal.

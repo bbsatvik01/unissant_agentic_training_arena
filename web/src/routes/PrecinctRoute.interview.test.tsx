@@ -46,7 +46,7 @@ async function enter(props: ComponentProps<typeof PrecinctRoute> = {}) {
 async function choose() {
   const card = CASES.find((item) => item.case_id === RECORDED_CASE_ID); if (card === undefined) throw new Error("Missing public case");
   act(() => { canvas().onInteract("case_board"); });
-  fireEvent.click(screen.getByRole("button", { name: `Select ${card.title}` }));
+  fireEvent.click(screen.getByRole("button", { name: "Select case" }));
   await screen.findByText("Your public packet is ready at your desk.");
   fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 }

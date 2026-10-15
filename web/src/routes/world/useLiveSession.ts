@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { FreshClientCapture, FreshCaptureBinding } from "../../lib/world/freshClientCapture";
 import type { ArenaApi, StartedSession } from "../../lib/api/arena";
 import { ApiError } from "../../lib/api/client";
 import type { DebriefRead, EvidenceResult, InvestigatorFinding } from "../../lib/contracts/generated/types";
@@ -27,6 +28,7 @@ export interface LiveControls {
   readonly world: WorldState | null;
   readonly debrief: DebriefRead | null;
   readonly clock: { current: number };
+  readonly captureBinding: FreshCaptureBinding | null;
   /** Exact public event arrivals on this session clock; no evaluator data. */
   readonly arrivals: ReadonlyMap<string, number>;
   /** The last action's error in words, or null. */
@@ -63,6 +65,7 @@ interface Options {
   readonly subjectName: string;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
+  readonly capture?: FreshClientCapture;
 }
 
 export const REFUSED_TEXT = "The request was refused as invalid.";
@@ -89,7 +92,8 @@ export function describeConnection(connection: ConnectionState): string | null {
 
 const TYPING_MS = 1600;
 
-export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused }: Options): LiveControls {
+export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused, capture }: Options): LiveControls {
+  const [captureBinding, setCaptureBinding] = useState<FreshCaptureBinding | null>(null);
   const [phase, setPhase] = useState<LivePhase>("idle");
   const [session, setSession] = useState<StartedSession | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("idle");
@@ -107,6 +111,11 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   const t0 = useRef(0);
   const clock = useRef(0);
   const lastTyped = useRef(-Infinity);
+  const readPresentationClock = useCallback(() => {
+    const now = performance.now() - t0.current;
+    clock.current = now;
+    return now;
+  }, []);
   const worldKey = useRef("");
   const debriefAsked = useRef(false);
   const generation = useRef(0);
@@ -122,9 +131,11 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   };
 
   const stop = useCallback(() => {
+    capture?.fail("scope-replaced");
     generation.current += 1;
     controller.current?.dispose();
     controller.current = null;
+    setCaptureBinding(null);
     tracker.current = EMPTY_TRACKER;
     trialRef.current = initialTrialState();
     worldKey.current = "";
@@ -139,7 +150,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     setDebrief(null);
     setError(null);
     setFailed(null);
-  }, []);
+  }, [capture]);
 
   // A different case ends the session in hand.
   useEffect(() => stop, [caseId, stop]);
@@ -147,14 +158,30 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   // Attach a controller to a started session; `run` is the start's generation, so a stop (or a new case) while
   // the POST or the snapshot is pending leaves the room as it is and the late answer is dropped.
   const attach = useCallback(
-    async (started: StartedSession, run: number) => {
-      const c = createSessionController({ trialId: started.trial_id, sessionId: started.session_id, api });
-      controller.current = c;
+    async (started: StartedSession, run: number, fresh = false) => {
       t0.current = performance.now();
+      if (!fresh) capture?.fail("not-fresh");
+      // Installed before the opening snapshot or stream. Its epoch is the actual fresh opening's arrival.
+      let observedAt: number | null = null;
+      const binding = fresh ? capture?.begin(started, () => observedAt ?? readPresentationClock()) ?? null : null;
+      setCaptureBinding(binding);
+      const c = createSessionController({ trialId: started.trial_id, sessionId: started.session_id, api,
+        ...(binding === null ? {} : { observer: {
+          observe: (event) => {
+            if (generation.current !== run) return;
+            if (event.type === "opening") { t0.current = performance.now(); clock.current = 0; }
+            else readPresentationClock();
+            observedAt = clock.current;
+            binding.observer.observe(event);
+          }, failed: binding.observer.failed,
+        } }),
+      });
+      controller.current = c;
       c.subscribe(() => {
         if (generation.current !== run) return;
         const s = c.getState();
-        const now = performance.now() - t0.current;
+        const now = observedAt ?? (binding === null ? performance.now() - t0.current : readPresentationClock());
+        observedAt = null;
         tracker.current = trackArrivals(tracker.current, s.trial, now);
         setArrivals(tracker.current.arrivals);
         trialRef.current = s.trial;
@@ -165,8 +192,9 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
       setSession(started);
       setPhase("running");
       await c.start();
+      if (generation.current === run && c.getState().connection === "failed") capture?.fail("start-failed");
     },
-    [api],
+    [api, capture, readPresentationClock],
   );
 
   const start = useCallback(
@@ -183,15 +211,17 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
         });
         if (generation.current !== run) return;
         rememberSession(started);
-        await attach(started, run);
+        if (voice) capture?.fail("unsupported-channel");
+        await attach(started, run, !voice);
       } catch (e) {
         if (generation.current !== run) return;
+        capture?.fail("start-failed");
         dropController();
         setError(describeError(e));
         setPhase("error");
       }
     },
-    [api, attach, caseId],
+    [api, attach, caseId, capture],
   );
 
   const resumable = caseId === null || phase !== "idle" ? null : recallSession(caseId);
@@ -234,8 +264,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     if (phase !== "running") return;
     let frame = 0;
     const step = () => {
-      const now = performance.now() - t0.current;
-      clock.current = now;
+      const now = readPresentationClock();
       const o = options.current;
       const w = deriveWorld({
         view: trialRef.current.view,
@@ -258,7 +287,7 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [phase]);
+  }, [phase, readPresentationClock]);
 
   // Once the trial has ended with a committed finding, ask the referee for the debrief (S6 4.7); once.
   const ended = trial.view?.status === "ended" && trial.view.commitmentHash !== null;
@@ -345,5 +374,5 @@ export function useLiveSession({ api, caseId, subjectName, reducedMotion, paused
   );
 
   const connectionError = phase === "running" ? describeConnection(connection) : null;
-  return { phase, session, connection, trial, world, debrief, clock, arrivals, error, start, resumable, resume, ask, failedQuestion, retryAsk, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
+  return { captureBinding, phase, session, connection, trial, world, debrief, clock, arrivals, error, start, resumable, resume, ask, failedQuestion, retryAsk, request, commit, retryDebrief, debriefFailed, typing, stop, connectionError, reconnect };
 }

@@ -124,7 +124,7 @@ describe("assessment intent versus stale published feedback", () => {
     const oldDebrief = checked.recording.debrief;
     const nextSessionId = "44444444-4444-4444-8444-444444444444";
     let held: liveHooks.LiveControls = {
-      phase: "idle", session: { session_id: oldDebrief.session_id, trial_id: raw.trial_id, case_id: RECORDED_CASE_ID, mode: "practice" },
+      phase: "idle", captureBinding: null, session: { session_id: oldDebrief.session_id, trial_id: raw.trial_id, case_id: RECORDED_CASE_ID, mode: "practice" },
       connection: "idle", trial: trialReducer(initialTrialState(), { type: "snapshot", snapshot: checked.recording.snapshot }),
       world: null, debrief: oldDebrief, clock: { current: 0 }, arrivals: new Map(), error: null, resumable: null,
       start: () => { held = { ...held, phase: "starting" }; return Promise.resolve(); }, resume: () => Promise.resolve(),

@@ -27,6 +27,7 @@
  *   and open no stream (SG4-21).
  */
 
+import { isolatedSessionObserver, terminalMatches, type SessionObservation, type SessionObserver } from "./sessionObservation";
 import type { ArenaApi, PostAck } from "../api/arena";
 import { ApiError } from "../api/client";
 import type { DebriefRead, EvidenceResult, InvestigatorFinding, TrialFrame as WireFrame, TurnSubmit } from "../contracts/generated/types";
@@ -114,6 +115,8 @@ export interface SessionControllerOptions {
   readonly eventSourceFactory?: (url: string) => EventSourceLike;
   /** A fresh idempotency key per action (S6 5.5). Defaults to `crypto.randomUUID`. */
   readonly newKey?: () => string;
+  /** Explicit local capture only. Omitting it preserves the existing controller path. */
+  readonly observer?: SessionObserver;
 }
 
 export interface SessionController {
@@ -184,6 +187,7 @@ function brokenCardTurn(frame: { readonly type: unknown; readonly data: unknown 
 
 export function createSessionController(options: SessionControllerOptions): SessionController {
   const { trialId, sessionId, api } = options;
+  const observe = isolatedSessionObserver(options.observer);
   const scheduler = options.scheduler ?? globalScheduler;
   const visibility = options.visibility ?? documentVisibility();
   const openStream = options.openStream ?? openTrialStream;
@@ -269,24 +273,38 @@ export function createSessionController(options: SessionControllerOptions): Sess
     return { trial, drops };
   };
 
-  const setTrial = (incoming: TrialState) => {
+  const setTrial = (incoming: TrialState, observation?: SessionObservation) => {
     // A closed room acknowledges, reports and shows nothing more.
     if (isDisposed()) return;
     // Acknowledge before subscribers are told, so before any render (S6 5.6). This runs on an unchanged state too:
     // a streamed card the snapshot already showed is acknowledged when its frame arrives.
     const { trial, drops } = settleAcks(incoming);
+    if (drops > 0) observe({ type: "unsupported", reason: "disposition" });
     if (trial === state.trial && drops === 0) return;
     // Report each new violation once (S6 5.4); a report that fails is not retried and never breaks the room.
     for (const v of trial.violations.slice(reported)) {
       api.reportContractViolation({ trial_id: trialId, frame_type: v.frame_type, seq: v.seq, reason: v.reason }).catch(() => undefined);
     }
     reported = trial.violations.length;
+    if (observation !== undefined) observe(observation);
     set({ trial, dropped: state.dropped + drops });
     finishIfLoaded();
   };
 
-  const dispatch = (action: TrialAction) => {
-    setTrial(trialReducer(state.trial, action));
+  const dispatch = (action: TrialAction, origin: "opening" | "terminal" | "resync" = "resync") => {
+    if (isDisposed()) return;
+    const incoming = trialReducer(state.trial, action);
+    let observation: SessionObservation | undefined;
+    if (options.observer !== undefined && action.type === "snapshot") {
+      observation = origin === "opening" ? { type: "opening", snapshot: action.snapshot }
+        : origin === "terminal" ? { type: "terminal", equivalent: terminalMatches(state.trial.view, incoming.view) }
+        : { type: "unsupported", reason: "resync" };
+    } else if (options.observer !== undefined && (action.type === "finding_submitted" || action.type === "finding_failed")) {
+      observation = { type: "finding", operation: action.type === "finding_submitted" ? "submitted" : "failed" };
+    } else if (action.type === "card_refused" || action.type === "seq_skipped") {
+      observe({ type: "unsupported", reason: "disposition" });
+    }
+    setTrial(incoming, observation);
   };
 
   const view = () => state.trial.view;
@@ -366,6 +384,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   /** A published debrief is never replaced by an older `scoring` answer. */
   const setDebrief = (debrief: DebriefRead) => {
     if (state.debrief !== null && "schema_version" in state.debrief && !("schema_version" in debrief)) return;
+    if (!isDisposed()) observe({ type: "debrief", debrief });
     set({ debrief });
     finishIfLoaded();
   };
@@ -374,6 +393,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
   /** Read and fold the snapshot now (the room changed under a request); a failed read is kept as the error. */
   const reloadRoom = async () => {
     if (isDisposed()) return;
+    observe({ type: "unsupported", reason: "resync" });
     try {
       const snapshot = await api.trialSnapshot(trialId);
       if (!disposed) dispatch({ type: "snapshot", snapshot });
@@ -409,7 +429,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
         if (options.snapshotLoaded !== true && !terminalLoaded()) {
           try {
             // (After dispose, setTrial ignores it; the check below stops the rest.)
-            dispatch({ type: "snapshot", snapshot: await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded) });
+            dispatch({ type: "snapshot", snapshot: await readWithRetries(() => api.trialSnapshot(trialId), terminalLoaded) }, "terminal");
           } catch (error) {
             // Another read installed the terminal snapshot meanwhile: go on to the debrief.
             if (!terminalLoaded()) throw error;
@@ -474,6 +494,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       resyncAgain = true;
       return;
     }
+    observe({ type: "unsupported", reason: "resync" });
     resyncing = true;
     void (async () => {
       let failed = false;
@@ -543,6 +564,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   /** A frame dropped before validation (S6 5.2): identify it if it can be, else re-read the snapshot. */
   const onDrop = (reason: TrialDropReason, raw: unknown) => {
+    if (!isDisposed()) observe({ type: "unsupported", reason: "disposition" });
     set({ dropped: state.dropped + 1 });
     if (reason === "rejected") return;
     const parsed = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
@@ -554,7 +576,9 @@ export function createSessionController(options: SessionControllerOptions): Sess
   };
 
   const onFrame = (frame: TrialFrame): boolean => {
+    if (isDisposed()) return false;
     if (!isWire("events", frame)) {
+      observe({ type: "unsupported", reason: "disposition" });
       // The server closed the turn on a card like this: close it here too, keeping nothing of it.
       refuseIdentified(frame);
       checkGap();
@@ -569,7 +593,8 @@ export function createSessionController(options: SessionControllerOptions): Sess
       streamCards.add(wire.data.turn_no);
       if (refusedNow) droppedCards.add(wire.data.turn_no);
     }
-    setTrial(result.state);
+    if (!counted || refusedNow) observe({ type: "unsupported", reason: "disposition" });
+    setTrial(result.state, result.outcome === "applied" && !refusedNow ? { type: "frame", frame: wire } : undefined);
     checkGap();
     if (result.state.view?.debriefReady != null && stream !== null) void complete();
     return counted && !refusedNow;
@@ -690,7 +715,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       return;
     }
     if (isDisposed()) return;
-    dispatch({ type: "snapshot", snapshot });
+    dispatch({ type: "snapshot", snapshot }, "opening");
     // A subscriber told of the snapshot may have disposed the controller.
     if (isDisposed()) return;
     cursor = snapshot.last_seq;
@@ -835,6 +860,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
       // Idempotent, and safe from a subscriber that disposes while being told of the closing itself.
       if (disposing || isDisposed()) return;
       disposing = true;
+      observe({ type: "disposed" });
       stopStream("close");
       clearHiddenTimer();
       for (const handle of catchUpTimers) scheduler.clearTimeout(handle);

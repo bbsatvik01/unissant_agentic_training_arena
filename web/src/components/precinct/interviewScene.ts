@@ -1,3 +1,4 @@
+import type { ReviewerLifecycleV2 } from "../../lib/precinct/proceduralReviewerV2";
 import type { RefObject } from "react";
 import type { WorkFrame } from "../../lib/agent-work/model";
 import type { InterviewCastState } from "../../lib/precinct/interviewStage";
@@ -10,6 +11,10 @@ export interface PrecinctInterviewScene {
   readonly subjectName: string;
   readonly clock: RefObject<number>;
   readonly work: WorkFrame;
+  /** Explicit public lifecycle only; null withholds pending/active assessment review presence. */
+  readonly reviewer?: ReviewerLifecycleV2 | null;
+  /** Current intent wins over a stale practice work frame during assessment start. */
+  readonly assessmentActive?: boolean;
   readonly present: boolean;
   readonly seated: boolean;
   readonly location: "interview" | "observation";

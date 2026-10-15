@@ -9,8 +9,9 @@
  * suggestion to finish (its mouth closed until its voice starts). Sound stops when muted, when playback is paused or runs faster than 1x, and on leaving the room.
  * Gemini TTS or Live can replace the synthesis behind the same calls (WP-22).
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import type { SpokenCaption } from "../../lib/voice/speechCaption";
 import type { TrialView } from "../../lib/trial/trialReducer";
 import { COACHES, INVESTIGATOR, subjectPersona, type Persona } from "../../lib/world/cast";
 import type { WorldState } from "../../lib/world/worldState";
@@ -51,6 +52,9 @@ interface Memory {
   generation: number;
   /** Tells the hook whether the coach's earpiece aside is being said. */
   onCoach: (speaking: boolean) => void;
+  /** Caption ownership changes before cancelling; late starts/ends cannot resurrect old text. */
+  captionGeneration: number;
+  onSpeech: (caption: SpokenCaption | null) => void;
   /** The earpiece toggle as it is now (read when a waiting aside would start). */
   earpiece: boolean;
   /** Asides waiting for the dialogue to finish: one goes to the voice only when no dialogue speaks or waits. */
@@ -73,9 +77,10 @@ function flushAsides(memory: Memory): void {
 
 /** Speak `text` through the engine; a dialogue line reports its voice to `speechSync` (queued until it starts, so its
  * mouth waits). `onCoach` hears when the coach's earpiece aside starts and stops. */
-function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
+function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", persona: Persona, speaker: Pick<SpokenCaption, "role" | "speaker">, text: string, volume: number, line: SpokenLine | null, clock: { readonly current: number }): void {
   const epoch = speechSync.epoch();
   const generation = memory.generation;
+  const captionGeneration = memory.captionGeneration;
   const token = {};
   let pending = true;
   if (kind === "coach") memory.coachPending += 1;
@@ -85,12 +90,14 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
     { voice: persona.voice, text, volume, line },
     {
       onstart: () => {
-        if (generation !== memory.generation) return;
+        if (!pending || generation !== memory.generation || captionGeneration !== memory.captionGeneration) return;
         memory.speaking = { token, kind };
         if (kind === "coach") memory.onCoach(true);
+        memory.onSpeech({ identity: token, ...speaker, text });
         if (line !== null) speechSync.at(line, 0, clock.current, epoch);
       },
       onprogress: (charIndex) => {
+        if (!pending || generation !== memory.generation || captionGeneration !== memory.captionGeneration) return;
         if (line !== null) speechSync.at(line, charIndex, clock.current, epoch);
       },
       onend: () => {
@@ -100,10 +107,13 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
           if (kind === "coach") memory.coachPending = Math.max(0, memory.coachPending - 1);
           else memory.dialoguePending = Math.max(0, memory.dialoguePending - 1);
         }
+        if (memory.speaking?.token === token) {
+          memory.speaking = null;
+          if (captionGeneration === memory.captionGeneration) memory.onSpeech(null);
+          if (kind === "coach") memory.onCoach(false);
+        }
         if (kind === "dialogue") flushAsides(memory);
-        if (memory.speaking?.token === token) memory.speaking = null;
         if (kind === "coach") {
-          memory.onCoach(false);
           flushHeld(memory);
         }
         if (line !== null) speechSync.end(line, epoch);
@@ -112,10 +122,17 @@ function speak(engine: VoiceEngine, memory: Memory, kind: "dialogue" | "coach", 
   );
 }
 
+/** Invalidate captions before engine.cancel, which can synchronously finish or start queue items. */
+function clearSpeech(memory: Memory): void {
+  memory.captionGeneration += 1;
+  memory.onSpeech(null);
+}
+
 /** Stop every voice; lines go back to their text cadence. */
 function silence(engine: VoiceEngine, memory: Memory): void {
   speechSync.clear();
   memory.generation += 1;
+  clearSpeech(memory);
   engine.cancel();
   memory.speaking = null;
   memory.coachPending = 0;
@@ -129,6 +146,7 @@ function silence(engine: VoiceEngine, memory: Memory): void {
  * the voice's queue while dialogue is held, so cancelling it drops nothing else. */
 function cancelAside(engine: VoiceEngine, memory: Memory): void {
   memory.generation += 1;
+  clearSpeech(memory);
   engine.cancel();
   memory.speaking = null;
   memory.coachPending = 0;
@@ -148,15 +166,18 @@ function noteClock(engine: VoiceEngine, memory: Memory, now: number): void {
   memory.lastClock = now;
 }
 
-export function useVoice({ world, view, subjectName, clock, active, scope, engine, earpiece = true }: Options): { readonly coachSpeaking: boolean } {
+export function useVoice({ world, view, subjectName, clock, active, scope, engine, earpiece = true }: Options): { readonly coachSpeaking: boolean; readonly currentSpeech: SpokenCaption | null } {
   const [coachSpeaking, setCoachSpeaking] = useState(false);
-  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking, earpiece, asides: [], held: [] });
-  useEffect(() => {
+  const [speech, setSpeech] = useState<{ readonly caption: SpokenCaption; readonly scope: string; readonly engine: VoiceEngine } | null>(null);
+  const coaching = earpiece && view?.mode === "practice";
+  const memory = useRef<Memory>({ spoken: new Set(), cards: new Set(), lastClock: 0, speaking: null, coachPending: 0, dialoguePending: 0, generation: 0, onCoach: setCoachSpeaking, captionGeneration: 0, onSpeech: () => undefined, earpiece: coaching, asides: [], held: [] });
+  useLayoutEffect(() => {
+    memory.current.onSpeech = (caption) => { setSpeech(caption === null ? null : { caption, scope, engine }); };
     forget(engine, memory.current);
     memory.current.lastClock = 0;
   }, [scope, engine]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) silence(engine, memory.current);
   }, [active, engine]);
 
@@ -183,18 +204,20 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
       m.spoken.add(key);
       if (clock.current - line.startedAt > START_WINDOW_MS) continue;
       const persona = who === "s" ? subjectPersona(subjectName) : INVESTIGATOR;
+      const speaker: Pick<SpokenCaption, "role" | "speaker"> = who === "s" ? { role: "subject", speaker: subjectName } : { role: "investigator", speaker: "You · trainee" };
       // The coach's suggestion (speaking or waiting) is never cut: the line is held until it ends, its mouth closed
       // until its voice starts.
       if (m.coachPending > 0) {
         speechSync.queue(line, clock.current, speechSync.epoch());
         m.held.push(() => {
-          speak(engine, m, "dialogue", persona, line.text, 1, line, clock);
+          speak(engine, m, "dialogue", persona, speaker, line.text, 1, line, clock);
         });
         continue;
       }
       // A newer line supersedes the dialogue being spoken.
+      clearSpeech(m);
       engine.cancel();
-      speak(engine, m, "dialogue", persona, line.text, 1, line, clock);
+      speak(engine, m, "dialogue", persona, speaker, line.text, 1, line, clock);
     }
   }, [active, subject, question, subjectName, clock, engine]);
 
@@ -208,21 +231,24 @@ export function useVoice({ world, view, subjectName, clock, active, scope, engin
     noteClock(engine, m, clock.current);
     if (!active || !handing || newest === null || m.cards.has(newest.turn_no)) return;
     m.cards.add(newest.turn_no);
-    if (!earpiece) return;
+    if (!coaching) return;
     // Said after the answer: it waits while any dialogue speaks or waits, and is dropped if the earpiece is muted
     // before its turn.
     m.asides.push(() => {
-      speak(engine, m, "coach", COACH, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock);
+      speak(engine, m, "coach", COACH, { role: "coach", speaker: "Coach · Follow-up desk" }, `Try asking: ${newest.card.follow_up.question}`, 0.8, null, clock);
     });
     flushAsides(m);
-  }, [newest, handing, active, clock, engine, earpiece]);
+  }, [newest, handing, active, clock, engine, coaching]);
   // Muting the earpiece stops an aside being said or waiting; dialogue held behind it then speaks.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const m = memory.current;
-    m.earpiece = earpiece;
-    if (earpiece) return;
+    m.earpiece = coaching;
+    if (coaching) return;
     m.asides = [];
     if (m.coachPending > 0) cancelAside(engine, m);
-  }, [earpiece, engine]);
-  return { coachSpeaking: coachSpeaking && active && earpiece };
+  }, [coaching, engine]);
+  // Render-time gates prevent even one painted frame of old scope/muted/assessed speech.
+  const currentSpeech = active && speech?.scope === scope && speech.engine === engine
+    && (speech.caption.role !== "coach" || coaching) ? speech.caption : null;
+  return { coachSpeaking: coachSpeaking && active && coaching, currentSpeech };
 }

@@ -6,6 +6,7 @@ import { EX4_TEXT } from "../../lib/copy/ex4";
 import { emptyEvidenceTable, publicEvidenceSources, reduceEvidenceTable } from "../../lib/precinct/evidenceTable";
 import { initialTrialState, trialReducer, type TrialView } from "../../lib/trial/trialReducer";
 import { initialVoiceState } from "../../lib/voice/voiceMachine";
+import { initialWorldReplayState } from "../../lib/world/worldEvents";
 import { CASES } from "../../lib/world/cases";
 import type { CaseDocument } from "../../lib/world/recording";
 import { LogBuilder, snapshot } from "../../test/trial-log";
@@ -27,7 +28,7 @@ function session(overrides: Partial<InterviewStationSession> = {}): InterviewSta
     live: { phase: "running", error: null, connectionError: null, failedQuestion: null, debriefFailed: false, resumable: null, reconnect: vi.fn(), retryDebrief: vi.fn() },
     view, subjectName: "Case Subject", isVoice: false, voice: { state: initialVoiceState("live"), captureAboveFloor: false, error: null, open: vi.fn(), decline: vi.fn(), consent: vi.fn(), stop: vi.fn(), interrupt: vi.fn(), reconnect: vi.fn() },
     draft: "", updateDraft: vi.fn(), ask: vi.fn(() => Promise.resolve(true)), questionReason: null, retryQuestion: vi.fn(() => Promise.resolve()), stopSession: vi.fn(),
-    playback: { trial: initialTrialState(), arrivals: new Map(), world: null, clock: { current: 0 }, playing: false, speed: 1, duration: 10000, play: vi.fn(), pause: vi.fn(), setSpeed: vi.fn(), seekTo: vi.fn() },
+    playback: { capturedWorld: initialWorldReplayState(), trial: initialTrialState(), arrivals: new Map(), world: null, clock: { current: 0 }, playing: false, speed: 1, duration: 10000, play: vi.fn(), pause: vi.fn(), setSpeed: vi.fn(), seekTo: vi.fn() },
     sound: false, setSound: vi.fn(), readAloudError: null, earpiece: false, setEarpiece: vi.fn(), coachSpeaking: false,
     sessionKey: "test-session", documents, released: view.released, transcriptExchanges: [], canAct: true, requestEvidence: vi.fn(() => Promise.resolve(null)), commitFinding: vi.fn(() => Promise.resolve(true)), ...overrides,
   };
@@ -108,7 +109,7 @@ describe("interview station content", () => {
     expect(disabled("Use source in question draft")).toBe(true);
     expect(disabled("Clear table")).toBe(true);
     expect(screen.getByText("The table is clear.")).toBeTruthy();
-    expect(screen.getByText(/The original v1 file has no evidence-table handling history/)).toBeTruthy();
+    expect(screen.getByText(/Captured evidence markers are shown separately/)).toBeTruthy();
     expect(current.playback.play).not.toHaveBeenCalled();
     expect(current.setSound).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("tab", { name: "Finding" }));

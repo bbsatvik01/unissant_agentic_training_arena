@@ -97,7 +97,7 @@ describe("ReceptionBriefingPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Go to the suggested station" }));
     expect(onTravel).toHaveBeenCalledWith("personal_dossier");
     expect(screen.getByText("LOCAL SCRIPTED DIALOGUE")).toBeTruthy();
-    expect(screen.getByText("Authored responses · no model or network")).toBeTruthy();
+    expect(screen.getByText("Authored responses · no model")).toBeTruthy();
   });
 
   it("bounds typed prompts, redirects unsupported text and does not leak public assignment into dialogue", () => {
@@ -153,7 +153,7 @@ describe("ReceptionBriefingPanel", () => {
     expect(document.querySelector(".npc-subtitle")?.textContent).toContain("Welcome.");
   });
 
-  it("rejects unsafe names and preserves a subtitle when local voice is unavailable", () => {
+  it("rejects unsafe names and preserves the exact subtitle when local audio output is unavailable", () => {
     setup();
     openMemory();
     fireEvent.change(screen.getByLabelText("Preferred name (optional)"), { target: { value: "<script>" } });
@@ -162,9 +162,9 @@ describe("ReceptionBriefingPanel", () => {
     expect(screen.getByRole("alert").textContent).toContain("preferred name");
     fireEvent.click(screen.getByRole("button", { name: "Talk to reception officer" }));
     const before = document.querySelector(".npc-subtitle p")?.textContent;
-    fireEvent.click(screen.getByRole("button", { name: "Read aloud locally" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play scripted staff voice" }));
     expect(document.querySelector(".npc-subtitle p")?.textContent).toBe(before);
-    expect(screen.getByText("No installed local voice is available. The full subtitle remains on screen.")).toBeTruthy();
+    expect(screen.getByText("Audio could not play. Try again or read the full subtitle above.")).toBeTruthy();
   });
 
   it("supports an office colleague with public directions and no invented case dialogue", () => {

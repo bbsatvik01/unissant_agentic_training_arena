@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checked, createLocalModel, FIXTURE_NOTICE, LIMITS, MockRefusal } from "./precinct-local-model.ts";
+import { createLocalSpeech, SPEECH_LIMITS } from "./precinct-local-speech.ts";
 import type { TrialFrame } from "../src/lib/contracts/generated/types.ts";
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -12,7 +13,7 @@ const SESSION = new RegExp(`^/api/sessions/(${UUID})(/debrief)?$`);
 const CASE = /^\/api\/cases\/(C-[0-9A-HJKMNP-TV-Z]{8})$/;
 const BROWSER_ORIGIN = /^http:\/\/(127\.0\.0\.1|localhost):([1-9][0-9]{0,4})$/;
 
-export interface MockOptions { readonly port?: number; readonly browserOrigin?: string; readonly now?: () => number }
+export interface MockOptions { readonly port?: number; readonly browserOrigin?: string; readonly now?: () => number; readonly localTts?: boolean }
 interface Stream { readonly trialId: string; readonly response: ServerResponse; readonly timer: ReturnType<typeof setInterval>; readonly end: ReturnType<typeof setTimeout> }
 interface Ticket { readonly trialId: string; readonly expires: number }
 
@@ -20,17 +21,18 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
   response.end(JSON.stringify(value));
 }
-function body(request: IncomingMessage): Promise<unknown> {
+function body(request: IncomingMessage, maxBytes: number = LIMITS.bodyBytes): Promise<unknown> {
   return new Promise((resolveBody, reject) => {
     let size = 0, refused = false;
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => {
       if (refused) return;
       size += chunk.length;
-      if (size > LIMITS.bodyBytes) { refused = true; chunks.length = 0; reject(new MockRefusal(413, "request_too_large")); return; }
+      if (size > maxBytes) { refused = true; chunks.length = 0; reject(new MockRefusal(413, "request_too_large")); return; }
       chunks.push(chunk);
     });
     request.on("error", () => { reject(new MockRefusal(400, "invalid_request")); });
+    request.on("aborted", () => { chunks.length = 0; reject(new MockRefusal(400, "invalid_request")); });
     request.on("end", () => {
       if (refused) return;
       if (size === 0) { resolveBody(undefined); return; }
@@ -51,6 +53,7 @@ export function createLocalMock(options: MockOptions = {}) {
   if (originMatch === null || Number(originMatch[2]) > 65_535) throw new Error("browserOrigin must be one exact loopback http origin with a port");
   const now = options.now ?? Date.now;
   const model = createLocalModel(now);
+  const speechQueue = options.localTts === true ? createLocalSpeech(undefined, now) : null;
   // Synthetic process-local capabilities, not account credentials. Never logged, persisted, or set as cookies.
   const csrf = `local-fixture-${randomBytes(24).toString("hex")}`;
   const tickets = new Map<string, Ticket>();
@@ -97,7 +100,7 @@ export function createLocalMock(options: MockOptions = {}) {
     const post = path === "/api/sessions" || ["/api/me/ack-ex4", "/api/telemetry/kpi4", "/api/telemetry/contract-violation", "/api/tts", "/api/voice/tickets"].includes(path) || ["turns", "evidence-requests", "finding", "stream-tickets"].includes(trial?.[2] ?? "");
     if (session?.[2] === "/debrief") { if (request.method !== "GET" && request.method !== "POST") throw new MockRefusal(405, "method_not_allowed"); }
     else method(request, post ? "POST" : "GET");
-    const value = await body(request);
+    const value = await body(request, path === "/api/tts" && speechQueue !== null ? SPEECH_LIMITS.bodyBytes : LIMITS.bodyBytes);
     if (request.method === "GET") noBody(value);
     if (path === "/api/me") { json(response, 200, model.me(csrf)); return; }
     if (path === "/api/me/ack-ex4") { noBody(value); json(response, 200, model.acknowledge()); return; }
@@ -122,7 +125,18 @@ export function createLocalMock(options: MockOptions = {}) {
       if (value === null || typeof value !== "object" || Array.isArray(value)) throw new MockRefusal(422, "invalid_request");
       const speech = value as Record<string, unknown>;
       if (Object.keys(speech).sort().join(",") !== "text,voice" || typeof speech["voice"] !== "string" || Array.from(speech["voice"]).length < 1 || Array.from(speech["voice"]).length > 40 || typeof speech["text"] !== "string" || Array.from(speech["text"]).length < 1 || Array.from(speech["text"]).length > 900) throw new MockRefusal(422, "invalid_request");
-      throw new MockRefusal(503, "local_voice_unavailable");
+      if (speechQueue === null) throw new MockRefusal(503, "local_voice_unavailable");
+      const controller = new AbortController();
+      const disconnect = () => { if (!response.writableEnded) controller.abort(); };
+      response.on("close", disconnect);
+      if (request.readableAborted || response.destroyed) controller.abort();
+      try {
+        const audio = await speechQueue.speak(speech["voice"], speech["text"], controller.signal);
+        if (response.destroyed) return;
+        response.writeHead(200, { "content-type": "audio/wav", "content-length": audio.length, "cache-control": "no-store", "x-content-type-options": "nosniff", "X-Arena-Local-Fixture": "authored-unscored-local-espeak" });
+        response.end(audio);
+      } finally { response.removeListener("close", disconnect); }
+      return;
     }
     if (path === "/api/voice/ws") throw new MockRefusal(503, "local_voice_unavailable");
     if (path === "/api/telemetry/kpi4") {
@@ -170,6 +184,7 @@ export function createLocalMock(options: MockOptions = {}) {
   };
   const server = createServer({ maxHeaderSize: 8192, requestTimeout: 10_000, headersTimeout: 10_000, keepAliveTimeout: 1000 }, (request, response) => {
     void handle(request, response).catch((error: unknown) => {
+      if (response.destroyed) return;
       if (response.headersSent) { response.destroy(); return; }
       response.setHeader("connection", "close");
       json(response, error instanceof MockRefusal ? error.status : 500, { code: error instanceof MockRefusal ? error.code : "local_fixture_failure", detail: FIXTURE_NOTICE });
@@ -194,6 +209,7 @@ export function createLocalMock(options: MockOptions = {}) {
       closed = true;
       for (const stream of streams) closeStream(stream);
       tickets.clear(); model.dispose();
+      await speechQueue?.close();
       if (server.listening) { server.closeAllConnections(); await new Promise<void>((resolveClose, reject) => { server.close((error) => { if (error === undefined) resolveClose(); else reject(error); }); }); }
     },
   };
@@ -201,20 +217,23 @@ export function createLocalMock(options: MockOptions = {}) {
 
 /** CLI parsing has no side effects. There is deliberately no host option. */
 export function cliOptions(args: readonly string[]): MockOptions {
-  let port = 8080, browserOrigin = "http://127.0.0.1:5173";
-  for (let i = 0; i < args.length; i += 2) {
-    const key = args[i], value = args[i + 1];
+  let port = 8080, browserOrigin = "http://127.0.0.1:5173", localTts = false;
+  for (let i = 0; i < args.length; i += 1) {
+    const key = args[i];
+    if (key === "--local-tts" && !localTts) { localTts = true; continue; }
+    const value = args[++i];
     if (key === "--port" && value !== undefined && /^\d{1,5}$/.test(value)) port = Number(value);
     else if (key === "--browser-origin" && value !== undefined) browserOrigin = value;
-    else throw new Error("Usage: node tools/precinct-local-mock.ts [--port 8080] [--browser-origin http://127.0.0.1:5173]");
+    else throw new Error("Usage: node tools/precinct-local-mock.ts [--port 8080] [--browser-origin http://127.0.0.1:5173] [--local-tts]");
   }
-  return { port, browserOrigin };
+  return { port, browserOrigin, ...(localTts ? { localTts: true } : {}) };
 }
 
 if (process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const mock = createLocalMock(cliOptions(process.argv.slice(2)));
+  const options = cliOptions(process.argv.slice(2));
+  const mock = createLocalMock(options);
   const address = await mock.listen();
-  process.stdout.write(`${FIXTURE_NOTICE}\nListening only at ${address.origin}. Ctrl-C erases all in-memory runs.\n`);
+  process.stdout.write(`${FIXTURE_NOTICE}\n${options.localTts === true ? "Optional local eSpeak playback enabled. This remains an unscored TEXT rehearsal, not live AI voice.\n" : ""}Listening only at ${address.origin}. Ctrl-C erases all in-memory runs.\n`);
   const close = () => { void mock.close().catch(() => { process.exitCode = 1; }); };
   process.once("SIGINT", close); process.once("SIGTERM", close);
 }

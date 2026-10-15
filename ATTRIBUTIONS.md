@@ -154,7 +154,7 @@ The UI v2 compass favicon (`web/public/favicon.svg`) is original vector artwork 
 
 - Reception, sergeant, office and patrol motion: original procedural walking, idle, counter-work and seated gestures authored for this project in `web/src/lib/precinct/staff.ts` and `web/src/components/precinct/PrecinctStaff.tsx`. Uses the existing Microsoft Rocketbox MIT meshes/textures documented in [web attribution](web/ATTRIBUTIONS.md#microsoft-rocketbox-avatars-mit) and the [avatar provenance and complete license](web/public/avatars/LICENSE.md); no Mixamo or additional animation files.
 - Larger wayfinding: original typography/layout using DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.
-- Optional NPC/briefing speech uses installed device-local voices only after explicit playback; no downloaded voice asset or third-party TTS service is bundled. Characters and scripted dialogue remain fictional.
+- Dynamic public briefing read-aloud uses installed device-local voices only after explicit playback. The separate finite staff-dialogue audio introduced below uses original offline-generated formant speech. Characters and scripted dialogue remain fictional; no third-party TTS service is contacted.
 
 ## UI v2 lossless precinct compression
 
@@ -198,3 +198,17 @@ Exact source snapshot hashes (paths relative to the vendored reference root):
 The seated rig adaptation, neutral procedural breathing/blinking/typing motions, interview camera anchors, physical public-source cover SVG and local SVG texture lifecycle are original project work. They use only the existing credited Rocketbox meshes/textures, Three.js and installed generic fonts; no motion-capture pack, external image, voice or new font is bundled. Motion depends only on presentation time, public work lifecycle and existing persona style. Actual audio weights alone drive mouth movement.
 
 The optional developer-only local interview service contains original fixed fictional dialogue and an authored, explicitly unscored resolution. Its public documents and release thresholds reuse this repository's hand-built F01-truthful fixture, with provenance recorded in `docs/ui-v2/LOCAL_SCRIPTED_MOCK.md`. It imports no historical transcript, score, evaluator packet or third-party model output.
+
+## UI v2 finite offline staff speech
+
+Original fictional reception and sergeant dialogue is synthesized offline with eSpeak NG 1.52.0 (Debian 1.52.0+dfsg-5), using native English formant synthesis. No recorded-person voice model, imitation or voice cloning is used. Exact text, settings, durations, original asset SHA-256 hashes and generator provenance are retained in `web/src/lib/precinct/localStaffVoiceManifest.json` and `assets-src/local-staff-voice/`.
+
+eSpeak NG by Jonathan Duddington and the eSpeak NG contributors is GPL-3.0-or-later: https://github.com/espeak-ng/espeak-ng . It is used as an unmodified separate authoring executable and is not included or linked into the browser runtime. The Debian package copyright notice and GPL text are preserved as provenance. The generated speech assets contain the project's original authored text. Coverage of output under GPL depends on its content; future redistribution of the generator or its data requires a separate license/source-compliance review.
+
+The static playback controller, bounded same-origin asset loading, lifecycle ownership, synthetic-voice labels, audio-driven staff lip mapping and microphone cleanup regressions are original project work. They introduce no paid provider, speech recognition model or new runtime package. Microphone listening and open-ended AI conversation are not supplied by these scripted clips.
+
+## UI v2 optional local interview playback
+
+The developer-only `--local-tts` adapter, process queue, WAV validation and regression tests are original project work. They use the unchanged raw-WAV TTS contract to speak actual trainee text and the existing original authored synthetic subject beats. They provide unscored TEXT rehearsal only, with no live model, truth/demeanor inference or backend assessment.
+
+The adapter invokes the separately installed, authenticated eSpeak NG 1.52.0 (Debian 1.52.0+dfsg-5) as an unmodified external process. Jonathan Duddington and the eSpeak NG contributors license eSpeak NG under GPL-3.0-or-later: https://github.com/espeak-ng/espeak-ng . Native en-us formant settings are identical for the two public fixture speakers and do not clone a recorded person. Generator binaries/data are not bundled, linked into the browser, or downloaded by this feature. The authenticated package verification, full Debian copyright notice and GPL text are preserved in `assets-src/local-rehearsal-speech/`; that verification originated with the earlier staff-voice package. Future generator/data redistribution needs a separate license/source-compliance review. See `docs/ui-v2/LOCAL_REHEARSAL_SPEECH.md` for provenance, bounds and verification status.

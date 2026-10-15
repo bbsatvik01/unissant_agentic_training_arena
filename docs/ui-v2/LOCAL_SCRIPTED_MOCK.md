@@ -2,8 +2,9 @@
 
 This tool is an offline UI/transport fixture for environments where Docker and the real fake-model
 stack cannot run. It is **not a training assessment, an AI interview, a substitute backend, or a
-scoring service**. No model, database, TTS, microphone, cloud service, or outbound network client is
-used by the tool. It never starts on import, installation, or a normal Vite launch.
+scoring service**. No model, database, microphone, cloud service, or outbound network client is
+used by the tool. TTS is disabled by default; an explicit optional local-only playback adapter is
+documented in `LOCAL_REHEARSAL_SPEECH.md`. It never starts on import, installation, or a normal Vite launch.
 
 The fixture label is visible in `/api/me`'s display name, the case title and objective, and each
 scripted subject line. The trainee's actual typed question is stored verbatim. A finite sequence of
@@ -47,9 +48,10 @@ The API port can also be changed with `--port`; configure Vite's existing `ARENA
 same loopback port when doing so. No `.env` file is created. CLI `--port 0` is reserved for automated
 loopback tests. Neither `localhost` suffixes nor arbitrary LAN hosts/origins are accepted.
 
-Keep sound and microphone controls **off** for strict zero-audio QA. The fixture refuses all voice
+Keep sound and microphone controls **off** for strict zero-audio QA. By default the fixture refuses all voice
 and TTS endpoints; existing frontend audio fallback behavior is separate from this server and is
-not exercised by these tests. There is no audio synthesis, fake WAV, or voice credential issued here.
+not exercised by these tests. Without the explicit `--local-tts` option, no audio synthesis runs. Voice credentials are never issued.
+The optional playback remains an unscored TEXT exercise and does not enable live voice sessions.
 
 Ctrl-C / SIGTERM stops the listener, closes active SSE streams, cancels stream timers and erases all
 in-memory sessions, tickets and acknowledgements. Nothing is written to disk by the server.
@@ -193,5 +195,6 @@ No skip, suppression, relaxed assertion, test policy change, or backend modifica
 
 Acceptance limits: no browser screenshots/performance claims, no real models, no true coaching
 classification, no numeric score/referee, no production authentication proof, no durable storage, no world-event
-seam, no actual voice, no tournament/instructor/NPC simulation. Those capabilities must be verified
+seam, no live backend voice session, no tournament/instructor/NPC simulation. Optional local TTS
+playback has its own verification status in `LOCAL_REHEARSAL_SPEECH.md`. Those capabilities must be verified
 separately against the real stack or honest saved recordings.

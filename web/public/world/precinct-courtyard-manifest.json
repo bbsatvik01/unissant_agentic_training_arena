@@ -1,0 +1,5556 @@
+{
+  "schemaVersion": 2,
+  "id": "northstar-investigation-precinct-courtyard",
+  "title": "Northstar Investigation Training Precinct · Courtyard",
+  "asset": "precinct-courtyard.glb",
+  "sourceFile": "assets-src/northstar-precinct-courtyard.blend",
+  "provenance": {
+    "author": "Original procedural environment authored for the training arena",
+    "license": "Original environment geometry and scene design may be used, modified and distributed commercially by the commissioning user. DejaVu Sans lettering uses its permissive font license; see ASSET_PROVENANCE.md.",
+    "externalImageTextures": false,
+    "fictionalSetting": true,
+    "realAgencyBranding": false,
+    "architecturalReference": "Architectural reference: Old Patent Office Building, Washington, DC; Historic American Buildings Survey, HABS DC-130, sheets 1 and 3 of 8. Drawn by Hartman-Cox Architects. Library of Congress, Prints & Photographs Division. Drawing date not specified in the inspected record. Fictional training adaptation; not a representation of the building's current interior and not endorsed by the Smithsonian Institution."
+  },
+  "coordinates": {
+    "units": "meters",
+    "runtimeUp": "+Y",
+    "runtimeNorth": "-Z",
+    "blenderToRuntime": "[x,y,z] -> [x,z,-y]",
+    "footprintMeters": [
+      28,
+      56
+    ],
+    "floorY": 0.02,
+    "ceilingY": 3.5
+  },
+  "spawn": {
+    "position": [
+      0,
+      1.65,
+      -2.4
+    ],
+    "lookAt": [
+      0,
+      1.65,
+      -10
+    ],
+    "yaw": 0
+  },
+  "player": {
+    "eyeHeight": 1.65,
+    "capsuleRadius": 0.28,
+    "walkSpeed": 2,
+    "sprintSpeed": 3.2,
+    "stepHeight": 0.15
+  },
+  "walkBounds": {
+    "min": [
+      -13.7,
+      0,
+      -35.74
+    ],
+    "max": [
+      13.7,
+      3.45,
+      19.7
+    ]
+  },
+  "rooms": [
+    {
+      "id": "lobby",
+      "name": "Reception & Arrival",
+      "bounds": {
+        "min": [
+          -13.8,
+          0,
+          -9.9
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -0.2
+        ]
+      },
+      "anchor": [
+        0,
+        0,
+        -3.3
+      ],
+      "description": "Warm civic arrival, reception and calm waiting areas."
+    },
+    {
+      "id": "board_wall",
+      "name": "Case Board",
+      "bounds": {
+        "min": [
+          3.4,
+          0,
+          -9.85
+        ],
+        "max": [
+          13.7,
+          3.5,
+          -6.3
+        ]
+      },
+      "anchor": [
+        8.2,
+        0,
+        -7.4
+      ],
+      "description": "Three original training case panels and scenario selection."
+    },
+    {
+      "id": "corridor",
+      "name": "Investigation Hall",
+      "bounds": {
+        "min": [
+          -2.28,
+          0,
+          -35.65
+        ],
+        "max": [
+          2.28,
+          3.5,
+          -10.1
+        ]
+      },
+      "anchor": [
+        0,
+        0,
+        -20
+      ],
+      "description": "Wide level spine joining every training room."
+    },
+    {
+      "id": "open_office",
+      "name": "Open Office",
+      "bounds": {
+        "min": [
+          -13.8,
+          0,
+          -18.9
+        ],
+        "max": [
+          -2.5,
+          3.5,
+          -10.1
+        ]
+      },
+      "anchor": [
+        -5.4,
+        0,
+        -13.1
+      ],
+      "description": "Collaborative desks, case preparation and team operations."
+    },
+    {
+      "id": "dossier",
+      "name": "Personal Dossier",
+      "bounds": {
+        "min": [
+          -13.8,
+          0,
+          -25.9
+        ],
+        "max": [
+          -2.5,
+          3.5,
+          -19.1
+        ]
+      },
+      "anchor": [
+        -5.2,
+        0,
+        -22
+      ],
+      "description": "Individual workspace and progress profile."
+    },
+    {
+      "id": "briefing",
+      "name": "Briefing Room",
+      "bounds": {
+        "min": [
+          -13.8,
+          0,
+          -35.8
+        ],
+        "max": [
+          -2.5,
+          3.5,
+          -26.1
+        ]
+      },
+      "anchor": [
+        -5.2,
+        0,
+        -28
+      ],
+      "description": "Ten-seat briefing and objectives wall."
+    },
+    {
+      "id": "interview",
+      "name": "Interview Room",
+      "bounds": {
+        "min": [
+          2.5,
+          0,
+          -15.9
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -10.1
+        ]
+      },
+      "anchor": [
+        5.7,
+        0,
+        -12.5
+      ],
+      "description": "Neutral interview setting with recording fixture and adjacent observation glazing."
+    },
+    {
+      "id": "observation",
+      "name": "Observation Room",
+      "bounds": {
+        "min": [
+          2.5,
+          0,
+          -19.9
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -16.1
+        ]
+      },
+      "anchor": [
+        4.8,
+        0,
+        -18
+      ],
+      "description": "Live observation bench behind tinted viewing glass."
+    },
+    {
+      "id": "debrief",
+      "name": "Debrief & Replay",
+      "bounds": {
+        "min": [
+          2.5,
+          0,
+          -25.9
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -20.1
+        ]
+      },
+      "anchor": [
+        5,
+        0,
+        -22
+      ],
+      "description": "Soft-seated review and a dedicated replay workstation."
+    },
+    {
+      "id": "coach_lab",
+      "name": "Coach Lab & Instructor",
+      "bounds": {
+        "min": [
+          2.5,
+          0,
+          -31.9
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -26.1
+        ]
+      },
+      "anchor": [
+        4.3,
+        0,
+        -28.8
+      ],
+      "description": "Training consoles, experimentation and an instructor workstation."
+    },
+    {
+      "id": "records",
+      "name": "Records & Archive",
+      "bounds": {
+        "min": [
+          2.5,
+          0,
+          -35.8
+        ],
+        "max": [
+          13.8,
+          3.5,
+          -32.1
+        ]
+      },
+      "anchor": [
+        7.9,
+        0,
+        -33.3
+      ],
+      "description": "Labeled records shelving and career archive access."
+    },
+    {
+      "id": "court_north_gallery",
+      "name": "North Courtyard Gallery",
+      "bounds": {
+        "min": [
+          -13.7,
+          0,
+          0.2
+        ],
+        "max": [
+          13.7,
+          3.7,
+          4.5
+        ]
+      },
+      "anchor": [
+        0,
+        0,
+        2.4
+      ],
+      "description": "Original level courtyard extension; existing training stations retain their original coordinates."
+    },
+    {
+      "id": "courtyard",
+      "name": "Open-sky Courtyard",
+      "bounds": {
+        "min": [
+          -9.2,
+          0,
+          4.5
+        ],
+        "max": [
+          9.2,
+          8,
+          13.5
+        ]
+      },
+      "anchor": [
+        0,
+        0,
+        9
+      ],
+      "description": "Original level courtyard extension; existing training stations retain their original coordinates."
+    },
+    {
+      "id": "court_west_gallery",
+      "name": "Quiet West Gallery",
+      "bounds": {
+        "min": [
+          -13.7,
+          0,
+          4.5
+        ],
+        "max": [
+          -9.2,
+          3.7,
+          14
+        ]
+      },
+      "anchor": [
+        -11.3,
+        0,
+        9
+      ],
+      "description": "Original level courtyard extension; existing training stations retain their original coordinates."
+    },
+    {
+      "id": "court_east_gallery",
+      "name": "Quiet East Gallery",
+      "bounds": {
+        "min": [
+          9.2,
+          0,
+          4.5
+        ],
+        "max": [
+          13.7,
+          3.7,
+          14
+        ]
+      },
+      "anchor": [
+        11.3,
+        0,
+        9
+      ],
+      "description": "Original level courtyard extension; existing training stations retain their original coordinates."
+    },
+    {
+      "id": "court_south_gallery",
+      "name": "South Arrival Arcade",
+      "bounds": {
+        "min": [
+          -13.7,
+          0,
+          14
+        ],
+        "max": [
+          13.7,
+          3.7,
+          19.7
+        ]
+      },
+      "anchor": [
+        0,
+        0,
+        16.3
+      ],
+      "description": "Original level courtyard extension; existing training stations retain their original coordinates."
+    }
+  ],
+  "doors": [
+    {
+      "id": "open_office_door",
+      "connects": [
+        "corridor",
+        "open_office"
+      ],
+      "center": [
+        -2.4,
+        1.25,
+        -13.1
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        -2.4,
+        0,
+        -13.1
+      ]
+    },
+    {
+      "id": "dossier_door",
+      "connects": [
+        "corridor",
+        "dossier"
+      ],
+      "center": [
+        -2.4,
+        1.25,
+        -22
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        -2.4,
+        0,
+        -22
+      ]
+    },
+    {
+      "id": "briefing_door",
+      "connects": [
+        "corridor",
+        "briefing"
+      ],
+      "center": [
+        -2.4,
+        1.25,
+        -29
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        -2.4,
+        0,
+        -29
+      ]
+    },
+    {
+      "id": "interview_door",
+      "connects": [
+        "corridor",
+        "interview"
+      ],
+      "center": [
+        2.4,
+        1.25,
+        -12.5
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        2.4,
+        0,
+        -12.5
+      ]
+    },
+    {
+      "id": "observation_door",
+      "connects": [
+        "corridor",
+        "observation"
+      ],
+      "center": [
+        2.4,
+        1.25,
+        -18
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        2.4,
+        0,
+        -18
+      ]
+    },
+    {
+      "id": "debrief_door",
+      "connects": [
+        "corridor",
+        "debrief"
+      ],
+      "center": [
+        2.4,
+        1.25,
+        -23
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        2.4,
+        0,
+        -23
+      ]
+    },
+    {
+      "id": "coach_lab_door",
+      "connects": [
+        "corridor",
+        "coach_lab"
+      ],
+      "center": [
+        2.4,
+        1.25,
+        -28.8
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        2.4,
+        0,
+        -28.8
+      ]
+    },
+    {
+      "id": "records_door",
+      "connects": [
+        "corridor",
+        "records"
+      ],
+      "center": [
+        2.4,
+        1.25,
+        -33.9
+      ],
+      "width": 2.05,
+      "height": 2.5,
+      "axis": "z",
+      "clearance": 0.2,
+      "walkCenter": [
+        2.4,
+        0,
+        -33.9
+      ]
+    },
+    {
+      "id": "courtyard_lobby_portal",
+      "connects": [
+        "lobby",
+        "court_north_gallery"
+      ],
+      "center": [
+        0,
+        1.4,
+        0
+      ],
+      "width": 3.5,
+      "height": 2.8,
+      "axis": "x",
+      "clearance": 0.2,
+      "walkCenter": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "reception",
+      "label": "Reception",
+      "position": [
+        -6.2,
+        1.65,
+        -5.7
+      ],
+      "lookAt": [
+        -8,
+        1.2,
+        -7.3
+      ],
+      "kind": "service",
+      "room": "lobby",
+      "radius": 2.5
+    },
+    {
+      "id": "case_board",
+      "label": "Choose a case",
+      "position": [
+        8.1,
+        1.65,
+        -7.35
+      ],
+      "lookAt": [
+        8.1,
+        1.85,
+        -9.7
+      ],
+      "kind": "scenario",
+      "room": "board_wall",
+      "radius": 2.5
+    },
+    {
+      "id": "open_office",
+      "label": "Team operations",
+      "position": [
+        -5.6,
+        1.65,
+        -14.4
+      ],
+      "lookAt": [
+        -8.4,
+        1,
+        -16
+      ],
+      "kind": "room",
+      "room": "open_office",
+      "radius": 2.5
+    },
+    {
+      "id": "personal_dossier",
+      "label": "Your dossier",
+      "position": [
+        -7.35,
+        1.65,
+        -21.7
+      ],
+      "lookAt": [
+        -8.8,
+        1,
+        -23.7
+      ],
+      "kind": "profile",
+      "room": "dossier",
+      "radius": 2.5
+    },
+    {
+      "id": "briefing",
+      "label": "Start briefing",
+      "position": [
+        -5,
+        1.65,
+        -28.2
+      ],
+      "lookAt": [
+        -8.2,
+        2.1,
+        -35.7
+      ],
+      "kind": "briefing",
+      "room": "briefing",
+      "radius": 2.5
+    },
+    {
+      "id": "interview",
+      "label": "Enter interview",
+      "position": [
+        6.3,
+        1.65,
+        -12.1
+      ],
+      "lookAt": [
+        8.7,
+        1.1,
+        -13.2
+      ],
+      "kind": "scenario",
+      "room": "interview",
+      "radius": 2.5
+    },
+    {
+      "id": "observation",
+      "label": "Observe interview",
+      "position": [
+        8.1,
+        1.65,
+        -18.5
+      ],
+      "lookAt": [
+        8.1,
+        1.8,
+        -16
+      ],
+      "kind": "observe",
+      "room": "observation",
+      "radius": 2.5
+    },
+    {
+      "id": "debrief_replay",
+      "label": "Review a session",
+      "position": [
+        5.3,
+        1.65,
+        -22.4
+      ],
+      "lookAt": [
+        8.1,
+        2.1,
+        -25.7
+      ],
+      "kind": "replay",
+      "room": "debrief",
+      "radius": 2.5
+    },
+    {
+      "id": "coach_lab",
+      "label": "Open Coach Lab",
+      "position": [
+        5.2,
+        1.65,
+        -29.6
+      ],
+      "lookAt": [
+        7.1,
+        1.1,
+        -30.45
+      ],
+      "kind": "coach",
+      "room": "coach_lab",
+      "radius": 2.5
+    },
+    {
+      "id": "instructor",
+      "label": "Instructor controls",
+      "position": [
+        10.9,
+        1.65,
+        -26.55
+      ],
+      "lookAt": [
+        11.8,
+        1.1,
+        -27.8
+      ],
+      "kind": "instructor",
+      "room": "coach_lab",
+      "radius": 2.5
+    },
+    {
+      "id": "archive",
+      "label": "Browse records",
+      "position": [
+        8.2,
+        1.65,
+        -33.4
+      ],
+      "lookAt": [
+        8.2,
+        1.7,
+        -35.4
+      ],
+      "kind": "archive",
+      "room": "records",
+      "radius": 2.5
+    },
+    {
+      "id": "trophies",
+      "label": "View milestones",
+      "position": [
+        0,
+        1.65,
+        -33.8
+      ],
+      "lookAt": [
+        0,
+        2,
+        -35.8
+      ],
+      "kind": "progress",
+      "room": "corridor",
+      "radius": 2.5
+    }
+  ],
+  "colliders": [
+    {
+      "id": "west-exterior-1",
+      "kind": "wall",
+      "min": [
+        -14.11,
+        0,
+        -36
+      ],
+      "max": [
+        -13.89,
+        3.5,
+        0
+      ]
+    },
+    {
+      "id": "east-exterior-1",
+      "kind": "wall",
+      "min": [
+        13.89,
+        0,
+        -36
+      ],
+      "max": [
+        14.11,
+        3.5,
+        0
+      ]
+    },
+    {
+      "id": "north-exterior-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        -36.11
+      ],
+      "max": [
+        14,
+        3.5,
+        -35.89
+      ]
+    },
+    {
+      "id": "front-limestone-sill-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        -0.11
+      ],
+      "max": [
+        -1.8,
+        0.32,
+        0.11
+      ]
+    },
+    {
+      "id": "front-transom-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        3.1,
+        -0.11
+      ],
+      "max": [
+        -1.8,
+        3.5,
+        0.11
+      ]
+    },
+    {
+      "id": "front-glass-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        0.3,
+        -0.02
+      ],
+      "max": [
+        -1.8,
+        3.2,
+        0.02
+      ]
+    },
+    {
+      "id": "front-limestone-sill-2",
+      "kind": "wall",
+      "min": [
+        1.8,
+        0,
+        -0.11
+      ],
+      "max": [
+        14,
+        0.32,
+        0.11
+      ]
+    },
+    {
+      "id": "front-transom-2",
+      "kind": "wall",
+      "min": [
+        1.8,
+        3.1,
+        -0.11
+      ],
+      "max": [
+        14,
+        3.5,
+        0.11
+      ]
+    },
+    {
+      "id": "front-glass-2",
+      "kind": "wall",
+      "min": [
+        1.8,
+        0.3,
+        -0.02
+      ],
+      "max": [
+        14,
+        3.2,
+        0.02
+      ]
+    },
+    {
+      "id": "lobby-west-back-wall-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        -10.09
+      ],
+      "max": [
+        -2.4,
+        3.5,
+        -9.91
+      ]
+    },
+    {
+      "id": "lobby-east-back-wall-1",
+      "kind": "wall",
+      "min": [
+        2.4,
+        0,
+        -10.09
+      ],
+      "max": [
+        14,
+        3.5,
+        -9.91
+      ]
+    },
+    {
+      "id": "west-room-partition-1",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        -19.09
+      ],
+      "max": [
+        -2.4,
+        3.5,
+        -18.91
+      ]
+    },
+    {
+      "id": "west-room-partition-2",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        -26.09
+      ],
+      "max": [
+        -2.4,
+        3.5,
+        -25.91
+      ]
+    },
+    {
+      "id": "east-room-partition-1",
+      "kind": "wall",
+      "min": [
+        2.4,
+        0,
+        -20.09
+      ],
+      "max": [
+        14,
+        3.5,
+        -19.91
+      ]
+    },
+    {
+      "id": "east-room-partition-2",
+      "kind": "wall",
+      "min": [
+        2.4,
+        0,
+        -26.09
+      ],
+      "max": [
+        14,
+        3.5,
+        -25.91
+      ]
+    },
+    {
+      "id": "east-room-partition-3",
+      "kind": "wall",
+      "min": [
+        2.4,
+        0,
+        -32.09
+      ],
+      "max": [
+        14,
+        3.5,
+        -31.91
+      ]
+    },
+    {
+      "id": "observation-partition-west-1",
+      "kind": "wall",
+      "min": [
+        2.4,
+        0,
+        -16.08
+      ],
+      "max": [
+        5,
+        3.5,
+        -15.92
+      ]
+    },
+    {
+      "id": "observation-partition-east-1",
+      "kind": "wall",
+      "min": [
+        11.1,
+        0,
+        -16.08
+      ],
+      "max": [
+        14,
+        3.5,
+        -15.92
+      ]
+    },
+    {
+      "id": "observation-sill-1",
+      "kind": "wall",
+      "min": [
+        5,
+        0,
+        -16.08
+      ],
+      "max": [
+        11.1,
+        0.96,
+        -15.92
+      ]
+    },
+    {
+      "id": "observation-lintel-1",
+      "kind": "wall",
+      "min": [
+        5,
+        2.78,
+        -16.08
+      ],
+      "max": [
+        11.1,
+        3.5,
+        -15.92
+      ]
+    },
+    {
+      "id": "observation-glass-1",
+      "kind": "wall",
+      "min": [
+        5,
+        0.98,
+        -16.0175
+      ],
+      "max": [
+        11.1,
+        2.76,
+        -15.9825
+      ]
+    },
+    {
+      "id": "open_office-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -12.075
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -10
+      ]
+    },
+    {
+      "id": "open_office-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -19
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -14.125
+      ]
+    },
+    {
+      "id": "open_office-lintel-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        2.5,
+        -14.125
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -12.075
+      ]
+    },
+    {
+      "id": "dossier-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -20.975
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -19
+      ]
+    },
+    {
+      "id": "dossier-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -26
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -23.025
+      ]
+    },
+    {
+      "id": "dossier-lintel-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        2.5,
+        -23.025
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -20.975
+      ]
+    },
+    {
+      "id": "briefing-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -27.975
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -26
+      ]
+    },
+    {
+      "id": "briefing-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        0,
+        -36
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -30.025
+      ]
+    },
+    {
+      "id": "briefing-lintel-1",
+      "kind": "wall",
+      "min": [
+        -2.49,
+        2.5,
+        -30.025
+      ],
+      "max": [
+        -2.31,
+        3.5,
+        -27.975
+      ]
+    },
+    {
+      "id": "interview-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -11.475
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -10
+      ]
+    },
+    {
+      "id": "interview-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -16
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -13.525
+      ]
+    },
+    {
+      "id": "interview-lintel-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        2.5,
+        -13.525
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -11.475
+      ]
+    },
+    {
+      "id": "observation-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -16.975
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -16
+      ]
+    },
+    {
+      "id": "observation-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -20
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -19.025
+      ]
+    },
+    {
+      "id": "observation-lintel-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        2.5,
+        -19.025
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -16.975
+      ]
+    },
+    {
+      "id": "debrief-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -21.975
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -20
+      ]
+    },
+    {
+      "id": "debrief-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -26
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -24.025
+      ]
+    },
+    {
+      "id": "debrief-lintel-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        2.5,
+        -24.025
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -21.975
+      ]
+    },
+    {
+      "id": "coach_lab-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -27.775
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -26
+      ]
+    },
+    {
+      "id": "coach_lab-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -32
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -29.825
+      ]
+    },
+    {
+      "id": "coach_lab-lintel-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        2.5,
+        -29.825
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -27.775
+      ]
+    },
+    {
+      "id": "records-corridor-wall-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -32.875
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -32
+      ]
+    },
+    {
+      "id": "records-corridor-wall-2",
+      "kind": "wall",
+      "min": [
+        2.31,
+        0,
+        -36
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -34.925
+      ]
+    },
+    {
+      "id": "records-lintel-1",
+      "kind": "wall",
+      "min": [
+        2.31,
+        2.5,
+        -34.925
+      ],
+      "max": [
+        2.49,
+        3.5,
+        -32.875
+      ]
+    },
+    {
+      "id": "reception-service-counter-1",
+      "kind": "furniture",
+      "min": [
+        -11.05,
+        0,
+        -7.85
+      ],
+      "max": [
+        -4.95,
+        1.08,
+        -6.75
+      ]
+    },
+    {
+      "id": "reception-accessible-writing-shelf-1",
+      "kind": "furniture",
+      "min": [
+        -4.985,
+        0.75,
+        -7.875
+      ],
+      "max": [
+        -4.135,
+        0.81,
+        -6.725
+      ]
+    },
+    {
+      "id": "chair-1",
+      "kind": "furniture",
+      "min": [
+        -8.97,
+        0,
+        -8.62
+      ],
+      "max": [
+        -8.23,
+        1.1,
+        -7.88
+      ]
+    },
+    {
+      "id": "planter-1",
+      "kind": "furniture",
+      "min": [
+        -12.991,
+        0,
+        -8.391
+      ],
+      "max": [
+        -12.209,
+        1.15,
+        -7.609
+      ]
+    },
+    {
+      "id": "planter-2",
+      "kind": "furniture",
+      "min": [
+        -3.689,
+        0,
+        -8.589
+      ],
+      "max": [
+        -3.111,
+        0.85,
+        -8.011
+      ]
+    },
+    {
+      "id": "lobby-sofa-1",
+      "kind": "furniture",
+      "min": [
+        -11.95,
+        0,
+        -4.05
+      ],
+      "max": [
+        -9.45,
+        1,
+        -3.15
+      ]
+    },
+    {
+      "id": "lobby-sofa-2",
+      "kind": "furniture",
+      "min": [
+        -7.65,
+        0,
+        -4.275
+      ],
+      "max": [
+        -6.75,
+        1,
+        -2.725
+      ]
+    },
+    {
+      "id": "lobby-coffee-table-1",
+      "kind": "furniture",
+      "min": [
+        -10.65,
+        0,
+        -2.75
+      ],
+      "max": [
+        -9.35,
+        0.52,
+        -1.45
+      ]
+    },
+    {
+      "id": "planter-3",
+      "kind": "furniture",
+      "min": [
+        -12.806,
+        0,
+        -1.606
+      ],
+      "max": [
+        -12.194,
+        0.9,
+        -0.994
+      ]
+    },
+    {
+      "id": "archive-cabinet-1",
+      "kind": "furniture",
+      "min": [
+        3.95,
+        0,
+        -9.49
+      ],
+      "max": [
+        12.45,
+        0.64,
+        -9.01
+      ]
+    },
+    {
+      "id": "planter-4",
+      "kind": "furniture",
+      "min": [
+        12.376,
+        0,
+        -7.874
+      ],
+      "max": [
+        13.124,
+        1.1,
+        -7.126
+      ]
+    },
+    {
+      "id": "lobby-sofa-3",
+      "kind": "furniture",
+      "min": [
+        9.425,
+        0,
+        -4.15
+      ],
+      "max": [
+        11.775,
+        1,
+        -3.25
+      ]
+    },
+    {
+      "id": "east-lounge-table-1",
+      "kind": "furniture",
+      "min": [
+        9.94,
+        0,
+        -2.76
+      ],
+      "max": [
+        11.06,
+        0.52,
+        -1.64
+      ]
+    },
+    {
+      "id": "orientation-monolith-1",
+      "kind": "furniture",
+      "min": [
+        4.42,
+        0,
+        -3.76
+      ],
+      "max": [
+        5.18,
+        1.88,
+        -3.44
+      ]
+    },
+    {
+      "id": "chair-2",
+      "kind": "furniture",
+      "min": [
+        -11.47,
+        0,
+        -14.41
+      ],
+      "max": [
+        -10.73,
+        1.1,
+        -13.67
+      ]
+    },
+    {
+      "id": "workstation-1",
+      "kind": "furniture",
+      "min": [
+        -11.95,
+        0,
+        -15.31
+      ],
+      "max": [
+        -10.25,
+        1,
+        -14.49
+      ]
+    },
+    {
+      "id": "chair-3",
+      "kind": "furniture",
+      "min": [
+        -11.47,
+        0,
+        -16.96
+      ],
+      "max": [
+        -10.73,
+        1.1,
+        -16.22
+      ]
+    },
+    {
+      "id": "workstation-2",
+      "kind": "furniture",
+      "min": [
+        -11.95,
+        0,
+        -17.86
+      ],
+      "max": [
+        -10.25,
+        1,
+        -17.04
+      ]
+    },
+    {
+      "id": "chair-4",
+      "kind": "furniture",
+      "min": [
+        -7.97,
+        0,
+        -14.41
+      ],
+      "max": [
+        -7.23,
+        1.1,
+        -13.67
+      ]
+    },
+    {
+      "id": "workstation-3",
+      "kind": "furniture",
+      "min": [
+        -8.45,
+        0,
+        -15.31
+      ],
+      "max": [
+        -6.75,
+        1,
+        -14.49
+      ]
+    },
+    {
+      "id": "chair-5",
+      "kind": "furniture",
+      "min": [
+        -7.97,
+        0,
+        -16.96
+      ],
+      "max": [
+        -7.23,
+        1.1,
+        -16.22
+      ]
+    },
+    {
+      "id": "workstation-4",
+      "kind": "furniture",
+      "min": [
+        -8.45,
+        0,
+        -17.86
+      ],
+      "max": [
+        -6.75,
+        1,
+        -17.04
+      ]
+    },
+    {
+      "id": "open-office-collaboration-tabletop-1",
+      "kind": "furniture",
+      "min": [
+        -8.15,
+        0.725,
+        -12.175
+      ],
+      "max": [
+        -5.25,
+        0.795,
+        -11.125
+      ]
+    },
+    {
+      "id": "chair-6",
+      "kind": "furniture",
+      "min": [
+        -7.97,
+        0,
+        -11.12
+      ],
+      "max": [
+        -7.23,
+        1.1,
+        -10.38
+      ]
+    },
+    {
+      "id": "chair-7",
+      "kind": "furniture",
+      "min": [
+        -6.67,
+        0,
+        -11.12
+      ],
+      "max": [
+        -5.93,
+        1.1,
+        -10.38
+      ]
+    },
+    {
+      "id": "archive-cabinet-2",
+      "kind": "furniture",
+      "min": [
+        -13.35,
+        0,
+        -18.79
+      ],
+      "max": [
+        -10.05,
+        1.15,
+        -18.31
+      ]
+    },
+    {
+      "id": "planter-5",
+      "kind": "furniture",
+      "min": [
+        -13.106,
+        0,
+        -11.706
+      ],
+      "max": [
+        -12.494,
+        0.9,
+        -11.094
+      ]
+    },
+    {
+      "id": "chair-8",
+      "kind": "furniture",
+      "min": [
+        -9.17,
+        0,
+        -23.21
+      ],
+      "max": [
+        -8.43,
+        1.1,
+        -22.47
+      ]
+    },
+    {
+      "id": "workstation-5",
+      "kind": "furniture",
+      "min": [
+        -10.05,
+        0,
+        -24.225
+      ],
+      "max": [
+        -7.55,
+        1,
+        -23.175
+      ]
+    },
+    {
+      "id": "chair-9",
+      "kind": "furniture",
+      "min": [
+        -9.07,
+        0,
+        -21.87
+      ],
+      "max": [
+        -8.33,
+        1.1,
+        -21.13
+      ]
+    },
+    {
+      "id": "dossier-secondary-sideboard-1",
+      "kind": "furniture",
+      "min": [
+        -12,
+        0,
+        -24.825
+      ],
+      "max": [
+        -11,
+        0.78,
+        -22.575
+      ]
+    },
+    {
+      "id": "archive-cabinet-3",
+      "kind": "furniture",
+      "min": [
+        -11.75,
+        0,
+        -25.74
+      ],
+      "max": [
+        -4.45,
+        1,
+        -25.26
+      ]
+    },
+    {
+      "id": "lobby-sofa-4",
+      "kind": "furniture",
+      "min": [
+        -12.9,
+        0,
+        -22.25
+      ],
+      "max": [
+        -12,
+        1,
+        -20.75
+      ]
+    },
+    {
+      "id": "planter-6",
+      "kind": "furniture",
+      "min": [
+        -4.34,
+        0,
+        -25.04
+      ],
+      "max": [
+        -3.66,
+        1,
+        -24.36
+      ]
+    },
+    {
+      "id": "briefing-conference-top-1",
+      "kind": "furniture",
+      "min": [
+        -10.95,
+        0.72,
+        -31.575
+      ],
+      "max": [
+        -5.45,
+        0.8,
+        -29.925
+      ]
+    },
+    {
+      "id": "chair-10",
+      "kind": "furniture",
+      "min": [
+        -10.67,
+        0,
+        -29.82
+      ],
+      "max": [
+        -9.93,
+        1.1,
+        -29.08
+      ]
+    },
+    {
+      "id": "chair-11",
+      "kind": "furniture",
+      "min": [
+        -10.67,
+        0,
+        -32.42
+      ],
+      "max": [
+        -9.93,
+        1.1,
+        -31.68
+      ]
+    },
+    {
+      "id": "chair-12",
+      "kind": "furniture",
+      "min": [
+        -9.27,
+        0,
+        -29.82
+      ],
+      "max": [
+        -8.53,
+        1.1,
+        -29.08
+      ]
+    },
+    {
+      "id": "chair-13",
+      "kind": "furniture",
+      "min": [
+        -9.27,
+        0,
+        -32.42
+      ],
+      "max": [
+        -8.53,
+        1.1,
+        -31.68
+      ]
+    },
+    {
+      "id": "chair-14",
+      "kind": "furniture",
+      "min": [
+        -7.87,
+        0,
+        -29.82
+      ],
+      "max": [
+        -7.13,
+        1.1,
+        -29.08
+      ]
+    },
+    {
+      "id": "chair-15",
+      "kind": "furniture",
+      "min": [
+        -7.87,
+        0,
+        -32.42
+      ],
+      "max": [
+        -7.13,
+        1.1,
+        -31.68
+      ]
+    },
+    {
+      "id": "chair-16",
+      "kind": "furniture",
+      "min": [
+        -6.47,
+        0,
+        -29.82
+      ],
+      "max": [
+        -5.73,
+        1.1,
+        -29.08
+      ]
+    },
+    {
+      "id": "chair-17",
+      "kind": "furniture",
+      "min": [
+        -6.47,
+        0,
+        -32.42
+      ],
+      "max": [
+        -5.73,
+        1.1,
+        -31.68
+      ]
+    },
+    {
+      "id": "chair-18",
+      "kind": "furniture",
+      "min": [
+        -12.07,
+        0,
+        -31.12
+      ],
+      "max": [
+        -11.33,
+        1.1,
+        -30.38
+      ]
+    },
+    {
+      "id": "chair-19",
+      "kind": "furniture",
+      "min": [
+        -5.07,
+        0,
+        -31.12
+      ],
+      "max": [
+        -4.33,
+        1.1,
+        -30.38
+      ]
+    },
+    {
+      "id": "archive-cabinet-4",
+      "kind": "furniture",
+      "min": [
+        -12.1,
+        0,
+        -35.59
+      ],
+      "max": [
+        -4.3,
+        0.65,
+        -35.11
+      ]
+    },
+    {
+      "id": "planter-7",
+      "kind": "furniture",
+      "min": [
+        -13.174,
+        0,
+        -34.874
+      ],
+      "max": [
+        -12.426,
+        1.1,
+        -34.126
+      ]
+    },
+    {
+      "id": "interview-table-1",
+      "kind": "furniture",
+      "min": [
+        7.475,
+        0.7225,
+        -13.725
+      ],
+      "max": [
+        9.925,
+        0.7975,
+        -12.675
+      ]
+    },
+    {
+      "id": "chair-20",
+      "kind": "furniture",
+      "min": [
+        8.28,
+        0,
+        -12.59
+      ],
+      "max": [
+        9.02,
+        1.1,
+        -11.85
+      ]
+    },
+    {
+      "id": "chair-21",
+      "kind": "furniture",
+      "min": [
+        8.28,
+        0,
+        -14.55
+      ],
+      "max": [
+        9.02,
+        1.1,
+        -13.81
+      ]
+    },
+    {
+      "id": "observation-worktop-1",
+      "kind": "furniture",
+      "min": [
+        4.7,
+        0.7475,
+        -16.95
+      ],
+      "max": [
+        11.5,
+        0.8125,
+        -16.35
+      ]
+    },
+    {
+      "id": "chair-22",
+      "kind": "furniture",
+      "min": [
+        5.83,
+        0,
+        -17.87
+      ],
+      "max": [
+        6.57,
+        1.1,
+        -17.13
+      ]
+    },
+    {
+      "id": "chair-23",
+      "kind": "furniture",
+      "min": [
+        7.73,
+        0,
+        -17.87
+      ],
+      "max": [
+        8.47,
+        1.1,
+        -17.13
+      ]
+    },
+    {
+      "id": "chair-24",
+      "kind": "furniture",
+      "min": [
+        9.63,
+        0,
+        -17.87
+      ],
+      "max": [
+        10.37,
+        1.1,
+        -17.13
+      ]
+    },
+    {
+      "id": "archive-cabinet-5",
+      "kind": "furniture",
+      "min": [
+        8.1,
+        0,
+        -19.79
+      ],
+      "max": [
+        12.9,
+        0.95,
+        -19.31
+      ]
+    },
+    {
+      "id": "archive-cabinet-6",
+      "kind": "furniture",
+      "min": [
+        4.7,
+        0,
+        -25.57
+      ],
+      "max": [
+        11.5,
+        0.67,
+        -25.09
+      ]
+    },
+    {
+      "id": "lobby-sofa-5",
+      "kind": "furniture",
+      "min": [
+        6.55,
+        0,
+        -24
+      ],
+      "max": [
+        7.45,
+        1,
+        -21.3
+      ]
+    },
+    {
+      "id": "lobby-sofa-6",
+      "kind": "furniture",
+      "min": [
+        10.75,
+        0,
+        -24.2
+      ],
+      "max": [
+        11.65,
+        1,
+        -22.4
+      ]
+    },
+    {
+      "id": "debrief-coffee-table-1",
+      "kind": "furniture",
+      "min": [
+        7.45,
+        0.415,
+        -24.25
+      ],
+      "max": [
+        8.95,
+        0.485,
+        -23.55
+      ]
+    },
+    {
+      "id": "chair-25",
+      "kind": "furniture",
+      "min": [
+        11.38,
+        0,
+        -21.11
+      ],
+      "max": [
+        12.12,
+        1.1,
+        -20.37
+      ]
+    },
+    {
+      "id": "workstation-6",
+      "kind": "furniture",
+      "min": [
+        10.95,
+        0,
+        -21.99
+      ],
+      "max": [
+        12.55,
+        1,
+        -21.21
+      ]
+    },
+    {
+      "id": "planter-8",
+      "kind": "furniture",
+      "min": [
+        3.777,
+        0,
+        -24.923
+      ],
+      "max": [
+        4.423,
+        0.95,
+        -24.277
+      ]
+    },
+    {
+      "id": "chair-26",
+      "kind": "furniture",
+      "min": [
+        6.73,
+        0,
+        -29.96
+      ],
+      "max": [
+        7.47,
+        1.1,
+        -29.22
+      ]
+    },
+    {
+      "id": "workstation-7",
+      "kind": "furniture",
+      "min": [
+        6.1,
+        0,
+        -30.875
+      ],
+      "max": [
+        8.1,
+        1,
+        -30.025
+      ]
+    },
+    {
+      "id": "chair-27",
+      "kind": "furniture",
+      "min": [
+        10.03,
+        0,
+        -29.96
+      ],
+      "max": [
+        10.77,
+        1.1,
+        -29.22
+      ]
+    },
+    {
+      "id": "workstation-8",
+      "kind": "furniture",
+      "min": [
+        9.4,
+        0,
+        -30.875
+      ],
+      "max": [
+        11.4,
+        1,
+        -30.025
+      ]
+    },
+    {
+      "id": "chair-28",
+      "kind": "furniture",
+      "min": [
+        11.43,
+        0,
+        -27.31
+      ],
+      "max": [
+        12.17,
+        1.1,
+        -26.57
+      ]
+    },
+    {
+      "id": "workstation-9",
+      "kind": "furniture",
+      "min": [
+        10.875,
+        0,
+        -28.225
+      ],
+      "max": [
+        12.725,
+        1,
+        -27.375
+      ]
+    },
+    {
+      "id": "instructor-low-divider-1",
+      "kind": "furniture",
+      "min": [
+        10.16,
+        0,
+        -28.4
+      ],
+      "max": [
+        10.24,
+        1.3,
+        -26.3
+      ]
+    },
+    {
+      "id": "lab-collaboration-table-1",
+      "kind": "furniture",
+      "min": [
+        5.1,
+        0.73,
+        -27.85
+      ],
+      "max": [
+        6.9,
+        0.79,
+        -26.95
+      ]
+    },
+    {
+      "id": "chair-29",
+      "kind": "furniture",
+      "min": [
+        5.63,
+        0,
+        -26.92
+      ],
+      "max": [
+        6.37,
+        1.1,
+        -26.18
+      ]
+    },
+    {
+      "id": "planter-9",
+      "kind": "furniture",
+      "min": [
+        3.794,
+        0,
+        -31.106
+      ],
+      "max": [
+        4.406,
+        0.9,
+        -30.494
+      ]
+    },
+    {
+      "id": "archive-bookcase-1",
+      "kind": "furniture",
+      "min": [
+        3.725,
+        0.05,
+        -35.78
+      ],
+      "max": [
+        6.475,
+        2.85,
+        -35.02
+      ]
+    },
+    {
+      "id": "archive-bookcase-2",
+      "kind": "furniture",
+      "min": [
+        6.825,
+        0.05,
+        -35.78
+      ],
+      "max": [
+        9.575,
+        2.85,
+        -35.02
+      ]
+    },
+    {
+      "id": "archive-bookcase-3",
+      "kind": "furniture",
+      "min": [
+        9.925,
+        0.05,
+        -35.78
+      ],
+      "max": [
+        12.675,
+        2.85,
+        -35.02
+      ]
+    },
+    {
+      "id": "recognition-display-1",
+      "kind": "furniture",
+      "min": [
+        -1.9,
+        0.225,
+        -35.875
+      ],
+      "max": [
+        1.9,
+        3.375,
+        -35.225
+      ]
+    },
+    {
+      "id": "courtyard-0054",
+      "kind": "wall",
+      "min": [
+        -14.15,
+        0,
+        0
+      ],
+      "max": [
+        -13.85,
+        4,
+        20
+      ]
+    },
+    {
+      "id": "courtyard-0093",
+      "kind": "wall",
+      "min": [
+        13.85,
+        0,
+        0
+      ],
+      "max": [
+        14.15,
+        4,
+        20
+      ]
+    },
+    {
+      "id": "courtyard-0132",
+      "kind": "wall",
+      "min": [
+        -14,
+        0,
+        19.85
+      ],
+      "max": [
+        14,
+        4,
+        20.15
+      ]
+    },
+    {
+      "id": "courtyard-0180",
+      "kind": "wall",
+      "min": [
+        -9.825,
+        0,
+        4.175
+      ],
+      "max": [
+        -9.175,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0181",
+      "kind": "wall",
+      "min": [
+        -9.8,
+        0.235,
+        4.2
+      ],
+      "max": [
+        -9.2,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0182",
+      "kind": "wall",
+      "min": [
+        -9.735,
+        0.385,
+        4.265
+      ],
+      "max": [
+        -9.265,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0185",
+      "kind": "wall",
+      "min": [
+        -6.625,
+        0,
+        4.175
+      ],
+      "max": [
+        -5.975,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0186",
+      "kind": "wall",
+      "min": [
+        -6.6,
+        0.235,
+        4.2
+      ],
+      "max": [
+        -6,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0187",
+      "kind": "wall",
+      "min": [
+        -6.535,
+        0.385,
+        4.265
+      ],
+      "max": [
+        -6.065,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0190",
+      "kind": "wall",
+      "min": [
+        -3.475,
+        0,
+        4.175
+      ],
+      "max": [
+        -2.825,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0191",
+      "kind": "wall",
+      "min": [
+        -3.45,
+        0.235,
+        4.2
+      ],
+      "max": [
+        -2.85,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0192",
+      "kind": "wall",
+      "min": [
+        -3.385,
+        0.385,
+        4.265
+      ],
+      "max": [
+        -2.915,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0195",
+      "kind": "wall",
+      "min": [
+        2.825,
+        0,
+        4.175
+      ],
+      "max": [
+        3.475,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0196",
+      "kind": "wall",
+      "min": [
+        2.85,
+        0.235,
+        4.2
+      ],
+      "max": [
+        3.45,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0197",
+      "kind": "wall",
+      "min": [
+        2.915,
+        0.385,
+        4.265
+      ],
+      "max": [
+        3.385,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0200",
+      "kind": "wall",
+      "min": [
+        5.975,
+        0,
+        4.175
+      ],
+      "max": [
+        6.625,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0201",
+      "kind": "wall",
+      "min": [
+        6,
+        0.235,
+        4.2
+      ],
+      "max": [
+        6.6,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0202",
+      "kind": "wall",
+      "min": [
+        6.065,
+        0.385,
+        4.265
+      ],
+      "max": [
+        6.535,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0205",
+      "kind": "wall",
+      "min": [
+        9.175,
+        0,
+        4.175
+      ],
+      "max": [
+        9.825,
+        0.26,
+        4.825
+      ]
+    },
+    {
+      "id": "courtyard-0206",
+      "kind": "wall",
+      "min": [
+        9.2,
+        0.235,
+        4.2
+      ],
+      "max": [
+        9.8,
+        0.385,
+        4.8
+      ]
+    },
+    {
+      "id": "courtyard-0207",
+      "kind": "wall",
+      "min": [
+        9.265,
+        0.385,
+        4.265
+      ],
+      "max": [
+        9.735,
+        3.155,
+        4.735
+      ]
+    },
+    {
+      "id": "courtyard-0210",
+      "kind": "wall",
+      "min": [
+        -9.825,
+        0,
+        13.175
+      ],
+      "max": [
+        -9.175,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0211",
+      "kind": "wall",
+      "min": [
+        -9.8,
+        0.235,
+        13.2
+      ],
+      "max": [
+        -9.2,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0212",
+      "kind": "wall",
+      "min": [
+        -9.735,
+        0.385,
+        13.265
+      ],
+      "max": [
+        -9.265,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0215",
+      "kind": "wall",
+      "min": [
+        -6.625,
+        0,
+        13.175
+      ],
+      "max": [
+        -5.975,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0216",
+      "kind": "wall",
+      "min": [
+        -6.6,
+        0.235,
+        13.2
+      ],
+      "max": [
+        -6,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0217",
+      "kind": "wall",
+      "min": [
+        -6.535,
+        0.385,
+        13.265
+      ],
+      "max": [
+        -6.065,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0220",
+      "kind": "wall",
+      "min": [
+        -3.475,
+        0,
+        13.175
+      ],
+      "max": [
+        -2.825,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0221",
+      "kind": "wall",
+      "min": [
+        -3.45,
+        0.235,
+        13.2
+      ],
+      "max": [
+        -2.85,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0222",
+      "kind": "wall",
+      "min": [
+        -3.385,
+        0.385,
+        13.265
+      ],
+      "max": [
+        -2.915,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0225",
+      "kind": "wall",
+      "min": [
+        2.825,
+        0,
+        13.175
+      ],
+      "max": [
+        3.475,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0226",
+      "kind": "wall",
+      "min": [
+        2.85,
+        0.235,
+        13.2
+      ],
+      "max": [
+        3.45,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0227",
+      "kind": "wall",
+      "min": [
+        2.915,
+        0.385,
+        13.265
+      ],
+      "max": [
+        3.385,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0230",
+      "kind": "wall",
+      "min": [
+        5.975,
+        0,
+        13.175
+      ],
+      "max": [
+        6.625,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0231",
+      "kind": "wall",
+      "min": [
+        6,
+        0.235,
+        13.2
+      ],
+      "max": [
+        6.6,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0232",
+      "kind": "wall",
+      "min": [
+        6.065,
+        0.385,
+        13.265
+      ],
+      "max": [
+        6.535,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0235",
+      "kind": "wall",
+      "min": [
+        9.175,
+        0,
+        13.175
+      ],
+      "max": [
+        9.825,
+        0.26,
+        13.825
+      ]
+    },
+    {
+      "id": "courtyard-0236",
+      "kind": "wall",
+      "min": [
+        9.2,
+        0.235,
+        13.2
+      ],
+      "max": [
+        9.8,
+        0.385,
+        13.8
+      ]
+    },
+    {
+      "id": "courtyard-0237",
+      "kind": "wall",
+      "min": [
+        9.265,
+        0.385,
+        13.265
+      ],
+      "max": [
+        9.735,
+        3.155,
+        13.735
+      ]
+    },
+    {
+      "id": "courtyard-0240",
+      "kind": "wall",
+      "min": [
+        -9.825,
+        0,
+        7.175
+      ],
+      "max": [
+        -9.175,
+        0.26,
+        7.825
+      ]
+    },
+    {
+      "id": "courtyard-0241",
+      "kind": "wall",
+      "min": [
+        -9.8,
+        0.235,
+        7.2
+      ],
+      "max": [
+        -9.2,
+        0.385,
+        7.8
+      ]
+    },
+    {
+      "id": "courtyard-0242",
+      "kind": "wall",
+      "min": [
+        -9.735,
+        0.385,
+        7.265
+      ],
+      "max": [
+        -9.265,
+        3.155,
+        7.735
+      ]
+    },
+    {
+      "id": "courtyard-0245",
+      "kind": "wall",
+      "min": [
+        -9.825,
+        0,
+        10.175
+      ],
+      "max": [
+        -9.175,
+        0.26,
+        10.825
+      ]
+    },
+    {
+      "id": "courtyard-0246",
+      "kind": "wall",
+      "min": [
+        -9.8,
+        0.235,
+        10.2
+      ],
+      "max": [
+        -9.2,
+        0.385,
+        10.8
+      ]
+    },
+    {
+      "id": "courtyard-0247",
+      "kind": "wall",
+      "min": [
+        -9.735,
+        0.385,
+        10.265
+      ],
+      "max": [
+        -9.265,
+        3.155,
+        10.735
+      ]
+    },
+    {
+      "id": "courtyard-0250",
+      "kind": "wall",
+      "min": [
+        9.175,
+        0,
+        7.175
+      ],
+      "max": [
+        9.825,
+        0.26,
+        7.825
+      ]
+    },
+    {
+      "id": "courtyard-0251",
+      "kind": "wall",
+      "min": [
+        9.2,
+        0.235,
+        7.2
+      ],
+      "max": [
+        9.8,
+        0.385,
+        7.8
+      ]
+    },
+    {
+      "id": "courtyard-0252",
+      "kind": "wall",
+      "min": [
+        9.265,
+        0.385,
+        7.265
+      ],
+      "max": [
+        9.735,
+        3.155,
+        7.735
+      ]
+    },
+    {
+      "id": "courtyard-0255",
+      "kind": "wall",
+      "min": [
+        9.175,
+        0,
+        10.175
+      ],
+      "max": [
+        9.825,
+        0.26,
+        10.825
+      ]
+    },
+    {
+      "id": "courtyard-0256",
+      "kind": "wall",
+      "min": [
+        9.2,
+        0.235,
+        10.2
+      ],
+      "max": [
+        9.8,
+        0.385,
+        10.8
+      ]
+    },
+    {
+      "id": "courtyard-0257",
+      "kind": "wall",
+      "min": [
+        9.265,
+        0.385,
+        10.265
+      ],
+      "max": [
+        9.735,
+        3.155,
+        10.735
+      ]
+    },
+    {
+      "id": "courtyard-0273",
+      "kind": "furniture",
+      "min": [
+        -5.43,
+        0.025,
+        8.07
+      ],
+      "max": [
+        -3.57,
+        0.455,
+        9.93
+      ]
+    },
+    {
+      "id": "courtyard-0279",
+      "kind": "furniture",
+      "min": [
+        3.57,
+        0.025,
+        8.07
+      ],
+      "max": [
+        5.43,
+        0.455,
+        9.93
+      ]
+    },
+    {
+      "id": "courtyard-0285",
+      "kind": "furniture",
+      "min": [
+        -6.575,
+        0.025,
+        5.56
+      ],
+      "max": [
+        -2.425,
+        0.335,
+        6.74
+      ]
+    },
+    {
+      "id": "courtyard-0294",
+      "kind": "furniture",
+      "min": [
+        -6.575,
+        0.025,
+        11.26
+      ],
+      "max": [
+        -2.425,
+        0.335,
+        12.44
+      ]
+    },
+    {
+      "id": "courtyard-0303",
+      "kind": "furniture",
+      "min": [
+        2.425,
+        0.025,
+        5.56
+      ],
+      "max": [
+        6.575,
+        0.335,
+        6.74
+      ]
+    },
+    {
+      "id": "courtyard-0312",
+      "kind": "furniture",
+      "min": [
+        2.425,
+        0.025,
+        11.26
+      ],
+      "max": [
+        6.575,
+        0.335,
+        12.44
+      ]
+    },
+    {
+      "id": "courtyard-0321",
+      "kind": "furniture",
+      "min": [
+        -13.12,
+        0.4,
+        1.8
+      ],
+      "max": [
+        -12.48,
+        0.52,
+        4.4
+      ]
+    },
+    {
+      "id": "courtyard-0322",
+      "kind": "furniture",
+      "min": [
+        -13.09,
+        0.46,
+        1.8
+      ],
+      "max": [
+        -12.99,
+        1.04,
+        4.4
+      ]
+    },
+    {
+      "id": "courtyard-0325",
+      "kind": "furniture",
+      "min": [
+        -13.12,
+        0.4,
+        15.3
+      ],
+      "max": [
+        -12.48,
+        0.52,
+        17.9
+      ]
+    },
+    {
+      "id": "courtyard-0326",
+      "kind": "furniture",
+      "min": [
+        -13.09,
+        0.46,
+        15.3
+      ],
+      "max": [
+        -12.99,
+        1.04,
+        17.9
+      ]
+    },
+    {
+      "id": "courtyard-0329",
+      "kind": "furniture",
+      "min": [
+        -13.15,
+        0.72,
+        7.65
+      ],
+      "max": [
+        -12.45,
+        0.82,
+        10.35
+      ]
+    },
+    {
+      "id": "courtyard-0334",
+      "kind": "furniture",
+      "min": [
+        12.48,
+        0.4,
+        1.8
+      ],
+      "max": [
+        13.12,
+        0.52,
+        4.4
+      ]
+    },
+    {
+      "id": "courtyard-0335",
+      "kind": "furniture",
+      "min": [
+        12.99,
+        0.46,
+        1.8
+      ],
+      "max": [
+        13.09,
+        1.04,
+        4.4
+      ]
+    },
+    {
+      "id": "courtyard-0338",
+      "kind": "furniture",
+      "min": [
+        12.48,
+        0.4,
+        15.3
+      ],
+      "max": [
+        13.12,
+        0.52,
+        17.9
+      ]
+    },
+    {
+      "id": "courtyard-0339",
+      "kind": "furniture",
+      "min": [
+        12.99,
+        0.46,
+        15.3
+      ],
+      "max": [
+        13.09,
+        1.04,
+        17.9
+      ]
+    },
+    {
+      "id": "courtyard-0342",
+      "kind": "furniture",
+      "min": [
+        12.45,
+        0.72,
+        7.65
+      ],
+      "max": [
+        13.15,
+        0.82,
+        10.35
+      ]
+    },
+    {
+      "id": "courtyard-0347",
+      "kind": "furniture",
+      "min": [
+        -7.9,
+        0.4,
+        18.38
+      ],
+      "max": [
+        -4.9,
+        0.52,
+        19.02
+      ]
+    },
+    {
+      "id": "courtyard-0348",
+      "kind": "furniture",
+      "min": [
+        -7.9,
+        0.46,
+        18.9
+      ],
+      "max": [
+        -4.9,
+        1.04,
+        19
+      ]
+    },
+    {
+      "id": "courtyard-0351",
+      "kind": "furniture",
+      "min": [
+        -6.86,
+        0.45,
+        16.94
+      ],
+      "max": [
+        -5.94,
+        0.53,
+        17.86
+      ]
+    },
+    {
+      "id": "courtyard-0352",
+      "kind": "furniture",
+      "min": [
+        -6.55,
+        0.025,
+        17.25
+      ],
+      "max": [
+        -6.25,
+        0.475,
+        17.55
+      ]
+    },
+    {
+      "id": "courtyard-0353",
+      "kind": "furniture",
+      "min": [
+        4.9,
+        0.4,
+        18.38
+      ],
+      "max": [
+        7.9,
+        0.52,
+        19.02
+      ]
+    },
+    {
+      "id": "courtyard-0354",
+      "kind": "furniture",
+      "min": [
+        4.9,
+        0.46,
+        18.9
+      ],
+      "max": [
+        7.9,
+        1.04,
+        19
+      ]
+    },
+    {
+      "id": "courtyard-0357",
+      "kind": "furniture",
+      "min": [
+        5.94,
+        0.45,
+        16.94
+      ],
+      "max": [
+        6.86,
+        0.53,
+        17.86
+      ]
+    },
+    {
+      "id": "courtyard-0358",
+      "kind": "furniture",
+      "min": [
+        6.25,
+        0.025,
+        17.25
+      ],
+      "max": [
+        6.55,
+        0.475,
+        17.55
+      ]
+    }
+  ],
+  "navigation": {
+    "type": "level-floor-with-aabb-obstacles",
+    "mainSpine": [
+      [
+        0,
+        0,
+        -2.4
+      ],
+      [
+        0,
+        0,
+        -8.5
+      ],
+      [
+        0,
+        0,
+        -12.5
+      ],
+      [
+        0,
+        0,
+        -18
+      ],
+      [
+        0,
+        0,
+        -22
+      ],
+      [
+        0,
+        0,
+        -23
+      ],
+      [
+        0,
+        0,
+        -28.8
+      ],
+      [
+        0,
+        0,
+        -29
+      ],
+      [
+        0,
+        0,
+        -33.9
+      ],
+      [
+        0,
+        0,
+        -34.5
+      ]
+    ],
+    "portals": [
+      {
+        "id": "open_office_door",
+        "connects": [
+          "corridor",
+          "open_office"
+        ],
+        "center": [
+          -2.4,
+          1.25,
+          -13.1
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          -2.4,
+          0,
+          -13.1
+        ]
+      },
+      {
+        "id": "dossier_door",
+        "connects": [
+          "corridor",
+          "dossier"
+        ],
+        "center": [
+          -2.4,
+          1.25,
+          -22
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          -2.4,
+          0,
+          -22
+        ]
+      },
+      {
+        "id": "briefing_door",
+        "connects": [
+          "corridor",
+          "briefing"
+        ],
+        "center": [
+          -2.4,
+          1.25,
+          -29
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          -2.4,
+          0,
+          -29
+        ]
+      },
+      {
+        "id": "interview_door",
+        "connects": [
+          "corridor",
+          "interview"
+        ],
+        "center": [
+          2.4,
+          1.25,
+          -12.5
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          2.4,
+          0,
+          -12.5
+        ]
+      },
+      {
+        "id": "observation_door",
+        "connects": [
+          "corridor",
+          "observation"
+        ],
+        "center": [
+          2.4,
+          1.25,
+          -18
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          2.4,
+          0,
+          -18
+        ]
+      },
+      {
+        "id": "debrief_door",
+        "connects": [
+          "corridor",
+          "debrief"
+        ],
+        "center": [
+          2.4,
+          1.25,
+          -23
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          2.4,
+          0,
+          -23
+        ]
+      },
+      {
+        "id": "coach_lab_door",
+        "connects": [
+          "corridor",
+          "coach_lab"
+        ],
+        "center": [
+          2.4,
+          1.25,
+          -28.8
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          2.4,
+          0,
+          -28.8
+        ]
+      },
+      {
+        "id": "records_door",
+        "connects": [
+          "corridor",
+          "records"
+        ],
+        "center": [
+          2.4,
+          1.25,
+          -33.9
+        ],
+        "width": 2.05,
+        "height": 2.5,
+        "axis": "z",
+        "clearance": 0.2,
+        "walkCenter": [
+          2.4,
+          0,
+          -33.9
+        ]
+      },
+      {
+        "id": "courtyard_lobby_portal",
+        "connects": [
+          "lobby",
+          "court_north_gallery"
+        ],
+        "center": [
+          0,
+          1.4,
+          0
+        ],
+        "width": 3.5,
+        "height": 2.8,
+        "axis": "x",
+        "clearance": 0.2,
+        "walkCenter": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "minimumDoorClearWidth": 2.05,
+    "corridorClearWidth": 4.6,
+    "note": "Door leaves are parked clear of portals. Furniture colliders are conservative AABBs. Clamp walking to walkBounds; floors/ceilings do not need collision testing. Original courtyard annex uses perimeter walls and a reciprocal appended loop.",
+    "nodes": [
+      {
+        "id": "arrival",
+        "position": [
+          0,
+          0,
+          -2.4
+        ],
+        "neighbors": [
+          "lobby-center",
+          "courtyard_lobby_portal"
+        ]
+      },
+      {
+        "id": "lobby-center",
+        "position": [
+          0,
+          0,
+          -7.9
+        ],
+        "neighbors": [
+          "arrival",
+          "interview_door-hall",
+          "board-wall-anchor",
+          "reception-approach"
+        ]
+      },
+      {
+        "id": "interview_door-hall",
+        "position": [
+          0,
+          0,
+          -12.5
+        ],
+        "neighbors": [
+          "lobby-center",
+          "interview_door",
+          "open_office_door-hall"
+        ]
+      },
+      {
+        "id": "interview_door",
+        "position": [
+          2.4,
+          0,
+          -12.5
+        ],
+        "neighbors": [
+          "interview_door-hall",
+          "interview-anchor"
+        ]
+      },
+      {
+        "id": "interview-anchor",
+        "position": [
+          5.7,
+          0,
+          -12.5
+        ],
+        "neighbors": [
+          "interview_door"
+        ]
+      },
+      {
+        "id": "open_office_door-hall",
+        "position": [
+          0,
+          0,
+          -13.1
+        ],
+        "neighbors": [
+          "interview_door-hall",
+          "open_office_door",
+          "observation_door-hall"
+        ]
+      },
+      {
+        "id": "open_office_door",
+        "position": [
+          -2.4,
+          0,
+          -13.1
+        ],
+        "neighbors": [
+          "open_office_door-hall",
+          "open_office-anchor"
+        ]
+      },
+      {
+        "id": "open_office-anchor",
+        "position": [
+          -5.4,
+          0,
+          -13.1
+        ],
+        "neighbors": [
+          "open_office_door"
+        ]
+      },
+      {
+        "id": "observation_door-hall",
+        "position": [
+          0,
+          0,
+          -18
+        ],
+        "neighbors": [
+          "open_office_door-hall",
+          "observation_door",
+          "dossier_door-hall"
+        ]
+      },
+      {
+        "id": "observation_door",
+        "position": [
+          2.4,
+          0,
+          -18
+        ],
+        "neighbors": [
+          "observation_door-hall",
+          "observation-anchor"
+        ]
+      },
+      {
+        "id": "observation-anchor",
+        "position": [
+          4.8,
+          0,
+          -18
+        ],
+        "neighbors": [
+          "observation_door"
+        ]
+      },
+      {
+        "id": "dossier_door-hall",
+        "position": [
+          0,
+          0,
+          -22
+        ],
+        "neighbors": [
+          "observation_door-hall",
+          "dossier_door",
+          "debrief_door-hall"
+        ]
+      },
+      {
+        "id": "dossier_door",
+        "position": [
+          -2.4,
+          0,
+          -22
+        ],
+        "neighbors": [
+          "dossier_door-hall",
+          "dossier-anchor"
+        ]
+      },
+      {
+        "id": "dossier-anchor",
+        "position": [
+          -5.2,
+          0,
+          -22
+        ],
+        "neighbors": [
+          "dossier_door"
+        ]
+      },
+      {
+        "id": "debrief_door-hall",
+        "position": [
+          0,
+          0,
+          -23
+        ],
+        "neighbors": [
+          "dossier_door-hall",
+          "debrief_door",
+          "coach_lab_door-hall"
+        ]
+      },
+      {
+        "id": "debrief_door",
+        "position": [
+          2.4,
+          0,
+          -23
+        ],
+        "neighbors": [
+          "debrief_door-hall",
+          "debrief-anchor"
+        ]
+      },
+      {
+        "id": "debrief-anchor",
+        "position": [
+          5,
+          0,
+          -22
+        ],
+        "neighbors": [
+          "debrief_door"
+        ]
+      },
+      {
+        "id": "coach_lab_door-hall",
+        "position": [
+          0,
+          0,
+          -28.8
+        ],
+        "neighbors": [
+          "debrief_door-hall",
+          "coach_lab_door",
+          "briefing_door-hall"
+        ]
+      },
+      {
+        "id": "coach_lab_door",
+        "position": [
+          2.4,
+          0,
+          -28.8
+        ],
+        "neighbors": [
+          "coach_lab_door-hall",
+          "coach_lab-anchor"
+        ]
+      },
+      {
+        "id": "coach_lab-anchor",
+        "position": [
+          4.3,
+          0,
+          -28.8
+        ],
+        "neighbors": [
+          "coach_lab_door"
+        ]
+      },
+      {
+        "id": "briefing_door-hall",
+        "position": [
+          0,
+          0,
+          -29
+        ],
+        "neighbors": [
+          "coach_lab_door-hall",
+          "briefing_door",
+          "records_door-hall"
+        ]
+      },
+      {
+        "id": "briefing_door",
+        "position": [
+          -2.4,
+          0,
+          -29
+        ],
+        "neighbors": [
+          "briefing_door-hall",
+          "briefing-anchor"
+        ]
+      },
+      {
+        "id": "briefing-anchor",
+        "position": [
+          -5.2,
+          0,
+          -28
+        ],
+        "neighbors": [
+          "briefing_door"
+        ]
+      },
+      {
+        "id": "records_door-hall",
+        "position": [
+          0,
+          0,
+          -33.9
+        ],
+        "neighbors": [
+          "briefing_door-hall",
+          "records_door",
+          "recognition"
+        ]
+      },
+      {
+        "id": "records_door",
+        "position": [
+          2.4,
+          0,
+          -33.9
+        ],
+        "neighbors": [
+          "records_door-hall",
+          "records-anchor"
+        ]
+      },
+      {
+        "id": "records-anchor",
+        "position": [
+          7.9,
+          0,
+          -33.3
+        ],
+        "neighbors": [
+          "records_door"
+        ]
+      },
+      {
+        "id": "recognition",
+        "position": [
+          0,
+          0,
+          -34.35
+        ],
+        "neighbors": [
+          "records_door-hall"
+        ]
+      },
+      {
+        "id": "board-wall-anchor",
+        "position": [
+          8.1,
+          0,
+          -7.35
+        ],
+        "neighbors": [
+          "lobby-center"
+        ]
+      },
+      {
+        "id": "reception-approach",
+        "position": [
+          -3.3,
+          0,
+          -5.7
+        ],
+        "neighbors": [
+          "lobby-center",
+          "reception-anchor"
+        ]
+      },
+      {
+        "id": "reception-anchor",
+        "position": [
+          -6.2,
+          0,
+          -5.7
+        ],
+        "neighbors": [
+          "reception-approach"
+        ]
+      },
+      {
+        "id": "courtyard_lobby_portal",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "neighbors": [
+          "arrival",
+          "court-north"
+        ]
+      },
+      {
+        "id": "court-north",
+        "position": [
+          0,
+          0,
+          2.4
+        ],
+        "neighbors": [
+          "courtyard_lobby_portal",
+          "court-center-north",
+          "court-northwest",
+          "court-northeast"
+        ]
+      },
+      {
+        "id": "court-center",
+        "position": [
+          0,
+          0,
+          9
+        ],
+        "neighbors": [
+          "court-center-north",
+          "court-center-south"
+        ]
+      },
+      {
+        "id": "court-south",
+        "position": [
+          0,
+          0,
+          16.3
+        ],
+        "neighbors": [
+          "court-center-south",
+          "court-southwest",
+          "court-southeast"
+        ]
+      },
+      {
+        "id": "court-northwest",
+        "position": [
+          -11.3,
+          0,
+          2.4
+        ],
+        "neighbors": [
+          "court-north",
+          "court-west"
+        ]
+      },
+      {
+        "id": "court-northeast",
+        "position": [
+          11.3,
+          0,
+          2.4
+        ],
+        "neighbors": [
+          "court-north",
+          "court-east"
+        ]
+      },
+      {
+        "id": "court-west",
+        "position": [
+          -11.3,
+          0,
+          9
+        ],
+        "neighbors": [
+          "court-northwest",
+          "court-southwest",
+          "court-upperwest"
+        ]
+      },
+      {
+        "id": "court-east",
+        "position": [
+          11.3,
+          0,
+          9
+        ],
+        "neighbors": [
+          "court-northeast",
+          "court-southeast",
+          "court-uppereast"
+        ]
+      },
+      {
+        "id": "court-southwest",
+        "position": [
+          -11.3,
+          0,
+          16.3
+        ],
+        "neighbors": [
+          "court-west",
+          "court-south"
+        ]
+      },
+      {
+        "id": "court-southeast",
+        "position": [
+          11.3,
+          0,
+          16.3
+        ],
+        "neighbors": [
+          "court-east",
+          "court-south"
+        ]
+      },
+      {
+        "id": "court-upperwest",
+        "position": [
+          -7.7,
+          0,
+          9
+        ],
+        "neighbors": [
+          "court-west",
+          "court-northwest-cross",
+          "court-southwest-cross"
+        ]
+      },
+      {
+        "id": "court-uppereast",
+        "position": [
+          7.7,
+          0,
+          9
+        ],
+        "neighbors": [
+          "court-east",
+          "court-northeast-cross",
+          "court-southeast-cross"
+        ]
+      },
+      {
+        "id": "court-northwest-cross",
+        "position": [
+          -7.7,
+          0,
+          7.5
+        ],
+        "neighbors": [
+          "court-upperwest",
+          "court-center-north"
+        ]
+      },
+      {
+        "id": "court-northeast-cross",
+        "position": [
+          7.7,
+          0,
+          7.5
+        ],
+        "neighbors": [
+          "court-uppereast",
+          "court-center-north"
+        ]
+      },
+      {
+        "id": "court-southwest-cross",
+        "position": [
+          -7.7,
+          0,
+          10.5
+        ],
+        "neighbors": [
+          "court-upperwest",
+          "court-center-south"
+        ]
+      },
+      {
+        "id": "court-southeast-cross",
+        "position": [
+          7.7,
+          0,
+          10.5
+        ],
+        "neighbors": [
+          "court-uppereast",
+          "court-center-south"
+        ]
+      },
+      {
+        "id": "court-center-north",
+        "position": [
+          0,
+          0,
+          7.5
+        ],
+        "neighbors": [
+          "court-north",
+          "court-center",
+          "court-northwest-cross",
+          "court-northeast-cross"
+        ]
+      },
+      {
+        "id": "court-center-south",
+        "position": [
+          0,
+          0,
+          10.5
+        ],
+        "neighbors": [
+          "court-center",
+          "court-south",
+          "court-southwest-cross",
+          "court-southeast-cross"
+        ]
+      }
+    ],
+    "courtyardClearRouteWidth": 2.4
+  },
+  "lighting": {
+    "recommendation": "Use one shadowed directional key plus hemisphere fill. Emissive fixture geometry is included. Fixture positions support optional nearby point lights; enable only a few at once.",
+    "ambientSky": "#dbe5ed",
+    "ambientGround": "#a29c8e",
+    "ambientIntensity": 2,
+    "keyColor": "#fff1db",
+    "keyIntensity": 2.2,
+    "keyPosition": [
+      9,
+      16,
+      5
+    ],
+    "fixturePositions": [
+      {
+        "position": [
+          -9,
+          3.05,
+          -2.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -9,
+          3.05,
+          -7.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -4.7,
+          3.05,
+          -2.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -4.7,
+          3.05,
+          -7.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -2.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -7.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          5,
+          3.05,
+          -2.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          5,
+          3.05,
+          -7.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          10,
+          3.05,
+          -2.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          10,
+          3.05,
+          -7.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -12
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -17
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -22
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -27
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -32
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          0,
+          3.05,
+          -34.7
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -12.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -16.8
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -21.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -24
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -28.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -10.4,
+          3.05,
+          -33.4
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -12.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -16.8
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -21.2
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -24
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -28.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          -5.5,
+          3.05,
+          -33.4
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -12.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -18
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -22.3
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -24.3
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -28.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -30.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          6.1,
+          3.05,
+          -34
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -12.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -18
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -22.3
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -24.3
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -28.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -30.5
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      },
+      {
+        "position": [
+          11,
+          3.05,
+          -34
+        ],
+        "color": "#fff0d5",
+        "intensity": 2,
+        "range": 8
+      }
+    ],
+    "toneMapping": "ACESFilmic or AgX",
+    "exposure": 1,
+    "disableShadowCastingMaterials": [
+      "White acoustic ceiling"
+    ]
+  },
+  "performance": {
+    "triangles": 121656,
+    "meshMaterialGroups": 44,
+    "fileBytes": 3167788,
+    "textures": 0,
+    "animations": 0,
+    "runtimeLights": 0
+  },
+  "reviewCameras": [
+    {
+      "id": "lobby",
+      "position": [
+        1.7,
+        1.68,
+        -1.4
+      ],
+      "target": [
+        -2,
+        1.75,
+        -8.8
+      ]
+    },
+    {
+      "id": "corridor",
+      "position": [
+        -0.62,
+        1.68,
+        -10.8
+      ],
+      "target": [
+        0.15,
+        1.72,
+        -28
+      ]
+    },
+    {
+      "id": "courtyard-axial",
+      "position": [
+        0,
+        1.68,
+        16.3
+      ],
+      "target": [
+        0,
+        1.7,
+        2.4
+      ]
+    },
+    {
+      "id": "courtyard-oblique",
+      "position": [
+        -11.3,
+        1.68,
+        15.8
+      ],
+      "target": [
+        3,
+        1.85,
+        6.7
+      ]
+    },
+    {
+      "id": "courtyard-gallery",
+      "position": [
+        11.3,
+        1.68,
+        15.8
+      ],
+      "target": [
+        11.3,
+        1.7,
+        2.4
+      ]
+    }
+  ],
+  "version": "1.0.0-courtyard",
+  "navigationNodes": [
+    {
+      "id": "arrival",
+      "position": [
+        0,
+        0,
+        -2.4
+      ],
+      "neighbors": [
+        "lobby-center",
+        "courtyard_lobby_portal"
+      ]
+    },
+    {
+      "id": "lobby-center",
+      "position": [
+        0,
+        0,
+        -7.9
+      ],
+      "neighbors": [
+        "arrival",
+        "interview_door-hall",
+        "board-wall-anchor",
+        "reception-approach"
+      ]
+    },
+    {
+      "id": "interview_door-hall",
+      "position": [
+        0,
+        0,
+        -12.5
+      ],
+      "neighbors": [
+        "lobby-center",
+        "interview_door",
+        "open_office_door-hall"
+      ]
+    },
+    {
+      "id": "interview_door",
+      "position": [
+        2.4,
+        0,
+        -12.5
+      ],
+      "neighbors": [
+        "interview_door-hall",
+        "interview-anchor"
+      ]
+    },
+    {
+      "id": "interview-anchor",
+      "position": [
+        5.7,
+        0,
+        -12.5
+      ],
+      "neighbors": [
+        "interview_door"
+      ]
+    },
+    {
+      "id": "open_office_door-hall",
+      "position": [
+        0,
+        0,
+        -13.1
+      ],
+      "neighbors": [
+        "interview_door-hall",
+        "open_office_door",
+        "observation_door-hall"
+      ]
+    },
+    {
+      "id": "open_office_door",
+      "position": [
+        -2.4,
+        0,
+        -13.1
+      ],
+      "neighbors": [
+        "open_office_door-hall",
+        "open_office-anchor"
+      ]
+    },
+    {
+      "id": "open_office-anchor",
+      "position": [
+        -5.4,
+        0,
+        -13.1
+      ],
+      "neighbors": [
+        "open_office_door"
+      ]
+    },
+    {
+      "id": "observation_door-hall",
+      "position": [
+        0,
+        0,
+        -18
+      ],
+      "neighbors": [
+        "open_office_door-hall",
+        "observation_door",
+        "dossier_door-hall"
+      ]
+    },
+    {
+      "id": "observation_door",
+      "position": [
+        2.4,
+        0,
+        -18
+      ],
+      "neighbors": [
+        "observation_door-hall",
+        "observation-anchor"
+      ]
+    },
+    {
+      "id": "observation-anchor",
+      "position": [
+        4.8,
+        0,
+        -18
+      ],
+      "neighbors": [
+        "observation_door"
+      ]
+    },
+    {
+      "id": "dossier_door-hall",
+      "position": [
+        0,
+        0,
+        -22
+      ],
+      "neighbors": [
+        "observation_door-hall",
+        "dossier_door",
+        "debrief_door-hall"
+      ]
+    },
+    {
+      "id": "dossier_door",
+      "position": [
+        -2.4,
+        0,
+        -22
+      ],
+      "neighbors": [
+        "dossier_door-hall",
+        "dossier-anchor"
+      ]
+    },
+    {
+      "id": "dossier-anchor",
+      "position": [
+        -5.2,
+        0,
+        -22
+      ],
+      "neighbors": [
+        "dossier_door"
+      ]
+    },
+    {
+      "id": "debrief_door-hall",
+      "position": [
+        0,
+        0,
+        -23
+      ],
+      "neighbors": [
+        "dossier_door-hall",
+        "debrief_door",
+        "coach_lab_door-hall"
+      ]
+    },
+    {
+      "id": "debrief_door",
+      "position": [
+        2.4,
+        0,
+        -23
+      ],
+      "neighbors": [
+        "debrief_door-hall",
+        "debrief-anchor"
+      ]
+    },
+    {
+      "id": "debrief-anchor",
+      "position": [
+        5,
+        0,
+        -22
+      ],
+      "neighbors": [
+        "debrief_door"
+      ]
+    },
+    {
+      "id": "coach_lab_door-hall",
+      "position": [
+        0,
+        0,
+        -28.8
+      ],
+      "neighbors": [
+        "debrief_door-hall",
+        "coach_lab_door",
+        "briefing_door-hall"
+      ]
+    },
+    {
+      "id": "coach_lab_door",
+      "position": [
+        2.4,
+        0,
+        -28.8
+      ],
+      "neighbors": [
+        "coach_lab_door-hall",
+        "coach_lab-anchor"
+      ]
+    },
+    {
+      "id": "coach_lab-anchor",
+      "position": [
+        4.3,
+        0,
+        -28.8
+      ],
+      "neighbors": [
+        "coach_lab_door"
+      ]
+    },
+    {
+      "id": "briefing_door-hall",
+      "position": [
+        0,
+        0,
+        -29
+      ],
+      "neighbors": [
+        "coach_lab_door-hall",
+        "briefing_door",
+        "records_door-hall"
+      ]
+    },
+    {
+      "id": "briefing_door",
+      "position": [
+        -2.4,
+        0,
+        -29
+      ],
+      "neighbors": [
+        "briefing_door-hall",
+        "briefing-anchor"
+      ]
+    },
+    {
+      "id": "briefing-anchor",
+      "position": [
+        -5.2,
+        0,
+        -28
+      ],
+      "neighbors": [
+        "briefing_door"
+      ]
+    },
+    {
+      "id": "records_door-hall",
+      "position": [
+        0,
+        0,
+        -33.9
+      ],
+      "neighbors": [
+        "briefing_door-hall",
+        "records_door",
+        "recognition"
+      ]
+    },
+    {
+      "id": "records_door",
+      "position": [
+        2.4,
+        0,
+        -33.9
+      ],
+      "neighbors": [
+        "records_door-hall",
+        "records-anchor"
+      ]
+    },
+    {
+      "id": "records-anchor",
+      "position": [
+        7.9,
+        0,
+        -33.3
+      ],
+      "neighbors": [
+        "records_door"
+      ]
+    },
+    {
+      "id": "recognition",
+      "position": [
+        0,
+        0,
+        -34.35
+      ],
+      "neighbors": [
+        "records_door-hall"
+      ]
+    },
+    {
+      "id": "board-wall-anchor",
+      "position": [
+        8.1,
+        0,
+        -7.35
+      ],
+      "neighbors": [
+        "lobby-center"
+      ]
+    },
+    {
+      "id": "reception-approach",
+      "position": [
+        -3.3,
+        0,
+        -5.7
+      ],
+      "neighbors": [
+        "lobby-center",
+        "reception-anchor"
+      ]
+    },
+    {
+      "id": "reception-anchor",
+      "position": [
+        -6.2,
+        0,
+        -5.7
+      ],
+      "neighbors": [
+        "reception-approach"
+      ]
+    },
+    {
+      "id": "courtyard_lobby_portal",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "neighbors": [
+        "arrival",
+        "court-north"
+      ]
+    },
+    {
+      "id": "court-north",
+      "position": [
+        0,
+        0,
+        2.4
+      ],
+      "neighbors": [
+        "courtyard_lobby_portal",
+        "court-center-north",
+        "court-northwest",
+        "court-northeast"
+      ]
+    },
+    {
+      "id": "court-center",
+      "position": [
+        0,
+        0,
+        9
+      ],
+      "neighbors": [
+        "court-center-north",
+        "court-center-south"
+      ]
+    },
+    {
+      "id": "court-south",
+      "position": [
+        0,
+        0,
+        16.3
+      ],
+      "neighbors": [
+        "court-center-south",
+        "court-southwest",
+        "court-southeast"
+      ]
+    },
+    {
+      "id": "court-northwest",
+      "position": [
+        -11.3,
+        0,
+        2.4
+      ],
+      "neighbors": [
+        "court-north",
+        "court-west"
+      ]
+    },
+    {
+      "id": "court-northeast",
+      "position": [
+        11.3,
+        0,
+        2.4
+      ],
+      "neighbors": [
+        "court-north",
+        "court-east"
+      ]
+    },
+    {
+      "id": "court-west",
+      "position": [
+        -11.3,
+        0,
+        9
+      ],
+      "neighbors": [
+        "court-northwest",
+        "court-southwest",
+        "court-upperwest"
+      ]
+    },
+    {
+      "id": "court-east",
+      "position": [
+        11.3,
+        0,
+        9
+      ],
+      "neighbors": [
+        "court-northeast",
+        "court-southeast",
+        "court-uppereast"
+      ]
+    },
+    {
+      "id": "court-southwest",
+      "position": [
+        -11.3,
+        0,
+        16.3
+      ],
+      "neighbors": [
+        "court-west",
+        "court-south"
+      ]
+    },
+    {
+      "id": "court-southeast",
+      "position": [
+        11.3,
+        0,
+        16.3
+      ],
+      "neighbors": [
+        "court-east",
+        "court-south"
+      ]
+    },
+    {
+      "id": "court-upperwest",
+      "position": [
+        -7.7,
+        0,
+        9
+      ],
+      "neighbors": [
+        "court-west",
+        "court-northwest-cross",
+        "court-southwest-cross"
+      ]
+    },
+    {
+      "id": "court-uppereast",
+      "position": [
+        7.7,
+        0,
+        9
+      ],
+      "neighbors": [
+        "court-east",
+        "court-northeast-cross",
+        "court-southeast-cross"
+      ]
+    },
+    {
+      "id": "court-northwest-cross",
+      "position": [
+        -7.7,
+        0,
+        7.5
+      ],
+      "neighbors": [
+        "court-upperwest",
+        "court-center-north"
+      ]
+    },
+    {
+      "id": "court-northeast-cross",
+      "position": [
+        7.7,
+        0,
+        7.5
+      ],
+      "neighbors": [
+        "court-uppereast",
+        "court-center-north"
+      ]
+    },
+    {
+      "id": "court-southwest-cross",
+      "position": [
+        -7.7,
+        0,
+        10.5
+      ],
+      "neighbors": [
+        "court-upperwest",
+        "court-center-south"
+      ]
+    },
+    {
+      "id": "court-southeast-cross",
+      "position": [
+        7.7,
+        0,
+        10.5
+      ],
+      "neighbors": [
+        "court-uppereast",
+        "court-center-south"
+      ]
+    },
+    {
+      "id": "court-center-north",
+      "position": [
+        0,
+        0,
+        7.5
+      ],
+      "neighbors": [
+        "court-north",
+        "court-center",
+        "court-northwest-cross",
+        "court-northeast-cross"
+      ]
+    },
+    {
+      "id": "court-center-south",
+      "position": [
+        0,
+        0,
+        10.5
+      ],
+      "neighbors": [
+        "court-center",
+        "court-south",
+        "court-southwest-cross",
+        "court-southeast-cross"
+      ]
+    }
+  ],
+  "worldVariant": {
+    "id": "northstar-courtyard-v1",
+    "label": "Original compact courtyard adaptation",
+    "baselineAsset": "precinct.glb",
+    "baselineManifest": "precinct-manifest.json",
+    "preservedModuleTransform": {
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "rotationY": 0,
+      "scale": 1
+    },
+    "courtFieldMeters": [
+      18,
+      8
+    ],
+    "annexEnvelopeMeters": [
+      28,
+      20
+    ],
+    "footprintBounds": {
+      "min": [
+        -14,
+        0,
+        -36
+      ],
+      "max": [
+        14,
+        4.2,
+        20
+      ]
+    },
+    "optionalArrivalPose": {
+      "position": [
+        0,
+        0,
+        16.3
+      ],
+      "eyeHeight": 1.65,
+      "yaw": 0,
+      "lookAt": [
+        0,
+        1.65,
+        2.4
+      ],
+      "activeByDefault": false
+    },
+    "referenceCredit": "Architectural reference: Old Patent Office Building, Washington, DC; Historic American Buildings Survey, HABS DC-130, sheets 1 and 3 of 8. Drawn by Hartman-Cox Architects. Library of Congress, Prints & Photographs Division. Drawing date not specified in the inspected record. Fictional training adaptation; not a representation of the building's current interior and not endorsed by the Smithsonian Institution.",
+    "referenceUrls": [
+      "https://www.loc.gov/resource/hhh.dc0194.sheet/?sp=3&st=image",
+      "https://www.loc.gov/pictures/item/dc0194.sheet.00001a/",
+      "https://wwws.loc.gov/rr/print/res/114_habs.html"
+    ],
+    "referenceDrawingDate": "Not specified in the inspected record",
+    "currentMuseumReplica": false
+  }
+}

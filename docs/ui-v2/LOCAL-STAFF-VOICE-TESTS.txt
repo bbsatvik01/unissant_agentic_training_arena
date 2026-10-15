@@ -1,0 +1,846 @@
+
+ RUN  v5.0.1 /workspace/shared/precinct-local-voice-qa/web
+
+ ❯ src/components/precinct/ReceptionBriefingPanel.test.tsx (10 tests | 2 failed) 2897ms
+   ❯ ReceptionBriefingPanel (10)
+     × shows every authored reply as a subtitle without moving focus or automatically travelling 457ms
+     × rejects unsafe names and preserves a subtitle when local voice is unavailable 308ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/precinct/ReceptionBriefingPanel.test.tsx > ReceptionBriefingPanel > shows every authored reply as a subtitle without moving focus or automatically travelling
+TestingLibraryElementError: Unable to find an element with the text: Authored responses · no model or network. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<button>[39m
+      [0mClose panel[0m
+    [36m</button>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Test station"[39m
+      [33mrole[39m=[32m"dialog"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"npc-panel"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Reception check-in"[39m
+          [33mclass[39m=[32m"npc-station-welcome"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"panel-lead"[39m
+          [36m>[39m
+            [0mCheck in, choose your next stop, and get to know the precinct staff.[0m
+          [36m</p>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"npc-assignment-summary"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"precinct-kicker"[39m
+            [36m>[39m
+              [0mPUBLIC ASSIGNMENT[0m
+            [36m</span>[39m
+            [36m<strong>[39m
+              [0mPublic practice assignment[0m
+            [36m</strong>[39m
+            [36m<span>[39m
+              [0mPUBLIC_OBJECTIVE_SENTINEL: establish the documented sequence.[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"station-actions"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-primary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCheck in for this shift[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mGo to the case board[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mGo to briefing[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"_r_9_-title"[39m
+          [33mclass[39m=[32m"npc-conversation"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"npc-conversation-heading"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"station-tag"[39m
+              [36m>[39m
+                [0mLOCAL SCRIPTED DIALOGUE[0m
+              [36m</span>[39m
+              [36m<h3[39m
+                [33mid[39m=[32m"_r_9_-title"[39m
+              [36m>[39m
+                [0mReception officer[0m
+              [36m</h3>[39m
+            [36m</div>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"npc-offline-label"[39m
+            [36m>[39m
+              [0mAuthored responses · no model[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"npc-help"[39m
+          [36m>[39m
+            [0mChoose a topic or type a short technique question. These are fixed local responses, not an open-ended assistant. Staff cannot answer your case.[0m
+          [36m</p>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"precinct-primary"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mRepeat greeting[0m
+          [36m</button>[39m
+          [36m<div[39m
+            [33maria-atomic[39m=[32m"true"[39m
+            [33maria-live[39m=[32m"polite"[39m
+            [33mclass[39m=[32m"npc-subtitle"[39m
+            [33mrole[39m=[32m"status"[39m
+          [36m>[39m
+            [36m<span>[39m
+              [0mReception officer[0m
+            [36m</span>[39m
+            [36m<p>[39m
+              [0mHead north along the central corridor. Your dossier desk is the second room on the left, after the open office.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"local-speech"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mPlay scripted staff voice[0m
+            [36m</button>[39m
+            [36m<span[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mFixed local dialogue · synthetic voice. No microphone or AI conversation.[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Authored conversation topics"[39m
+            [33mclass[39m=[32m"npc-topics"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere do I begin?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is my desk?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the sergeant?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the interview room?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere can I review a session?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere are the leaderboards?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the archive?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCan I use the station menu?[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"precinct-secondary npc-go-there"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mGo to the suggested station[0m
+          [36m</button>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"npc-prompt"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_9_-prompt"[39m
+            [36m>[39m
+              [0mOptional short prompt[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"_r_9_-prompt-hint"[39m
+              [33maria-invalid[39m=[32m"false"[39m
+              [33mid[39m=[32m"_r_9_-prompt"[39m
+              [33mmaxlength[39m=[32m"600"[39m
+              [33mrows[39m=[32m"2"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"npc-prompt-footer"[39m
+            [36m>[39m
+              [36m<small[39m
+                [33mid[39m=[32m"_r_9_-prompt-hint"[39m
+              [36m>[39m
+                [0m0[0m
+                [0m/[0m
+                [0m600[0m
+                [0m · Unsupported prompts redirect to technique.[0m
+              [36m</small>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mAsk locally[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<details[39m
+            [33mclass[39m=[32m"npc-memory"[39m
+          [36m>[39m
+            [36m<summary>[39m
+              [0mPreferred name and local staff memory[0m
+            [36m</summary>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"npc-help"[39m
+            [36m>[39m
+              [0mOptional: remember only your preferred name and which colleagues you have visited. No conversation or case information is saved. Nothing loads or saves automatically.[0m
+            [36m</p>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"npc-memory-optin"[39m
+            [36m>[39m
+              [36m<input[39m
+                [33mtype[39m=[32m"checkbox"[39m
+              [36m/>[39m
+              [36m<span>[39m
+                [0mAllow name and staff memory on this device[0m
+              [36m</span>[39m
+            [36m</label>[39m
+            [36m<form>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"_r_9_-name"[39m
+              [36m>[39m
+                [0mPreferred name (optional)[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33maria-invalid[39m=[32m"false"[39m
+                [33mautocomplete[39m=[32m"off"[39m
+                [33mid[39m=[32m"_r_9_-name"[39m
+                [33mmaxlength[39m=[32m"40"[39m
+                [33mtype[39m=[32m"text"[39m
+                [33mvalue[39m=[32m""[39m
+              [36m/>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mUse name for this visit[0m
+              [36m</button>[39m
+            [36m</form>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"npc-memory-actions"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mLoad saved staff memory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mForget local staff memory[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"npc-memory-notice"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mStaff familiarity updated for this visit. Use Save if you want to keep it on this device.[0m
+            [36m</p>[39m
+          [36m</details>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/precinct/ReceptionBriefingPanel.test.tsx:100:19
+     98|     expect(onTravel).toHaveBeenCalledWith("personal_dossier");
+     99|     expect(screen.getByText("LOCAL SCRIPTED DIALOGUE")).toBeTruthy();
+    100|     expect(screen.getByText("Authored responses · no model or network"…
+       |                   ^
+    101|   });
+    102|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/components/precinct/ReceptionBriefingPanel.test.tsx > ReceptionBriefingPanel > rejects unsafe names and preserves a subtitle when local voice is unavailable
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Read aloud locally"
+
+Here are the accessible roles:
+
+  button:
+
+  Name "Close panel":
+  [36m<button />[39m
+
+  Name "Check in for this shift":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-primary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Go to the case board":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Go to briefing":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Repeat greeting":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-primary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Play scripted staff voice":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where do I begin?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where is my desk?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where is the sergeant?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where is the interview room?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where can I review a session?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where are the leaderboards?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Where is the archive?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Can I use the station menu?":
+  [36m<button[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Ask locally":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"submit"[39m
+  [36m/>[39m
+
+  Name "Use name for this visit":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"submit"[39m
+  [36m/>[39m
+
+  Name "Load saved staff memory":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Forget local staff memory":
+  [36m<button[39m
+    [33mclass[39m=[32m"precinct-secondary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  dialog:
+
+  Name "Test station":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Test station"[39m
+    [33mrole[39m=[32m"dialog"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Reception check-in":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Reception check-in"[39m
+    [33mclass[39m=[32m"npc-station-welcome"[39m
+  [36m/>[39m
+
+  Name "Reception officer":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_p_-title"[39m
+    [33mclass[39m=[32m"npc-conversation"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"panel-lead"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"npc-assignment-summary"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"npc-help"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"npc-help"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong />[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Reception officer":
+  [36m<h3[39m
+    [33mid[39m=[32m"_r_p_-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<div[39m
+    [33maria-atomic[39m=[32m"true"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"npc-subtitle"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<span[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"npc-memory-notice"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  group:
+
+  Name "Authored conversation topics":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Authored conversation topics"[39m
+    [33mclass[39m=[32m"npc-topics"[39m
+    [33mrole[39m=[32m"group"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<details[39m
+    [33mclass[39m=[32m"npc-memory"[39m
+    [33mopen[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "Optional short prompt":
+  [36m<textarea[39m
+    [33maria-describedby[39m=[32m"_r_p_-prompt-hint"[39m
+    [33maria-invalid[39m=[32m"false"[39m
+    [33mid[39m=[32m"_r_p_-prompt"[39m
+    [33mmaxlength[39m=[32m"600"[39m
+    [33mrows[39m=[32m"2"[39m
+  [36m/>[39m
+
+  Name "Preferred name (optional)":
+  [36m<input[39m
+    [33maria-invalid[39m=[32m"true"[39m
+    [33mautocomplete[39m=[32m"off"[39m
+    [33mid[39m=[32m"_r_p_-name"[39m
+    [33mmaxlength[39m=[32m"40"[39m
+    [33mtype[39m=[32m"text"[39m
+    [33mvalue[39m=[32m"<script>"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  checkbox:
+
+  Name "Allow name and staff memory on this device":
+  [36m<input[39m
+    [33mtype[39m=[32m"checkbox"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<button>[39m
+      [0mClose panel[0m
+    [36m</button>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Test station"[39m
+      [33mrole[39m=[32m"dialog"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"npc-panel"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Reception check-in"[39m
+          [33mclass[39m=[32m"npc-station-welcome"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"panel-lead"[39m
+          [36m>[39m
+            [0mCheck in, choose your next stop, and get to know the precinct staff.[0m
+          [36m</p>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"npc-assignment-summary"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"precinct-kicker"[39m
+            [36m>[39m
+              [0mPUBLIC ASSIGNMENT[0m
+            [36m</span>[39m
+            [36m<strong>[39m
+              [0mPublic practice assignment[0m
+            [36m</strong>[39m
+            [36m<span>[39m
+              [0mPUBLIC_OBJECTIVE_SENTINEL: establish the documented sequence.[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"station-actions"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-primary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCheck in for this shift[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mGo to the case board[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mGo to briefing[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"_r_p_-title"[39m
+          [33mclass[39m=[32m"npc-conversation"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"npc-conversation-heading"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"station-tag"[39m
+              [36m>[39m
+                [0mLOCAL SCRIPTED DIALOGUE[0m
+              [36m</span>[39m
+              [36m<h3[39m
+                [33mid[39m=[32m"_r_p_-title"[39m
+              [36m>[39m
+                [0mReception officer[0m
+              [36m</h3>[39m
+            [36m</div>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"npc-offline-label"[39m
+            [36m>[39m
+              [0mAuthored responses · no model[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"npc-help"[39m
+          [36m>[39m
+            [0mChoose a topic or type a short technique question. These are fixed local responses, not an open-ended assistant. Staff cannot answer your case.[0m
+          [36m</p>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"precinct-primary"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mRepeat greeting[0m
+          [36m</button>[39m
+          [36m<div[39m
+            [33maria-atomic[39m=[32m"true"[39m
+            [33maria-live[39m=[32m"polite"[39m
+            [33mclass[39m=[32m"npc-subtitle"[39m
+            [33mrole[39m=[32m"status"[39m
+          [36m>[39m
+            [36m<span>[39m
+              [0mReception officer[0m
+            [36m</span>[39m
+            [36m<p>[39m
+              [0mWelcome. Welcome to the training precinct. I can help you find a room or explain how to get started.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"local-speech"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"precinct-secondary"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mPlay scripted staff voice[0m
+            [36m</button>[39m
+            [36m<span[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mFixed local dialogue · synthetic voice. No microphone or AI conversation.[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Authored conversation topics"[39m
+            [33mclass[39m=[32m"npc-topics"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere do I begin?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is my desk?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the sergeant?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the interview room?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere can I review a session?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere are the leaderboards?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mWhere is the archive?[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCan I use the station menu?[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"npc-prompt"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_p_-prompt"[39m
+            [36m>[39m
+              [0mOptional short prompt[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"_r_p_-prompt-hint"[39m
+              [33maria-invalid[39m=[32m"false"[39m
+              [33mid[39m=[32m"_r_p_-prompt"[39m
+              [33mmaxlength[39m=[32m"600"[39m
+              [33mrows[39m=[32m"2"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"npc-prompt-footer"[39m
+            [36m>[39m
+              [36m<small[39m
+                [33mid[39m=[32m"_r_p_-prompt-hint"[39m
+              [36m>[39m
+                [0m0[0m
+                [0m/[0m
+                [0m600[0m
+                [0m · Unsupported prompts redirect to technique.[0m
+              [36m</small>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mAsk locally[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<details[39m
+            [33mclass[39m=[32m"npc-memory"[39m
+            [33mopen[39m=[32m""[39m
+          [36m>[39m
+            [36m<summary>[39m
+              [0mPreferred name and local staff memory[0m
+            [36m</summary>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"npc-help"[39m
+            [36m>[39m
+              [0mOptional: remember only your preferred name and which colleagues you have visited. No conversation or case information is saved. Nothing loads or saves automatically.[0m
+            [36m</p>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"npc-memory-optin"[39m
+            [36m>[39m
+              [36m<input[39m
+                [33mtype[39m=[32m"checkbox"[39m
+              [36m/>[39m
+              [36m<span>[39m
+                [0mAllow name and staff memory on this device[0m
+              [36m</span>[39m
+            [36m</label>[39m
+            [36m<form>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"_r_p_-name"[39m
+              [36m>[39m
+                [0mPreferred name (optional)[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33maria-invalid[39m=[32m"true"[39m
+                [33mautocomplete[39m=[32m"off"[39m
+                [33mid[39m=[32m"_r_p_-name"[39m
+                [33mmaxlength[39m=[32m"40"[39m
+                [33mtype[39m=[32m"text"[39m
+                [33mvalue[39m=[32m"<script>"[39m
+              [36m/>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mUse name for this visit[0m
+              [36m</button>[39m
+            [36m</form>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"npc-memory-actions"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mLoad saved staff memory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"precinct-secondary"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mForget local staff memory[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"npc-memory-notice"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mStaff familiarity updated for this visit. Use Save if you want to keep it on this device.[0m
+            [36m</p>[39m
+          [36m</details>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../unissant_agentic_training_arena/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/precinct/ReceptionBriefingPanel.test.tsx:165:28
+    163|     fireEvent.click(screen.getByRole("button", { name: "Talk to recept…
+    164|     const before = document.querySelector(".npc-subtitle p")?.textCont…
+    165|     fireEvent.click(screen.getByRole("button", { name: "Read aloud loc…
+       |                            ^
+    166|     expect(document.querySelector(".npc-subtitle p")?.textContent).toB…
+    167|     expect(screen.getByText("No installed local voice is available. Th…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 11 passed (12)
+      Tests  2 failed | 67 passed (69)
+   Start at  12:22:10
+   Duration  52.01s (environment 66%, tests 15%, transform 9%, import 9%, worker 1%)
+
+    Isolate  12 workers spawned · ~3.09s startup each (spawn + environment, per file)
+             at least ~33.99s faster with isolate: false — reuses workers across files instead of one per file
+
